@@ -23,7 +23,7 @@
 
 - **Tác giả:** Đặng Như
 - **Email:** [dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)
-- **Phiên bản:** v2.2.3 Pro (Chuẩn hóa Vercel & PWA)
+- **Phiên bản:** v2.2.4 Pro (Đồng bộ Google Sheets & Lưu Ngoại Tuyến)
 
 ---
 
@@ -54,7 +54,14 @@
 - Xuất file CSV đạt chuẩn **UTF-8 BOM**, mở trực tiếp trên Microsoft Excel hiển thị tiếng Việt sắc nét không bao giờ lỗi font.
 - Hỗ trợ nút chia sẻ nhanh dữ liệu sổ đo qua Zalo, Gmail, AirDrop, v.v.
 
-### 5. 📐 Bài toán Trắc địa chuyên sâu
+### 5. ☁️ Lưu Trữ Ngoại Tuyến & Đồng Bộ Google Sheets / Google Drive
+- **Lưu ngoại tuyến 100% trên thiết bị:** Tốc độ tức thì, không cần mạng 4G/Wifi, không bị gián đoạn thao tác khi đo thực địa.
+- **Bảo mật tuyệt đối:** GitHub & Vercel chỉ đóng vai trò phân phối mã nguồn giao diện web tĩnh, tuyệt đối không lưu trữ dữ liệu cá nhân hay sổ đo của bạn.
+- **Đồng bộ Google Sheets 1-Chạm:** Tích hợp nút đồng bộ toàn bộ sổ đo lên bảng tính Google Sheets lưu trên Google Drive cá nhân của bạn thông qua Google Apps Script Web App.
+- **Tự động gửi mốc khi có mạng:** Tùy chọn tự động gửi mốc lên Google Sheet ngầm (non-blocking) ngay khi lưu ở thực địa mà không làm chậm máy.
+- Cung cấp sẵn mã kịch bản Google Apps Script tích hợp nhanh trong 1 phút.
+
+### 6. 📐 Bài toán Trắc địa chuyên sâu
 - **Bài toán trắc địa nghịch:** Tính cự ly ngang $S$, hiệu tọa độ $\Delta X, \Delta Y$, góc phương vị $\alpha$ (độ, phút, giây) và góc phần tư giữa 2 mốc bất kỳ.
 - **Tính diện tích & Chu vi thửa đất:** Tự động tính diện tích ($m^2$, ha) và chu vi ranh đất ($m$) từ danh sách các đỉnh mốc khép kín của dự án.
 

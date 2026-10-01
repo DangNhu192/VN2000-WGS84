@@ -20,6 +20,11 @@ const AppState = {
     currentProject: "VN2000_SoLieu_DoDac.csv",
     projectsList: ["VN2000_SoLieu_DoDac.csv"],
     
+    // Storage & Google Sync State
+    storageMode: 'offline', // 'offline' (mặc định) hoặc 'auto_google'
+    googleScriptUrl: '',
+    googleSheetViewUrl: '',
+    
     // GPS State
     isGpsTracking: true,
     gpsWatchId: null,
@@ -216,6 +221,17 @@ const appNav = {
         
         const count = appData.getPoints(AppState.currentProject).length;
         if (projEl) projEl.innerText = `${AppState.currentProject} (${count} mốc)`;
+
+        const storageEl = document.getElementById('bannerStorageMode');
+        if (storageEl) {
+            if (AppState.storageMode === 'auto_google') {
+                storageEl.innerHTML = `☁️ Google Sheets ${AppState.googleScriptUrl ? '🟢' : '⚠️'} ⚙️`;
+                storageEl.style.color = '#38bdf8';
+            } else {
+                storageEl.innerHTML = `📱 Ngoại tuyến (Trên máy) ⚙️`;
+                storageEl.style.color = '#4ade80';
+            }
+        }
     }
 };
 
@@ -557,10 +573,12 @@ const appTransform = {
             note: note
         };
 
-        pts.push(newPoint);
-        appData.savePoints(AppState.currentProject, pts);
-        appNav.updateBanner();
-        showToast(`✓ Đã lưu "${name}" vào file ${AppState.currentProject}!`, true);
+        appData.addPoint(AppState.currentProject, newPoint);
+        if (AppState.storageMode === 'auto_google' && AppState.googleScriptUrl) {
+            showToast(`✓ Đã lưu "${name}" và gửi Google Sheets!`, true);
+        } else {
+            showToast(`✓ Đã lưu "${name}" vào file ${AppState.currentProject}!`, true);
+        }
 
         // Xóa ô nhập sau khi lưu
         document.getElementById('txtSavePointName').value = '';
@@ -811,10 +829,12 @@ const appGps = {
             note: `GPS Live (±${AppState.lastGps.accuracy.toFixed(1)}m)`
         };
 
-        pts.push(newPoint);
-        appData.savePoints(AppState.currentProject, pts);
-        appNav.updateBanner();
-        showToast(`✓ Đã lưu nhanh "${name}"!`);
+        appData.addPoint(AppState.currentProject, newPoint);
+        if (AppState.storageMode === 'auto_google' && AppState.googleScriptUrl) {
+            showToast(`✓ Đã lưu nhanh "${name}" và gửi Google Sheets!`, true);
+        } else {
+            showToast(`✓ Đã lưu nhanh "${name}"!`);
+        }
     }
 };
 
@@ -1392,11 +1412,14 @@ const appMap = {
             note: "Chấm trên bản đồ"
         };
 
-        pts.push(newPoint);
-        appData.savePoints(AppState.currentProject, pts);
+        appData.addPoint(AppState.currentProject, newPoint);
         appMap.loadProjectMarkers();
         appMap.closeBottomSheet();
-        showToast(`✓ Đã lưu mốc "${name}"!`);
+        if (AppState.storageMode === 'auto_google' && AppState.googleScriptUrl) {
+            showToast(`✓ Đã lưu mốc "${name}" và gửi Google Sheets!`, true);
+        } else {
+            showToast(`✓ Đã lưu mốc "${name}"!`);
+        }
     },
 
     showConvertedPoint(lat, lng, x, y, name, ktt, k0) {
@@ -1510,7 +1533,13 @@ const appData = {
             AppState.currentProject = lastCur;
         }
 
+        // Khởi tạo cấu hình nơi lưu trữ & Google Sheets
+        AppState.storageMode = localStorage.getItem('vn2k_storage_mode') || 'offline';
+        AppState.googleScriptUrl = localStorage.getItem('vn2k_google_script_url') || '';
+        AppState.googleSheetViewUrl = localStorage.getItem('vn2k_google_sheet_view_url') || '';
+
         appData.populateProjectSelect();
+        appData.updateSyncUI();
     },
 
     populateProjectSelect() {
@@ -1542,6 +1571,259 @@ const appData = {
     savePoints(projectName, points) {
         const key = `vn2k_pts_${projectName}`;
         localStorage.setItem(key, JSON.stringify(points));
+    },
+
+    addPoint(projectName, point) {
+        const pts = appData.getPoints(projectName);
+        pts.push(point);
+        appData.savePoints(projectName, pts);
+        appNav.updateBanner();
+        if (AppState.currentScreen === 'datamgmt') {
+            appData.refreshTable();
+        }
+        if (AppState.storageMode === 'auto_google' && AppState.googleScriptUrl) {
+            appData.syncSinglePointToGoogle(point);
+        }
+    },
+
+    updateSyncUI() {
+        const modeBadge = document.getElementById('syncModeStatusBadge');
+        if (modeBadge) {
+            if (AppState.storageMode === 'auto_google') {
+                modeBadge.innerText = "☁️ Tự động đồng bộ Google Sheets khi có mạng";
+                modeBadge.style.color = "#38bdf8";
+            } else {
+                modeBadge.innerText = "📱 Ngoại tuyến (Lưu an toàn trên thiết bị)";
+                modeBadge.style.color = "#4ade80";
+            }
+        }
+
+        const linkBadge = document.getElementById('syncLinkedBadge');
+        if (linkBadge) {
+            if (AppState.googleScriptUrl) {
+                linkBadge.innerText = "🟢 Đã liên kết Google Apps Script Web App";
+                linkBadge.style.color = "#4ade80";
+            } else {
+                linkBadge.innerText = "⚪ Chưa cấu hình Web App URL (Bấm 'Cấu hình' để kết nối)";
+                linkBadge.style.color = "#94a3b8";
+            }
+        }
+
+        const btnOpen = document.getElementById('btnOpenGoogleSheet');
+        if (btnOpen) {
+            btnOpen.style.display = AppState.googleSheetViewUrl ? 'inline-flex' : 'none';
+        }
+
+        appNav.updateBanner();
+    },
+
+    selectStorageMode(mode) {
+        AppState.storageMode = mode;
+        const radOffline = document.getElementById('radioModeOffline');
+        const radAuto = document.getElementById('radioModeAutoGoogle');
+        const cardOffline = document.getElementById('cardModeOffline');
+        const cardAuto = document.getElementById('cardModeAutoGoogle');
+
+        if (radOffline) radOffline.checked = (mode === 'offline');
+        if (radAuto) radAuto.checked = (mode === 'auto_google');
+
+        if (cardOffline) cardOffline.classList.toggle('active', mode === 'offline');
+        if (cardAuto) cardAuto.classList.toggle('active', mode === 'auto_google');
+    },
+
+    saveGoogleConfig() {
+        const radAuto = document.getElementById('radioModeAutoGoogle');
+        AppState.storageMode = (radAuto && radAuto.checked) ? 'auto_google' : 'offline';
+
+        const scriptUrlInput = document.getElementById('txtGoogleScriptUrl');
+        AppState.googleScriptUrl = scriptUrlInput ? scriptUrlInput.value.trim() : '';
+
+        const sheetViewInput = document.getElementById('txtGoogleSheetViewUrl');
+        AppState.googleSheetViewUrl = sheetViewInput ? sheetViewInput.value.trim() : '';
+
+        localStorage.setItem('vn2k_storage_mode', AppState.storageMode);
+        localStorage.setItem('vn2k_google_script_url', AppState.googleScriptUrl);
+        localStorage.setItem('vn2k_google_sheet_view_url', AppState.googleSheetViewUrl);
+
+        appData.updateSyncUI();
+        appModal.closeGoogleConfig();
+        showToast("✓ Đã lưu cài đặt nơi lưu trữ & Google Sheets!");
+    },
+
+    syncToGoogleSheets() {
+        if (!AppState.googleScriptUrl) {
+            showToast("⚠️ Bạn chưa cài đặt link Google Apps Script URL!", true);
+            appModal.openGoogleConfig();
+            return;
+        }
+
+        const pts = appData.getPoints(AppState.currentProject);
+        if (pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để đồng bộ!", true);
+            return;
+        }
+
+        const btn = document.getElementById('btnSyncGoogleSheets');
+        const origText = btn ? btn.innerText : '';
+        if (btn) {
+            btn.innerText = "⏳ Đang gửi dữ liệu lên Google Sheets...";
+            btn.disabled = true;
+        }
+
+        const payload = {
+            action: 'bulk_sync',
+            project: AppState.currentProject,
+            points: pts
+        };
+
+        fetch(AppState.googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            showToast(`✓ Đã đồng bộ thành công ${pts.length} mốc lên Google Sheets!`, true);
+        }).catch(err => {
+            showToast(`⚠️ Không thể gửi dữ liệu: ${err.message}`, true);
+        }).finally(() => {
+            if (btn) {
+                btn.innerText = origText;
+                btn.disabled = false;
+            }
+        });
+    },
+
+    syncSinglePointToGoogle(point) {
+        if (AppState.storageMode !== 'auto_google' || !AppState.googleScriptUrl) return;
+
+        const payload = {
+            action: 'add_point',
+            project: AppState.currentProject,
+            point: point
+        };
+
+        fetch(AppState.googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            console.log(`[Google Sync] Đã gửi mốc "${point.name}" lên Google Sheets`);
+        }).catch(err => {
+            console.warn(`[Google Sync] Lỗi gửi mốc ngầm:`, err);
+        });
+    },
+
+    openConnectedGoogleSheet() {
+        if (AppState.googleSheetViewUrl) {
+            window.open(AppState.googleSheetViewUrl, '_blank');
+        } else {
+            showToast("⚠️ Chưa có link xem Google Sheet!", true);
+        }
+    },
+
+    testGoogleConnection() {
+        const urlInput = document.getElementById('txtGoogleScriptUrl');
+        const url = urlInput ? urlInput.value.trim() : '';
+
+        if (!url) {
+            showToast("⚠️ Vui lòng dán link Google Apps Script URL trước!", true);
+            return;
+        }
+
+        if (!url.startsWith("https://script.google.com/macros/s/")) {
+            showToast("⚠️ Link phải có dạng https://script.google.com/macros/s/.../exec", true);
+            return;
+        }
+
+        showToast("⏳ Đang thử nghiệm kết nối tới Google...");
+
+        const now = new Date();
+        const testPayload = {
+            action: 'test_connection',
+            project: 'Test_Connection',
+            point: {
+                time: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`,
+                name: "Kiem_Tra_Ket_Noi",
+                x: "1144058.623",
+                y: "539624.574",
+                lat: "10.345211",
+                lng: "106.113617",
+                mui: AppState.muiVal,
+                ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
+                note: "Thử nghiệm kết nối từ PWA"
+            }
+        };
+
+        fetch(url, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testPayload)
+        }).then(() => {
+            showToast("✅ Kết nối Google Apps Script thành công! (Dòng thử nghiệm đã được ghi vào Sheet)", true);
+        }).catch(err => {
+            showToast(`❌ Thất bại: ${err.message}`, true);
+        });
+    },
+
+    copyAppsScriptTemplate() {
+        const scriptCode = `/**
+ * GOOGLE APPS SCRIPT CHO PHÉP NHẬN SỔ ĐO TỌA ĐỘ VN-2000 & WGS-84 TỪ PWA
+ * Hướng dẫn: Mở Google Sheet > Tiện ích mở rộng > Apps Script > Dán mã này > Triển khai > Ứng dụng web mới (Bất kỳ ai)
+ */
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getActiveSheet();
+    
+    // Nếu sheet còn trống, tạo dòng tiêu đề chuẩn
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(["Thời Gian", "Tên Điểm", "Tọa Độ X (Bắc)", "Tọa Độ Y (Đông)", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú", "Dự Án"]);
+      sheet.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#1e293b").setFontColor("#38bdf8");
+    }
+    
+    var data = JSON.parse(e.postData.contents);
+    
+    // 1. Trường hợp đồng bộ toàn bộ mốc (Bulk Sync)
+    if (Array.isArray(data.points)) {
+      var rows = [];
+      data.points.forEach(function(p) {
+        rows.push([p.time || new Date(), p.name, p.x, p.y, p.lat, p.lng, p.mui, p.ktt, p.note || '', data.project || '']);
+      });
+      if (rows.length > 0) {
+        sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 10).setValues(rows);
+      }
+      return ContentService.createTextOutput(JSON.stringify({status: "success", count: rows.length})).setMimeType(ContentService.MimeType.JSON);
+    } 
+    // 2. Trường hợp lưu mốc lẻ theo thời gian thực (Real-time Single Point)
+    else if (data.point) {
+      var p = data.point;
+      sheet.appendRow([p.time || new Date(), p.name, p.x, p.y, p.lat, p.lng, p.mui, p.ktt, p.note || '', data.project || '']);
+      return ContentService.createTextOutput(JSON.stringify({status: "success", count: 1})).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Không tìm thấy dữ liệu mốc"})).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({status: "ok", message: "VN2000 Google Sync Web App sẵn sàng!"})).setMimeType(ContentService.MimeType.JSON);
+}`;
+        copyToClipboard(scriptCode);
+        showToast("📋 Đã sao chép mã Apps Script! Mở Tiện ích mở rộng > Apps Script trên Google Sheet để dán.", true);
     },
 
     onProjectSelectChange() {
@@ -1971,6 +2253,24 @@ const appModal = {
         appNav.updateBanner();
         appModal.closeSettings();
         showToast(`✓ Đã lưu KTT: ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`);
+    },
+
+    openGoogleConfig() {
+        const m = document.getElementById('modalGoogleConfig');
+        if (!m) return;
+        m.classList.add('active');
+
+        appData.selectStorageMode(AppState.storageMode || 'offline');
+        const scriptUrlInput = document.getElementById('txtGoogleScriptUrl');
+        if (scriptUrlInput) scriptUrlInput.value = AppState.googleScriptUrl || '';
+
+        const sheetViewInput = document.getElementById('txtGoogleSheetViewUrl');
+        if (sheetViewInput) sheetViewInput.value = AppState.googleSheetViewUrl || '';
+    },
+
+    closeGoogleConfig() {
+        const m = document.getElementById('modalGoogleConfig');
+        if (m) m.classList.remove('active');
     }
 };
 
