@@ -23,19 +23,27 @@
   <script src="offline_regions.js"></script>
   <script src="geodesy.js"></script>
 
+  <!-- Google Fonts: Inter (UI) & JetBrains Mono (Precision Geodesy Coordinates) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --primary: #1565C0;
-      --primary-dark: #0D47A1;
-      --primary-light: #1E88E5;
-      --accent-cyan: #0284c7;
-      --accent-green: #059669;
-      --accent-amber: #d97706;
-      --accent-red: #dc2626;
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --bg-card-light: #283548;
-      --border-color: #334155;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-light: #38bdf8;
+      --accent-cyan: #38bdf8;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --bg-dark: #0b1120;
+      --bg-card: #131d31;
+      --bg-card-light: #1e293b;
+      --border-color: rgba(56, 189, 248, 0.18);
+      --border-focus: #38bdf8;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-accent: #38bdf8;
@@ -62,9 +70,21 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: var(--font-sans);
       background-color: var(--bg-dark);
       color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overscroll-behavior: contain;
+    }
+
+    /* TYPOGRAPHY CHUẨN UI/UX PRO MAX CHO SỐ LIỆU TỌA ĐỘ & BẢNG BIỂU (TABULAR NUMBERS) */
+    .coord-val, .res-val, .stakeout-dist-val, .stakeout-delta-val,
+    .compass-bearing-val, .hud-item b, .rtk-metric-value,
+    .nmea-log-terminal, #leaflet-coord-hud, .profile-table-wrapper td,
+    input[inputmode="decimal"], input[type="number"], .map-bottom-coord {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
     }
 
     #app-container {
@@ -434,8 +454,8 @@
 
     .app-input {
       width: 100%;
-      height: 42px;
-      background: #0f172a;
+      height: 44px;
+      background: #091322;
       border: 1.5px solid var(--border-color);
       border-radius: 10px;
       padding: 0 12px;
@@ -443,18 +463,21 @@
       font-size: 14px;
       font-weight: 700;
       outline: none;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      transition: border-color 0.15s ease;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      transition: all 0.18s ease;
     }
 
     .app-input:focus {
-      border-color: var(--text-accent);
+      border-color: var(--border-focus);
+      background: #0d1a2d;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
     }
 
     .app-select {
       width: 100%;
-      height: 42px;
-      background: #0f172a;
+      height: 44px;
+      background: #091322;
       border: 1.5px solid var(--border-color);
       border-radius: 10px;
       padding: 0 10px;
@@ -462,11 +485,13 @@
       font-size: 13px;
       font-weight: 700;
       outline: none;
-      transition: border-color 0.15s ease;
+      font-family: var(--font-sans);
+      transition: all 0.18s ease;
     }
 
     .app-select:focus {
-      border-color: var(--text-accent);
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
     }
 
     /* BUTTONS */
@@ -478,56 +503,75 @@
     }
 
     .btn-sm {
-      background: #334155;
+      background: #1e293b;
       color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      padding: 7px 10px;
-      font-size: 11.5px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
       flex: 1;
-      height: 36px;
+      min-height: 38px;
+      touch-action: manipulation;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .btn-sm:active {
       transform: scale(0.96);
-      background: #475569;
+      background: #334155;
     }
 
-    .btn-sm.btn-blue { background: #0284c7; }
-    .btn-sm.btn-green { background: #059669; }
-    .btn-sm.btn-amber { background: #d97706; }
-    .btn-sm.btn-red { background: #dc2626; }
+    .btn-sm.btn-blue {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .btn-sm.btn-green {
+      background: #059669;
+      border-color: #34d399;
+    }
+    .btn-sm.btn-amber {
+      background: #d97706;
+      border-color: #fbbf24;
+    }
+    .btn-sm.btn-red {
+      background: #dc2626;
+      border-color: #f87171;
+    }
 
     /* BIG CONVERSION BUTTONS */
     .convert-actions-card {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin: 12px 0;
+      gap: 10px;
+      margin: 14px 0;
     }
 
     .btn-convert {
       width: 100%;
-      height: 48px;
+      min-height: 48px;
       border: none;
       border-radius: 12px;
       color: #ffffff;
-      font-size: 15px;
-      font-weight: 900;
+      font-size: 14.5px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      transition: transform 0.12s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
       touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .btn-convert:active {
@@ -535,18 +579,20 @@
     }
 
     .btn-wgs-to-vn2k {
-      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
-      border: 1px solid #38bdf8;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border: 1.5px solid #38bdf8;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
     }
 
     .btn-vn2k-to-wgs {
-      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-      border: 1px solid #fbbf24;
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      border: 1.5px solid #34d399;
+      box-shadow: 0 4px 16px rgba(5, 150, 105, 0.35);
     }
 
     .btn-view-map-large {
       background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
-      border: 1px solid #2dd4bf !important;
+      border: 1.5px solid #2dd4bf !important;
       box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35) !important;
     }
 
@@ -1015,25 +1061,26 @@
       top: calc(var(--sat-safe-top) + 10px);
       left: 10px;
       right: 10px;
-      height: 48px;
-      background: rgba(15, 23, 42, 0.94);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 12px;
+      height: 50px;
+      background: rgba(11, 17, 32, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 14px;
       border: 1.5px solid #38bdf8;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 10px;
+      padding: 0 12px;
       z-index: 1000;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(56, 189, 248, 0.2);
     }
 
     .map-mode-text {
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 800;
       color: #fbbf24;
       white-space: nowrap;
+      letter-spacing: 0.3px;
     }
 
     .map-right-controls {
@@ -1042,34 +1089,40 @@
       right: 10px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       z-index: 1000;
     }
 
     .btn-map-fab {
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(11, 17, 32, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(56, 189, 248, 0.35);
       color: #ffffff;
-      font-size: 19px;
+      font-size: 20px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      touch-action: manipulation;
+      transition: all 0.15s ease;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .btn-map-fab:active {
       transform: scale(0.92);
+      background: #0284c7;
     }
 
     .btn-map-fab.active {
       background: #0284c7;
       border-color: #38bdf8;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
     }
 
     .map-bottom-sheet {
@@ -1077,17 +1130,17 @@
       bottom: calc(var(--sat-safe-bottom) + 12px);
       left: 10px;
       right: 10px;
-      background: rgba(15, 23, 42, 0.96);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 14px;
+      background: rgba(11, 17, 32, 0.96);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: 16px;
       border: 1.5px solid #38bdf8;
-      padding: 10px 12px;
+      padding: 12px 14px;
       z-index: 1000;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.65);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .map-bottom-coord {
@@ -3063,11 +3116,11 @@
           </div>
           <div class="form-group">
             <label class="form-label">Vĩ độ (Lat / B):</label>
-            <input type="text" id="txtWgsLat" class="app-input" placeholder="VD: 10.345211 hoặc 10° 20.7127'">
+            <input type="text" id="txtWgsLat" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 10.345211 hoặc 10° 20.7127'">
           </div>
           <div class="form-group">
             <label class="form-label">Kinh độ (Long / L):</label>
-            <input type="text" id="txtWgsLng" class="app-input" placeholder="VD: 106.113617 hoặc 106° 06.8170'">
+            <input type="text" id="txtWgsLng" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 106.113617 hoặc 106° 06.8170'">
           </div>
           <div class="btn-group-row">
             <button class="btn-sm btn-green" onclick="appTransform.getLiveGps()">📍 GPS</button>
@@ -3118,11 +3171,11 @@
           </div>
           <div class="form-group">
             <label class="form-label">Tọa độ ngang X (Trục Bắc ~ 7 chữ số):</label>
-            <input type="text" id="txtVn2kX" class="app-input" placeholder="VD: 1144058.623">
+            <input type="text" id="txtVn2kX" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 1144058.623">
           </div>
           <div class="form-group">
             <label class="form-label">Tọa độ đứng Y (Trục Đông ~ 6 chữ số):</label>
-            <input type="text" id="txtVn2kY" class="app-input" placeholder="VD: 539624.574">
+            <input type="text" id="txtVn2kY" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 539624.574">
           </div>
           <div class="btn-group-row" style="margin-top: 6px;">
             <button class="btn-sm btn-blue" onclick="appTransform.copyVn2k()">📋 Sao chép</button>
@@ -3807,8 +3860,8 @@
         <div class="form-group">
           <label class="form-label">Tự nhập Kinh tuyến trục (° '):</label>
           <div class="input-row">
-            <input type="number" id="txtModalDeg" class="app-input" placeholder="Độ (VD: 105)">
-            <input type="number" id="txtModalMin" class="app-input" placeholder="Phút (VD: 45)">
+            <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)">
+            <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)">
           </div>
         </div>
         <div class="form-group">
@@ -3913,12 +3966,12 @@
             </select>
           </div>
           <div class="input-row" style="margin-bottom: 6px;">
-            <input type="number" id="txtResectionXA" class="app-input" placeholder="X (m) mốc A" step="0.001">
-            <input type="number" id="txtResectionYA" class="app-input" placeholder="Y (m) mốc A" step="0.001">
+            <input type="number" id="txtResectionXA" class="app-input" inputmode="decimal" placeholder="X (m) mốc A" step="0.001">
+            <input type="number" id="txtResectionYA" class="app-input" inputmode="decimal" placeholder="Y (m) mốc A" step="0.001">
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" style="font-size: 11px;">Khoảng cách từ trạm đo tới Mốc A (dA):</label>
-            <input type="number" id="txtResectionDistA" class="app-input" placeholder="Khoảng cách dA (m)" step="0.001">
+            <input type="number" id="txtResectionDistA" class="app-input" inputmode="decimal" placeholder="Khoảng cách dA (m)" step="0.001">
           </div>
         </div>
 
@@ -3932,12 +3985,12 @@
             </select>
           </div>
           <div class="input-row" style="margin-bottom: 6px;">
-            <input type="number" id="txtResectionXB" class="app-input" placeholder="X (m) mốc B" step="0.001">
-            <input type="number" id="txtResectionYB" class="app-input" placeholder="Y (m) mốc B" step="0.001">
+            <input type="number" id="txtResectionXB" class="app-input" inputmode="decimal" placeholder="X (m) mốc B" step="0.001">
+            <input type="number" id="txtResectionYB" class="app-input" inputmode="decimal" placeholder="Y (m) mốc B" step="0.001">
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" style="font-size: 11px;">Khoảng cách từ trạm đo tới Mốc B (dB):</label>
-            <input type="number" id="txtResectionDistB" class="app-input" placeholder="Khoảng cách dB (m)" step="0.001">
+            <input type="number" id="txtResectionDistB" class="app-input" inputmode="decimal" placeholder="Khoảng cách dB (m)" step="0.001">
           </div>
         </div>
 
@@ -4005,19 +4058,19 @@
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
           <div>
             <label class="form-label" style="font-size: 11px;">Cao độ thiết kế cọc đầu Z0 (m):</label>
-            <input type="number" id="txtProfileDesignZ0" class="app-input" placeholder="Tự động lấy cọc đầu" step="0.01">
+            <input type="number" id="txtProfileDesignZ0" class="app-input" inputmode="decimal" placeholder="Tự động lấy cọc đầu" step="0.01">
           </div>
           <div>
             <label class="form-label" style="font-size: 11px;">Độ dốc thiết kế i (%):</label>
-            <input type="number" id="txtProfileSlope" class="app-input" value="0.0" step="0.1" placeholder="0.0% (bằng phẳng)">
+            <input type="number" id="txtProfileSlope" class="app-input" inputmode="decimal" value="0.0" step="0.1" placeholder="0.0% (bằng phẳng)">
           </div>
           <div>
             <label class="form-label" style="font-size: 11px;">Bề rộng mặt nền B (m):</label>
-            <input type="number" id="txtProfileWidthB" class="app-input" value="6.0" step="0.5">
+            <input type="number" id="txtProfileWidthB" class="app-input" inputmode="decimal" value="6.0" step="0.5">
           </div>
           <div>
             <label class="form-label" style="font-size: 11px;">Mái dốc taluy m (1:m):</label>
-            <input type="number" id="txtProfileTaluyM" class="app-input" value="1.0" step="0.25">
+            <input type="number" id="txtProfileTaluyM" class="app-input" inputmode="decimal" value="1.0" step="0.25">
           </div>
         </div>
         <button class="btn-sm btn-purple" style="width: 100%; height: 38px; margin-top: 8px; font-size: 12.5px; background: #9333ea;" onclick="appElevationProfile.calculateAndRender()">
@@ -4110,8 +4163,8 @@
           </button>
         </div>
         <div class="input-row">
-          <input type="number" id="txtGeoidLat" class="app-input" placeholder="Vĩ độ Lat (°)" step="0.000001">
-          <input type="number" id="txtGeoidLng" class="app-input" placeholder="Kinh độ Lng (°)" step="0.000001">
+          <input type="number" id="txtGeoidLat" class="app-input" inputmode="decimal" placeholder="Vĩ độ Lat (°)" step="0.000001">
+          <input type="number" id="txtGeoidLng" class="app-input" inputmode="decimal" placeholder="Kinh độ Lng (°)" step="0.000001">
         </div>
       </div>
 
@@ -4120,7 +4173,7 @@
         <div class="form-group" style="margin-bottom: 10px;">
           <label class="form-label" style="color: #fbbf24;">1. Cao độ Ellipsoid GPS h (m) [Từ máy RTK / GNSS]:</label>
           <div style="display: flex; gap: 6px;">
-            <input type="number" id="txtInputEllipsoidH" class="app-input" placeholder="VD: 24.580 m" step="0.001" oninput="appGeoidVigac.convertFromEllipsoid(this.value)">
+            <input type="number" id="txtInputEllipsoidH" class="app-input" inputmode="decimal" placeholder="VD: 24.580 m" step="0.001" oninput="appGeoidVigac.convertFromEllipsoid(this.value)">
             <button class="btn-sm btn-amber" style="flex: none; width: 75px; height: 38px; font-size: 11.5px;" onclick="appGeoidVigac.convertFromEllipsoid()">Tính H ➔</button>
           </div>
         </div>
@@ -4130,7 +4183,7 @@
         <div class="form-group" style="margin-bottom: 0;">
           <label class="form-label" style="color: #38bdf8;">2. Cao độ Thủy chuẩn Quốc gia H (m) [Mốc Hòn Dấu]:</label>
           <div style="display: flex; gap: 6px;">
-            <input type="number" id="txtInputOrthometricH" class="app-input" placeholder="VD: 21.850 m" step="0.001" oninput="appGeoidVigac.convertFromOrthometric(this.value)">
+            <input type="number" id="txtInputOrthometricH" class="app-input" inputmode="decimal" placeholder="VD: 21.850 m" step="0.001" oninput="appGeoidVigac.convertFromOrthometric(this.value)">
             <button class="btn-sm btn-blue" style="flex: none; width: 75px; height: 38px; font-size: 11.5px;" onclick="appGeoidVigac.convertFromOrthometric()">Tính h ➔</button>
           </div>
         </div>
@@ -4650,7 +4703,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.4.1"></script>
+  <script src="app.js?v=2.5.0"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

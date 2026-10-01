@@ -1,6 +1,6 @@
 {
   "name": "vn2000-pro-pwa",
-  "version": "2.2.3",
+  "version": "2.5.0",
   "description": "Ứng dụng chuyển đổi tọa độ WGS-84 & VN-2000, trắc địa số liệu công trình và bản đồ thực địa PWA",
   "private": true,
   "scripts": {

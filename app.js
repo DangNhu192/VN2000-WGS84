@@ -105,9 +105,22 @@ function fallbackCopy(text) {
     document.body.removeChild(ta);
 }
 
+// ================= HAPTIC FEEDBACK (CHUẨN UI/UX PRO MAX - PHẢN HỒI RUNG THỰC ĐỊA) =================
+function triggerHaptic(type = 'light') {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+            if (type === 'light') navigator.vibrate(10);
+            else if (type === 'medium') navigator.vibrate(22);
+            else if (type === 'success') navigator.vibrate([15, 30, 20]);
+            else if (type === 'warning') navigator.vibrate([30, 50, 30]);
+        } catch (e) {}
+    }
+}
+
 // ================= 3. ĐIỀU HƯỚNG MÀN HÌNH (NAVIGATION) =================
 const appNav = {
     showScreen(screenName) {
+        triggerHaptic('light');
         if (AppState.isTreeDrawerOpen) {
             appNav.closeTreeMenu();
         }
@@ -176,6 +189,7 @@ const appNav = {
     },
 
     toggleTreeMenu() {
+        triggerHaptic('light');
         const now = Date.now();
         if (appNav._lastToggleTime && (now - appNav._lastToggleTime < 250)) {
             return;
@@ -705,6 +719,7 @@ const appTransform = {
             // Hiển thị dialog hỏi mở bản đồ như Android B4A
             appTransform.promptOpenConvertedMap(AppState.lastConvertedPoint);
 
+            triggerHaptic('success');
             showToast("✓ Đã tính chuyển thành công sang VN-2000!");
         } catch (e) {
             showToast("❌ Lỗi tính toán: " + e.message, true);
@@ -763,6 +778,7 @@ const appTransform = {
             // Hiển thị dialog hỏi mở bản đồ như Android B4A
             appTransform.promptOpenConvertedMap(AppState.lastConvertedPoint);
 
+            triggerHaptic('success');
             showToast("✓ Đã tính chuyển thành công sang WGS-84!");
         } catch (e) {
             showToast("❌ Lỗi tính toán: " + e.message, true);
@@ -781,6 +797,7 @@ const appTransform = {
                 const lng = pos.coords.longitude;
                 document.getElementById('txtWgsLat').value = formatLatLong(lat, AppState.formatType);
                 document.getElementById('txtWgsLng').value = formatLatLong(lng, AppState.formatType);
+                triggerHaptic('medium');
                 showToast(`✓ Đã nạp GPS (±${pos.coords.accuracy.toFixed(1)}m). Bấm nút chuyển đổi để tính!`, true);
             },
             (err) => {
@@ -934,6 +951,7 @@ const appTransform = {
         };
 
         appData.addPoint(AppState.currentProject, newPoint);
+        triggerHaptic('success');
         if (AppState.storageMode === 'auto_google' && AppState.googleScriptUrl) {
             showToast(`✓ Đã lưu "${name}" và gửi Google Sheets!`, true);
         } else {
@@ -1165,6 +1183,7 @@ const appGps = {
     },
 
     toggleTracking() {
+        triggerHaptic('medium');
         if (AppState.isGpsTracking) {
             appGps.stopTracking();
             showToast("⏸️ Đã tắt định vị GPS (tiết kiệm pin)");
@@ -2024,6 +2043,7 @@ const appMap = {
     },
 
     onMapClick(lat, lng) {
+        triggerHaptic('light');
         // Luôn cho phép hiển thị thông tin điểm chạm
         const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         AppState.pickedCoord = {
@@ -3900,11 +3920,13 @@ const appStakeout = {
                 distEl.classList.add('arrived');
                 distEl.innerText = "🎯 0.0 m";
                 if (dirEl) dirEl.innerText = "✓ ĐÃ ĐẾN VỊ TRÍ MỐC CHÍNH XÁC!";
+                triggerHaptic('success');
                 appStakeout.playBeepSound(880, 200);
             } else if (dist < 2.0) {
                 distEl.classList.add('near');
                 distEl.innerText = `${dist.toFixed(2)} m`;
                 if (dirEl) dirEl.innerText = `Đến rất gần mốc (${dist.toFixed(1)}m)`;
+                triggerHaptic('light');
                 appStakeout.playBeepSound(587, 80);
             } else {
                 distEl.innerText = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
@@ -4371,6 +4393,7 @@ const appBluetoothRtk = {
         appBluetoothRtk.parseNmeaLine(fakeNmea);
         appBluetoothRtk.device = { name: "CHCNAV_i73_Simulated_Fix" };
         appBluetoothRtk.updateUi();
+        triggerHaptic('success');
         showToast("⚡ Đã kích hoạt giả lập RTK FIX (Độ chính xác ±8mm, 32 SVs)!");
     },
 
@@ -4615,6 +4638,7 @@ const appResection = {
         if (elWgs && wgs) elWgs.innerText = `${wgs.lat.toFixed(6)}°, ${wgs.lng.toFixed(6)}°`;
         if (elDist) elDist.innerText = dAB.toFixed(3);
 
+        triggerHaptic('success');
         showToast("✓ Đã tính toán xong tọa độ giao hội trắc địa!");
     },
 
@@ -4782,6 +4806,7 @@ const appElevationProfile = {
 
         // Vẽ biểu đồ lên Canvas
         appElevationProfile.drawCanvas(items);
+        triggerHaptic('success');
     },
 
     drawCanvas(items) {
