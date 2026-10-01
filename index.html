@@ -649,7 +649,7 @@
 
     .map-right-controls {
       position: absolute;
-      top: calc(var(--sat-safe-top) + 68px);
+      top: calc(var(--sat-safe-top) + 112px);
       right: 10px;
       display: flex;
       flex-direction: column;
@@ -715,6 +715,205 @@
 
     .map-bottom-coord span.vn2k {
       color: #fde047;
+    }
+
+    /* Map Project Bar & Controls */
+    .map-project-bar {
+      position: absolute;
+      top: calc(var(--sat-safe-top) + 64px);
+      left: 10px;
+      right: 10px;
+      height: 40px;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 6px;
+      z-index: 1000;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+
+    .map-proj-select-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 0 6px;
+      height: 30px;
+      min-width: 0;
+    }
+
+    .map-proj-icon {
+      font-size: 13px;
+      flex: none;
+    }
+
+    .map-proj-select {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #38bdf8;
+      font-size: 11.5px;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .map-proj-select option {
+      background: #0f172a;
+      color: #f8fafc;
+    }
+
+    .btn-map-action {
+      flex: none;
+      height: 30px;
+      padding: 0 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .btn-map-action.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-map-action:active {
+      transform: scale(0.94);
+    }
+
+    /* Distance Badge Pill on Map Polyline */
+    .map-dist-pill {
+      background: rgba(15, 23, 42, 0.94);
+      border: 1.5px solid #fbbf24;
+      color: #fef08a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      cursor: pointer;
+      display: inline-block;
+      user-select: none;
+    }
+
+    .map-dist-pill:hover {
+      background: #b45309;
+      color: #fff;
+      border-color: #fef08a;
+    }
+
+    /* HUD Measurement Bar */
+    .map-distance-hud {
+      position: absolute;
+      top: calc(var(--sat-safe-top) + 110px);
+      left: 10px;
+      max-width: calc(100% - 76px);
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      border-radius: 10px;
+      padding: 5px 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+      font-size: 11.5px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    .hud-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f8fafc;
+      flex-wrap: wrap;
+    }
+
+    .hud-item b {
+      color: #38bdf8;
+    }
+
+    .btn-hud-tool {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-hud-tool.active {
+      background: #059669;
+      border-color: #34d399;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+    }
+
+    /* Measure Result Box */
+    .map-measure-box {
+      position: absolute;
+      bottom: calc(var(--sat-safe-bottom) + 82px);
+      left: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid #fbbf24;
+      border-radius: 12px;
+      padding: 10px 12px;
+      z-index: 1050;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .measure-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 12px;
+      color: #fbbf24;
+      margin-bottom: 6px;
+    }
+
+    .btn-measure-close {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0 4px;
     }
 
     /* MODAL SETTINGS POPUP */
@@ -1155,6 +1354,44 @@
           </button>
         </div>
 
+        <!-- Project Selector & Measurement Quick Bar on Map -->
+        <div class="map-project-bar">
+          <div class="map-proj-select-box" title="Chọn dự án đang lưu để hiển thị mốc">
+            <span class="map-proj-icon">📁</span>
+            <select id="selMapProjectFiles" class="map-proj-select" onchange="appMap.onMapProjectChange(this.value)">
+              <!-- Nạp danh sách dự án kèm số mốc -->
+            </select>
+          </div>
+          <button class="btn-map-action" title="Nhập file dự án / Tải file mẫu" onclick="appModal.openImportProjectModal()">
+            📥 Nhập File
+          </button>
+          <button id="btnToggleDistance" class="btn-map-action active" title="Bật/Tắt hiển thị khoảng cách giữa các điểm" onclick="appMap.toggleDistanceDisplay()">
+            📏 <span id="txtDistToggle">Khoảng cách</span>
+          </button>
+        </div>
+
+        <!-- HUD Đo Đạc Khoảng Cách & Đa Giác Tuyến Mốc -->
+        <div id="mapDistanceHud" class="map-distance-hud" style="display: none;">
+          <div class="hud-content">
+            <span class="hud-item">📏 <b id="hudTotalDistance">0 m</b> (<span id="hudSegmentsCount">0</span> đoạn)</span>
+            <span class="hud-item" id="hudAreaContainer" style="display: none;">📐 <b id="hudPolygonArea" style="color: #4ade80;">0 m²</b></span>
+          </div>
+          <div class="hud-actions" style="margin-left: auto;">
+            <button id="btnTogglePolygon" class="btn-hud-tool" onclick="appMap.togglePolygonClose()" title="Nối điểm cuối về điểm đầu và tính diện tích">
+              📐 Khép góc
+            </button>
+          </div>
+        </div>
+
+        <!-- Measurement Result Box (Khi chọn đo khoảng cách giữa 2 mốc tùy chọn) -->
+        <div id="mapPointMeasureBox" class="map-measure-box" style="display: none;">
+          <div class="measure-header">
+            <span>📏 KẾT QUẢ ĐO CỰ LY GIỮA 2 MỐC</span>
+            <button class="btn-measure-close" onclick="appMap.clearPointMeasure()">✕</button>
+          </div>
+          <div id="measureDetails" style="font-size: 12px; color: #f8fafc; line-height: 1.5;"></div>
+        </div>
+
         <!-- Right Quick Controls -->
         <div class="map-right-controls">
           <button class="btn-map-fab" title="Đổi lớp bản đồ (Vệ tinh / Đường phố)" onclick="appMap.toggleMapLayer()">
@@ -1217,9 +1454,10 @@
               </button>
             </div>
           </div>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn-sm" onclick="appData.renameCurrentProject()">✏️ Đổi tên</button>
-            <button class="btn-sm btn-red" onclick="appData.deleteCurrentProject()">🗑️ Xóa file</button>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn-sm" style="flex: 1;" onclick="appData.renameCurrentProject()">✏️ Đổi tên</button>
+            <button class="btn-sm btn-red" style="flex: 1;" onclick="appData.deleteCurrentProject()">🗑️ Xóa file</button>
+            <button class="btn-sm btn-green" style="flex: 1.2; font-weight: 700;" onclick="appModal.openImportProjectModal()">📥 Nhập File / Mẫu</button>
           </div>
         </div>
 
@@ -1643,6 +1881,82 @@
       <div style="margin-top: 10px; display: flex; gap: 6px;">
         <button class="btn-convert btn-wgs-to-vn2k" style="height: 40px; margin: 0; font-size: 13px;" onclick="appModal.closeGoogleGuide()">
           ✓ ĐÃ HIỂU - QUAY LẠI CÀI ĐẶT
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL NHẬP FILE DỰ ÁN & FILE MẪU ================= -->
+  <div id="modalImportProject" class="modal-overlay">
+    <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
+      <div class="card-header">
+        <span class="card-title">📥 Nhập File Tọa Độ & Số Liệu Dự Án</span>
+        <button class="btn-modal-close" onclick="appModal.closeImportProjectModal()">✕</button>
+      </div>
+
+      <!-- Phân vùng 1: Tải File Mẫu Thủ Công -->
+      <div style="background: rgba(56, 189, 248, 0.08); border: 1.5px dashed #38bdf8; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+        <div style="font-weight: 800; color: #38bdf8; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+          <span>📄 1. FILE MẪU NHẬP THỦ CÔNG (.CSV)</span>
+        </div>
+        <div style="font-size: 12px; color: #cbd5e1; margin: 6px 0 10px 0; line-height: 1.5;">
+          Tải file mẫu Excel / CSV chuẩn cột trắc địa, mở bằng Microsoft Excel hoặc Google Sheets để nhập số liệu mốc thủ công, sau đó tải lên ứng dụng:
+        </div>
+        <button class="btn-convert btn-wgs-to-vn2k" style="margin: 0; height: 40px; font-size: 12.5px;" onclick="appData.downloadSampleCsv()">
+          📥 TẢI FILE MẪU EXCEL / CSV (.CSV)
+        </button>
+      </div>
+
+      <!-- Phân vùng 2: Chọn File từ thiết bị -->
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+        <div style="font-weight: 800; color: #fbbf24; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+          <span>📂 2. CHỌN FILE TỌA ĐỘ TỪ MÁY (.CSV, .TXT, .DAT)</span>
+        </div>
+        <div style="font-size: 12px; color: #94a3b8; margin: 6px 0 10px 0; line-height: 1.4;">
+          Nhận dạng tự động cột Tên, X, Y (hoặc Lat, Lng). Tự tính toán chuyển đổi tọa độ còn thiếu theo KTT hiện tại.
+        </div>
+        
+        <input type="file" id="fileInputProject" accept=".csv,.txt,.dat,.xyz" style="display: none;" onchange="appData.handleFileImport(event)">
+        <button class="btn-sm btn-blue" style="width: 100%; height: 40px; font-weight: 700; font-size: 12.5px;" onclick="document.getElementById('fileInputProject').click()">
+          📁 CHỌN FILE TỪ THIẾT BỊ...
+        </button>
+
+        <div style="margin-top: 10px; background: rgba(30, 41, 59, 0.6); padding: 8px 10px; border-radius: 8px;">
+          <label style="font-size: 11.5px; color: #94a3b8; font-weight: 700;">Nơi lưu dữ liệu nhập vào:</label>
+          <div style="display: flex; gap: 12px; margin-top: 5px;">
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #f8fafc; cursor: pointer;">
+              <input type="radio" name="importTargetMode" value="new" checked onchange="appData.toggleImportTargetName(this.value)">
+              Tạo dự án mới
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #f8fafc; cursor: pointer;">
+              <input type="radio" name="importTargetMode" value="append" onchange="appData.toggleImportTargetName(this.value)">
+              Thêm vào dự án hiện tại
+            </label>
+          </div>
+          <div id="importNewNameContainer" style="margin-top: 8px;">
+            <input type="text" id="txtImportNewProjectName" class="app-input" placeholder="Tên file dự án mới (ví dụ: DoDac_KhuA.csv)" style="height: 36px; font-size: 12px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Phân vùng 3: Nhập / Dán Tọa Độ Thủ Công -->
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 12px;">
+        <div style="font-weight: 800; color: #4ade80; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+          <span>✏️ 3. DÁN TỌA ĐỘ NHANH (TỪ ZALO, EXCEL, GHI CHÚ)</span>
+        </div>
+        <div style="font-size: 11.5px; color: #94a3b8; margin: 4px 0 6px 0;">
+          Dán danh sách mốc (mỗi mốc 1 dòng, phân cách bằng dấu phẩy hoặc khoảng trắng):
+        </div>
+        <textarea id="txtManualPointsInput" class="app-input" style="height: 100px; font-family: monospace; font-size: 11.5px; line-height: 1.4; resize: vertical;" placeholder="Ví dụ:&#10;M1, 1144058.623, 539624.574, Mốc gốc ranh&#10;M2, 1144120.350, 539680.120, Góc phía Đông&#10;M3, 1144185.700, 539620.450, Góc phía Bắc&#10;M4, 1144115.200, 539560.800, Góc phía Tây"></textarea>
+
+        <button class="btn-convert btn-green" style="margin-top: 8px; height: 42px; font-size: 13px; font-weight: 800;" onclick="appData.importManualPastedPoints()">
+          🚀 NẠP TỌA ĐỘ VÀO BẢN ĐỒ NGAY
+        </button>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <button class="btn-sm" style="width: 100%; height: 36px;" onclick="appModal.closeImportProjectModal()">
+          ✕ Đóng cửa sổ
         </button>
       </div>
     </div>

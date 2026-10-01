@@ -42,6 +42,12 @@ const AppState = {
     isDtCommunesVisible: false,
     projectMarkersGroup: null,
     projectPolyline: null,
+    projectDistanceLabelsGroup: null,
+    projectPolygonLayer: null,
+    showProjectDistance: true,
+    isPolygonClosed: false,
+    measureStartPoint: null,
+    measureActiveLine: null,
     pickerMarker: null,
     pickedCoord: null, // { lat, lng, X, Y }
     lastConvertedPoint: null, // { lat, lng, x, y, name, ktt, k0 }
@@ -901,6 +907,94 @@ function calcGeoDistanceAndAzimuth(lat1, lon1, lat2, lon2) {
     return { distance: dist, azimuth: az };
 }
 
+// Tính khoảng cách phẳng trắc địa giữa 2 mốc (ưu tiên X, Y VN-2000, fallback WGS-84)
+function calcPointsDistance(pA, pB) {
+    const xA = parseFloat(pA.x);
+    const yA = parseFloat(pA.y);
+    const xB = parseFloat(pB.x);
+    const yB = parseFloat(pB.y);
+
+    if (!isNaN(xA) && !isNaN(yA) && !isNaN(xB) && !isNaN(yB) && xA !== 0 && xB !== 0) {
+        const dx = xB - xA;
+        const dy = yB - yA;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    const latA = parseFloat(pA.lat);
+    const lngA = parseFloat(pA.lng);
+    const latB = parseFloat(pB.lat);
+    const lngB = parseFloat(pB.lng);
+    return calcGeoDistanceAndAzimuth(latA, lngA, latB, lngB).distance;
+}
+
+// Thêm nhãn khoảng cách (Distance Badge) vào trung điểm đoạn nối trên bản đồ
+function addDistanceBadge(pA, pB, dist) {
+    const latA = parseFloat(pA.lat);
+    const lngA = parseFloat(pA.lng);
+    const latB = parseFloat(pB.lat);
+    const lngB = parseFloat(pB.lng);
+
+    const midLat = (latA + latB) / 2;
+    const midLng = (lngA + lngB) / 2;
+
+    const labelText = dist < 1000 ? `${dist.toFixed(1)}m` : `${(dist / 1000).toFixed(2)}km`;
+    const icon = L.divIcon({
+        className: '',
+        html: `<div class="map-dist-pill" title="Cự ly: ${dist.toFixed(2)} m">${labelText}</div>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+    });
+
+    const badgeMarker = L.marker([midLat, midLng], {
+        icon: icon,
+        interactive: false
+    });
+    if (AppState.projectDistanceLabelsGroup) {
+        AppState.projectDistanceLabelsGroup.addLayer(badgeMarker);
+    }
+}
+
+// Tính diện tích đa giác trắc địa theo công thức Gauss (Shoelace formula)
+function calcGaussPolygonArea(pts) {
+    const n = pts.length;
+    if (n < 3) return 0;
+
+    let hasAllXY = true;
+    for (let i = 0; i < n; i++) {
+        const x = parseFloat(pts[i].x);
+        const y = parseFloat(pts[i].y);
+        if (isNaN(x) || isNaN(y) || x === 0 || y === 0) {
+            hasAllXY = false;
+            break;
+        }
+    }
+
+    if (hasAllXY) {
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+            const next = (i + 1) % n;
+            const xi = parseFloat(pts[i].x);
+            const yi = parseFloat(pts[i].y);
+            const xNext = parseFloat(pts[next].x);
+            const yNext = parseFloat(pts[next].y);
+            sum += (xi * yNext - xNext * yi);
+        }
+        return Math.abs(sum) / 2.0;
+    }
+
+    // Fallback mặt cầu WGS-84
+    const R = 6378137;
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+        const next = (i + 1) % n;
+        const lat1 = parseFloat(pts[i].lat) * Math.PI / 180;
+        const lon1 = parseFloat(pts[i].lng) * Math.PI / 180;
+        const lat2 = parseFloat(pts[next].lat) * Math.PI / 180;
+        const lon2 = parseFloat(pts[next].lng) * Math.PI / 180;
+        sum += (lon2 - lon1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+    }
+    return Math.abs(sum * R * R / 4.0);
+}
+
 // ================= 7. PHÂN HỆ BẢN ĐỒ LEAFLET (MAP VIEWER & PICKER) =================
 const appMap = {
     initMap() {
@@ -932,6 +1026,7 @@ const appMap = {
         AppState.activeBaseLayerId = 'google_hybrid';
 
         AppState.projectMarkersGroup = L.layerGroup().addTo(map);
+        AppState.projectDistanceLabelsGroup = L.layerGroup().addTo(map);
 
         // Sự kiện chạm chọn điểm trên bản đồ
         map.on('click', (e) => {
@@ -1078,21 +1173,150 @@ const appMap = {
         }
     },
 
+    populateMapProjectSelect() {
+        const sel = document.getElementById('selMapProjectFiles');
+        if (!sel) return;
+        sel.innerHTML = '';
+        AppState.projectsList.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            const ptsCount = appData.getPoints(name).length;
+            opt.innerText = `${name} (${ptsCount} mốc)`;
+            if (name === AppState.currentProject) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    },
+
+    onMapProjectChange(projectName) {
+        if (!projectName) return;
+        AppState.currentProject = projectName;
+        localStorage.setItem('vn2k_cur_project', AppState.currentProject);
+        appData.populateProjectSelect();
+        appNav.updateBanner();
+        appMap.loadProjectMarkers();
+        appMap.fitProjectBounds();
+        showToast(`📁 Chuyển dự án: ${projectName}`);
+    },
+
+    toggleDistanceDisplay() {
+        AppState.showProjectDistance = !AppState.showProjectDistance;
+        const btn = document.getElementById('btnToggleDistance');
+        const txt = document.getElementById('txtDistToggle');
+        if (btn) btn.classList.toggle('active', AppState.showProjectDistance);
+        if (txt) txt.innerText = AppState.showProjectDistance ? "Khoảng cách" : "Ẩn cự ly";
+        appMap.loadProjectMarkers();
+        showToast(AppState.showProjectDistance ? "📏 Đã BẬT hiển thị khoảng cách giữa các điểm" : "Đã ẨN khoảng cách");
+    },
+
+    togglePolygonClose() {
+        AppState.isPolygonClosed = !AppState.isPolygonClosed;
+        const btn = document.getElementById('btnTogglePolygon');
+        if (btn) btn.classList.toggle('active', AppState.isPolygonClosed);
+        appMap.loadProjectMarkers();
+        showToast(AppState.isPolygonClosed ? "📐 Đã khép góc đa giác & tính diện tích!" : "Đã mở tuyến đường chuyền");
+    },
+
+    startMeasureFromPoint(idx) {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || !pts[idx]) return;
+        AppState.measureStartPoint = pts[idx];
+        if (AppState.leafletMap) AppState.leafletMap.closePopup();
+        showToast(`📏 Đã chọn mốc "${pts[idx].name || ('Mốc ' + (idx + 1))}"! Chạm vào mốc khác để xem khoảng cách.`, true);
+    },
+
+    showPointMeasurement(pA, pB) {
+        if (!pA || !pB || !AppState.leafletMap) return;
+
+        const latA = parseFloat(pA.lat);
+        const lngA = parseFloat(pA.lng);
+        const latB = parseFloat(pB.lat);
+        const lngB = parseFloat(pB.lng);
+
+        const xA = parseFloat(pA.x);
+        const yA = parseFloat(pA.y);
+        const xB = parseFloat(pB.x);
+        const yB = parseFloat(pB.y);
+
+        let dist = 0;
+        let dx = 0;
+        let dy = 0;
+
+        if (!isNaN(xA) && !isNaN(yA) && !isNaN(xB) && !isNaN(yB) && xA !== 0 && xB !== 0) {
+            dx = xB - xA;
+            dy = yB - yA;
+            dist = Math.sqrt(dx * dx + dy * dy);
+        } else {
+            const geo = calcGeoDistanceAndAzimuth(latA, lngA, latB, lngB);
+            dist = geo.distance;
+        }
+
+        const geo = calcGeoDistanceAndAzimuth(latA, lngA, latB, lngB);
+        const distStr = dist < 1000 ? `${dist.toFixed(2)} m` : `${(dist / 1000).toFixed(3)} km`;
+        const azStr = `${geo.azimuth.toFixed(1)}°`;
+
+        // Vẽ đường đo màu vàng nổi bật
+        if (AppState.measureActiveLine && AppState.leafletMap.hasLayer(AppState.measureActiveLine)) {
+            AppState.leafletMap.removeLayer(AppState.measureActiveLine);
+        }
+        AppState.measureActiveLine = L.polyline([[latA, lngA], [latB, lngB]], {
+            color: '#fbbf24',
+            weight: 3.5,
+            dashArray: '8, 8'
+        }).addTo(AppState.leafletMap);
+
+        // Hiển thị hộp thông tin kết quả đo
+        const box = document.getElementById('mapPointMeasureBox');
+        const details = document.getElementById('measureDetails');
+        if (box && details) {
+            details.innerHTML = `
+                <div style="margin-bottom: 4px;"><b>Đoạn:</b> <span style="color:#38bdf8; font-weight:700;">${pA.name || 'Mốc A'}</span> ➔ <span style="color:#fde047; font-weight:700;">${pB.name || 'Mốc B'}</span></div>
+                <div style="font-size: 13.5px; font-weight: 800; color: #fde047; margin-bottom: 4px;">• Cự ly phẳng: ${distStr}</div>
+                <div style="color: #cbd5e1; font-size: 11.5px;">• Góc phương vị: <b>${azStr}</b> | <b>ΔX:</b> ${dx >= 0 ? '+' : ''}${dx.toFixed(2)} m | <b>ΔY:</b> ${dy >= 0 ? '+' : ''}${dy.toFixed(2)} m</div>
+            `;
+            box.style.display = 'block';
+        }
+    },
+
+    clearPointMeasure() {
+        if (AppState.measureActiveLine && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.measureActiveLine)) {
+            AppState.leafletMap.removeLayer(AppState.measureActiveLine);
+            AppState.measureActiveLine = null;
+        }
+        AppState.measureStartPoint = null;
+        const box = document.getElementById('mapPointMeasureBox');
+        if (box) box.style.display = 'none';
+    },
+
     loadProjectMarkers() {
-        if (!AppState.projectMarkersGroup) return;
+        if (!AppState.projectMarkersGroup || !AppState.leafletMap) return;
         AppState.projectMarkersGroup.clearLayers();
+        if (AppState.projectDistanceLabelsGroup) {
+            AppState.projectDistanceLabelsGroup.clearLayers();
+        }
+        if (AppState.projectPolygonLayer && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
+            AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
+            AppState.projectPolygonLayer = null;
+        }
+
+        appMap.populateMapProjectSelect();
 
         const pts = appData.getPoints(AppState.currentProject);
-        if (!pts || pts.length === 0) return;
+        if (!pts || pts.length === 0) {
+            const hud = document.getElementById('mapDistanceHud');
+            if (hud) hud.style.display = 'none';
+            return;
+        }
 
-        const latLngs = [];
+        const validCoords = [];
+        const validPoints = [];
 
         pts.forEach((p, idx) => {
             const lat = parseFloat(p.lat);
             const lng = parseFloat(p.lng);
             if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
 
-            latLngs.push([lat, lng]);
+            validCoords.push([lat, lng]);
+            validPoints.push(p);
 
             // Ghim đánh số thứ tự 1, 2, 3...
             const iconHtml = `<div style="background:#dc2626; color:#fff; border:2px solid #fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; box-shadow:0 3px 8px rgba(0,0,0,0.5);">${idx + 1}</div>`;
@@ -1104,29 +1328,118 @@ const appMap = {
             });
 
             const marker = L.marker([lat, lng], { icon: customIcon });
+
+            marker.on('click', () => {
+                if (AppState.measureStartPoint && AppState.measureStartPoint !== p) {
+                    appMap.showPointMeasurement(AppState.measureStartPoint, p);
+                    AppState.measureStartPoint = null;
+                }
+            });
+
             marker.bindPopup(`
                 <div style="font-family:-apple-system, sans-serif; font-size:12px; line-height:1.5;">
-                    <b style="color:#e11d48; font-size:13px;">📌 ${p.name}</b><br>
-                    <b>X:</b> ${p.x} m<br>
-                    <b>Y:</b> ${p.y} m<br>
+                    <b style="color:#e11d48; font-size:13px;">📌 ${idx + 1}. ${p.name || 'Mốc'}</b><br>
+                    <b>X:</b> ${p.x || '--'} m<br>
+                    <b>Y:</b> ${p.y || '--'} m<br>
                     <b>Lat:</b> ${p.lat}° | <b>Lng:</b> ${p.lng}°<br>
                     <b>Ghi chú:</b> ${p.note || 'Không'}<br>
                     <button onclick="appMap.loadPointDirect('${p.lat}', '${p.lng}', '${p.x}', '${p.y}')" style="margin-top:6px; background:#1565C0; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
                         📌 NẠP VÀO MÀN HÌNH CHÍNH
+                    </button>
+                    <button onclick="appMap.startMeasureFromPoint(${idx})" style="margin-top:4px; background:#d97706; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
+                        📏 ĐO KHOẢNG CÁCH TỪ ĐIỂM NÀY
                     </button>
                 </div>
             `);
             AppState.projectMarkersGroup.addLayer(marker);
         });
 
-        // Nối đường line giữa các mốc
-        if (latLngs.length > 1) {
-            AppState.projectPolyline = L.polyline(latLngs, {
+        const n = validPoints.length;
+        if (n >= 2) {
+            let totalDist = 0;
+            let segmentCount = 0;
+
+            // Nối đường line giữa các mốc
+            const lineCoords = validCoords.slice();
+            if (AppState.isPolygonClosed && n >= 3) {
+                lineCoords.push(validCoords[0]); // Nối khép góc về điểm đầu
+            }
+
+            AppState.projectPolyline = L.polyline(lineCoords, {
                 color: '#38bdf8',
                 weight: 2.5,
                 dashArray: '5, 8'
             });
             AppState.projectMarkersGroup.addLayer(AppState.projectPolyline);
+
+            // Tính khoảng cách từng đoạn
+            for (let i = 0; i < n - 1; i++) {
+                const pA = validPoints[i];
+                const pB = validPoints[i + 1];
+                const segDist = calcPointsDistance(pA, pB);
+                totalDist += segDist;
+                segmentCount++;
+
+                if (AppState.showProjectDistance && AppState.projectDistanceLabelsGroup) {
+                    addDistanceBadge(pA, pB, segDist);
+                }
+            }
+
+            // Đoạn khép góc cuối về đầu
+            if (AppState.isPolygonClosed && n >= 3) {
+                const pLast = validPoints[n - 1];
+                const pFirst = validPoints[0];
+                const closeDist = calcPointsDistance(pLast, pFirst);
+                totalDist += closeDist;
+                segmentCount++;
+
+                if (AppState.showProjectDistance && AppState.projectDistanceLabelsGroup) {
+                    addDistanceBadge(pLast, pFirst, closeDist);
+                }
+
+                // Vẽ Polygon đa giác
+                AppState.projectPolygonLayer = L.polygon(validCoords, {
+                    color: '#10b981',
+                    weight: 2,
+                    fillColor: '#34d399',
+                    fillOpacity: 0.15
+                }).addTo(AppState.leafletMap);
+
+                // Tính diện tích đa giác theo công thức Gauss
+                const area = calcGaussPolygonArea(validPoints);
+                const areaContainer = document.getElementById('hudAreaContainer');
+                const areaVal = document.getElementById('hudPolygonArea');
+                if (areaContainer && areaVal) {
+                    areaContainer.style.display = 'inline-flex';
+                    if (area >= 10000) {
+                        areaVal.innerText = `${area.toLocaleString('vi-VN', {maximumFractionDigits: 1})} m² (${(area / 10000).toFixed(3)} ha)`;
+                    } else {
+                        areaVal.innerText = `${area.toLocaleString('vi-VN', {maximumFractionDigits: 1})} m² (${(area / 1000).toFixed(2)} công)`;
+                    }
+                }
+            } else {
+                const areaContainer = document.getElementById('hudAreaContainer');
+                if (areaContainer) areaContainer.style.display = 'none';
+            }
+
+            // Cập nhật thanh HUD khoảng cách
+            const hud = document.getElementById('mapDistanceHud');
+            const totalDistEl = document.getElementById('hudTotalDistance');
+            const segCountEl = document.getElementById('hudSegmentsCount');
+            const btnPoly = document.getElementById('btnTogglePolygon');
+
+            if (hud) hud.style.display = 'flex';
+            if (totalDistEl) {
+                totalDistEl.innerText = totalDist < 1000 
+                    ? `${totalDist.toFixed(1)} m` 
+                    : `${(totalDist / 1000).toFixed(2)} km`;
+            }
+            if (segCountEl) segCountEl.innerText = segmentCount;
+            if (btnPoly) btnPoly.classList.toggle('active', AppState.isPolygonClosed);
+
+        } else {
+            const hud = document.getElementById('mapDistanceHud');
+            if (hud) hud.style.display = 'none';
         }
     },
 
@@ -1561,17 +1874,23 @@ const appData = {
 
     populateProjectSelect() {
         const sel = document.getElementById('selProjectFiles');
-        if (!sel) return;
-        sel.innerHTML = '';
-        AppState.projectsList.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.innerText = name;
-            if (name === AppState.currentProject) opt.selected = true;
-            sel.appendChild(opt);
-        });
+        if (sel) {
+            sel.innerHTML = '';
+            AppState.projectsList.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.innerText = name;
+                if (name === AppState.currentProject) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
         const cntEl = document.getElementById('txtPointsCount');
         if (cntEl) cntEl.innerText = appData.getPoints(AppState.currentProject).length;
+
+        // Đồng bộ luôn dropdown trên bản đồ dự án
+        if (window.appMap && appMap.populateMapProjectSelect) {
+            appMap.populateMapProjectSelect();
+        }
     },
 
     getPoints(projectName) {
@@ -2236,6 +2555,178 @@ function doGet(e) {
         } else {
             appData.exportCsvFile();
         }
+    },
+
+    downloadSampleCsv() {
+        const sampleRows = [
+            "Tên Điểm,Tọa Độ X (Bắc - m),Tọa Độ Y (Đông - m),Vĩ Độ (Lat - °),Kinh Độ (Long - °),Múi Chiếu,Kinh Tuyến Trục,Ghi Chú",
+            "M1,1144058.623,539624.574,10.345211,106.113617,3,105.75,Mốc gốc ranh đất",
+            "M2,1144120.350,539680.120,10.345768,106.114125,3,105.75,Góc ranh phía Đông",
+            "M3,1144185.700,539620.450,10.346360,106.113580,3,105.75,Góc ranh phía Bắc",
+            "M4,1144115.200,539560.800,10.345724,106.113035,3,105.75,Góc ranh phía Tây"
+        ];
+        const content = "\uFEFF" + sampleRows.join("\r\n");
+        const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "File_Mau_Toa_Do_VN2000.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast("✓ Đã tải file mẫu: File_Mau_Toa_Do_VN2000.csv!");
+    },
+
+    toggleImportTargetName(mode) {
+        const c = document.getElementById('importNewNameContainer');
+        if (c) c.style.display = (mode === 'new') ? 'block' : 'none';
+    },
+
+    handleFileImport(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            appData.processImportedText(text, file.name);
+        };
+        reader.readAsText(file, "UTF-8");
+        event.target.value = "";
+    },
+
+    importManualPastedPoints() {
+        const txt = document.getElementById('txtManualPointsInput')?.value;
+        if (!txt || !txt.trim()) {
+            return showToast("⚠️ Vui lòng dán danh sách tọa độ vào ô trước khi nạp!", true);
+        }
+        appData.processImportedText(txt, `DuAn_Nhap_${Date.now().toString().slice(-4)}.csv`);
+    },
+
+    processImportedText(text, defaultName) {
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length === 0) {
+            return showToast("⚠️ Không tìm thấy dữ liệu tọa độ nào trong nội dung!", true);
+        }
+
+        const parsedPoints = [];
+        const now = new Date().toLocaleString('vi-VN');
+
+        lines.forEach((line, idx) => {
+            let parts = [];
+            if (line.includes(',') || line.includes(';')) {
+                const sep = line.includes(';') ? ';' : ',';
+                parts = line.split(sep).map(p => p.trim().replace(/^"|"$/g, ''));
+            } else {
+                parts = line.split(/\s+/).map(p => p.trim());
+            }
+
+            if (parts.length < 2) return;
+
+            const lower0 = parts[0].toLowerCase();
+            if (lower0.includes('tên') || lower0.includes('thời gian') || lower0.includes('name') || lower0.includes('time')) {
+                return;
+            }
+
+            let name = parts[0] || `M${idx + 1}`;
+            let val1 = parseFloat((parts[1] || '').replace(',', '.'));
+            let val2 = parseFloat(parts[2] ? parts[2].replace(',', '.') : '0');
+            let val3 = parseFloat(parts[3] ? parts[3].replace(',', '.') : '0');
+            let val4 = parseFloat(parts[4] ? parts[4].replace(',', '.') : '0');
+            let note = parts[parts.length - 1];
+            if (typeof note === 'string' && (note === parts[1] || note === parts[2] || !isNaN(parseFloat(note)))) {
+                note = "";
+            }
+
+            let x = 0, y = 0, lat = 0, lng = 0;
+
+            // Kiểm tra cấu trúc 8-9 cột chuẩn
+            if (parts.length >= 6 && !isNaN(val1) && !isNaN(val2) && !isNaN(val3) && !isNaN(val4)) {
+                if (isNaN(parseFloat(parts[0])) && val1 > 1000) {
+                    name = parts[0];
+                    x = val1;
+                    y = val2;
+                    lat = val3;
+                    lng = val4;
+                    note = parts[7] || parts[8] || "";
+                }
+            }
+
+            if (x === 0 && y === 0 && lat === 0 && lng === 0) {
+                if (!isNaN(val1) && !isNaN(val2)) {
+                    if (val1 > 1000 || val2 > 1000) {
+                        x = val1;
+                        y = val2;
+                        try {
+                            const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                            lat = parseFloat(wgs.lat.toFixed(6));
+                            lng = parseFloat(wgs.lng.toFixed(6));
+                        } catch(e) {}
+                    } else if (val1 >= -90 && val1 <= 90 && val2 >= -180 && val2 <= 180) {
+                        lat = val1;
+                        lng = val2;
+                        try {
+                            const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                            x = parseFloat(vn2k.X.toFixed(3));
+                            y = parseFloat(vn2k.Y.toFixed(3));
+                        } catch(e) {}
+                    }
+                }
+            }
+
+            if ((x !== 0 && y !== 0) || (lat !== 0 && lng !== 0)) {
+                parsedPoints.push({
+                    time: now,
+                    name: name,
+                    x: x,
+                    y: y,
+                    lat: lat,
+                    lng: lng,
+                    mui: AppState.muiVal,
+                    ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`,
+                    note: note || ""
+                });
+            }
+        });
+
+        if (parsedPoints.length === 0) {
+            return showToast("⚠️ Không nhận dạng được mốc tọa độ hợp lệ nào! Vui lòng tải file mẫu để xem định dạng chuẩn.", true);
+        }
+
+        const targetMode = document.querySelector('input[name="importTargetMode"]:checked')?.value || 'new';
+        let targetProj = AppState.currentProject;
+
+        if (targetMode === 'new') {
+            const inputName = document.getElementById('txtImportNewProjectName')?.value?.trim();
+            targetProj = inputName || defaultName || `DuAn_${Date.now().toString().slice(-4)}.csv`;
+            if (!targetProj.toLowerCase().endsWith('.csv')) targetProj += '.csv';
+
+            if (!AppState.projectsList.includes(targetProj)) {
+                AppState.projectsList.push(targetProj);
+                localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+            }
+            appData.savePoints(targetProj, parsedPoints);
+        } else {
+            const existing = appData.getPoints(targetProj);
+            parsedPoints.forEach(p => existing.push(p));
+            appData.savePoints(targetProj, existing);
+        }
+
+        AppState.currentProject = targetProj;
+        localStorage.setItem('vn2k_cur_project', targetProj);
+
+        appData.populateProjectSelect();
+        appNav.updateBanner();
+        if (AppState.currentScreen === 'datamgmt') {
+            appData.refreshTable();
+        }
+
+        appModal.closeImportProjectModal();
+        showToast(`✓ Đã nạp thành công ${parsedPoints.length} mốc vào dự án: ${targetProj}!`, true);
+
+        // Mở bản đồ và zoom bao quát các mốc vừa nạp
+        appNav.openProjectMap();
     }
 };
 
@@ -2504,6 +2995,25 @@ const appModal = {
 
     closeGoogleGuide() {
         const m = document.getElementById('modalGoogleGuide');
+        if (m) m.classList.remove('active');
+    },
+
+    openImportProjectModal() {
+        const m = document.getElementById('modalImportProject');
+        if (!m) return;
+        m.classList.add('active');
+
+        // Gợi ý tên dự án mới nếu chưa nhập
+        const nameInput = document.getElementById('txtImportNewProjectName');
+        if (nameInput && !nameInput.value.trim()) {
+            const today = new Date();
+            const dateStr = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getFullYear()}`;
+            nameInput.value = `Dự án đo ${dateStr}`;
+        }
+    },
+
+    closeImportProjectModal() {
+        const m = document.getElementById('modalImportProject');
         if (m) m.classList.remove('active');
     }
 };
