@@ -1289,30 +1289,63 @@
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
     }
 
-    /* UNIFIED SETTINGS TABS (4 TABS CUỘN MƯỢT) */
-    .settings-tab-bar {
+    /* UNIFIED SETTINGS MODAL & TABS (LƯỚI 2x2 CỐ ĐỊNH, CHỐNG CHE KHUẤT) */
+    .modal-settings-box {
+      max-height: 90vh;
       display: flex;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 3px;
-      margin-bottom: 14px;
-      gap: 4px;
-      overflow-x: auto;
-      scrollbar-width: none;
+      flex-direction: column;
+      padding: 0 !important;
+      overflow: hidden !important;
     }
-    .settings-tab-bar::-webkit-scrollbar { display: none; }
+
+    .modal-settings-header {
+      padding: 14px 16px 8px 16px;
+      background: #1e293b;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .modal-settings-body {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 16px;
+    }
+
+    .modal-settings-footer {
+      padding: 10px 16px;
+      background: #0f172a;
+      border-top: 1px solid rgba(56, 189, 248, 0.2);
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .settings-tab-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      background: #091322;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 5px;
+      margin-top: 8px;
+      margin-bottom: 2px;
+      gap: 6px;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
     .settings-tab-btn {
-      flex: 1 0 auto;
-      min-width: 92px;
-      height: 38px;
-      padding: 0 10px;
+      width: 100%;
+      min-height: 38px;
+      padding: 6px 8px;
       border-radius: 8px;
-      border: none;
-      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(30, 41, 59, 0.65);
       color: #94a3b8;
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
@@ -1320,13 +1353,32 @@
       justify-content: center;
       gap: 5px;
       white-space: nowrap;
-      transition: all 0.15s ease;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      box-sizing: border-box;
+    }
+
+    .settings-tab-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.3);
+      color: #f1f5f9;
     }
 
     .settings-tab-btn.active {
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+      border-color: #38bdf8;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.45);
+    }
+
+    @media (max-width: 360px) {
+      .settings-tab-btn {
+        font-size: 11px;
+        padding: 5px 4px;
+        gap: 3px;
+      }
     }
 
     /* RTK & RESECTION STYLING */
@@ -4360,30 +4412,35 @@
 
   <!-- MODAL CÀI ĐẶT HỆ THỐNG (LƯU DỮ LIỆU & KTT) -->
   <div id="modalSettings" class="modal-overlay">
-    <div class="modal-box" style="max-width: 500px;">
-      <div class="modal-title">
-        <span style="color: #38bdf8;">⚙️ Cài Đặt Hệ Thống</span>
-        <button class="btn-modal-close" onclick="appModal.closeSettings()">✕</button>
+    <div class="modal-box modal-settings-box" style="max-width: 500px;">
+      <!-- Sticky Header: Tiêu đề & Lưới 2x2 Cố Định 4 Tab -->
+      <div class="modal-settings-header">
+        <div class="modal-title">
+          <span style="color: #38bdf8;">⚙️ Cài Đặt Hệ Thống</span>
+          <button class="btn-modal-close" onclick="appModal.closeSettings()">✕</button>
+        </div>
+
+        <!-- Thanh chuyển Tab: 4 Tab bố trí lưới 2x2 không bao giờ bị tràn hay che khuất -->
+        <div class="settings-tab-bar">
+          <button id="btnTabStorage" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('storage')">
+            ☁️ Lưu dữ liệu
+          </button>
+          <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')">
+            ⚙️ KTT & Múi chiếu
+          </button>
+          <button id="btnTabRtk" class="settings-tab-btn" onclick="appModal.switchSettingsTab('rtk')">
+            🛰️ RTK Bluetooth
+          </button>
+          <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')">
+            📐 Giao hội mất GPS
+          </button>
+        </div>
       </div>
 
-      <!-- Thanh chuyển Tab: 4 Tab cuộn mượt -->
-      <div class="settings-tab-bar">
-        <button id="btnTabStorage" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('storage')">
-          ☁️ Lưu dữ liệu
-        </button>
-        <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')">
-          ⚙️ KTT
-        </button>
-        <button id="btnTabRtk" class="settings-tab-btn" onclick="appModal.switchSettingsTab('rtk')">
-          🛰️ RTK Bluetooth
-        </button>
-        <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')">
-          📐 Giao hội mất GPS
-        </button>
-      </div>
-
-      <!-- THẺ 1: CÀI ĐẶT LƯU DỮ LIỆU -->
-      <div id="settingsTabContentStorage" class="settings-tab-content">
+      <!-- Cuộn nội dung Tab bên dưới -->
+      <div class="modal-settings-body">
+        <!-- THẺ 1: CÀI ĐẶT LƯU DỮ LIỆU -->
+        <div id="settingsTabContentStorage" class="settings-tab-content">
         <!-- Giải thích bảo mật & offline -->
         <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
           🛡️ <b style="color: #f8fafc;">Bảo mật tuyệt đối:</b> GitHub & Vercel chỉ chứa giao diện ứng dụng. Tọa độ đo đạc của bạn được lưu an toàn 100% trên thiết bị cá nhân hoặc tài khoản Google Drive riêng của bạn.
@@ -4463,16 +4520,6 @@
               🌳 Cây thư mục
             </button>
           </div>
-        </div>
-
-        <!-- Nút hành động Lưu dữ liệu -->
-        <div class="btn-group-row" style="margin-top: 8px;">
-          <button class="btn-sm btn-green" style="height: 42px;" onclick="appData.testGoogleConnection()">
-            🔌 Thử kết nối
-          </button>
-          <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; margin: 0; font-size: 13.5px;" onclick="appData.saveGoogleConfig()">
-            💾 LƯU CẤU HÌNH
-          </button>
         </div>
       </div>
 
@@ -4663,7 +4710,17 @@
           </div>
         </div>
       </div>
+      <!-- Kết thúc modal-settings-body -->
 
+      <!-- Sticky Footer: Cố định ở đáy cho Thẻ Lưu dữ liệu -->
+      <div id="settingsStorageFooter" class="modal-settings-footer">
+        <button class="btn-sm btn-green" style="height: 40px; flex: 1;" onclick="appData.testGoogleConnection()">
+          🔌 Thử kết nối
+        </button>
+        <button class="btn-convert btn-wgs-to-vn2k" style="height: 40px; margin: 0; font-size: 13px; flex: 1.5;" onclick="appData.saveGoogleConfig()">
+          💾 LƯU CẤU HÌNH
+        </button>
+      </div>
     </div>
   </div>
 
@@ -5351,7 +5408,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.5.2"></script>
+  <script src="app.js?v=2.5.3"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

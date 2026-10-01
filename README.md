@@ -23,7 +23,7 @@
 
 - **Tác giả:** Đặng Như
 - **Email:** [dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)
-- **Phiên bản:** v2.5.2 Pro (Chống Tràn Nút & Tối Ưu Giao Diện Màn Hình Hẹp - Grill-Me & Simplify-Code)
+- **Phiên bản:** v2.5.3 Pro (Tối Ưu 4 Tab Cài Đặt Hệ Thống Lưới 2x2 & Sticky Footer Lưu Dữ Liệu)
 
 ---
 

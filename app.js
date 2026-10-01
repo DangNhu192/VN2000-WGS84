@@ -3901,6 +3901,11 @@ const appModal = {
             if (content) content.style.display = isActive ? 'block' : 'none';
         });
 
+        const storageFooter = document.getElementById('settingsStorageFooter');
+        if (storageFooter) {
+            storageFooter.style.display = (tab === 'storage') ? 'flex' : 'none';
+        }
+
         if (tab === 'resection' && typeof appResection !== 'undefined') {
             appResection.initModal();
         }
