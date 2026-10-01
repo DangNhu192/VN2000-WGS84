@@ -102,14 +102,17 @@
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
       padding-top: calc(var(--sat-safe-top) + 6px);
       padding-bottom: 8px;
-      padding-left: 12px;
-      padding-right: 12px;
+      padding-left: 10px;
+      padding-right: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
       z-index: 1000;
-      min-height: 52px;
+      min-height: calc(var(--sat-safe-top) + 52px);
+      max-height: calc(var(--sat-safe-top) + 52px);
+      box-sizing: border-box;
+      overflow: hidden;
     }
 
     .header-left {
@@ -259,20 +262,51 @@
 
     @media (max-width: 400px) {
       .app-title {
-        font-size: 14.5px;
+        font-size: 13.5px;
+        letter-spacing: 0;
+        gap: 4px;
       }
-      .app-subtitle {
-        font-size: 10px;
+      .app-title img {
+        width: 18px;
+        height: 18px;
       }
       .btn-header-action {
-        padding: 5px 8px;
-        font-size: 11.5px;
+        padding: 5px 7px;
+        font-size: 11px;
+      }
+      .header-action-text {
+        display: none;
+      }
+      #headerGpsText {
+        font-size: 11px;
+        max-width: 60px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .header-geodetic-pill {
+        max-width: 125px;
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
       }
     }
 
-    @media (max-width: 350px) {
-      .app-subtitle {
+    @media (max-width: 340px) {
+      .header-geodetic-pill {
+        max-width: 88px;
+      }
+      #headerGpsText {
         display: none;
+      }
+      .tree-nav-label {
+        display: none;
+      }
+      .btn-header-back {
+        padding: 5px 8px;
+        font-size: 11px;
       }
     }
 
@@ -978,9 +1012,11 @@
     /* BUTTONS */
     .btn-group-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
       align-items: center;
       margin-top: 8px;
+      width: 100%;
     }
 
     .btn-sm {
@@ -988,7 +1024,7 @@
       color: #ffffff;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 9px;
-      padding: 8px 12px;
+      padding: 8px 10px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -996,8 +1032,9 @@
       align-items: center;
       justify-content: center;
       gap: 5px;
-      flex: 1;
+      flex: 1 1 auto;
       min-height: 38px;
+      white-space: nowrap;
       touch-action: manipulation;
       transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
       user-select: none;
@@ -1024,6 +1061,42 @@
     .btn-sm.btn-red {
       background: #dc2626;
       border-color: #f87171;
+    }
+
+    /* DATA EXPORT ACTIONS GRID */
+    .export-actions-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      width: 100%;
+    }
+
+    .export-actions-grid .btn-convert {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 140px;
+      min-height: 42px;
+      margin: 0;
+      font-size: 12.5px;
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+
+    .btn-export-dxf {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+      border: 1.5px solid #34d399 !important;
+    }
+
+    .btn-export-kml {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+      border: 1.5px solid #fbbf24 !important;
+    }
+
+    @media (max-width: 320px) {
+      .export-actions-grid .btn-convert {
+        flex: 1 1 100%;
+        min-width: 100%;
+      }
     }
 
     /* BIG CONVERSION BUTTONS */
@@ -1566,24 +1639,24 @@
 
     .map-right-controls {
       position: absolute;
-      top: calc(var(--sat-safe-top) + 112px);
+      top: calc(var(--sat-safe-top) + 68px);
       right: 10px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
       z-index: 1000;
     }
 
     .btn-map-fab {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
       background: rgba(11, 17, 32, 0.94);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border: 1.5px solid rgba(56, 189, 248, 0.35);
       color: #ffffff;
-      font-size: 20px;
+      font-size: 18px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1622,6 +1695,28 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+
+    .map-sheet-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
+    }
+
+    .map-sheet-actions .btn-sm {
+      min-height: 38px;
+      font-size: 12.5px;
+      flex: 1 1 auto;
+      white-space: nowrap;
+    }
+
+    .map-sheet-actions .btn-sheet-close {
+      flex: 0 0 38px;
+      width: 38px;
+      height: 38px;
+      padding: 0;
     }
 
     .map-bottom-coord {
@@ -2992,7 +3087,7 @@
           <span id="headerGpsText">🛰️ Tìm...</span>
         </button>
         <button class="btn-header-action" onclick="appModal.openUnifiedSettings()" title="Cài đặt hệ thống (Lưu dữ liệu & KTT)">
-          ⚙️ Cài đặt
+          <span class="header-action-icon">⚙️</span><span class="header-action-text"> Cài đặt</span>
         </button>
       </div>
     </header>
@@ -3858,14 +3953,14 @@
             <div>VN-2000: <span class="vn2k" id="mapSheetVn2k">X: 1144058.623 | Y: 539624.574</span></div>
             <div id="mapSheetDistRow" style="font-size: 11.5px; color: #a7f3d0; margin-top: 3px; display: none;">📍 Cách vị trí đứng: <b id="mapSheetDist">--</b></div>
           </div>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn-sm btn-green" style="height: 38px; font-size: 12.5px;" onclick="appMap.loadSelectedToMain()">
-              📌 NẠP VÀO MÀN HÌNH CHÍNH
+          <div class="map-sheet-actions">
+            <button class="btn-sm btn-green" onclick="appMap.loadSelectedToMain()">
+              📌 Nạp tọa độ
             </button>
-            <button class="btn-sm btn-blue" style="height: 38px; font-size: 12.5px;" onclick="appMap.savePickedPoint()">
+            <button class="btn-sm btn-blue" onclick="appMap.savePickedPoint()">
               💾 Lưu mốc
             </button>
-            <button class="btn-sm btn-red" style="flex:none; width: 38px; height: 38px; padding: 0;" onclick="appMap.closeBottomSheet()">
+            <button class="btn-sm btn-red btn-sheet-close" onclick="appMap.closeBottomSheet()">
               ✕
             </button>
           </div>
@@ -4025,11 +4120,11 @@
             <button class="btn-convert btn-wgs-to-vn2k" style="height: 44px; font-size: 13.5px; margin: 0;" onclick="appCamera.downloadWatermarkedImage()">
               💾 TẢI ẢNH ĐÃ ĐÓNG DẤU VỀ MÁY (.JPG)
             </button>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn-sm btn-green" style="flex: 1; height: 38px; font-size: 12px;" onclick="appCamera.shareImage()">
+            <div class="btn-group-row" style="margin-top: 6px;">
+              <button class="btn-sm btn-green" onclick="appCamera.shareImage()">
                 📤 Chia sẻ (Zalo)
               </button>
-              <button class="btn-sm btn-amber" style="flex: 1.2; height: 38px; font-size: 12px;" onclick="appCamera.attachToCurrentPoint()">
+              <button class="btn-sm btn-amber" onclick="appCamera.attachToCurrentPoint()">
                 📋 Lưu vào sổ đo mốc
               </button>
             </div>
@@ -4053,10 +4148,10 @@
               </button>
             </div>
           </div>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button class="btn-sm" style="flex: 1;" onclick="appData.renameCurrentProject()">✏️ Đổi tên</button>
-            <button class="btn-sm btn-red" style="flex: 1;" onclick="appData.deleteCurrentProject()">🗑️ Xóa file</button>
-            <button class="btn-sm btn-green" style="flex: 1.2; font-weight: 700;" onclick="appModal.openImportProjectModal()">📥 Nhập File / Mẫu</button>
+          <div class="btn-group-row">
+            <button class="btn-sm" onclick="appData.renameCurrentProject()">✏️ Đổi tên</button>
+            <button class="btn-sm btn-red" onclick="appData.deleteCurrentProject()">🗑️ Xóa file</button>
+            <button class="btn-sm btn-green" onclick="appModal.openImportProjectModal()">📥 Nhập File / Mẫu</button>
           </div>
         </div>
 
@@ -4084,14 +4179,14 @@
               🌐 ĐỒNG BỘ TẤT CẢ DỰ ÁN LÊN CHUNG 1 SHEET
             </button>
 
-            <div style="display: flex; gap: 6px;">
-              <button id="btnOpenGoogleSheet" class="btn-sm btn-green" style="display: none; height: 36px; font-size: 12px; flex: 1.2;" onclick="appData.openConnectedGoogleSheet()">
-                📊 Mở Google Sheet
+            <div class="btn-group-row" style="margin-top: 6px;">
+              <button id="btnOpenGoogleSheet" class="btn-sm btn-green" style="display: none;" onclick="appData.openConnectedGoogleSheet()">
+                📊 Mở Sheet
               </button>
-              <button class="btn-sm btn-amber" style="height: 36px; font-size: 11.5px; flex: 1;" onclick="appData.copyAppsScriptTemplate()">
-                📋 Lấy Mã Script Mới
+              <button class="btn-sm btn-amber" onclick="appData.copyAppsScriptTemplate()">
+                📋 Lấy Mã Script
               </button>
-              <button class="btn-sm" style="height: 36px; font-size: 12px; flex: 1;" onclick="appModal.openGoogleConfig()">
+              <button class="btn-sm" onclick="appModal.openGoogleConfig()">
                 ⚙️ Cài Đặt
               </button>
             </div>
@@ -4128,23 +4223,19 @@
             </table>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
-            <div style="display: flex; gap: 8px;">
-              <button class="btn-convert btn-wgs-to-vn2k" style="flex: 1; height: 42px; font-size: 12.5px; margin: 0;" onclick="appData.exportCsvFile()">
-                📥 XUẤT EXCEL / CSV
-              </button>
-              <button class="btn-convert" style="flex: 1; height: 42px; font-size: 12.5px; margin: 0; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1.5px solid #34d399;" onclick="appData.exportDxfFile()">
-                📐 XUẤT AUTOCAD (.DXF)
-              </button>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn-convert" style="flex: 1; height: 42px; font-size: 12.5px; margin: 0; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border: 1.5px solid #fbbf24;" onclick="appData.exportKmlFile()">
-                🌍 XUẤT GOOGLE EARTH (.KML)
-              </button>
-              <button class="btn-convert btn-vn2k-to-wgs" style="flex: 1; height: 42px; font-size: 12.5px; margin: 0;" onclick="appData.shareCsvFile()">
-                📤 CHIA SẺ FILE (ZALO)
-              </button>
-            </div>
+          <div class="export-actions-grid">
+            <button class="btn-convert btn-wgs-to-vn2k" onclick="appData.exportCsvFile()">
+              📥 Xuất CSV / Excel
+            </button>
+            <button class="btn-convert btn-export-dxf" onclick="appData.exportDxfFile()">
+              📐 Xuất AutoCAD (.DXF)
+            </button>
+            <button class="btn-convert btn-export-kml" onclick="appData.exportKmlFile()">
+              🌍 Xuất Google Earth (.KML)
+            </button>
+            <button class="btn-convert btn-vn2k-to-wgs" onclick="appData.shareCsvFile()">
+              📤 Chia sẻ (Zalo)
+            </button>
           </div>
         </div>
       </section>
@@ -4351,7 +4442,7 @@
             <div>2. Vào <b>Tiện ích mở rộng (Extensions)</b> ➔ <b>Apps Script</b>.</div>
             <div>3. Dán mã kịch bản bên dưới ➔ Bấm <b>Triển khai (Deploy)</b> ➔ <b>Ứng dụng web mới</b> (Quyền: <i>"Bất kỳ ai / Anyone"</i>).</div>
           </div>
-          <div style="display: flex; gap: 6px;">
+          <div class="btn-group-row">
             <a href="https://sheets.new" target="_blank" class="btn-sm btn-green" style="text-decoration: none; height: 34px; font-size: 11.5px; display: inline-flex; align-items: center; justify-content: center;">
               ✨ Mở sheets.new
             </a>
@@ -4364,7 +4455,7 @@
         <!-- TÙY CHỌN BỐ CỤC MÀN HÌNH CHÍNH (UI/UX PRO MAX) -->
         <div class="form-group" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(56, 189, 248, 0.25);">
           <label class="form-label">Bố cục Màn hình chính:</label>
-          <div style="display: flex; gap: 8px;">
+          <div class="btn-group-row">
             <button type="button" id="btnSettingViewBigTiles" class="btn-sm active" style="flex: 1; height: 38px; font-size: 11.5px;" onclick="appNav.switchMainMenuView('big_tiles'); appModal.updateViewModeSettingsUI();">
               ⭐ 4 Khối lớn 2x2 (Gọn gàng)
             </button>
@@ -5249,9 +5340,9 @@
         </div>
         <div id="pinPickerList" style="max-height: 52vh; overflow-y: auto;"></div>
       </div>
-      <div class="modal-footer" style="display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid rgba(56, 189, 248, 0.15);">
-        <button type="button" class="btn-sm" style="flex: 1; height: 40px;" onclick="appDashboard.closePinModal()">Đóng</button>
-        <button type="button" class="btn-convert btn-wgs-to-vn2k" style="flex: 1.5; height: 40px; margin: 0;" onclick="appDashboard.savePinSelection()">💾 LƯU THAY ĐỔI</button>
+      <div class="modal-footer" style="display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid rgba(56, 189, 248, 0.15); flex-wrap: wrap;">
+        <button type="button" class="btn-sm" style="flex: 1; min-width: 90px; height: 40px;" onclick="appDashboard.closePinModal()">Đóng</button>
+        <button type="button" class="btn-convert btn-wgs-to-vn2k" style="flex: 1.5; min-width: 150px; height: 40px; margin: 0;" onclick="appDashboard.savePinSelection()">💾 LƯU THAY ĐỔI</button>
       </div>
     </div>
   </div>
@@ -5260,7 +5351,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.5.1"></script>
+  <script src="app.js?v=2.5.2"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

@@ -23,7 +23,7 @@
 
 - **Tác giả:** Đặng Như
 - **Email:** [dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)
-- **Phiên bản:** v2.5.1 Pro (UI/UX Pro Max Streamlined Dashboard & Custom Pinned Tiles)
+- **Phiên bản:** v2.5.2 Pro (Chống Tràn Nút & Tối Ưu Giao Diện Màn Hình Hẹp - Grill-Me & Simplify-Code)
 
 ---
 
