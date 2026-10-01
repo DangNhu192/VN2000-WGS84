@@ -1,0 +1,17 @@
+{
+  "powershell.scriptAnalysis.enable": true,
+  "powershell.integratedConsole.showOnStartup": false,
+  "powershell.debugging.createTemporaryIntegratedConsole": false,
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "args": ["-NoLogo", "-ExecutionPolicy", "Bypass"]
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "[powershell]": {
+    "files.encoding": "utf8bom",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  }
+}

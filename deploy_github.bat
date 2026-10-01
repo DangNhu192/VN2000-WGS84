@@ -54,7 +54,7 @@ git remote add origin !REPO_URL!
 echo.
 echo [2/3] Dang dong goi tai nguyen va tao ban commit...
 git add .
-git commit -m "Deploy VN2000 Pro PWA v2.2.3 for Vercel"
+git commit -m "Deploy VN2000 Pro PWA v2.2.4 for Vercel"
 git branch -M main
 
 echo.

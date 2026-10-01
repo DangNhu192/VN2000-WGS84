@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "PowerShell",
+      "request": "launch",
+      "name": "PowerShell: Chạy Deploy GitHub",
+      "script": "${workspaceFolder}/deploy_github.ps1",
+      "args": []
+    },
+    {
+      "type": "PowerShell",
+      "request": "launch",
+      "name": "PowerShell: Launch Current File",
+      "script": "${file}",
+      "args": []
+    }
+  ]
+}

@@ -14,10 +14,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # Trình soạn thảo & IDE
-.vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
+.vscode/*.log
 
 # Vercel CLI cache
 .vercel/
