@@ -162,6 +162,9 @@ const appNav = {
 
             if (titleEl) titleEl.innerHTML = `<span>${titleText}</span>`;
             if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+            
+            // Tự động đồng bộ check chọn trong Thư Menu Cây Thư Mục
+            appNav.syncActiveMenuWithScreen(screenName);
         }
     },
 
@@ -194,47 +197,121 @@ const appNav = {
         if (backdrop) backdrop.classList.remove('active');
     },
 
+    setActiveMenuItem(itemId) {
+        // Bỏ chọn tất cả các mục
+        document.querySelectorAll('.drawer-leaf-item').forEach(el => {
+            el.classList.remove('selected');
+        });
+
+        if (!itemId) return;
+        const targetItem = document.getElementById(itemId);
+        if (targetItem) {
+            targetItem.classList.add('selected');
+
+            // Tự động mở nhóm thư mục chứa item này và thu nhỏ các nhóm khác (Accordion Auto-Collapse)
+            const parentFolder = targetItem.closest('.drawer-folder');
+            if (parentFolder) {
+                document.querySelectorAll('.drawer-folder').forEach(f => {
+                    if (f === parentFolder) {
+                        f.classList.add('open');
+                    } else {
+                        f.classList.remove('open');
+                    }
+                });
+            }
+        }
+    },
+
+    syncActiveMenuWithScreen(screenName) {
+        const screenToItem = {
+            'transform': 'drawerItem_transform',
+            'stakeout': 'drawerItem_stakeout',
+            'camera': 'drawerItem_camera',
+            'datamgmt': 'drawerItem_datamgmt',
+            'about': 'drawerItem_about'
+        };
+        if (screenToItem[screenName]) {
+            appNav.setActiveMenuItem(screenToItem[screenName]);
+        } else if (screenName === 'menu') {
+            appNav.setActiveMenuItem(null);
+        }
+    },
+
+    filterMainCategories(category) {
+        const tabAll = document.getElementById('tabFilterAll');
+        const tabBasic = document.getElementById('tabFilterBasic');
+        const tabAdv = document.getElementById('tabFilterAdvanced');
+        const secBasic = document.getElementById('secFeaturesBasic');
+        const secAdv = document.getElementById('secFeaturesAdvanced');
+
+        if (tabAll) tabAll.classList.toggle('active', category === 'all');
+        if (tabBasic) tabBasic.classList.toggle('active', category === 'basic');
+        if (tabAdv) tabAdv.classList.toggle('active', category === 'advanced');
+
+        if (secBasic) {
+            secBasic.style.display = (category === 'all' || category === 'basic') ? 'block' : 'none';
+        }
+        if (secAdv) {
+            secAdv.style.display = (category === 'all' || category === 'advanced') ? 'block' : 'none';
+        }
+    },
+
     navigateTo(action, param) {
         appNav.closeTreeMenu();
         if (action === 'menu') {
             appNav.goToMenu();
         } else if (action === 'transform') {
             appNav.showScreen('transform');
+            appNav.setActiveMenuItem('drawerItem_transform');
         } else if (action === 'map') {
             appNav.openProjectMap();
+            appNav.setActiveMenuItem('drawerItem_map');
         } else if (action === 'stakeout') {
             appNav.showScreen('stakeout');
+            appNav.setActiveMenuItem('drawerItem_stakeout');
         } else if (action === 'camera') {
             appNav.showScreen('camera');
+            appNav.setActiveMenuItem('drawerItem_camera');
         } else if (action === 'datamgmt') {
             appNav.showScreen('datamgmt');
+            appNav.setActiveMenuItem('drawerItem_datamgmt');
         } else if (action === 'about') {
             appNav.showScreen('about');
+            appNav.setActiveMenuItem('drawerItem_about');
         } else if (action === 'batch_import') {
+            appNav.setActiveMenuItem('drawerItem_batch');
             appModal.openImportProjectModal();
         } else if (action === 'measure_distance') {
+            appNav.setActiveMenuItem('drawerItem_measure_distance');
             appNav.openProjectMap();
             if (!AppState.showProjectDistance) {
                 appMap.toggleDistanceDisplay();
             }
             showToast("📏 Chế độ đo khoảng cách giữa các mốc đã sẵn sàng!");
         } else if (action === 'measure_polygon') {
+            appNav.setActiveMenuItem('drawerItem_measure_polygon');
             appNav.openProjectMap();
             if (!AppState.isPolygonClosed) {
                 appMap.togglePolygonClose();
             }
             showToast("📐 Chế độ khép góc đa giác ranh thửa đã kích hoạt!");
         } else if (action === 'export_dxf') {
+            appNav.setActiveMenuItem('drawerItem_export_dxf');
             appData.exportDxfFile();
         } else if (action === 'export_kml') {
+            appNav.setActiveMenuItem('drawerItem_export_kml');
             appData.exportKmlFile();
         } else if (action === 'export_csv') {
+            appNav.setActiveMenuItem('drawerItem_export_csv');
             appData.exportCsvFile();
         } else if (action === 'settings_ktt') {
+            appNav.setActiveMenuItem('drawerItem_settings_ktt');
             appModal.openUnifiedSettings('ktt');
         } else if (action === 'settings_storage') {
+            appNav.setActiveMenuItem('drawerItem_settings_storage');
             appModal.openUnifiedSettings('storage');
         } else if (action === 'gps_toggle') {
+            appNav.setActiveMenuItem('drawerItem_gps_toggle');
             appGps.toggleTracking();
         }
     },
@@ -248,26 +325,48 @@ const appNav = {
     toggleDrawerFolder(drawerFolderId) {
         const folder = document.getElementById(drawerFolderId);
         if (!folder) return;
-        folder.classList.toggle('open');
+        const willOpen = !folder.classList.contains('open');
+
+        // Tự động thu nhỏ (Accordion Auto-Collapse) các nhóm khác trong menu
+        document.querySelectorAll('.drawer-folder').forEach(f => {
+            if (f.id !== drawerFolderId) {
+                f.classList.remove('open');
+            }
+        });
+
+        if (willOpen) {
+            folder.classList.add('open');
+        } else {
+            folder.classList.remove('open');
+        }
     },
 
     switchMainMenuView(viewMode) {
         AppState.mainMenuViewMode = viewMode;
+        const cardsHub = document.getElementById('mainCardsHub');
+        const filterTabs = document.querySelector('.main-filter-tabs');
         const treeCont = document.getElementById('mainTreeContainer');
         const gridCont = document.getElementById('mainGridContainer');
+        const treeQuickTools = document.getElementById('treeQuickTools');
         const btnTree = document.getElementById('btnViewModeTree');
         const btnGrid = document.getElementById('btnViewModeGrid');
 
-        if (viewMode === 'cards') {
-            if (treeCont) treeCont.style.display = 'none';
-            if (gridCont) gridCont.style.display = 'block';
-            if (btnTree) btnTree.classList.remove('active');
-            if (btnGrid) btnGrid.classList.add('active');
-        } else {
-            if (treeCont) treeCont.style.display = 'flex';
+        if (viewMode === 'tree') {
+            if (cardsHub) cardsHub.style.display = 'none';
+            if (filterTabs) filterTabs.style.display = 'none';
             if (gridCont) gridCont.style.display = 'none';
+            if (treeCont) treeCont.style.display = 'flex';
+            if (treeQuickTools) treeQuickTools.style.display = 'flex';
             if (btnTree) btnTree.classList.add('active');
             if (btnGrid) btnGrid.classList.remove('active');
+        } else {
+            if (cardsHub) cardsHub.style.display = 'block';
+            if (filterTabs) filterTabs.style.display = 'flex';
+            if (gridCont) gridCont.style.display = 'none';
+            if (treeCont) treeCont.style.display = 'none';
+            if (treeQuickTools) treeQuickTools.style.display = 'none';
+            if (btnTree) btnTree.classList.remove('active');
+            if (btnGrid) btnGrid.classList.add('active');
         }
     },
 
@@ -285,6 +384,7 @@ const appNav = {
         if (mainInput && mainInput.value !== query) mainInput.value = query;
         if (drawerInput && drawerInput.value !== query) drawerInput.value = query;
 
+        // Lọc trong cây thư mục và drawer
         const items = document.querySelectorAll('.tree-leaf-item, .drawer-leaf-item');
         items.forEach(el => {
             const text = (el.innerText || '').toLowerCase();
@@ -292,6 +392,17 @@ const appNav = {
                 el.style.display = 'flex';
             } else {
                 el.style.display = 'none';
+            }
+        });
+
+        // Lọc trên các thẻ chức năng Màn hình chính
+        const cards = document.querySelectorAll('.feature-card');
+        cards.forEach(card => {
+            const text = (card.innerText || '').toLowerCase();
+            if (!q || text.includes(q)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
             }
         });
 
@@ -325,6 +436,8 @@ const appNav = {
         document.querySelectorAll('.screen-view').forEach(el => el.classList.remove('active'));
         const mapView = document.getElementById('map-view-container');
         if (mapView) mapView.classList.add('active');
+
+        appNav.setActiveMenuItem('drawerItem_map');
 
         appMap.initMap();
         appMap.loadProjectMarkers();
