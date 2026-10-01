@@ -1472,17 +1472,28 @@
           <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1; margin-bottom: 10px;">
             <div>• Chế độ hiện tại: <b id="syncModeStatusBadge" style="color: #4ade80;">📱 Ngoại tuyến (Trên thiết bị)</b></div>
             <div>• Trạng thái liên kết: <span id="syncLinkedBadge" style="color: #94a3b8;">Chưa cấu hình Google Apps Script</span></div>
+            <div>• Quy cách lưu: <span style="color: #fbbf24; font-weight: 700;">1 Sheet duy nhất ("Sổ Đo Tọa Độ")</span> phân loại theo cột <b>Dự Án</b></div>
           </div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
-            <button id="btnSyncGoogleSheets" class="btn-convert" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; height: 44px; font-size: 13.5px;" onclick="appData.syncToGoogleSheets()">
-              ☁️ ĐỒNG BỘ TOÀN BỘ SỔ ĐO LÊN GOOGLE SHEETS
+            <!-- Nút 1: Đồng bộ Dự án Hiện Tại -->
+            <button id="btnSyncCurrentProject" class="btn-convert" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; height: 42px; font-size: 13px;" onclick="appData.syncCurrentProjectToGoogle()">
+              ☁️ ĐỒNG BỘ DỰ ÁN HIỆN TẠI LÊN GOOGLE SHEETS
             </button>
+            
+            <!-- Nút 2: Đồng bộ Toàn Bộ Các Dự Án -->
+            <button id="btnSyncAllProjects" class="btn-convert" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #34d399; height: 40px; font-size: 12.5px;" onclick="appData.syncAllProjectsToGoogle()">
+              🌐 ĐỒNG BỘ TẤT CẢ DỰ ÁN LÊN CHUNG 1 SHEET
+            </button>
+
             <div style="display: flex; gap: 6px;">
-              <button id="btnOpenGoogleSheet" class="btn-sm btn-green" style="display: none; height: 36px; font-size: 12px;" onclick="appData.openConnectedGoogleSheet()">
+              <button id="btnOpenGoogleSheet" class="btn-sm btn-green" style="display: none; height: 36px; font-size: 12px; flex: 1.2;" onclick="appData.openConnectedGoogleSheet()">
                 📊 Mở Google Sheet
               </button>
-              <button class="btn-sm" style="height: 36px; font-size: 12px;" onclick="appModal.openGoogleConfig()">
-                ⚙️ Đổi Chế Độ Lưu Trữ
+              <button class="btn-sm btn-amber" style="height: 36px; font-size: 11.5px; flex: 1;" onclick="appData.copyAppsScriptTemplate()">
+                📋 Lấy Mã Script Mới
+              </button>
+              <button class="btn-sm" style="height: 36px; font-size: 12px; flex: 1;" onclick="appModal.openGoogleConfig()">
+                ⚙️ Cài Đặt
               </button>
             </div>
           </div>
