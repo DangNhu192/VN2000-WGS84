@@ -160,11 +160,100 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      user-select: none;
     }
 
     .btn-header-action:active {
       background: rgba(255, 255, 255, 0.3);
+      transform: scale(0.97);
+    }
+
+    /* GPS HEADER BUTTON STYLING */
+    .btn-header-gps {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-header-gps.gps-active {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: rgba(52, 211, 153, 0.6);
+      color: #ecfdf5;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-header-gps.gps-searching {
+      background: rgba(245, 158, 11, 0.22);
+      border-color: rgba(251, 191, 36, 0.5);
+      color: #fef3c7;
+    }
+
+    .btn-header-gps.gps-off {
+      background: rgba(71, 85, 105, 0.25);
+      border-color: rgba(148, 163, 184, 0.35);
+      color: #94a3b8;
+      opacity: 0.85;
+    }
+
+    .btn-header-gps.gps-error {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: rgba(248, 113, 113, 0.5);
+      color: #fca5a5;
+    }
+
+    .gps-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .gps-dot.active {
+      background-color: #34d399;
+      box-shadow: 0 0 6px #34d399;
+      animation: gpsPulse 1.8s infinite;
+    }
+
+    .gps-dot.searching {
+      background-color: #fbbf24;
+      animation: gpsPulse 1.2s infinite;
+    }
+
+    .gps-dot.off {
+      background-color: #64748b;
+    }
+
+    .gps-dot.error {
+      background-color: #f87171;
+    }
+
+    @keyframes gpsPulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    @media (max-width: 400px) {
+      .app-title {
+        font-size: 14.5px;
+      }
+      .app-subtitle {
+        font-size: 10px;
+      }
+      .btn-header-action {
+        padding: 5px 8px;
+        font-size: 11.5px;
+      }
+    }
+
+    @media (max-width: 350px) {
+      .app-subtitle {
+        display: none;
+      }
     }
 
     /* MAIN VIEWPORT */
@@ -1111,6 +1200,10 @@
         </div>
       </div>
       <div class="header-right">
+        <button id="btnHeaderGpsToggle" class="btn-header-action btn-header-gps gps-searching" onclick="appGps.toggleTracking()" title="Bật/Tắt định vị GPS & Hiển thị sai số">
+          <span id="headerGpsDot" class="gps-dot searching"></span>
+          <span id="headerGpsText">🛰️ Tìm...</span>
+        </button>
         <button class="btn-header-action" onclick="appModal.openUnifiedSettings()" title="Cài đặt hệ thống (Lưu dữ liệu & KTT)">
           ⚙️ Cài đặt
         </button>

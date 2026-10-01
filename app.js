@@ -718,13 +718,54 @@ const appGps = {
                 badge.innerText = "🔴 Không hỗ trợ";
                 badge.className = "btn-sm btn-red";
             }
+            appGps.updateHeaderGpsUI('unsupported');
             return;
         }
+        appGps.updateHeaderGpsUI('searching');
         appGps.startTracking();
+    },
+
+    updateHeaderGpsUI(status, accuracy) {
+        const btn = document.getElementById('btnHeaderGpsToggle');
+        const dot = document.getElementById('headerGpsDot');
+        const txt = document.getElementById('headerGpsText');
+        if (!btn || !txt) return;
+
+        btn.classList.remove('gps-active', 'gps-searching', 'gps-off', 'gps-error');
+
+        if (status === 'off') {
+            btn.classList.add('gps-off');
+            btn.title = "GPS đang tắt. Bấm để bật định vị vệ tinh";
+            if (dot) dot.className = 'gps-dot off';
+            txt.innerText = "🛰️ Tắt";
+        } else if (status === 'searching') {
+            btn.classList.add('gps-searching');
+            btn.title = "Đang dò bắt tín hiệu GPS vệ tinh... Bấm để tắt";
+            if (dot) dot.className = 'gps-dot searching';
+            txt.innerText = "🛰️ Tìm...";
+        } else if (status === 'error' || status === 'unsupported') {
+            btn.classList.add('gps-error');
+            btn.title = (status === 'unsupported') ? "Thiết bị không hỗ trợ GPS" : "Lỗi hoặc chưa cấp quyền GPS. Bấm để thử lại";
+            if (dot) dot.className = 'gps-dot error';
+            txt.innerText = (status === 'unsupported') ? "⚠️ K.Hỗ trợ" : "⚠️ Lỗi GPS";
+        } else if (status === 'active') {
+            btn.classList.add('gps-active');
+            const acc = (accuracy !== undefined && accuracy !== null) ? accuracy : (AppState.lastGps?.accuracy || 0);
+            const accStr = acc > 0 ? (acc < 10 ? `±${acc.toFixed(1)}m` : `±${Math.round(acc)}m`) : 'Bật';
+            btn.title = `GPS hoạt động tốt: Sai số thực tế ${accStr}. Bấm để tắt GPS`;
+            if (dot) dot.className = 'gps-dot active';
+            txt.innerText = `🛰️ ${accStr}`;
+        }
     },
 
     startTracking() {
         if (AppState.gpsWatchId) return;
+        AppState.isGpsTracking = true;
+        appGps.updateHeaderGpsUI('searching');
+
+        const btn = document.getElementById('btnToggleGpsTracking');
+        if (btn) btn.innerText = "⏸️ Tạm dừng GPS";
+
         AppState.gpsWatchId = navigator.geolocation.watchPosition(
             (pos) => {
                 AppState.lastGps = {
@@ -746,12 +787,10 @@ const appGps = {
                     badge.innerText = "⚠️ Mất GPS";
                     badge.className = "btn-sm btn-amber";
                 }
+                appGps.updateHeaderGpsUI('error');
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
         );
-        AppState.isGpsTracking = true;
-        const btn = document.getElementById('btnToggleGpsTracking');
-        if (btn) btn.innerText = "⏸️ Tạm dừng GPS";
     },
 
     stopTracking() {
@@ -767,18 +806,23 @@ const appGps = {
             badge.innerText = "⏸️ Đã dừng";
             badge.className = "btn-sm";
         }
+        appGps.updateHeaderGpsUI('off');
     },
 
     toggleTracking() {
         if (AppState.isGpsTracking) {
             appGps.stopTracking();
+            showToast("⏸️ Đã tắt định vị GPS (tiết kiệm pin)");
         } else {
             appGps.startTracking();
+            showToast("🛰️ Đang bật định vị GPS vệ tinh...");
         }
     },
 
     refreshDisplay() {
         if (!AppState.lastGps.lat) return;
+
+        appGps.updateHeaderGpsUI('active', AppState.lastGps.accuracy);
 
         const latEl = document.getElementById('gpsLiveLat');
         const lngEl = document.getElementById('gpsLiveLng');
