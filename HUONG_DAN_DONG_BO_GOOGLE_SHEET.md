@@ -291,7 +291,7 @@ function suaLoiLienKetCu() {
     }
   });
 
-  return "Đã sửa thành công " + totalFixed + " mốc bằng công thức: =HYPERLINK(\"...; \"🗺️ Xem Vị Trí\") chuẩn dấu chấm phẩy (;)!";
+  return "Đã sửa thành công " + totalFixed + " mốc bằng công thức HYPERLINK chuẩn dấu chấm phẩy (;)!";
 }
 
 // Lấy danh sách khóa mốc đã có trong bảng để chống trùng lặp
