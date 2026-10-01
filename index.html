@@ -1326,6 +1326,575 @@
       opacity: 1;
       transform: translateX(-50%) translateY(-6px);
     }
+
+    /* ================= CÂY THƯ MỤC GIAO DIỆN & NAVIGATION DRAWER ================= */
+    .btn-header-tree {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #e0f2fe;
+    }
+    .btn-header-tree:active {
+      background: rgba(56, 189, 248, 0.35);
+    }
+    .tree-nav-icon {
+      font-size: 13.5px;
+    }
+    @media (max-width: 480px) {
+      .tree-nav-label {
+        display: none;
+      }
+    }
+
+    /* SEARCH BAR ON HOME & DRAWER */
+    .main-tree-search-bar {
+      position: relative;
+      margin: 10px 0 10px 0;
+      display: flex;
+      align-items: center;
+    }
+    .main-tree-search-bar .search-icon {
+      position: absolute;
+      left: 12px;
+      font-size: 14px;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+    .main-tree-search-bar input {
+      width: 100%;
+      height: 40px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding-left: 36px;
+      padding-right: 32px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .main-tree-search-bar input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+      background: rgba(15, 23, 42, 0.98);
+    }
+    .btn-clear-search {
+      position: absolute;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* VIEW MODE TOOLBAR */
+    .view-mode-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .view-mode-buttons {
+      display: flex;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .btn-view-mode {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-view-mode.active {
+      background: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+    }
+    .tree-quick-tools {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-tree-tool {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      padding: 5px 9px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-tree-tool:active {
+      background: rgba(51, 65, 85, 0.95);
+    }
+
+    /* TREE CONTAINER & FOLDERS (HOME VIEW) */
+    .tree-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .tree-folder {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tree-folder.open {
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+    .tree-folder-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.75);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .tree-folder-head:hover {
+      background: rgba(15, 23, 42, 0.92);
+    }
+    .tree-folder-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: 0.2px;
+    }
+    .tree-folder-icon {
+      font-size: 16px;
+    }
+    .tree-folder-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tree-chevron {
+      font-size: 10px;
+      color: #94a3b8;
+      transition: transform 0.2s ease;
+    }
+    .tree-folder.open .tree-chevron {
+      transform: rotate(0deg);
+    }
+    .tree-folder:not(.open) .tree-chevron {
+      transform: rotate(-90deg);
+    }
+    .tree-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      letter-spacing: 0.2px;
+    }
+    .badge-blue { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-green { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-purple { background: rgba(167, 139, 250, 0.2); color: #c084fc; border: 1px solid rgba(167, 139, 250, 0.3); }
+    .badge-orange { background: rgba(251, 146, 60, 0.2); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
+    .badge-slate { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+    .tree-folder-body {
+      display: flex;
+      flex-direction: column;
+      padding: 6px 10px 10px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .tree-folder:not(.open) .tree-folder-body {
+      display: none;
+    }
+
+    /* TREE LEAF ITEM */
+    .tree-leaf-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      margin: 3px 0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s ease;
+    }
+    .tree-leaf-item:hover {
+      background: rgba(56, 189, 248, 0.09);
+      border-color: rgba(56, 189, 248, 0.25);
+      transform: translateX(4px);
+    }
+    .tree-leaf-item:active {
+      transform: scale(0.98);
+      background: rgba(56, 189, 248, 0.16);
+    }
+    .tree-leaf-connector {
+      font-family: monospace;
+      color: rgba(148, 163, 184, 0.5);
+      font-size: 13px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .tree-leaf-icon {
+      font-size: 18px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+    }
+    .tree-leaf-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .tree-leaf-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tree-leaf-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-leaf-action {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tree-leaf-item:hover .btn-leaf-action {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+
+    /* NAVIGATION TREE DRAWER (MODAL SIDEBAR) */
+    .nav-tree-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 2100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-tree-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .nav-tree-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 360px;
+      max-width: 88vw;
+      height: 100vh;
+      height: 100dvh;
+      background: linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
+      border-right: 1px solid rgba(56, 189, 248, 0.25);
+      box-shadow: 10px 0 35px rgba(0, 0, 0, 0.65);
+      z-index: 2101;
+      transform: translateX(-100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .nav-tree-drawer.active {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: calc(var(--sat-safe-top) + 12px) 14px 12px 14px;
+      background: linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      flex-shrink: 0;
+    }
+    .drawer-title-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .drawer-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.2px;
+    }
+    .drawer-subtitle {
+      font-size: 10.5px;
+      color: #bae6fd;
+      margin-top: 1px;
+    }
+    .btn-drawer-close {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .btn-drawer-close:active {
+      background: rgba(239, 68, 68, 0.6);
+      transform: scale(0.92);
+    }
+
+    .drawer-status-chip {
+      background: rgba(15, 23, 42, 0.9);
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #94a3b8;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .drawer-status-chip span {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .drawer-search-box {
+      padding: 8px 12px;
+      position: relative;
+      background: #0f172a;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .drawer-search-icon {
+      position: absolute;
+      left: 20px;
+      font-size: 13px;
+      color: #64748b;
+      pointer-events: none;
+    }
+    .drawer-search-input {
+      width: 100%;
+      height: 36px;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding-left: 32px;
+      padding-right: 28px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+    }
+    .drawer-search-input:focus {
+      border-color: #38bdf8;
+    }
+    .btn-drawer-clear {
+      position: absolute;
+      right: 20px;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .drawer-tree-body {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 10px calc(var(--sat-safe-bottom) + 20px) 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .drawer-folder {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .drawer-folder.open {
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+    .drawer-folder-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 12px;
+      background: rgba(15, 23, 42, 0.6);
+      cursor: pointer;
+      user-select: none;
+    }
+    .drawer-folder-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #f1f5f9;
+    }
+    .drawer-chevron {
+      font-size: 9px;
+      color: #94a3b8;
+      transition: transform 0.2s ease;
+    }
+    .drawer-folder.open .drawer-chevron {
+      transform: rotate(0deg);
+    }
+    .drawer-folder:not(.open) .drawer-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .drawer-folder-body {
+      display: flex;
+      flex-direction: column;
+      padding: 4px 6px 6px 6px;
+      background: rgba(15, 23, 42, 0.3);
+    }
+    .drawer-folder:not(.open) .drawer-folder-body {
+      display: none;
+    }
+
+    .drawer-leaf-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .drawer-leaf-item:hover {
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .drawer-leaf-item:active {
+      transform: scale(0.97);
+    }
+    .drawer-leaf-icon {
+      font-size: 16px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      flex-shrink: 0;
+    }
+    .drawer-leaf-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .drawer-leaf-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .drawer-leaf-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .drawer-leaf-btn {
+      font-size: 10px;
+      font-weight: 700;
+      color: #38bdf8;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.1);
+      flex-shrink: 0;
+    }
+
+    /* FLOATING QUICK NAV BUTTON */
+    .btn-floating-quicknav {
+      position: fixed;
+      bottom: calc(var(--sat-safe-bottom, 16px) + 20px);
+      right: 16px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+      border-radius: 30px;
+      padding: 9px 15px;
+      font-size: 12.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 18px rgba(2, 132, 199, 0.45);
+      cursor: pointer;
+      z-index: 1200;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+      user-select: none;
+    }
+    .btn-floating-quicknav:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 6px 22px rgba(2, 132, 199, 0.6);
+    }
+    .btn-floating-quicknav:active {
+      transform: scale(0.95);
+    }
+    .fab-tree-icon {
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
@@ -1333,6 +1902,10 @@
     <!-- TOP HEADER -->
     <header class="app-header">
       <div class="header-left">
+        <button id="btnHeaderMenu" class="btn-header-action btn-header-tree" onclick="appNav.toggleTreeMenu()" title="Cây thư mục chức năng (Chuyển nhanh)">
+          <span class="tree-nav-icon">☰</span>
+          <span class="tree-nav-label">Menu</span>
+        </button>
         <button id="btnHeaderBack" class="btn-header-back" onclick="appNav.goToMenu()">
           ◀ Menu
         </button>
@@ -1380,60 +1953,303 @@
           </div>
         </div>
 
-        <!-- Menu Action Cards -->
-        <div class="menu-grid">
-          <div class="menu-card" onclick="appNav.showScreen('transform')">
-            <div class="menu-card-icon" style="color: #38bdf8;">🔄</div>
-            <div class="menu-card-content">
-              <div class="menu-card-title">1. CHUYỂN ĐỔI TỌA ĐỘ</div>
-              <div class="menu-card-desc">Chuyển đổi 2 chiều WGS-84 ⇄ VN-2000 chuẩn 7 tham số, hỗ trợ chuyển hàng loạt</div>
+        <!-- Thanh Tìm Kiếm Nhanh Tính Năng -->
+        <div class="main-tree-search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="txtMainTreeFilter" placeholder="Tìm nhanh chức năng (cắm mốc, camera, dxf, kml, bản đồ...)" oninput="appNav.filterTreeNav(this.value)">
+          <button class="btn-clear-search" onclick="document.getElementById('txtMainTreeFilter').value=''; appNav.filterTreeNav('');">✕</button>
+        </div>
+
+        <!-- Thanh Công Cụ Chế Độ Xem Cây Thư Mục / Thẻ -->
+        <div class="view-mode-toolbar">
+          <div class="view-mode-buttons">
+            <button id="btnViewModeTree" class="btn-view-mode active" onclick="appNav.switchMainMenuView('tree')">
+              🌳 Cây Thư Mục
+            </button>
+            <button id="btnViewModeGrid" class="btn-view-mode" onclick="appNav.switchMainMenuView('cards')">
+              🗂️ Danh Mục Thẻ
+            </button>
+          </div>
+          <div class="tree-quick-tools">
+            <button class="btn-tree-tool" onclick="appNav.toggleAllFolders(true)" title="Mở rộng tất cả nhóm">📂 Mở hết</button>
+            <button class="btn-tree-tool" onclick="appNav.toggleAllFolders(false)" title="Thu gọn các nhóm">📁 Thu gọn</button>
+          </div>
+        </div>
+
+        <!-- ================= GIAO DIỆN CÂY THƯ MỤC CHUYÊN SÂU ================= -->
+        <div class="tree-container" id="mainTreeContainer">
+          <!-- NHÓM 1: CHUYỂN ĐỔI TỌA ĐỘ QUỐC GIA -->
+          <div class="tree-folder open" id="treeFolder1">
+            <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder1')">
+              <div class="tree-folder-title">
+                <span class="tree-folder-icon">📂</span>
+                <span class="tree-folder-name">NHÓM 1: CHUYỂN ĐỔI TỌA ĐỘ QUỐC GIA</span>
+              </div>
+              <div class="tree-folder-meta">
+                <span class="tree-badge badge-blue">2 mục</span>
+                <span class="tree-chevron">▼</span>
+              </div>
             </div>
-            <div class="menu-card-arrow">›</div>
+            <div class="tree-folder-body">
+              <div class="tree-leaf-item" onclick="appNav.showScreen('transform')">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #38bdf8;">🔄</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">1.1 Chuyển đổi 2 chiều đơn điểm (VN2K ⇄ WGS84)</div>
+                  <div class="tree-leaf-desc">Chuẩn 7 tham số theo Quyết định 05/2007/QĐ-BTNMT, múi 3°/6°</div>
+                </div>
+                <button class="btn-leaf-action">Mở ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('batch_import')">
+                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-icon" style="color: #60a5fa;">📑</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">1.2 Chuyển đổi danh sách hàng loạt & Nhập file</div>
+                  <div class="tree-leaf-desc">Nhập file CSV mốc hoặc dán bảng số liệu nhiều điểm từ Zalo/Excel</div>
+                </div>
+                <button class="btn-leaf-action">Nhập ➔</button>
+              </div>
+            </div>
           </div>
 
-          <div class="menu-card" onclick="appNav.openProjectMap()">
-            <div class="menu-card-icon" style="color: #fbbf24;">🗺️</div>
-            <div class="menu-card-content">
-              <div class="menu-card-title">2. BẢN ĐỒ DỰ ÁN & CHẤM ĐIỂM</div>
-              <div class="menu-card-desc">Bản đồ vệ tinh Leaflet, xem mốc dự án, khoảng cách giữa các điểm, ranh 34 tỉnh/xã</div>
+          <!-- NHÓM 2: KHẢO SÁT & ĐO ĐẠC THỰC ĐỊA CHUYÊN NGHIỆP -->
+          <div class="tree-folder open" id="treeFolder2">
+            <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder2')">
+              <div class="tree-folder-title">
+                <span class="tree-folder-icon">📂</span>
+                <span class="tree-folder-name">NHÓM 2: KHẢO SÁT & ĐO ĐẠC THỰC ĐỊA</span>
+              </div>
+              <div class="tree-folder-meta">
+                <span class="tree-badge badge-green">3 mục</span>
+                <span class="tree-chevron">▼</span>
+              </div>
             </div>
-            <div class="menu-card-arrow">›</div>
+            <div class="tree-folder-body">
+              <div class="tree-leaf-item" onclick="appNav.openProjectMap()">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #fbbf24;">🗺️</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">2.1 Bản đồ dự án & Chấm điểm vệ tinh</div>
+                  <div class="tree-leaf-desc">Bản đồ Leaflet vệ tinh, xem mốc dự án, GPS, ranh 34 tỉnh/xã</div>
+                </div>
+                <button class="btn-leaf-action">Mở ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.showScreen('stakeout')">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #f59e0b;">🧭</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">2.2 Dẫn đường cắm mốc thực địa (Stakeout)</div>
+                  <div class="tree-leaf-desc">La bàn số 360°, radar dẫn hướng, đo cự ly & góc lệch, bíp đích</div>
+                </div>
+                <button class="btn-leaf-action">Cắm mốc ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.showScreen('camera')">
+                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-icon" style="color: #ec4899;">📸</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">2.3 Camera thực địa đóng dấu thủy ấn</div>
+                  <div class="tree-leaf-desc">Chụp ảnh in nổi tọa độ VN-2000, WGS-84, sai số GPS, la bàn, ngày giờ</div>
+                </div>
+                <button class="btn-leaf-action">Chụp ➔</button>
+              </div>
+            </div>
           </div>
 
-          <div class="menu-card" onclick="appNav.showScreen('stakeout')">
-            <div class="menu-card-icon" style="color: #f59e0b;">🧭</div>
-            <div class="menu-card-content">
-              <div class="menu-card-title">3. CẮM MỐC THỰC ĐỊA (STAKEOUT)</div>
-              <div class="menu-card-desc">La bàn số 360°, radar dẫn hướng, đo cự ly và góc lệch tới mốc cần tìm ngoài thực địa</div>
+          <!-- NHÓM 3: XÂY DỰNG, GIAO THÔNG & ĐỊA HÌNH TUYẾN -->
+          <div class="tree-folder open" id="treeFolder3">
+            <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder3')">
+              <div class="tree-folder-title">
+                <span class="tree-folder-icon">📂</span>
+                <span class="tree-folder-name">NHÓM 3: XÂY DỰNG, GIAO THÔNG & TUYẾN</span>
+              </div>
+              <div class="tree-folder-meta">
+                <span class="tree-badge badge-purple">2 mục</span>
+                <span class="tree-chevron">▼</span>
+              </div>
             </div>
-            <div class="menu-card-arrow">›</div>
+            <div class="tree-folder-body">
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('measure_distance')">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #a78bfa;">📏</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">3.1 Đo cự ly & góc phương vị giữa các mốc</div>
+                  <div class="tree-leaf-desc">Khoảng cách trắc địa và hướng góc phương vị tuyến giữa 2 điểm</div>
+                </div>
+                <button class="btn-leaf-action">Đo cự ly ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('measure_polygon')">
+                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-icon" style="color: #c084fc;">📐</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">3.2 Khép góc ranh thửa & tính chu vi diện tích</div>
+                  <div class="tree-leaf-desc">Đa giác khép góc chuỗi mốc ranh thửa, tự động tính m² và chu vi</div>
+                </div>
+                <button class="btn-leaf-action">Khép góc ➔</button>
+              </div>
+            </div>
           </div>
 
-          <div class="menu-card" onclick="appNav.showScreen('camera')">
-            <div class="menu-card-icon" style="color: #ec4899;">📸</div>
-            <div class="menu-card-content">
-              <div class="menu-card-title">4. CAMERA ĐÓNG DẤU THỦY ẤN</div>
-              <div class="menu-card-desc">Chụp ảnh hiện trường in nổi tọa độ VN-2000, WGS-84, sai số GPS, la bàn, ngày giờ</div>
+          <!-- NHÓM 4: TRAO ĐỔI DỮ LIỆU ĐA NỀN TẢNG (CAD / GIS INTEROPERABILITY) -->
+          <div class="tree-folder open" id="treeFolder4">
+            <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder4')">
+              <div class="tree-folder-title">
+                <span class="tree-folder-icon">📂</span>
+                <span class="tree-folder-name">NHÓM 4: TRAO ĐỔI DỮ LIỆU ĐA NỀN TẢNG (CAD / GIS)</span>
+              </div>
+              <div class="tree-folder-meta">
+                <span class="tree-badge badge-orange">5 mục</span>
+                <span class="tree-chevron">▼</span>
+              </div>
             </div>
-            <div class="menu-card-arrow">›</div>
+            <div class="tree-folder-body">
+              <div class="tree-leaf-item" onclick="appNav.showScreen('datamgmt')">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #38bdf8;">📁</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">4.1 Sổ đo mốc & Quản lý danh sách dự án</div>
+                  <div class="tree-leaf-desc">Quản lý từng dự án độc lập, xem bảng mốc, chỉnh sửa, lọc</div>
+                </div>
+                <button class="btn-leaf-action">Sổ đo ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appData.exportDxfFile()">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #06b6d4;">💻</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">4.2 Xuất bản vẽ AutoCAD (.DXF R12)</div>
+                  <div class="tree-leaf-desc">3 layer CAD: MOC_TOADO, TEN_MOC, RANH_THUA</div>
+                </div>
+                <button class="btn-leaf-action">Tải DXF ⬇</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appData.exportKmlFile()">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #10b981;">🌍</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">4.3 Xuất Google Earth (.KML)</div>
+                  <div class="tree-leaf-desc">Placemarks WGS-84, popup bóng thông tin HTML và ranh thửa</div>
+                </div>
+                <button class="btn-leaf-action">Tải KML ⬇</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appData.exportCsvFile()">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #34d399;">📊</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">4.4 Xuất bảng tính Excel (.CSV UTF-8)</div>
+                  <div class="tree-leaf-desc">Xuất file CSV chuẩn có dấu tiếng Việt tương thích Excel</div>
+                </div>
+                <button class="btn-leaf-action">Tải CSV ⬇</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('settings_storage')">
+                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-icon" style="color: #3b82f6;">☁️</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">4.5 Cấu hình đồng bộ Google Sheets / AppSheet</div>
+                  <div class="tree-leaf-desc">Lưu mốc tự động lên trang tính cá nhân</div>
+                </div>
+                <button class="btn-leaf-action">Cấu hình ⚙️</button>
+              </div>
+            </div>
           </div>
 
-          <div class="menu-card" onclick="appNav.showScreen('datamgmt')">
-            <div class="menu-card-icon" style="color: #a78bfa;">📁</div>
-            <div class="menu-card-content">
-              <div class="menu-card-title">5. QUẢN LÝ DỰ ÁN & XUẤT FILE</div>
-              <div class="menu-card-desc">Sổ đo mốc, xuất AutoCAD (.DXF), Google Earth (.KML), Excel CSV, Google Sheets</div>
+          <!-- HỆ THỐNG & CÀI ĐẶT -->
+          <div class="tree-folder open" id="treeFolder5">
+            <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder5')">
+              <div class="tree-folder-title">
+                <span class="tree-folder-icon">📂</span>
+                <span class="tree-folder-name">HỆ THỐNG & CÀI ĐẶT</span>
+              </div>
+              <div class="tree-folder-meta">
+                <span class="tree-badge badge-slate">3 mục</span>
+                <span class="tree-chevron">▼</span>
+              </div>
             </div>
-            <div class="menu-card-arrow">›</div>
+            <div class="tree-folder-body">
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('settings_ktt')">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #f59e0b;">🌐</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">5.1 Cài đặt Kinh tuyến trục 63 tỉnh thành</div>
+                  <div class="tree-leaf-desc">Tra cứu và thay đổi KTT địa phương, múi chiếu 3° hoặc 6°</div>
+                </div>
+                <button class="btn-leaf-action">Đổi KTT ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appGps.toggleTracking()">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #10b981;">🛰️</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">5.2 Bật/Tắt định vị GPS & Kiểm tra sai số</div>
+                  <div class="tree-leaf-desc">Theo dõi tọa độ vệ tinh ngoài thực địa, độ chính xác ±m</div>
+                </div>
+                <button class="btn-leaf-action">Bật/Tắt ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.showScreen('about')">
+                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-icon" style="color: #94a3b8;">ℹ️</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">5.3 Thông tin phần mềm & Hướng dẫn kỹ thuật</div>
+                  <div class="tree-leaf-desc">Tác giả Đặng Như, bảng KTT toàn quốc, hướng dẫn iOS Safari</div>
+                </div>
+                <button class="btn-leaf-action">Xem ➔</button>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div class="menu-card" onclick="appNav.showScreen('about')">
-            <div class="menu-card-icon" style="color: #94a3b8;">ℹ️</div>
-            <div class="menu-card-content">
-              <div class="menu-card-title">6. THÔNG TIN & HƯỚNG DẪN</div>
-              <div class="menu-card-desc">Tác giả Đặng Như, tham số tính toán chuẩn hóa và hướng dẫn cài đặt iOS Safari</div>
+        <!-- ================= CHẾ ĐỘ THẺ LƯỚI TRUYỀN THỐNG ================= -->
+        <div id="mainGridContainer" style="display: none;">
+          <div class="menu-grid">
+            <div class="menu-card" onclick="appNav.showScreen('transform')">
+              <div class="menu-card-icon" style="color: #38bdf8;">🔄</div>
+              <div class="menu-card-content">
+                <div class="menu-card-title">1. CHUYỂN ĐỔI TỌA ĐỘ</div>
+                <div class="menu-card-desc">Chuyển đổi 2 chiều WGS-84 ⇄ VN-2000 chuẩn 7 tham số, hỗ trợ chuyển hàng loạt</div>
+              </div>
+              <div class="menu-card-arrow">›</div>
             </div>
-            <div class="menu-card-arrow">›</div>
+
+            <div class="menu-card" onclick="appNav.openProjectMap()">
+              <div class="menu-card-icon" style="color: #fbbf24;">🗺️</div>
+              <div class="menu-card-content">
+                <div class="menu-card-title">2. BẢN ĐỒ DỰ ÁN & CHẤM ĐIỂM</div>
+                <div class="menu-card-desc">Bản đồ vệ tinh Leaflet, xem mốc dự án, khoảng cách giữa các điểm, ranh 34 tỉnh/xã</div>
+              </div>
+              <div class="menu-card-arrow">›</div>
+            </div>
+
+            <div class="menu-card" onclick="appNav.showScreen('stakeout')">
+              <div class="menu-card-icon" style="color: #f59e0b;">🧭</div>
+              <div class="menu-card-content">
+                <div class="menu-card-title">3. CẮM MỐC THỰC ĐỊA (STAKEOUT)</div>
+                <div class="menu-card-desc">La bàn số 360°, radar dẫn hướng, đo cự ly và góc lệch tới mốc cần tìm ngoài thực địa</div>
+              </div>
+              <div class="menu-card-arrow">›</div>
+            </div>
+
+            <div class="menu-card" onclick="appNav.showScreen('camera')">
+              <div class="menu-card-icon" style="color: #ec4899;">📸</div>
+              <div class="menu-card-content">
+                <div class="menu-card-title">4. CAMERA ĐÓNG DẤU THỦY ẤN</div>
+                <div class="menu-card-desc">Chụp ảnh hiện trường in nổi tọa độ VN-2000, WGS-84, sai số GPS, la bàn, ngày giờ</div>
+              </div>
+              <div class="menu-card-arrow">›</div>
+            </div>
+
+            <div class="menu-card" onclick="appNav.showScreen('datamgmt')">
+              <div class="menu-card-icon" style="color: #a78bfa;">📁</div>
+              <div class="menu-card-content">
+                <div class="menu-card-title">5. QUẢN LÝ DỰ ÁN & XUẤT FILE</div>
+                <div class="menu-card-desc">Sổ đo mốc, xuất AutoCAD (.DXF), Google Earth (.KML), Excel CSV, Google Sheets</div>
+              </div>
+              <div class="menu-card-arrow">›</div>
+            </div>
+
+            <div class="menu-card" onclick="appNav.showScreen('about')">
+              <div class="menu-card-icon" style="color: #94a3b8;">ℹ️</div>
+              <div class="menu-card-content">
+                <div class="menu-card-title">6. THÔNG TIN & HƯỚNG DẪN</div>
+                <div class="menu-card-desc">Tác giả Đặng Như, tham số tính toán chuẩn hóa và hướng dẫn cài đặt iOS Safari</div>
+              </div>
+              <div class="menu-card-arrow">›</div>
+            </div>
           </div>
         </div>
       </section>
@@ -1617,8 +2433,11 @@
           <button class="btn-sm" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appNav.closeMap()">
             ◀ Quay lại
           </button>
+          <button class="btn-sm btn-blue" style="flex:none; padding: 4px 8px; height: 32px;" onclick="appNav.toggleTreeMenu()" title="Mở cây thư mục chức năng">
+            🌳 Menu
+          </button>
           <span class="map-mode-text" id="mapModeIndicator">📍 BẢN ĐỒ DỰ ÁN</span>
-          <button class="btn-sm btn-blue" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appMap.togglePickMode()">
+          <button class="btn-sm btn-green" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appMap.togglePickMode()">
             🎯 Chấm điểm
           </button>
         </div>
@@ -2424,13 +3243,247 @@
         </button>
       </div>
     </div>
-  </div>
+  <!-- NAVIGATION TREE DRAWER (CÂY THƯ MỤC CHỨC NĂNG - CHUYỂN NHANH) -->
+  <div id="navTreeBackdrop" class="nav-tree-backdrop" onclick="appNav.closeTreeMenu()"></div>
+  <aside id="navTreeDrawer" class="nav-tree-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <div class="drawer-title">
+          <span class="drawer-icon">🌳</span>
+          <span>CÂY THƯ MỤC CHỨC NĂNG</span>
+        </div>
+        <div class="drawer-subtitle">Chọn nhanh chức năng từ mọi màn hình</div>
+      </div>
+      <button class="btn-drawer-close" onclick="appNav.closeTreeMenu()" title="Đóng menu">✕</button>
+    </div>
+
+    <!-- Status Chip -->
+    <div class="drawer-status-chip" id="drawerStatusInfo">
+      <span>📁 Đang tải thông tin dự án...</span>
+    </div>
+
+    <!-- Search Input -->
+    <div class="drawer-search-box">
+      <span class="drawer-search-icon">🔍</span>
+      <input type="text" id="txtDrawerSearch" class="drawer-search-input" placeholder="Tìm nhanh (cắm mốc, dxf, kml, camera...)" oninput="appNav.filterTreeNav(this.value)">
+      <button class="btn-drawer-clear" onclick="document.getElementById('txtDrawerSearch').value=''; appNav.filterTreeNav('');">✕</button>
+    </div>
+
+    <!-- Tree Body -->
+    <div class="drawer-tree-body">
+      <!-- Nhóm 1 -->
+      <div class="drawer-folder open" id="drawerFolder1">
+        <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder1')">
+          <div class="drawer-folder-title">
+            <span class="drawer-folder-icon">📂</span>
+            <span>NHÓM 1: CHUYỂN ĐỔI TỌA ĐỘ</span>
+          </div>
+          <div class="drawer-folder-meta">
+            <span class="tree-badge badge-blue">2 mục</span>
+            <span class="drawer-chevron">▼</span>
+          </div>
+        </div>
+        <div class="drawer-folder-body">
+          <div class="drawer-leaf-item" onclick="appNav.showScreen('transform')">
+            <div class="drawer-leaf-icon" style="color: #38bdf8;">🔄</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">1.1 Chuyển đổi 2 chiều đơn điểm</div>
+              <div class="drawer-leaf-sub">WGS-84 ⇄ VN-2000 chuẩn 7 tham số</div>
+            </div>
+            <span class="drawer-leaf-btn">Mở ➔</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appNav.navigateTo('batch_import')">
+            <div class="drawer-leaf-icon" style="color: #60a5fa;">📑</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">1.2 Chuyển đổi hàng loạt & Nhập file</div>
+              <div class="drawer-leaf-sub">Nhập CSV hoặc dán bảng số liệu nhiều mốc</div>
+            </div>
+            <span class="drawer-leaf-btn">Nhập ➔</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nhóm 2 -->
+      <div class="drawer-folder open" id="drawerFolder2">
+        <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder2')">
+          <div class="drawer-folder-title">
+            <span class="drawer-folder-icon">📂</span>
+            <span>NHÓM 2: KHẢO SÁT & ĐO ĐẠC THỰC ĐỊA</span>
+          </div>
+          <div class="drawer-folder-meta">
+            <span class="tree-badge badge-green">3 mục</span>
+            <span class="drawer-chevron">▼</span>
+          </div>
+        </div>
+        <div class="drawer-folder-body">
+          <div class="drawer-leaf-item" onclick="appNav.openProjectMap()">
+            <div class="drawer-leaf-icon" style="color: #fbbf24;">🗺️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.1 Bản đồ dự án & Chấm điểm vệ tinh</div>
+              <div class="drawer-leaf-sub">Xem mốc vệ tinh, GPS, ranh 34 tỉnh/xã</div>
+            </div>
+            <span class="drawer-leaf-btn">Mở ➔</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appNav.showScreen('stakeout')">
+            <div class="drawer-leaf-icon" style="color: #f59e0b;">🧭</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.2 Dẫn đường cắm mốc (Stakeout)</div>
+              <div class="drawer-leaf-sub">La bàn số 360°, radar dẫn hướng, bíp đích</div>
+            </div>
+            <span class="drawer-leaf-btn">Cắm mốc ➔</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appNav.showScreen('camera')">
+            <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.3 Camera đóng dấu thủy ấn</div>
+              <div class="drawer-leaf-sub">In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ</div>
+            </div>
+            <span class="drawer-leaf-btn">Chụp ➔</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nhóm 3 -->
+      <div class="drawer-folder open" id="drawerFolder3">
+        <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder3')">
+          <div class="drawer-folder-title">
+            <span class="drawer-folder-icon">📂</span>
+            <span>NHÓM 3: XÂY DỰNG & ĐỊA HÌNH TUYẾN</span>
+          </div>
+          <div class="drawer-folder-meta">
+            <span class="tree-badge badge-purple">2 mục</span>
+            <span class="drawer-chevron">▼</span>
+          </div>
+        </div>
+        <div class="drawer-folder-body">
+          <div class="drawer-leaf-item" onclick="appNav.navigateTo('measure_distance')">
+            <div class="drawer-leaf-icon" style="color: #a78bfa;">📏</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">3.1 Đo cự ly & góc phương vị</div>
+              <div class="drawer-leaf-sub">Khoảng cách trắc địa và hướng tuyến giữa 2 mốc</div>
+            </div>
+            <span class="drawer-leaf-btn">Đo cự ly ➔</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appNav.navigateTo('measure_polygon')">
+            <div class="drawer-leaf-icon" style="color: #c084fc;">📐</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">3.2 Khép góc ranh thửa & tính diện tích</div>
+              <div class="drawer-leaf-sub">Đa giác khép góc, tính m² và chu vi tuyến</div>
+            </div>
+            <span class="drawer-leaf-btn">Khép góc ➔</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nhóm 4 -->
+      <div class="drawer-folder open" id="drawerFolder4">
+        <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder4')">
+          <div class="drawer-folder-title">
+            <span class="drawer-folder-icon">📂</span>
+            <span>NHÓM 4: TRAO ĐỔI DỮ LIỆU (CAD / GIS)</span>
+          </div>
+          <div class="drawer-folder-meta">
+            <span class="tree-badge badge-orange">5 mục</span>
+            <span class="drawer-chevron">▼</span>
+          </div>
+        </div>
+        <div class="drawer-folder-body">
+          <div class="drawer-leaf-item" onclick="appNav.showScreen('datamgmt')">
+            <div class="drawer-leaf-icon" style="color: #38bdf8;">📁</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.1 Sổ đo mốc & Quản lý dự án</div>
+              <div class="drawer-leaf-sub">Xem bảng mốc, chỉnh sửa, xóa, tìm kiếm</div>
+            </div>
+            <span class="drawer-leaf-btn">Sổ đo ➔</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appData.exportDxfFile()">
+            <div class="drawer-leaf-icon" style="color: #06b6d4;">💻</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.2 Xuất bản vẽ AutoCAD (.DXF)</div>
+              <div class="drawer-leaf-sub">Chuẩn R12, 3 layer MOC, TEN, RANH</div>
+            </div>
+            <span class="drawer-leaf-btn">Tải DXF ⬇</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appData.exportKmlFile()">
+            <div class="drawer-leaf-icon" style="color: #10b981;">🌍</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.3 Xuất Google Earth (.KML)</div>
+              <div class="drawer-leaf-sub">Placemarks WGS84, bóng thông tin HTML</div>
+            </div>
+            <span class="drawer-leaf-btn">Tải KML ⬇</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appData.exportCsvFile()">
+            <div class="drawer-leaf-icon" style="color: #34d399;">📊</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.4 Xuất bảng tính Excel (.CSV)</div>
+              <div class="drawer-leaf-sub">File CSV UTF-8 có dấu tiếng Việt</div>
+            </div>
+            <span class="drawer-leaf-btn">Tải CSV ⬇</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appNav.navigateTo('settings_storage')">
+            <div class="drawer-leaf-icon" style="color: #3b82f6;">☁️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.5 Cấu hình Google Sheets / AppSheet</div>
+              <div class="drawer-leaf-sub">Đồng bộ tự động lên Google Drive</div>
+            </div>
+            <span class="drawer-leaf-btn">Cấu hình ⚙️</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nhóm 5: Hệ thống & Cài đặt -->
+      <div class="drawer-folder open" id="drawerFolder5">
+        <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder5')">
+          <div class="drawer-folder-title">
+            <span class="drawer-folder-icon">📂</span>
+            <span>HỆ THỐNG & CÀI ĐẶT</span>
+          </div>
+          <div class="drawer-folder-meta">
+            <span class="tree-badge badge-slate">3 mục</span>
+            <span class="drawer-chevron">▼</span>
+          </div>
+        </div>
+        <div class="drawer-folder-body">
+          <div class="drawer-leaf-item" onclick="appNav.navigateTo('settings_ktt')">
+            <div class="drawer-leaf-icon" style="color: #f59e0b;">🌐</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.1 Cài đặt Kinh tuyến trục (KTT)</div>
+              <div class="drawer-leaf-sub">63 tỉnh thành, múi 3°/6°, tỉ lệ chiếu</div>
+            </div>
+            <span class="drawer-leaf-btn">Đổi KTT ➔</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appGps.toggleTracking()">
+            <div class="drawer-leaf-icon" style="color: #10b981;">🛰️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.2 Bật/Tắt & Kiểm tra sai số GPS</div>
+              <div class="drawer-leaf-sub">Độ chính xác vệ tinh thực địa (±m)</div>
+            </div>
+            <span class="drawer-leaf-btn">Bật/Tắt ➔</span>
+          </div>
+          <div class="drawer-leaf-item" onclick="appNav.showScreen('about')">
+            <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.3 Hướng dẫn sử dụng & Tác giả</div>
+              <div class="drawer-leaf-sub">Bảng KTT toàn quốc, cài đặt PWA</div>
+            </div>
+            <span class="drawer-leaf-btn">Xem ➔</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- FLOATING QUICK NAV BUTTON (NÚT CHUYỂN NHANH NỔI) -->
+  <button id="btnFloatingQuickNav" class="btn-floating-quicknav" onclick="appNav.toggleTreeMenu()" title="Mở cây thư mục chức năng (Chuyển nhanh)">
+    <span class="fab-tree-icon">🌳</span>
+    <span class="fab-tree-text">Menu Nhanh</span>
+  </button>
 
   <!-- TOAST NOTIFICATION -->
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.2.5"></script>
+  <script src="app.js?v=2.3.6"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

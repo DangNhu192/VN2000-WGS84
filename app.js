@@ -20,6 +20,10 @@ const AppState = {
     currentProject: "VN2000_SoLieu_DoDac.csv",
     projectsList: ["VN2000_SoLieu_DoDac.csv"],
     
+    // UI & Navigation Tree State
+    isTreeDrawerOpen: false,
+    mainMenuViewMode: 'tree',
+
     // Storage & Google Sync State
     storageMode: 'offline', // 'offline' (mặc định) hoặc 'auto_google'
     googleScriptUrl: '',
@@ -165,6 +169,156 @@ const appNav = {
         appNav.showScreen('menu');
     },
 
+    toggleTreeMenu() {
+        if (AppState.isTreeDrawerOpen) {
+            appNav.closeTreeMenu();
+        } else {
+            appNav.openTreeMenu();
+        }
+    },
+
+    openTreeMenu() {
+        AppState.isTreeDrawerOpen = true;
+        const drawer = document.getElementById('navTreeDrawer');
+        const backdrop = document.getElementById('navTreeBackdrop');
+        if (drawer) drawer.classList.add('active');
+        if (backdrop) backdrop.classList.add('active');
+        appNav.updateTreeNavState();
+    },
+
+    closeTreeMenu() {
+        AppState.isTreeDrawerOpen = false;
+        const drawer = document.getElementById('navTreeDrawer');
+        const backdrop = document.getElementById('navTreeBackdrop');
+        if (drawer) drawer.classList.remove('active');
+        if (backdrop) backdrop.classList.remove('active');
+    },
+
+    navigateTo(action, param) {
+        appNav.closeTreeMenu();
+        if (action === 'menu') {
+            appNav.goToMenu();
+        } else if (action === 'transform') {
+            appNav.showScreen('transform');
+        } else if (action === 'map') {
+            appNav.openProjectMap();
+        } else if (action === 'stakeout') {
+            appNav.showScreen('stakeout');
+        } else if (action === 'camera') {
+            appNav.showScreen('camera');
+        } else if (action === 'datamgmt') {
+            appNav.showScreen('datamgmt');
+        } else if (action === 'about') {
+            appNav.showScreen('about');
+        } else if (action === 'batch_import') {
+            appModal.openImportProjectModal();
+        } else if (action === 'measure_distance') {
+            appNav.openProjectMap();
+            if (!AppState.showProjectDistance) {
+                appMap.toggleDistanceDisplay();
+            }
+            showToast("📏 Chế độ đo khoảng cách giữa các mốc đã sẵn sàng!");
+        } else if (action === 'measure_polygon') {
+            appNav.openProjectMap();
+            if (!AppState.isPolygonClosed) {
+                appMap.togglePolygonClose();
+            }
+            showToast("📐 Chế độ khép góc đa giác ranh thửa đã kích hoạt!");
+        } else if (action === 'export_dxf') {
+            appData.exportDxfFile();
+        } else if (action === 'export_kml') {
+            appData.exportKmlFile();
+        } else if (action === 'export_csv') {
+            appData.exportCsvFile();
+        } else if (action === 'settings_ktt') {
+            appModal.openUnifiedSettings('ktt');
+        } else if (action === 'settings_storage') {
+            appModal.openUnifiedSettings('storage');
+        } else if (action === 'gps_toggle') {
+            appGps.toggleTracking();
+        }
+    },
+
+    toggleTreeFolder(folderId) {
+        const folder = document.getElementById(folderId);
+        if (!folder) return;
+        folder.classList.toggle('open');
+    },
+
+    toggleDrawerFolder(drawerFolderId) {
+        const folder = document.getElementById(drawerFolderId);
+        if (!folder) return;
+        folder.classList.toggle('open');
+    },
+
+    switchMainMenuView(viewMode) {
+        AppState.mainMenuViewMode = viewMode;
+        const treeCont = document.getElementById('mainTreeContainer');
+        const gridCont = document.getElementById('mainGridContainer');
+        const btnTree = document.getElementById('btnViewModeTree');
+        const btnGrid = document.getElementById('btnViewModeGrid');
+
+        if (viewMode === 'cards') {
+            if (treeCont) treeCont.style.display = 'none';
+            if (gridCont) gridCont.style.display = 'block';
+            if (btnTree) btnTree.classList.remove('active');
+            if (btnGrid) btnGrid.classList.add('active');
+        } else {
+            if (treeCont) treeCont.style.display = 'flex';
+            if (gridCont) gridCont.style.display = 'none';
+            if (btnTree) btnTree.classList.add('active');
+            if (btnGrid) btnGrid.classList.remove('active');
+        }
+    },
+
+    toggleAllFolders(shouldOpen) {
+        document.querySelectorAll('.tree-folder, .drawer-folder').forEach(el => {
+            if (shouldOpen) el.classList.add('open');
+            else el.classList.remove('open');
+        });
+    },
+
+    filterTreeNav(query) {
+        const q = (query || '').toLowerCase().trim();
+        const mainInput = document.getElementById('txtMainTreeFilter');
+        const drawerInput = document.getElementById('txtDrawerSearch');
+        if (mainInput && mainInput.value !== query) mainInput.value = query;
+        if (drawerInput && drawerInput.value !== query) drawerInput.value = query;
+
+        const items = document.querySelectorAll('.tree-leaf-item, .drawer-leaf-item');
+        items.forEach(el => {
+            const text = (el.innerText || '').toLowerCase();
+            if (!q || text.includes(q)) {
+                el.style.display = 'flex';
+            } else {
+                el.style.display = 'none';
+            }
+        });
+
+        if (q) {
+            document.querySelectorAll('.tree-folder, .drawer-folder').forEach(folder => {
+                const hasVisible = Array.from(folder.querySelectorAll('.tree-leaf-item, .drawer-leaf-item')).some(item => item.style.display !== 'none');
+                if (hasVisible) {
+                    folder.classList.add('open');
+                    folder.style.display = 'block';
+                } else {
+                    folder.style.display = 'none';
+                }
+            });
+        } else {
+            document.querySelectorAll('.tree-folder, .drawer-folder').forEach(folder => {
+                folder.style.display = 'block';
+            });
+        }
+    },
+
+    updateTreeNavState() {
+        const chip = document.getElementById('drawerStatusInfo');
+        if (chip) {
+            chip.innerHTML = `<span>📁 ${AppState.currentProject}</span> • <span>🌐 ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')</span>`;
+        }
+    },
+
     openProjectMap() {
         AppState.prevScreen = AppState.currentScreen;
         AppState.currentScreen = 'map';
@@ -249,6 +403,7 @@ const appNav = {
                 storageEl.style.color = '#4ade80';
             }
         }
+        appNav.updateTreeNavState();
     }
 };
 
@@ -3898,4 +4053,11 @@ window.addEventListener('DOMContentLoaded', () => {
     appData.init();
     appGps.init();
     appNav.updateBanner();
+
+    // Lắng nghe phím bấm Escape để đóng cây thư mục chức năng
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && AppState.isTreeDrawerOpen) {
+            appNav.closeTreeMenu();
+        }
+    });
 });
