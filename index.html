@@ -689,7 +689,7 @@
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
     }
 
-    /* UNIFIED SETTINGS TABS */
+    /* UNIFIED SETTINGS TABS (4 TABS CUỘN MƯỢT) */
     .settings-tab-bar {
       display: flex;
       background: #0f172a;
@@ -698,22 +698,28 @@
       padding: 3px;
       margin-bottom: 14px;
       gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
+    .settings-tab-bar::-webkit-scrollbar { display: none; }
 
     .settings-tab-btn {
-      flex: 1;
+      flex: 1 0 auto;
+      min-width: 92px;
       height: 38px;
+      padding: 0 10px;
       border-radius: 8px;
       border: none;
       background: transparent;
       color: #94a3b8;
-      font-size: 12.5px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
+      white-space: nowrap;
       transition: all 0.15s ease;
     }
 
@@ -722,6 +728,121 @@
       color: #ffffff;
       box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
     }
+
+    /* RTK & RESECTION STYLING */
+    .rtk-status-card {
+      background: #091322;
+      border: 1.5px solid #1e3a8a;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .rtk-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .rtk-led-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      display: inline-block;
+      margin-right: 6px;
+      box-shadow: 0 0 8px #ef4444;
+      animation: ledPulse 1.5s infinite;
+    }
+    .rtk-led-dot.connected {
+      background: #22c55e;
+      box-shadow: 0 0 10px #22c55e;
+    }
+    .rtk-led-dot.float {
+      background: #eab308;
+      box-shadow: 0 0 10px #eab308;
+    }
+    @keyframes ledPulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    .rtk-grid-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      font-size: 11.5px;
+    }
+    .rtk-metric-item {
+      background: rgba(15, 23, 42, 0.7);
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+    .rtk-metric-label {
+      color: #94a3b8;
+      font-size: 10.5px;
+      margin-bottom: 2px;
+    }
+    .rtk-metric-value {
+      font-weight: 700;
+      color: #38bdf8;
+      font-family: ui-monospace, monospace;
+    }
+    .nmea-log-terminal {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px;
+      font-family: ui-monospace, monospace;
+      font-size: 10.5px;
+      color: #4ade80;
+      height: 90px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 8px 0;
+    }
+
+    /* ELEVATION PROFILE & VOLUME CANVAS */
+    .profile-canvas-container {
+      width: 100%;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 8px;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+    .profile-table-wrapper {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    .table-volume {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      color: #e2e8f0;
+    }
+    .table-volume th {
+      background: #1e293b;
+      color: #38bdf8;
+      padding: 6px 4px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      font-weight: 700;
+    }
+    .table-volume td {
+      padding: 5px 4px;
+      border-top: 1px solid #334155;
+      text-align: center;
+    }
+    .table-volume tr:nth-child(even) { background: rgba(15, 23, 42, 0.5); }
 
     /* STAKEOUT / RADAR STYLING */
     .stakeout-container {
@@ -2424,22 +2545,25 @@
                 <div class="feature-card-top">
                   <div class="feature-card-icon-box icon-emerald">📐</div>
                   <div class="feature-card-header-text">
-                    <div class="feature-card-title">6. Khảo Sát Tuyến & Ranh Thửa Đất</div>
+                    <div class="feature-card-title">6. Khảo Sát Tuyến & Ranh Thửa Đất (Trắc Dọc & Geoid)</div>
                     <div class="feature-card-badges">
                       <span class="pill-badge pill-advanced">⚡ Nâng cao</span>
-                      <span class="pill-badge">Đo cự ly & Azimuth</span>
-                      <span class="pill-badge">Khép ranh tính m²</span>
+                      <span class="pill-badge">📈 Trắc dọc đào đắp</span>
+                      <span class="pill-badge">🏔️ Geoid VIGAC2017</span>
+                      <span class="pill-badge">Khép ranh m²</span>
                     </div>
                   </div>
                 </div>
                 <div class="feature-card-desc">
-                  Tính toán khoảng cách trắc địa và hướng tuyến giữa 2 mốc bất kỳ; tự động nối khép góc đa giác ranh thửa đất để tính diện tích thực tế m² và chu vi tuyến đường nhanh chóng.
+                  Vẽ biểu đồ trắc dọc địa hình và tính khối lượng đào đắp (m³); quy đổi cao độ Thủy chuẩn Quốc gia Hòn Dấu VIGAC2017/EGM2008; đo cự ly trắc địa và khép góc diện tích ranh thửa.
                 </div>
                 <div class="feature-card-action-bar">
-                  <span class="feature-card-hint">Khảo sát địa hình và ranh thửa</span>
-                  <div style="display: flex; gap: 6px;">
-                    <button class="btn-card-launch" onclick="event.stopPropagation(); appNav.navigateTo('measure_distance');">📏 Đo cự ly</button>
-                    <button class="btn-card-quick-export" onclick="event.stopPropagation(); appNav.navigateTo('measure_polygon');">📐 Khép ranh (m²)</button>
+                  <span class="feature-card-hint">Nghiệp vụ xây dựng & địa hình tuyến</span>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('profile_volume');">📈 Trắc dọc & Đào đắp</button>
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('geoid_convert');">🏔️ Geoid Hòn Dấu</button>
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('measure_distance');">📏 Đo cự ly</button>
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('measure_polygon');">📐 Khép ranh (m²)</button>
                   </div>
                 </div>
               </div>
@@ -3437,19 +3561,25 @@
 
   <!-- MODAL CÀI ĐẶT HỆ THỐNG (LƯU DỮ LIỆU & KTT) -->
   <div id="modalSettings" class="modal-overlay">
-    <div class="modal-box" style="max-width: 440px;">
+    <div class="modal-box" style="max-width: 500px;">
       <div class="modal-title">
         <span style="color: #38bdf8;">⚙️ Cài Đặt Hệ Thống</span>
         <button class="btn-modal-close" onclick="appModal.closeSettings()">✕</button>
       </div>
 
-      <!-- Thanh chuyển Tab: Cài đặt Lưu dữ liệu & Cài đặt KTT -->
+      <!-- Thanh chuyển Tab: 4 Tab cuộn mượt -->
       <div class="settings-tab-bar">
         <button id="btnTabStorage" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('storage')">
-          ☁️ Cài đặt Lưu dữ liệu
+          ☁️ Lưu dữ liệu
         </button>
         <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')">
-          ⚙️ Cài đặt KTT
+          ⚙️ KTT
+        </button>
+        <button id="btnTabRtk" class="settings-tab-btn" onclick="appModal.switchSettingsTab('rtk')">
+          🛰️ RTK Bluetooth
+        </button>
+        <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')">
+          📐 Giao hội mất GPS
         </button>
       </div>
 
@@ -3565,6 +3695,326 @@
         </button>
       </div>
 
+      <!-- THẺ 3: KẾT NỐI MÁY ĐỊNH VỊ RTK NGOÀI (WEB BLUETOOTH GNSS ROVER) -->
+      <div id="settingsTabContentRtk" class="settings-tab-content" style="display: none;">
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
+          🛰️ <b>Độ chính xác centimet:</b> Kết nối trực tiếp máy đo RTK Rover (CHCNAV, Stonex, South, Emlid Reach, Trimble, Leica) qua Web Bluetooth SPP / NMEA 0183 ($GNGGA) để đạt độ chính xác ±8mm ngoài thực địa.
+        </div>
+
+        <!-- Hộp Trạng Thái Kết Nối RTK -->
+        <div class="rtk-status-card">
+          <div class="rtk-header-row">
+            <div style="display: flex; align-items: center; font-weight: 700; font-size: 13px;">
+              <span id="rtkLedIndicator" class="rtk-led-dot"></span>
+              <span id="rtkStatusText" style="color: #f8fafc;">Chưa kết nối máy RTK ngoài</span>
+            </div>
+            <span id="rtkDeviceNameBadge" class="pill-badge" style="display: none; background: #0369a1; color: #ffffff;">Bluetooth</span>
+          </div>
+
+          <div class="rtk-grid-metrics">
+            <div class="rtk-metric-item">
+              <div class="rtk-metric-label">Giải pháp (Solution):</div>
+              <div class="rtk-metric-value" id="rtkSolType">Chưa có tín hiệu</div>
+            </div>
+            <div class="rtk-metric-item">
+              <div class="rtk-metric-label">Số vệ tinh (SVs):</div>
+              <div class="rtk-metric-value" id="rtkSatCount">0 SVs</div>
+            </div>
+            <div class="rtk-metric-item">
+              <div class="rtk-metric-label">Sai số HRMS (Ngang):</div>
+              <div class="rtk-metric-value" id="rtkHrms">± -- mm</div>
+            </div>
+            <div class="rtk-metric-item">
+              <div class="rtk-metric-label">Sai số VRMS (Đứng):</div>
+              <div class="rtk-metric-value" id="rtkVrms">± -- mm</div>
+            </div>
+            <div class="rtk-metric-item" style="grid-column: span 2;">
+              <div class="rtk-metric-label">Tọa độ VN-2000 (X - Y - Z):</div>
+              <div class="rtk-metric-value" id="rtkVn2kCoord" style="color: #38bdf8; font-size: 11.5px;">X: -- | Y: -- | Z: --</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tùy chọn sử dụng RTK thay GPS điện thoại -->
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-weight: 700; font-size: 12.5px; color: #f8fafc;">Ưu tiên vị trí từ máy RTK ngoài</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Cung cấp vị trí cm cho Bản đồ, Cắm mốc & Camera</div>
+          </div>
+          <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+            <input type="checkbox" id="chkUseExternalRtk" onchange="appBluetoothRtk.toggleUseRtk(this.checked)" style="opacity: 0; width: 0; height: 0;">
+            <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px;" id="sliderUseRtk"></span>
+          </label>
+        </div>
+
+        <!-- NMEA Terminal Log -->
+        <div style="font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">📡 Dòng dữ liệu NMEA thời gian thực ($GNGGA):</div>
+        <div class="nmea-log-terminal" id="rtkNmeaTerminal">$GNGGA,waiting_for_bluetooth_connection...</div>
+
+        <!-- Nút hành động kết nối -->
+        <div class="btn-group-row" style="margin-top: 10px;">
+          <button class="btn-sm btn-blue" style="height: 42px; font-size: 12.5px;" onclick="appBluetoothRtk.connect()">
+            🔍 Quét Bluetooth Rover
+          </button>
+          <button class="btn-sm btn-amber" style="height: 42px; font-size: 12.5px;" onclick="appBluetoothRtk.simulateFix()">
+            ⚡ Thử RTK Fix
+          </button>
+          <button class="btn-sm btn-red" style="height: 42px; font-size: 12.5px;" onclick="appBluetoothRtk.disconnect()">
+            ⏹️ Ngắt
+          </button>
+        </div>
+      </div>
+
+      <!-- THẺ 4: GIAO HỘI TRẮC ĐỊA KHI MẤT SÓNG GPS (RESECTION & INTERSECTION) -->
+      <div id="settingsTabContentResection" class="settings-tab-content" style="display: none;">
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #d97706; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
+          📐 <b>Bù vị trí khi mất GPS:</b> Khi làm việc trong tán rừng rậm, tầng hầm hoặc góc phố cao tầng mất sóng vệ tinh, sử dụng phương pháp giao hội cạnh từ 2 mốc khống chế đã biết để xác định chính xác tọa độ trạm đo.
+        </div>
+
+        <!-- Mốc khống chế A -->
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+          <div style="font-weight: 700; color: #38bdf8; font-size: 12px; margin-bottom: 6px;">📍 MỐC KHỐNG CHẾ A:</div>
+          <div class="form-group" style="margin-bottom: 6px;">
+            <label class="form-label" style="font-size: 11px;">Chọn nhanh từ mốc dự án:</label>
+            <select id="selResectionPtA" class="app-select" onchange="appResection.onSelectPtA(this.value)">
+              <option value="">-- Chọn mốc có sẵn --</option>
+            </select>
+          </div>
+          <div class="input-row" style="margin-bottom: 6px;">
+            <input type="number" id="txtResectionXA" class="app-input" placeholder="X (m) mốc A" step="0.001">
+            <input type="number" id="txtResectionYA" class="app-input" placeholder="Y (m) mốc A" step="0.001">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size: 11px;">Khoảng cách từ trạm đo tới Mốc A (dA):</label>
+            <input type="number" id="txtResectionDistA" class="app-input" placeholder="Khoảng cách dA (m)" step="0.001">
+          </div>
+        </div>
+
+        <!-- Mốc khống chế B -->
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+          <div style="font-weight: 700; color: #fbbf24; font-size: 12px; margin-bottom: 6px;">📍 MỐC KHỐNG CHẾ B:</div>
+          <div class="form-group" style="margin-bottom: 6px;">
+            <label class="form-label" style="font-size: 11px;">Chọn nhanh từ mốc dự án:</label>
+            <select id="selResectionPtB" class="app-select" onchange="appResection.onSelectPtB(this.value)">
+              <option value="">-- Chọn mốc có sẵn --</option>
+            </select>
+          </div>
+          <div class="input-row" style="margin-bottom: 6px;">
+            <input type="number" id="txtResectionXB" class="app-input" placeholder="X (m) mốc B" step="0.001">
+            <input type="number" id="txtResectionYB" class="app-input" placeholder="Y (m) mốc B" step="0.001">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-size: 11px;">Khoảng cách từ trạm đo tới Mốc B (dB):</label>
+            <input type="number" id="txtResectionDistB" class="app-input" placeholder="Khoảng cách dB (m)" step="0.001">
+          </div>
+        </div>
+
+        <!-- Lựa chọn hướng giao điểm -->
+        <div class="form-group">
+          <label class="form-label">Vị trí điểm trạm đo so với hướng ngắm A ➔ B:</label>
+          <div class="toggle-mui-group">
+            <button id="btnResectionSideRight" class="btn-mui-toggle active" onclick="appResection.setSide('right')">
+              👉 Bên Phải (Right)
+            </button>
+            <button id="btnResectionSideLeft" class="btn-mui-toggle" onclick="appResection.setSide('left')">
+              👈 Bên Trái (Left)
+            </button>
+          </div>
+        </div>
+
+        <!-- Nút Tính Toán -->
+        <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px;" onclick="appResection.calculate()">
+          ⚡ TÍNH TOÁN TỌA ĐỘ GIAO HỘI
+        </button>
+
+        <!-- Kết quả giao hội -->
+        <div id="resectionResultCard" style="display: none; background: #061e33; border: 1.5px solid #0284c7; border-radius: 10px; padding: 12px; margin-top: 12px;">
+          <div style="font-weight: 800; color: #38bdf8; font-size: 13px; margin-bottom: 6px;">
+            🎯 TỌA ĐỘ TRẠM ĐO GIAO HỘI THÀNH CÔNG:
+          </div>
+          <div style="font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.7; color: #f8fafc;">
+            <div>• VN-2000 X: <b id="resResectionX" style="color: #4ade80;">--</b> m</div>
+            <div>• VN-2000 Y: <b id="resResectionY" style="color: #4ade80;">--</b> m</div>
+            <div>• WGS-84: <span id="resResectionWgs">--</span></div>
+            <div>• Cự ly khống chế AB: <span id="resResectionDistAB">--</span> m</div>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
+            <button class="btn-sm btn-green" style="height: 36px; font-size: 11.5px; flex: 1;" onclick="appResection.applyAsCurrentPosition()">
+              📍 Gán vị trí bù GPS
+            </button>
+            <button class="btn-sm btn-blue" style="height: 36px; font-size: 11.5px; flex: 1;" onclick="appResection.saveAsProjectPoint()">
+              💾 Lưu vào sổ đo
+            </button>
+            <button class="btn-sm btn-amber" style="height: 36px; font-size: 11.5px; flex: 1;" onclick="appResection.viewOnMap()">
+              🗺️ Xem bản đồ
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL MỚI: TRẮC DỌC ĐỊA HÌNH & KHỐI LƯỢNG ĐÀO ĐẮP (NHÓM 3.3) ================= -->
+  <div id="modalElevationProfile" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-title">
+        <span style="color: #c084fc;">📈 Trắc Dọc Địa Hình & Khối Lượng Đào Đắp</span>
+        <button class="btn-modal-close" onclick="appElevationProfile.closeModal()">✕</button>
+      </div>
+
+      <div style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin-bottom: 10px;">
+        Vẽ mặt cắt trắc dọc tự nhiên và đường đỏ thiết kế từ các cọc mốc dự án, tự động tính diện tích mặt cắt và ước tính khối lượng đào đắp (m³) theo phương pháp diện tích trung bình.
+      </div>
+
+      <!-- Cấu hình thông số đường đỏ thiết kế -->
+      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+        <div style="font-weight: 700; color: #e2e8f0; font-size: 12px; margin-bottom: 8px;">⚙️ THÔNG SỐ ĐƯỜNG ĐỎ THIẾT KẾ:</div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+          <div>
+            <label class="form-label" style="font-size: 11px;">Cao độ thiết kế cọc đầu Z0 (m):</label>
+            <input type="number" id="txtProfileDesignZ0" class="app-input" placeholder="Tự động lấy cọc đầu" step="0.01">
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 11px;">Độ dốc thiết kế i (%):</label>
+            <input type="number" id="txtProfileSlope" class="app-input" value="0.0" step="0.1" placeholder="0.0% (bằng phẳng)">
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 11px;">Bề rộng mặt nền B (m):</label>
+            <input type="number" id="txtProfileWidthB" class="app-input" value="6.0" step="0.5">
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 11px;">Mái dốc taluy m (1:m):</label>
+            <input type="number" id="txtProfileTaluyM" class="app-input" value="1.0" step="0.25">
+          </div>
+        </div>
+        <button class="btn-sm btn-purple" style="width: 100%; height: 38px; margin-top: 8px; font-size: 12.5px; background: #9333ea;" onclick="appElevationProfile.calculateAndRender()">
+          ⚡ TÍNH TOÁN & CẬP NHẬT TRẮC DỌC
+        </button>
+      </div>
+
+      <!-- Khung Canvas Vẽ Trắc Dọc -->
+      <div class="profile-canvas-container">
+        <canvas id="elevationProfileCanvas" width="540" height="240" style="width: 100%; height: 240px; display: block; border-radius: 6px;"></canvas>
+      </div>
+
+      <!-- Tổng hợp khối lượng đào đắp -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0;">
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 10.5px; color: #fca5a5; font-weight: 700;">TỔNG KHỐI LƯỢNG ĐÀO</div>
+          <div id="resTotalCutVol" style="font-size: 15px; font-weight: 900; color: #ef4444; font-family: ui-monospace, monospace; margin-top: 2px;">0.0 m³</div>
+        </div>
+        <div style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 10.5px; color: #93c5fd; font-weight: 700;">TỔNG KHỐI LƯỢNG ĐẮP</div>
+          <div id="resTotalFillVol" style="font-size: 15px; font-weight: 900; color: #38bdf8; font-family: ui-monospace, monospace; margin-top: 2px;">0.0 m³</div>
+        </div>
+        <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 8px; padding: 8px; text-align: center;">
+          <div style="font-size: 10.5px; color: #86efac; font-weight: 700;">CÂN BẰNG ĐÀO - ĐẮP</div>
+          <div id="resBalanceVol" style="font-size: 15px; font-weight: 900; color: #4ade80; font-family: ui-monospace, monospace; margin-top: 2px;">0.0 m³</div>
+        </div>
+      </div>
+
+      <!-- Bảng số liệu chi tiết từng cọc -->
+      <div class="profile-table-wrapper">
+        <table class="table-volume">
+          <thead>
+            <tr>
+              <th>Cọc</th>
+              <th>Lý trình (m)</th>
+              <th>Z Tự nhiên (m)</th>
+              <th>Z Thiết kế (m)</th>
+              <th>Δh (m)</th>
+              <th>V Đào (m³)</th>
+              <th>V Đắp (m³)</th>
+            </tr>
+          </thead>
+          <tbody id="tableVolumeBody">
+            <tr>
+              <td colspan="7" style="padding: 14px; color: #94a3b8;">Chưa có dữ liệu trắc dọc. Bấm tính toán để hiển thị.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Nút xuất file -->
+      <div class="btn-group-row" style="margin-top: 10px;">
+        <button class="btn-sm btn-green" style="height: 38px; font-size: 12px;" onclick="appElevationProfile.exportCsv()">
+          📊 Xuất CSV Khối lượng
+        </button>
+        <button class="btn-sm btn-blue" style="height: 38px; font-size: 12px;" onclick="appElevationProfile.exportImage()">
+          🖼️ Tải Ảnh Bản Vẽ Trắc Dọc
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL MỚI: QUY ĐỔI CAO ĐỘ THỦY CHUẨN QUỐC GIA HÒN DẤU (NHÓM 3.4) ================= -->
+  <div id="modalGeoidConverter" class="modal-overlay">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-title">
+        <span style="color: #38bdf8;">🏔️ Cao Độ Thủy Chuẩn Quốc Gia Hòn Dấu</span>
+        <button class="btn-modal-close" onclick="appGeoidVigac.closeModal()">✕</button>
+      </div>
+
+      <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #0284c7; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 12px;">
+        📜 <b>Quy chuẩn QĐ 41/2005/QĐ-TTg:</b> Chuyển đổi giữa <b>Cao độ Ellipsoid GPS (h)</b> và <b>Cao độ Thủy chuẩn Quốc gia Hải Phòng - Hòn Dấu (H)</b> qua mô hình Geoid VIGAC2017 (độ chính xác ±4cm).
+      </div>
+
+      <!-- Chọn Mô hình Geoid -->
+      <div class="form-group">
+        <label class="form-label">Mô hình Geoid áp dụng:</label>
+        <select id="selGeoidModel" class="app-select" onchange="appGeoidVigac.onModelChange()">
+          <option value="vigac2017" selected>Mô hình Geoid Quốc gia VIGAC2017 (Việt Nam - Chuẩn nhất)</option>
+          <option value="egm2008">Mô hình Geoid Trái Đất toàn cầu EGM2008 (2.5' x 2.5')</option>
+        </select>
+      </div>
+
+      <!-- Tọa độ vị trí nội suy -->
+      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-weight: 700; color: #e2e8f0; font-size: 11.5px;">📍 TỌA ĐỘ VỊ TRÍ ĐO ĐẠC:</span>
+          <button class="btn-sm btn-blue" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;" onclick="appGeoidVigac.useCurrentLocation()">
+            📍 Lấy vị trí GPS
+          </button>
+        </div>
+        <div class="input-row">
+          <input type="number" id="txtGeoidLat" class="app-input" placeholder="Vĩ độ Lat (°)" step="0.000001">
+          <input type="number" id="txtGeoidLng" class="app-input" placeholder="Kinh độ Lng (°)" step="0.000001">
+        </div>
+      </div>
+
+      <!-- Bộ chuyển đổi 2 chiều -->
+      <div style="background: #091322; border: 1.5px solid #1e3a8a; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" style="color: #fbbf24;">1. Cao độ Ellipsoid GPS h (m) [Từ máy RTK / GNSS]:</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="number" id="txtInputEllipsoidH" class="app-input" placeholder="VD: 24.580 m" step="0.001" oninput="appGeoidVigac.convertFromEllipsoid(this.value)">
+            <button class="btn-sm btn-amber" style="flex: none; width: 75px; height: 38px; font-size: 11.5px;" onclick="appGeoidVigac.convertFromEllipsoid()">Tính H ➔</button>
+          </div>
+        </div>
+
+        <div style="text-align: center; color: #64748b; font-size: 12px; margin: 4px 0;">↕️ Công thức: H (Hòn Dấu) = h (GPS) - ζ (Geoid)</div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="color: #38bdf8;">2. Cao độ Thủy chuẩn Quốc gia H (m) [Mốc Hòn Dấu]:</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="number" id="txtInputOrthometricH" class="app-input" placeholder="VD: 21.850 m" step="0.001" oninput="appGeoidVigac.convertFromOrthometric(this.value)">
+            <button class="btn-sm btn-blue" style="flex: none; width: 75px; height: 38px; font-size: 11.5px;" onclick="appGeoidVigac.convertFromOrthometric()">Tính h ➔</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kết quả chi tiết Geoid -->
+      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.7; font-family: ui-monospace, monospace; margin-bottom: 10px;">
+        <div>• Dị thường độ cao Geoid (ζ): <b id="resGeoidZeta" style="color: #fbbf24;">--</b> m</div>
+        <div>• Cao độ Thủy chuẩn Hòn Dấu (H): <b id="resGeoidResultH" style="color: #4ade80;">--</b> m</div>
+        <div>• Cao độ Ellipsoid GPS (h): <b id="resGeoidResultEllip" style="color: #38bdf8;">--</b> m</div>
+        <div>• Độ chính xác mô hình: <span style="color: #94a3b8;">± 0.045 m (VIGAC2017)</span></div>
+      </div>
+
+      <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13px;" onclick="appGeoidVigac.applyToAllProjectPoints()">
+        💾 ÁP DỤNG CHUYỂN TOÀN BỘ MỐC DỰ ÁN SANG HÒN DẤU
+      </button>
     </div>
   </div>
 
@@ -3875,7 +4325,7 @@
             <span>NHÓM 3: XÂY DỰNG & ĐỊA HÌNH TUYẾN</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-purple">2 mục</span>
+            <span class="tree-badge badge-purple">4 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -3895,6 +4345,26 @@
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">3.2 Khép góc ranh thửa & tính diện tích</div>
               <div class="drawer-leaf-sub">Đa giác khép góc, tính m² và chu vi tuyến</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_profile_volume" onclick="appNav.navigateTo('profile_volume')">
+            <div class="drawer-leaf-icon" style="color: #e879f9;">📈</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">3.3 Trắc dọc địa hình & Đào đắp</div>
+              <div class="drawer-leaf-sub">Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_geoid_convert" onclick="appNav.navigateTo('geoid_convert')">
+            <div class="drawer-leaf-icon" style="color: #38bdf8;">🏔️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">3.4 Cao độ Thủy chuẩn Hòn Dấu</div>
+              <div class="drawer-leaf-sub">Mô hình Geoid Quốc gia VIGAC2017 / EGM2008</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -3977,7 +4447,7 @@
             <span>HỆ THỐNG & CÀI ĐẶT</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-slate">3 mục</span>
+            <span class="tree-badge badge-slate">5 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -4002,10 +4472,30 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
+          <div class="drawer-leaf-item" id="drawerItem_settings_rtk" onclick="appNav.navigateTo('settings_rtk')">
+            <div class="drawer-leaf-icon" style="color: #0284c7;">📡</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.3 Kết nối Máy Định Vị RTK Ngoài</div>
+              <div class="drawer-leaf-sub">Web Bluetooth GNSS Rover, độ chính xác cm</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_settings_resection" onclick="appNav.navigateTo('settings_resection')">
+            <div class="drawer-leaf-icon" style="color: #d97706;">📐</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.4 Giao hội trắc địa khi mất sóng GPS</div>
+              <div class="drawer-leaf-sub">Bù tọa độ trạm đo từ 2 mốc khống chế</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
           <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.showScreen('about')">
             <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.3 Hướng dẫn sử dụng & Tác giả</div>
+              <div class="drawer-leaf-title">5.5 Hướng dẫn sử dụng & Tác giả</div>
               <div class="drawer-leaf-sub">Bảng KTT toàn quốc, cài đặt PWA</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -4027,7 +4517,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.3.8"></script>
+  <script src="app.js?v=2.3.9"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

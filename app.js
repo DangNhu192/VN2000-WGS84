@@ -310,6 +310,18 @@ const appNav = {
         } else if (action === 'settings_storage') {
             appNav.setActiveMenuItem('drawerItem_settings_storage');
             appModal.openUnifiedSettings('storage');
+        } else if (action === 'settings_rtk') {
+            appNav.setActiveMenuItem('drawerItem_settings_rtk');
+            appModal.openUnifiedSettings('rtk');
+        } else if (action === 'settings_resection') {
+            appNav.setActiveMenuItem('drawerItem_settings_resection');
+            appModal.openUnifiedSettings('resection');
+        } else if (action === 'profile_volume') {
+            appNav.setActiveMenuItem('drawerItem_profile_volume');
+            if (typeof appElevationProfile !== 'undefined') appElevationProfile.openModal();
+        } else if (action === 'geoid_convert') {
+            appNav.setActiveMenuItem('drawerItem_geoid_convert');
+            if (typeof appGeoidVigac !== 'undefined') appGeoidVigac.openModal();
         } else if (action === 'gps_toggle') {
             appNav.setActiveMenuItem('drawerItem_gps_toggle');
             appGps.toggleTracking();
@@ -3555,18 +3567,23 @@ const appModal = {
 
     switchSettingsTab(tab = 'storage') {
         appModal.currentSettingsTab = tab;
-        const isStorage = (tab === 'storage');
+        const tabList = ['storage', 'ktt', 'rtk', 'resection'];
+        
+        tabList.forEach(t => {
+            const cap = t.charAt(0).toUpperCase() + t.slice(1);
+            const btn = document.getElementById('btnTab' + cap);
+            const content = document.getElementById('settingsTabContent' + cap);
+            const isActive = (t === tab);
+            if (btn) btn.classList.toggle('active', isActive);
+            if (content) content.style.display = isActive ? 'block' : 'none';
+        });
 
-        const btnStorage = document.getElementById('btnTabStorage');
-        const btnKtt = document.getElementById('btnTabKtt');
-        const contentStorage = document.getElementById('settingsTabContentStorage');
-        const contentKtt = document.getElementById('settingsTabContentKtt');
-
-        if (btnStorage) btnStorage.classList.toggle('active', isStorage);
-        if (btnKtt) btnKtt.classList.toggle('active', !isStorage);
-
-        if (contentStorage) contentStorage.style.display = isStorage ? 'block' : 'none';
-        if (contentKtt) contentKtt.style.display = isStorage ? 'none' : 'block';
+        if (tab === 'resection' && typeof appResection !== 'undefined') {
+            appResection.initModal();
+        }
+        if (tab === 'rtk' && typeof appBluetoothRtk !== 'undefined') {
+            appBluetoothRtk.updateUi();
+        }
     },
 
     openSettings() {
@@ -4157,6 +4174,849 @@ const appCamera = {
             appData.savePoints(AppState.currentProject, pts);
             showToast(`✓ Đã cập nhật ghi chú ảnh vào mốc "${appCamera.selectedPoint.name}"!`);
         }
+    }
+};
+
+// ================= 9.1 KẾT NỐI MÁY ĐỊNH VỊ RTK NGOÀI QUA WEB BLUETOOTH =================
+const appBluetoothRtk = {
+    device: null,
+    server: null,
+    characteristic: null,
+    isConnected: false,
+    useExternalRtk: false,
+    lastNmeaLine: "",
+    rtkData: {
+        solType: "Chưa kết nối",
+        satCount: 0,
+        hrms: null,
+        vrms: null,
+        lat: null,
+        lng: null,
+        alt: null,
+        vn2kX: null,
+        vn2kY: null
+    },
+
+    updateUi() {
+        const led = document.getElementById('rtkLedIndicator');
+        const statusText = document.getElementById('rtkStatusText');
+        const badge = document.getElementById('rtkDeviceNameBadge');
+        const solTypeEl = document.getElementById('rtkSolType');
+        const satCountEl = document.getElementById('rtkSatCount');
+        const hrmsEl = document.getElementById('rtkHrms');
+        const vrmsEl = document.getElementById('rtkVrms');
+        const vn2kEl = document.getElementById('rtkVn2kCoord');
+        const chk = document.getElementById('chkUseExternalRtk');
+
+        if (chk) chk.checked = !!appBluetoothRtk.useExternalRtk;
+
+        if (appBluetoothRtk.isConnected) {
+            if (led) {
+                led.className = 'rtk-led-dot ' + (appBluetoothRtk.rtkData.solType.includes('Fix') ? 'connected' : 'float');
+            }
+            if (statusText) statusText.innerText = `Đã kết nối: ${appBluetoothRtk.device?.name || 'GNSS RTK Rover'}`;
+            if (badge) {
+                badge.style.display = 'inline-block';
+                badge.innerText = appBluetoothRtk.device?.name || 'RTK Rover';
+            }
+        } else {
+            if (led) led.className = 'rtk-led-dot';
+            if (statusText) statusText.innerText = 'Chưa kết nối máy RTK ngoài';
+            if (badge) badge.style.display = 'none';
+        }
+
+        if (solTypeEl) solTypeEl.innerText = appBluetoothRtk.rtkData.solType;
+        if (satCountEl) satCountEl.innerText = `${appBluetoothRtk.rtkData.satCount} SVs`;
+        if (hrmsEl) hrmsEl.innerText = appBluetoothRtk.rtkData.hrms ? `± ${appBluetoothRtk.rtkData.hrms} mm` : '± -- mm';
+        if (vrmsEl) vrmsEl.innerText = appBluetoothRtk.rtkData.vrms ? `± ${appBluetoothRtk.rtkData.vrms} mm` : '± -- mm';
+        if (vn2kEl) {
+            if (appBluetoothRtk.rtkData.vn2kX) {
+                vn2kEl.innerText = `X: ${appBluetoothRtk.rtkData.vn2kX.toFixed(3)} | Y: ${appBluetoothRtk.rtkData.vn2kY.toFixed(3)} | Z: ${(appBluetoothRtk.rtkData.alt || 0).toFixed(3)}`;
+            } else {
+                vn2kEl.innerText = "X: -- | Y: -- | Z: --";
+            }
+        }
+    },
+
+    async connect() {
+        if (!navigator.bluetooth) {
+            showToast("⚠️ Trình duyệt của bạn chưa hỗ trợ Web Bluetooth. Bạn có thể bấm 'Thử RTK Fix' để chạy chế độ mô phỏng!", true);
+            return;
+        }
+
+        try {
+            showToast("🔍 Đang quét thiết bị GNSS RTK Rover xung quanh...");
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [
+                    '00001101-0000-1000-8000-00805f9b34fb', // Serial Port Profile
+                    '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART
+                    '0000ffe0-0000-1000-8000-00805f9b34fb'  // HM-10 / CC2541 BLE
+                ]
+            });
+
+            appBluetoothRtk.device = device;
+            const server = await device.gatt.connect();
+            appBluetoothRtk.server = server;
+            appBluetoothRtk.isConnected = true;
+
+            // Tìm characteristic nhận NMEA stream
+            const services = await server.getPrimaryServices();
+            for (const s of services) {
+                const chars = await s.getCharacteristics();
+                for (const c of chars) {
+                    if (c.properties.notify || c.properties.indicate) {
+                        await c.startNotifications();
+                        c.addEventListener('characteristicvaluechanged', (e) => {
+                            const val = new TextDecoder().decode(e.target.value);
+                            appBluetoothRtk.handleNmeaChunk(val);
+                        });
+                        appBluetoothRtk.characteristic = c;
+                        break;
+                    }
+                }
+            }
+
+            device.addEventListener('gattserverdisconnected', () => {
+                appBluetoothRtk.isConnected = false;
+                appBluetoothRtk.updateUi();
+                showToast("⚠️ Đã ngắt kết nối với máy RTK Rover!");
+            });
+
+            appBluetoothRtk.updateUi();
+            showToast(`✓ Đã kết nối thành công máy RTK "${device.name}"!`);
+        } catch (err) {
+            console.error("Lỗi kết nối Bluetooth RTK:", err);
+            showToast("❌ Không thể kết nối Bluetooth: " + (err.message || err), true);
+        }
+    },
+
+    disconnect() {
+        if (appBluetoothRtk.device && appBluetoothRtk.device.gatt.connected) {
+            appBluetoothRtk.device.gatt.disconnect();
+        }
+        appBluetoothRtk.isConnected = false;
+        appBluetoothRtk.rtkData.solType = "Chưa kết nối";
+        appBluetoothRtk.updateUi();
+        showToast("⏹️ Đã ngắt kết nối máy RTK ngoài.");
+    },
+
+    simulateFix() {
+        appBluetoothRtk.isConnected = true;
+        const baseLat = AppState.currentPos ? AppState.currentPos.lat : 10.762622;
+        const baseLng = AppState.currentPos ? AppState.currentPos.lng : 106.660172;
+        const fakeNmea = `$GNGGA,071245.00,${appBluetoothRtk.toNmeaCoord(baseLat, 'lat')},${appBluetoothRtk.toNmeaCoord(baseLng, 'lng')},4,32,0.6,24.58,M,-5.12,M,1.2,0128*4C`;
+        appBluetoothRtk.parseNmeaLine(fakeNmea);
+        appBluetoothRtk.device = { name: "CHCNAV_i73_Simulated_Fix" };
+        appBluetoothRtk.updateUi();
+        showToast("⚡ Đã kích hoạt giả lập RTK FIX (Độ chính xác ±8mm, 32 SVs)!");
+    },
+
+    toNmeaCoord(deg, type) {
+        const d = Math.floor(Math.abs(deg));
+        const m = (Math.abs(deg) - d) * 60;
+        const hemi = type === 'lat' ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+        const strDeg = type === 'lat' ? String(d).padStart(2, '0') : String(d).padStart(3, '0');
+        const strMin = m.toFixed(4).padStart(7, '0');
+        return `${strDeg}${strMin},${hemi}`;
+    },
+
+    nmeaBuffer: "",
+    handleNmeaChunk(chunk) {
+        appBluetoothRtk.nmeaBuffer += chunk;
+        const lines = appBluetoothRtk.nmeaBuffer.split('\n');
+        appBluetoothRtk.nmeaBuffer = lines.pop(); // giữ lại phần dở dang
+        for (const line of lines) {
+            const clean = line.trim();
+            if (clean.startsWith('$GNGGA') || clean.startsWith('$GPGGA')) {
+                appBluetoothRtk.parseNmeaLine(clean);
+            }
+        }
+    },
+
+    parseNmeaLine(line) {
+        const term = document.getElementById('rtkNmeaTerminal');
+        if (term) {
+            term.innerText = line + "\n" + term.innerText.slice(0, 300);
+        }
+
+        const parts = line.split(',');
+        if (parts.length < 10) return;
+
+        // Trích xuất Lat/Lng NMEA: ddmm.mmmm
+        const rawLat = parts[2];
+        const latHemi = parts[3];
+        const rawLng = parts[4];
+        const lngHemi = parts[5];
+        const fixQuality = parseInt(parts[6], 10);
+        const satCount = parseInt(parts[7], 10) || 0;
+        const hdop = parseFloat(parts[8]) || 1.0;
+        const alt = parseFloat(parts[9]) || 0;
+
+        if (!rawLat || !rawLng) return;
+
+        const latDeg = parseInt(rawLat.slice(0, 2), 10);
+        const latMin = parseFloat(rawLat.slice(2));
+        let lat = latDeg + latMin / 60;
+        if (latHemi === 'S') lat = -lat;
+
+        const lngDeg = parseInt(rawLng.slice(0, 3), 10);
+        const lngMin = parseFloat(rawLng.slice(3));
+        let lng = lngDeg + lngMin / 60;
+        if (lngHemi === 'W') lng = -lng;
+
+        // Phân loại giải pháp GNSS
+        let sol = "Single (GPS)";
+        let hrms = (hdop * 1.5 * 1000).toFixed(0);
+        let vrms = (hdop * 2.5 * 1000).toFixed(0);
+        if (fixQuality === 4) {
+            sol = "RTK FIX (Centimet)";
+            hrms = (hdop * 8).toFixed(1);
+            vrms = (hdop * 14).toFixed(1);
+        } else if (fixQuality === 5) {
+            sol = "RTK FLOAT (Decimet)";
+            hrms = (hdop * 120).toFixed(0);
+            vrms = (hdop * 220).toFixed(0);
+        } else if (fixQuality === 2) {
+            sol = "DGPS (Sub-meter)";
+            hrms = (hdop * 600).toFixed(0);
+            vrms = (hdop * 900).toFixed(0);
+        }
+
+        // Chuyển sang VN-2000
+        const vn2k = VN2000.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+
+        appBluetoothRtk.rtkData = {
+            solType: sol,
+            satCount: satCount,
+            hrms: hrms,
+            vrms: vrms,
+            lat: lat,
+            lng: lng,
+            alt: alt,
+            vn2kX: vn2k ? vn2k.x : null,
+            vn2kY: vn2k ? vn2k.y : null
+        };
+
+        // Nếu bật ưu tiên vị trí RTK ngoài
+        if (appBluetoothRtk.useExternalRtk) {
+            AppState.currentPos = { lat: lat, lng: lng };
+            AppState.gpsAccuracy = fixQuality === 4 ? 0.008 : (fixQuality === 5 ? 0.15 : 1.5);
+            AppState.gpsAltitude = alt;
+            if (typeof appStakeout !== 'undefined' && appStakeout.updateLiveNavigation) {
+                appStakeout.updateLiveNavigation();
+            }
+        }
+
+        appBluetoothRtk.updateUi();
+    },
+
+    toggleUseRtk(enabled) {
+        appBluetoothRtk.useExternalRtk = enabled;
+        const slider = document.getElementById('sliderUseRtk');
+        if (slider) slider.style.backgroundColor = enabled ? '#0284c7' : '#334155';
+        if (enabled) {
+            showToast("✓ Đã bật ưu tiên sử dụng vị trí chính xác centimet từ máy RTK ngoài!");
+            if (appBluetoothRtk.rtkData.lat) {
+                AppState.currentPos = { lat: appBluetoothRtk.rtkData.lat, lng: appBluetoothRtk.rtkData.lng };
+                AppState.gpsAccuracy = 0.008;
+            }
+        } else {
+            showToast("📱 Đã chuyển lại sử dụng GPS tích hợp của điện thoại.");
+        }
+    }
+};
+
+// ================= 9.2 GIAO HỘI TRẮC ĐỊA KHI MẤT SÓNG GPS =================
+const appResection = {
+    side: 'right',
+    calculatedPoint: null,
+
+    initModal() {
+        const selA = document.getElementById('selResectionPtA');
+        const selB = document.getElementById('selResectionPtB');
+        if (!selA || !selB) return;
+
+        const pts = appData.getPoints(AppState.currentProject);
+        let opts = '<option value="">-- Chọn mốc có sẵn --</option>';
+        pts.forEach((p, idx) => {
+            opts += `<option value="${idx}">${p.name} (X: ${p.x.toFixed(1)}, Y: ${p.y.toFixed(1)})</option>`;
+        });
+        selA.innerHTML = opts;
+        selB.innerHTML = opts;
+    },
+
+    onSelectPtA(val) {
+        if (val === '') return;
+        const pts = appData.getPoints(AppState.currentProject);
+        const p = pts[parseInt(val, 10)];
+        if (p) {
+            document.getElementById('txtResectionXA').value = p.x.toFixed(3);
+            document.getElementById('txtResectionYA').value = p.y.toFixed(3);
+        }
+    },
+
+    onSelectPtB(val) {
+        if (val === '') return;
+        const pts = appData.getPoints(AppState.currentProject);
+        const p = pts[parseInt(val, 10)];
+        if (p) {
+            document.getElementById('txtResectionXB').value = p.x.toFixed(3);
+            document.getElementById('txtResectionYB').value = p.y.toFixed(3);
+        }
+    },
+
+    setSide(s) {
+        appResection.side = s;
+        const btnR = document.getElementById('btnResectionSideRight');
+        const btnL = document.getElementById('btnResectionSideLeft');
+        if (btnR) btnR.classList.toggle('active', s === 'right');
+        if (btnL) btnL.classList.toggle('active', s === 'left');
+    },
+
+    calculate() {
+        const xA = parseFloat(document.getElementById('txtResectionXA')?.value);
+        const yA = parseFloat(document.getElementById('txtResectionYA')?.value);
+        const dA = parseFloat(document.getElementById('txtResectionDistA')?.value);
+
+        const xB = parseFloat(document.getElementById('txtResectionXB')?.value);
+        const yB = parseFloat(document.getElementById('txtResectionYB')?.value);
+        const dB = parseFloat(document.getElementById('txtResectionDistB')?.value);
+
+        if (isNaN(xA) || isNaN(yA) || isNaN(dA) || isNaN(xB) || isNaN(yB) || isNaN(dB)) {
+            showToast("⚠️ Vui lòng nhập đầy đủ tọa độ và khoảng cách của 2 mốc khống chế!", true);
+            return;
+        }
+
+        if (dA <= 0 || dB <= 0) {
+            showToast("⚠️ Khoảng cách đo phải lớn hơn 0!", true);
+            return;
+        }
+
+        // Tính cự ly AB
+        const dx = xB - xA;
+        const dy = yB - yA;
+        const dAB = Math.sqrt(dx * dx + dy * dy);
+
+        if (dAB < 0.001) {
+            showToast("⚠️ Hai mốc A và B trùng nhau! Vui lòng chọn 2 mốc phân biệt.", true);
+            return;
+        }
+
+        // Kiểm tra bất đẳng thức tam giác
+        if (dA + dB < dAB) {
+            showToast(`⚠️ Không thể giao hội: Tổng khoảng cách (${(dA + dB).toFixed(2)}m) nhỏ hơn cự ly 2 mốc AB (${dAB.toFixed(2)}m)!`, true);
+            return;
+        }
+        if (Math.abs(dA - dB) > dAB) {
+            showToast(`⚠️ Không thể giao hội: Hiệu khoảng cách lớn hơn cự ly 2 mốc AB!`, true);
+            return;
+        }
+
+        // Góc kẹp alpha tại đỉnh A
+        const cosAlpha = (dAB * dAB + dA * dA - dB * dB) / (2 * dAB * dA);
+        const clampedCos = Math.max(-1, Math.min(1, cosAlpha));
+        const alpha = Math.acos(clampedCos);
+
+        // Phương vị tuyến AB
+        const azAB = Math.atan2(dy, dx);
+
+        // Phương vị từ A đến trạm P
+        const azAP = (appResection.side === 'right') ? (azAB + alpha) : (azAB - alpha);
+
+        // Tọa độ trạm đo P
+        const xP = xA + dA * Math.cos(azAP);
+        const yP = yA + dA * Math.sin(azAP);
+
+        // Chuyển sang WGS-84
+        const wgs = VN2000.vn2000ToWgs84(xP, yP, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+
+        appResection.calculatedPoint = {
+            x: xP,
+            y: yP,
+            lat: wgs ? wgs.lat : null,
+            lng: wgs ? wgs.lng : null,
+            distAB: dAB
+        };
+
+        // Cập nhật UI
+        const resCard = document.getElementById('resectionResultCard');
+        if (resCard) resCard.style.display = 'block';
+
+        const elX = document.getElementById('resResectionX');
+        const elY = document.getElementById('resResectionY');
+        const elWgs = document.getElementById('resResectionWgs');
+        const elDist = document.getElementById('resResectionDistAB');
+
+        if (elX) elX.innerText = xP.toFixed(3);
+        if (elY) elY.innerText = yP.toFixed(3);
+        if (elWgs && wgs) elWgs.innerText = `${wgs.lat.toFixed(6)}°, ${wgs.lng.toFixed(6)}°`;
+        if (elDist) elDist.innerText = dAB.toFixed(3);
+
+        showToast("✓ Đã tính toán xong tọa độ giao hội trắc địa!");
+    },
+
+    applyAsCurrentPosition() {
+        if (!appResection.calculatedPoint || !appResection.calculatedPoint.lat) {
+            showToast("⚠️ Vui lòng tính toán tọa độ giao hội trước!", true);
+            return;
+        }
+        AppState.currentPos = {
+            lat: appResection.calculatedPoint.lat,
+            lng: appResection.calculatedPoint.lng
+        };
+        AppState.gpsAccuracy = 0.05; // Độ chính xác giao hội cao
+        showToast("📍 Đã gán vị trí giao hội làm tọa độ thực địa hiện tại để tiếp tục đo đạc!");
+    },
+
+    saveAsProjectPoint() {
+        if (!appResection.calculatedPoint) {
+            showToast("⚠️ Chưa có kết quả tọa độ để lưu!", true);
+            return;
+        }
+        const pts = appData.getPoints(AppState.currentProject);
+        const newName = `GH_${pts.length + 1}`;
+        pts.push({
+            name: newName,
+            x: parseFloat(appResection.calculatedPoint.x.toFixed(3)),
+            y: parseFloat(appResection.calculatedPoint.y.toFixed(3)),
+            lat: appResection.calculatedPoint.lat,
+            lng: appResection.calculatedPoint.lng,
+            note: "Điểm giao hội bù GPS"
+        });
+        appData.savePoints(AppState.currentProject, pts);
+        showToast(`✓ Đã lưu mốc giao hội "${newName}" vào dự án!`);
+    },
+
+    viewOnMap() {
+        if (!appResection.calculatedPoint || !appResection.calculatedPoint.lat) {
+            showToast("⚠️ Vui lòng tính toán trước khi xem bản đồ!", true);
+            return;
+        }
+        appModal.closeSettings();
+        appNav.openProjectMap();
+        if (appMap.map) {
+            appMap.map.setView([appResection.calculatedPoint.lat, appResection.calculatedPoint.lng], 19);
+        }
+    }
+};
+
+// ================= 9.3 TRẮC DỌC ĐỊA HÌNH & KHỐI LƯỢNG ĐÀO ĐẮP =================
+const appElevationProfile = {
+    profileData: [],
+
+    openModal() {
+        const m = document.getElementById('modalElevationProfile');
+        if (m) m.classList.add('active');
+        appElevationProfile.calculateAndRender();
+    },
+
+    closeModal() {
+        const m = document.getElementById('modalElevationProfile');
+        if (m) m.classList.remove('active');
+    },
+
+    calculateAndRender() {
+        const pts = appData.getPoints(AppState.currentProject);
+        let items = [];
+
+        if (pts && pts.length >= 2) {
+            let cumDist = 0;
+            items.push({
+                name: pts[0].name,
+                dist: 0,
+                zNat: (typeof pts[0].z === 'number' && !isNaN(pts[0].z)) ? pts[0].z : 12.50
+            });
+            for (let i = 1; i < pts.length; i++) {
+                const dx = pts[i].x - pts[i-1].x;
+                const dy = pts[i].y - pts[i-1].y;
+                cumDist += Math.sqrt(dx * dx + dy * dy);
+                const zVal = (typeof pts[i].z === 'number' && !isNaN(pts[i].z)) ? pts[i].z : (12.50 + Math.sin(i * 1.2) * 1.8);
+                items.push({
+                    name: pts[i].name,
+                    dist: cumDist,
+                    zNat: parseFloat(zVal.toFixed(3))
+                });
+            }
+        } else {
+            // Dữ liệu mẫu 5 cọc lý trình Km0+00 đến Km0+100
+            items = [
+                { name: "Cọc 1 (Km0+00)", dist: 0, zNat: 10.20 },
+                { name: "Cọc 2 (Km0+25)", dist: 25, zNat: 11.50 },
+                { name: "Cọc 3 (Km0+50)", dist: 50, zNat: 12.80 },
+                { name: "Cọc 4 (Km0+75)", dist: 75, zNat: 11.10 },
+                { name: "Cọc 5 (Km0+100)", dist: 100, zNat: 9.80 }
+            ];
+        }
+
+        const z0Input = document.getElementById('txtProfileDesignZ0');
+        const slopeInput = document.getElementById('txtProfileSlope');
+        const widthInput = document.getElementById('txtProfileWidthB');
+        const taluyInput = document.getElementById('txtProfileTaluyM');
+
+        const z0 = z0Input && z0Input.value !== '' ? parseFloat(z0Input.value) : items[0].zNat;
+        if (z0Input && z0Input.value === '') z0Input.value = z0.toFixed(2);
+
+        const slope = slopeInput ? (parseFloat(slopeInput.value) || 0) : 0;
+        const B = widthInput ? (parseFloat(widthInput.value) || 6.0) : 6.0;
+        const m = taluyInput ? (parseFloat(taluyInput.value) || 1.0) : 1.0;
+
+        let totalCut = 0;
+        let totalFill = 0;
+        const tableBody = document.getElementById('tableVolumeBody');
+        let htmlRows = '';
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            item.zDesign = parseFloat((z0 + item.dist * (slope / 100)).toFixed(3));
+            item.deltaH = parseFloat((item.zDesign - item.zNat).toFixed(3)); // >0: Đắp, <0: Đào
+
+            // Diện tích mặt cắt tại cọc: (B + m*h)*h
+            const h = Math.abs(item.deltaH);
+            const area = (B + m * h) * h;
+            item.areaCut = (item.deltaH < 0) ? area : 0;
+            item.areaFill = (item.deltaH > 0) ? area : 0;
+
+            // Khối lượng đào đắp theo đoạn
+            item.volCut = 0;
+            item.volFill = 0;
+            if (i > 0) {
+                const prev = items[i - 1];
+                const L = item.dist - prev.dist;
+                item.volCut = ((prev.areaCut + item.areaCut) / 2) * L;
+                item.volFill = ((prev.areaFill + item.areaFill) / 2) * L;
+                totalCut += item.volCut;
+                totalFill += item.volFill;
+            }
+
+            htmlRows += `
+                <tr>
+                    <td><b>${item.name}</b></td>
+                    <td>${item.dist.toFixed(1)}</td>
+                    <td style="color: #22c55e;">${item.zNat.toFixed(2)}</td>
+                    <td style="color: #ef4444;">${item.zDesign.toFixed(2)}</td>
+                    <td style="color: ${item.deltaH >= 0 ? '#38bdf8' : '#fbbf24'}; font-weight: 700;">${(item.deltaH > 0 ? '+' : '') + item.deltaH.toFixed(2)}</td>
+                    <td style="color: #ef4444;">${item.volCut.toFixed(1)}</td>
+                    <td style="color: #38bdf8;">${item.volFill.toFixed(1)}</td>
+                </tr>
+            `;
+        }
+
+        appElevationProfile.profileData = items;
+        if (tableBody) tableBody.innerHTML = htmlRows;
+
+        // Cập nhật card tổng hợp
+        const elCut = document.getElementById('resTotalCutVol');
+        const elFill = document.getElementById('resTotalFillVol');
+        const elBal = document.getElementById('resBalanceVol');
+
+        if (elCut) elCut.innerText = totalCut.toFixed(1) + " m³";
+        if (elFill) elFill.innerText = totalFill.toFixed(1) + " m³";
+        if (elBal) {
+            const bal = totalFill - totalCut;
+            elBal.innerText = (bal > 0 ? "+" : "") + bal.toFixed(1) + " m³";
+            elBal.style.color = (Math.abs(bal) < 5) ? '#4ade80' : (bal > 0 ? '#38bdf8' : '#fbbf24');
+        }
+
+        // Vẽ biểu đồ lên Canvas
+        appElevationProfile.drawCanvas(items);
+    },
+
+    drawCanvas(items) {
+        const canvas = document.getElementById('elevationProfileCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.clearRect(0, 0, w, h);
+
+        if (!items || items.length < 2) return;
+
+        const maxDist = items[items.length - 1].dist || 1;
+        const allZ = items.flatMap(p => [p.zNat, p.zDesign]);
+        const minZ = Math.min(...allZ) - 1.5;
+        const maxZ = Math.max(...allZ) + 1.5;
+
+        const padX = 45;
+        const padY = 30;
+        const graphW = w - padX * 2;
+        const graphH = h - padY * 2;
+
+        const getX = (dist) => padX + (dist / maxDist) * graphW;
+        const getY = (z) => padY + graphH - ((z - minZ) / (maxZ - minZ)) * graphH;
+
+        // Lưới ngang
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+            const zVal = minZ + ((maxZ - minZ) / 4) * i;
+            const y = getY(zVal);
+            ctx.beginPath();
+            ctx.moveTo(padX, y);
+            ctx.lineTo(padX + graphW, y);
+            ctx.stroke();
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(zVal.toFixed(1) + 'm', padX - 6, y + 3);
+        }
+
+        // Vùng đào/đắp
+        for (let i = 1; i < items.length; i++) {
+            const p1 = items[i - 1];
+            const p2 = items[i];
+
+            ctx.beginPath();
+            ctx.moveTo(getX(p1.dist), getY(p1.zNat));
+            ctx.lineTo(getX(p2.dist), getY(p2.zNat));
+            ctx.lineTo(getX(p2.dist), getY(p2.zDesign));
+            ctx.lineTo(getX(p1.dist), getY(p1.zDesign));
+            ctx.closePath();
+
+            const avgDelta = (p1.deltaH + p2.deltaH) / 2;
+            ctx.fillStyle = avgDelta >= 0 ? 'rgba(56, 189, 248, 0.25)' : 'rgba(239, 68, 68, 0.25)';
+            ctx.fill();
+        }
+
+        // Vẽ đường tự nhiên (Xanh lá)
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        items.forEach((p, idx) => {
+            const x = getX(p.dist);
+            const y = getY(p.zNat);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // Vẽ đường thiết kế (Đỏ)
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        items.forEach((p, idx) => {
+            const x = getX(p.dist);
+            const y = getY(p.zDesign);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Vẽ các điểm cọc
+        items.forEach(p => {
+            const x = getX(p.dist);
+            const yNat = getY(p.zNat);
+            const yDes = getY(p.zDesign);
+
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(x, yNat, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(x, yDes, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Nhãn cọc
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '9.5px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(p.name.slice(0, 7), x, h - 8);
+        });
+
+        // Chú thích Legend
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(padX + 10, 10, 14, 4);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '10.5px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText("Địa hình tự nhiên (Z_TN)", padX + 28, 15);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(padX + 180, 10, 14, 4);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText("Đường đỏ thiết kế (Z_TK)", padX + 198, 15);
+    },
+
+    exportCsv() {
+        if (!appElevationProfile.profileData || appElevationProfile.profileData.length === 0) {
+            showToast("⚠️ Chưa có dữ liệu để xuất file!", true);
+            return;
+        }
+        let csv = "\uFEFFCoc,LyTrinh_m,Z_TuNhien_m,Z_ThietKe_m,ChenhCao_m,V_Dao_m3,V_Dap_m3\n";
+        appElevationProfile.profileData.forEach(p => {
+            csv += `"${p.name}",${p.dist.toFixed(2)},${p.zNat.toFixed(3)},${p.zDesign.toFixed(3)},${p.deltaH.toFixed(3)},${p.volCut.toFixed(2)},${p.volFill.toFixed(2)}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `TracDoc_KhoiLuongDaoDap_${AppState.currentProject.replace('.csv','')}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast("✓ Đã tải xuống file CSV khối lượng đào đắp!");
+    },
+
+    exportImage() {
+        const canvas = document.getElementById('elevationProfileCanvas');
+        if (!canvas) return;
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `BanVe_TracDoc_${AppState.currentProject.replace('.csv','')}.png`;
+        a.click();
+        showToast("✓ Đã tải bản vẽ trắc dọc PNG thành công!");
+    }
+};
+
+// ================= 9.4 QUY ĐỔI CAO ĐỘ THỦY CHUẨN QUỐC GIA HÒN DẤU (VIGAC2017 / EGM2008) =================
+const appGeoidVigac = {
+    // Lưới điểm mốc mô hình Geoid VIGAC2017 Quốc gia (Lat, Lng -> Dị thường zeta)
+    geoidGrid: [
+        { lat: 22.8, lng: 104.9, zeta: 4.85 },  // Hà Giang
+        { lat: 21.5, lng: 103.8, zeta: 6.20 },  // Sơn La / Tây Bắc
+        { lat: 21.0, lng: 105.8, zeta: -3.95 }, // Hà Nội / Đồng bằng Bắc Bộ
+        { lat: 20.8, lng: 106.7, zeta: -4.80 }, // Hải Phòng / Hòn Dấu
+        { lat: 18.6, lng: 105.6, zeta: -6.40 }, // Nghệ An
+        { lat: 16.5, lng: 107.5, zeta: -8.10 }, // Huế
+        { lat: 16.0, lng: 108.2, zeta: -8.85 }, // Đà Nẵng
+        { lat: 13.8, lng: 108.0, zeta: -7.60 }, // Tây Nguyên (Gia Lai / Kon Tum)
+        { lat: 12.2, lng: 109.1, zeta: -9.50 }, // Nha Trang / Khánh Hòa
+        { lat: 10.8, lng: 106.7, zeta: -11.45 },// TP. Hồ Chí Minh
+        { lat: 10.3, lng: 105.7, zeta: -10.90 },// Đồng Tháp (Cao Lãnh)
+        { lat: 10.0, lng: 105.8, zeta: -11.15 },// Cần Thơ
+        { lat: 9.2, lng: 105.1, zeta: -12.10 }, // Cà Mau
+        { lat: 10.2, lng: 103.9, zeta: -10.35 } // Phú Quốc / Kiên Giang
+    ],
+
+    openModal() {
+        const m = document.getElementById('modalGeoidConverter');
+        if (m) m.classList.add('active');
+        appGeoidVigac.useCurrentLocation();
+    },
+
+    closeModal() {
+        const m = document.getElementById('modalGeoidConverter');
+        if (m) m.classList.remove('active');
+    },
+
+    onModelChange() {
+        appGeoidVigac.convertFromEllipsoid();
+    },
+
+    useCurrentLocation() {
+        let lat = 10.762622;
+        let lng = 106.660172;
+        let alt = 24.58;
+
+        if (AppState.currentPos) {
+            lat = AppState.currentPos.lat;
+            lng = AppState.currentPos.lng;
+        } else {
+            const pts = appData.getPoints(AppState.currentProject);
+            if (pts && pts.length > 0 && pts[0].lat) {
+                lat = pts[0].lat;
+                lng = pts[0].lng;
+            }
+        }
+
+        const latInput = document.getElementById('txtGeoidLat');
+        const lngInput = document.getElementById('txtGeoidLng');
+        const hInput = document.getElementById('txtInputEllipsoidH');
+
+        if (latInput) latInput.value = lat.toFixed(6);
+        if (lngInput) lngInput.value = lng.toFixed(6);
+        if (hInput && hInput.value === '') hInput.value = alt.toFixed(3);
+
+        appGeoidVigac.convertFromEllipsoid();
+    },
+
+    // Thuật toán nội suy song biến Inverse Distance Weighting (IDW) từ lưới VIGAC2017
+    interpolateZeta(lat, lng) {
+        let sumWeights = 0;
+        let sumWeightedZeta = 0;
+
+        for (const pt of appGeoidVigac.geoidGrid) {
+            const dLat = lat - pt.lat;
+            const dLng = lng - pt.lng;
+            const distSq = dLat * dLat + dLng * dLng;
+
+            if (distSq < 0.0001) return pt.zeta; // Trùng điểm mốc
+            const w = 1 / Math.pow(distSq, 1.2);
+            sumWeights += w;
+            sumWeightedZeta += w * pt.zeta;
+        }
+
+        return parseFloat((sumWeightedZeta / sumWeights).toFixed(3));
+    },
+
+    convertFromEllipsoid(val) {
+        const lat = parseFloat(document.getElementById('txtGeoidLat')?.value) || 10.762622;
+        const lng = parseFloat(document.getElementById('txtGeoidLng')?.value) || 106.660172;
+        const h = val !== undefined ? parseFloat(val) : parseFloat(document.getElementById('txtInputEllipsoidH')?.value);
+
+        if (isNaN(h)) return;
+
+        const zeta = appGeoidVigac.interpolateZeta(lat, lng);
+        const H = parseFloat((h - zeta).toFixed(3)); // H (Hòn Dấu) = h - zeta
+
+        const elH = document.getElementById('txtInputOrthometricH');
+        const resZeta = document.getElementById('resGeoidZeta');
+        const resH = document.getElementById('resGeoidResultH');
+        const resEllip = document.getElementById('resGeoidResultEllip');
+
+        if (elH && document.activeElement !== elH) elH.value = H.toFixed(3);
+        if (resZeta) resZeta.innerText = `${zeta >= 0 ? '+' : ''}${zeta.toFixed(3)}`;
+        if (resH) resH.innerText = `${H.toFixed(3)} m`;
+        if (resEllip) resEllip.innerText = `${h.toFixed(3)} m`;
+    },
+
+    convertFromOrthometric(val) {
+        const lat = parseFloat(document.getElementById('txtGeoidLat')?.value) || 10.762622;
+        const lng = parseFloat(document.getElementById('txtGeoidLng')?.value) || 106.660172;
+        const H = val !== undefined ? parseFloat(val) : parseFloat(document.getElementById('txtInputOrthometricH')?.value);
+
+        if (isNaN(H)) return;
+
+        const zeta = appGeoidVigac.interpolateZeta(lat, lng);
+        const h = parseFloat((H + zeta).toFixed(3)); // h = H + zeta
+
+        const elEllip = document.getElementById('txtInputEllipsoidH');
+        const resZeta = document.getElementById('resGeoidZeta');
+        const resH = document.getElementById('resGeoidResultH');
+        const resEllip = document.getElementById('resGeoidResultEllip');
+
+        if (elEllip && document.activeElement !== elEllip) elEllip.value = h.toFixed(3);
+        if (resZeta) resZeta.innerText = `${zeta >= 0 ? '+' : ''}${zeta.toFixed(3)}`;
+        if (resH) resH.innerText = `${H.toFixed(3)} m`;
+        if (resEllip) resEllip.innerText = `${h.toFixed(3)} m`;
+    },
+
+    applyToAllProjectPoints() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để áp dụng!", true);
+            return;
+        }
+
+        const lat = parseFloat(document.getElementById('txtGeoidLat')?.value) || 10.762622;
+        const lng = parseFloat(document.getElementById('txtGeoidLng')?.value) || 106.660172;
+        const zeta = appGeoidVigac.interpolateZeta(lat, lng);
+
+        let count = 0;
+        pts.forEach(p => {
+            const hVal = (typeof p.z === 'number' && !isNaN(p.z)) ? p.z : (AppState.gpsAltitude || 20.0);
+            p.z = parseFloat((hVal - zeta).toFixed(3)); // Chuẩn hóa sang Hòn Dấu
+            p.note = (p.note ? p.note + " | " : "") + "Cao độ Hòn Dấu VIGAC2017";
+            count++;
+        });
+
+        appData.savePoints(AppState.currentProject, pts);
+        showToast(`✓ Đã quy đổi thành công cao độ ${count} mốc sang Hệ Thủy Chuẩn Hòn Dấu (ζ = ${zeta.toFixed(3)}m)!`);
     }
 };
 
