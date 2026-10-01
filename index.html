@@ -3101,15 +3101,287 @@
       transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
       user-select: none;
     }
-    .btn-floating-quicknav:hover {
-      transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 6px 22px rgba(2, 132, 199, 0.6);
+    /* ================= 11. GIAO DIỆN ABOUT 3 TAB (THÔNG TIN & HƯỚNG DẪN) ================= */
+    .about-tab-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
     }
-    .btn-floating-quicknav:active {
-      transform: scale(0.95);
+    .about-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 8px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 3px;
+      min-height: 44px;
     }
-    .fab-tree-icon {
-      font-size: 15px;
+    .about-tab-btn:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .about-tab-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+    }
+    .about-tab-content {
+      display: none;
+      animation: fadeInAbout 0.25s ease forwards;
+    }
+    .about-tab-content.active {
+      display: block;
+    }
+    @keyframes fadeInAbout {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .install-device-card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .install-device-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    }
+    .install-step-item {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+    .install-step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .manual-task-card {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+    .manual-task-card:hover {
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+    .manual-task-header {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .manual-task-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .manual-task-icon {
+      font-size: 18px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      flex-shrink: 0;
+    }
+    .manual-task-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .manual-task-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .manual-task-body {
+      padding: 0 12px 10px 12px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #cbd5e1;
+      border-top: 1px dashed rgba(51, 65, 85, 0.5);
+      padding-top: 8px;
+    }
+    .manual-task-chevron {
+      font-size: 12px;
+      color: #64748b;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-block;
+      user-select: none;
+    }
+    .math-param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: ui-monospace, monospace;
+      font-size: 11.5px;
+      margin-top: 6px;
+    }
+    .math-param-table th, .math-param-table td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+    }
+    .math-param-table th {
+      color: #94a3b8;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .math-param-table td:last-child {
+      text-align: right;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* ================= 12. THANH CÔNG CỤ VẼ MẶT BẰNG CAD TRÊN BẢN ĐỒ ================= */
+    .map-cad-toolbar {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 12px;
+      padding: 6px 8px;
+      z-index: 1000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(8px);
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      animation: slideDownCad 0.25s ease;
+    }
+    @keyframes slideDownCad {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .map-cad-toolbar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      padding-bottom: 4px;
+    }
+    .cad-toolbar-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cad-actions-row {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: thin;
+    }
+    .cad-btn {
+      height: 32px;
+      padding: 2px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(30, 41, 59, 0.85);
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+    .cad-btn:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: #ffffff;
+    }
+    .cad-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    }
+    .cad-stats-pill {
+      font-size: 10.5px;
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 6px;
+      padding: 2px 7px;
+      white-space: nowrap;
+      font-family: ui-monospace, monospace;
+    }
+
+    /* ================= 13. CHẾ ĐỘ ĐÀO ĐẮP THEO DIỆN TÍCH / DỰ ÁN ================= */
+    .profile-mode-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .profile-mode-btn {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .profile-mode-btn.active {
+      background: #7c3aed;
+      color: #ffffff;
+      border-color: #a78bfa;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+    }
+    .profile-panel {
+      display: none;
+    }
+    .profile-panel.active {
+      display: block;
     }
   </style>
 </head>
@@ -3472,7 +3744,7 @@
         <!-- ================= GIAO DIỆN CÂY THƯ MỤC CHUYÊN SÂU (ẨN MẶC ĐỊNH) ================= -->
         <div class="tree-container" id="mainTreeContainer" style="display: none;">
           <!-- NHÓM 1: CHUYỂN ĐỔI TỌA ĐỘ QUỐC GIA -->
-          <div class="tree-folder open" id="treeFolder1">
+          <div class="tree-folder" id="treeFolder1">
             <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder1')">
               <div class="tree-folder-title">
                 <span class="tree-folder-icon">📂</span>
@@ -3506,7 +3778,7 @@
           </div>
 
           <!-- NHÓM 2: KHẢO SÁT & ĐO ĐẠC THỰC ĐỊA CHUYÊN NGHIỆP -->
-          <div class="tree-folder open" id="treeFolder2">
+          <div class="tree-folder" id="treeFolder2">
             <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder2')">
               <div class="tree-folder-title">
                 <span class="tree-folder-icon">📂</span>
@@ -3549,14 +3821,14 @@
           </div>
 
           <!-- NHÓM 3: XÂY DỰNG, GIAO THÔNG & ĐỊA HÌNH TUYẾN -->
-          <div class="tree-folder open" id="treeFolder3">
+          <div class="tree-folder" id="treeFolder3">
             <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder3')">
               <div class="tree-folder-title">
                 <span class="tree-folder-icon">📂</span>
                 <span class="tree-folder-name">NHÓM 3: XÂY DỰNG, GIAO THÔNG & TUYẾN</span>
               </div>
               <div class="tree-folder-meta">
-                <span class="tree-badge badge-purple">2 mục</span>
+                <span class="tree-badge badge-purple">5 mục</span>
                 <span class="tree-chevron">▼</span>
               </div>
             </div>
@@ -3571,7 +3843,7 @@
                 <button class="btn-leaf-action">Đo cự ly ➔</button>
               </div>
               <div class="tree-leaf-item" onclick="appNav.navigateTo('measure_polygon')">
-                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-connector">├─</div>
                 <div class="tree-leaf-icon" style="color: #c084fc;">📐</div>
                 <div class="tree-leaf-content">
                   <div class="tree-leaf-title">3.2 Khép góc ranh thửa & tính chu vi diện tích</div>
@@ -3579,11 +3851,38 @@
                 </div>
                 <button class="btn-leaf-action">Khép góc ➔</button>
               </div>
+              <div class="tree-leaf-item" onclick="appElevationProfile.openModal()">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #e879f9;">📈</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">3.3 Trắc dọc địa hình & Đào đắp</div>
+                  <div class="tree-leaf-desc">Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp theo tuyến hoặc diện tích</div>
+                </div>
+                <button class="btn-leaf-action">Trắc dọc ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appGeoidVigac.openModal()">
+                <div class="tree-leaf-connector">├─</div>
+                <div class="tree-leaf-icon" style="color: #38bdf8;">🏔️</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">3.4 Cao độ Thủy chuẩn Quốc gia Hòn Dấu</div>
+                  <div class="tree-leaf-desc">Mô hình Geoid VIGAC2017 / EGM2008 chuyển đổi độ cao</div>
+                </div>
+                <button class="btn-leaf-action">Quy đổi ➔</button>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('cad_tool')">
+                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-icon" style="color: #06b6d4;">📐</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">3.5 Vẽ mặt bằng công trình CAD Mini</div>
+                  <div class="tree-leaf-desc">Dựng ranh, bắt điểm Snap, offset song song, tính diện tích thửa</div>
+                </div>
+                <button class="btn-leaf-action">Vẽ CAD ➔</button>
+              </div>
             </div>
           </div>
 
           <!-- NHÓM 4: TRAO ĐỔI DỮ LIỆU ĐA NỀN TẢNG (CAD / GIS INTEROPERABILITY) -->
-          <div class="tree-folder open" id="treeFolder4">
+          <div class="tree-folder" id="treeFolder4">
             <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder4')">
               <div class="tree-folder-title">
                 <span class="tree-folder-icon">📂</span>
@@ -3644,7 +3943,7 @@
           </div>
 
           <!-- HỆ THỐNG & CÀI ĐẶT -->
-          <div class="tree-folder open" id="treeFolder5">
+          <div class="tree-folder" id="treeFolder5">
             <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder5')">
               <div class="tree-folder-title">
                 <span class="tree-folder-icon">📂</span>
@@ -3679,7 +3978,7 @@
                 <div class="tree-leaf-icon" style="color: #94a3b8;">ℹ️</div>
                 <div class="tree-leaf-content">
                   <div class="tree-leaf-title">5.3 Thông tin phần mềm & Hướng dẫn kỹ thuật</div>
-                  <div class="tree-leaf-desc">Tác giả Đặng Như, bảng KTT toàn quốc, hướng dẫn iOS Safari</div>
+                  <div class="tree-leaf-desc">Cẩm nang 10 nghiệp vụ, cài đặt PWA & 7 tham số Bursa-Wolf BTNMT</div>
                 </div>
                 <button class="btn-leaf-action">Xem ➔</button>
               </div>
@@ -3739,7 +4038,7 @@
               <div class="menu-card-icon" style="color: #94a3b8;">ℹ️</div>
               <div class="menu-card-content">
                 <div class="menu-card-title">6. THÔNG TIN & HƯỚNG DẪN</div>
-                <div class="menu-card-desc">Tác giả Đặng Như, tham số tính toán chuẩn hóa và hướng dẫn cài đặt iOS Safari</div>
+                <div class="menu-card-desc">Cẩm nang 10 nghiệp vụ, cài PWA đa nền tảng & căn cứ pháp lý QĐ 05/2007/QĐ-BTNMT</div>
               </div>
               <div class="menu-card-arrow">›</div>
             </div>
@@ -4358,51 +4657,398 @@
         </div>
       </section>
 
-      <!-- ================= SCREEN 6: THÔNG TIN & HƯỚNG DẪN ================= -->
+      <!-- ================= SCREEN 6: THÔNG TIN & HƯỚNG DẪN (3 TAB CHUYÊN NGHIỆP) ================= -->
       <section id="screen-about" class="screen-view">
+        <!-- Logo & Nhận Diện Ứng Dụng -->
         <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
-          <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 92px; height: 92px; border-radius: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.45); border: 2px solid rgba(255,255,255,0.18);">
-          <div style="font-weight: 800; font-size: 16px; margin-top: 8px; color: #38bdf8;">VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia</div>
-        </div>
-
-        <div class="app-card">
-          <div class="card-header">
-            <span class="card-title">ℹ️ Thông Tin Ứng Dụng</span>
-          </div>
-          <div style="font-size: 13px; line-height: 1.6;">
-            <div><b>Ứng dụng:</b> WGS84 - VN2000 conversion (iOS & Web PWA)</div>
-            <div><b>Phiên bản:</b> 2.2.3 Pro (Chuẩn Hóa Cho Vercel & PWA)</div>
-            <div><b>Tác giả:</b> Đặng Như</div>
-            <div><b>Email:</b> <a href="mailto:dnpn.ttqt@gmail.com" style="color: #38bdf8;">dnpn.ttqt@gmail.com</a></div>
+          <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
+          <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">VN-2000 PRO PWA</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.5.4 Pro</div>
+          <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
+            <span>👤 Tác giả: <b>Đặng Như</b></span>
+            <span>•</span>
+            <a href="mailto:dangnhu192@gmail.com" style="color: #38bdf8; text-decoration: underline;">dangnhu192@gmail.com</a>
           </div>
         </div>
 
-        <div class="app-card">
-          <div class="card-header">
-            <span class="card-title">🌟 Tham Số Tính Chuyển Bursa-Wolf</span>
+        <!-- 3 TAB NAVIGATION BAR -->
+        <div class="about-tab-bar">
+          <button id="btnAboutTabApp" class="about-tab-btn active" onclick="appNav.switchAboutTab('app')">
+            <span style="font-size: 15px;">ℹ️</span>
+            <span>Về Ứng Dụng & Cài Đặt</span>
+          </button>
+          <button id="btnAboutTabManual" class="about-tab-btn" onclick="appNav.switchAboutTab('manual')">
+            <span style="font-size: 15px;">📖</span>
+            <span>Cẩm Nang 10 Nghiệp Vụ</span>
+          </button>
+          <button id="btnAboutTabMath" class="about-tab-btn" onclick="appNav.switchAboutTab('math')">
+            <span style="font-size: 15px;">📐</span>
+            <span>Pháp Lý & Toán BTNMT</span>
+          </button>
+        </div>
+
+        <!-- ================= TAB 1: VỀ ỨNG DỤNG & CÀI ĐẶT ĐA NỀN TẢNG ================= -->
+        <div id="aboutTabContentApp" class="about-tab-content active">
+          <!-- Card Thông tin phiên bản & Độc lập Offline -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.5.4 Pro</span>
+            </div>
+            <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
+              <div>• <b>Tên ứng dụng:</b> WGS84 ⇄ VN-2000 Pro Surveying Engine (PWA)</div>
+              <div>• <b>Phiên bản:</b> 2.5.4 Pro (Đã tối ưu hóa trải nghiệm & Ergonomics di động)</div>
+              <div>• <b>Kiến trúc:</b> Progressive Web App (PWA) Offline-First — hoạt động 100% không cần mạng Internet ngoài thực địa.</div>
+              <div>• <b>Bảo mật & Quyền riêng tư:</b> Toàn bộ tọa độ, sổ đo mốc và hình ảnh khảo sát được lưu an toàn tuyệt đối trên bộ nhớ cục bộ thiết bị hoặc Google Drive cá nhân của người dùng. Không truyền dữ liệu qua bất kỳ máy chủ trung gian nào.</div>
+            </div>
           </div>
-          <div style="font-size: 12px; line-height: 1.5; color: var(--text-muted); font-family: ui-monospace, monospace;">
-            <div>• ΔX = +191.90441429 m</div>
-            <div>• ΔY = +39.30318279 m</div>
-            <div>• ΔZ = +111.45032835 m</div>
-            <div>• DS = -0.252906278 ppm</div>
-            <div>• ωX = +0.00928836''</div>
-            <div>• ωY = -0.01975479''</div>
-            <div>• ωZ = +0.00427372''</div>
-            <div style="color: #4ade80; margin-top: 4px;">✓ Khớp tuyệt đối từng milimét với Chuyển Tọa Độ VN2000.apk</div>
+
+          <!-- Card Hướng dẫn cài đặt trên TẤT CẢ thiết bị -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">📲 Hướng Dẫn Cài Đặt Cài App (PWA) Mọi Thiết Bị</span>
+            </div>
+            
+            <!-- 1. iOS Safari -->
+            <div class="install-device-card">
+              <div class="install-device-header">
+                <span style="font-size: 18px;">🍎</span>
+                <b style="color: #f8fafc; font-size: 13px;">iPhone / iPad (Trình duyệt Safari)</b>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">1</div>
+                <div>Mở đường link ứng dụng trên trình duyệt mặc định <b>Safari</b>.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">2</div>
+                <div>Chạm vào biểu tượng <b>Chia sẻ (Share)</b> <span style="display: inline-block; border: 1px solid #475569; padding: 0 4px; border-radius: 4px;">⎋</span> ở thanh công cụ dưới đáy màn hình.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">3</div>
+                <div>Cuộn xuống danh sách tác vụ và chọn <b>"Thêm vào MH chính" (Add to Home Screen)</b>.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">4</div>
+                <div>Bấm <b>Thêm (Add)</b> ở góc trên bên phải. Ứng dụng sẽ có biểu tượng riêng trên màn hình chính, mở độc lập toàn màn hình không có thanh URL.</div>
+              </div>
+            </div>
+
+            <!-- 2. Android Chrome / Cốc Cốc / Samsung -->
+            <div class="install-device-card">
+              <div class="install-device-header">
+                <span style="font-size: 18px;">🤖</span>
+                <b style="color: #4ade80; font-size: 13px;">Android (Samsung, Xiaomi, Oppo... - Chrome / Cốc Cốc)</b>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">1</div>
+                <div>Mở liên kết web bằng <b>Google Chrome</b> hoặc <b>Cốc Cốc / Samsung Internet</b>.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">2</div>
+                <div>Chạm vào biểu tượng menu <b>3 dấu chấm (⋮)</b> ở góc trên bên phải trình duyệt.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">3</div>
+                <div>Chọn dòng <b>"Cài đặt ứng dụng" (Install app)</b> hoặc <b>"Thêm vào Màn hình chính"</b>.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">4</div>
+                <div>Xác nhận <b>Cài đặt</b>. Biểu tượng VN-2000 sẽ xuất hiện trong ngăn kéo ứng dụng (App Drawer) và hoạt động ngoại tuyến mượt mà.</div>
+              </div>
+            </div>
+
+            <!-- 3. Máy tính PC Windows / macOS -->
+            <div class="install-device-card" style="margin-bottom: 0;">
+              <div class="install-device-header">
+                <span style="font-size: 18px;">💻</span>
+                <b style="color: #38bdf8; font-size: 13px;">Máy Tính & Laptop (Windows, macOS - Chrome / Edge)</b>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">1</div>
+                <div>Mở trang web trên trình duyệt <b>Google Chrome</b> hoặc <b>Microsoft Edge</b>.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">2</div>
+                <div>Nhấp vào biểu tượng <b>Cài đặt (Install icon)</b> <span style="display: inline-block; border: 1px solid #475569; padding: 0 4px; border-radius: 4px;">⊕ / 💻</span> ở góc phải thanh địa chỉ URL.</div>
+              </div>
+              <div class="install-step-item">
+                <div class="install-step-num">3</div>
+                <div>Bấm <b>Cài đặt (Install)</b>. Ứng dụng sẽ tạo lối tắt Desktop độc lập với cửa sổ riêng, hỗ trợ phím tắt và làm việc tốc độ cao.</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="app-card">
-          <div class="card-header">
-            <span class="card-title">📱 Hướng Dẫn Cài Đặt Trên iPhone (iOS)</span>
+        <!-- ================= TAB 2: CẨM NANG HƯỚNG DẪN 10 NGHIỆP VỤ ================= -->
+        <div id="aboutTabContentManual" class="about-tab-content">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; background: rgba(15,23,42,0.6); padding: 8px 12px; border-radius: 8px; border-left: 3px solid #38bdf8;">
+            <div style="font-size: 12px; color: #94a3b8; line-height: 1.5;">
+              💡 Hướng dẫn chi tiết 10 quy trình nghiệp vụ trắc địa & khảo sát công trình:
+            </div>
+            <div style="display: flex; gap: 6px; flex-shrink: 0;">
+              <button type="button" class="btn-sm" style="height: 24px; padding: 2px 7px; font-size: 10.5px; background: rgba(30,41,59,0.8); border: 1px solid #475569; color: #cbd5e1; border-radius: 6px; cursor: pointer;" onclick="appNav.toggleAllManualTasks(true)">Mở hết</button>
+              <button type="button" class="btn-sm" style="height: 24px; padding: 2px 7px; font-size: 10.5px; background: rgba(30,41,59,0.8); border: 1px solid #475569; color: #cbd5e1; border-radius: 6px; cursor: pointer;" onclick="appNav.toggleAllManualTasks(false)">Thu gọn</button>
+            </div>
           </div>
-          <div style="font-size: 12.5px; line-height: 1.6; color: #e2e8f0;">
-            <p>1. Mở liên kết ứng dụng bằng trình duyệt <b>Safari</b> trên iPhone.</p>
-            <p>2. Chạm vào nút <b>Chia sẻ</b> (biểu tượng hình vuông có mũi tên hướng lên ở thanh dưới).</p>
-            <p>3. Cuộn xuống và chọn <b>"Thêm vào Màn hình chính" (Add to Home Screen)</b>.</p>
-            <p>4. Bấm <b>Thêm (Add)</b> ở góc trên bên phải. Ứng dụng sẽ xuất hiện trên màn hình như app tải từ App Store và hoạt động ngoại tuyến không cần 4G!</p>
+
+          <!-- Nghiệp vụ 1 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #38bdf8;">🔄</div>
+                <div>
+                  <div class="manual-task-title">1. Chuyển Đổi Tọa Độ WGS-84 ⇄ VN-2000</div>
+                  <div class="manual-task-sub">Chuẩn 7 tham số Bursa-Wolf • 63 Tỉnh Thành</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Chuyển đổi 2 chiều đơn điểm và hàng loạt giữa hệ tọa độ vệ tinh WGS-84 (kinh độ, vĩ độ GPS) và hệ tọa độ trắc địa quốc gia VN-2000 (X - Bắc, Y - Đông). Tự động nhận diện múi chiếu 3° (k0=0.9999) hoặc 6° (k0=0.9996) theo từng tỉnh thành, hỗ trợ lấy tọa độ trực tiếp từ GPS hoặc chạm trên bản đồ.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 2 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #a78bfa;">📏</div>
+                <div>
+                  <div class="manual-task-title">2. Đo Cự Ly & Góc Phương Vị (Azimuth)</div>
+                  <div class="manual-task-sub">Khoảng cách trắc địa • Góc định hướng thuận/nghịch</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Chọn 2 mốc bất kỳ từ sổ đo dự án hoặc nhập tọa độ để tính chiều dài mặt đất nằm ngang $S$ (m), chênh cao $\Delta H$, độ dốc (%) và góc phương vị hướng tuyến $\alpha$ (độ, phút, giây). Hỗ trợ hiển thị trực quan đoạn nối trên bản đồ vệ tinh.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 3 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #c084fc;">📐</div>
+                <div>
+                  <div class="manual-task-title">3. Khép Góc Ranh Thửa & Tính Diện Tích</div>
+                  <div class="manual-task-sub">Đa giác khép kín • Diện tích m², ha, chu vi</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Nối tự động chu vi ranh thửa đất theo thứ tự các mốc đo. Ứng dụng công thức giải tích Gauss (Shoelace Formula) để tính chính xác diện tích mặt bằng quy chuẩn ra mét vuông ($m^2$), héc-ta ($ha$), tính chu vi tổng và chiều dài từng cạnh ranh thửa.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 4 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #fbbf24;">🗺️</div>
+                <div>
+                  <div class="manual-task-title">4. Bản Đồ Số Dự Án & Nền Ảnh Vệ Tinh</div>
+                  <div class="manual-task-sub">Google Hybrid • Ranh 34 tỉnh sáp nhập & xã Đồng Tháp</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Xem toàn bộ hệ thống mốc đo trên nền ảnh vệ tinh độ nét cao. Tích hợp sẵn lớp ranh giới địa giới hành chính 34 tỉnh sáp nhập (kèm thông tin dân số, diện tích) và ranh giới xã/phường Đồng Tháp. Hỗ trợ chạm màn hình để chấm điểm và quy đổi nhanh tọa độ.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 5 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #f59e0b;">🧭</div>
+                <div>
+                  <div class="manual-task-title">5. Dẫn Đường Cắm Mốc Thực Địa (Stakeout)</div>
+                  <div class="manual-task-sub">La bàn số 360° • Radar bíp đích • Hướng di chuyển</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Chọn điểm mốc quy hoạch cần tìm ngoài hiện trường. Ứng dụng tự động kích hoạt la bàn điện tử 360°, mũi tên HUD chỉ hướng, radar đo cự ly thời gian thực và phát âm thanh "Bíp... bíp..." tăng dần tần số khi kỹ sư trắc địa tiến gần mốc dưới 1m.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 6 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #ec4899;">📸</div>
+                <div>
+                  <div class="manual-task-title">6. Camera Khảo Sát Đóng Dấu Thủy Ấn</div>
+                  <div class="manual-task-sub">In VN2K, WGS84, La bàn, Thời gian thực lên ảnh</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Chụp ảnh nghiệm thu mốc và hiện trạng công trình với dấu thủy ấn pháp lý sắc nét. Ảnh chụp tự động được đóng dấu: Tên mốc, Tọa độ X, Y (VN-2000), Tọa độ Kinh/Vĩ (WGS-84), Sai số GPS (±m), Hướng la bàn, Địa chỉ hành chính và Ngày giờ chụp.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 7 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #38bdf8;">📁</div>
+                <div>
+                  <div class="manual-task-title">7. Sổ Đo Mốc & Quản Lý Nhiều Dự Án</div>
+                  <div class="manual-task-sub">Bảng số liệu mốc • Thêm, sửa, xóa, tìm kiếm nhanh</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Lưu trữ danh bạ tọa độ mốc theo từng tên dự án riêng biệt. Cho phép xem danh sách dạng thẻ, chỉnh sửa nhanh cao độ Z, mô tả mốc, tìm kiếm mốc thông minh và quản lý hàng nghìn mốc đo mượt mà không làm chậm ứng dụng.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 8 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #e879f9;">📈</div>
+                <div>
+                  <div class="manual-task-title">8. Trắc Dọc Tuyến & Khối Lượng Đào Đắp</div>
+                  <div class="manual-task-sub">Mặt cắt tự nhiên & đường đỏ • Đào đắp theo diện tích dự án</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Vẽ mặt cắt trắc dọc địa hình tự nhiên và đường đỏ thiết kế theo lý trình cọc. Nâng cấp tính năng tính khối lượng đào đắp san nền trên toàn bộ diện tích dự án ($m^3$), hiển thị trực quan vùng đào/đắp trên bản đồ và xuất file báo cáo khối lượng.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 9 -->
+          <div class="manual-task-card">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #06b6d4;">📐</div>
+                <div>
+                  <div class="manual-task-title">9. Vẽ Mặt Bằng CAD Mini Trên Bản Đồ (3.5)</div>
+                  <div class="manual-task-sub">Bắt điểm Snap mốc • Dựng L/Azimuth • Offset song song</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ Leaflet: Vẽ ranh công trình, tự động hít (Snap) vào các mốc tọa độ dự án, dựng điểm theo khoảng cách $L$ và góc phương vị $Az$, tạo đường song song (Offset) và xuất trực tiếp thành file AutoCAD DXF.
+            </div>
+          </div>
+
+          <!-- Nghiệp vụ 10 -->
+          <div class="manual-task-card" style="margin-bottom: 0;">
+            <div class="manual-task-header" onclick="appNav.toggleManualTask(this)">
+              <div class="manual-task-header-left">
+                <div class="manual-task-icon" style="color: #10b981;">💻</div>
+                <div>
+                  <div class="manual-task-title">10. Trao Đổi Dữ Liệu CAD DXF, KML, CSV & Google Sheets</div>
+                  <div class="manual-task-sub">AutoCAD R12 3D • Google Earth • Tự động đồng bộ Cloud</div>
+                </div>
+              </div>
+              <span class="manual-task-chevron">▼</span>
+            </div>
+            <div class="manual-task-body">
+              Kết xuất số liệu đa định dạng: File AutoCAD DXF chuẩn 3 layer (MOC, TEN, RANH), file Google Earth KML để xem trên vệ tinh 3D, file bảng tính CSV tiếng Việt có dấu, và kết nối tự động 2 chiều với Google Sheets trên Google Drive.
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 3: PHÁP LÝ & TOÁN HỌC BTNMT ================= -->
+        <div id="aboutTabContentMath" class="about-tab-content">
+          <!-- Card Pháp lý -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">⚖️ Căn Cứ Pháp Lý Hệ Tọa Độ Quốc Gia</span>
+            </div>
+            <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+              <div>• <b>Quyết định số 05/2007/QĐ-BTNMT:</b> Ngày 27/02/2007 của Bộ trưởng Bộ Tài nguyên và Môi trường về việc ban hành sử dụng hệ quy chiếu và hệ tọa độ quốc gia VN-2000.</div>
+              <div>• <b>Thông tư số 25/2014/TT-BTNMT:</b> Ngày 19/05/2014 của Bộ Tài nguyên và Môi trường quy định về bản đồ địa chính.</div>
+              <div>• <b>Quy định kinh tuyến trục:</b> Ban hành bảng kinh tuyến trục cho 63 tỉnh/thành phố trực thuộc Trung ương áp dụng trong đo vẽ bản đồ địa chính và đo đạc công trình.</div>
+            </div>
+          </div>
+
+          <!-- Card 7 Tham Số Bursa-Wolf -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">🌟 7 Tham Số Chuyển Đổi Bursa-Wolf Chính Thức</span>
+            </div>
+            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 6px;">
+              Bộ 7 tham số tính chuyển tọa độ không gian 3 chiều giữa WGS-84 (quốc tế) và VN-2000 (Bộ TN&MT công bố):
+            </div>
+            <table class="math-param-table">
+              <thead>
+                <tr>
+                  <th>Tham số</th>
+                  <th>Ý nghĩa đại lượng</th>
+                  <th>Giá trị chuẩn</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>ΔX</b></td>
+                  <td>Dịch chuyển gốc tọa độ theo trục X</td>
+                  <td style="color: #4ade80;">+191.90441429 m</td>
+                </tr>
+                <tr>
+                  <td><b>ΔY</b></td>
+                  <td>Dịch chuyển gốc tọa độ theo trục Y</td>
+                  <td style="color: #4ade80;">+39.30318279 m</td>
+                </tr>
+                <tr>
+                  <td><b>ΔZ</b></td>
+                  <td>Dịch chuyển gốc tọa độ theo trục Z</td>
+                  <td style="color: #4ade80;">+111.45032835 m</td>
+                </tr>
+                <tr>
+                  <td><b>DS</b></td>
+                  <td>Hệ số tỉ lệ co giãn (Scale factor)</td>
+                  <td style="color: #38bdf8;">-0.252906278 ppm</td>
+                </tr>
+                <tr>
+                  <td><b>ωX</b></td>
+                  <td>Góc xoay quanh trục X (giây cung)</td>
+                  <td style="color: #f59e0b;">+0.00928836''</td>
+                </tr>
+                <tr>
+                  <td><b>ωY</b></td>
+                  <td>Góc xoay quanh trục Y (giây cung)</td>
+                  <td style="color: #f59e0b;">-0.01975479''</td>
+                </tr>
+                <tr>
+                  <td><b>ωZ</b></td>
+                  <td>Góc xoay quanh trục Z (giây cung)</td>
+                  <td style="color: #f59e0b;">+0.00427372''</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="margin-top: 8px; font-size: 11px; color: #4ade80; font-weight: 700;">
+              ✓ Đảm bảo độ trùng khớp tuyệt đối từng milimét với phần mềm chuyển tọa độ chính thức của Cục Đo đạc Bản đồ.
+            </div>
+          </div>
+
+          <!-- Card Ellipsoid & Geoid VIGAC2017 -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">🌐 Ellipsoid Quy Chiếu & Mô Hình Geoid VIGAC2017</span>
+            </div>
+            <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+              <div>• <b>Ellipsoid quy chiếu VN-2000:</b> Bán trục lớn $a = 6,378,137.0 \text{ m}$, độ dẹt $\alpha = 1 / 298.257223563$ (tương đương kích thước WGS-84, nhưng định vị phù hợp lãnh thổ Việt Nam).</div>
+              <div>• <b>Điểm gốc tọa độ quốc gia:</b> Điểm N00 đặt tại Viện Khoa học Đo đạc và Bản đồ, đường Hoàng Quốc Việt, quận Cầu Giấy, Hà Nội.</div>
+              <div>• <b>Độ cao Quốc gia Hòn Dấu:</b> Quy đổi từ độ cao trắc địa Ellipsoid $h$ (thu từ GNSS/GPS) sang độ cao thủy chuẩn nhà nước $H$ (gốc mực nước biển trung bình trạm nghiệm triều Hòn Dấu, Hải Phòng) qua mô hình Geoid Quốc gia VIGAC2017:
+                <div style="background: rgba(15,23,42,0.8); border: 1px solid #334155; border-radius: 6px; padding: 6px 10px; margin-top: 4px; font-family: ui-monospace, monospace; color: #fbbf24; font-size: 12.5px;">
+                  H = h - ζ (zeta: độ cao dị thường Geoid địa phương)
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -5365,8 +6011,8 @@
           <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.navigateTo('about')">
             <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.5 Hướng dẫn sử dụng & Tác giả</div>
-              <div class="drawer-leaf-sub">Bảng KTT toàn quốc, cài đặt PWA</div>
+              <div class="drawer-leaf-title">5.5 Thông tin & Cẩm nang 10 nghiệp vụ</div>
+              <div class="drawer-leaf-sub">Cài PWA mọi thiết bị, 7 tham số BTNMT</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -5408,7 +6054,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.5.3"></script>
+  <script src="app.js?v=2.5.4"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

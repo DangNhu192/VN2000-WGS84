@@ -164,6 +164,10 @@ const appNav = {
             } else if (screenName === 'about') {
                 titleText = "6. THÔNG TIN & HƯỚNG DẪN";
                 document.getElementById('screen-about').classList.add('active');
+                const activeTab = document.querySelector('.about-tab-btn.active');
+                if (!activeTab) {
+                    appNav.switchAboutTab('app');
+                }
             } else if (screenName === 'gps') {
                 titleText = "GPS THỰC ĐỊA";
                 const el = document.getElementById('screen-gps');
@@ -186,6 +190,63 @@ const appNav = {
 
     goToMenu() {
         appNav.showScreen('menu');
+    },
+
+    switchAboutTab(tabName) {
+        triggerHaptic('light');
+        const validTabs = ['app', 'manual', 'math'];
+        if (!validTabs.includes(tabName)) tabName = 'app';
+
+        const btnMap = {
+            'app': 'btnAboutTabApp',
+            'manual': 'btnAboutTabManual',
+            'math': 'btnAboutTabMath'
+        };
+        const contentMap = {
+            'app': 'aboutTabContentApp',
+            'manual': 'aboutTabContentManual',
+            'math': 'aboutTabContentMath'
+        };
+
+        validTabs.forEach(t => {
+            const btn = document.getElementById(btnMap[t]);
+            const content = document.getElementById(contentMap[t]);
+            if (btn) btn.classList.toggle('active', t === tabName);
+            if (content) content.classList.toggle('active', t === tabName);
+        });
+
+        const screenEl = document.getElementById('screen-about');
+        if (screenEl) {
+            screenEl.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    },
+
+    toggleManualTask(headerEl) {
+        triggerHaptic('light');
+        if (!headerEl) return;
+        const body = headerEl.nextElementSibling;
+        const chevron = headerEl.querySelector('.manual-task-chevron') || headerEl.querySelector('span:last-child');
+        if (!body) return;
+
+        const isCurrentlyHidden = (body.style.display === 'none');
+        body.style.display = isCurrentlyHidden ? 'block' : 'none';
+        if (chevron) {
+            chevron.style.transform = isCurrentlyHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+        }
+    },
+
+    toggleAllManualTasks(shouldOpen) {
+        triggerHaptic('light');
+        document.querySelectorAll('#aboutTabContentManual .manual-task-card').forEach(card => {
+            const body = card.querySelector('.manual-task-body');
+            const chevron = card.querySelector('.manual-task-chevron') || card.querySelector('span:last-child');
+            if (body) {
+                body.style.display = shouldOpen ? 'block' : 'none';
+            }
+            if (chevron) {
+                chevron.style.transform = shouldOpen ? 'rotate(0deg)' : 'rotate(-90deg)';
+            }
+        });
     },
 
     toggleTreeMenu() {
@@ -645,7 +706,7 @@ const appDashboard = {
         { id: 'resection', name: '7. Giao Hội Trắc Địa Khi Mất GPS', short: 'Giao Hội Trắc Địa', icon: '📐', color: 'yellow', tag: 'Định vị hầm/tán cây', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Giao Hội Điểm P', action: () => appModal.openUnifiedSettings('resection') },
         { id: 'profile', name: '8. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appElevationProfile.openModal() },
         { id: 'geoid', name: '9. Quy Đổi Cao Độ Geoid Hòn Dấu', short: 'Geoid VIGAC2017', icon: '🏔️', color: 'cyan', tag: 'Thủy chuẩn Quốc gia', sub: 'Quy đổi độ cao H = h - ζ (VIGAC)', metric: 'Geoid Hòn Dấu', action: () => appGeoidVigac.openModal() },
-        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin Hệ Thống', icon: 'ℹ️', color: 'slate', tag: 'Chuẩn Bursa-Wolf', sub: 'Bản quyền & Công thức chuyển đổi', metric: 'Bursa-Wolf 7TS', action: () => appNav.showScreen('about') }
+        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.5.4 Pro', action: () => appNav.showScreen('about') }
     ],
 
     init() {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.5.3';
+const CACHE_NAME = 'vn2000-pro-v2.5.4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -20,7 +20,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Đang nạp bộ nhớ đệm offline tài nguyên trắc địa v2.5.3...');
+      console.log('[Service Worker] Đang nạp bộ nhớ đệm offline tài nguyên trắc địa v2.5.4...');
       return cache.addAll(ASSETS_TO_CACHE);
     }).then(() => self.skipWaiting())
   );
