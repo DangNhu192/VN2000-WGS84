@@ -22,7 +22,7 @@ const AppState = {
     
     // UI & Navigation Tree State
     isTreeDrawerOpen: false,
-    mainMenuViewMode: 'tree',
+    mainMenuViewMode: (typeof localStorage !== 'undefined' && localStorage.getItem('vn2000_main_menu_view')) ? localStorage.getItem('vn2000_main_menu_view') : 'big_tiles',
 
     // Storage & Google Sync State
     storageMode: 'offline', // 'offline' (mặc định) hoặc 'auto_google'
@@ -407,15 +407,28 @@ const appNav = {
 
     switchMainMenuView(viewMode) {
         AppState.mainMenuViewMode = viewMode;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('vn2000_main_menu_view', viewMode);
+        }
+        const modernHub = document.getElementById('dashboardModernHub');
         const cardsHub = document.getElementById('mainCardsHub');
-        const filterTabs = document.querySelector('.main-filter-tabs');
+        const filterTabs = (typeof document.querySelector === 'function') ? document.querySelector('.main-filter-tabs') : null;
         const treeCont = document.getElementById('mainTreeContainer');
         const gridCont = document.getElementById('mainGridContainer');
         const treeQuickTools = document.getElementById('treeQuickTools');
         const btnTree = document.getElementById('btnViewModeTree');
         const btnGrid = document.getElementById('btnViewModeGrid');
 
-        if (viewMode === 'tree') {
+        if (viewMode === 'big_tiles') {
+            if (modernHub) modernHub.style.display = 'block';
+            if (cardsHub) cardsHub.style.display = 'none';
+            if (filterTabs) filterTabs.style.display = 'none';
+            if (gridCont) gridCont.style.display = 'none';
+            if (treeCont) treeCont.style.display = 'none';
+            if (treeQuickTools) treeQuickTools.style.display = 'none';
+            if (typeof appDashboard !== 'undefined') appDashboard.renderDashboard();
+        } else if (viewMode === 'tree') {
+            if (modernHub) modernHub.style.display = 'none';
             if (cardsHub) cardsHub.style.display = 'none';
             if (filterTabs) filterTabs.style.display = 'none';
             if (gridCont) gridCont.style.display = 'none';
@@ -424,6 +437,7 @@ const appNav = {
             if (btnTree) btnTree.classList.add('active');
             if (btnGrid) btnGrid.classList.remove('active');
         } else {
+            if (modernHub) modernHub.style.display = 'none';
             if (cardsHub) cardsHub.style.display = 'block';
             if (filterTabs) filterTabs.style.display = 'flex';
             if (gridCont) gridCont.style.display = 'none';
@@ -604,7 +618,223 @@ const appNav = {
                 storageEl.style.color = '#4ade80';
             }
         }
+
+        // Tích hợp thông tin trắc địa gọn gàng vào Header Subtitle khi ở màn hình Menu
+        const subTitleEl = document.getElementById('headerSubtitle');
+        if (subTitleEl && AppState.currentScreen === 'menu') {
+            subTitleEl.innerHTML = `<span class="header-geodetic-pill" onclick="appModal.openUnifiedSettings('ktt')" title="Nhấp để đổi Tỉnh thành & Kinh tuyến trục">📍 ${AppState.provinceName} • KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal}°) ▾</span>`;
+        }
+
+        if (typeof appDashboard !== 'undefined') {
+            appDashboard.renderDashboard();
+        }
+
         appNav.updateTreeNavState();
+    }
+};
+
+// ================= 3.1. PHÂN HỆ DASHBOARD HIỆN ĐẠI (UI/UX PRO MAX) =================
+const appDashboard = {
+    allFeatures: [
+        { id: 'transform', name: '1. Chuyển Đổi Tọa Độ Hai Chiều', short: 'Chuyển Đổi Tọa Độ', icon: '🔄', color: 'cyan', tag: '7 Tham số BTNMT', sub: 'WGS-84 ⇄ VN-2000 (Múi 3°/6°)', metric: '63 Tỉnh Thành', action: () => appNav.showScreen('transform') },
+        { id: 'map', name: '2. Bản Đồ Vệ Tinh & Chấm Điểm', short: 'Bản Đồ Dự Án', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Thực địa', sub: 'Ranh 34 tỉnh/xã • Đo cự ly', metric: 'Bản Đồ & DXF', action: () => appNav.openProjectMap() },
+        { id: 'stakeout', name: '3. Dẫn Đường Cắm Mốc (Stakeout)', short: 'Cắm Mốc Thực Địa', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
+        { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DXF • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
+        { id: 'camera', name: '5. Camera Đóng Dấu Thủy Ấn', short: 'Camera Thủy Ấn', icon: '📸', color: 'pink', tag: 'Thủy ấn pháp lý', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
+        { id: 'rtk', name: '6. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
+        { id: 'resection', name: '7. Giao Hội Trắc Địa Khi Mất GPS', short: 'Giao Hội Trắc Địa', icon: '📐', color: 'yellow', tag: 'Định vị hầm/tán cây', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Giao Hội Điểm P', action: () => appModal.openUnifiedSettings('resection') },
+        { id: 'profile', name: '8. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appElevationProfile.openModal() },
+        { id: 'geoid', name: '9. Quy Đổi Cao Độ Geoid Hòn Dấu', short: 'Geoid VIGAC2017', icon: '🏔️', color: 'cyan', tag: 'Thủy chuẩn Quốc gia', sub: 'Quy đổi độ cao H = h - ζ (VIGAC)', metric: 'Geoid Hòn Dấu', action: () => appGeoidVigac.openModal() },
+        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin Hệ Thống', icon: 'ℹ️', color: 'slate', tag: 'Chuẩn Bursa-Wolf', sub: 'Bản quyền & Công thức chuyển đổi', metric: 'Bursa-Wolf 7TS', action: () => appNav.showScreen('about') }
+    ],
+
+    init() {
+        const viewMode = (typeof localStorage !== 'undefined' && localStorage.getItem('vn2000_main_menu_view'))
+            ? localStorage.getItem('vn2000_main_menu_view')
+            : 'big_tiles';
+        appNav.switchMainMenuView(viewMode);
+        appDashboard.renderDashboard();
+    },
+
+    getPinnedFeatureIds() {
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const raw = localStorage.getItem('vn2000_pinned_features');
+                if (raw) {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr) && arr.length === 4) return arr;
+                }
+            }
+        } catch (e) {}
+        return ['transform', 'map', 'stakeout', 'datamgmt'];
+    },
+
+    savePinnedFeatureIds(ids) {
+        if (Array.isArray(ids) && ids.length === 4) {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('vn2000_pinned_features', JSON.stringify(ids));
+            }
+            appDashboard.renderDashboard();
+            triggerHaptic('success');
+            showToast("⭐ Đã cập nhật 4 tính năng ghim trên Màn hình chính!");
+        }
+    },
+
+    isAccordionExpanded: false,
+
+    toggleAccordion() {
+        triggerHaptic('light');
+        appDashboard.isAccordionExpanded = !appDashboard.isAccordionExpanded;
+        const content = document.getElementById('accordionToolsContent');
+        const chevron = document.getElementById('accordionChevronIcon');
+        if (content) content.classList.toggle('expanded', appDashboard.isAccordionExpanded);
+        if (chevron) chevron.classList.toggle('expanded', appDashboard.isAccordionExpanded);
+    },
+
+    renderDashboard() {
+        const grid = document.getElementById('bigActionTilesGrid');
+        const compactList = document.getElementById('compactToolsContainer');
+        const countBadge = document.getElementById('accordionToolsCount');
+        if (!grid || !compactList) return;
+
+        const pinnedIds = appDashboard.getPinnedFeatureIds();
+        const pinnedFeatures = [];
+        const unpinnedFeatures = [];
+
+        appDashboard.allFeatures.forEach(f => {
+            if (pinnedIds.includes(f.id)) {
+                pinnedFeatures.push(f);
+            } else {
+                unpinnedFeatures.push(f);
+            }
+        });
+
+        // 1. Render 4 Big Action Tiles
+        grid.innerHTML = pinnedFeatures.map(f => {
+            const metricVal = typeof f.metric === 'function' ? f.metric() : f.metric;
+            return `
+              <div class="big-action-tile" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
+                <div class="big-tile-top">
+                  <div class="big-tile-icon-box icon-box-${f.color}">${f.icon}</div>
+                  <span class="big-tile-pin-badge" title="Đang ghim trên màn hình chính">⭐</span>
+                </div>
+                <div class="big-tile-bottom">
+                  <div class="big-tile-title">${f.short}</div>
+                  <div class="big-tile-subtitle">${f.sub}</div>
+                  <div class="big-tile-metric">${metricVal}</div>
+                </div>
+              </div>
+            `;
+        }).join('');
+
+        // 2. Render Accordion Tools
+        compactList.innerHTML = unpinnedFeatures.map(f => {
+            return `
+              <div class="compact-tool-card" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
+                <div class="compact-tool-left">
+                  <div class="compact-tool-icon icon-box-${f.color}">${f.icon}</div>
+                  <div class="compact-tool-info">
+                    <div class="compact-tool-title">${f.name}</div>
+                    <div class="compact-tool-desc">${f.sub}</div>
+                  </div>
+                </div>
+                <div class="compact-tool-right">
+                  <button type="button" class="btn-compact-pin" onclick="event.stopPropagation(); appDashboard.quickSwapPin('${f.id}')" title="Ghim tính năng này lên Màn hình chính">⭐</button>
+                  <span class="btn-compact-launch">Mở ➔</span>
+                </div>
+              </div>
+            `;
+        }).join('');
+
+        if (countBadge) countBadge.innerText = `${unpinnedFeatures.length} công cụ`;
+    },
+
+    launchFeature(id) {
+        const f = appDashboard.allFeatures.find(item => item.id === id);
+        if (f && typeof f.action === 'function') {
+            f.action();
+        }
+    },
+
+    quickSwapPin(idToPin) {
+        triggerHaptic('medium');
+        const pinned = appDashboard.getPinnedFeatureIds();
+        if (!pinned.includes(idToPin)) {
+            pinned[3] = idToPin;
+            appDashboard.savePinnedFeatureIds(pinned);
+        }
+    },
+
+    openPinModal() {
+        triggerHaptic('light');
+        const modal = document.getElementById('modalCustomizePinned');
+        if (!modal) return;
+        modal.classList.add('active');
+        appDashboard.renderPinPicker();
+    },
+
+    closePinModal() {
+        triggerHaptic('light');
+        const modal = document.getElementById('modalCustomizePinned');
+        if (modal) modal.classList.remove('active');
+    },
+
+    tempSelectedPins: [],
+
+    renderPinPicker() {
+        appDashboard.tempSelectedPins = [...appDashboard.getPinnedFeatureIds()];
+        appDashboard.updatePinPickerUi();
+    },
+
+    togglePinSelection(id) {
+        triggerHaptic('light');
+        const idx = appDashboard.tempSelectedPins.indexOf(id);
+        if (idx !== -1) {
+            if (appDashboard.tempSelectedPins.length <= 1) {
+                showToast("⚠️ Cần giữ lại ít nhất 1 tính năng ghim!", true);
+                return;
+            }
+            appDashboard.tempSelectedPins.splice(idx, 1);
+        } else {
+            if (appDashboard.tempSelectedPins.length >= 4) {
+                showToast("⚠️ Tối đa 4 tính năng ghim trên màn hình chính! Hãy bỏ chọn bớt 1 mục.", true);
+                return;
+            }
+            appDashboard.tempSelectedPins.push(id);
+        }
+        appDashboard.updatePinPickerUi();
+    },
+
+    updatePinPickerUi() {
+        const container = document.getElementById('pinPickerList');
+        const counter = document.getElementById('pinPickerCounter');
+        if (counter) counter.innerText = `Đã chọn: ${appDashboard.tempSelectedPins.length}/4 mục`;
+
+        if (!container) return;
+        container.innerHTML = appDashboard.allFeatures.map(f => {
+            const isChecked = appDashboard.tempSelectedPins.includes(f.id);
+            return `
+              <div class="pin-picker-item ${isChecked ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 20px;">${f.icon}</span>
+                  <div>
+                    <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
+                    <div style="font-size: 11px; color: #94a3b8;">${f.sub}</div>
+                  </div>
+                </div>
+                <input type="checkbox" class="pin-picker-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
+              </div>
+            `;
+        }).join('');
+    },
+
+    savePinSelection() {
+        if (appDashboard.tempSelectedPins.length !== 4) {
+            showToast("⚠️ Vui lòng chọn đủ 4 tính năng trước khi lưu!", true);
+            return;
+        }
+        appDashboard.savePinnedFeatureIds(appDashboard.tempSelectedPins);
+        appDashboard.closePinModal();
     }
 };
 
@@ -3645,6 +3875,17 @@ const appModal = {
 
         // 3. Kích hoạt đúng tab được yêu cầu
         appModal.switchSettingsTab(defaultTab);
+
+        // 4. Cập nhật UI lựa chọn Bố cục màn hình chính
+        appModal.updateViewModeSettingsUI();
+    },
+
+    updateViewModeSettingsUI() {
+        const btnBig = document.getElementById('btnSettingViewBigTiles');
+        const btnTree = document.getElementById('btnSettingViewTree');
+        const isBig = (AppState.mainMenuViewMode === 'big_tiles');
+        if (btnBig) btnBig.classList.toggle('active', isBig);
+        if (btnTree) btnTree.classList.toggle('active', !isBig);
     },
 
     switchSettingsTab(tab = 'storage') {
@@ -5112,6 +5353,7 @@ window.addEventListener('DOMContentLoaded', () => {
     appTransform.init();
     appData.init();
     appGps.init();
+    if (typeof appDashboard !== 'undefined') appDashboard.init();
     appNav.updateBanner();
 
     // Đảm bảo nút Header Menu và Nút Menu Nổi luôn phản hồi tức thì

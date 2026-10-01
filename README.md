@@ -23,7 +23,7 @@
 
 - **Tác giả:** Đặng Như
 - **Email:** [dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)
-- **Phiên bản:** v2.5.0 Pro (UI/UX Pro Max Optimized - Precision Field Dark & Haptic Feedback)
+- **Phiên bản:** v2.5.1 Pro (UI/UX Pro Max Streamlined Dashboard & Custom Pinned Tiles)
 
 ---
 
