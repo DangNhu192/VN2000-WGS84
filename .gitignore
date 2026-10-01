@@ -1,0 +1,27 @@
+# Hệ điều hành
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Nhật ký và tệp tạm
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Trình soạn thảo & IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Vercel CLI cache
+.vercel/
+
+# Thư mục kiểm thử tạm
+scratch/
+.system_generated/

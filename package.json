@@ -1,0 +1,20 @@
+{
+  "name": "vn2000-pro-pwa",
+  "version": "2.2.3",
+  "description": "Ứng dụng chuyển đổi tọa độ WGS-84 & VN-2000, trắc địa số liệu công trình và bản đồ thực địa PWA",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "vn2000",
+    "wgs84",
+    "geodesy",
+    "trac-dia",
+    "pwa",
+    "leaflet",
+    "vietnam"
+  ],
+  "author": "Đặng Như",
+  "license": "MIT"
+}

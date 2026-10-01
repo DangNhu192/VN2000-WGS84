@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>WGS84 - VN2000 conversion</title>
+  
+  <!-- iOS Safari PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VN2000 Pro">
+  <meta name="theme-color" content="#1565C0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Leaflet CSS & Offline Layer Scripts -->
+  <link rel="stylesheet" href="leaflet.css">
+  <script src="leaflet.js"></script>
+  <script src="vietnam_34_tinh.js"></script>
+  <script src="dong_thap_communes.js"></script>
+  <script src="offline_regions.js"></script>
+  <script src="geodesy.js"></script>
+
+  <style>
+    :root {
+      --primary: #1565C0;
+      --primary-dark: #0D47A1;
+      --primary-light: #1E88E5;
+      --accent-cyan: #0284c7;
+      --accent-green: #059669;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-light: #283548;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-accent: #38bdf8;
+      --text-gold: #fbbf24;
+      --sat-safe-top: env(safe-area-inset-top, 0px);
+      --sat-safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input, textarea, select {
+      user-select: auto;
+      -webkit-user-select: auto;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* TOP HEADER */
+    header.app-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      padding-top: calc(var(--sat-safe-top) + 6px);
+      padding-bottom: 8px;
+      padding-left: 12px;
+      padding-right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      min-height: 52px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-header-back {
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-header-back:active {
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .app-title-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-title img {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+    }
+
+    .app-subtitle {
+      font-size: 11px;
+      color: #bae6fd;
+      font-weight: 500;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-header-action {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-header-action:active {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* MAIN VIEWPORT */
+    main.app-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .screen-view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 14px calc(var(--sat-safe-bottom) + 20px) 14px;
+      display: none;
+    }
+
+    .screen-view.active {
+      display: block;
+    }
+
+    /* STATUS BANNER */
+    .status-banner {
+      background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #38bdf8;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+
+    .status-label {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .status-val {
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .status-val.highlight {
+      color: var(--text-gold);
+    }
+
+    /* MENU GRID */
+    .menu-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 10px;
+    }
+
+    .menu-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .menu-card:active {
+      transform: scale(0.98);
+      background-color: var(--bg-card-light);
+    }
+
+    .menu-card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .menu-card-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .menu-card-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 3px;
+    }
+
+    .menu-card-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .menu-card-arrow {
+      color: var(--text-muted);
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* CARDS */
+    .app-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-gold);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .card-tools {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* FORMS & INPUTS */
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .app-input {
+      width: 100%;
+      height: 42px;
+      background: #0f172a;
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0 12px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      outline: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      transition: border-color 0.15s ease;
+    }
+
+    .app-input:focus {
+      border-color: var(--text-accent);
+    }
+
+    .app-select {
+      width: 100%;
+      height: 42px;
+      background: #0f172a;
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0 10px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .app-select:focus {
+      border-color: var(--text-accent);
+    }
+
+    /* BUTTONS */
+    .btn-group-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .btn-sm {
+      background: #334155;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex: 1;
+      height: 36px;
+    }
+
+    .btn-sm:active {
+      transform: scale(0.96);
+      background: #475569;
+    }
+
+    .btn-sm.btn-blue { background: #0284c7; }
+    .btn-sm.btn-green { background: #059669; }
+    .btn-sm.btn-amber { background: #d97706; }
+    .btn-sm.btn-red { background: #dc2626; }
+
+    /* BIG CONVERSION BUTTONS */
+    .convert-actions-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .btn-convert {
+      width: 100%;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      transition: transform 0.12s ease;
+      touch-action: manipulation;
+    }
+
+    .btn-convert:active {
+      transform: scale(0.97);
+    }
+
+    .btn-wgs-to-vn2k {
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+      border: 1px solid #38bdf8;
+    }
+
+    .btn-vn2k-to-wgs {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+      border: 1px solid #fbbf24;
+    }
+
+    .btn-view-map-large {
+      background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+      border: 1px solid #2dd4bf !important;
+      box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35) !important;
+    }
+
+    /* CONCENTRIC PULSE RADAR MARKER (CHUYỂN ĐỔI TỌA ĐỘ) */
+    .leaflet-div-icon, .custom-div-icon, .optical-crosshair-icon, .live-gps-div-icon {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    @keyframes concentric-pulse {
+      0% { transform: scale(0.35); opacity: 0.95; }
+      50% { transform: scale(1.35); opacity: 0.45; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .concentric-marker-container {
+      position: relative; width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: auto;
+    }
+    .concentric-pulse-ring {
+      position: absolute; top: 0; left: 0; width: 48px; height: 48px;
+      border-radius: 50%; pointer-events: none;
+      box-sizing: border-box; transform-origin: 24px 24px;
+      animation: concentric-pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    .point-label {
+      background: rgba(15, 23, 42, 0.92) !important;
+      color: #38bdf8 !important;
+      border: 1px solid #0d9488 !important;
+      border-radius: 6px !important;
+      font-weight: 800 !important;
+      font-size: 11.5px !important;
+      padding: 3px 8px !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+    }
+    /* LIVE GPS REALTIME MARKER & ACCURACY PULSE */
+    @keyframes liveGpsPulse {
+      0% { transform: scale(0.35); opacity: 1; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+    .live-gps-marker-container {
+      position: relative; width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .live-gps-pulse-ring {
+      position: absolute; width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid #0284c7; background: rgba(2, 132, 199, 0.25);
+      animation: liveGpsPulse 2s ease-out infinite; pointer-events: none;
+    }
+    .live-gps-heading-cone {
+      position: absolute; width: 0; height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-bottom: 22px solid rgba(56, 189, 248, 0.45);
+      top: -12px; pointer-events: none; transform-origin: 50% 22px;
+    }
+    .live-gps-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #0284c7; border: 3px solid #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10;
+    }
+    .live-gps-center-core {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #ffffff;
+    }
+    .optical-crosshair-icon {
+      background: transparent !important; border: none !important;
+    }
+    .converted-result-box {
+      background: linear-gradient(135deg, #0f2438 0%, #0f172a 100%);
+      border: 1.5px solid #0d9488;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin: 12px 0;
+      box-shadow: 0 4px 16px rgba(13, 148, 136, 0.25);
+    }
+    .converted-result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(13, 148, 136, 0.35);
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #2dd4bf;
+      letter-spacing: 0.3px;
+    }
+    .converted-result-body {
+      font-size: 12.5px;
+      line-height: 1.6;
+      font-family: ui-monospace, monospace;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .res-lbl {
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-family: -apple-system, sans-serif;
+    }
+    .res-val {
+      font-weight: 700;
+      text-align: right;
+    }
+
+    /* TOGGLE BUTTON GROUP (MÚI CHIẾU) */
+    .toggle-mui-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .btn-mui-toggle {
+      flex: 1;
+      height: 38px;
+      border-radius: 9px;
+      border: 1.5px solid var(--border-color);
+      background: #0f172a;
+      color: var(--text-muted);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-mui-toggle.active {
+      background: #1e3a8a;
+      color: #ffffff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    /* MAP CONTAINER VIEW */
+    #map-view-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 500;
+      display: none;
+    }
+
+    #map-view-container.active {
+      display: block;
+    }
+
+    #leaflet-map {
+      width: 100%;
+      height: 100%;
+      background: #0f172a;
+    }
+
+    .map-top-bar {
+      position: absolute;
+      top: calc(var(--sat-safe-top) + 10px);
+      left: 10px;
+      right: 10px;
+      height: 48px;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 12px;
+      border: 1.5px solid #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      z-index: 1000;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .map-mode-text {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fbbf24;
+      white-space: nowrap;
+    }
+
+    .map-right-controls {
+      position: absolute;
+      top: calc(var(--sat-safe-top) + 68px);
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+    }
+
+    .btn-map-fab {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 19px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    .btn-map-fab:active {
+      transform: scale(0.92);
+    }
+
+    .btn-map-fab.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    .map-bottom-sheet {
+      position: absolute;
+      bottom: calc(var(--sat-safe-bottom) + 12px);
+      left: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 14px;
+      border: 1.5px solid #38bdf8;
+      padding: 10px 12px;
+      z-index: 1000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .map-bottom-coord {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+      color: #f8fafc;
+    }
+
+    .map-bottom-coord span.wgs {
+      color: #38bdf8;
+    }
+
+    .map-bottom-coord span.vn2k {
+      color: #fde047;
+    }
+
+    /* MODAL SETTINGS POPUP */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 400px;
+      background: #1e293b;
+      border: 1.5px solid #38bdf8;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .btn-modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* DATA TABLE */
+    .data-table-container {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      margin-top: 10px;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 8px 10px;
+      font-weight: 700;
+      border-bottom: 1.5px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    table.data-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      color: #e2e8f0;
+      white-space: nowrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    table.data-table tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* TOAST MESSAGE */
+    #toast-msg {
+      position: fixed;
+      bottom: calc(var(--sat-safe-bottom) + 30px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #38bdf8;
+      color: #ffffff;
+      padding: 9px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      text-align: center;
+      max-width: 90%;
+    }
+
+    #toast-msg.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button id="btnHeaderBack" class="btn-header-back" onclick="appNav.goToMenu()">
+          ◀ Menu
+        </button>
+        <div class="app-title-group">
+          <div class="app-title" id="headerTitle">
+            <img src="icon.png" alt="VN2000 Pro">
+            <span>WGS-84 ⇄ VN-2000 PRO</span>
+          </div>
+          <div class="app-subtitle" id="headerSubtitle">Hệ Quy Chiếu & Tọa Độ Quốc Gia</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn-header-action" onclick="appModal.openSettings()">
+          ⚙️ KTT
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN VIEWPORT -->
+    <main class="app-viewport">
+
+      <!-- ================= SCREEN 0: MENU CHÍNH ================= -->
+      <section id="screen-menu" class="screen-view active">
+        <!-- Status Banner -->
+        <div class="status-banner">
+          <div class="status-row">
+            <span class="status-label">📍 Tỉnh / Kinh tuyến trục:</span>
+            <span class="status-val highlight" id="bannerProvinceKtt">TP. Hồ Chí Minh (105°45')</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">📐 Múi chiếu áp dụng:</span>
+            <span class="status-val" id="bannerMui">Múi 3° (k0 = 0.9999)</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">📁 Dự án hiện tại:</span>
+            <span class="status-val" id="bannerProject">VN2000_SoLieu_DoDac.csv</span>
+          </div>
+        </div>
+
+        <!-- Menu Action Cards -->
+        <div class="menu-grid">
+          <div class="menu-card" onclick="appNav.showScreen('transform')">
+            <div class="menu-card-icon" style="color: #38bdf8;">🔄</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">1. CHUYỂN ĐỔI TỌA ĐỘ</div>
+              <div class="menu-card-desc">Chuyển đổi 2 chiều WGS-84 ⇄ VN-2000 chuẩn 7 tham số Bursa-Wolf (Múi 3° & 6°)</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="appNav.showScreen('gps')">
+            <div class="menu-card-icon" style="color: #4ade80;">🛰️</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">2. GPS THỰC ĐỊA & ĐỊNH VỊ</div>
+              <div class="menu-card-desc">Bắt tọa độ vệ tinh GPS, quy đổi trực tiếp VN-2000 Live, hiển thị sai số mét</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="appNav.openProjectMap()">
+            <div class="menu-card-icon" style="color: #fbbf24;">🗺️</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">3. BẢN ĐỒ DỰ ÁN & CHẤM ĐIỂM</div>
+              <div class="menu-card-desc">Bản đồ vệ tinh Leaflet, xem mốc dự án, ranh 34 tỉnh, ranh xã Đồng Tháp</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="appNav.showScreen('datamgmt')">
+            <div class="menu-card-icon" style="color: #a78bfa;">📁</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">4. QUẢN LÝ DỰ ÁN & SỔ ĐO</div>
+              <div class="menu-card-desc">Xem bảng số liệu mốc, xuất file Excel / CSV tiếng Việt UTF-8 BOM, chia sẻ Zalo</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="appNav.showScreen('geodesy')">
+            <div class="menu-card-icon" style="color: #f472b6;">📐</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">5. BÀI TOÁN TRẮC ĐỊA</div>
+              <div class="menu-card-desc">Tính cự ly ngang S, góc phương vị α, diện tích đa giác và chu vi thửa đất</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+
+          <div class="menu-card" onclick="appNav.showScreen('about')">
+            <div class="menu-card-icon" style="color: #94a3b8;">ℹ️</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title">6. THÔNG TIN & HƯỚNG DẪN</div>
+              <div class="menu-card-desc">Tác giả Đặng Như, tham số tính toán chuẩn hóa và hướng dẫn cài đặt iOS Safari</div>
+            </div>
+            <div class="menu-card-arrow">›</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 1: CHUYỂN ĐỔI TỌA ĐỘ ================= -->
+      <section id="screen-transform" class="screen-view">
+        <!-- Card 1: Cấu hình KTT -->
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">⚙️ 1. Cấu hình Kinh tuyến trục</span>
+            <button class="btn-sm btn-blue" onclick="appModal.openSettings()" style="flex: none; padding: 4px 10px; height: 30px;">
+              Đổi KTT
+            </button>
+          </div>
+          <div class="form-group">
+            <select id="tfSelectProvince" class="app-select" onchange="appTransform.onProvinceChange()">
+              <!-- Options nạp tự động từ geodesy.js -->
+            </select>
+          </div>
+          <div class="toggle-mui-group">
+            <button id="btnMui3" class="btn-mui-toggle active" onclick="appTransform.setMui(3)">
+              Múi 3° (k0 = 0.9999)
+            </button>
+            <button id="btnMui6" class="btn-mui-toggle" onclick="appTransform.setMui(6)">
+              Múi 6° (k0 = 0.9996)
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Tọa độ WGS-84 -->
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">🌐 2. Tọa độ WGS-84 (Toàn cầu)</span>
+            <div class="card-tools">
+              <select id="selFormatWgs" class="app-select" style="height: 30px; font-size: 11px; padding: 0 6px;" onchange="appTransform.onFormatChange()">
+                <option value="0">dd.dddddd°</option>
+                <option value="1">dd° mm.mmmm'</option>
+                <option value="2">dd° mm' ss.ss"</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vĩ độ (Lat / B):</label>
+            <input type="text" id="txtWgsLat" class="app-input" placeholder="VD: 10.345211 hoặc 10° 20.7127'">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kinh độ (Long / L):</label>
+            <input type="text" id="txtWgsLng" class="app-input" placeholder="VD: 106.113617 hoặc 106° 06.8170'">
+          </div>
+          <div class="btn-group-row">
+            <button class="btn-sm btn-green" onclick="appTransform.getLiveGps()">📍 GPS</button>
+            <button class="btn-sm btn-blue" onclick="appTransform.openPickOnMap()">🗺️ Bản đồ</button>
+            <button class="btn-sm" onclick="appTransform.pasteCoords()">📋 Dán</button>
+            <button class="btn-sm" onclick="appTransform.copyWgs()">📋 Chép</button>
+            <button class="btn-sm btn-red" onclick="appTransform.clearWgs()">🗑️</button>
+          </div>
+        </div>
+
+        <!-- Section 3: Nút Chuyển Đổi Chủ Động (Không tự động tính ngầm) -->
+        <div class="convert-actions-card">
+          <button class="btn-convert btn-wgs-to-vn2k" onclick="appTransform.wgsToVn2000()">
+            WGS-84 ➔ VN-2000 ▼
+          </button>
+          <button class="btn-convert btn-vn2k-to-wgs" onclick="appTransform.vn2000ToWgs()">
+            VN-2000 ➔ WGS-84 ▲
+          </button>
+        </div>
+
+        <!-- Khung Kết Quả Chuyển Đổi Nổi Bật (Hiện ra ngay sau khi chuyển đổi) -->
+        <div id="boxConvertedResult" class="converted-result-box" style="display: none;">
+          <div class="converted-result-header">
+            <span>✨ KẾT QUẢ CHUYỂN ĐỔI THÀNH CÔNG</span>
+            <button class="btn-sm btn-blue" style="height: 26px; padding: 2px 8px; font-size: 11px; flex: none;" onclick="appTransform.copyAllResults()">
+              📋 Chép
+            </button>
+          </div>
+          <div class="converted-result-body">
+            <div class="result-row"><span class="res-lbl">Tên điểm:</span> <b id="resPtName" class="res-val" style="color: #fbbf24;">Điểm Chuyển Đổi</b></div>
+            <div class="result-row"><span class="res-lbl">VN-2000:</span> <b class="res-val" style="color: #fde047;">X = <span id="resVn2kX">--</span> m | Y = <span id="resVn2kY">--</span> m</b></div>
+            <div class="result-row"><span class="res-lbl">WGS-84:</span> <b class="res-val" style="color: #38bdf8;">Lat = <span id="resWgsLat">--</span> | Lng = <span id="resWgsLng">--</span></b></div>
+            <div class="result-row"><span class="res-lbl">KTT:</span> <span id="resKttInfo" style="color: #a7f3d0; font-weight: 700;">--</span></div>
+          </div>
+          <button class="btn-convert btn-view-map-large" style="margin-top: 10px; height: 44px; font-size: 13.5px;" onclick="appTransform.viewConvertedOnMap()">
+            🗺️ XEM NGAY TRÊN BẢN ĐỒ
+          </button>
+        </div>
+
+        <!-- Card 4: Tọa độ VN-2000 -->
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">📍 3. Tọa độ phẳng VN-2000 (X - Y)</span>
+            <div class="card-tools">
+              <button class="btn-sm" onclick="appTransform.copyVn2k()" style="height: 30px; padding: 4px 8px;">📋 Chép</button>
+              <button class="btn-sm btn-red" onclick="appTransform.clearVn2k()" style="height: 30px; padding: 4px 8px;">🗑️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tọa độ ngang X (Trục Bắc ~ 7 chữ số):</label>
+            <input type="text" id="txtVn2kX" class="app-input" placeholder="VD: 1144058.623">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tọa độ đứng Y (Trục Đông ~ 6 chữ số):</label>
+            <input type="text" id="txtVn2kY" class="app-input" placeholder="VD: 539624.574">
+          </div>
+          <div class="btn-group-row" style="margin-top: 6px;">
+            <button class="btn-sm btn-blue" onclick="appTransform.copyVn2k()">📋 Sao chép</button>
+            <button class="btn-sm" onclick="appTransform.swapXY()">🔄 Đảo Trục X ⇄ Y</button>
+            <button class="btn-sm btn-red" onclick="appTransform.clearVn2k()">🗑️ Xóa</button>
+          </div>
+          <button class="btn-convert btn-view-map-large" style="margin-top: 10px;" onclick="appTransform.viewConvertedOnMap()">
+            🗺️ XEM VỊ TRÍ TRÊN BẢN ĐỒ
+          </button>
+        </div>
+
+        <!-- Card 5: Lưu vào sổ đo -->
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">💾 4. Lưu Mốc Vào Sổ Đo (CSV)</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tên mốc đo:</label>
+            <input type="text" id="txtSavePointName" class="app-input" placeholder="VD: Mốc 1, Ranh thửa 02...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ghi chú hiện trường:</label>
+            <input type="text" id="txtSavePointNote" class="app-input" placeholder="VD: Cọc bê tông, góc hàng rào...">
+          </div>
+          <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 6px;" onclick="appTransform.savePointToCsv()">
+            💾 LƯU ĐIỂM VÀO SỔ ĐO
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 2: GPS THỰC ĐỊA ================= -->
+      <section id="screen-gps" class="screen-view">
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">🛰️ Tọa độ Vệ tinh GPS Live</span>
+            <span id="gpsLiveStatusBadge" class="btn-sm btn-green" style="flex:none; padding: 3px 8px; height: 26px;">
+              🟢 Đang bắt
+            </span>
+          </div>
+          <div style="font-family: ui-monospace, monospace; line-height: 1.6; font-size: 13px;">
+            <div>Vĩ độ (Lat): <b id="gpsLiveLat" style="color: #38bdf8;">--</b></div>
+            <div>Kinh độ (Long): <b id="gpsLiveLng" style="color: #38bdf8;">--</b></div>
+            <div>Độ chính xác: <b id="gpsLiveAccuracy" style="color: #4ade80;">--</b></div>
+            <div>Vận tốc: <span id="gpsLiveSpeed">-- km/h</span> | Độ cao: <span id="gpsLiveAltitude">-- m</span></div>
+          </div>
+        </div>
+
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">📍 Quy đổi VN-2000 Live</span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px;">
+            Tự động quy đổi tức thời theo: <b id="gpsVn2kProvinceInfo" style="color: #fbbf24;">TP. Hồ Chí Minh</b>
+          </div>
+          <div style="font-family: ui-monospace, monospace; line-height: 1.7; font-size: 14px;">
+            <div>X (Bắc): <b id="gpsLiveVn2kX" style="color: #fde047;">--</b> m</div>
+            <div>Y (Đông): <b id="gpsLiveVn2kY" style="color: #fde047;">--</b> m</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button class="btn-convert btn-wgs-to-vn2k" onclick="appGps.saveQuickPoint()">
+            💾 LƯU NHANH TỌA ĐỘ GPS
+          </button>
+          <button class="btn-convert btn-vn2k-to-wgs" onclick="appNav.openLiveGpsMap()">
+            🗺️ XEM VỊ TRÍ GPS TRÊN BẢN ĐỒ
+          </button>
+          <button id="btnToggleGpsTracking" class="btn-sm" style="height: 42px; font-size: 13px;" onclick="appGps.toggleTracking()">
+            ⏸️ Tạm dừng GPS
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 3: BẢN ĐỒ DỰ ÁN & CHẤM ĐIỂM ================= -->
+      <div id="map-view-container">
+        <!-- Top Bar -->
+        <div class="map-top-bar">
+          <button class="btn-sm" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appNav.closeMap()">
+            ◀ Quay lại
+          </button>
+          <span class="map-mode-text" id="mapModeIndicator">📍 BẢN ĐỒ DỰ ÁN</span>
+          <button class="btn-sm btn-blue" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appMap.togglePickMode()">
+            🎯 Chấm điểm
+          </button>
+        </div>
+
+        <!-- Right Quick Controls -->
+        <div class="map-right-controls">
+          <button class="btn-map-fab" title="Đổi lớp bản đồ (Vệ tinh / Đường phố)" onclick="appMap.toggleMapLayer()">
+            🛰️
+          </button>
+          <button id="btnMap34Prov" class="btn-map-fab" title="Bật/tắt ranh giới 34 tỉnh thành" onclick="appMap.toggle34Provinces()">
+            🇻🇳
+          </button>
+          <button id="btnMapDtCommunes" class="btn-map-fab" title="Bật/tắt ranh giới xã Đồng Tháp" onclick="appMap.toggleDongThapCommunes()">
+            📍
+          </button>
+          <button class="btn-map-fab" title="Định vị GPS vị trí hiện tại" onclick="appMap.locateCurrentGps()">
+            🎯
+          </button>
+          <button id="btnFitBothPoints" class="btn-map-fab" title="Thu phóng nhìn cả 2 điểm (Vị trí đứng & Điểm chọn/chuyển)" onclick="appMap.fitBothPoints()">
+            👥
+          </button>
+          <button class="btn-map-fab" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
+            🔍
+          </button>
+        </div>
+
+        <!-- Leaflet Map Canvas -->
+        <div id="leaflet-map"></div>
+
+        <!-- Bottom Sheet Popup -->
+        <div id="mapBottomSheet" class="map-bottom-sheet" style="display: none;">
+          <div class="map-bottom-coord">
+            <div>WGS-84: <span class="wgs" id="mapSheetWgs">10.345211°, 106.113617°</span></div>
+            <div>VN-2000: <span class="vn2k" id="mapSheetVn2k">X: 1144058.623 | Y: 539624.574</span></div>
+            <div id="mapSheetDistRow" style="font-size: 11.5px; color: #a7f3d0; margin-top: 3px; display: none;">📍 Cách vị trí đứng: <b id="mapSheetDist">--</b></div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-sm btn-green" style="height: 38px; font-size: 12.5px;" onclick="appMap.loadSelectedToMain()">
+              📌 NẠP VÀO MÀN HÌNH CHÍNH
+            </button>
+            <button class="btn-sm btn-blue" style="height: 38px; font-size: 12.5px;" onclick="appMap.savePickedPoint()">
+              💾 Lưu mốc
+            </button>
+            <button class="btn-sm btn-red" style="flex:none; width: 38px; height: 38px; padding: 0;" onclick="appMap.closeBottomSheet()">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= SCREEN 4: QUẢN LÝ DỰ ÁN & SỔ ĐO ================= -->
+      <section id="screen-datamgmt" class="screen-view">
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">📁 File Dự Án & Sổ Đo Hiện Tại</span>
+          </div>
+          <div class="form-group">
+            <div class="input-row">
+              <select id="selProjectFiles" class="app-select" onchange="appData.onProjectSelectChange()">
+                <!-- Projects nạp tự động -->
+              </select>
+              <button class="btn-sm btn-blue" style="flex:none; height: 42px; padding: 0 12px;" onclick="appData.createNewProject()">
+                + Mới
+              </button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-sm" onclick="appData.renameCurrentProject()">✏️ Đổi tên</button>
+            <button class="btn-sm btn-red" onclick="appData.deleteCurrentProject()">🗑️ Xóa file</button>
+          </div>
+        </div>
+
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">📋 Danh sách mốc đã lưu (<span id="txtPointsCount">0</span>)</span>
+            <div class="card-tools">
+              <button class="btn-sm btn-blue" onclick="appNav.openProjectMap()" style="height: 28px; padding: 2px 8px;">
+                🗺️ Xem bản đồ
+              </button>
+            </div>
+          </div>
+
+          <div class="data-table-container">
+            <table class="data-table" id="tablePointsList">
+              <thead>
+                <tr>
+                  <th>STT</th>
+                  <th>Tên Mốc</th>
+                  <th>X (Bắc)</th>
+                  <th>Y (Đông)</th>
+                  <th>Vĩ độ (Lat)</th>
+                  <th>Kinh độ (Long)</th>
+                  <th>Ghi chú</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyPointsList">
+                <!-- Nội dung nạp động -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+            <button class="btn-convert btn-wgs-to-vn2k" onclick="appData.exportCsvFile()">
+              📥 TẢI FILE EXCEL / CSV (UTF-8 BOM)
+            </button>
+            <button class="btn-convert btn-vn2k-to-wgs" onclick="appData.shareCsvFile()">
+              📤 CHIA SẺ FILE (ZALO / DRIVE / MAIL)
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 5: BÀI TOÁN TRẮC ĐỊA ================= -->
+      <section id="screen-geodesy" class="screen-view">
+        <!-- Bài toán 1: Cự ly & Góc phương vị -->
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">📏 1. Tính Cự Ly & Góc Phương Vị (A ➔ B)</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chọn Mốc A (hoặc nhập X, Y):</label>
+            <select id="selGeoPointA" class="app-select" onchange="appGeodesy.onSelectPointA()">
+              <option value="">-- Chọn mốc từ sổ đo --</option>
+            </select>
+            <div class="input-row" style="margin-top: 4px;">
+              <input type="text" id="txtGeoXa" class="app-input" placeholder="X A (Bắc)">
+              <input type="text" id="txtGeoYa" class="app-input" placeholder="Y A (Đông)">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Chọn Mốc B (hoặc nhập X, Y):</label>
+            <select id="selGeoPointB" class="app-select" onchange="appGeodesy.onSelectPointB()">
+              <option value="">-- Chọn mốc từ sổ đo --</option>
+            </select>
+            <div class="input-row" style="margin-top: 4px;">
+              <input type="text" id="txtGeoXb" class="app-input" placeholder="X B (Bắc)">
+              <input type="text" id="txtGeoYb" class="app-input" placeholder="Y B (Đông)">
+            </div>
+          </div>
+
+          <button class="btn-convert btn-wgs-to-vn2k" onclick="appGeodesy.calcDistAzimuth()">
+            📐 TÍNH CỰ LY & PHƯƠNG VỊ
+          </button>
+
+          <div id="boxGeoResult" style="margin-top: 10px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 10px; padding: 10px; display: none; font-size: 13px; line-height: 1.6; font-family: ui-monospace, monospace;">
+            <div id="resDistAzimuthContent"></div>
+            <button class="btn-sm" style="margin-top: 6px; width: 100%;" onclick="appGeodesy.copyResult()">
+              📋 Sao chép kết quả
+            </button>
+          </div>
+        </div>
+
+        <!-- Bài toán 2: Diện tích đa giác khép kín -->
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">📐 2. Tính Diện Tích & Chu Vi Đa Giác</span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
+            Thêm các đỉnh theo thứ tự cùng hoặc ngược chiều kim đồng hồ để tính diện tích thửa đất.
+          </div>
+          <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+            <button class="btn-sm btn-blue" onclick="appGeodesy.addCurrentPointToBoundary()">+ Thêm mốc A vào đỉnh</button>
+            <button class="btn-sm btn-green" onclick="appGeodesy.loadAllProjectPointsToBoundary()">Nạp cả dự án</button>
+            <button class="btn-sm btn-red" onclick="appGeodesy.clearBoundary()">Xóa</button>
+          </div>
+          <div id="boundaryPointsListContainer" style="font-size: 12px; color: #bae6fd; max-height: 120px; overflow-y: auto; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px;">
+            Chưa có đỉnh nào được chọn.
+          </div>
+          <button class="btn-convert btn-vn2k-to-wgs" onclick="appGeodesy.calcArea()">
+            📐 TÍNH DIỆN TÍCH THỬA ĐẤT
+          </button>
+          <div id="boxAreaResult" style="margin-top: 10px; background: #0f172a; border: 1px solid #fbbf24; border-radius: 10px; padding: 10px; display: none; font-size: 13px; line-height: 1.6; font-family: ui-monospace, monospace;">
+            <div id="resAreaContent"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 6: THÔNG TIN & HƯỚNG DẪN ================= -->
+      <section id="screen-about" class="screen-view">
+        <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
+          <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 92px; height: 92px; border-radius: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.45); border: 2px solid rgba(255,255,255,0.18);">
+          <div style="font-weight: 800; font-size: 16px; margin-top: 8px; color: #38bdf8;">VN-2000 PRO PWA</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia</div>
+        </div>
+
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">ℹ️ Thông Tin Ứng Dụng</span>
+          </div>
+          <div style="font-size: 13px; line-height: 1.6;">
+            <div><b>Ứng dụng:</b> WGS84 - VN2000 conversion (iOS & Web PWA)</div>
+            <div><b>Phiên bản:</b> 2.2.3 Pro (Chuẩn Hóa Cho Vercel & PWA)</div>
+            <div><b>Tác giả:</b> Đặng Như</div>
+            <div><b>Email:</b> <a href="mailto:dnpn.ttqt@gmail.com" style="color: #38bdf8;">dnpn.ttqt@gmail.com</a></div>
+          </div>
+        </div>
+
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">🌟 Tham Số Tính Chuyển Bursa-Wolf</span>
+          </div>
+          <div style="font-size: 12px; line-height: 1.5; color: var(--text-muted); font-family: ui-monospace, monospace;">
+            <div>• ΔX = +191.90441429 m</div>
+            <div>• ΔY = +39.30318279 m</div>
+            <div>• ΔZ = +111.45032835 m</div>
+            <div>• DS = -0.252906278 ppm</div>
+            <div>• ωX = +0.00928836''</div>
+            <div>• ωY = -0.01975479''</div>
+            <div>• ωZ = +0.00427372''</div>
+            <div style="color: #4ade80; margin-top: 4px;">✓ Khớp tuyệt đối từng milimét với Chuyển Tọa Độ VN2000.apk</div>
+          </div>
+        </div>
+
+        <div class="app-card">
+          <div class="card-header">
+            <span class="card-title">📱 Hướng Dẫn Cài Đặt Trên iPhone (iOS)</span>
+          </div>
+          <div style="font-size: 12.5px; line-height: 1.6; color: #e2e8f0;">
+            <p>1. Mở liên kết ứng dụng bằng trình duyệt <b>Safari</b> trên iPhone.</p>
+            <p>2. Chạm vào nút <b>Chia sẻ</b> (biểu tượng hình vuông có mũi tên hướng lên ở thanh dưới).</p>
+            <p>3. Cuộn xuống và chọn <b>"Thêm vào Màn hình chính" (Add to Home Screen)</b>.</p>
+            <p>4. Bấm <b>Thêm (Add)</b> ở góc trên bên phải. Ứng dụng sẽ xuất hiện trên màn hình như app tải từ App Store và hoạt động ngoại tuyến không cần 4G!</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL CẤU HÌNH KINH TUYẾN TRỤC -->
+  <div id="modalSettings" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>⚙️ Cài Đặt Kinh Tuyến Trục (KTT)</span>
+        <button class="btn-modal-close" onclick="appModal.closeSettings()">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chọn tỉnh thành:</label>
+        <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()">
+          <!-- 63 tỉnh -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tự nhập Kinh tuyến trục (° '):</label>
+        <div class="input-row">
+          <input type="number" id="txtModalDeg" class="app-input" placeholder="Độ (VD: 105)">
+          <input type="number" id="txtModalMin" class="app-input" placeholder="Phút (VD: 45)">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chọn Múi chiếu:</label>
+        <div class="toggle-mui-group">
+          <button id="modalBtnMui3" class="btn-mui-toggle active" onclick="appModal.setMui(3)">
+            Múi 3° (k0=0.9999)
+          </button>
+          <button id="modalBtnMui6" class="btn-mui-toggle" onclick="appModal.setMui(6)">
+            Múi 6° (k0=0.9996)
+          </button>
+        </div>
+      </div>
+      <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 8px;" onclick="appModal.saveSettings()">
+        💾 LƯU CẤU HÌNH KTT
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL HỎI MỞ BẢN ĐỒ SAU KHI CHUYỂN ĐỔI (CHUẨN THEO ANDROID) -->
+  <div id="modalPromptConvertedMap" class="modal-overlay">
+    <div class="modal-box" style="border-color: #0d9488;">
+      <div class="modal-title" style="color: #2dd4bf;">
+        <span>🗺️ Xem Vị Trí Trên Bản Đồ</span>
+        <button class="btn-modal-close" onclick="appTransform.closePromptMap()">✕</button>
+      </div>
+      <div style="font-size: 13px; line-height: 1.6; color: #f8fafc; font-family: -apple-system, sans-serif;">
+        <div style="font-weight: 800; color: #34d399; margin-bottom: 6px;">
+          ✅ Chuyển đổi tọa độ thành công!
+        </div>
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; font-family: ui-monospace, monospace; font-size: 12px; margin-bottom: 8px;">
+          <div>📍 <b>Tên điểm:</b> <span id="promptPtName" style="color:#fbbf24;">Điểm Chuyển Đổi</span></div>
+          <div style="margin-top: 4px; color:#fde047;"><b>• VN-2000 (X - Y):</b></div>
+          <div style="padding-left: 10px;">X = <b id="promptVn2kX">--</b> m</div>
+          <div style="padding-left: 10px;">Y = <b id="promptVn2kY">--</b> m</div>
+          <div style="margin-top: 4px; color:#38bdf8;"><b>• WGS-84 (B - L):</b></div>
+          <div style="padding-left: 10px;">B = <span id="promptWgsLat">--</span></div>
+          <div style="padding-left: 10px;">L = <span id="promptWgsLng">--</span></div>
+          <div style="margin-top: 4px; color:#94a3b8;"><b>• KTT:</b> <span id="promptKtt">--</span></div>
+        </div>
+        <div style="color: #e2e8f0; font-weight: 600;">
+          Bạn có muốn mở bản đồ để xem trực quan vị trí điểm này không?
+        </div>
+      </div>
+      <div class="btn-group-row" style="margin-top: 10px;">
+        <button class="btn-convert btn-view-map-large" style="height: 44px; font-size: 13.5px;" onclick="appTransform.confirmOpenConvertedMap()">
+          🗺️ MỞ BẢN ĐỒ
+        </button>
+        <button class="btn-sm" style="flex:none; width: 85px; height: 44px;" onclick="appTransform.closePromptMap()">
+          Để Sau
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-msg"></div>
+
+  <!-- APPLICATION CORE SCRIPT -->
+  <script src="app.js"></script>
+
+  <!-- PWA SERVICE WORKER REGISTRATION -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            console.log('ServiceWorker đăng ký thành công:', reg.scope);
+            // Kiểm tra cập nhật khi có bản mới triển khai trên Vercel
+            reg.onupdatefound = () => {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.onstatechange = () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    showToast('✨ Ứng dụng đã có phiên bản mới từ Vercel! Đang làm mới...', true);
+                    setTimeout(() => window.location.reload(), 1500);
+                  }
+                };
+              }
+            };
+          })
+          .catch(err => console.log('ServiceWorker đăng ký thất bại:', err));
+      });
+    }
+  </script>
+</body>
+</html>
