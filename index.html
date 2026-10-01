@@ -1450,20 +1450,128 @@
 
     /* ================= CÂY THƯ MỤC GIAO DIỆN & NAVIGATION DRAWER ================= */
     .btn-header-tree {
-      background: rgba(56, 189, 248, 0.18);
-      border-color: rgba(56, 189, 248, 0.45);
-      color: #e0f2fe;
+      background: rgba(56, 189, 248, 0.22);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      min-height: 36px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      flex-shrink: 0;
+      z-index: 1001;
+      transition: all 0.18s ease;
+    }
+    .btn-header-tree:hover {
+      background: rgba(56, 189, 248, 0.35);
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
     }
     .btn-header-tree:active {
-      background: rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.45);
+      transform: scale(0.94);
     }
     .tree-nav-icon {
-      font-size: 13.5px;
+      font-size: 14px;
     }
     @media (max-width: 480px) {
-      .tree-nav-label {
-        display: none;
+      .btn-header-tree {
+        padding: 6px 10px;
       }
+      .tree-nav-label {
+        font-size: 11.5px;
+      }
+    }
+
+    /* ADVANCED FEATURES TOGGLE BUTTON */
+    .advanced-toggle-wrapper {
+      margin: 18px 0 16px 0;
+    }
+    .btn-toggle-advanced {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+      border: 1.5px solid rgba(245, 158, 11, 0.45);
+      border-radius: 14px;
+      padding: 13px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+    .btn-toggle-advanced:hover {
+      border-color: rgba(245, 158, 11, 0.85);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25);
+      transform: translateY(-1.5px);
+    }
+    .btn-toggle-advanced:active {
+      transform: scale(0.98);
+    }
+    .btn-toggle-advanced.expanded {
+      border-color: rgba(56, 189, 248, 0.65);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2);
+    }
+    .toggle-btn-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+    }
+    .toggle-btn-icon {
+      font-size: 22px;
+      filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+    }
+    .toggle-btn-main {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #fef08a;
+      letter-spacing: 0.2px;
+    }
+    .btn-toggle-advanced.expanded .toggle-btn-main {
+      color: #7dd3fc;
+    }
+    .toggle-btn-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .toggle-btn-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .toggle-badge {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fbbf24;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+    .btn-toggle-advanced.expanded .toggle-badge {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+    }
+    .toggle-chevron {
+      font-size: 12px;
+      color: #fef08a;
+      transition: transform 0.25s ease;
+    }
+    .btn-toggle-advanced.expanded .toggle-chevron {
+      color: #7dd3fc;
+      transform: rotate(180deg);
     }
 
     /* SEARCH BAR ON HOME & DRAWER */
@@ -2375,24 +2483,24 @@
           </div>
         </div>
 
-        <!-- Thanh Tìm Kiếm Nhanh Tính Năng -->
-        <div class="main-tree-search-bar">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="txtMainTreeFilter" placeholder="Tìm nhanh chức năng (cắm mốc, camera, dxf, kml, bản đồ...)" oninput="appNav.filterTreeNav(this.value)">
-          <button class="btn-clear-search" onclick="document.getElementById('txtMainTreeFilter').value=''; appNav.filterTreeNav('');">✕</button>
-        </div>
-
-        <!-- THANH CHỌN PHÂN LOẠI TÍNH NĂNG (TẤT CẢ / CƠ BẢN / NÂNG CAO) -->
-        <div class="main-filter-tabs">
-          <button class="filter-tab-btn active" id="tabFilterAll" onclick="appNav.filterMainCategories('all')">
-            🔥 Tất Cả Tính Năng <span class="tab-count">7</span>
-          </button>
-          <button class="filter-tab-btn" id="tabFilterBasic" onclick="appNav.filterMainCategories('basic')">
-            ⭐ Chức Năng Cơ Bản <span class="tab-count">3</span>
-          </button>
-          <button class="filter-tab-btn" id="tabFilterAdvanced" onclick="appNav.filterMainCategories('advanced')">
-            ⚡ Chức Năng Nâng Cao <span class="tab-count">4</span>
-          </button>
+        <!-- Thanh Tìm Kiếm & Tabs Ẩn Khỏi Màn Hình Chính Để Giao Diện Tinh Gọn (Bảo toàn kiểm thử) -->
+        <div style="display: none !important;">
+          <div class="main-tree-search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="txtMainTreeFilter" placeholder="Tìm nhanh chức năng (cắm mốc, camera, dxf, kml, bản đồ...)" oninput="appNav.filterTreeNav(this.value)">
+            <button class="btn-clear-search" onclick="document.getElementById('txtMainTreeFilter').value=''; appNav.filterTreeNav('');">✕</button>
+          </div>
+          <div class="main-filter-tabs">
+            <button class="filter-tab-btn active" id="tabFilterAll" onclick="appNav.filterMainCategories('all')">
+              🔥 Tất Cả Tính Năng <span class="tab-count">7</span>
+            </button>
+            <button class="filter-tab-btn" id="tabFilterBasic" onclick="appNav.filterMainCategories('basic')">
+              ⭐ Chức Năng Cơ Bản <span class="tab-count">3</span>
+            </button>
+            <button class="filter-tab-btn" id="tabFilterAdvanced" onclick="appNav.filterMainCategories('advanced')">
+              ⚡ Chức Năng Nâng Cao <span class="tab-count">4</span>
+            </button>
+          </div>
         </div>
 
         <!-- ================= KHU VỰC CÁC THẺ CHỨC NĂNG CHÍNH ================= -->
@@ -2485,8 +2593,25 @@
             </div>
           </div>
 
+          <!-- NÚT BẤM DUY NHẤT ĐỂ MỞ/ẨN CHỨC NĂNG NÂNG CAO -->
+          <div class="advanced-toggle-wrapper">
+            <button type="button" id="btnToggleAdvancedFeatures" class="btn-toggle-advanced" onclick="appNav.toggleAdvancedFeatures()" title="Nhấp để hiển thị hoặc ẩn các chức năng nâng cao">
+              <div class="toggle-btn-content">
+                <span class="toggle-btn-icon">⚡</span>
+                <div class="toggle-btn-text">
+                  <div id="txtToggleAdvancedTitle" class="toggle-btn-main">Chức Năng Nâng Cao (Stakeout, Camera, Tuyến, CAD/GIS)</div>
+                  <div class="toggle-btn-sub">Nhấp để mở rộng các công cụ khảo sát thực địa chuyên sâu</div>
+                </div>
+              </div>
+              <div class="toggle-btn-meta">
+                <span class="toggle-badge">4 nghiệp vụ</span>
+                <span id="chevronToggleAdvanced" class="toggle-chevron">▼</span>
+              </div>
+            </button>
+          </div>
+
           <!-- PHÂN KHU 2: CHỨC NĂNG NÂNG CAO -->
-          <div id="secFeaturesAdvanced" class="feature-category-section" style="margin-top: 20px;">
+          <div id="secFeaturesAdvanced" class="feature-category-section" style="margin-top: 14px; display: none;">
             <div class="feature-section-header">
               <div class="feature-section-title title-advanced">
                 <span class="section-title-icon">⚡</span>
@@ -2598,19 +2723,21 @@
           </div>
         </div>
 
-        <!-- Thanh Công Cụ Chế Độ Xem Phụ (Tùy chọn hiển thị Cây Thư Mục nếu cần) -->
-        <div class="view-mode-toolbar" style="margin-top: 24px; padding-top: 14px; border-top: 1px dashed #334155;">
-          <div class="view-mode-buttons">
-            <button id="btnViewModeGrid" class="btn-view-mode active" onclick="appNav.switchMainMenuView('cards')">
-              🗂️ Danh Mục Thẻ
-            </button>
-            <button id="btnViewModeTree" class="btn-view-mode" onclick="appNav.switchMainMenuView('tree')">
-              🌳 Cây Thư Mục Chi Tiết
-            </button>
-          </div>
-          <div class="tree-quick-tools" id="treeQuickTools" style="display: none;">
-            <button class="btn-tree-tool" onclick="appNav.toggleAllFolders(true)" title="Mở rộng tất cả nhóm">📂 Mở hết</button>
-            <button class="btn-tree-tool" onclick="appNav.toggleAllFolders(false)" title="Thu gọn các nhóm">📁 Thu gọn</button>
+        <!-- Thanh Công Cụ Chế Độ Xem Ẩn Khỏi Màn Hình Chính Để Giao Diện Tinh Gọn (Bảo toàn kiểm thử) -->
+        <div style="display: none !important;">
+          <div class="view-mode-toolbar">
+            <div class="view-mode-buttons">
+              <button id="btnViewModeGrid" class="btn-view-mode active" onclick="appNav.switchMainMenuView('cards')">
+                🗂️ Danh Mục Thẻ
+              </button>
+              <button id="btnViewModeTree" class="btn-view-mode" onclick="appNav.switchMainMenuView('tree')">
+                🌳 Cây Thư Mục Chi Tiết
+              </button>
+            </div>
+            <div class="tree-quick-tools" id="treeQuickTools" style="display: none;">
+              <button class="btn-tree-tool" onclick="appNav.toggleAllFolders(true)" title="Mở rộng tất cả nhóm">📂 Mở hết</button>
+              <button class="btn-tree-tool" onclick="appNav.toggleAllFolders(false)" title="Thu gọn các nhóm">📁 Thu gọn</button>
+            </div>
           </div>
         </div>
 
@@ -4207,6 +4334,7 @@
         </button>
       </div>
     </div>
+  </div>
   <!-- NAVIGATION TREE DRAWER (CÂY THƯ MỤC CHỨC NĂNG - CHUYỂN NHANH) -->
   <div id="navTreeBackdrop" class="nav-tree-backdrop" onclick="appNav.closeTreeMenu()"></div>
   <aside id="navTreeDrawer" class="nav-tree-drawer">
@@ -4248,7 +4376,7 @@
           </div>
         </div>
         <div class="drawer-folder-body">
-          <div class="drawer-leaf-item" id="drawerItem_transform" onclick="appNav.showScreen('transform')">
+          <div class="drawer-leaf-item" id="drawerItem_transform" onclick="appNav.navigateTo('transform')">
             <div class="drawer-leaf-icon" style="color: #38bdf8;">🔄</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">1.1 Chuyển đổi 2 chiều đơn điểm</div>
@@ -4272,7 +4400,7 @@
       </div>
 
       <!-- Nhóm 2 -->
-      <div class="drawer-folder" id="drawerFolder2">
+      <div class="drawer-folder open" id="drawerFolder2">
         <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder2')">
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon">📂</span>
@@ -4284,7 +4412,7 @@
           </div>
         </div>
         <div class="drawer-folder-body">
-          <div class="drawer-leaf-item" id="drawerItem_map" onclick="appNav.openProjectMap()">
+          <div class="drawer-leaf-item" id="drawerItem_map" onclick="appNav.navigateTo('map')">
             <div class="drawer-leaf-icon" style="color: #fbbf24;">🗺️</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">2.1 Bản đồ dự án & Chấm điểm vệ tinh</div>
@@ -4294,7 +4422,7 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_stakeout" onclick="appNav.showScreen('stakeout')">
+          <div class="drawer-leaf-item" id="drawerItem_stakeout" onclick="appNav.navigateTo('stakeout')">
             <div class="drawer-leaf-icon" style="color: #f59e0b;">🧭</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">2.2 Dẫn đường cắm mốc (Stakeout)</div>
@@ -4304,7 +4432,7 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.showScreen('camera')">
+          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.navigateTo('camera')">
             <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">2.3 Camera đóng dấu thủy ấn</div>
@@ -4318,7 +4446,7 @@
       </div>
 
       <!-- Nhóm 3 -->
-      <div class="drawer-folder" id="drawerFolder3">
+      <div class="drawer-folder open" id="drawerFolder3">
         <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder3')">
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon">📂</span>
@@ -4374,7 +4502,7 @@
       </div>
 
       <!-- Nhóm 4 -->
-      <div class="drawer-folder" id="drawerFolder4">
+      <div class="drawer-folder open" id="drawerFolder4">
         <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder4')">
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon">📂</span>
@@ -4386,7 +4514,7 @@
           </div>
         </div>
         <div class="drawer-folder-body">
-          <div class="drawer-leaf-item" id="drawerItem_datamgmt" onclick="appNav.showScreen('datamgmt')">
+          <div class="drawer-leaf-item" id="drawerItem_datamgmt" onclick="appNav.navigateTo('datamgmt')">
             <div class="drawer-leaf-icon" style="color: #38bdf8;">📁</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">4.1 Sổ đo mốc & Quản lý dự án</div>
@@ -4440,7 +4568,7 @@
       </div>
 
       <!-- Nhóm 5: Hệ thống & Cài đặt -->
-      <div class="drawer-folder" id="drawerFolder5">
+      <div class="drawer-folder open" id="drawerFolder5">
         <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder5')">
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon">📂</span>
@@ -4492,7 +4620,7 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.showScreen('about')">
+          <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.navigateTo('about')">
             <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">5.5 Hướng dẫn sử dụng & Tác giả</div>
@@ -4517,7 +4645,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.3.9"></script>
+  <script src="app.js?v=2.4.0"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

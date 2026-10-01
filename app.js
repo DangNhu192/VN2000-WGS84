@@ -108,6 +108,9 @@ function fallbackCopy(text) {
 // ================= 3. ĐIỀU HƯỚNG MÀN HÌNH (NAVIGATION) =================
 const appNav = {
     showScreen(screenName) {
+        if (AppState.isTreeDrawerOpen) {
+            appNav.closeTreeMenu();
+        }
         AppState.prevScreen = AppState.currentScreen;
         AppState.currentScreen = screenName;
 
@@ -253,6 +256,35 @@ const appNav = {
         }
         if (secAdv) {
             secAdv.style.display = (category === 'all' || category === 'advanced') ? 'block' : 'none';
+        }
+    },
+
+    toggleAdvancedFeatures() {
+        const secAdv = document.getElementById('secFeaturesAdvanced');
+        const btnToggle = document.getElementById('btnToggleAdvancedFeatures');
+        const btnTitle = document.getElementById('txtToggleAdvancedTitle');
+        const chevron = document.getElementById('chevronToggleAdvanced');
+
+        if (!secAdv) return;
+
+        const isCurrentlyHidden = secAdv.style.display === 'none' || getComputedStyle(secAdv).display === 'none';
+
+        if (isCurrentlyHidden) {
+            secAdv.style.display = 'block';
+            if (btnToggle) btnToggle.classList.add('expanded');
+            if (btnTitle) btnTitle.innerText = "▲ Thu Gọn Chức Năng Nâng Cao";
+            if (chevron) {
+                chevron.innerText = "▲";
+                chevron.style.transform = "rotate(180deg)";
+            }
+        } else {
+            secAdv.style.display = 'none';
+            if (btnToggle) btnToggle.classList.remove('expanded');
+            if (btnTitle) btnTitle.innerText = "Chức Năng Nâng Cao (Stakeout, Camera, Tuyến, CAD/GIS)";
+            if (chevron) {
+                chevron.innerText = "▼";
+                chevron.style.transform = "rotate(0deg)";
+            }
         }
     },
 
@@ -5026,6 +5058,24 @@ window.addEventListener('DOMContentLoaded', () => {
     appData.init();
     appGps.init();
     appNav.updateBanner();
+
+    // Đảm bảo nút Header Menu và Nút Menu Nổi luôn phản hồi tức thì
+    const btnHeaderMenu = document.getElementById('btnHeaderMenu');
+    if (btnHeaderMenu) {
+        btnHeaderMenu.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            appNav.toggleTreeMenu();
+        });
+    }
+    const btnFloat = document.getElementById('btnFloatingQuickNav');
+    if (btnFloat) {
+        btnFloat.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            appNav.toggleTreeMenu();
+        });
+    }
 
     // Lắng nghe phím bấm Escape để đóng cây thư mục chức năng
     document.addEventListener('keydown', (e) => {
