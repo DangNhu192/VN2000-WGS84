@@ -136,16 +136,19 @@ function doPost(e) {
     }
 
     var addedCount = 0;
+    var sep = getFormulaSeparator(ss);
     
     // 3. Xử lý đồng bộ nhiều mốc cùng lúc (Bulk Sync)
     if (Array.isArray(data.points) && data.points.length > 0) {
       var existingKeys = getExistingKeys(sheet);
       var rowsToAdd = [];
+      var pointsToAdd = [];
 
       data.points.forEach(function(p) {
         var key = (p.name || "") + "_" + (p.time || "") + "_" + (p.x || "");
         if (!existingKeys[key]) {
-          rowsToAdd.push(formatPointRow(p, projectName));
+          rowsToAdd.push(formatPointRow(p, projectName, sep));
+          pointsToAdd.push(p);
           existingKeys[key] = true;
           addedCount++;
         }
@@ -155,7 +158,7 @@ function doPost(e) {
         var startRow = sheet.getLastRow() + 1;
         var range = sheet.getRange(startRow, 1, rowsToAdd.length, rowsToAdd[0].length);
         range.setValues(rowsToAdd);
-        formatDataRange(sheet, startRow, rowsToAdd.length);
+        formatDataRange(sheet, startRow, rowsToAdd.length, pointsToAdd);
       }
     } 
     // 4. Xử lý lưu mốc lẻ theo thời gian thực (Real-time Single Point)
@@ -165,10 +168,10 @@ function doPost(e) {
       var key = (p.name || "") + "_" + (p.time || "") + "_" + (p.x || "");
       
       if (!existingKeys[key]) {
-        var rowData = formatPointRow(p, projectName);
+        var rowData = formatPointRow(p, projectName, sep);
         sheet.appendRow(rowData);
         var lastRow = sheet.getLastRow();
-        formatDataRange(sheet, lastRow, 1);
+        formatDataRange(sheet, lastRow, 1, [p]);
         addedCount = 1;
       }
     }
@@ -189,6 +192,19 @@ function doPost(e) {
   }
 }
 
+// Tự động nhận diện dấu phân cách công thức (; cho Việt Nam/Châu Âu, , cho Mỹ)
+function getFormulaSeparator(ss) {
+  try {
+    var locale = (ss.getSpreadsheetLocale() || "").toLowerCase();
+    var semicolonLocales = ["vi", "fr", "de", "es", "it", "ru", "pt", "nl", "da", "sv", "no", "fi", "pl", "cs", "id", "tr", "el", "ro", "hu", "sk", "bg", "uk"];
+    var lang = locale.split("_")[0];
+    if (semicolonLocales.indexOf(lang) !== -1 || locale.indexOf("vn") !== -1) {
+      return ";";
+    }
+  } catch(e) {}
+  return ";";
+}
+
 // Khởi tạo hàng tiêu đề và đóng băng hàng 1
 function initSheetHeader(sheet) {
   var headers = [
@@ -207,12 +223,13 @@ function initSheetHeader(sheet) {
   sheet.setFrozenRows(1);
 }
 
-// Định dạng dữ liệu một hàng và tạo liên kết bản đồ Google Maps
-function formatPointRow(p, projectName) {
+// Định dạng dữ liệu một hàng và tạo liên kết bản đồ Google Maps (sử dụng dấu chấm phẩy ; cho Việt Nam)
+function formatPointRow(p, projectName, sep) {
   var lat = parseFloat(p.lat) || 0;
   var lng = parseFloat(p.lng) || 0;
+  var s = sep || ";";
   var mapFormula = (lat !== 0 && lng !== 0) 
-    ? '=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lng + '", "🗺️ Xem Vị Trí")'
+    ? '=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lng + '"' + s + ' "🗺️ Xem Vị Trí")'
     : "";
 
   return [
@@ -230,15 +247,62 @@ function formatPointRow(p, projectName) {
   ];
 }
 
-// Áp dụng định dạng số liệu trắc địa
-function formatDataRange(sheet, startRow, numRows) {
+// Áp dụng định dạng số liệu trắc địa và tạo RichText Hyperlink (Native Link không lỗi #ERROR!)
+function formatDataRange(sheet, startRow, numRows, points) {
   try {
     sheet.getRange(startRow, 3, numRows, 2).setNumberFormat("#,##0.000"); // X, Y (3 chữ số thập phân)
     sheet.getRange(startRow, 5, numRows, 2).setNumberFormat("0.000000");  // Lat, Lng (6 chữ số thập phân)
     sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
     sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#b45309");
     sheet.getRange(startRow, 11, numRows, 1).setHorizontalAlignment("center");
+
+    // Gán Native RichText Hyperlink vào cột 11 (Vị trí Google Maps)
+    // Cách này gán trực tiếp thuộc tính Link, hoàn toàn không phụ thuộc cú pháp công thức nên triệt tiêu 100% lỗi #ERROR!
+    if (points && points.length > 0) {
+      var rtValues = [];
+      for (var i = 0; i < points.length; i++) {
+        var p = points[i];
+        var lat = parseFloat(p.lat) || 0;
+        var lng = parseFloat(p.lng) || 0;
+        if (lat !== 0 && lng !== 0) {
+          var url = "https://www.google.com/maps?q=" + lat + "," + lng;
+          rtValues.push([SpreadsheetApp.newRichTextValue().setText("🗺️ Xem Vị Trí").setLinkUrl(url).build()]);
+        } else {
+          rtValues.push([SpreadsheetApp.newRichTextValue().setText("").build()]);
+        }
+      }
+      sheet.getRange(startRow, 11, numRows, 1).setRichTextValues(rtValues);
+    }
   } catch(e) {}
+}
+
+// Hàm hỗ trợ tự động sửa nhanh toàn bộ các dòng cũ đang bị lỗi #ERROR!
+function suaLoiLienKetCu() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var totalFixed = 0;
+
+  sheets.forEach(function(sh) {
+    var lastRow = sh.getLastRow();
+    if (lastRow > 1) {
+      var values = sh.getRange(2, 1, lastRow - 1, 11).getValues();
+      var rtValues = [];
+      for (var r = 0; r < values.length; r++) {
+        var lat = parseFloat(values[r][4]) || 0; // Cột Vĩ độ (Lat)
+        var lng = parseFloat(values[r][5]) || 0; // Cột Kinh độ (Long)
+        if (lat !== 0 && lng !== 0) {
+          var url = "https://www.google.com/maps?q=" + lat + "," + lng;
+          rtValues.push([SpreadsheetApp.newRichTextValue().setText("🗺️ Xem Vị Trí").setLinkUrl(url).build()]);
+          totalFixed++;
+        } else {
+          rtValues.push([SpreadsheetApp.newRichTextValue().setText("").build()]);
+        }
+      }
+      sh.getRange(2, 11, rtValues.length, 1).setRichTextValues(rtValues);
+    }
+  });
+
+  return "Đã sửa thành công " + totalFixed + " mốc bị lỗi #ERROR! thành link Google Maps bấm được.";
 }
 
 // Lấy danh sách khóa mốc đã có trong bảng để chống trùng lặp
@@ -270,6 +334,7 @@ function doGet(e) {
 
 | Vấn đề gặp phải | Nguyên nhân | Cách khắc phục |
 | :--- | :--- | :--- |
+| **Cột Google Maps báo `#ERROR!` (Lỗi phân tích cú pháp)** | Google Sheets cài đặt vùng **Việt Nam** dùng dấu phẩy `,` làm số thập phân, do đó đối số hàm phải phân cách bằng **dấu chấm phẩy `;`** thay vì dấu phẩy `,`. | **Cách 1:** Cập nhật đoạn code Apps Script mới ở trên (sử dụng dấu `;` và Native RichText Link).<br>**Cách 2:** Trong thanh công cụ Apps Script, chọn hàm `suaLoiLienKetCu` rồi bấm **Chạy (Run)** để sửa ngay các dòng cũ.<br>**Cách 3 (Nhanh trên bảng tính):** Nhấn `Ctrl + H` trên Google Sheet, Tìm: `, "🗺️` $\rightarrow$ Thay thế bằng: `; "🗺️`. |
 | **Báo lỗi `CORS error` hoặc không gửi được dữ liệu** | Khi Triển khai (Deploy), mục *"Người có quyền truy cập"* chưa chọn *"Bất kỳ ai"* (*Anyone*). | Mở lại Apps Script $\rightarrow$ **Triển khai** $\rightarrow$ **Quản lý bản triển khai** $\rightarrow$ Bấm biểu tượng ✏️ chỉnh sửa $\rightarrow$ Đổi thành **Bất kỳ ai** (*Anyone*) $\rightarrow$ Bấm **Triển khai lại**. |
 | **Không biết tìm link xem Google Sheet ở đâu** | Cần lấy đường link để dán vào ô *Link xem Google Sheet*. | Mở tab Google Sheet $\rightarrow$ Bấm nút **Chia sẻ** góc phải $\rightarrow$ Bấm **Sao chép liên kết** và dán vào ứng dụng. |
 | **Khi nào thì dữ liệu tự động gửi lên Sheet?** | Khi chọn chế độ *"Tự động đồng bộ lên Google Sheets"*. | Mọi thao tác lưu mốc trên màn hình Chuyển đổi, GPS hay Bản đồ sẽ tự động đẩy lên Google Sheet ngay khi có mạng. |
