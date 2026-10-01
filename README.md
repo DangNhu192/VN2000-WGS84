@@ -61,9 +61,14 @@
 - **Tự động gửi mốc khi có mạng:** Tùy chọn tự động gửi mốc lên Google Sheet ngầm (non-blocking) ngay khi lưu ở thực địa mà không làm chậm máy.
 - Cung cấp sẵn mã kịch bản Google Apps Script tích hợp nhanh trong 1 phút.
 
-### 6. 📐 Bài toán Trắc địa chuyên sâu
-- **Bài toán trắc địa nghịch:** Tính cự ly ngang $S$, hiệu tọa độ $\Delta X, \Delta Y$, góc phương vị $\alpha$ (độ, phút, giây) và góc phần tư giữa 2 mốc bất kỳ.
-- **Tính diện tích & Chu vi thửa đất:** Tự động tính diện tích ($m^2$, ha) và chu vi ranh đất ($m$) từ danh sách các đỉnh mốc khép kín của dự án.
+### 6. 📐 Bài toán Trắc địa chuyên sâu & Vẽ Mặt Bằng CAD Mini (Mục 3.5)
+- **Công cụ vẽ CAD Mini trên bản đồ:** Vẽ tim tuyến hở (Polyline) hoặc đa giác khép kín (Polygon) trực tiếp trên nền ảnh vệ tinh Google Hybrid.
+- **Tự động bắt điểm thông minh (Magnetic Snap):** Tự động hít chính xác vào các mốc tọa độ dự án và các đỉnh CAD đang vẽ.
+- **Bắn điểm Polar (Distance & Bearing):** Dựng đỉnh tiếp theo từ khoảng cách lẻ $S$ và góc phương vị $\alpha$.
+- **Nhập tọa độ phẳng VN-2000 trực tiếp:** Dựng đỉnh từ cặp tọa độ $(X, Y)$ thực tế.
+- **Dựng đường song song (Offset):** Tạo hành lang an toàn, chỉ giới xây dựng cách đều $\pm d$ mét.
+- **Bảng kê tọa độ ranh & Diện tích Gauss:** Tự động tính diện tích hình học phẳng ($m^2$, ha) và chu vi ($m$), hiển thị kích thước cạnh trực tiếp trên bản đồ và xuất file Excel CSV chuẩn UTF-8 BOM.
+- **Xuất file AutoCAD DXF (.dxf R12):** Xuất đầy đủ các lớp layer kỹ thuật (`CAD_RANH_THUA`, `CAD_DINH_MOC`, `CAD_TEXT_DINH`, `CAD_KICH_THUOC`, `CAD_DIEN_TICH`) mở và chỉnh sửa trực tiếp trên AutoCAD, Civil 3D, ZWCAD.
 
 ---
 

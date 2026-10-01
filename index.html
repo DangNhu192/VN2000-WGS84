@@ -3353,6 +3353,122 @@
       font-family: ui-monospace, monospace;
     }
 
+    /* CAD Leaflet Visual Overlay Badges */
+    .cad-edge-badge {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+    .cad-vertex-badge {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: 1.5px solid #ffffff;
+      border-radius: 50%;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+    }
+    .cad-center-badge {
+      background: rgba(15, 23, 42, 0.94);
+      border: 1.5px solid #10b981;
+      color: #a7f3d0;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      line-height: 1.35;
+    }
+
+    /* Modal Bảng Diện Tích & Bảng Kê Tọa Độ */
+    .cad-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .cad-summary-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cad-summary-label {
+      font-size: 10.5px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .cad-summary-value {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #38bdf8;
+      font-family: ui-monospace, monospace;
+    }
+    .cad-table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      max-height: 48vh;
+      scrollbar-width: thin;
+    }
+    .cad-coord-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      text-align: left;
+    }
+    .cad-coord-table th {
+      background: rgba(30, 41, 59, 0.95);
+      color: #38bdf8;
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    .cad-coord-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      color: #f1f5f9;
+      font-family: ui-monospace, monospace;
+      white-space: nowrap;
+    }
+    .cad-coord-table tr:hover {
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .cad-coord-table tr.total-row {
+      background: rgba(16, 185, 129, 0.12);
+      font-weight: 700;
+      color: #4ade80;
+    }
+
     /* ================= 13. CHẾ ĐỘ ĐÀO ĐẮP THEO DIỆN TÍCH / DỰ ÁN ================= */
     .profile-mode-bar {
       display: grid;
@@ -3685,6 +3801,7 @@
                 <div class="feature-card-action-bar">
                   <span class="feature-card-hint">Nghiệp vụ xây dựng & địa hình tuyến</span>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('cad_tool');">📐 Vẽ CAD Mini</button>
                     <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('profile_volume');">📈 Trắc dọc & Đào đắp</button>
                     <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('geoid_convert');">🏔️ Geoid Hòn Dấu</button>
                     <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('measure_distance');">📏 Đo cự ly</button>
@@ -4248,6 +4365,9 @@
           <button id="btnToggleDistance" class="btn-map-action active" title="Bật/Tắt hiển thị khoảng cách giữa các điểm" onclick="appMap.toggleDistanceDisplay()">
             📏 <span id="txtDistToggle">Khoảng cách</span>
           </button>
+          <button id="btnToggleCadTool" class="btn-map-action" title="Mở bộ công cụ vẽ mặt bằng CAD Mini trên bản đồ" onclick="appCadTool.toggleToolbar()">
+            📐 <span id="txtCadToggle">Vẽ CAD</span>
+          </button>
         </div>
 
         <!-- HUD Đo Đạc Khoảng Cách & Đa Giác Tuyến Mốc -->
@@ -4270,6 +4390,64 @@
             <button class="btn-measure-close" onclick="appMap.clearPointMeasure()">✕</button>
           </div>
           <div id="measureDetails" style="font-size: 12px; color: #f8fafc; line-height: 1.5;"></div>
+        </div>
+
+        <!-- ================= 3.5 THANH CÔNG CỤ VẼ MẶT BẰNG CAD MINI ================= -->
+        <div id="mapCadToolbar" class="map-cad-toolbar">
+          <div class="map-cad-toolbar-header">
+            <div class="cad-toolbar-title">
+              <span>📐 VẼ CAD MINI</span>
+              <span id="cadModeBadge" style="font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 1px 6px; border-radius: 4px;">Đa giác ranh</span>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <span id="cadStatsPill" class="cad-stats-pill">0 đỉnh • 0 m • 0 m²</span>
+              <button class="btn-sm btn-red" style="height: 24px; padding: 0 6px; font-size: 11px;" onclick="appCadTool.closeToolbar()" title="Đóng thanh công cụ CAD">✕</button>
+            </div>
+          </div>
+
+          <!-- Dòng 1: Công cụ vẽ & Thao tác đỉnh -->
+          <div class="cad-actions-row">
+            <button id="btnCadModePoly" class="cad-btn active" onclick="appCadTool.setMode('polygon')" title="Vẽ đa giác khép kín tính diện tích thửa đất">
+              📐 Đa giác ranh
+            </button>
+            <button id="btnCadModeLine" class="cad-btn" onclick="appCadTool.setMode('polyline')" title="Vẽ đường tim tuyến / bờ ranh hở">
+              📏 Đường tuyến
+            </button>
+            <button id="btnCadSnap" class="cad-btn active" onclick="appCadTool.toggleSnap()" title="Tự động bắt điểm (Snap) vào mốc dự án và các đỉnh CAD">
+              🧲 Snap: BẬT
+            </button>
+            <button class="cad-btn" onclick="appCadTool.openPolarModal()" title="Bắn điểm tiếp theo theo Cự ly & Góc phương vị">
+              🎯 Bắn điểm (L, Az)
+            </button>
+            <button class="cad-btn" onclick="appCadTool.openCoordModal()" title="Nhập đỉnh trực tiếp bằng tọa độ VN-2000 (X, Y)">
+              📌 Nhập X,Y
+            </button>
+            <button class="cad-btn" onclick="appCadTool.undoVertex()" title="Hoàn tác điểm vừa vẽ">
+              ↩ Hoàn tác
+            </button>
+            <button class="cad-btn" onclick="appCadTool.closeLoop()" title="Nối đỉnh cuối về đỉnh đầu để khép góc">
+              🔒 Khép góc
+            </button>
+            <button class="cad-btn" style="color: #f87171;" onclick="appCadTool.clearDrawing()" title="Xóa toàn bộ bản vẽ CAD">
+              🗑️ Xóa hết
+            </button>
+          </div>
+
+          <!-- Dòng 2: Xuất dữ liệu & Xem bảng diện tích -->
+          <div class="cad-actions-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px;">
+            <button class="cad-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="appCadTool.openAreaTableModal()" title="Xem bảng kê tọa độ ranh góc và bảng tính diện tích">
+              📋 Bảng diện tích & Tọa độ
+            </button>
+            <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(14, 165, 233, 0.4); color: #38bdf8;" onclick="appCadTool.exportDxf()" title="Xuất file bản vẽ AutoCAD R12 (.DXF) có đầy đủ layer, kích thước, diện tích">
+              📐 Xuất file CAD (.DXF)
+            </button>
+            <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Offset)">
+              ↔ Offset
+            </button>
+            <div id="cadInstructionText" style="font-size: 10.5px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
+              💡 Chạm bản đồ để vẽ đỉnh • Đang bật Snap mốc
+            </div>
+          </div>
         </div>
 
         <!-- Right Quick Controls -->
@@ -5372,9 +5550,13 @@
 
   <!-- ================= MODAL MỚI: TRẮC DỌC ĐỊA HÌNH & KHỐI LƯỢNG ĐÀO ĐẮP (NHÓM 3.3) ================= -->
   <div id="modalElevationProfile" class="modal-overlay">
-    <div class="modal-box" style="max-width: 580px;">
+    <div class="modal-box" style="max-width: 680px;">
       <div class="modal-title">
-        <span style="color: #c084fc;">📈 Trắc Dọc Địa Hình & Khối Lượng Đào Đắp</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #c084fc; font-size: 16px;">📈</span>
+          <span style="color: #f1f5f9; font-weight: 800;">Trắc Dọc Địa Hình & Đào Đắp</span>
+          <span class="btn-sm btn-purple" style="height: 22px; padding: 2px 7px; font-size: 10px; font-weight: 700; flex: none;">AutoCAD DXF Pro</span>
+        </div>
         <button class="btn-modal-close" onclick="appElevationProfile.closeModal()">✕</button>
       </div>
 
@@ -5408,9 +5590,9 @@
         </button>
       </div>
 
-      <!-- Khung Canvas Vẽ Trắc Dọc -->
-      <div class="profile-canvas-container">
-        <canvas id="elevationProfileCanvas" width="540" height="240" style="width: 100%; height: 240px; display: block; border-radius: 6px;"></canvas>
+      <!-- Khung Canvas Vẽ Trắc Dọc Kỹ Thuật (Bao gồm Bảng Trích Yếu Tiêu Chuẩn) -->
+      <div class="profile-canvas-container" style="background: #020617; border: 1px solid #1e293b; border-radius: 8px; overflow: hidden; position: relative;">
+        <canvas id="elevationProfileCanvas" width="660" height="350" style="width: 100%; height: auto; min-height: 280px; display: block; border-radius: 6px;"></canvas>
       </div>
 
       <!-- Tổng hợp khối lượng đào đắp -->
@@ -5451,13 +5633,16 @@
         </table>
       </div>
 
-      <!-- Nút xuất file -->
-      <div class="btn-group-row" style="margin-top: 10px;">
-        <button class="btn-sm btn-green" style="height: 38px; font-size: 12px;" onclick="appElevationProfile.exportCsv()">
-          📊 Xuất CSV Khối lượng
+      <!-- Bộ 3 Nút Xuất File: CSV, PNG, AutoCAD DXF -->
+      <div class="btn-group-row" style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+        <button class="btn-sm btn-green" style="height: 40px; font-size: 12px; font-weight: 700;" onclick="appElevationProfile.exportCsv()">
+          📊 Xuất CSV Khối Lượng
         </button>
-        <button class="btn-sm btn-blue" style="height: 38px; font-size: 12px;" onclick="appElevationProfile.exportImage()">
-          🖼️ Tải Ảnh Bản Vẽ Trắc Dọc
+        <button class="btn-sm btn-blue" style="height: 40px; font-size: 12px; font-weight: 700;" onclick="appElevationProfile.exportImage()">
+          🖼️ Tải Ảnh Bản Vẽ
+        </button>
+        <button class="btn-sm" style="height: 40px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; border: 1px solid #f59e0b; box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35); cursor: pointer;" onclick="appElevationProfile.exportDxfProfile()">
+          📐 Xuất AutoCAD DXF
         </button>
       </div>
     </div>
@@ -5530,6 +5715,130 @@
       <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13px;" onclick="appGeoidVigac.applyToAllProjectPoints()">
         💾 ÁP DỤNG CHUYỂN TOÀN BỘ MỐC DỰ ÁN SANG HÒN DẤU
       </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH (3.5) ================= -->
+  <div id="modalCadAreaTable" class="modal-overlay">
+    <div class="modal-box" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-title">
+        <span style="color: #38bdf8;">📐 Bảng Kê Tọa Độ Ranh & Diện Tích Mặt Bằng</span>
+        <button class="btn-modal-close" onclick="appCadTool.closeAreaTableModal()">✕</button>
+      </div>
+
+      <!-- Thẻ tóm tắt thông số diện tích và chu vi -->
+      <div class="cad-summary-grid">
+        <div class="cad-summary-card">
+          <span class="cad-summary-label">Tổng Diện Tích</span>
+          <span class="cad-summary-value" id="cadModalAreaM2" style="color: #4ade80;">0.00 m²</span>
+          <span style="font-size: 11px; color: #a7f3d0;" id="cadModalAreaHa">0.0000 ha</span>
+        </div>
+        <div class="cad-summary-card">
+          <span class="cad-summary-label">Chu Vi / Chiều Dài</span>
+          <span class="cad-summary-value" id="cadModalPerimeter" style="color: #38bdf8;">0.00 m</span>
+          <span style="font-size: 11px; color: #94a3b8;" id="cadModalEdgeCount">0 cạnh</span>
+        </div>
+        <div class="cad-summary-card">
+          <span class="cad-summary-label">Số Đỉnh Ranh</span>
+          <span class="cad-summary-value" id="cadModalVertexCount" style="color: #fbbf24;">0 đỉnh</span>
+          <span style="font-size: 11px; color: #94a3b8;" id="cadModalKtt">KTT: 105°00'</span>
+        </div>
+      </div>
+
+      <!-- Bảng kê chi tiết từng đỉnh -->
+      <div class="cad-table-wrap" style="flex: 1; margin-bottom: 12px;">
+        <table class="cad-coord-table">
+          <thead>
+            <tr>
+              <th style="width: 35px; text-align: center;">STT</th>
+              <th>Tên đỉnh</th>
+              <th>X (Bắc) [m]</th>
+              <th>Y (Đông) [m]</th>
+              <th>Cạnh [m]</th>
+              <th>Phương vị (Az)</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody id="cadTableBody">
+            <!-- Render danh sách đỉnh bằng JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer các nút thao tác xuất file -->
+      <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; padding-top: 8px; border-top: 1px solid rgba(56, 189, 248, 0.2);">
+        <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: 1px solid #10b981;" onclick="appCadTool.exportAreaCsv()">
+          📊 Xuất Excel (CSV UTF-8)
+        </button>
+        <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8;" onclick="appCadTool.exportDxf()">
+          📐 Xuất AutoCAD (.DXF)
+        </button>
+        <button class="btn-sm btn-blue" style="height: 36px; padding: 0 10px;" onclick="appCadTool.copyTableToClipboard()">
+          📋 Sao chép
+        </button>
+        <button class="btn-sm btn-red" style="height: 36px; padding: 0 12px;" onclick="appCadTool.closeAreaTableModal()">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL BẮN ĐIỂM THEO CỰ LY & GÓC PHƯƠNG VỊ (3.5) ================= -->
+  <div id="modalCadPolarInput" class="modal-overlay">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-title">
+        <span style="color: #38bdf8;">🎯 Bắn Đỉnh Theo Cự Ly & Phương Vị</span>
+        <button class="btn-modal-close" onclick="appCadTool.closePolarModal()">✕</button>
+      </div>
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">
+        Dựng đỉnh tiếp theo từ đỉnh trước dựa trên cự ly $S$ và góc phương vị $\alpha$ (0° - 360°).
+      </div>
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; font-size: 11.5px; font-family: ui-monospace, monospace;">
+        <div>• Đỉnh gốc: <b id="cadPolarOriginName" style="color: #38bdf8;">Đ1</b></div>
+        <div>• Tọa độ gốc: <span id="cadPolarOriginCoords" style="color: #94a3b8;">X: -- | Y: --</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Khoảng cách lẻ S (mét):</label>
+          <input type="number" step="0.001" id="txtCadPolarDist" class="form-control" placeholder="Ví dụ: 25.50" style="width: 100%; height: 36px;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Góc phương vị α (độ thập phân 0 - 360°):</label>
+          <input type="number" step="0.0001" id="txtCadPolarAzimuth" class="form-control" placeholder="Ví dụ: 90.0 (hướng Đông) hoặc 45.25" style="width: 100%; height: 36px;">
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button class="btn-sm btn-red" onclick="appCadTool.closePolarModal()">Hủy</button>
+        <button class="btn-sm btn-green" style="height: 36px; padding: 0 16px; font-weight: 700;" onclick="appCadTool.submitPolarVertex()">+ Thêm đỉnh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL NHẬP ĐỈNH THEO TỌA ĐỘ VN-2000 (3.5) ================= -->
+  <div id="modalCadCoordInput" class="modal-overlay">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-title">
+        <span style="color: #38bdf8;">📌 Nhập Đỉnh Trực Tiếp (VN-2000)</span>
+        <button class="btn-modal-close" onclick="appCadTool.closeCoordModal()">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tên đỉnh (tùy chọn):</label>
+          <input type="text" id="txtCadCoordName" class="form-control" placeholder="Ví dụ: Đ1, Ranh 1..." style="width: 100%; height: 36px;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tọa độ X (Bắc - mét):</label>
+          <input type="number" step="0.001" id="txtCadCoordX" class="form-control" placeholder="Ví dụ: 1144050.250" style="width: 100%; height: 36px;">
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tọa độ Y (Đông - mét):</label>
+          <input type="number" step="0.001" id="txtCadCoordY" class="form-control" placeholder="Ví dụ: 539620.150" style="width: 100%; height: 36px;">
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button class="btn-sm btn-red" onclick="appCadTool.closeCoordModal()">Hủy</button>
+        <button class="btn-sm btn-green" style="height: 36px; padding: 0 16px; font-weight: 700;" onclick="appCadTool.submitCoordVertex()">+ Thêm đỉnh</button>
+      </div>
     </div>
   </div>
 
@@ -5881,6 +6190,16 @@
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">3.4 Cao độ Thủy chuẩn Hòn Dấu</div>
               <div class="drawer-leaf-sub">Mô hình Geoid Quốc gia VIGAC2017 / EGM2008</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_cad_tool" onclick="appNav.navigateTo('cad_tool')">
+            <div class="drawer-leaf-icon" style="color: #06b6d4;">📐</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">3.5 Vẽ mặt bằng CAD Mini</div>
+              <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DXF</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
