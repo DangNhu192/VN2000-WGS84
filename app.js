@@ -129,21 +129,31 @@ const appNav = {
             if (screenName === 'transform') {
                 titleText = "1. CHUYỂN ĐỔI TỌA ĐỘ";
                 document.getElementById('screen-transform').classList.add('active');
-            } else if (screenName === 'gps') {
-                titleText = "2. GPS THỰC ĐỊA";
-                document.getElementById('screen-gps').classList.add('active');
-                appGps.refreshDisplay();
+            } else if (screenName === 'stakeout') {
+                titleText = "3. CẮM MỐC THỰC ĐỊA";
+                document.getElementById('screen-stakeout').classList.add('active');
+                if (typeof appStakeout !== 'undefined') appStakeout.init();
+            } else if (screenName === 'camera') {
+                titleText = "4. CAMERA ĐÓNG DẤU";
+                document.getElementById('screen-camera').classList.add('active');
+                if (typeof appCamera !== 'undefined') appCamera.init();
             } else if (screenName === 'datamgmt') {
-                titleText = "4. SỔ ĐO & DỰ ÁN";
+                titleText = "5. SỔ ĐO & DỰ ÁN";
                 document.getElementById('screen-datamgmt').classList.add('active');
                 appData.refreshTable();
-            } else if (screenName === 'geodesy') {
-                titleText = "5. BÀI TOÁN TRẮC ĐỊA";
-                document.getElementById('screen-geodesy').classList.add('active');
-                appGeodesy.initDropdowns();
             } else if (screenName === 'about') {
                 titleText = "6. THÔNG TIN & HƯỚNG DẪN";
                 document.getElementById('screen-about').classList.add('active');
+            } else if (screenName === 'gps') {
+                titleText = "GPS THỰC ĐỊA";
+                const el = document.getElementById('screen-gps');
+                if (el) el.classList.add('active');
+                appGps.refreshDisplay();
+            } else if (screenName === 'geodesy') {
+                titleText = "BÀI TOÁN TRẮC ĐỊA";
+                const el = document.getElementById('screen-geodesy');
+                if (el) el.classList.add('active');
+                appGeodesy.initDropdowns();
             }
 
             if (titleEl) titleEl.innerHTML = `<span>${titleText}</span>`;
@@ -779,6 +789,9 @@ const appGps = {
                 appGps.refreshDisplay();
                 if (AppState.leafletMap) {
                     appMap.updateLiveGps(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
+                }
+                if (AppState.currentScreen === 'stakeout' && typeof appStakeout !== 'undefined') {
+                    appStakeout.updateLiveNavigation();
                 }
             },
             (err) => {
@@ -2787,6 +2800,114 @@ function doGet(e) {
         }
     },
 
+    exportDxfFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file DXF!", true);
+            return;
+        }
+
+        let dxf = "0\nSECTION\n2\nHEADER\n0\nENDSEC\n";
+        dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n";
+        dxf += "0\nLAYER\n2\nMOC_TOADO\n70\n0\n62\n1\n6\nCONTINUOUS\n0\n";
+        dxf += "LAYER\n2\nTEN_MOC\n70\n0\n62\n3\n6\nCONTINUOUS\n0\n";
+        dxf += "LAYER\n2\nRANH_THUA\n70\n0\n62\n2\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n";
+        dxf += "0\nSECTION\n2\nENTITIES\n";
+
+        // Ghi các POINT và TEXT mốc (Trong CAD: X là Easting/Y VN2000, Y là Northing/X VN2000)
+        pts.forEach(p => {
+            const easting = parseFloat(p.y) || 0;
+            const northing = parseFloat(p.x) || 0;
+            const elev = parseFloat(p.h || 0);
+
+            dxf += `0\nPOINT\n8\nMOC_TOADO\n10\n${easting}\n20\n${northing}\n30\n${elev}\n`;
+            const cleanName = (p.name || 'Moc').replace(/[\r\n]/g, '');
+            dxf += `0\nTEXT\n8\nTEN_MOC\n10\n${easting + 1.2}\n20\n${northing + 1.2}\n30\n${elev}\n40\n1.8\n1\n${cleanName}\n`;
+        });
+
+        // Nối đường ranh POLYLINE nếu có từ 2 mốc trở lên
+        if (pts.length >= 2) {
+            dxf += "0\nPOLYLINE\n8\nRANH_THUA\n66\n1\n70\n1\n";
+            pts.forEach(p => {
+                const easting = parseFloat(p.y) || 0;
+                const northing = parseFloat(p.x) || 0;
+                const elev = parseFloat(p.h || 0);
+                dxf += `0\nVERTEX\n8\nRANH_THUA\n10\n${easting}\n20\n${northing}\n30\n${elev}\n`;
+            });
+            dxf += "0\nSEQEND\n";
+        }
+
+        dxf += "0\nENDSEC\n0\nEOF\n";
+
+        const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const filename = (AppState.currentProject.replace(/\.[^/.]+$/, "")) + ".dxf";
+        a.setAttribute("href", url);
+        a.setAttribute("download", filename);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`✓ Đã xuất file AutoCAD: ${filename}`);
+    },
+
+    exportKmlFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file KML!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject.replace(/\.[^/.]+$/, "");
+        let kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>${projName}</name>\n`;
+        kml += `<Style id="pointStyle"><IconStyle><color>ff00ff00</color><scale>1.1</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\n`;
+        kml += `<Style id="lineStyle"><LineStyle><color>ff00ffff</color><width>3</width></LineStyle><PolyStyle><color>4000ffff</color></PolyStyle></Style>\n`;
+
+        pts.forEach(p => {
+            const lat = parseFloat(p.lat) || 0;
+            const lng = parseFloat(p.lng) || 0;
+            const cleanName = (p.name || 'Moc').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            kml += `<Placemark>\n<name>${cleanName}</name>\n<description><![CDATA[`;
+            kml += `<div><b>Dự án:</b> ${projName}</div>`;
+            kml += `<div><b>VN-2000 X:</b> ${p.x} m</div>`;
+            kml += `<div><b>VN-2000 Y:</b> ${p.y} m</div>`;
+            kml += `<div><b>WGS-84:</b> ${p.lat}, ${p.lng}</div>`;
+            if (p.note) kml += `<div><b>Ghi chú:</b> ${p.note}</div>`;
+            kml += `]]></description>\n<styleUrl>#pointStyle</styleUrl>\n`;
+            kml += `<Point><coordinates>${lng},${lat},0</coordinates></Point>\n</Placemark>\n`;
+        });
+
+        if (pts.length >= 2) {
+            kml += `<Placemark>\n<name>Ranh: ${projName}</name>\n<styleUrl>#lineStyle</styleUrl>\n`;
+            if (pts.length >= 3) {
+                kml += `<Polygon><outerBoundaryIs><LinearRing><coordinates>\n`;
+                pts.forEach(p => { kml += `${p.lng},${p.lat},0\n`; });
+                kml += `${pts[0].lng},${pts[0].lat},0\n`;
+                kml += `</coordinates></LinearRing></outerBoundaryIs></Polygon>\n`;
+            } else {
+                kml += `<LineString><coordinates>\n`;
+                pts.forEach(p => { kml += `${p.lng},${p.lat},0\n`; });
+                kml += `</coordinates></LineString>\n`;
+            }
+            kml += `</Placemark>\n`;
+        }
+
+        kml += `</Document>\n</kml>`;
+
+        const blob = new Blob([kml], { type: "application/vnd.google-earth.kml+xml;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const filename = projName + ".kml";
+        a.setAttribute("href", url);
+        a.setAttribute("download", filename);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`✓ Đã xuất file Google Earth: ${filename}`);
+    },
+
     downloadSampleCsv() {
         const sampleRows = [
             "Tên Điểm,Tọa Độ X (Bắc - m),Tọa Độ Y (Đông - m),Vĩ Độ (Lat - °),Kinh Độ (Long - °),Múi Chiếu,Kinh Tuyến Trục,Ghi Chú",
@@ -3278,6 +3399,496 @@ const appModal = {
     closeImportProjectModal() {
         const m = document.getElementById('modalImportProject');
         if (m) m.classList.remove('active');
+    }
+};
+
+// ================= 11. PHÂN HỆ CẮM MỐC THỰC ĐỊA (STAKEOUT MODULE) =================
+const appStakeout = {
+    selectedPoint: null,
+    audioBeepEnabled: true,
+    compassHeading: 0,
+    currentTargetAzimuth: 0,
+    hasOrientationListener: false,
+    audioContext: null,
+
+    init() {
+        appStakeout.refreshPointsList();
+        appStakeout.initOrientationListener();
+        appStakeout.updateLiveNavigation();
+    },
+
+    refreshPointsList() {
+        const sel = document.getElementById('selStakeoutPoint');
+        if (!sel) return;
+        const pts = appData.getPoints(AppState.currentProject);
+
+        if (pts.length === 0) {
+            sel.innerHTML = '<option value="">-- Dự án chưa có mốc nào --</option>';
+            appStakeout.selectedPoint = null;
+            appStakeout.updateTargetCard();
+            return;
+        }
+
+        sel.innerHTML = '';
+        pts.forEach((p, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.innerText = `${p.name} (X: ${parseFloat(p.x).toFixed(2)}, Y: ${parseFloat(p.y).toFixed(2)})`;
+            sel.appendChild(opt);
+        });
+
+        if (sel.options.length > 0) {
+            sel.selectedIndex = 0;
+            appStakeout.selectedPoint = pts[0];
+            appStakeout.updateTargetCard();
+        }
+    },
+
+    onPointSelected() {
+        const sel = document.getElementById('selStakeoutPoint');
+        if (!sel || !sel.value) return;
+        const idx = parseInt(sel.value, 10);
+        const pts = appData.getPoints(AppState.currentProject);
+        if (pts[idx]) {
+            appStakeout.selectedPoint = pts[idx];
+            appStakeout.updateTargetCard();
+            appStakeout.updateLiveNavigation();
+        }
+    },
+
+    updateTargetCard() {
+        const nameEl = document.getElementById('txtStakeoutTargetName');
+        const xEl = document.getElementById('txtStakeoutTargetX');
+        const yEl = document.getElementById('txtStakeoutTargetY');
+        const latLngEl = document.getElementById('txtStakeoutTargetLatLng');
+
+        if (!appStakeout.selectedPoint) {
+            if (nameEl) nameEl.innerText = "Chưa chọn mốc";
+            if (xEl) xEl.innerText = "--";
+            if (yEl) yEl.innerText = "--";
+            if (latLngEl) latLngEl.innerText = "Lat: -- | Lng: --";
+            return;
+        }
+
+        const p = appStakeout.selectedPoint;
+        if (nameEl) nameEl.innerText = p.name;
+        if (xEl) xEl.innerText = parseFloat(p.x).toFixed(3);
+        if (yEl) yEl.innerText = parseFloat(p.y).toFixed(3);
+        if (latLngEl) latLngEl.innerText = `Lat: ${parseFloat(p.lat).toFixed(6)} | Lng: ${parseFloat(p.lng).toFixed(6)}`;
+    },
+
+    initOrientationListener() {
+        if (appStakeout.hasOrientationListener) return;
+
+        const handleOrientation = (e) => {
+            let heading = 0;
+            if (e.webkitCompassHeading !== undefined) {
+                // iOS Safari
+                heading = e.webkitCompassHeading;
+            } else if (e.alpha !== null) {
+                // Android Chrome
+                heading = 360 - e.alpha;
+            }
+            appStakeout.compassHeading = (heading + 360) % 360;
+            appStakeout.updatePointerRotation();
+        };
+
+        if (window.DeviceOrientationEvent) {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                window.addEventListener('deviceorientation', handleOrientation, true);
+            } else {
+                window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+                window.addEventListener('deviceorientation', handleOrientation, true);
+            }
+            appStakeout.hasOrientationListener = true;
+        }
+    },
+
+    updateLiveNavigation() {
+        const distEl = document.getElementById('txtStakeoutDistance');
+        const dirEl = document.getElementById('txtStakeoutDirectionPrompt');
+        const dxEl = document.getElementById('txtStakeoutDeltaX');
+        const dyEl = document.getElementById('txtStakeoutDeltaY');
+        const accEl = document.getElementById('txtStakeoutGpsAcc');
+
+        if (!appStakeout.selectedPoint) {
+            if (distEl) distEl.innerText = "-- m";
+            if (dirEl) dirEl.innerText = "Vui lòng chọn mốc cần cắm";
+            return;
+        }
+
+        const gps = AppState.lastGps;
+        if (!gps || !gps.lat || gps.lat === 0) {
+            if (distEl) distEl.innerText = "-- m";
+            if (dirEl) dirEl.innerText = "🛰️ Đang đợi tín hiệu vệ tinh GPS...";
+            return;
+        }
+
+        const p = appStakeout.selectedPoint;
+        const targetLat = parseFloat(p.lat);
+        const targetLng = parseFloat(p.lng);
+        const targetX = parseFloat(p.x);
+        const targetY = parseFloat(p.y);
+
+        // Tính khoảng cách và góc phương vị
+        const nav = calcGeoDistanceAndAzimuth(gps.lat, gps.lng, targetLat, targetLng);
+        const dist = nav.distance;
+        const targetAzimuth = nav.azimuth;
+
+        // Tính delta theo VN-2000 nếu có tọa độ hiện tại
+        try {
+            const curPt = convertWgsToVn2k(gps.lat, gps.lng, AppState.kttVal, AppState.scaleFactor);
+            const dX = targetX - curPt.X;
+            const dY = targetY - curPt.Y;
+            if (dxEl) dxEl.innerText = `${dX >= 0 ? '+' : ''}${dX.toFixed(2)}m`;
+            if (dyEl) dyEl.innerText = `${dY >= 0 ? '+' : ''}${dY.toFixed(2)}m`;
+        } catch (e) {}
+
+        if (accEl) accEl.innerText = `±${gps.accuracy.toFixed(1)}m`;
+
+        // Hiển thị cự ly và class màu sắc
+        if (distEl) {
+            distEl.className = 'stakeout-dist-val';
+            if (dist < 0.5) {
+                distEl.classList.add('arrived');
+                distEl.innerText = "🎯 0.0 m";
+                if (dirEl) dirEl.innerText = "✓ ĐÃ ĐẾN VỊ TRÍ MỐC CHÍNH XÁC!";
+                appStakeout.playBeepSound(880, 200);
+            } else if (dist < 2.0) {
+                distEl.classList.add('near');
+                distEl.innerText = `${dist.toFixed(2)} m`;
+                if (dirEl) dirEl.innerText = `Đến rất gần mốc (${dist.toFixed(1)}m)`;
+                appStakeout.playBeepSound(587, 80);
+            } else {
+                distEl.innerText = dist >= 1000 ? `${(dist / 1000).toFixed(2)} km` : `${dist.toFixed(1)} m`;
+                const relAngle = ((targetAzimuth - appStakeout.compassHeading + 540) % 360) - 180;
+                let turnText = "Đi thẳng";
+                if (Math.abs(relAngle) > 20) {
+                    turnText = relAngle > 0 ? `Rẽ phải ${Math.round(relAngle)}°` : `Rẽ trái ${Math.round(-relAngle)}°`;
+                }
+                if (dirEl) dirEl.innerText = `${turnText} ➔ Khoảng ${dist < 100 ? dist.toFixed(1) + 'm' : Math.round(dist) + 'm'}`;
+            }
+        }
+
+        appStakeout.currentTargetAzimuth = targetAzimuth;
+        appStakeout.updatePointerRotation();
+    },
+
+    updatePointerRotation() {
+        const needle = document.getElementById('radarPointerNeedle');
+        if (!needle || appStakeout.currentTargetAzimuth === undefined) return;
+        const angle = (appStakeout.currentTargetAzimuth - appStakeout.compassHeading + 360) % 360;
+        needle.style.transform = `rotate(${angle}deg)`;
+    },
+
+    toggleAudioBeep() {
+        appStakeout.audioBeepEnabled = !appStakeout.audioBeepEnabled;
+        const btn = document.getElementById('btnStakeoutBeep');
+        if (btn) btn.innerText = appStakeout.audioBeepEnabled ? "🔊 Âm bíp: Bật" : "🔇 Âm bíp: Tắt";
+        showToast(appStakeout.audioBeepEnabled ? "🔊 Đã bật âm thanh khi gần mốc" : "🔇 Đã tắt âm thanh");
+    },
+
+    playBeepSound(freq = 600, duration = 100) {
+        if (!appStakeout.audioBeepEnabled) return;
+        try {
+            if (!appStakeout.audioContext) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) appStakeout.audioContext = new AudioCtx();
+            }
+            if (appStakeout.audioContext && appStakeout.audioContext.state === 'suspended') {
+                appStakeout.audioContext.resume();
+            }
+            if (appStakeout.audioContext) {
+                const osc = appStakeout.audioContext.createOscillator();
+                const gain = appStakeout.audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, appStakeout.audioContext.currentTime);
+                gain.gain.setValueAtTime(0.2, appStakeout.audioContext.currentTime);
+                osc.connect(gain);
+                gain.connect(appStakeout.audioContext.destination);
+                osc.start();
+                osc.stop(appStakeout.audioContext.currentTime + (duration / 1000));
+            }
+        } catch (e) {}
+    },
+
+    viewOnMap() {
+        if (!appStakeout.selectedPoint) {
+            showToast("⚠️ Vui lòng chọn mốc cần cắm trước!", true);
+            return;
+        }
+        appNav.openProjectMap();
+        const p = appStakeout.selectedPoint;
+        if (AppState.leafletMap && p.lat && p.lng) {
+            AppState.leafletMap.setView([parseFloat(p.lat), parseFloat(p.lng)], 19);
+        }
+    },
+
+    openCameraForThisPoint() {
+        if (!appStakeout.selectedPoint) {
+            showToast("⚠️ Vui lòng chọn mốc trước!", true);
+            return;
+        }
+        appNav.showScreen('camera');
+        const sel = document.getElementById('selCameraPoint');
+        if (sel) {
+            const pts = appData.getPoints(AppState.currentProject);
+            const idx = pts.findIndex(pt => pt.name === appStakeout.selectedPoint.name);
+            if (idx >= 0) {
+                sel.value = idx;
+                appCamera.onPointSelected();
+            }
+        }
+    }
+};
+
+// ================= 12. PHÂN HỆ CAMERA ĐÓNG DẤU THỦY ẤN (GEO-CAMERA) =================
+const appCamera = {
+    selectedPoint: null,
+    renderedDataUrl: null,
+
+    init() {
+        appCamera.refreshPointsList();
+    },
+
+    refreshPointsList() {
+        const sel = document.getElementById('selCameraPoint');
+        if (!sel) return;
+        const pts = appData.getPoints(AppState.currentProject);
+
+        sel.innerHTML = '<option value="live">📍 Tọa độ GPS Live (Vị trí hiện tại)</option>';
+        pts.forEach((p, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.innerText = `${p.name} (X: ${parseFloat(p.x).toFixed(2)}, Y: ${parseFloat(p.y).toFixed(2)})`;
+            sel.appendChild(opt);
+        });
+
+        appCamera.onPointSelected();
+    },
+
+    onPointSelected() {
+        const sel = document.getElementById('selCameraPoint');
+        const markEl = document.getElementById('txtCameraTagMark');
+        const projEl = document.getElementById('txtCameraTagProject');
+        const vn2kEl = document.getElementById('txtCameraTagVn2k');
+        const wgsEl = document.getElementById('txtCameraTagWgs');
+        const gpsEl = document.getElementById('txtCameraTagGps');
+        const timeEl = document.getElementById('txtCameraTagTime');
+
+        if (projEl) projEl.innerText = AppState.currentProject.replace(/\.[^/.]+$/, "");
+
+        const now = new Date();
+        const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        if (timeEl) timeEl.innerText = dateStr;
+
+        const val = sel ? sel.value : 'live';
+        if (val === 'live' || !val) {
+            appCamera.selectedPoint = null;
+            if (markEl) markEl.innerText = "GPS Live";
+            const gps = AppState.lastGps;
+            if (gps && gps.lat) {
+                if (wgsEl) wgsEl.innerText = `Lat: ${gps.lat.toFixed(6)} | Lng: ${gps.lng.toFixed(6)}`;
+                try {
+                    const pt = convertWgsToVn2k(gps.lat, gps.lng, AppState.kttVal, AppState.scaleFactor);
+                    if (vn2kEl) vn2kEl.innerText = `X = ${pt.X.toFixed(3)} m | Y = ${pt.Y.toFixed(3)} m (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+                } catch(e) {}
+                if (gpsEl) gpsEl.innerText = `Sai số: ±${gps.accuracy.toFixed(1)}m | Hướng: ${Math.round(appStakeout.compassHeading || 0)}°`;
+            } else {
+                if (wgsEl) wgsEl.innerText = "Chưa có tín hiệu GPS";
+                if (vn2kEl) vn2kEl.innerText = "Chưa có tọa độ VN-2000";
+                if (gpsEl) gpsEl.innerText = "Đang dò tìm vệ tinh...";
+            }
+        } else {
+            const idx = parseInt(val, 10);
+            const pts = appData.getPoints(AppState.currentProject);
+            if (pts[idx]) {
+                const p = pts[idx];
+                appCamera.selectedPoint = p;
+                if (markEl) markEl.innerText = p.name;
+                if (vn2kEl) vn2kEl.innerText = `X = ${parseFloat(p.x).toFixed(3)} m | Y = ${parseFloat(p.y).toFixed(3)} m (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+                if (wgsEl) wgsEl.innerText = `Lat: ${parseFloat(p.lat).toFixed(6)} | Lng: ${parseFloat(p.lng).toFixed(6)}`;
+                const gps = AppState.lastGps;
+                const acc = (gps && gps.accuracy) ? `±${gps.accuracy.toFixed(1)}m` : '±--m';
+                if (gpsEl) gpsEl.innerText = `Sai số: ${acc} | Hướng: ${Math.round(appStakeout.compassHeading || 0)}°`;
+            }
+        }
+    },
+
+    onFileSelected(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        showToast("⏳ Đang xử lý và đóng dấu thủy ấn lên ảnh...");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                appCamera.renderWatermarkOnCanvas(img);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        event.target.value = '';
+    },
+
+    renderWatermarkOnCanvas(img) {
+        const canvas = document.getElementById('cameraWatermarkCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Tỷ lệ kích thước watermark theo độ phân giải ảnh
+        const scale = Math.max(1, img.width / 1200);
+        const padding = Math.round(18 * scale);
+        const fontSizeHeader = Math.round(18 * scale);
+        const fontSizeBody = Math.round(13.5 * scale);
+        const lineHeight = Math.round(22 * scale);
+
+        const projName = AppState.currentProject.replace(/\.[^/.]+$/, "");
+        let markName = "Vị trí thực địa";
+        let xStr = "--", yStr = "--", latStr = "--", lngStr = "--";
+
+        if (appCamera.selectedPoint) {
+            markName = appCamera.selectedPoint.name;
+            xStr = parseFloat(appCamera.selectedPoint.x).toFixed(3);
+            yStr = parseFloat(appCamera.selectedPoint.y).toFixed(3);
+            latStr = parseFloat(appCamera.selectedPoint.lat).toFixed(6);
+            lngStr = parseFloat(appCamera.selectedPoint.lng).toFixed(6);
+        } else if (AppState.lastGps && AppState.lastGps.lat) {
+            markName = "GPS Live";
+            latStr = AppState.lastGps.lat.toFixed(6);
+            lngStr = AppState.lastGps.lng.toFixed(6);
+            try {
+                const pt = convertWgsToVn2k(AppState.lastGps.lat, AppState.lastGps.lng, AppState.kttVal, AppState.scaleFactor);
+                xStr = pt.X.toFixed(3);
+                yStr = pt.Y.toFixed(3);
+            } catch(e) {}
+        }
+
+        const now = new Date();
+        const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        const gpsAcc = (AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m';
+        const compassAz = Math.round(appStakeout.compassHeading || 0);
+
+        const lines = [
+            `📍 MỐC: ${markName} | DỰ ÁN: ${projName}`,
+            `• VN-2000: X = ${xStr} m | Y = ${yStr} m (KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' Múi ${AppState.muiVal}°)`,
+            `• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`,
+            `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
+        ];
+
+        const cardW = Math.min(img.width - padding * 2, Math.round(680 * scale));
+        const cardH = padding * 2 + fontSizeHeader + (lines.length * lineHeight) + Math.round(10 * scale);
+        const cardX = padding;
+        const cardY = img.height - cardH - padding;
+
+        // Vẽ hộp nền thủy ấn (Dark glassmorphism card)
+        ctx.save();
+        ctx.fillStyle = "rgba(10, 18, 32, 0.88)";
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = Math.max(2, Math.round(2 * scale));
+        
+        const r = Math.round(12 * scale);
+        ctx.beginPath();
+        ctx.moveTo(cardX + r, cardY);
+        ctx.lineTo(cardX + cardW - r, cardY);
+        ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
+        ctx.lineTo(cardX + cardW, cardY + cardH - r);
+        ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
+        ctx.lineTo(cardX + r, cardY + cardH);
+        ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
+        ctx.lineTo(cardX, cardY + r);
+        ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Tiêu đề
+        ctx.font = `bold ${fontSizeHeader}px -apple-system, sans-serif`;
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillText("WGS-84 ⇄ VN-2000 PRO | ẢNH NGHIỆM THU HIỆN TRƯỜNG", cardX + padding, cardY + padding + fontSizeHeader * 0.85);
+
+        // Vạch phân cách mạ vàng
+        ctx.strokeStyle = "rgba(251, 191, 36, 0.6)";
+        ctx.lineWidth = 1 * scale;
+        ctx.beginPath();
+        ctx.moveTo(cardX + padding, cardY + padding + fontSizeHeader + Math.round(6 * scale));
+        ctx.lineTo(cardX + cardW - padding, cardY + padding + fontSizeHeader + Math.round(6 * scale));
+        ctx.stroke();
+
+        // Dòng thông tin
+        ctx.font = `600 ${fontSizeBody}px ui-monospace, SFMono-Regular, monospace`;
+        let curY = cardY + padding + fontSizeHeader + Math.round(6 * scale) + lineHeight;
+
+        lines.forEach((l, idx) => {
+            ctx.fillStyle = (idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1"));
+            ctx.fillText(l, cardX + padding, curY);
+            curY += lineHeight;
+        });
+
+        ctx.restore();
+
+        const resultCard = document.getElementById('cardCameraResult');
+        if (resultCard) resultCard.style.display = 'block';
+        appCamera.renderedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        showToast("✅ Đã hoàn tất đóng dấu mốc tọa độ lên ảnh!");
+    },
+
+    downloadWatermarkedImage() {
+        if (!appCamera.renderedDataUrl) {
+            showToast("⚠️ Chưa có ảnh để tải về!", true);
+            return;
+        }
+        const markName = appCamera.selectedPoint ? appCamera.selectedPoint.name : "GPS_Live";
+        const link = document.createElement("a");
+        link.download = `Anh_Moc_${markName}_VN2000.jpg`;
+        link.href = appCamera.renderedDataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("✓ Đã tải ảnh nghiệm thu về thiết bị!");
+    },
+
+    shareImage() {
+        if (!appCamera.renderedDataUrl) {
+            showToast("⚠️ Chưa có ảnh để chia sẻ!", true);
+            return;
+        }
+        if (navigator.share) {
+            fetch(appCamera.renderedDataUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], "Anh_Moc_VN2000.jpg", { type: "image/jpeg" });
+                    navigator.share({
+                        title: "Ảnh nghiệm thu mốc VN-2000",
+                        text: `Mốc tọa độ dự án ${AppState.currentProject}`,
+                        files: [file]
+                    }).catch(() => {});
+                });
+        } else {
+            appCamera.downloadWatermarkedImage();
+            showToast("💡 Thiết bị không hỗ trợ share trực tiếp, đã tự động tải ảnh về máy!");
+        }
+    },
+
+    attachToCurrentPoint() {
+        if (!appCamera.selectedPoint) {
+            showToast("⚠️ Vui lòng chọn mốc trong dự án để lưu ghi chú!", true);
+            return;
+        }
+        const now = new Date();
+        const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+        const pts = appData.getPoints(AppState.currentProject);
+        const idx = pts.findIndex(pt => pt.name === appCamera.selectedPoint.name);
+        if (idx >= 0) {
+            pts[idx].note = (pts[idx].note ? pts[idx].note + " | " : "") + `Đã chụp ảnh nghiệm thu (${timeStr})`;
+            appData.savePoints(AppState.currentProject, pts);
+            showToast(`✓ Đã cập nhật ghi chú ảnh vào mốc "${appCamera.selectedPoint.name}"!`);
+        }
     }
 };
 
