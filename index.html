@@ -1537,13 +1537,25 @@
 
       <!-- Hộp hướng dẫn 3 bước và nút chép mã Script -->
       <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; font-size: 11.5px; line-height: 1.5; color: #cbd5e1;">
-        <div style="font-weight: 700; color: #fbbf24; margin-bottom: 4px;">📖 Kết Nối Google Sheet Riêng (Chỉ 1 phút):</div>
-        <div>1. Mở <a href="https://sheets.new" target="_blank" style="color: #38bdf8; text-decoration: underline;">Google Sheets</a> tạo file mới trên Drive.</div>
-        <div>2. Vào menu <b>Tiện ích mở rộng</b> ➔ <b>Apps Script</b>.</div>
-        <div>3. Dán đoạn mã kịch bản bên dưới vào ➔ bấm <b>Triển khai</b> ➔ <b>Ứng dụng web mới</b> (Quyền: <i>"Bất kỳ ai / Anyone"</i>) rồi dán link nhận được vào ô phía trên.</div>
-        <button class="btn-sm btn-amber" style="margin-top: 8px; width: 100%; height: 34px;" onclick="appData.copyAppsScriptTemplate()">
-          📋 Sao Chép Mã Google Apps Script Sẵn Có
-        </button>
+        <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+          <span>📖 Kết Nối Google Sheet Riêng (1 Phút)</span>
+          <button class="btn-sm btn-blue" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;" onclick="appModal.openGoogleGuide()">
+            Chi tiết ➔
+          </button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+          <div>1. Mở <a href="https://sheets.new" target="_blank" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">sheets.new</a> để tạo bảng tính mới trên Google Drive.</div>
+          <div>2. Vào <b>Tiện ích mở rộng (Extensions)</b> ➔ <b>Apps Script</b>.</div>
+          <div>3. Dán mã kịch bản bên dưới ➔ Bấm <b>Triển khai (Deploy)</b> ➔ <b>Ứng dụng web mới</b> (Quyền: <i>"Bất kỳ ai / Anyone"</i>).</div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <a href="https://sheets.new" target="_blank" class="btn-sm btn-green" style="text-decoration: none; height: 34px; font-size: 11.5px; display: inline-flex; align-items: center; justify-content: center;">
+            ✨ Mở sheets.new
+          </a>
+          <button class="btn-sm btn-amber" style="height: 34px; font-size: 11.5px;" onclick="appData.copyAppsScriptTemplate()">
+            📋 Sao Chép Mã Apps Script
+          </button>
+        </div>
       </div>
 
       <!-- Nút hành động -->
@@ -1553,6 +1565,84 @@
         </button>
         <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; margin: 0; font-size: 13.5px;" onclick="appData.saveGoogleConfig()">
           💾 LƯU CẤU HÌNH
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HƯỚNG DẪN CHI TIẾT TỪNG BƯỚC GOOGLE SHEETS -->
+  <div id="modalGoogleGuide" class="modal-overlay">
+    <div class="modal-box" style="max-width: 480px; max-height: 85vh;">
+      <div class="modal-title">
+        <span style="color: #38bdf8;">📖 Hướng Dẫn Kết Nối Google Sheets</span>
+        <button class="btn-modal-close" onclick="appModal.closeGoogleGuide()">✕</button>
+      </div>
+
+      <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1; display: flex; flex-direction: column; gap: 12px;">
+        
+        <!-- Mục 1 -->
+        <div style="background: #0f172a; border-left: 3px solid #38bdf8; padding: 10px; border-radius: 4px;">
+          <b style="color: #38bdf8; font-size: 13px;">Bước 1: Tạo bảng tính Google Sheet mới</b>
+          <div style="margin-top: 4px;">
+            Mở đường link <a href="https://sheets.new" target="_blank" style="color: #4ade80; text-decoration: underline; font-weight: 700;">https://sheets.new</a> trên trình duyệt để tạo ngay một file Google Sheet mới trên Google Drive cá nhân. Đặt tên file là <b>"Sổ Đo Tọa Độ VN2000"</b>.
+          </div>
+        </div>
+
+        <!-- Mục 2 -->
+        <div style="background: #0f172a; border-left: 3px solid #fbbf24; padding: 10px; border-radius: 4px;">
+          <b style="color: #fbbf24; font-size: 13px;">Bước 2: Mở trình soạn thảo Google Apps Script</b>
+          <div style="margin-top: 4px;">
+            Trên thanh menu của Google Sheet, bấm vào menu <b>Tiện ích mở rộng</b> (<i>Extensions</i>) ➔ chọn <b>Apps Script</b>. Một tab mới sẽ mở ra. Xóa sạch mọi code mặc định có sẵn.
+          </div>
+        </div>
+
+        <!-- Mục 3 -->
+        <div style="background: #0f172a; border-left: 3px solid #a78bfa; padding: 10px; border-radius: 4px;">
+          <b style="color: #a78bfa; font-size: 13px;">Bước 3: Dán đoạn mã kịch bản Pro & Bấm Lưu</b>
+          <div style="margin-top: 4px;">
+            Bấm nút màu vàng bên dưới để sao chép mã kịch bản tối ưu, dán vào trình soạn thảo Apps Script rồi bấm biểu tượng <b>💾 Lưu</b> (Ctrl+S).
+          </div>
+          <button class="btn-sm btn-amber" style="margin-top: 6px; width: 100%; height: 32px;" onclick="appData.copyAppsScriptTemplate()">
+            📋 Sao Chép Mã Google Apps Script Sẵn Có
+          </button>
+        </div>
+
+        <!-- Mục 4 -->
+        <div style="background: #0f172a; border-left: 3px solid #34d399; padding: 10px; border-radius: 4px;">
+          <b style="color: #34d399; font-size: 13px;">Bước 4: Triển khai Web App (Deploy)</b>
+          <div style="margin-top: 4px;">
+            Ở góc trên bên phải trang Apps Script, bấm <b>Triển khai (Deploy)</b> ➔ <b>Quản lý bản triển khai mới (New deployment)</b>.<br>
+            • Mục <i>"Chọn loại"</i>: Chọn <b>Ứng dụng web (Web app)</b>.<br>
+            • Mục <i>"Thực thi dưới dạng"</i>: Chọn <b>Tôi (Me)</b>.<br>
+            • 🔴 <b>"Người có quyền truy cập":</b> Chọn <b>Bất kỳ ai (Anyone)</b> (Bắt buộc để gửi dữ liệu từ điện thoại).<br>
+            Bấm nút <b>Triển khai (Deploy)</b>.
+          </div>
+        </div>
+
+        <!-- Mục 5: Vượt cảnh báo -->
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1.5px solid #ef4444; padding: 10px; border-radius: 8px;">
+          <b style="color: #f87171; font-size: 13px;">⚠️ Bước 5: Cấp quyền & Vượt cảnh báo bảo mật Google</b>
+          <div style="margin-top: 4px; font-size: 12px; color: #fecaca;">
+            Google sẽ hiện cảnh báo <i>"Google chưa xác minh ứng dụng này"</i> (do script bạn tự viết cá nhân):<br>
+            1. Bấm vào chữ nhỏ <b>Nâng cao (Advanced)</b> ở góc dưới.<br>
+            2. Bấm vào liên kết <b>Đi tới ... (không an toàn)</b>.<br>
+            3. Kéo xuống bấm <b>Cho phép (Allow)</b>.
+          </div>
+        </div>
+
+        <!-- Mục 6 -->
+        <div style="background: #0f172a; border-left: 3px solid #38bdf8; padding: 10px; border-radius: 4px;">
+          <b style="color: #38bdf8; font-size: 13px;">Bước 6: Dán link vào ứng dụng VN-2000 PWA</b>
+          <div style="margin-top: 4px;">
+            Sao chép đường link <b>URL của ứng dụng web</b> (dạng <code>https://script.google.com/macros/s/.../exec</code>) và dán vào ô <b>Google Apps Script Web App URL</b> trong ứng dụng rồi bấm <b>"Thử kết nối"</b>!
+          </div>
+        </div>
+
+      </div>
+
+      <div style="margin-top: 10px; display: flex; gap: 6px;">
+        <button class="btn-convert btn-wgs-to-vn2k" style="height: 40px; margin: 0; font-size: 13px;" onclick="appModal.closeGoogleGuide()">
+          ✓ ĐÃ HIỂU - QUAY LẠI CÀI ĐẶT
         </button>
       </div>
     </div>
