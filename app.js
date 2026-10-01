@@ -176,6 +176,12 @@ const appNav = {
     },
 
     toggleTreeMenu() {
+        const now = Date.now();
+        if (appNav._lastToggleTime && (now - appNav._lastToggleTime < 250)) {
+            return;
+        }
+        appNav._lastToggleTime = now;
+
         if (AppState.isTreeDrawerOpen) {
             appNav.closeTreeMenu();
         } else {
@@ -481,6 +487,14 @@ const appNav = {
         const mapView = document.getElementById('map-view-container');
         if (mapView) mapView.classList.add('active');
 
+        // Đồng bộ Header trên cùng
+        const btnBack = document.getElementById('btnHeaderBack');
+        if (btnBack) btnBack.style.display = 'inline-flex';
+        const titleEl = document.getElementById('headerTitle');
+        const subTitleEl = document.getElementById('headerSubtitle');
+        if (titleEl) titleEl.innerHTML = `<span>2. BẢN ĐỒ VỆ TINH & CHẤM ĐIỂM</span>`;
+        if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+
         appNav.setActiveMenuItem('drawerItem_map');
 
         appMap.initMap();
@@ -494,6 +508,14 @@ const appNav = {
         document.querySelectorAll('.screen-view').forEach(el => el.classList.remove('active'));
         const mapView = document.getElementById('map-view-container');
         if (mapView) mapView.classList.add('active');
+
+        // Đồng bộ Header trên cùng
+        const btnBack = document.getElementById('btnHeaderBack');
+        if (btnBack) btnBack.style.display = 'inline-flex';
+        const titleEl = document.getElementById('headerTitle');
+        const subTitleEl = document.getElementById('headerSubtitle');
+        if (titleEl) titleEl.innerHTML = `<span>2. BẢN ĐỒ VỆ TINH & CHẤM ĐIỂM</span>`;
+        if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
 
         appMap.initMap();
         if (pointData) {
@@ -515,6 +537,14 @@ const appNav = {
         document.querySelectorAll('.screen-view').forEach(el => el.classList.remove('active'));
         const mapView = document.getElementById('map-view-container');
         if (mapView) mapView.classList.add('active');
+
+        // Đồng bộ Header trên cùng
+        const btnBack = document.getElementById('btnHeaderBack');
+        if (btnBack) btnBack.style.display = 'inline-flex';
+        const titleEl = document.getElementById('headerTitle');
+        const subTitleEl = document.getElementById('headerSubtitle');
+        if (titleEl) titleEl.innerHTML = `<span>2. BẢN ĐỒ VỆ TINH & CHẤM ĐIỂM</span>`;
+        if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
 
         appMap.initMap();
         appMap.loadProjectMarkers();
@@ -5067,6 +5097,11 @@ window.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             appNav.toggleTreeMenu();
         });
+        btnHeaderMenu.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            appNav.toggleTreeMenu();
+        }, { passive: false });
     }
     const btnFloat = document.getElementById('btnFloatingQuickNav');
     if (btnFloat) {

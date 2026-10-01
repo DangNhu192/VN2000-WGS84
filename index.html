@@ -1464,7 +1464,12 @@
       cursor: pointer;
       flex-shrink: 0;
       z-index: 1001;
+      position: relative;
+      touch-action: manipulation;
       transition: all 0.18s ease;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     .btn-header-tree:hover {
       background: rgba(56, 189, 248, 0.35);
@@ -2436,8 +2441,8 @@
           <span class="tree-nav-icon">☰</span>
           <span class="tree-nav-label">Menu</span>
         </button>
-        <button id="btnHeaderBack" class="btn-header-back" onclick="appNav.goToMenu()">
-          ◀ Menu
+        <button id="btnHeaderBack" class="btn-header-back" onclick="appNav.goToMenu()" title="Quay lại Trang chủ">
+          ◀ Quay lại
         </button>
         <div class="app-title-group">
           <div class="app-title" id="headerTitle">
@@ -3198,7 +3203,7 @@
           <button class="btn-sm" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appNav.closeMap()">
             ◀ Quay lại
           </button>
-          <button class="btn-sm btn-blue" style="flex:none; padding: 4px 8px; height: 32px;" onclick="appNav.toggleTreeMenu()" title="Mở cây thư mục chức năng">
+          <button class="btn-sm btn-blue" style="display: none !important; flex:none; padding: 4px 8px; height: 32px;" onclick="appNav.toggleTreeMenu()" title="Mở cây thư mục chức năng">
             🌳 Menu
           </button>
           <span class="map-mode-text" id="mapModeIndicator">📍 BẢN ĐỒ DỰ ÁN</span>
@@ -4636,7 +4641,7 @@
   </aside>
 
   <!-- FLOATING QUICK NAV BUTTON (NÚT CHUYỂN NHANH NỔI) -->
-  <button id="btnFloatingQuickNav" class="btn-floating-quicknav" onclick="appNav.toggleTreeMenu()" title="Mở cây thư mục chức năng (Chuyển nhanh)">
+  <button id="btnFloatingQuickNav" class="btn-floating-quicknav" style="display: none !important;" onclick="appNav.toggleTreeMenu()" title="Mở cây thư mục chức năng (Chuyển nhanh)">
     <span class="fab-tree-icon">🌳</span>
     <span class="fab-tree-text">Menu Nhanh</span>
   </button>
@@ -4645,7 +4650,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.4.0"></script>
+  <script src="app.js?v=2.4.1"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
