@@ -23,7 +23,7 @@
 
 - **Tác giả:** Đặng Như
 - **Email:** [dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)
-- **Phiên bản:** v2.2.4 Pro (Đồng bộ Google Sheets & Lưu Ngoại Tuyến)
+- **Phiên bản:** v2.5.0 Pro (UI/UX Pro Max Optimized - Precision Field Dark & Haptic Feedback)
 
 ---
 
