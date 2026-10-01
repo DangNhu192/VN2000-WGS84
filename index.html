@@ -600,6 +600,40 @@
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
     }
 
+    /* UNIFIED SETTINGS TABS */
+    .settings-tab-bar {
+      display: flex;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 14px;
+      gap: 4px;
+    }
+
+    .settings-tab-btn {
+      flex: 1;
+      height: 38px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .settings-tab-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+    }
+
     /* MAP CONTAINER VIEW */
     #map-view-container {
       position: absolute;
@@ -1076,12 +1110,9 @@
           <div class="app-subtitle" id="headerSubtitle">Hệ Quy Chiếu & Tọa Độ Quốc Gia</div>
         </div>
       </div>
-      <div class="header-right" style="display: flex; gap: 6px;">
-        <button class="btn-header-action" onclick="appModal.openGoogleConfig()" title="Cài đặt nơi lưu trữ & Google Sheets">
-          ☁️ Lưu
-        </button>
-        <button class="btn-header-action" onclick="appModal.openSettings()" title="Cài đặt kinh tuyến trục">
-          ⚙️ KTT
+      <div class="header-right">
+        <button class="btn-header-action" onclick="appModal.openUnifiedSettings()" title="Cài đặt hệ thống (Lưu dữ liệu & KTT)">
+          ⚙️ Cài đặt
         </button>
       </div>
     </header>
@@ -1658,40 +1689,136 @@
     </main>
   </div>
 
-  <!-- MODAL CẤU HÌNH KINH TUYẾN TRỤC -->
+  <!-- MODAL CÀI ĐẶT HỆ THỐNG (LƯU DỮ LIỆU & KTT) -->
   <div id="modalSettings" class="modal-overlay">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width: 440px;">
       <div class="modal-title">
-        <span>⚙️ Cài Đặt Kinh Tuyến Trục (KTT)</span>
+        <span style="color: #38bdf8;">⚙️ Cài Đặt Hệ Thống</span>
         <button class="btn-modal-close" onclick="appModal.closeSettings()">✕</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Chọn tỉnh thành:</label>
-        <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()">
-          <!-- 63 tỉnh -->
-        </select>
+
+      <!-- Thanh chuyển Tab: Cài đặt Lưu dữ liệu & Cài đặt KTT -->
+      <div class="settings-tab-bar">
+        <button id="btnTabStorage" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('storage')">
+          ☁️ Cài đặt Lưu dữ liệu
+        </button>
+        <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')">
+          ⚙️ Cài đặt KTT
+        </button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Tự nhập Kinh tuyến trục (° '):</label>
-        <div class="input-row">
-          <input type="number" id="txtModalDeg" class="app-input" placeholder="Độ (VD: 105)">
-          <input type="number" id="txtModalMin" class="app-input" placeholder="Phút (VD: 45)">
+
+      <!-- THẺ 1: CÀI ĐẶT LƯU DỮ LIỆU -->
+      <div id="settingsTabContentStorage" class="settings-tab-content">
+        <!-- Giải thích bảo mật & offline -->
+        <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
+          🛡️ <b style="color: #f8fafc;">Bảo mật tuyệt đối:</b> GitHub & Vercel chỉ chứa giao diện ứng dụng. Tọa độ đo đạc của bạn được lưu an toàn 100% trên thiết bị cá nhân hoặc tài khoản Google Drive riêng của bạn.
+        </div>
+
+        <!-- Chọn chế độ lưu -->
+        <div class="form-group">
+          <label class="form-label">Chọn chế độ lưu trữ:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="storage-option-card active" id="cardModeOffline" onclick="appData.selectStorageMode('offline')">
+              <input type="radio" name="radioStorageMode" id="radioModeOffline" value="offline" checked style="margin-top: 3px; cursor: pointer;">
+              <div>
+                <div style="font-weight: 700; color: #4ade80; font-size: 13px;">📱 Lưu Ngoại Tuyến Trên Máy (Mặc định)</div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.4;">
+                  Tốc độ lưu tức thời, không phụ thuộc 4G/Wifi khi làm thực địa. Bạn có thể bấm nút <b>"Đồng bộ Google Sheets"</b> bất cứ lúc nào khi có mạng.
+                </div>
+              </div>
+            </div>
+
+            <div class="storage-option-card" id="cardModeAutoGoogle" onclick="appData.selectStorageMode('auto_google')">
+              <input type="radio" name="radioStorageMode" id="radioModeAutoGoogle" value="auto_google" style="margin-top: 3px; cursor: pointer;">
+              <div>
+                <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">☁️ Tự Động Đồng Bộ Lên Google Sheets</div>
+                <div style="font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.4;">
+                  Vừa lưu an toàn trên máy, vừa tự động gửi mốc lên bảng tính Google Sheets trên Google Drive của bạn khi có kết nối Internet.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cấu hình Google Apps Script Web App URL -->
+        <div class="form-group">
+          <label class="form-label">Google Apps Script Web App URL:</label>
+          <input type="url" id="txtGoogleScriptUrl" class="app-input" placeholder="https://script.google.com/macros/s/.../exec">
+          <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Link Web App tạo từ Google Sheet của bạn (quyền Anyone/Bất kỳ ai).</div>
+        </div>
+
+        <!-- Link xem file Google Sheet -->
+        <div class="form-group">
+          <label class="form-label">Link xem file Google Sheet (tùy chọn):</label>
+          <input type="url" id="txtGoogleSheetViewUrl" class="app-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+          <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Để mở xem bảng tính nhanh chỉ với 1 chạm.</div>
+        </div>
+
+        <!-- Hộp hướng dẫn 3 bước và nút chép mã Script -->
+        <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; font-size: 11.5px; line-height: 1.5; color: #cbd5e1; margin-bottom: 10px;">
+          <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>📖 Kết Nối Google Sheet Riêng (1 Phút)</span>
+            <button class="btn-sm btn-blue" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;" onclick="appModal.openGoogleGuide()">
+              Chi tiết ➔
+            </button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+            <div>1. Mở <a href="https://sheets.new" target="_blank" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">sheets.new</a> để tạo bảng tính mới trên Google Drive.</div>
+            <div>2. Vào <b>Tiện ích mở rộng (Extensions)</b> ➔ <b>Apps Script</b>.</div>
+            <div>3. Dán mã kịch bản bên dưới ➔ Bấm <b>Triển khai (Deploy)</b> ➔ <b>Ứng dụng web mới</b> (Quyền: <i>"Bất kỳ ai / Anyone"</i>).</div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <a href="https://sheets.new" target="_blank" class="btn-sm btn-green" style="text-decoration: none; height: 34px; font-size: 11.5px; display: inline-flex; align-items: center; justify-content: center;">
+              ✨ Mở sheets.new
+            </a>
+            <button class="btn-sm btn-amber" style="height: 34px; font-size: 11.5px;" onclick="appData.copyAppsScriptTemplate()">
+              📋 Sao Chép Mã Apps Script
+            </button>
+          </div>
+        </div>
+
+        <!-- Nút hành động Lưu dữ liệu -->
+        <div class="btn-group-row" style="margin-top: 8px;">
+          <button class="btn-sm btn-green" style="height: 42px;" onclick="appData.testGoogleConnection()">
+            🔌 Thử kết nối
+          </button>
+          <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; margin: 0; font-size: 13.5px;" onclick="appData.saveGoogleConfig()">
+            💾 LƯU CẤU HÌNH
+          </button>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Chọn Múi chiếu:</label>
-        <div class="toggle-mui-group">
-          <button id="modalBtnMui3" class="btn-mui-toggle active" onclick="appModal.setMui(3)">
-            Múi 3° (k0=0.9999)
-          </button>
-          <button id="modalBtnMui6" class="btn-mui-toggle" onclick="appModal.setMui(6)">
-            Múi 6° (k0=0.9996)
-          </button>
+
+      <!-- THẺ 2: CÀI ĐẶT KTT -->
+      <div id="settingsTabContentKtt" class="settings-tab-content" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Chọn tỉnh thành:</label>
+          <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()">
+            <!-- 63 tỉnh -->
+          </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Tự nhập Kinh tuyến trục (° '):</label>
+          <div class="input-row">
+            <input type="number" id="txtModalDeg" class="app-input" placeholder="Độ (VD: 105)">
+            <input type="number" id="txtModalMin" class="app-input" placeholder="Phút (VD: 45)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chọn Múi chiếu:</label>
+          <div class="toggle-mui-group">
+            <button id="modalBtnMui3" class="btn-mui-toggle active" onclick="appModal.setMui(3)">
+              Múi 3° (k0=0.9999)
+            </button>
+            <button id="modalBtnMui6" class="btn-mui-toggle" onclick="appModal.setMui(6)">
+              Múi 6° (k0=0.9996)
+            </button>
+          </div>
+        </div>
+        <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 14px; height: 42px; font-size: 13.5px;" onclick="appModal.saveSettings()">
+          💾 LƯU CẤU HÌNH KTT
+        </button>
       </div>
-      <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 8px;" onclick="appModal.saveSettings()">
-        💾 LƯU CẤU HÌNH KTT
-      </button>
+
     </div>
   </div>
 
@@ -1731,93 +1858,6 @@
     </div>
   </div>
 
-  <!-- MODAL CẤU HÌNH LƯU TRỮ & GOOGLE SHEETS / DRIVE -->
-  <div id="modalGoogleConfig" class="modal-overlay">
-    <div class="modal-box" style="max-width: 440px;">
-      <div class="modal-title">
-        <span style="color: #38bdf8;">☁️ Cài Đặt Nơi Lưu & Google Sheets</span>
-        <button class="btn-modal-close" onclick="appModal.closeGoogleConfig()">✕</button>
-      </div>
-
-      <!-- Giải thích bảo mật & offline -->
-      <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8;">
-        🛡️ <b style="color: #f8fafc;">Bảo mật tuyệt đối:</b> GitHub & Vercel chỉ chứa giao diện ứng dụng. Tọa độ đo đạc của bạn được lưu an toàn 100% trên thiết bị cá nhân hoặc tài khoản Google Drive riêng của bạn.
-      </div>
-
-      <!-- Chọn chế độ lưu -->
-      <div class="form-group">
-        <label class="form-label">Chọn chế độ lưu trữ:</label>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div class="storage-option-card active" id="cardModeOffline" onclick="appData.selectStorageMode('offline')">
-            <input type="radio" name="radioStorageMode" id="radioModeOffline" value="offline" checked style="margin-top: 3px; cursor: pointer;">
-            <div>
-              <div style="font-weight: 700; color: #4ade80; font-size: 13px;">📱 Lưu Ngoại Tuyến Trên Máy (Mặc định)</div>
-              <div style="font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.4;">
-                Tốc độ lưu tức thời, không phụ thuộc 4G/Wifi khi làm thực địa. Bạn có thể bấm nút <b>"Đồng bộ Google Sheets"</b> bất cứ lúc nào khi có mạng.
-              </div>
-            </div>
-          </div>
-
-          <div class="storage-option-card" id="cardModeAutoGoogle" onclick="appData.selectStorageMode('auto_google')">
-            <input type="radio" name="radioStorageMode" id="radioModeAutoGoogle" value="auto_google" style="margin-top: 3px; cursor: pointer;">
-            <div>
-              <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">☁️ Tự Động Đồng Bộ Lên Google Sheets</div>
-              <div style="font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.4;">
-                Vừa lưu an toàn trên máy, vừa tự động gửi mốc lên bảng tính Google Sheets trên Google Drive của bạn khi có kết nối Internet.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Cấu hình Google Apps Script Web App URL -->
-      <div class="form-group">
-        <label class="form-label">Google Apps Script Web App URL:</label>
-        <input type="url" id="txtGoogleScriptUrl" class="app-input" placeholder="https://script.google.com/macros/s/.../exec">
-        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Link Web App tạo từ Google Sheet của bạn (quyền Anyone/Bất kỳ ai).</div>
-      </div>
-
-      <!-- Link xem file Google Sheet -->
-      <div class="form-group">
-        <label class="form-label">Link xem file Google Sheet (tùy chọn):</label>
-        <input type="url" id="txtGoogleSheetViewUrl" class="app-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
-        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Để mở xem bảng tính nhanh chỉ với 1 chạm.</div>
-      </div>
-
-      <!-- Hộp hướng dẫn 3 bước và nút chép mã Script -->
-      <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; font-size: 11.5px; line-height: 1.5; color: #cbd5e1;">
-        <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
-          <span>📖 Kết Nối Google Sheet Riêng (1 Phút)</span>
-          <button class="btn-sm btn-blue" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;" onclick="appModal.openGoogleGuide()">
-            Chi tiết ➔
-          </button>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
-          <div>1. Mở <a href="https://sheets.new" target="_blank" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">sheets.new</a> để tạo bảng tính mới trên Google Drive.</div>
-          <div>2. Vào <b>Tiện ích mở rộng (Extensions)</b> ➔ <b>Apps Script</b>.</div>
-          <div>3. Dán mã kịch bản bên dưới ➔ Bấm <b>Triển khai (Deploy)</b> ➔ <b>Ứng dụng web mới</b> (Quyền: <i>"Bất kỳ ai / Anyone"</i>).</div>
-        </div>
-        <div style="display: flex; gap: 6px;">
-          <a href="https://sheets.new" target="_blank" class="btn-sm btn-green" style="text-decoration: none; height: 34px; font-size: 11.5px; display: inline-flex; align-items: center; justify-content: center;">
-            ✨ Mở sheets.new
-          </a>
-          <button class="btn-sm btn-amber" style="height: 34px; font-size: 11.5px;" onclick="appData.copyAppsScriptTemplate()">
-            📋 Sao Chép Mã Apps Script
-          </button>
-        </div>
-      </div>
-
-      <!-- Nút hành động -->
-      <div class="btn-group-row" style="margin-top: 8px;">
-        <button class="btn-sm btn-green" style="height: 42px;" onclick="appData.testGoogleConnection()">
-          🔌 Thử kết nối
-        </button>
-        <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; margin: 0; font-size: 13.5px;" onclick="appData.saveGoogleConfig()">
-          💾 LƯU CẤU HÌNH
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL HƯỚNG DẪN CHI TIẾT TỪNG BƯỚC GOOGLE SHEETS -->
   <div id="modalGoogleGuide" class="modal-overlay">

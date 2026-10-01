@@ -3080,27 +3080,64 @@ const appGeodesy = {
     }
 };
 
-// ================= 9. MODAL CÀI ĐẶT KTT (SETTINGS MODAL) =================
+// ================= 9. MODAL CÀI ĐẶT HỆ THỐNG (SETTINGS MODAL) =================
 const appModal = {
-    openSettings() {
+    currentSettingsTab: 'storage',
+
+    openUnifiedSettings(defaultTab = 'storage') {
         const m = document.getElementById('modalSettings');
         if (!m) return;
         m.classList.add('active');
 
-        // Nạp danh sách 63 tỉnh
+        // 1. Khởi tạo dữ liệu Tab KTT
         const sel = document.getElementById('modalProvinceSelect');
-        sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>';
-        VN_PROVINCES.forEach((p, idx) => {
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2,'0')}')`;
-            if (idx === AppState.provinceIndex) opt.selected = true;
-            sel.appendChild(opt);
-        });
+        if (sel) {
+            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>';
+            VN_PROVINCES.forEach((p, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2,'0')}')`;
+                if (idx === AppState.provinceIndex) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
 
-        document.getElementById('txtModalDeg').value = AppState.kttDeg;
-        document.getElementById('txtModalMin').value = AppState.kttMin;
+        const degInput = document.getElementById('txtModalDeg');
+        if (degInput) degInput.value = AppState.kttDeg;
+        const minInput = document.getElementById('txtModalMin');
+        if (minInput) minInput.value = AppState.kttMin;
         appModal.setMui(AppState.muiVal);
+
+        // 2. Khởi tạo dữ liệu Tab Lưu dữ liệu
+        appData.selectStorageMode(AppState.storageMode || 'offline');
+        const scriptUrlInput = document.getElementById('txtGoogleScriptUrl');
+        if (scriptUrlInput) scriptUrlInput.value = AppState.googleScriptUrl || '';
+
+        const sheetViewInput = document.getElementById('txtGoogleSheetViewUrl');
+        if (sheetViewInput) sheetViewInput.value = AppState.googleSheetViewUrl || '';
+
+        // 3. Kích hoạt đúng tab được yêu cầu
+        appModal.switchSettingsTab(defaultTab);
+    },
+
+    switchSettingsTab(tab = 'storage') {
+        appModal.currentSettingsTab = tab;
+        const isStorage = (tab === 'storage');
+
+        const btnStorage = document.getElementById('btnTabStorage');
+        const btnKtt = document.getElementById('btnTabKtt');
+        const contentStorage = document.getElementById('settingsTabContentStorage');
+        const contentKtt = document.getElementById('settingsTabContentKtt');
+
+        if (btnStorage) btnStorage.classList.toggle('active', isStorage);
+        if (btnKtt) btnKtt.classList.toggle('active', !isStorage);
+
+        if (contentStorage) contentStorage.style.display = isStorage ? 'block' : 'none';
+        if (contentKtt) contentKtt.style.display = isStorage ? 'none' : 'block';
+    },
+
+    openSettings() {
+        appModal.openUnifiedSettings('ktt');
     },
 
     closeSettings() {
@@ -3109,8 +3146,10 @@ const appModal = {
     },
 
     setMui(mui) {
-        document.getElementById('modalBtnMui3').classList.toggle('active', mui === 3);
-        document.getElementById('modalBtnMui6').classList.toggle('active', mui === 6);
+        const btn3 = document.getElementById('modalBtnMui3');
+        const btn6 = document.getElementById('modalBtnMui6');
+        if (btn3) btn3.classList.toggle('active', mui === 3);
+        if (btn6) btn6.classList.toggle('active', mui === 6);
         AppState.muiVal = mui;
         AppState.scaleFactor = (mui === 3) ? 0.9999 : 0.9996;
     },
@@ -3150,8 +3189,10 @@ const appModal = {
             if (tfSel) tfSel.value = -1;
         }
 
-        document.getElementById('btnMui3').classList.toggle('active', AppState.muiVal === 3);
-        document.getElementById('btnMui6').classList.toggle('active', AppState.muiVal === 6);
+        const mui3Btn = document.getElementById('btnMui3');
+        if (mui3Btn) mui3Btn.classList.toggle('active', AppState.muiVal === 3);
+        const mui6Btn = document.getElementById('btnMui6');
+        if (mui6Btn) mui6Btn.classList.toggle('active', AppState.muiVal === 6);
 
         appNav.updateBanner();
         appModal.closeSettings();
@@ -3159,21 +3200,11 @@ const appModal = {
     },
 
     openGoogleConfig() {
-        const m = document.getElementById('modalGoogleConfig');
-        if (!m) return;
-        m.classList.add('active');
-
-        appData.selectStorageMode(AppState.storageMode || 'offline');
-        const scriptUrlInput = document.getElementById('txtGoogleScriptUrl');
-        if (scriptUrlInput) scriptUrlInput.value = AppState.googleScriptUrl || '';
-
-        const sheetViewInput = document.getElementById('txtGoogleSheetViewUrl');
-        if (sheetViewInput) sheetViewInput.value = AppState.googleSheetViewUrl || '';
+        appModal.openUnifiedSettings('storage');
     },
 
     closeGoogleConfig() {
-        const m = document.getElementById('modalGoogleConfig');
-        if (m) m.classList.remove('active');
+        appModal.closeSettings();
     },
 
     openGoogleGuide() {
