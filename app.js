@@ -159,11 +159,7 @@ const appNav = window.appNav = {
                 if (subTitleEl) subTitleEl.innerText = "TCVN 4447:2012 • Tuyến & Hố Đào";
                 setTimeout(() => {
                     if (typeof appElevationProfile !== 'undefined') {
-                        if (appElevationProfile.currentTab === 'pit') {
-                            appElevationProfile.calculateAndRenderPit();
-                        } else {
-                            appElevationProfile.calculateAndRender();
-                        }
+                        appElevationProfile.setTab(appElevationProfile.currentTab || 'align');
                     }
                 }, 40);
             } else if (screenName === 'geoid') {
@@ -5169,26 +5165,32 @@ const appResection = {
 
 // ================= 9.3 TRẮC DỌC ĐỊA HÌNH & KHỐI LƯỢNG ĐÀO ĐẮP (TCVN 4447) =================
 const appElevationProfile = {
-    currentTab: 'pit',
+    currentTab: 'align',
     profileData: [],
+    alignPoints: [],
     pitPoints: [],
+    pickerMode: 'pit',
     pickerSelectedIds: new Set(),
     lastPitStats: null,
 
+    switchTab(tab) {
+        this.setTab(tab);
+    },
+
     setTab(tab) {
         triggerHaptic('light');
-        this.currentTab = tab;
+        this.currentTab = (tab === 'alignment' || tab === 'align') ? 'align' : 'pit';
         const btnAlign = document.getElementById('btnProfileTabAlign');
         const btnPit = document.getElementById('btnProfileTabPit');
         const panelAlign = document.getElementById('profilePanelAlignment');
         const panelPit = document.getElementById('profilePanelPit');
 
-        if (btnAlign) btnAlign.classList.toggle('active', tab === 'align');
-        if (btnPit) btnPit.classList.toggle('active', tab === 'pit');
-        if (panelAlign) panelAlign.classList.toggle('active', tab === 'align');
-        if (panelPit) panelPit.classList.toggle('active', tab === 'pit');
+        if (btnAlign) btnAlign.classList.toggle('active', this.currentTab === 'align');
+        if (btnPit) btnPit.classList.toggle('active', this.currentTab === 'pit');
+        if (panelAlign) panelAlign.classList.toggle('active', this.currentTab === 'align');
+        if (panelPit) panelPit.classList.toggle('active', this.currentTab === 'pit');
 
-        if (tab === 'pit') {
+        if (this.currentTab === 'pit') {
             this.calculateAndRenderPit();
         } else {
             this.calculateAndRender();
@@ -5203,13 +5205,42 @@ const appElevationProfile = {
         appNav.goToMenu();
     },
 
-    // --- BỘ CHỌN MỐC DỰ ÁN CHO HỐ ĐÀO (CHECKLIST MODAL) ---
-    openProjectPointPicker() {
+    // --- BỘ CHỌN MỐC DỰ ÁN CHO TUYẾN / HỐ ĐÀO ---
+    loadFromProject() {
+        this.openProjectPointPicker('align');
+    },
+
+    loadPitFromProject() {
+        this.openProjectPointPicker('pit');
+    },
+
+    pickFromMap(mode) {
         triggerHaptic('light');
+        appNav.openProjectMap();
+        const targetName = (mode === 'alignment' || mode === 'align') ? "Tuyến trắc dọc" : "Hố đào móng";
+        showToast(`🗺️ Đã mở Bản đồ dự án. Bạn có thể xem và quản lý các mốc cho ${targetName}!`);
+    },
+
+    openProjectPointPicker(mode = 'pit') {
+        triggerHaptic('light');
+        this.pickerMode = (mode === 'alignment' || mode === 'align') ? 'align' : 'pit';
         const modal = document.getElementById('modalPitPointPicker');
         const projNameEl = document.getElementById('txtPickerProjName');
         const listEl = document.getElementById('listProjectPointsPicker');
+        const titleEl = modal ? modal.querySelector('.modal-title span') : null;
+        const confirmBtn = modal ? modal.querySelector('.btn-green') : null;
         if (!modal || !listEl) return;
+
+        if (titleEl) {
+            titleEl.innerText = this.pickerMode === 'align'
+                ? "📁 Chọn Cọc Mốc Cho Tuyến Trắc Dọc"
+                : "📁 Chọn Mốc Dự Án Cho Hố Đào (TCVN 4447)";
+        }
+        if (confirmBtn) {
+            confirmBtn.innerText = this.pickerMode === 'align'
+                ? "✓ Nạp Các Mốc Đã Chọn Vào Tuyến Trắc Dọc"
+                : "✓ Nạp Các Mốc Đã Chọn Vào Hố Đào";
+        }
 
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án hiện tại";
         if (projNameEl) projNameEl.innerText = projName;
@@ -5222,10 +5253,11 @@ const appElevationProfile = {
             return;
         }
 
-        // Khởi tạo tập chọn từ pitPoints hiện có
+        // Khởi tạo tập chọn từ mốc hiện có
         this.pickerSelectedIds.clear();
-        if (this.pitPoints && this.pitPoints.length > 0) {
-            this.pitPoints.forEach(p => {
+        const currentPoints = (this.pickerMode === 'align') ? this.alignPoints : this.pitPoints;
+        if (currentPoints && currentPoints.length > 0) {
+            currentPoints.forEach(p => {
                 if (p.id) this.pickerSelectedIds.add(String(p.id));
                 else if (p.name) this.pickerSelectedIds.add(String(p.name));
             });
@@ -5312,16 +5344,26 @@ const appElevationProfile = {
             }
         });
 
-        if (selected.length < 3) {
-            showToast("⚠️ Cần chọn tối thiểu 3 điểm mốc để tạo chu vi đa giác đáy hố đào!", true);
-            return;
+        if (this.pickerMode === 'align') {
+            if (selected.length < 2) {
+                showToast("⚠️ Cần chọn tối thiểu 2 điểm cọc mốc để vẽ trắc dọc tuyến!", true);
+                return;
+            }
+            this.alignPoints = selected;
+            this.closeProjectPointPicker();
+            this.calculateAndRender();
+            showToast(`✓ Đã nạp ${selected.length} cọc mốc vào Tuyến trắc dọc!`);
+        } else {
+            if (selected.length < 3) {
+                showToast("⚠️ Cần chọn tối thiểu 3 điểm mốc để tạo chu vi đa giác đáy hố đào!", true);
+                return;
+            }
+            this.pitPoints = selected;
+            this.renderPitPointsTable();
+            this.closeProjectPointPicker();
+            this.calculateAndRenderPit();
+            showToast(`✓ Đã nạp ${selected.length} mốc đáy hố đào từ dự án!`);
         }
-
-        this.pitPoints = selected;
-        this.renderPitPointsTable();
-        this.closeProjectPointPicker();
-        this.calculateAndRenderPit();
-        showToast(`✓ Đã nạp ${selected.length} mốc đáy hố đào từ dự án!`);
     },
 
     renderPitPointsTable() {
@@ -6093,8 +6135,10 @@ const appElevationProfile = {
 
     // --- CÁC HÀM CHO TRẮC DỌC TUYẾN (PROFILE ALIGNMENT) ---
     calculateAndRender() {
-        // Lấy danh sách điểm từ sổ đo hoặc dự án hiện tại
-        const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject) : [];
+        // Lấy danh sách điểm từ alignPoints nếu đã chọn, hoặc từ toàn bộ mốc dự án
+        const pts = (this.alignPoints && this.alignPoints.length >= 2)
+            ? this.alignPoints
+            : ((typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject) : []);
         const canvas = document.getElementById('elevationProfileCanvas');
         const tbody = document.getElementById('tableVolumeBody');
         const resCut = document.getElementById('resTotalCutVol');
