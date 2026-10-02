@@ -4696,8 +4696,11 @@
             <button id="btnToggleBlocksPanel" class="cad-btn" style="background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" onclick="appCadTool.toggleBlocksPanel()" title="Hiển thị/Ẩn bảng thống kê các khối đã vẽ">
               📊 Khối (<span id="cadToolbarBlockCount">0</span>)
             </button>
-            <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(14, 165, 233, 0.4); color: #38bdf8;" onclick="appCadTool.exportDxf()" title="Xuất file bản vẽ AutoCAD R12 (.DXF) có đầy đủ layer TCVN, khung tên, bảng kê">
-              📐 Xuất CAD (.DXF)
+            <button class="cad-btn" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%); border-color: #38bdf8; color: #7dd3fc; font-weight: 700;" onclick="appCadTool.openExportModal()" title="Mở hộp thoại cấu hình & xuất bản vẽ kỹ thuật (AutoCAD DXF, PDF, Excel...)">
+              📤 Xuất bản vẽ (CAD/PDF)
+            </button>
+            <button class="cad-btn" style="background: rgba(250, 204, 21, 0.15); border-color: rgba(250, 204, 21, 0.4); color: #fde047;" onclick="appCadTool.openLoadProjectModal()" title="Nạp mốc tọa độ từ các dự án đã lưu vào MiniCAD">
+              📁 Nạp mốc dự án
             </button>
             <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
               ↔ Offset [O]
@@ -6246,122 +6249,264 @@
         </table>
       </div>
 
-      <!-- Thông tin khung tên bản vẽ kỹ thuật chuyên nghiệp (Chuẩn TCVN 7285 & Khảo sát địa chính) -->
-      <div style="background: rgba(15,23,42,0.85); border: 1.5px solid rgba(56,189,248,0.3); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 4px;">
-          <span style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">📐 Khung Tên Bản Vẽ Kỹ Thuật (TCVN 7285)</span>
-          <span style="font-size: 10.5px; color: #94a3b8;">Tự động lưu cấu hình</span>
+      <!-- Footer Bảng Kê Rộng Rãi & Nút Chuyển Sang Xuất Bản Vẽ -->
+      <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(56, 189, 248, 0.2);">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button class="btn-sm btn-blue" style="height: 36px; padding: 0 12px;" onclick="appCadTool.copyTableToClipboard()" title="Sao chép bảng kê vào bộ nhớ tạm">
+            📋 Sao chép
+          </button>
+          <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3);" onclick="window.print()" title="In bảng kê">
+            🖨️ In bảng kê
+          </button>
+          <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: 1px solid #10b981;" onclick="appCadTool.exportAreaExcel()" title="Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp">
+            📊 Xuất Excel
+          </button>
+          <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);" onclick="appCadTool.exportAreaCsv()" title="Xuất dữ liệu thô CSV">
+            📄 Xuất CSV
+          </button>
         </div>
-        
-        <!-- Hàng 1: Tên Bản Vẽ & Tên Dự Án -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #38bdf8; font-weight: 700;">Tên Bản Vẽ (Tiêu đề in đậm):</label>
-            <input type="text" id="cadExportDrawingName" class="app-input" style="height: 30px; font-size: 11.5px; font-weight: 700;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #fbbf24; font-weight: 700;">Tên Dự Án / Công Trình:</label>
-            <input type="text" id="cadExportProjectName" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Khu dân cư Đô thị mới Mỹ Phú">
-          </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn-sm" style="height: 36px; padding: 0 16px; font-weight: 800; font-size: 12px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1.5px solid #38bdf8; box-shadow: 0 2px 10px rgba(2,132,199,0.4); border-radius: 6px;" onclick="appCadTool.openExportModal()" title="Mở hộp thoại cấu hình tỷ lệ, khổ giấy và thông tin khung tên xuất bản vẽ CAD/PDF">
+            📤 Cấu Hình & Xuất Bản Vẽ (CAD/PDF)...
+          </button>
+          <button class="btn-sm btn-red" style="height: 36px; padding: 0 14px;" onclick="appCadTool.closeAreaTableModal()">
+            Đóng
+          </button>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <!-- Hàng 2: Đơn vị tư vấn & Chủ đầu tư -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Đơn vị tư vấn / Khảo sát:</label>
-            <input type="text" id="cadExportOrganization" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH">
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Chủ sử dụng / Chủ đầu tư:</label>
-            <input type="text" id="cadExportOwner" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A">
-          </div>
-        </div>
 
-        <!-- Hàng 3: Số thửa / tờ bản đồ & Địa chỉ -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+  <!-- ================= MODAL CẤU HÌNH & XUẤT BẢN VẼ KỸ THUẬT (RIÊNG BIỆT) ================= -->
+  <div id="modalCadExportConfig" class="modal-overlay">
+    <div class="modal-box" style="max-width: 820px; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid rgba(56, 189, 248, 0.3); padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">📐</span>
           <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Số thửa / Tờ bản đồ:</label>
-            <input type="text" id="cadExportParcelNo" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 123 / Tờ 05">
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Địa chỉ thửa đất / Vị trí:</label>
-            <input type="text" id="cadExportAddress" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ấp 3, xã Mỹ Long, huyện Cao Lãnh">
-          </div>
-        </div>
-
-        <!-- Hàng 4: Cán bộ đo, Người kiểm tra & Ký hiệu bản vẽ -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Cán bộ đo đạc:</label>
-            <input type="text" id="cadExportSurveyor" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B">
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Người kiểm tra:</label>
-            <input type="text" id="cadExportChecker" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C">
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Ký hiệu bản vẽ:</label>
-            <input type="text" id="cadExportDrawingCode" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01">
+            <div style="color: #38bdf8; font-weight: 800; font-size: 14.5px; letter-spacing: 0.5px;">CẤU HÌNH & XUẤT BẢN VẼ KỸ THUẬT</div>
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 400;">Quy chuẩn TCVN 7285 & Thông tư 25/2014/TT-BTNMT • Độc lập không che khuất bảng kê</div>
           </div>
         </div>
-
-        <!-- Hàng 5: Tỷ lệ, Khổ giấy & Ngày lập -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: center;">
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Tỷ lệ bản vẽ:</label>
-            <select id="cadExportScale" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.checkScalePaperFit()">
-              <option value="200">1:200 (Thửa nhỏ, đô thị)</option>
-              <option value="500" selected>1:500 (Thửa vừa, phổ biến)</option>
-              <option value="1000">1:1000 (Thửa lớn, mặt bằng)</option>
-              <option value="2000">1:2000 (Tổng thể, tuyến)</option>
-              <option value="5000">1:5000 (Quy hoạch vùng)</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Khổ giấy in:</label>
-            <select id="cadExportPaperSize" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.checkScalePaperFit()">
-              <option value="A3" selected>Khổ A3 (420 x 297 mm)</option>
-              <option value="A4">Khổ A4 (297 x 210 mm)</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Ngày lập:</label>
-            <input type="text" id="cadExportDate" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="DD/MM/YYYY">
-          </div>
-        </div>
-        <!-- Vùng cảnh báo tương thích tỷ lệ và khổ giấy thời gian thực -->
-        <div id="cadScaleFitNotice" style="margin-top: 6px; padding: 6px 10px; border-radius: 6px; font-size: 11px; display: none;"></div>
+        <button class="btn-modal-close" onclick="appCadTool.closeExportModal()">✕</button>
       </div>
 
-      <!-- Footer các nút thao tác xuất file -->
-      <div class="modal-footer" style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; padding-top: 8px; border-top: 1px solid rgba(56, 189, 248, 0.2);">
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: 1px solid #10b981;" onclick="appCadTool.exportAreaExcel()" title="Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp chuẩn TCVN">
-          📊 Excel (.xls)
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px;">
+        <!-- Phần 1: Chọn các khối / thửa đất xuất bản vẽ -->
+        <div style="background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 10px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <div style="font-size: 11.5px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+              <span>📦</span>
+              <span>1. CHỌN CÁC KHỐI / THỬA ĐẤT XUẤT BẢN VẼ:</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn-sm btn-blue" style="height: 22px; padding: 0 8px; font-size: 10.5px;" onclick="appCadTool.toggleSelectAllExportBlocks(true)">✓ Chọn tất cả</button>
+              <button type="button" class="btn-sm" style="height: 22px; padding: 0 8px; font-size: 10.5px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.toggleSelectAllExportBlocks(false)">✕ Bỏ chọn</button>
+            </div>
+          </div>
+          <div id="cadExportBlockPickerList" style="max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px;">
+            <!-- Render danh sách khối chọn xuất bằng JS -->
+          </div>
+          <div id="cadExportBlockSummary" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(56,189,248,0.2); font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+            <span>Đã chọn: <b id="cadExportSelectedCount" style="color: #38bdf8;">0</b> khối</span>
+            <span>Tổng diện tích xuất: <b id="cadExportSelectedArea" style="color: #4ade80;">0 m²</b> (<span id="cadExportSelectedHa">0 ha</span>)</span>
+          </div>
+        </div>
+
+        <!-- Phần 2: Khổ giấy & Tỉ lệ bản vẽ chuẩn TCVN -->
+        <div style="background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 10px 12px;">
+          <div style="font-size: 11.5px; font-weight: 800; color: #38bdf8; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <span>📏</span>
+            <span>2. KHỔ GIẤY & TỶ LỆ IN ẤN THỰC ĐỊA:</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: center;">
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #facc15; font-weight: 700;">Tỷ lệ bản vẽ:</label>
+              <select id="cadExportScale" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" onchange="appCadTool.checkScalePaperFit()">
+                <option value="200">1:200 (Thửa nhỏ, đô thị)</option>
+                <option value="500" selected>1:500 (Thửa vừa, phổ biến)</option>
+                <option value="1000">1:1000 (Thửa lớn, mặt bằng)</option>
+                <option value="2000">1:2000 (Tổng thể, tuyến)</option>
+                <option value="5000">1:5000 (Quy hoạch vùng)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #38bdf8; font-weight: 700;">Khổ giấy in:</label>
+              <select id="cadExportPaperSize" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" onchange="appCadTool.checkScalePaperFit()">
+                <option value="A3" selected>Khổ A3 (420 x 297 mm) Ngang</option>
+                <option value="A4">Khổ A4 (297 x 210 mm) Ngang</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Ngày lập:</label>
+              <input type="text" id="cadExportDate" class="app-input" style="height: 32px; font-size: 11.5px;" placeholder="DD/MM/YYYY">
+            </div>
+          </div>
+          <!-- Vùng cảnh báo tương thích tỷ lệ và khổ giấy thời gian thực -->
+          <div id="cadScaleFitNotice" style="margin-top: 6px; padding: 6px 10px; border-radius: 6px; font-size: 11px; display: none;"></div>
+        </div>
+
+        <!-- Phần 3: Thông tin khung tên bản vẽ kỹ thuật -->
+        <div style="background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 10px 12px;">
+          <div style="font-size: 11.5px; font-weight: 800; color: #38bdf8; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span>📋</span>
+              <span>3. THÔNG TIN KHUNG TÊN BẢN VẼ (TCVN 7285):</span>
+            </div>
+            <span style="font-size: 10px; color: #94a3b8;">Tự động lưu cấu hình</span>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #38bdf8; font-weight: 700;">Tên bản vẽ (Tiêu đề in):</label>
+              <input type="text" id="cadExportDrawingName" class="app-input" style="height: 30px; font-size: 11.5px; font-weight: 700;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #fbbf24; font-weight: 700;">Tên dự án / Công trình:</label>
+              <input type="text" id="cadExportProjectName" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Khu dân cư Đô thị mới Mỹ Phú">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Đơn vị khảo sát / đo đạc:</label>
+              <input type="text" id="cadExportOrganization" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Chủ sở hữu / người sử dụng đất:</label>
+              <input type="text" id="cadExportOwner" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Số tờ / Số thửa:</label>
+              <input type="text" id="cadExportParcelNo" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 123 / Tờ 05">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Địa chỉ thửa đất:</label>
+              <input type="text" id="cadExportAddress" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ấp 3, xã Mỹ Long, huyện Cao Lãnh">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Người đo vẽ:</label>
+              <input type="text" id="cadExportSurveyor" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Người kiểm tra:</label>
+              <input type="text" id="cadExportChecker" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C">
+            </div>
+            <div>
+              <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Ký hiệu bản vẽ:</label>
+              <input type="text" id="cadExportDrawingCode" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01">
+            </div>
+          </div>
+        </div>
+
+        <!-- Phần 4: Chọn định dạng xuất file -->
+        <div style="background: rgba(15,23,42,0.85); border: 1.5px solid rgba(56,189,248,0.35); border-radius: 8px; padding: 12px 14px;">
+          <div style="font-size: 12px; font-weight: 800; color: #38bdf8; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span>🚀</span>
+            <span>4. CHỌN ĐỊNH DẠNG XUẤT FILE:</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+            <button class="btn-sm" style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 6px;" onclick="appCadTool.exportDxf()" title="Xuất bản vẽ AutoCAD (.dxf) chuẩn R2004 font Unicode không lỗi tiếng Việt và bố cục TCVN 7285">
+              📐 AutoCAD DXF (.dxf)
+            </button>
+            <button class="btn-sm" style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border: 1px solid #ef4444; border-radius: 6px;" onclick="appCadTool.exportPdf()" title="Xuất bản vẽ kỹ thuật trực tiếp ra file PDF (.pdf) chuẩn kích thước khổ giấy và tỷ lệ in ấn">
+              📕 Xuất PDF (.pdf)
+            </button>
+            <button class="btn-sm" style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: 1px solid #10b981; border-radius: 6px;" onclick="appCadTool.exportAreaExcel()" title="Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp chuẩn TCVN">
+              📊 Bảng Tính Excel (.xls)
+            </button>
+            <button class="btn-sm" style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: #fff; border: 1px solid #8b5cf6; border-radius: 6px;" onclick="appCadTool.exportSvg()" title="Xuất đồ họa vector SVG sắc nét">
+              🖼️ SVG Vector (.svg)
+            </button>
+            <button class="btn-sm" style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #fff; border: 1px solid #fbbf24; border-radius: 6px;" onclick="appCadTool.exportPng()" title="Xuất hình ảnh PNG độ nét cao">
+              📸 PNG Hình Ảnh (.png)
+            </button>
+            <button class="btn-sm" style="height: 42px; font-weight: 700; font-size: 11.5px; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px;" onclick="appCadTool.exportAreaCsv()" title="Xuất dữ liệu thô định dạng CSV">
+              📄 CSV Thô (.csv)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid rgba(56, 189, 248, 0.2);">
+        <button class="btn-sm btn-blue" onclick="appCadTool.openAreaTableModal()" style="height: 36px; padding: 0 14px;">
+          📋 Xem Lại Bảng Kê
         </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);" onclick="appCadTool.exportAreaCsv()" title="Xuất dữ liệu thô định dạng CSV">
-          📄 CSV
-        </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8;" onclick="appCadTool.exportDxf()" title="Xuất bản vẽ AutoCAD (.dxf) chuẩn R2004 font Unicode không lỗi tiếng Việt và bố cục TCVN 7285">
-          📐 AutoCAD DXF
-        </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border: 1px solid #ef4444;" onclick="appCadTool.exportPdf()" title="Xuất bản vẽ kỹ thuật trực tiếp ra file PDF (.pdf) chuẩn kích thước khổ giấy và tỷ lệ in ấn">
-          📕 Xuất PDF (.pdf)
-        </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: #fff; border: 1px solid #8b5cf6;" onclick="appCadTool.exportSvg()">
-          🖼️ SVG Vector
-        </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #fff; border: 1px solid #fbbf24;" onclick="appCadTool.exportPng()">
-          📸 PNG Ảnh
-        </button>
-        <button class="btn-sm btn-blue" style="height: 36px; padding: 0 10px;" onclick="appCadTool.copyTableToClipboard()">
-          📋 Sao chép
-        </button>
-        <button class="btn-sm btn-red" style="height: 36px; padding: 0 10px;" onclick="appCadTool.closeAreaTableModal()">
+        <button class="btn-sm btn-red" onclick="appCadTool.closeExportModal()" style="height: 36px; padding: 0 18px;">
           Đóng
         </button>
       </div>
     </div>
   </div>
+
+  <!-- ================= MODAL NẠP MỐC TỌA ĐỘ DỰ ÁN VÀO MINICAD ================= -->
+  <div id="modalCadLoadProject" class="modal-overlay">
+    <div class="modal-box" style="max-width: 560px; max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="modal-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56,189,248,0.25); padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">📁</span>
+          <span style="color: #38bdf8; font-weight: 800; font-size: 14px;">NẠP MỐC DỰ ÁN VÀO MINICAD</span>
+        </div>
+        <button class="btn-modal-close" onclick="appCadTool.closeLoadProjectModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Chọn dự án nguồn -->
+        <div>
+          <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #facc15; font-weight: 700;">Chọn dự án đã lưu để nạp mốc:</label>
+          <select id="cadLoadProjectSelect" class="app-select" style="height: 34px; font-size: 12px; width: 100%;" onchange="appCadTool.onLoadProjectSelectChange(this.value)">
+            <!-- Render danh sách dự án -->
+          </select>
+        </div>
+
+        <!-- Danh sách mốc có checkbox -->
+        <div style="background: rgba(15,23,42,0.7); border: 1px solid rgba(56,189,248,0.2); border-radius: 6px; padding: 8px 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; color: #94a3b8;">Chọn các mốc cần nạp vào MiniCAD:</span>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn-sm btn-blue" style="height: 20px; padding: 0 6px; font-size: 10px;" onclick="appCadTool.toggleSelectAllLoadPoints(true)">✓ Chọn hết</button>
+              <button type="button" class="btn-sm" style="height: 20px; padding: 0 6px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.toggleSelectAllLoadPoints(false)">✕ Bỏ chọn</button>
+            </div>
+          </div>
+          <div id="cadLoadPointsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+            <!-- Render mốc bằng JS -->
+          </div>
+          <div style="margin-top: 6px; font-size: 11px; color: #38bdf8; text-align: right;">
+            Đã chọn: <b id="cadLoadSelectedPointCount">0</b> mốc
+          </div>
+        </div>
+
+        <!-- Tên khối CAD sẽ tạo -->
+        <div>
+          <label class="form-label" style="font-size: 11px; margin-bottom: 3px;">Tên khối CAD khi nạp:</label>
+          <input type="text" id="cadLoadTargetShapeName" class="app-input" style="height: 32px; font-size: 11.5px;" placeholder="VD: Thửa đất ranh dự án">
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; padding: 10px 14px; border-top: 1px solid rgba(56,189,248,0.2);">
+        <button class="btn-sm btn-red" onclick="appCadTool.closeLoadProjectModal()" style="height: 36px; padding: 0 12px;">
+          Hủy
+        </button>
+        <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appCadTool.confirmLoadProjectAsSnap()" title="Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do">
+          🧲 Bật mốc để Snap
+        </button>
+        <button class="btn-sm btn-blue" style="height: 36px; padding: 0 12px; font-weight: 700;" onclick="appCadTool.confirmLoadProjectAsShape('polyline')" title="Nạp thành đường tim tuyến hở trong MiniCAD">
+          📏 Nạp thành Tuyến
+        </button>
+        <button class="btn-sm btn-green" style="height: 36px; padding: 0 14px; font-weight: 800;" onclick="appCadTool.confirmLoadProjectAsShape('polygon')" title="Nạp thành đa giác khép kín tính diện tích trong MiniCAD">
+          ✓ Nạp thành Đa Giác
+        </button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- ================= MODAL BẮN ĐIỂM THEO CỰ LY & GÓC PHƯƠNG VỊ (3.5) ================= -->
   <div id="modalCadPolarInput" class="modal-overlay">

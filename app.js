@@ -137,6 +137,9 @@ const appNav = window.appNav = {
             mapView.classList.remove('active');
             mapView.style.display = 'none';
         }
+        if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
+            appCadTool.closeToolbar();
+        }
 
         const btnBack = document.getElementById('btnHeaderBack');
         const titleEl = document.getElementById('headerTitle');
@@ -445,6 +448,7 @@ const appNav = window.appNav = {
         } else if (action === 'map') {
             appNav.openProjectMap();
             appNav.setActiveMenuItem('drawerItem_map');
+            if (typeof appCadTool !== 'undefined' && appCadTool.isActive) appCadTool.closeToolbar();
         } else if (action === 'stakeout') {
             appNav.showScreen('stakeout');
             appNav.setActiveMenuItem('drawerItem_stakeout');
@@ -462,18 +466,20 @@ const appNav = window.appNav = {
             appModal.openImportProjectModal();
         } else if (action === 'measure_distance') {
             appNav.setActiveMenuItem('drawerItem_measure_distance');
-            appNav.openProjectMap({ loadProject: true });
+            appNav.openProjectMap(); // Mở bản đồ mới sạch theo yêu cầu
+            if (typeof appCadTool !== 'undefined' && appCadTool.isActive) appCadTool.closeToolbar();
             if (!AppState.showProjectDistance) {
                 appMap.toggleDistanceDisplay();
             }
-            showToast("📏 Chế độ đo khoảng cách giữa các mốc đã sẵn sàng!");
+            showToast("📏 Chế độ đo khoảng cách (Bản đồ mới). Chọn dự án từ menu nếu muốn nạp mốc có sẵn.");
         } else if (action === 'measure_polygon') {
             appNav.setActiveMenuItem('drawerItem_measure_polygon');
-            appNav.openProjectMap({ loadProject: true });
+            appNav.openProjectMap(); // Mở bản đồ mới sạch
+            if (typeof appCadTool !== 'undefined' && appCadTool.isActive) appCadTool.closeToolbar();
             if (!AppState.isPolygonClosed) {
                 appMap.togglePolygonClose();
             }
-            showToast("📐 Chế độ khép góc đa giác ranh thửa đã kích hoạt!");
+            showToast("📐 Chế độ khép góc đa giác (Bản đồ mới). Chọn dự án từ menu nếu muốn nạp mốc có sẵn.");
         } else if (action === 'export_dxf') {
             appNav.setActiveMenuItem('drawerItem_export_dxf');
             appData.exportDxfFile();
@@ -7272,7 +7278,7 @@ const appCadTool = {
                 vertices: [...this.vertices],
                 stats: this.calculateAreaAndPerimeter(),
                 color: '#06b6d4',
-                selected: true
+                selected: this._draftSelected !== false
             });
         }
         return allShapes;
@@ -8549,7 +8555,263 @@ const appCadTool = {
         showToast(`✓ Đã thêm đỉnh ${name} (X: ${x.toFixed(3)}, Y: ${y.toFixed(3)})`);
     },
 
+
+    // === HỘP THOẠI CẤU HÌNH & XUẤT BẢN VẼ KỸ THUẬT (TÁCH BIỆT KHỎI BẢNG KÊ) ===
+    openExportModal() {
+        this.closeAreaTableModal();
+        const allShapes = this._getAllExportShapes();
+        if (allShapes.length === 0) {
+            showToast("⚠️ Chưa có cấu trúc hoặc mốc ranh nào để xuất bản vẽ!", true);
+            return;
+        }
+
+        const modal = document.getElementById('modalCadExportConfig');
+        if (modal) modal.classList.add('active');
+
+        // Nạp cấu hình khung tên đã lưu từ localStorage
+        try {
+            const savedMetaStr = localStorage.getItem('vn2k_cad_meta_saved');
+            const savedMeta = savedMetaStr ? JSON.parse(savedMetaStr) : null;
+            const curProj = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "BanDo";
+
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val !== undefined && val !== null) el.value = val;
+            };
+
+            setVal('cadExportDrawingName', savedMeta?.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
+            setVal('cadExportProjectName', savedMeta?.projectName || curProj);
+            setVal('cadExportOrganization', savedMeta?.organization || '');
+            setVal('cadExportOwner', savedMeta?.owner || '');
+            setVal('cadExportParcelNo', savedMeta?.parcelNo || '');
+            setVal('cadExportAddress', savedMeta?.address || AppState.provinceName || '');
+            setVal('cadExportSurveyor', savedMeta?.surveyor || '');
+            setVal('cadExportChecker', savedMeta?.checker || '');
+            setVal('cadExportDrawingCode', savedMeta?.drawingCode || 'SĐ-01/01');
+            setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
+            if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
+            if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
+        } catch (e) {}
+
+        this.renderExportBlockPicker();
+        setTimeout(() => this.checkScalePaperFit(), 50);
+    },
+
+    closeExportModal() {
+        const modal = document.getElementById('modalCadExportConfig');
+        if (modal) modal.classList.remove('active');
+    },
+
+    renderExportBlockPicker() {
+        const listEl = document.getElementById('cadExportBlockPickerList');
+        if (!listEl) return;
+
+        const allShapes = this._getAllExportShapes();
+        let html = '';
+        let selCount = 0;
+        let selArea = 0;
+
+        allShapes.forEach((s, idx) => {
+            const isSelected = s.selected !== false;
+            if (isSelected) {
+                selCount++;
+                if (s.mode === 'polygon') selArea += (s.stats?.area || 0);
+            }
+            const modeText = s.mode === 'polygon' ? 'Đa giác' : 'Tuyến';
+            const vCount = s.vertices ? s.vertices.length : 0;
+            const areaText = s.mode === 'polygon' 
+                ? `${(s.stats?.area || 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} m²` 
+                : `${(s.stats?.perimeter || 0).toFixed(1)} m`;
+
+            html += `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 5px; border-left: 3px solid ${s.color || '#38bdf8'}; font-size: 11px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; user-select: none;">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="appCadTool.toggleExportBlock(${idx}, this.checked)" style="accent-color: #38bdf8; width: 14px; height: 14px;">
+                        <span style="font-weight: 700; color: #f8fafc;">${s.name}</span>
+                        <span style="color: #94a3b8; font-size: 10px;">[${modeText} • ${vCount} đỉnh]</span>
+                    </label>
+                    <span style="color: #4ade80; font-weight: 700; font-size: 11px;">${areaText}</span>
+                </div>
+            `;
+        });
+
+        listEl.innerHTML = html || '<div style="color: #94a3b8; font-size: 11px; padding: 6px;">Chưa có khối nào được vẽ.</div>';
+
+        const countEl = document.getElementById('cadExportSelectedCount');
+        const areaEl = document.getElementById('cadExportSelectedArea');
+        const haEl = document.getElementById('cadExportSelectedHa');
+        if (countEl) countEl.innerText = selCount;
+        if (areaEl) areaEl.innerText = `${selArea.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} m²`;
+        if (haEl) haEl.innerText = `${(selArea / 10000.0).toFixed(4)} ha`;
+    },
+
+    toggleSelectAllExportBlocks(selectAll) {
+        this.savedShapes.forEach(s => { s.selected = selectAll; });
+        this._draftSelected = selectAll;
+        this.renderExportBlockPicker();
+        this.checkScalePaperFit();
+        this.renderBlockList(this._getAllExportShapes());
+    },
+
+    toggleExportBlock(idx, checked) {
+        if (idx < this.savedShapes.length) {
+            this.savedShapes[idx].selected = checked;
+        } else {
+            this._draftSelected = checked;
+        }
+        this.renderExportBlockPicker();
+        this.checkScalePaperFit();
+        this.renderBlockList(this._getAllExportShapes());
+    },
+
+    // === HỘP THOẠI NẠP MỐC TỌA ĐỘ DỰ ÁN VÀO MINICAD ===
+    openLoadProjectModal() {
+        const modal = document.getElementById('modalCadLoadProject');
+        if (!modal) return;
+        modal.classList.add('active');
+
+        const sel = document.getElementById('cadLoadProjectSelect');
+        if (sel) {
+            sel.innerHTML = '';
+            AppState.projectsList.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                const count = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(name).length : 0;
+                opt.innerText = `📁 ${name} (${count} mốc)`;
+                if (name === AppState.currentProject) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        const cur = sel?.value || AppState.currentProject;
+        this.onLoadProjectSelectChange(cur);
+    },
+
+    closeLoadProjectModal() {
+        const modal = document.getElementById('modalCadLoadProject');
+        if (modal) modal.classList.remove('active');
+    },
+
+    onLoadProjectSelectChange(projName) {
+        const listEl = document.getElementById('cadLoadPointsList');
+        const targetNameInput = document.getElementById('cadLoadTargetShapeName');
+        if (!listEl) return;
+
+        const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(projName) : [];
+        if (targetNameInput) {
+            const shortProj = projName ? projName.replace(/\.[^/.]+$/, "") : "DuAn";
+            targetNameInput.value = `Ranh mốc ${shortProj}`;
+        }
+
+        if (pts.length === 0) {
+            listEl.innerHTML = '<div style="color: #94a3b8; font-size: 11px; padding: 6px;">Dự án này chưa có điểm mốc nào.</div>';
+            this._updateLoadPointsCount(0);
+            return;
+        }
+
+        let html = '';
+        pts.forEach((p, idx) => {
+            const xStr = parseFloat(p.x || 0).toFixed(3);
+            const yStr = parseFloat(p.y || 0).toFixed(3);
+            html += `
+                <label style="display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; background: rgba(30,41,59,0.7); border-radius: 4px; font-size: 11px; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" class="cad-load-pt-cb" value="${idx}" checked onchange="appCadTool._onLoadPtCheckboxChange()" style="accent-color: #38bdf8; width: 13px; height: 13px;">
+                        <span style="font-weight: 700; color: #38bdf8;">${p.name || `M${idx+1}`}</span>
+                        <span style="color: #cbd5e1; font-size: 10px;">(X: ${xStr}, Y: ${yStr})</span>
+                    </div>
+                    <span style="color: #94a3b8; font-size: 10px;">${p.code || p.note || ''}</span>
+                </label>
+            `;
+        });
+
+        listEl.innerHTML = html;
+        this._updateLoadPointsCount(pts.length);
+    },
+
+    _onLoadPtCheckboxChange() {
+        const cbs = document.querySelectorAll('.cad-load-pt-cb:checked');
+        this._updateLoadPointsCount(cbs.length);
+    },
+
+    _updateLoadPointsCount(count) {
+        const el = document.getElementById('cadLoadSelectedPointCount');
+        if (el) el.innerText = count;
+    },
+
+    toggleSelectAllLoadPoints(selectAll) {
+        const cbs = document.querySelectorAll('.cad-load-pt-cb');
+        cbs.forEach(cb => { cb.checked = selectAll; });
+        this._updateLoadPointsCount(selectAll ? cbs.length : 0);
+    },
+
+    confirmLoadProjectAsShape(mode = 'polygon') {
+        const selProj = document.getElementById('cadLoadProjectSelect')?.value || AppState.currentProject;
+        const allPts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(selProj) : [];
+        const checkedIdxs = Array.from(document.querySelectorAll('.cad-load-pt-cb:checked')).map(cb => parseInt(cb.value));
+
+        if (checkedIdxs.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 mốc để nạp!", true);
+            return;
+        }
+
+        if (mode === 'polygon' && checkedIdxs.length < 3) {
+            showToast("⚠️ Cần ít nhất 3 mốc để tạo đa giác ranh khép kín!", true);
+            return;
+        }
+
+        const shapeName = document.getElementById('cadLoadTargetShapeName')?.value?.trim() || `Thửa ${this.savedShapes.length + 1}`;
+        const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e'];
+        const shapeColor = colorPalette[this.savedShapes.length % colorPalette.length];
+
+        const vertices = [];
+        checkedIdxs.forEach((idx, orderIdx) => {
+            const p = allPts[idx];
+            if (!p) return;
+            const x = parseFloat(p.x);
+            const y = parseFloat(p.y);
+            const lat = parseFloat(p.lat);
+            const lng = parseFloat(p.lng);
+            vertices.push({
+                x, y, lat, lng,
+                name: p.name || `Đ${orderIdx + 1}`,
+                isSnapped: true,
+                snapSource: `Dự án: ${selProj}`
+            });
+        });
+
+        const shape = {
+            id: 'proj_shape_' + Date.now(),
+            name: shapeName,
+            shortName: shapeName,
+            mode: mode,
+            vertices: vertices,
+            color: shapeColor,
+            selected: true,
+            stats: this.calculateAreaAndPerimeter(vertices, mode)
+        };
+
+        this.savedShapes.push(shape);
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (this.redrawAllShapes) this.redrawAllShapes();
+        this.updateUi();
+        this.closeLoadProjectModal();
+        showToast(`✓ Đã nạp ${vertices.length} mốc từ "${selProj}" thành khối [${mode === 'polygon' ? 'Đa giác' : 'Tuyến'}]: "${shapeName}"!`);
+    },
+
+    confirmLoadProjectAsSnap() {
+        const selProj = document.getElementById('cadLoadProjectSelect')?.value || AppState.currentProject;
+        AppState.currentProject = selProj;
+        localStorage.setItem('vn2k_cur_project', AppState.currentProject);
+        appMap.loadProjectMarkers();
+        appMap.fitProjectBounds();
+        this.closeLoadProjectModal();
+        showToast(`🧲 Đã hiển thị các mốc của dự án "${selProj}" lên bản đồ để bắt điểm (Snap)!`);
+    },
+
     openAreaTableModal(action = null) {
+        if (document.getElementById("modalCadExportConfig")) document.getElementById("modalCadExportConfig").classList.remove("active");
         setTimeout(() => this.checkScalePaperFit(), 50);
         const allShapes = [];
         this.savedShapes.forEach((s, idx) => {
