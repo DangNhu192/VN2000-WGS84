@@ -3313,6 +3313,45 @@
     }
 
     /* ================= 12. THANH CÔNG CỤ VẼ MẶT BẰNG CAD TRÊN BẢN ĐỒ ================= */
+    /* Bảng thống kê các khối đã vẽ trên bản đồ MiniCAD */
+    .cad-blocks-panel {
+      position: absolute;
+      top: calc(var(--sat-safe-top) + 215px);
+      left: 10px;
+      width: 320px;
+      max-width: calc(100vw - 20px);
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      z-index: 1000;
+      padding: 8px;
+      animation: slideDownCad 0.2s ease;
+    }
+    .cad-blocks-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      margin-bottom: 6px;
+    }
+    .cad-blocks-panel-body {
+      max-height: 190px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .cad-panel-pill {
+      font-size: 10px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
     .map-cad-toolbar {
       position: absolute;
       top: calc(var(--sat-safe-top) + 108px);
@@ -4540,6 +4579,7 @@
             <button class="cad-btn" onclick="appCadTool.closeLoop()" title="Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: C)">
               🔒 Khép góc [C]
             </button>
+            <input type="text" id="cadActiveShapeName" class="app-input" style="height: 26px; width: 110px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px; flex: none;" placeholder="Tên khối (Thửa 1)" title="Đặt tên khối trước khi vẽ hoặc lưu">
             <button id="btnCadSaveShape" class="cad-btn" style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #a7f3d0; font-weight: 700;" onclick="appCadTool.saveAndStartNewShape()" title="Lưu cấu trúc/thửa đất này và bắt đầu vẽ cấu trúc mới (Phím tắt: N)">
               ➕ Lưu & Vẽ mới [N]
             </button>
@@ -4553,6 +4593,9 @@
             <button class="cad-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="appCadTool.openAreaTableModal()" title="Xem bảng kê tọa độ ranh góc và bảng tính diện tích (Phím tắt: E)">
               📋 Bảng kê [E]
             </button>
+            <button id="btnToggleBlocksPanel" class="cad-btn" style="background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" onclick="appCadTool.toggleBlocksPanel()" title="Hiển thị/Ẩn bảng thống kê các khối đã vẽ">
+              📊 Khối (<span id="cadToolbarBlockCount">0</span>)
+            </button>
             <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(14, 165, 233, 0.4); color: #38bdf8;" onclick="appCadTool.exportDxf()" title="Xuất file bản vẽ AutoCAD R12 (.DXF) có đầy đủ layer TCVN, khung tên, bảng kê">
               📐 Xuất CAD (.DXF)
             </button>
@@ -4565,6 +4608,23 @@
             <div id="cadInstructionText" style="font-size: 10px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
               💡 [P] Đa giác • [L] Tuyến • [S] Snap • [C] Khép • [U] Lùi • [D] Bắn điểm
             </div>
+          </div>
+        </div>
+
+        <!-- Panel Thống Kê Các Khối MiniCAD Trên Bản Đồ -->
+        <div id="cadBlocksStatsPanel" class="cad-blocks-panel" style="display: none;">
+          <div class="cad-blocks-panel-header">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">📊 CÁC KHỐI ĐÃ VẼ</span>
+              <span id="cadPanelShapeCountBadge" class="cad-panel-pill">0 khối</span>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span id="cadPanelTotalAreaBadge" style="font-size: 10.5px; color: #4ade80; font-weight: 700;">0 m²</span>
+              <button class="btn-sm btn-red" style="height: 20px; padding: 0 5px; font-size: 10px;" onclick="appCadTool.toggleBlocksPanel()" title="Đóng bảng">✕</button>
+            </div>
+          </div>
+          <div id="cadPanelBlocksList" class="cad-blocks-panel-body">
+            <!-- Render danh sách khối bằng JS -->
           </div>
         </div>
 
@@ -6054,41 +6114,88 @@
         </table>
       </div>
 
-      <!-- Thông tin bản vẽ địa chính -->
-      <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
-        <div style="font-size: 11px; font-weight: 700; color: #38bdf8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Thông Tin Khung Tên Bản Vẽ Địa Chính</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+      <!-- Thông tin khung tên bản vẽ kỹ thuật chuyên nghiệp (Chuẩn TCVN 7285 & Khảo sát địa chính) -->
+      <div style="background: rgba(15,23,42,0.85); border: 1.5px solid rgba(56,189,248,0.3); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(56,189,248,0.2); padding-bottom: 4px;">
+          <span style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">📐 Khung Tên Bản Vẽ Kỹ Thuật (TCVN 7285)</span>
+          <span style="font-size: 10.5px; color: #94a3b8;">Tự động lưu cấu hình</span>
+        </div>
+        
+        <!-- Hàng 1: Tên Bản Vẽ & Tên Dự Án -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
           <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Chủ đất / Đơn vị:</label>
-            <input type="text" id="cadExportOwner" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Nguyễn Văn A">
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #38bdf8; font-weight: 700;">Tên Bản Vẽ (Tiêu đề in đậm):</label>
+            <input type="text" id="cadExportDrawingName" class="app-input" style="height: 30px; font-size: 11.5px; font-weight: 700;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
           </div>
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #fbbf24; font-weight: 700;">Tên Dự Án / Công Trình:</label>
+            <input type="text" id="cadExportProjectName" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Khu dân cư Đô thị mới Mỹ Phú">
+          </div>
+        </div>
+
+        <!-- Hàng 2: Đơn vị tư vấn & Chủ đầu tư -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Đơn vị tư vấn / Khảo sát:</label>
+            <input type="text" id="cadExportOrganization" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH">
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Chủ sử dụng / Chủ đầu tư:</label>
+            <input type="text" id="cadExportOwner" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A">
+          </div>
+        </div>
+
+        <!-- Hàng 3: Số thửa / tờ bản đồ & Địa chỉ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
           <div>
             <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Số thửa / Tờ bản đồ:</label>
             <input type="text" id="cadExportParcelNo" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 123 / Tờ 05">
           </div>
           <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Địa chỉ thửa đất:</label>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Địa chỉ thửa đất / Vị trí:</label>
             <input type="text" id="cadExportAddress" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ấp 3, xã Mỹ Long, huyện Cao Lãnh">
           </div>
+        </div>
+
+        <!-- Hàng 4: Cán bộ đo, Người kiểm tra & Ký hiệu bản vẽ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px;">
           <div>
-            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Người đo / Kiểm tra:</label>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Cán bộ đo đạc:</label>
             <input type="text" id="cadExportSurveyor" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B">
           </div>
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Người kiểm tra:</label>
+            <input type="text" id="cadExportChecker" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C">
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Ký hiệu bản vẽ:</label>
+            <input type="text" id="cadExportDrawingCode" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01">
+          </div>
         </div>
-        <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap;">
-          <label class="form-label" style="font-size: 10.5px; margin: 0; flex: none;">Tỷ lệ bản vẽ:</label>
-          <select id="cadExportScale" class="app-select" style="height: 30px; font-size: 11.5px; flex: 1; min-width: 160px;">
-            <option value="200">1:200 (Thửa nhỏ, đô thị)</option>
-            <option value="500" selected>1:500 (Thửa vừa, phổ biến)</option>
-            <option value="1000">1:1.000 (Thửa lớn, nông thôn)</option>
-            <option value="2000">1:2.000 (Khu vực lớn)</option>
-            <option value="5000">1:5.000 (Mặt bằng tổng thể)</option>
-          </select>
-          <label class="form-label" style="font-size: 10.5px; margin: 0; flex: none;">Khổ:</label>
-          <select id="cadExportPaperSize" class="app-select" style="height: 30px; font-size: 11.5px; flex: none; width: 72px;">
-            <option value="A3" selected>A3</option>
-            <option value="A4">A4</option>
-          </select>
+
+        <!-- Hàng 5: Tỷ lệ, Khổ giấy & Ngày lập -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: center;">
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Tỷ lệ bản vẽ:</label>
+            <select id="cadExportScale" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;">
+              <option value="200">1:200 (Thửa nhỏ, đô thị)</option>
+              <option value="500" selected>1:500 (Thửa vừa, phổ biến)</option>
+              <option value="1000">1:1000 (Thửa lớn, mặt bằng)</option>
+              <option value="2000">1:2000 (Tổng thể, tuyến)</option>
+              <option value="5000">1:5000 (Quy hoạch vùng)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Khổ giấy in:</label>
+            <select id="cadExportPaperSize" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;">
+              <option value="A3" selected>Khổ A3 (420 x 297 mm)</option>
+              <option value="A4">Khổ A4 (297 x 210 mm)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Ngày lập:</label>
+            <input type="text" id="cadExportDate" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="DD/MM/YYYY">
+          </div>
         </div>
       </div>
 
