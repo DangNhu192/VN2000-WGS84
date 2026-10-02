@@ -834,7 +834,7 @@ const appDashboard = {
         }
     },
 
-    isAccordionExpanded: false,
+    isAccordionExpanded: true,
 
     toggleAccordion() {
         triggerHaptic('light');
@@ -899,6 +899,7 @@ const appDashboard = {
         }).join('');
 
         if (countBadge) countBadge.innerText = `${unpinnedFeatures.length} công cụ`;
+        appDashboard.updateDashboardInfoRow();
     },
 
     launchFeature(id) {
@@ -978,6 +979,56 @@ const appDashboard = {
               </div>
             `;
         }).join('');
+    },
+
+    updateDashboardInfoRow() {
+        // Cập nhật thẻ thông tin dự án
+        const projName = document.getElementById('dashInfoProjName');
+        const projPoints = document.getElementById('dashInfoProjPoints');
+        const kttShort = document.getElementById('dashInfoKttShort');
+        if (projName) projName.textContent = AppState.currentProject || 'VN2000_SoLieu_DoDac.csv';
+        if (projPoints) {
+            const count = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0;
+            projPoints.textContent = count + ' mốc';
+        }
+        if (kttShort) {
+            const prov = (AppState.provinceIndex >= 0 && typeof VN_PROVINCES !== 'undefined') ? VN_PROVINCES[AppState.provinceIndex] : null;
+            kttShort.textContent = prov ? 'KTT ' + prov.deg + '°' + String(prov.min).padStart(2,'0') + '\'' : 'KTT ' + AppState.kttDeg + '°' + AppState.kttMin + '\'';
+        }
+    },
+
+    updateGpsMiniCard(lat, lng, acc, statusText) {
+        const coord = document.getElementById('dashGpsMiniCoord');
+        const accuracy = document.getElementById('dashGpsMiniAccuracy');
+        const status = document.getElementById('dashGpsMiniStatus');
+        if (coord) {
+            if (lat && lng) {
+                coord.textContent = lat.toFixed(6) + '°N  ' + lng.toFixed(6) + '°E';
+                coord.style.color = '#4ade80';
+            } else {
+                coord.textContent = 'Đang tìm tín hiệu...';
+                coord.style.color = '#64748b';
+            }
+        }
+        if (accuracy) {
+            accuracy.textContent = acc ? '± ' + (acc < 1 ? acc.toFixed(2) : acc.toFixed(1)) + 'm' : '± --';
+            accuracy.style.color = acc ? (acc < 5 ? '#4ade80' : acc < 15 ? '#fbbf24' : '#f87171') : '#fbbf24';
+        }
+        if (status) {
+            if (statusText === 'fix') {
+                status.textContent = 'Fix ✓';
+                status.style.background = 'rgba(74,222,128,0.15)';
+                status.style.color = '#4ade80';
+            } else if (statusText === 'off') {
+                status.textContent = 'Tắt';
+                status.style.background = 'rgba(148,163,184,0.12)';
+                status.style.color = '#64748b';
+            } else {
+                status.textContent = 'Tìm...';
+                status.style.background = 'rgba(251,191,36,0.12)';
+                status.style.color = '#fbbf24';
+            }
+        }
     },
 
     savePinSelection() {
@@ -1529,6 +1580,10 @@ const appGps = {
                     heading: pos.coords.heading || 0
                 };
                 appGps.refreshDisplay();
+                // Cập nhật thẻ GPS mini trên màn hình chính
+                if (typeof appDashboard !== 'undefined') {
+                    appDashboard.updateGpsMiniCard(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, 'fix');
+                }
                 if (AppState.leafletMap) {
                     appMap.updateLiveGps(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
                 }
@@ -1543,6 +1598,9 @@ const appGps = {
                     badge.className = "btn-sm btn-amber";
                 }
                 appGps.updateHeaderGpsUI('error');
+                if (typeof appDashboard !== 'undefined') {
+                    appDashboard.updateGpsMiniCard(null, null, null, 'searching');
+                }
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
         );
@@ -1562,6 +1620,9 @@ const appGps = {
             badge.className = "btn-sm";
         }
         appGps.updateHeaderGpsUI('off');
+        if (typeof appDashboard !== 'undefined') {
+            appDashboard.updateGpsMiniCard(null, null, null, 'off');
+        }
     },
 
     toggleTracking() {
@@ -4077,6 +4138,23 @@ const appModal = {
     closeSettings() {
         const m = document.getElementById('modalSettings');
         if (m) m.classList.remove('active');
+    },
+
+    openDateTimeSettings() {
+        triggerHaptic('light');
+        // Lấy thông tin thời gian hiện tại
+        const now = new Date();
+        const tzOffset = -now.getTimezoneOffset() / 60;
+        const tzStr = 'GMT' + (tzOffset >= 0 ? '+' : '') + tzOffset + ':00';
+        const timeStr = now.toLocaleTimeString('vi-VN', { hour12: false });
+        const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        showToast(`⏰ Thời gian hệ thống: ${timeStr} | ${dateStr} | Múi giờ: ${tzStr}`);
+
+        // Toast thứ 2 thông báo đồng bộ
+        setTimeout(() => {
+            showToast('✅ Ngày giờ đồng bộ tự động từ hệ thống thiết bị. Thay đổi múi giờ trong Cài đặt > Ngày giờ của thiết bị.');
+        }, 2500);
     },
 
     setMui(mui) {
