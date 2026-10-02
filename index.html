@@ -5124,7 +5124,7 @@
         <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
           <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.6.6 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.7.0 Pro</div>
           <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
             <span>•</span>
@@ -5154,11 +5154,11 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.6.6 Pro</span>
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.7.0 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
               <div>• <b>Tên ứng dụng:</b> WGS84 ⇄ VN-2000 Pro Surveying Engine (PWA)</div>
-              <div>• <b>Phiên bản:</b> 2.5.6 Pro (Phản hồi tức thì & Tích hợp CAD 3.5 Thực Địa)</div>
+              <div>• <b>Phiên bản:</b> 2.7.0 Pro (Tỷ lệ khổ giấy CAD TCVN, Xuất PDF Offline & DXF Unicode Chuẩn)</div>
               <div>• <b>Kiến trúc:</b> Progressive Web App (PWA) Offline-First — hoạt động 100% không cần mạng Internet ngoài thực địa.</div>
               <div>• <b>Bảo mật & Quyền riêng tư:</b> Toàn bộ tọa độ, sổ đo mốc và hình ảnh khảo sát được lưu an toàn tuyệt đối trên bộ nhớ cục bộ thiết bị hoặc Google Drive cá nhân của người dùng. Không truyền dữ liệu qua bất kỳ máy chủ trung gian nào.</div>
             </div>
@@ -6309,7 +6309,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: center;">
           <div>
             <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Tỷ lệ bản vẽ:</label>
-            <select id="cadExportScale" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;">
+            <select id="cadExportScale" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.checkScalePaperFit()">
               <option value="200">1:200 (Thửa nhỏ, đô thị)</option>
               <option value="500" selected>1:500 (Thửa vừa, phổ biến)</option>
               <option value="1000">1:1000 (Thửa lớn, mặt bằng)</option>
@@ -6319,7 +6319,7 @@
           </div>
           <div>
             <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Khổ giấy in:</label>
-            <select id="cadExportPaperSize" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;">
+            <select id="cadExportPaperSize" class="app-select" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.checkScalePaperFit()">
               <option value="A3" selected>Khổ A3 (420 x 297 mm)</option>
               <option value="A4">Khổ A4 (297 x 210 mm)</option>
             </select>
@@ -6329,6 +6329,8 @@
             <input type="text" id="cadExportDate" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="DD/MM/YYYY">
           </div>
         </div>
+        <!-- Vùng cảnh báo tương thích tỷ lệ và khổ giấy thời gian thực -->
+        <div id="cadScaleFitNotice" style="margin-top: 6px; padding: 6px 10px; border-radius: 6px; font-size: 11px; display: none;"></div>
       </div>
 
       <!-- Footer các nút thao tác xuất file -->
@@ -6339,8 +6341,11 @@
         <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);" onclick="appCadTool.exportAreaCsv()" title="Xuất dữ liệu thô định dạng CSV">
           📄 CSV
         </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8;" onclick="appCadTool.exportDxf()">
+        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8;" onclick="appCadTool.exportDxf()" title="Xuất bản vẽ AutoCAD (.dxf) chuẩn R2004 font Unicode không lỗi tiếng Việt và bố cục TCVN 7285">
           📐 AutoCAD DXF
+        </button>
+        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border: 1px solid #ef4444;" onclick="appCadTool.exportPdf()" title="Xuất bản vẽ kỹ thuật trực tiếp ra file PDF (.pdf) chuẩn kích thước khổ giấy và tỷ lệ in ấn">
+          📕 Xuất PDF (.pdf)
         </button>
         <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: #fff; border: 1px solid #8b5cf6;" onclick="appCadTool.exportSvg()">
           🖼️ SVG Vector
@@ -6965,8 +6970,11 @@
   <!-- TOAST NOTIFICATION -->
   <div id="toast-msg"></div>
 
+  <!-- JSPDF OFFLINE VECTOR/PDF ENGINE -->
+  <script src="jspdf.umd.min.js"></script>
+
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.6.6"></script>
+  <script src="app.js?v=2.7.0"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

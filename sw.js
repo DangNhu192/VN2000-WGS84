@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.6.6';
+const CACHE_NAME = 'vn2000-pro-v2.7.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,7 +13,8 @@ const ASSETS_TO_CACHE = [
   './apple-touch-icon.png',
   './favicon.png',
   './VN2k-WGS84.png',
-  './manifest.json'
+  './manifest.json',
+  './jspdf.umd.min.js'
 ];
 
 // 1. Cài đặt Service Worker và nạp sẵn tài nguyên cốt lõi vào Cache
