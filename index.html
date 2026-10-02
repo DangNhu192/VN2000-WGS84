@@ -3501,13 +3501,35 @@
       transform: translate(12px, 12px);
     }
     .cad-osnap-box {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border: 2px solid #f59e0b;
-      background: rgba(245, 158, 11, 0.35);
-      box-shadow: 0 0 10px #f59e0b;
+      background: rgba(245, 158, 11, 0.45);
+      box-shadow: 0 0 12px #f59e0b;
       transform: translate(-50%, -50%);
       pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 900;
+      color: #ffffff;
+      border-radius: 2px;
+      line-height: 1;
+    }
+    .cad-osnap-box.osnap-mid {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 12px #10b981;
+      border-radius: 4px;
+      color: #a7f3d0;
+    }
+    .cad-osnap-box.osnap-edge {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 12px #38bdf8;
+      border-radius: 50%;
+      color: #bae6fd;
     }
 
     /* Modal Bảng Diện Tích & Bảng Kê Tọa Độ */
@@ -6827,7 +6849,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.6.0"></script>
+  <script src="app.js?v=2.6.1"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
