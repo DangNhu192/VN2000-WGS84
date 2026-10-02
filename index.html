@@ -3484,6 +3484,20 @@
       max-height: 48vh;
       scrollbar-width: thin;
     }
+    /* Block List input hover styles */
+    #cadBlockList .app-input {
+        transition: border-color 0.18s, background 0.18s;
+    }
+    #cadBlockList .app-input:hover:not([readonly]) {
+        border-color: rgba(56, 189, 248, 0.4) !important;
+        background: rgba(56, 189, 248, 0.04) !important;
+    }
+    #cadBlockList .app-input:focus:not([readonly]) {
+        border-color: #38bdf8 !important;
+        background: rgba(56, 189, 248, 0.08) !important;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+    }
     .cad-coord-table {
       width: 100%;
       border-collapse: collapse;
@@ -5977,6 +5991,22 @@
           <span class="cad-summary-label">Số Đỉnh Ranh</span>
           <span class="cad-summary-value" id="cadModalVertexCount" style="color: #fbbf24;">0 đỉnh</span>
           <span style="font-size: 11px; color: #94a3b8;" id="cadModalKtt">KTT: 105°00'</span>
+        </div>
+      </div>
+
+      <!-- Danh sách khối 2D - Chỉnh sửa tên từng khối -->
+      <div style="background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid rgba(56,189,248,0.15);">
+          <span style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">📦 Danh Sách Khối 2D — Diện Tích & Tên</span>
+          <span style="font-size: 10px; color: #64748b;">Click tên để chỉnh sửa</span>
+        </div>
+        <div id="cadBlockList" style="max-height: 160px; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;">
+          <!-- Render JS -->
+        </div>
+        <div id="cadBlockTotalRow" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-top: 1px solid rgba(56,189,248,0.15); font-size: 11px;">
+          <span style="color: #94a3b8;">Tổng cộng</span>
+          <span id="cadBlockTotalArea" style="color: #4ade80; font-weight: 700;">— m²</span>
+          <span id="cadBlockTotalHa" style="color: #a7f3d0;">— ha</span>
         </div>
       </div>
 

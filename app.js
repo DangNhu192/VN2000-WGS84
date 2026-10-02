@@ -7734,8 +7734,74 @@ const appCadTool = {
             tbody.innerHTML = html;
         }
 
+        // Render bảng khối 2D với tên chỉnh sửa được
+        this.renderBlockList(allShapes);
+
         const modal = document.getElementById('modalCadAreaTable');
         if (modal) modal.style.display = 'flex';
+    },
+
+    // === BẢNG DANH SÁCH KHỐI 2D VỚI TÊN CHỈNH SỬA ĐƯỢC ===
+    renderBlockList(allShapes) {
+        const container = document.getElementById('cadBlockList');
+        const totalAreaEl = document.getElementById('cadBlockTotalArea');
+        const totalHaEl = document.getElementById('cadBlockTotalHa');
+        if (!container) return;
+
+        let totalArea = 0;
+        let html = '';
+        allShapes.forEach((shape, idx) => {
+            const isPoly = shape.mode === 'polygon' && shape.vertices.length >= 3;
+            const area = shape.stats?.area || 0;
+            const areaFmt = area.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const haFmt = (area / 10000).toFixed(4);
+            const perim = shape.stats?.perimeterFormatted || '0';
+            if (isPoly) totalArea += area;
+
+            const colorDot = shape.color || '#10b981';
+            const isActive = shape.id === 'active_drawing' || shape.id === 'active_draft';
+            const inputId = `cadBlockName_${idx}`;
+
+            html += `
+            <div style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: rgba(15,23,42,0.6); border-radius: 6px; border-left: 3px solid ${colorDot};">
+                <span style="font-size: 11px; color: #64748b; flex: none; width: 20px; text-align: center;">${idx + 1}</span>
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${colorDot}; flex: none;"></span>
+                <input
+                    type="text"
+                    id="${inputId}"
+                    class="app-input"
+                    style="flex: 1; height: 26px; font-size: 11.5px; font-weight: 600; color: #e2e8f0; background: transparent; border: 1px solid transparent; padding: 0 6px; cursor: pointer;"
+                    value="${isActive ? shape.name : (shape.name || 'Thửa ' + (idx+1))}"
+                    ${isActive ? 'readonly style="flex: 1; height: 26px; font-size: 11.5px; font-weight: 600; color: #64748b; background: transparent; border: 1px solid transparent; padding: 0 6px; cursor: default;"' : ''}
+                    onchange="appCadTool.renameBlock(${idx}, this.value)"
+                    onfocus="this.style.borderColor='#38bdf8'; this.style.background='rgba(56,189,248,0.06)'"
+                    onblur="this.style.borderColor='transparent'; this.style.background='transparent'"
+                    placeholder="Nhập tên khối..."
+                >
+                <span style="font-size: 10.5px; color: #94a3b8; flex: none; min-width: 50px; text-align: center;">${isPoly ? '◼ Đa giác' : '〰 Tuyến'}</span>
+                <span style="font-size: 11.5px; color: #4ade80; font-weight: 700; flex: none; min-width: 90px; text-align: right;">${isPoly ? areaFmt + ' m²' : perim + ' m'}</span>
+                <span style="font-size: 10px; color: #a7f3d0; flex: none; min-width: 65px; text-align: right;">${isPoly ? haFmt + ' ha' : ''}</span>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+
+        const totalFmt = totalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (totalAreaEl) totalAreaEl.textContent = totalFmt + ' m²';
+        if (totalHaEl) totalHaEl.textContent = (totalArea / 10000).toFixed(4) + ' ha';
+    },
+
+    renameBlock(idx, newName) {
+        // Tính số savedShapes (không tính active_draft)
+        const saved = this.savedShapes || [];
+        if (idx < saved.length) {
+            saved[idx].name = newName.trim() || `Thửa ${idx + 1}`;
+            // Cập nhật lại label trên bản đồ nếu có
+            if (this.layers && this.layers.centerLabel) {
+                this.updateUi && this.updateUi();
+            }
+        }
+        // Nếu là active draft (idx >= saved.length) thì không rename
     },
 
     closeAreaTableModal() {
