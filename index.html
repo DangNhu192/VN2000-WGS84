@@ -3479,6 +3479,19 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.5);
       pointer-events: none;
       transform: translate(-50%, -50%);
+      transition: all 0.15s ease;
+    }
+    .cad-edge-badge.interactive {
+      pointer-events: auto !important;
+      cursor: pointer;
+    }
+    .cad-edge-badge.interactive:hover {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+      transform: translate(-50%, -50%) scale(1.18);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
+      z-index: 2999 !important;
     }
     .cad-vertex-badge {
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
@@ -3583,6 +3596,22 @@
       box-shadow: 0 0 12px #38bdf8;
       border-radius: 50%;
       color: #bae6fd;
+    }
+    .cad-osnap-box.osnap-intersection {
+      border-color: #ec4899;
+      background: rgba(236, 72, 153, 0.55);
+      box-shadow: 0 0 12px #ec4899;
+      border-radius: 3px;
+      color: #fdf2f8;
+      font-size: 12px;
+    }
+    .cad-osnap-box.osnap-perp {
+      border-color: #a855f7;
+      background: rgba(168, 85, 247, 0.55);
+      box-shadow: 0 0 12px #a855f7;
+      border-radius: 3px;
+      color: #f3e8ff;
+      font-size: 12px;
     }
 
     /* Modal Bảng Diện Tích & Bảng Kê Tọa Độ */
@@ -4677,7 +4706,7 @@
               ⚠️ Đa giác tự cắt chéo!
             </span>
             <div id="cadInstructionText" style="font-size: 10px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
-              💡 [P] Đa giác • [L] Tuyến • [S] Snap • [C] Khép • [U] Lùi • [D] Bắn điểm
+              💡 [P] Đa giác • [L] Tuyến • [S] Snap • Click cạnh để thêm đỉnh • Chuột phải đỉnh để xóa
             </div>
           </div>
         </div>
@@ -5095,7 +5124,7 @@
         <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
           <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.6.5 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.6.6 Pro</div>
           <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
             <span>•</span>
@@ -5125,7 +5154,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.6.5 Pro</span>
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.6.6 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
               <div>• <b>Tên ứng dụng:</b> WGS84 ⇄ VN-2000 Pro Surveying Engine (PWA)</div>
@@ -6304,8 +6333,11 @@
 
       <!-- Footer các nút thao tác xuất file -->
       <div class="modal-footer" style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; padding-top: 8px; border-top: 1px solid rgba(56, 189, 248, 0.2);">
-        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: 1px solid #10b981;" onclick="appCadTool.exportAreaCsv()">
-          📊 CSV/Excel
+        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: 1px solid #10b981;" onclick="appCadTool.exportAreaExcel()" title="Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp chuẩn TCVN">
+          📊 Excel (.xls)
+        </button>
+        <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);" onclick="appCadTool.exportAreaCsv()" title="Xuất dữ liệu thô định dạng CSV">
+          📄 CSV
         </button>
         <button class="btn-sm" style="height: 36px; padding: 0 10px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8;" onclick="appCadTool.exportDxf()">
           📐 AutoCAD DXF
@@ -6934,7 +6966,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.6.5"></script>
+  <script src="app.js?v=2.6.6"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
