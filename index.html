@@ -1708,12 +1708,17 @@
 
     .map-right-controls {
       position: absolute;
-      top: calc(var(--sat-safe-top) + 68px);
+      top: calc(var(--sat-safe-top) + 112px);
       right: 10px;
       display: flex;
       flex-direction: column;
       gap: 6px;
       z-index: 1000;
+      transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .cad-active-map .map-right-controls {
+      top: calc(var(--sat-safe-top) + 215px);
     }
 
     .btn-map-fab {
@@ -1822,6 +1827,22 @@
       padding: 0 6px;
       z-index: 1000;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .map-project-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .btn-map-new-proj {
+      background: rgba(16, 185, 129, 0.22) !important;
+      border-color: rgba(16, 185, 129, 0.5) !important;
+      color: #6ee7b7 !important;
+    }
+    .btn-map-new-proj:hover, .btn-map-new-proj:active {
+      background: rgba(16, 185, 129, 0.38) !important;
+      border-color: #34d399 !important;
+      color: #ffffff !important;
     }
 
     .map-proj-select-box {
@@ -3294,7 +3315,7 @@
     /* ================= 12. THANH CÔNG CỤ VẼ MẶT BẰNG CAD TRÊN BẢN ĐỒ ================= */
     .map-cad-toolbar {
       position: absolute;
-      top: 50px;
+      top: calc(var(--sat-safe-top) + 108px);
       left: 10px;
       right: 10px;
       background: rgba(15, 23, 42, 0.94);
@@ -4447,6 +4468,9 @@
               <!-- Nạp danh sách dự án kèm số mốc -->
             </select>
           </div>
+          <button id="btnMapNewProject" class="btn-map-action btn-map-new-proj" title="Thêm nhanh dự án mới trên bản đồ" onclick="appMap.quickCreateProject()">
+            ➕ Dự án mới
+          </button>
           <button class="btn-map-action" title="Nhập file dự án / Tải file mẫu" onclick="appModal.openImportProjectModal()">
             📥 Nhập File
           </button>

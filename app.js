@@ -452,14 +452,14 @@ const appNav = window.appNav = {
             appModal.openImportProjectModal();
         } else if (action === 'measure_distance') {
             appNav.setActiveMenuItem('drawerItem_measure_distance');
-            appNav.openProjectMap();
+            appNav.openProjectMap({ loadProject: true });
             if (!AppState.showProjectDistance) {
                 appMap.toggleDistanceDisplay();
             }
             showToast("📏 Chế độ đo khoảng cách giữa các mốc đã sẵn sàng!");
         } else if (action === 'measure_polygon') {
             appNav.setActiveMenuItem('drawerItem_measure_polygon');
-            appNav.openProjectMap();
+            appNav.openProjectMap({ loadProject: true });
             if (!AppState.isPolygonClosed) {
                 appMap.togglePolygonClose();
             }
@@ -631,7 +631,7 @@ const appNav = window.appNav = {
         }
     },
 
-    openProjectMap() {
+    openProjectMap(options = {}) {
         AppState.prevScreen = AppState.currentScreen;
         AppState.currentScreen = 'map';
         document.querySelectorAll('.screen-view').forEach(el => {
@@ -656,8 +656,35 @@ const appNav = window.appNav = {
         appNav.setActiveMenuItem('drawerItem_map');
 
         appMap.initMap();
-        appMap.loadProjectMarkers();
-        appMap.fitProjectBounds();
+
+        // Kiểm tra xem có yêu cầu nạp dự án cụ thể hay không:
+        // Mặc định khi vào các chức năng (Bản đồ, CAD Mini...) sẽ mở bản đồ mới sạch (không mở sẵn dự án khác)
+        // Người dùng có thể dùng dropdown "Chọn dự án để nạp" để gọi dự án ra hiển thị.
+        if (options && options.loadProject) {
+            const projToLoad = (typeof options.loadProject === 'string') ? options.loadProject : AppState.currentProject;
+            if (projToLoad) {
+                AppState.currentProject = projToLoad;
+                localStorage.setItem('vn2k_cur_project', AppState.currentProject);
+                appMap.loadProjectMarkers();
+                appMap.fitProjectBounds();
+            }
+        } else {
+            // Mở bản đồ mới sạch: Xóa các mốc dự án trước đó, dropdown để ở tùy chọn "[Bản đồ mới]"
+            if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
+            if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
+            if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
+                AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
+                AppState.projectPolygonLayer = null;
+            }
+            const hud = document.getElementById('mapDistanceHud');
+            if (hud) hud.style.display = 'none';
+
+            appMap.populateMapProjectSelect(null); // Chọn [Bản đồ mới]
+
+            if (AppState.lastGps && AppState.lastGps.lat) {
+                AppState.leafletMap.setView([AppState.lastGps.lat, AppState.lastGps.lng], 16);
+            }
+        }
     },
 
     openConvertedMap(pointData) {
@@ -683,6 +710,17 @@ const appNav = window.appNav = {
         if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
 
         appMap.initMap();
+        // Mở bản đồ sạch tập trung vào điểm chuyển đổi
+        if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
+        if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
+        if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
+            AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
+            AppState.projectPolygonLayer = null;
+        }
+        const hud = document.getElementById('mapDistanceHud');
+        if (hud) hud.style.display = 'none';
+        appMap.populateMapProjectSelect(null);
+
         if (pointData) {
             appMap.showConvertedPoint(
                 pointData.lat,
@@ -719,7 +757,18 @@ const appNav = window.appNav = {
         if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
 
         appMap.initMap();
-        appMap.loadProjectMarkers();
+
+        // Mở bản đồ sạch không mở sẵn dự án của các chức năng khác
+        if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
+        if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
+        if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
+            AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
+            AppState.projectPolygonLayer = null;
+        }
+        const hud = document.getElementById('mapDistanceHud');
+        if (hud) hud.style.display = 'none';
+
+        appMap.populateMapProjectSelect(null);
 
         const txt = document.getElementById('mapModeIndicator');
         if (txt) {
@@ -728,8 +777,8 @@ const appNav = window.appNav = {
         }
 
         if (AppState.lastGps && AppState.lastGps.lat) {
+            appMap.updateGpsRealtimeMarker(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
             AppState.leafletMap.setView([AppState.lastGps.lat, AppState.lastGps.lng], 18);
-            appMap.updateLiveGps(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
             showToast("✓ Đã định vị theo vị trí GPS thực tế!");
         } else {
             appTransform.getLiveGps();
@@ -2032,29 +2081,92 @@ const appMap = {
         }
     },
 
-    populateMapProjectSelect() {
+    populateMapProjectSelect(selectedProjectName = null) {
         const sel = document.getElementById('selMapProjectFiles');
         if (!sel) return;
         sel.innerHTML = '';
+
+        // Tùy chọn 1: [Bản đồ mới] không mở sẵn dự án nào
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = "";
+        emptyOpt.innerText = "🗺️ [Bản đồ mới] Chọn dự án để nạp...";
+        sel.appendChild(emptyOpt);
+
         AppState.projectsList.forEach(name => {
             const opt = document.createElement('option');
             opt.value = name;
             const ptsCount = appData.getPoints(name).length;
-            opt.innerText = `${name} (${ptsCount} mốc)`;
-            if (name === AppState.currentProject) opt.selected = true;
+            opt.innerText = `📁 ${name} (${ptsCount} mốc)`;
+            if (selectedProjectName && name === selectedProjectName) {
+                opt.selected = true;
+            }
             sel.appendChild(opt);
         });
+
+        if (!selectedProjectName) {
+            emptyOpt.selected = true;
+        }
+    },
+
+    quickCreateProject() {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+        const defaultName = `DuAn_${dateStr}_${Math.floor(Math.random()*900+100)}.csv`;
+        let name = prompt("Nhập tên dự án mới (.csv):", defaultName);
+        if (!name) return;
+        name = name.trim();
+        if (!name) return;
+        if (!name.toLowerCase().endsWith('.csv')) name += '.csv';
+
+        if (!AppState.projectsList.includes(name)) {
+            AppState.projectsList.push(name);
+            appData.saveProjectsList();
+        }
+        AppState.currentProject = name;
+        localStorage.setItem('vn2k_cur_project', AppState.currentProject);
+        appData.savePoints(name, []);
+        appData.populateProjectSelect();
+        appNav.updateTreeNavState();
+        appNav.updateBanner();
+
+        // Cập nhật lại dropdown và chọn dự án mới này
+        appMap.populateMapProjectSelect(name);
+
+        // Làm sạch các mốc và HUD đo cũ trên bản đồ
+        if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
+        if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
+        if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
+            AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
+            AppState.projectPolygonLayer = null;
+        }
+        const hud = document.getElementById('mapDistanceHud');
+        if (hud) hud.style.display = 'none';
+
+        showToast(`✓ Đã tạo dự án mới: "${name}". Bản đồ mới sẵn sàng!`, true);
     },
 
     onMapProjectChange(projectName) {
-        if (!projectName) return;
+        if (!projectName) {
+            // Người dùng chọn "[Bản đồ mới]" -> Làm sạch bản đồ
+            if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
+            if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
+            if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
+                AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
+                AppState.projectPolygonLayer = null;
+            }
+            const hud = document.getElementById('mapDistanceHud');
+            if (hud) hud.style.display = 'none';
+            showToast("🗺️ Đã mở bản đồ mới (sạch)");
+            return;
+        }
         AppState.currentProject = projectName;
         localStorage.setItem('vn2k_cur_project', AppState.currentProject);
         appData.populateProjectSelect();
+        appNav.updateTreeNavState();
         appNav.updateBanner();
         appMap.loadProjectMarkers();
         appMap.fitProjectBounds();
-        showToast(`📁 Chuyển dự án: ${projectName}`);
+        showToast(`📁 Đã nạp và hiển thị dự án: ${projectName}`);
     },
 
     toggleDistanceDisplay() {
@@ -2152,12 +2264,12 @@ const appMap = {
         if (AppState.projectDistanceLabelsGroup) {
             AppState.projectDistanceLabelsGroup.clearLayers();
         }
-        if (AppState.projectPolygonLayer && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
+        if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
             AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
             AppState.projectPolygonLayer = null;
         }
 
-        appMap.populateMapProjectSelect();
+        appMap.populateMapProjectSelect(AppState.currentProject);
 
         const pts = appData.getPoints(AppState.currentProject);
         if (!pts || pts.length === 0) {
@@ -4462,7 +4574,7 @@ const appStakeout = {
             showToast("⚠️ Vui lòng chọn mốc cần cắm trước!", true);
             return;
         }
-        appNav.openProjectMap();
+        appNav.openProjectMap({ loadProject: true });
         const p = appStakeout.selectedPoint;
         if (AppState.leafletMap && p.lat && p.lng) {
             AppState.leafletMap.setView([parseFloat(p.lat), parseFloat(p.lng)], 19);
