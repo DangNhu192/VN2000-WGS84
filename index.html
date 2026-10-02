@@ -4629,15 +4629,17 @@
           </div>
         </div>
 
-        <!-- Panel Thống Kê Các Khối MiniCAD Trên Bản Đồ -->
+        <!-- Panel Thống Kê Các Khối MiniCAD Trên Bản Đồ (Hỗ trợ kéo thả di chuyển vị trí & thu nhỏ) -->
         <div id="cadBlocksStatsPanel" class="cad-blocks-panel" style="display: none;">
-          <div class="cad-blocks-panel-header">
+          <div id="cadBlocksPanelHeader" class="cad-blocks-panel-header" title="Nhấp & kéo giữ để di chuyển bảng khắp màn hình" style="cursor: grab; user-select: none;">
             <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 13px; color: #38bdf8;" title="Tay cầm kéo thả">⠿</span>
               <span style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">📊 CÁC KHỐI ĐÃ VẼ</span>
               <span id="cadPanelShapeCountBadge" class="cad-panel-pill">0 khối</span>
             </div>
-            <div style="display: flex; gap: 6px; align-items: center;">
+            <div style="display: flex; gap: 5px; align-items: center;">
               <span id="cadPanelTotalAreaBadge" style="font-size: 10.5px; color: #4ade80; font-weight: 700;">0 m²</span>
+              <button id="btnCadPanelMinimize" class="btn-sm" style="height: 20px; padding: 0 5px; font-size: 10px; background: rgba(255,255,255,0.1); color: #94a3b8;" onclick="appCadTool.toggleMinimizeBlocksPanel()" title="Thu nhỏ / Mở rộng bảng">▾</button>
               <button class="btn-sm btn-red" style="height: 20px; padding: 0 5px; font-size: 10px;" onclick="appCadTool.toggleBlocksPanel()" title="Đóng bảng">✕</button>
             </div>
           </div>
@@ -5037,7 +5039,7 @@
         <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
           <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.5.6 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.6.2 Pro</div>
           <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
             <span>•</span>
@@ -5067,7 +5069,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.5.6 Pro</span>
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.6.2 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
               <div>• <b>Tên ứng dụng:</b> WGS84 ⇄ VN-2000 Pro Surveying Engine (PWA)</div>
@@ -6849,7 +6851,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.6.1"></script>
+  <script src="app.js?v=2.6.2"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
