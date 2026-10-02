@@ -666,6 +666,7 @@ const appNav = window.appNav = {
         appNav.setActiveMenuItem('drawerItem_map');
 
         appMap.initMap();
+        if (appMap.initRightControlsDrag) appMap.initRightControlsDrag();
 
         // Kiểm tra xem có yêu cầu nạp dự án cụ thể hay không:
         // Mặc định khi vào các chức năng (Bản đồ, CAD Mini...) sẽ mở bản đồ mới sạch (không mở sẵn dự án khác)
@@ -854,7 +855,7 @@ const appDashboard = {
         { id: 'resection', name: '7. Giao Hội Trắc Địa Khi Mất GPS', short: 'Giao Hội Trắc Địa', icon: '📐', color: 'yellow', tag: 'Định vị hầm/tán cây', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Giao Hội Điểm P', action: () => appModal.openUnifiedSettings('resection') },
         { id: 'profile', name: '8. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
         { id: 'geoid', name: '9. Quy Đổi Cao Độ Geoid Hòn Dấu', short: 'Geoid VIGAC2017', icon: '🏔️', color: 'cyan', tag: 'Thủy chuẩn Quốc gia', sub: 'Quy đổi độ cao H = h - ζ (VIGAC)', metric: 'Geoid Hòn Dấu', action: () => appNav.showScreen('geoid') },
-        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.6.2 Pro', action: () => appNav.showScreen('about') }
+        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.6.3 Pro', action: () => appNav.showScreen('about') }
     ],
 
     init() {
@@ -1916,10 +1917,89 @@ function calcGaussPolygonArea(pts) {
 // ================= 7. PHÂN HỆ BẢN ĐỒ LEAFLET (MAP VIEWER & PICKER) =================
 const appMap = {
     initMap() {
+        this.initRightControlsDrag();
         if (AppState.leafletMap) {
             setTimeout(() => AppState.leafletMap.invalidateSize(), 200);
             return;
         }
+    },
+
+    initRightControlsDrag() {
+        if (typeof window === 'undefined') return;
+        const container = document.getElementById('mapRightControls') || document.querySelector('.map-right-controls');
+        const handle = document.getElementById('dragHandleRightControls');
+        if (!container || container._hasDragInit) return;
+        container._hasDragInit = true;
+
+        // Khôi phục vị trí lưu trước đó nếu có
+        try {
+            const savedTop = localStorage.getItem('vn2k_right_controls_top');
+            if (savedTop) {
+                const parsed = parseInt(savedTop, 10);
+                if (!isNaN(parsed) && parsed >= 50 && parsed <= window.innerHeight - 100) {
+                    container.style.top = `${parsed}px`;
+                }
+            }
+        } catch (e) {}
+
+        let isDragging = false;
+        let startY = 0;
+        let initTop = 0;
+
+        const onStart = (e) => {
+            // Không can thiệp nếu bấm trực tiếp vào nút chức năng
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            isDragging = true;
+            const pt = e.touches ? e.touches[0] : e;
+            startY = pt.clientY;
+            const rect = container.getBoundingClientRect();
+            initTop = rect.top;
+            container.style.transition = 'none';
+            if (handle) handle.style.cursor = 'grabbing';
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+        };
+
+        const onMove = (e) => {
+            if (!isDragging) return;
+            if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
+            const pt = e.touches ? e.touches[0] : e;
+            const dy = pt.clientY - startY;
+
+            let newTop = initTop + dy;
+            const minTop = 60; // Dưới header
+            const maxTop = window.innerHeight - container.offsetHeight - 50; // Trên bottom bar
+
+            newTop = Math.max(minTop, Math.min(newTop, maxTop));
+            container.style.top = `${newTop}px`;
+        };
+
+        const onEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            if (handle) handle.style.cursor = 'grab';
+            container.style.transition = '';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onEnd);
+
+            // Lưu lại vị trí để khi chuyển trang / mở lại vẫn giữ nguyên
+            try {
+                const curTop = parseInt(container.style.top, 10);
+                if (!isNaN(curTop)) {
+                    localStorage.setItem('vn2k_right_controls_top', curTop.toString());
+                }
+            } catch (e) {}
+        };
+
+        const target = handle || container;
+        target.addEventListener('mousedown', onStart);
+        target.addEventListener('touchstart', onStart, { passive: true });
+        container.addEventListener('mousedown', onStart);
+        container.addEventListener('touchstart', onStart, { passive: true });
 
         // Khởi tạo bản đồ Leaflet
         const map = L.map('leaflet-map', {

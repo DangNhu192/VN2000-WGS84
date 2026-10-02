@@ -1715,6 +1715,36 @@
       gap: 6px;
       z-index: 1000;
       transition: top 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      touch-action: none;
+    }
+
+    .drag-handle-right-controls {
+      width: 40px;
+      height: 20px;
+      border-radius: 10px;
+      background: rgba(11, 17, 32, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .drag-handle-right-controls:hover,
+    .drag-handle-right-controls:active {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: #38bdf8;
+      cursor: grabbing;
+      transform: scale(1.08);
     }
 
     .cad-active-map .map-right-controls {
@@ -4648,8 +4678,11 @@
           </div>
         </div>
 
-        <!-- Right Quick Controls -->
-        <div class="map-right-controls">
+        <!-- Right Quick Controls (Hỗ trợ kéo di chuyển lên xuống tránh đè nội dung) -->
+        <div class="map-right-controls" id="mapRightControls">
+          <div id="dragHandleRightControls" class="drag-handle-right-controls" title="Nhấp & kéo giữ để di chuyển thanh nút lên xuống">
+            <span>⠿</span>
+          </div>
           <button class="btn-map-fab" title="Đổi lớp bản đồ (Vệ tinh / Đường phố)" onclick="appMap.toggleMapLayer()">
             🛰️
           </button>
@@ -5039,7 +5072,7 @@
         <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
           <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.6.2 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.6.3 Pro</div>
           <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
             <span>•</span>
@@ -5069,7 +5102,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.6.2 Pro</span>
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.6.3 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
               <div>• <b>Tên ứng dụng:</b> WGS84 ⇄ VN-2000 Pro Surveying Engine (PWA)</div>
@@ -6851,7 +6884,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.6.2"></script>
+  <script src="app.js?v=2.6.3"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
