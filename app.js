@@ -118,7 +118,7 @@ function triggerHaptic(type = 'light') {
 }
 
 // ================= 3. ĐIỀU HƯỚNG MÀN HÌNH (NAVIGATION) =================
-const appNav = {
+const appNav = window.appNav = {
     showScreen(screenName) {
         triggerHaptic('light');
         if (AppState.isTreeDrawerOpen) {
@@ -290,6 +290,11 @@ const appNav = {
     },
 
     toggleTreeMenu() {
+        const now = Date.now();
+        if (appNav._lastToggleTime && (now - appNav._lastToggleTime < 350)) {
+            return;
+        }
+        appNav._lastToggleTime = now;
         triggerHaptic('light');
         if (AppState.isTreeDrawerOpen) {
             appNav.closeTreeMenu();
@@ -303,11 +308,14 @@ const appNav = {
         const drawer = document.getElementById('navTreeDrawer');
         const backdrop = document.getElementById('navTreeBackdrop');
         if (backdrop) {
-            backdrop.style.display = '';
+            backdrop.style.setProperty('display', 'block', 'important');
+            backdrop.style.setProperty('opacity', '1', 'important');
+            backdrop.style.setProperty('pointer-events', 'auto', 'important');
             backdrop.classList.add('active');
         }
         if (drawer) {
-            drawer.style.display = '';
+            drawer.style.setProperty('display', 'flex', 'important');
+            drawer.style.setProperty('transform', 'translateX(0)', 'important');
             drawer.classList.add('active');
         }
         appNav.updateTreeNavState();
@@ -318,12 +326,15 @@ const appNav = {
         const drawer = document.getElementById('navTreeDrawer');
         const backdrop = document.getElementById('navTreeBackdrop');
         if (drawer) {
+            drawer.style.setProperty('transform', 'translateX(-100%)', 'important');
             drawer.classList.remove('active');
-            drawer.style.display = '';
+            drawer.style.setProperty('display', 'none', 'important');
         }
         if (backdrop) {
+            backdrop.style.setProperty('opacity', '0', 'important');
+            backdrop.style.setProperty('pointer-events', 'none', 'important');
             backdrop.classList.remove('active');
-            backdrop.style.display = '';
+            backdrop.style.setProperty('display', 'none', 'important');
         }
     },
 
@@ -7946,6 +7957,8 @@ const appCadTool = {
 
 // ================= 11. KHỞI TẠO ỨNG DỤNG (APP BOOTSTRAP) =================
 window.addEventListener('DOMContentLoaded', () => {
+// Menu button handled via debounced appNav.toggleTreeMenu
+
     appTransform.init();
     appData.init();
     appGps.init();
@@ -7961,3 +7974,23 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ================= GLOBAL WINDOW EXPORTS FOR RELIABLE BROWSER / WEBVIEW COMPATIBILITY =================
+if (typeof window !== 'undefined') {
+    window.appNav = appNav;
+    window.AppState = AppState;
+    window.appElevationProfile = appElevationProfile;
+    window.appGeoidVigac = appGeoidVigac;
+    window.appDashboard = appDashboard;
+    window.appData = appData;
+    window.appGps = appGps;
+    window.appTransform = appTransform;
+    window.appModal = appModal;
+    window.appCadTool = appCadTool;
+    window.appMap = appMap;
+    window.appStakeout = appStakeout;
+    window.appCamera = appCamera;
+    window.appGeodesy = appGeodesy;
+    window.triggerHaptic = triggerHaptic;
+    window.showToast = showToast;
+}

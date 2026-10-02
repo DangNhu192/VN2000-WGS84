@@ -6573,6 +6573,14 @@
 
     <!-- Tree Body -->
     <div class="drawer-tree-body">
+      <!-- MỤC TRANG CHỦ / BẢNG ĐIỀU KHIỂN CHÍNH -->
+      <div class="drawer-leaf-item" id="drawerItem_home" onclick="appNav.goToMenu()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); margin-bottom: 8px; border-radius: 8px;">
+        <div class="drawer-leaf-icon" style="color: #38bdf8; font-size: 16px;">🏠</div>
+        <div class="drawer-leaf-text">
+          <div class="drawer-leaf-title" style="color: #38bdf8; font-weight: 800;">TRANG CHỦ (BẢNG ĐIỀU KHIỂN)</div>
+          <div class="drawer-leaf-sub">Quay về màn hình Menu chính</div>
+        </div>
+      </div>
       <!-- Nhóm 1 -->
       <div class="drawer-folder open" id="drawerFolder1">
         <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder1')">
@@ -6886,7 +6894,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.5.8"></script>
+  <script src="app.js?v=2.5.9"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
