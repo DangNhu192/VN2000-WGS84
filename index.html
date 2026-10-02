@@ -1846,7 +1846,7 @@
     }
 
     .map-proj-select-box {
-      flex: 1;
+      flex: 0 1 180px;
       display: flex;
       align-items: center;
       gap: 4px;
@@ -1856,6 +1856,8 @@
       padding: 0 6px;
       height: 30px;
       min-width: 0;
+      max-width: 190px;
+      overflow: hidden;
     }
 
     .map-proj-icon {
@@ -3638,7 +3640,7 @@
           <span class="tree-nav-icon">☰</span>
           <span class="tree-nav-label">Menu</span>
         </button>
-        <button id="btnHeaderBack" class="btn-header-back" onclick="appNav.goToMenu()" title="Quay lại Trang chủ">
+        <button id="btnHeaderBack" class="btn-header-back" onclick="appNav.handleHeaderBack()" title="Quay lại Trang chủ">
           ◀ Quay lại
         </button>
         <div class="app-title-group">
@@ -4487,12 +4489,6 @@
       <div id="map-view-container">
         <!-- Top Bar -->
         <div class="map-top-bar">
-          <button class="btn-sm" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appNav.closeMap()">
-            ◀ Quay lại
-          </button>
-          <button class="btn-sm btn-blue" style="display: none !important; flex:none; padding: 4px 8px; height: 32px;" onclick="appNav.toggleTreeMenu()" title="Mở cây thư mục chức năng">
-            🌳 Menu
-          </button>
           <span class="map-mode-text" id="mapModeIndicator">📍 BẢN ĐỒ DỰ ÁN</span>
           <button class="btn-sm btn-green" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appMap.togglePickMode()">
             🎯 Chấm điểm
@@ -6831,7 +6827,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.5.9"></script>
+  <script src="app.js?v=2.6.0"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

@@ -219,6 +219,16 @@ const appNav = window.appNav = {
         }
     },
 
+    handleHeaderBack() {
+        triggerHaptic('light');
+        const mapView = document.getElementById('map-view-container');
+        if (mapView && (mapView.classList.contains('active') || mapView.style.display === 'block')) {
+            appNav.closeMap();
+            return;
+        }
+        appNav.goToMenu();
+    },
+
     goToMenu() {
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
