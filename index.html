@@ -331,7 +331,8 @@
     }
 
     .screen-view.active {
-      display: block;
+      display: block !important;
+      z-index: 10;
     }
 
     /* STATUS BANNER */
@@ -503,6 +504,10 @@
     .big-action-tile:active {
       transform: scale(0.96);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .big-action-tile * {
+      pointer-events: none;
     }
 
     .big-tile-top {
@@ -752,6 +757,10 @@
       gap: 10px;
       flex: 1;
       min-width: 0;
+    }
+
+    .compact-tool-left * {
+      pointer-events: none;
     }
 
     .compact-tool-icon {
@@ -3400,6 +3409,33 @@
       line-height: 1.35;
     }
 
+    /* CAD Cursor & Dynamic Input Helpers (Chuẩn AutoCAD) */
+    .cad-active-map #leaflet-map {
+      cursor: crosshair !important;
+    }
+    .cad-dynamic-tooltip {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #38bdf8;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      color: #f8fafc;
+      font-family: ui-monospace, monospace;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      transform: translate(12px, 12px);
+    }
+    .cad-osnap-box {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f59e0b;
+      background: rgba(245, 158, 11, 0.35);
+      box-shadow: 0 0 10px #f59e0b;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
     /* Modal Bảng Diện Tích & Bảng Kê Tọa Độ */
     .cad-summary-grid {
       display: grid;
@@ -4407,45 +4443,48 @@
 
           <!-- Dòng 1: Công cụ vẽ & Thao tác đỉnh -->
           <div class="cad-actions-row">
-            <button id="btnCadModePoly" class="cad-btn active" onclick="appCadTool.setMode('polygon')" title="Vẽ đa giác khép kín tính diện tích thửa đất">
-              📐 Đa giác ranh
+            <button id="btnCadModePoly" class="cad-btn active" onclick="appCadTool.setMode('polygon')" title="Vẽ đa giác khép kín tính diện tích thửa đất (Phím tắt: P)">
+              📐 Đa giác [P]
             </button>
-            <button id="btnCadModeLine" class="cad-btn" onclick="appCadTool.setMode('polyline')" title="Vẽ đường tim tuyến / bờ ranh hở">
-              📏 Đường tuyến
+            <button id="btnCadModeLine" class="cad-btn" onclick="appCadTool.setMode('polyline')" title="Vẽ đường tim tuyến / bờ ranh hở (Phím tắt: L)">
+              📏 Tuyến [L]
             </button>
-            <button id="btnCadSnap" class="cad-btn active" onclick="appCadTool.toggleSnap()" title="Tự động bắt điểm (Snap) vào mốc dự án và các đỉnh CAD">
-              🧲 Snap: BẬT
+            <button id="btnCadSnap" class="cad-btn active" onclick="appCadTool.toggleSnap()" title="Tự động bắt điểm (Snap) vào mốc dự án và đỉnh CAD (Phím tắt: S)">
+              🧲 Snap: BẬT [S]
             </button>
-            <button class="cad-btn" onclick="appCadTool.openPolarModal()" title="Bắn điểm tiếp theo theo Cự ly & Góc phương vị">
-              🎯 Bắn điểm (L, Az)
+            <button class="cad-btn" onclick="appCadTool.openPolarModal()" title="Bắn điểm tiếp theo theo Cự ly & Góc phương vị (Phím tắt: D)">
+              🎯 Bắn điểm [D]
             </button>
             <button class="cad-btn" onclick="appCadTool.openCoordModal()" title="Nhập đỉnh trực tiếp bằng tọa độ VN-2000 (X, Y)">
               📌 Nhập X,Y
             </button>
-            <button class="cad-btn" onclick="appCadTool.undoVertex()" title="Hoàn tác điểm vừa vẽ">
-              ↩ Hoàn tác
+            <button class="cad-btn" onclick="appCadTool.undoVertex()" title="Hoàn tác điểm vừa vẽ (Phím tắt: U)">
+              ↩ Lùi [U]
             </button>
-            <button class="cad-btn" onclick="appCadTool.closeLoop()" title="Nối đỉnh cuối về đỉnh đầu để khép góc">
-              🔒 Khép góc
+            <button class="cad-btn" onclick="appCadTool.closeLoop()" title="Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: C)">
+              🔒 Khép góc [C]
             </button>
-            <button class="cad-btn" style="color: #f87171;" onclick="appCadTool.clearDrawing()" title="Xóa toàn bộ bản vẽ CAD">
-              🗑️ Xóa hết
+            <button class="cad-btn" style="color: #f87171;" onclick="appCadTool.clearDrawing()" title="Xóa toàn bộ bản vẽ CAD (Phím tắt: X)">
+              🗑️ Xóa hết [X]
             </button>
           </div>
 
           <!-- Dòng 2: Xuất dữ liệu & Xem bảng diện tích -->
           <div class="cad-actions-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px;">
-            <button class="cad-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="appCadTool.openAreaTableModal()" title="Xem bảng kê tọa độ ranh góc và bảng tính diện tích">
-              📋 Bảng diện tích & Tọa độ
+            <button class="cad-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="appCadTool.openAreaTableModal()" title="Xem bảng kê tọa độ ranh góc và bảng tính diện tích (Phím tắt: E)">
+              📋 Bảng kê [E]
             </button>
-            <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(14, 165, 233, 0.4); color: #38bdf8;" onclick="appCadTool.exportDxf()" title="Xuất file bản vẽ AutoCAD R12 (.DXF) có đầy đủ layer, kích thước, diện tích">
-              📐 Xuất file CAD (.DXF)
+            <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(14, 165, 233, 0.4); color: #38bdf8;" onclick="appCadTool.exportDxf()" title="Xuất file bản vẽ AutoCAD R12 (.DXF) có đầy đủ layer TCVN, khung tên, bảng kê">
+              📐 Xuất CAD (.DXF)
             </button>
-            <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Offset)">
-              ↔ Offset
+            <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
+              ↔ Offset [O]
             </button>
-            <div id="cadInstructionText" style="font-size: 10.5px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
-              💡 Chạm bản đồ để vẽ đỉnh • Đang bật Snap mốc
+            <span id="cadQcWarning" style="font-size: 10.5px; color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 4px; padding: 2px 6px; display: none; font-weight: 700; white-space: nowrap;">
+              ⚠️ Đa giác tự cắt chéo!
+            </span>
+            <div id="cadInstructionText" style="font-size: 10px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
+              💡 [P] Đa giác • [L] Tuyến • [S] Snap • [C] Khép • [U] Lùi • [D] Bắn điểm
             </div>
           </div>
         </div>
@@ -4841,7 +4880,7 @@
         <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
           <img src="VN2k-WGS84.png" alt="VN-2000 Pro" style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.5.4 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.5.6 Pro</div>
           <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
             <span>•</span>
@@ -4871,11 +4910,11 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.5.4 Pro</span>
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.5.6 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
               <div>• <b>Tên ứng dụng:</b> WGS84 ⇄ VN-2000 Pro Surveying Engine (PWA)</div>
-              <div>• <b>Phiên bản:</b> 2.5.4 Pro (Đã tối ưu hóa trải nghiệm & Ergonomics di động)</div>
+              <div>• <b>Phiên bản:</b> 2.5.6 Pro (Phản hồi tức thì & Tích hợp CAD 3.5 Thực Địa)</div>
               <div>• <b>Kiến trúc:</b> Progressive Web App (PWA) Offline-First — hoạt động 100% không cần mạng Internet ngoài thực địa.</div>
               <div>• <b>Bảo mật & Quyền riêng tư:</b> Toàn bộ tọa độ, sổ đo mốc và hình ảnh khảo sát được lưu an toàn tuyệt đối trên bộ nhớ cục bộ thiết bị hoặc Google Drive cá nhân của người dùng. Không truyền dữ liệu qua bất kỳ máy chủ trung gian nào.</div>
             </div>
@@ -6373,7 +6412,7 @@
   <div id="toast-msg"></div>
 
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.5.4"></script>
+  <script src="app.js?v=2.5.6"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
