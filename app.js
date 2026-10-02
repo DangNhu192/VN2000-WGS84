@@ -870,7 +870,6 @@ const appDashboard = {
               <div class="big-action-tile" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
                 <div class="big-tile-top">
                   <div class="big-tile-icon-box icon-box-${f.color}">${f.icon}</div>
-                  <span class="big-tile-pin-badge" title="Đang ghim trên màn hình chính">⭐</span>
                 </div>
                 <div class="big-tile-bottom">
                   <div class="big-tile-title">${f.short}</div>
@@ -893,7 +892,6 @@ const appDashboard = {
                   </div>
                 </div>
                 <div class="compact-tool-right">
-                  <button type="button" class="btn-compact-pin" onclick="event.stopPropagation(); appDashboard.quickSwapPin('${f.id}')" title="Ghim tính năng này lên Màn hình chính">⭐</button>
                   <span class="btn-compact-launch">Mở ➔</span>
                 </div>
               </div>
