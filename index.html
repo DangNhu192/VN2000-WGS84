@@ -2244,6 +2244,39 @@
       }
     }
 
+    /* RESPONSIVE OPTIMIZATION FOR MINICAD, MODALS & SURVEYING TABLES */
+    @media (max-width: 640px) {
+      .modal-box {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        max-height: 94vh !important;
+        padding: 10px 12px !important;
+      }
+      .cad-summary-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      .map-cad-toolbar {
+        left: 6px !important;
+        right: 6px !important;
+        padding: 5px 6px !important;
+      }
+      .cad-actions-row {
+        gap: 4px !important;
+        padding-bottom: 4px !important;
+      }
+      .cad-btn {
+        height: 29px !important;
+        padding: 2px 7px !important;
+        font-size: 10.5px !important;
+      }
+      #modalCadExportConfig .modal-body {
+        padding: 8px 10px !important;
+      }
+      #modalCadExportConfig div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+        grid-template-columns: 1fr 1fr !important;
+      }
+    }
+
     /* ADVANCED FEATURES TOGGLE BUTTON */
     .advanced-toggle-wrapper {
       margin: 18px 0 16px 0;
@@ -3671,10 +3704,10 @@
       text-align: left;
     }
     .cad-coord-table th {
-      background: rgba(30, 41, 59, 0.95);
+      background: #0f172a;
       color: #38bdf8;
-      padding: 6px 8px;
-      border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 8px 8px;
+      border-bottom: 1.5px solid rgba(56, 189, 248, 0.4);
       font-weight: 700;
       position: sticky;
       top: 0;
@@ -3682,17 +3715,19 @@
       white-space: nowrap;
     }
     .cad-coord-table td {
-      padding: 5px 8px;
+      padding: 6px 8px;
       border-bottom: 1px solid rgba(51, 65, 85, 0.4);
       color: #f1f5f9;
-      font-family: ui-monospace, monospace;
       white-space: nowrap;
     }
+    .cad-coord-table tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
     .cad-coord-table tr:hover {
-      background: rgba(56, 189, 248, 0.08);
+      background: rgba(56, 189, 248, 0.09);
     }
     .cad-coord-table tr.total-row {
-      background: rgba(16, 185, 129, 0.12);
+      background: rgba(30, 41, 59, 0.95);
       font-weight: 700;
       color: #4ade80;
     }
@@ -5022,14 +5057,14 @@
             <table class="data-table" id="tablePointsList">
               <thead>
                 <tr>
-                  <th>STT</th>
-                  <th>Tên Mốc</th>
-                  <th>X (Bắc)</th>
-                  <th>Y (Đông)</th>
-                  <th>Vĩ độ (Lat)</th>
-                  <th>Kinh độ (Long)</th>
-                  <th>Ghi chú</th>
-                  <th>Thao tác</th>
+                  <th style="width: 40px; text-align: center;">STT</th>
+                  <th style="text-align: left;">Tên Mốc</th>
+                  <th style="text-align: right; padding-right: 12px;">X (Bắc) [m]</th>
+                  <th style="text-align: right; padding-right: 12px;">Y (Đông) [m]</th>
+                  <th style="text-align: right; padding-right: 12px;">Vĩ độ (Lat)</th>
+                  <th style="text-align: right; padding-right: 12px;">Kinh độ (Long)</th>
+                  <th style="text-align: left;">Ghi chú</th>
+                  <th style="width: 120px; text-align: center;">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="tbodyPointsList">
@@ -6235,12 +6270,12 @@
           <thead>
             <tr>
               <th style="width: 35px; text-align: center;">STT</th>
-              <th>Tên đỉnh</th>
-              <th>X (Bắc) [m]</th>
-              <th>Y (Đông) [m]</th>
-              <th>Cạnh [m]</th>
-              <th>Phương vị (Az)</th>
-              <th>Ghi chú</th>
+              <th style="text-align: left;">Tên đỉnh</th>
+              <th style="text-align: right; padding-right: 12px;">X (Bắc) [m]</th>
+              <th style="text-align: right; padding-right: 12px;">Y (Đông) [m]</th>
+              <th style="text-align: right; padding-right: 12px;">Cạnh [m]</th>
+              <th style="text-align: right; padding-right: 12px;">Phương vị (Az)</th>
+              <th style="text-align: center;">Ghi chú</th>
             </tr>
           </thead>
           <tbody id="cadTableBody">
@@ -6304,6 +6339,9 @@
               <button type="button" class="btn-sm btn-blue" style="height: 22px; padding: 0 8px; font-size: 10.5px;" onclick="appCadTool.toggleSelectAllExportBlocks(true)">✓ Chọn tất cả</button>
               <button type="button" class="btn-sm" style="height: 22px; padding: 0 8px; font-size: 10.5px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.toggleSelectAllExportBlocks(false)">✕ Bỏ chọn</button>
             </div>
+          </div>
+          <div style="margin-bottom: 6px;">
+            <input type="text" id="txtFilterExportBlocks" class="app-input" style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;" placeholder="🔍 Lọc nhanh theo tên khối / loại cấu trúc..." oninput="appCadTool.filterExportBlocks(this.value)">
           </div>
           <div id="cadExportBlockPickerList" style="max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px;">
             <!-- Render danh sách khối chọn xuất bằng JS -->
@@ -6474,6 +6512,9 @@
               <button type="button" class="btn-sm btn-blue" style="height: 20px; padding: 0 6px; font-size: 10px;" onclick="appCadTool.toggleSelectAllLoadPoints(true)">✓ Chọn hết</button>
               <button type="button" class="btn-sm" style="height: 20px; padding: 0 6px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.toggleSelectAllLoadPoints(false)">✕ Bỏ chọn</button>
             </div>
+          </div>
+          <div style="margin-bottom: 6px;">
+            <input type="text" id="txtFilterLoadPoints" class="app-input" style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;" placeholder="🔍 Lọc mốc theo tên hoặc ghi chú..." oninput="appCadTool.filterLoadPoints(this.value)">
           </div>
           <div id="cadLoadPointsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
             <!-- Render mốc bằng JS -->

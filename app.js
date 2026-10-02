@@ -3709,17 +3709,22 @@ function doGet(e) {
 
         pts.forEach((p, idx) => {
             const tr = document.createElement('tr');
+            const xVal = (p.x !== undefined && p.x !== null && !isNaN(parseFloat(p.x))) ? parseFloat(p.x).toFixed(3) : (p.x || '--');
+            const yVal = (p.y !== undefined && p.y !== null && !isNaN(parseFloat(p.y))) ? parseFloat(p.y).toFixed(3) : (p.y || '--');
+            const latVal = (p.lat !== undefined && p.lat !== null && !isNaN(parseFloat(p.lat))) ? parseFloat(p.lat).toFixed(7) : (p.lat || '--');
+            const lngVal = (p.lng !== undefined && p.lng !== null && !isNaN(parseFloat(p.lng))) ? parseFloat(p.lng).toFixed(7) : (p.lng || '--');
+
             tr.innerHTML = `
-                <td>${idx + 1}</td>
-                <td><b style="color:#fbbf24;">${p.name}</b></td>
-                <td>${p.x}</td>
-                <td>${p.y}</td>
-                <td>${p.lat}</td>
-                <td>${p.lng}</td>
-                <td>${p.note || ''}</td>
-                <td>
-                    <button class="btn-sm btn-blue" style="height:26px; padding:2px 6px; font-size:11px; display:inline-flex;" onclick="appMap.loadPointDirect('${p.lat}', '${p.lng}', '${p.x}', '${p.y}')">📌 Nạp</button>
-                    <button class="btn-sm btn-red" style="height:26px; padding:2px 6px; font-size:11px; display:inline-flex;" onclick="appData.deletePoint(${p.id})">🗑️</button>
+                <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
+                <td style="text-align: left;"><b style="color:#fbbf24;">${p.name || ('M' + (idx+1))}</b></td>
+                <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${xVal}</td>
+                <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${yVal}</td>
+                <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; color: #cbd5e1;">${latVal}</td>
+                <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; color: #cbd5e1;">${lngVal}</td>
+                <td style="text-align: left; font-family: inherit;">${p.note || ''}</td>
+                <td style="text-align: center;">
+                    <button class="btn-sm btn-blue" style="height:26px; padding:2px 8px; font-size:11px; display:inline-flex; align-items:center;" onclick="appMap.loadPointDirect('${p.lat}', '${p.lng}', '${p.x}', '${p.y}')" title="Nạp tọa độ mốc lên bản đồ">📌 Nạp</button>
+                    <button class="btn-sm btn-red" style="height:26px; padding:2px 8px; font-size:11px; display:inline-flex; align-items:center;" onclick="appData.deletePoint(${p.id})" title="Xóa mốc đo">🗑️</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -5588,12 +5593,12 @@ const appElevationProfile = {
         let html = '';
         this.pitPoints.forEach((pt, idx) => {
             html += `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); text-align: center;">
-                <td style="padding: 6px; font-weight: 700; color: #38bdf8;">${pt.name || 'M' + (idx+1)}</td>
-                <td style="padding: 6px; font-family: monospace;">${pt.x.toFixed(2)}</td>
-                <td style="padding: 6px; font-family: monospace;">${pt.y.toFixed(2)}</td>
-                <td style="padding: 6px; color: #4ade80; font-family: monospace;">${pt.z.toFixed(2)}</td>
-                <td style="padding: 6px;">
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <td style="padding: 6px 8px; font-weight: 700; color: #38bdf8; text-align: left;">${pt.name || 'M' + (idx+1)}</td>
+                <td style="padding: 6px 8px; font-family: ui-monospace, monospace; text-align: right; font-variant-numeric: tabular-nums;">${pt.x.toFixed(3)}</td>
+                <td style="padding: 6px 8px; font-family: ui-monospace, monospace; text-align: right; font-variant-numeric: tabular-nums;">${pt.y.toFixed(3)}</td>
+                <td style="padding: 6px 8px; color: #4ade80; font-family: ui-monospace, monospace; text-align: right; font-variant-numeric: tabular-nums;">${pt.z.toFixed(2)}</td>
+                <td style="padding: 6px 8px; text-align: center;">
                     <button class="btn-sm btn-red" style="padding: 2px 7px; font-size: 11px;" onclick="appElevationProfile.removePitPoint(${idx})">✕</button>
                 </td>
             </tr>`;
@@ -8568,6 +8573,11 @@ const appCadTool = {
         const modal = document.getElementById('modalCadExportConfig');
         if (modal) modal.classList.add('active');
 
+        // Reset bộ lọc tìm kiếm khối
+        const filterInput = document.getElementById('txtFilterExportBlocks');
+        if (filterInput) filterInput.value = '';
+        this._exportBlockFilter = '';
+
         // Nạp cấu hình khung tên đã lưu từ localStorage
         try {
             const savedMetaStr = localStorage.getItem('vn2k_cad_meta_saved');
@@ -8602,6 +8612,11 @@ const appCadTool = {
         if (modal) modal.classList.remove('active');
     },
 
+    filterExportBlocks(keyword) {
+        this._exportBlockFilter = (keyword || '').toLowerCase().trim();
+        this.renderExportBlockPicker();
+    },
+
     renderExportBlockPicker() {
         const listEl = document.getElementById('cadExportBlockPickerList');
         if (!listEl) return;
@@ -8610,6 +8625,7 @@ const appCadTool = {
         let html = '';
         let selCount = 0;
         let selArea = 0;
+        const filter = this._exportBlockFilter || '';
 
         allShapes.forEach((s, idx) => {
             const isSelected = s.selected !== false;
@@ -8617,6 +8633,10 @@ const appCadTool = {
                 selCount++;
                 if (s.mode === 'polygon') selArea += (s.stats?.area || 0);
             }
+
+            const nameMatch = !filter || s.name.toLowerCase().includes(filter) || (s.shortName && s.shortName.toLowerCase().includes(filter)) || (s.mode === 'polygon' ? 'đa giác' : 'tuyến').includes(filter);
+            if (!nameMatch) return;
+
             const modeText = s.mode === 'polygon' ? 'Đa giác' : 'Tuyến';
             const vCount = s.vertices ? s.vertices.length : 0;
             const areaText = s.mode === 'polygon' 
@@ -8635,7 +8655,7 @@ const appCadTool = {
             `;
         });
 
-        listEl.innerHTML = html || '<div style="color: #94a3b8; font-size: 11px; padding: 6px;">Chưa có khối nào được vẽ.</div>';
+        listEl.innerHTML = html || `<div style="color: #94a3b8; font-size: 11px; padding: 8px; text-align: center;">${filter ? 'Không tìm thấy khối nào phù hợp với từ khóa.' : 'Chưa có khối nào được vẽ.'}</div>`;
 
         const countEl = document.getElementById('cadExportSelectedCount');
         const areaEl = document.getElementById('cadExportSelectedArea');
@@ -8646,8 +8666,17 @@ const appCadTool = {
     },
 
     toggleSelectAllExportBlocks(selectAll) {
-        this.savedShapes.forEach(s => { s.selected = selectAll; });
-        this._draftSelected = selectAll;
+        const filter = this._exportBlockFilter || '';
+        const allShapes = this._getAllExportShapes();
+        allShapes.forEach((s, idx) => {
+            if (!filter || s.name.toLowerCase().includes(filter) || (s.shortName && s.shortName.toLowerCase().includes(filter))) {
+                if (idx < this.savedShapes.length) {
+                    this.savedShapes[idx].selected = selectAll;
+                } else {
+                    this._draftSelected = selectAll;
+                }
+            }
+        });
         this.renderExportBlockPicker();
         this.checkScalePaperFit();
         this.renderBlockList(this._getAllExportShapes());
@@ -8692,41 +8721,64 @@ const appCadTool = {
         if (modal) modal.classList.remove('active');
     },
 
-    onLoadProjectSelectChange(projName) {
-        const listEl = document.getElementById('cadLoadPointsList');
-        const targetNameInput = document.getElementById('cadLoadTargetShapeName');
-        if (!listEl) return;
+    filterLoadPoints(keyword) {
+        this._loadPointFilter = (keyword || '').toLowerCase().trim();
+        const sel = document.getElementById('cadLoadProjectSelect');
+        const curProj = sel?.value || AppState.currentProject;
+        this.renderLoadPointsList(curProj);
+    },
 
-        const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(projName) : [];
+    onLoadProjectSelectChange(projName) {
+        const targetNameInput = document.getElementById('cadLoadTargetShapeName');
         if (targetNameInput) {
             const shortProj = projName ? projName.replace(/\.[^/.]+$/, "") : "DuAn";
             targetNameInput.value = `Ranh mốc ${shortProj}`;
         }
 
+        const filterInput = document.getElementById('txtFilterLoadPoints');
+        if (filterInput) filterInput.value = '';
+        this._loadPointFilter = '';
+
+        this.renderLoadPointsList(projName);
+    },
+
+    renderLoadPointsList(projName) {
+        const listEl = document.getElementById('cadLoadPointsList');
+        if (!listEl) return;
+
+        const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(projName) : [];
         if (pts.length === 0) {
-            listEl.innerHTML = '<div style="color: #94a3b8; font-size: 11px; padding: 6px;">Dự án này chưa có điểm mốc nào.</div>';
+            listEl.innerHTML = '<div style="color: #94a3b8; font-size: 11px; padding: 8px; text-align: center;">Dự án này chưa có điểm mốc nào.</div>';
             this._updateLoadPointsCount(0);
             return;
         }
 
+        const filter = this._loadPointFilter || '';
         let html = '';
+        let matchCount = 0;
+
         pts.forEach((p, idx) => {
+            const nameStr = (p.name || ('M' + (idx+1))).toLowerCase();
+            const noteStr = (p.code || p.note || '').toLowerCase();
+            if (filter && !nameStr.includes(filter) && !noteStr.includes(filter)) return;
+            matchCount++;
+
             const xStr = parseFloat(p.x || 0).toFixed(3);
             const yStr = parseFloat(p.y || 0).toFixed(3);
             html += `
-                <label style="display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; background: rgba(30,41,59,0.7); border-radius: 4px; font-size: 11px; cursor: pointer;">
+                <label style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; background: rgba(30,41,59,0.7); border-radius: 4px; font-size: 11px; cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" class="cad-load-pt-cb" value="${idx}" checked onchange="appCadTool._onLoadPtCheckboxChange()" style="accent-color: #38bdf8; width: 13px; height: 13px;">
-                        <span style="font-weight: 700; color: #38bdf8;">${p.name || `M${idx+1}`}</span>
-                        <span style="color: #cbd5e1; font-size: 10px;">(X: ${xStr}, Y: ${yStr})</span>
+                        <span style="font-weight: 700; color: #38bdf8;">${p.name || ('M' + (idx+1))}</span>
+                        <span style="color: #cbd5e1; font-size: 10px; font-family: ui-monospace, monospace;">(X: ${xStr}, Y: ${yStr})</span>
                     </div>
                     <span style="color: #94a3b8; font-size: 10px;">${p.code || p.note || ''}</span>
                 </label>
             `;
         });
 
-        listEl.innerHTML = html;
-        this._updateLoadPointsCount(pts.length);
+        listEl.innerHTML = html || '<div style="color: #94a3b8; font-size: 11px; padding: 8px; text-align: center;">Không tìm thấy mốc phù hợp với từ khóa.</div>';
+        this._onLoadPtCheckboxChange();
     },
 
     _onLoadPtCheckboxChange() {
@@ -8906,12 +8958,12 @@ const appCadTool = {
                     html += `
                         <tr>
                             <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
-                            <td style="font-weight: 700; color: #38bdf8;">${v.name}</td>
-                            <td>${(v.x || 0).toFixed(3)}</td>
-                            <td>${(v.y || 0).toFixed(3)}</td>
-                            <td style="color: #6ee7b7; font-weight: 600;">${edgeLenStr}</td>
-                            <td style="color: #cbd5e1;">${azStr}</td>
-                            <td style="font-size: 10px;">${noteStr}</td>
+                            <td style="text-align: left; font-weight: 700; color: #38bdf8;">${v.name}</td>
+                            <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.x || 0).toFixed(3)}</td>
+                            <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.y || 0).toFixed(3)}</td>
+                            <td style="text-align: right; padding-right: 12px; color: #6ee7b7; font-weight: 600; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${edgeLenStr}</td>
+                            <td style="text-align: right; padding-right: 12px; color: #cbd5e1; font-family: ui-monospace, monospace;">${azStr}</td>
+                            <td style="text-align: center; font-size: 10px;">${noteStr}</td>
                         </tr>
                     `;
                 });
@@ -9785,18 +9837,22 @@ const appCadTool = {
         const allShapes = this._getAllExportShapes();
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         if (selectedShapes.length === 0) {
-            noticeEl.innerHTML = '<span style="color:#94a3b8;">Chọn ít nhất 1 khối để kiểm tra tỉ lệ bản vẽ.</span>';
+            noticeEl.style.display = 'block';
+            noticeEl.innerHTML = '<div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.3); padding: 7px 10px; border-radius: 6px; color:#94a3b8; font-size:11px;">⚠️ Vui lòng chọn ít nhất 1 khối để kiểm tra tỉ lệ bản vẽ.</div>';
             return;
         }
 
         const meta = this._getExportMeta();
         const L = this._calculatePaperLayout(selectedShapes, meta);
 
+        noticeEl.style.display = 'block';
         if (L.fits) {
             noticeEl.innerHTML = `
-                <div style="color: #4ade80; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-                    <span>✓</span>
-                    <span>Tỷ lệ 1:${L.scaleVal} vừa vặn hoàn hảo trên khổ ${L.W_paper === 420 ? 'A3' : 'A4'} (Ranh đất: ${L.spanCadX.toFixed(1)}x${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}x${L.H_map.toFixed(1)}m)</span>
+                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 7px 10px; border-radius: 6px; color: #4ade80; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>✅</span>
+                        <span><b>Vừa vặn tuyệt đối:</b> Tỷ lệ 1:${L.scaleVal} trên khổ ${L.W_paper === 420 ? 'A3' : 'A4'} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
+                    </div>
                 </div>
             `;
         } else {
@@ -9812,11 +9868,25 @@ const appCadTool = {
             else suggested = 200;
 
             noticeEl.innerHTML = `
-                <div style="color: #facc15; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-                    <span>⚠️</span>
-                    <span>Ranh đất (${L.spanCadX.toFixed(1)}x${L.spanCadY.toFixed(1)}m) lớn hơn vùng vẽ khổ ${L.W_paper === 420 ? 'A3' : 'A4'} ở 1:${L.scaleVal}. Khuyến nghị: <b>1:${suggested}</b> để không bị tràn mép.</span>
+                <div style="background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.45); padding: 7px 10px; border-radius: 6px; color: #facc15; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>⚠️</span>
+                        <span><b>Vượt kích thước vùng vẽ:</b> Ranh (${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m) vượt khổ ${L.W_paper === 420 ? 'A3' : 'A4'} ở 1:${L.scaleVal}. Khuyến nghị: <b>1:${suggested}</b>.</span>
+                    </div>
+                    <button type="button" class="btn-sm" style="padding: 3px 10px; font-size: 11px; font-weight: 800; background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: #0f172a; border: none; border-radius: 4px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.3);" onclick="appCadTool.applySuggestedScale(${suggested})" title="Bấm để chuyển ngay sang tỷ lệ khuyến nghị 1:${suggested}">
+                        ⚡ Đổi sang 1:${suggested}
+                    </button>
                 </div>
             `;
+        }
+    },
+
+    applySuggestedScale(val) {
+        const scaleSelect = document.getElementById('cadExportScale');
+        if (scaleSelect) {
+            scaleSelect.value = String(val);
+            this.checkScalePaperFit();
+            showToast(`✅ Đã chuyển tỷ lệ sang 1:${val}`);
         }
     },
 
