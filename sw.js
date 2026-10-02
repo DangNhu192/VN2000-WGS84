@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.5.7';
+const CACHE_NAME = 'vn2000-pro-v2.5.8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -69,7 +69,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // B. TÀI NGUYÊN NỘI BỘ ỨNG DỤNG (JS, CSS, Ảnh, Manifest) - Chiến lược Stale-While-Revalidate
+  // B. TÀI NGUYÊN NỘI BỘ ỨNG DỤNG (JS, CSS, Ảnh, Manifest)
+  if (url.origin === location.origin && (url.pathname.endsWith('app.js') || url.search.includes('v='))) {
+    event.respondWith(
+      fetch(req).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const resClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+        }
+        return networkResponse;
+      }).catch(() => caches.match(req).then((res) => res || caches.match('./app.js')))
+    );
+    return;
+  }
+
+  // C. CÁC TÀI NGUYÊN NỘI BỘ KHÁC (CSS, Ảnh) - Stale-While-Revalidate
   if (url.origin === location.origin) {
     event.respondWith(
       caches.match(req).then((cachedResponse) => {
