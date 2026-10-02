@@ -855,7 +855,7 @@ const appDashboard = {
         { id: 'resection', name: '7. Giao Hội Trắc Địa Khi Mất GPS', short: 'Giao Hội Trắc Địa', icon: '📐', color: 'yellow', tag: 'Định vị hầm/tán cây', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Giao Hội Điểm P', action: () => appModal.openUnifiedSettings('resection') },
         { id: 'profile', name: '8. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
         { id: 'geoid', name: '9. Quy Đổi Cao Độ Geoid Hòn Dấu', short: 'Geoid VIGAC2017', icon: '🏔️', color: 'cyan', tag: 'Thủy chuẩn Quốc gia', sub: 'Quy đổi độ cao H = h - ζ (VIGAC)', metric: 'Geoid Hòn Dấu', action: () => appNav.showScreen('geoid') },
-        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.6.3 Pro', action: () => appNav.showScreen('about') }
+        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.6.4 Pro', action: () => appNav.showScreen('about') }
     ],
 
     init() {
@@ -7730,8 +7730,9 @@ const appCadTool = {
         showToast("Đã dọn dẹp bản vẽ CAD!");
     },
 
-    calculateAreaAndPerimeter() {
-        const pts = this.vertices;
+    calculateAreaAndPerimeter(customPts = null, customMode = null) {
+        const pts = customPts || this.vertices;
+        const mode = customMode || this.mode;
         const n = pts.length;
         if (n < 2) {
             return {
@@ -7748,7 +7749,7 @@ const appCadTool = {
         let sumArea = 0;
         let perimeter = 0;
         const edges = [];
-        const isClosed = (this.mode === 'polygon' && n >= 3);
+        const isClosed = (mode === 'polygon' && n >= 3);
         const segmentCount = isClosed ? n : n - 1;
 
         for (let i = 0; i < segmentCount; i++) {
@@ -7811,8 +7812,11 @@ const appCadTool = {
             const sLatLngs = sVerts.map(v => [v.lat, v.lng]);
             const sColor = shape.color || '#10b981';
 
+            let sShapeLayer = null;
+            let sCenterMarker = null;
+
             if (shape.mode === 'polygon' && sLen >= 3) {
-                L.polygon(sLatLngs, {
+                sShapeLayer = L.polygon(sLatLngs, {
                     color: sColor,
                     weight: 2.5,
                     fillColor: sColor,
@@ -7829,9 +7833,9 @@ const appCadTool = {
                     <div style="font-weight: 700; font-size: 10px;">${shape.stats?.areaFormatted || 0} m²</div>
                 </div>`;
                 const centerIcon = L.divIcon({ className: '', html: centerHtml, iconSize: [90, 36], iconAnchor: [45, 18] });
-                L.marker([cLat, cLng], { icon: centerIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
+                sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
             } else if (sLen >= 2) {
-                L.polyline(sLatLngs, {
+                sShapeLayer = L.polyline(sLatLngs, {
                     color: sColor,
                     weight: 2.5,
                     dashArray: '4, 4',
@@ -7840,12 +7844,88 @@ const appCadTool = {
                 }).addTo(this.layers.group);
             }
 
-            // Đỉnh của cấu trúc đã lưu (Bấm trực tiếp vào đỉnh sẽ hít snap ngay lập tức)
+            // Đỉnh của cấu trúc đã lưu (Kéo thả di chuyển nhanh hoặc bấm để bắt snap)
             sVerts.forEach((v, vIdx) => {
-                const iconHtml = `<div class="cad-vertex-badge" style="background: ${sColor}; border-color: #ffffff; width: 18px; height: 18px; font-size: 9px; line-height: 18px;" title="${shape.shortName} - ${v.name}">${v.name}</div>`;
-                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [18, 18], iconAnchor: [9, 9] });
-                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450 }).addTo(this.layers.group);
+                const iconHtml = `<div class="cad-vertex-badge" style="background: ${sColor}; border-color: #ffffff; width: 20px; height: 20px; font-size: 9.5px; line-height: 20px; cursor: grab;" title="${shape.shortName} - ${v.name} (Kéo thả để điều chỉnh đỉnh)">${v.name}</div>`;
+                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [20, 20], iconAnchor: [10, 10] });
+                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: true }).addTo(this.layers.group);
+
+                let isDragging = false;
+                marker.on('dragstart', () => {
+                    isDragging = true;
+                    if (AppState.leafletMap) AppState.leafletMap.dragging.disable();
+                });
+
+                marker.on('drag', (e) => {
+                    const newPos = e.target.getLatLng();
+                    v.lat = newPos.lat;
+                    v.lng = newPos.lng;
+                    const vn2k = convertWgsToVn2k(newPos.lat, newPos.lng, AppState.kttVal, AppState.scaleFactor);
+                    v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
+                    v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+
+                    if (sShapeLayer) {
+                        sShapeLayer.setLatLngs(sVerts.map(pt => [pt.lat, pt.lng]));
+                    }
+                    if (sCenterMarker && sLen >= 3) {
+                        const curCLat = sVerts.reduce((a, b) => a + b.lat, 0) / sLen;
+                        const curCLng = sVerts.reduce((a, b) => a + b.lng, 0) / sLen;
+                        sCenterMarker.setLatLng([curCLat, curCLng]);
+                    }
+                });
+
+                marker.on('dragend', (e) => {
+                    if (AppState.leafletMap) AppState.leafletMap.dragging.enable();
+                    setTimeout(() => { isDragging = false; }, 150);
+
+                    const newPos = e.target.getLatLng();
+                    let targetLat = newPos.lat;
+                    let targetLng = newPos.lng;
+                    let targetX = v.x;
+                    let targetY = v.y;
+                    let isSnapped = false;
+                    let snapSource = null;
+
+                    if (this.snapEnabled) {
+                        const cand = this.findSnapCandidate(targetLat, targetLng);
+                        if (cand && (Math.abs(cand.lat - targetLat) > 0.0000001 || Math.abs(cand.lng - targetLng) > 0.0000001)) {
+                            targetLat = cand.lat;
+                            targetLng = cand.lng;
+                            targetX = cand.x;
+                            targetY = cand.y;
+                            isSnapped = true;
+                            snapSource = cand.source;
+                        }
+                    }
+
+                    v.lat = targetLat;
+                    v.lng = targetLng;
+                    if (targetX !== undefined && targetY !== undefined) {
+                        v.x = parseFloat(parseFloat(targetX).toFixed(3));
+                        v.y = parseFloat(parseFloat(targetY).toFixed(3));
+                    } else {
+                        const vn2k = convertWgsToVn2k(targetLat, targetLng, AppState.kttVal, AppState.scaleFactor);
+                        v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
+                        v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                    }
+                    v.isSnapped = isSnapped;
+                    v.snapSource = snapSource;
+
+                    // Cập nhật lại thống kê diện tích / chu vi của khối
+                    shape.stats = this.calculateAreaAndPerimeter(shape.vertices, shape.mode);
+
+                    this.renderGeometry();
+                    this.renderBlocksPanel();
+                    triggerHaptic('success');
+                    if (isSnapped) {
+                        showToast(`🧲 Đỉnh ${v.name} (${shape.shortName}) đã hít vào [${snapSource}]!`);
+                    } else {
+                        showToast(`📍 Đã dời đỉnh ${v.name} (${shape.shortName}): X=${v.x.toFixed(2)}, Y=${v.y.toFixed(2)}`);
+                    }
+                });
+
                 marker.on('click', (e) => {
+                    if (isDragging) return;
                     if (appCadTool.isActive) {
                         L.DomEvent.stopPropagation(e);
                         appCadTool.handleMapClick(v.lat, v.lng);
@@ -7856,6 +7936,7 @@ const appCadTool = {
                         <b style="color: ${sColor}; font-size: 13px;">📍 ${shape.shortName} - ${v.name}</b>
                         <div style="color: #334155; margin-top: 3px;">• <b>X:</b> ${v.x.toFixed(3)} m</div>
                         <div style="color: #334155;">• <b>Y:</b> ${v.y.toFixed(3)} m</div>
+                        <div style="color: #0284c7; font-size: 11px; margin-top: 2px;">🖐️ <i>Kéo thả để di chuyển nhanh đỉnh</i></div>
                     </div>
                 `);
             });
@@ -7896,17 +7977,92 @@ const appCadTool = {
             }
         }
 
-        // 2. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2...
+        // 2. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển nhanh)
         this.vertices.forEach((v, idx) => {
-            const iconHtml = `<div class="cad-vertex-badge" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)})">${v.name}</div>`;
+            const iconHtml = `<div class="cad-vertex-badge" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
             const icon = L.divIcon({
                 className: '',
                 html: iconHtml,
                 iconSize: [22, 22],
                 iconAnchor: [11, 11]
             });
-            const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2500 }).addTo(this.layers.group);
+            const marker = L.marker([v.lat, v.lng], { 
+                icon, 
+                zIndexOffset: 2500,
+                draggable: true 
+            }).addTo(this.layers.group);
+
+            let isDragging = false;
+            marker.on('dragstart', () => {
+                isDragging = true;
+                if (AppState.leafletMap) AppState.leafletMap.dragging.disable();
+            });
+
+            marker.on('drag', (e) => {
+                const newPos = e.target.getLatLng();
+                v.lat = newPos.lat;
+                v.lng = newPos.lng;
+                const vn2k = convertWgsToVn2k(newPos.lat, newPos.lng, AppState.kttVal, AppState.scaleFactor);
+                v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
+                v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+
+                // Cập nhật ngay đường bao (polyline/polygon) để mượt mà 60 FPS
+                if (this.layers.shape) {
+                    this.layers.shape.setLatLngs(this.vertices.map(pt => [pt.lat, pt.lng]));
+                }
+                this.updateUi();
+            });
+
+            marker.on('dragend', (e) => {
+                if (AppState.leafletMap) AppState.leafletMap.dragging.enable();
+                setTimeout(() => { isDragging = false; }, 150);
+
+                const newPos = e.target.getLatLng();
+                let targetLat = newPos.lat;
+                let targetLng = newPos.lng;
+                let targetX = v.x;
+                let targetY = v.y;
+                let isSnapped = false;
+                let snapSource = null;
+
+                if (this.snapEnabled) {
+                    const cand = this.findSnapCandidate(targetLat, targetLng);
+                    if (cand && (Math.abs(cand.lat - targetLat) > 0.0000001 || Math.abs(cand.lng - targetLng) > 0.0000001 || cand.source !== v.name)) {
+                        targetLat = cand.lat;
+                        targetLng = cand.lng;
+                        targetX = cand.x;
+                        targetY = cand.y;
+                        isSnapped = true;
+                        snapSource = cand.source;
+                    }
+                }
+
+                v.lat = targetLat;
+                v.lng = targetLng;
+                if (targetX !== undefined && targetY !== undefined) {
+                    v.x = parseFloat(parseFloat(targetX).toFixed(3));
+                    v.y = parseFloat(parseFloat(targetY).toFixed(3));
+                } else {
+                    const vn2k = convertWgsToVn2k(targetLat, targetLng, AppState.kttVal, AppState.scaleFactor);
+                    v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
+                    v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                }
+                v.isSnapped = isSnapped;
+                v.snapSource = snapSource;
+
+                this.renderGeometry();
+                this.updateUi();
+                this.renderBlocksPanel();
+                triggerHaptic('success');
+                if (isSnapped) {
+                    showToast(`🧲 Đỉnh ${v.name} đã hít vào [${snapSource}]!`);
+                } else {
+                    showToast(`📍 Đã dời đỉnh ${v.name}: X=${v.x.toFixed(2)}, Y=${v.y.toFixed(2)}`);
+                }
+            });
+
             marker.on('click', (e) => {
+                if (isDragging) return;
                 if (appCadTool.isActive) {
                     L.DomEvent.stopPropagation(e);
                     appCadTool.handleMapClick(v.lat, v.lng);
@@ -7918,6 +8074,7 @@ const appCadTool = {
                     <div style="color: #334155; margin-top: 3px;">• <b>X:</b> ${v.x.toFixed(3)} m</div>
                     <div style="color: #334155;">• <b>Y:</b> ${v.y.toFixed(3)} m</div>
                     ${v.isSnapped ? `<div style="color: #d97706; font-size: 11px;">🧲 ${v.snapSource || 'Hít mốc'}</div>` : ''}
+                    <div style="color: #0284c7; font-size: 11px; margin-top: 2px;">🖐️ <i>Kéo thả để di chuyển nhanh đỉnh</i></div>
                 </div>
             `);
         });
