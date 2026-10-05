@@ -8601,6 +8601,17 @@ const appCadTool = {
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
+            // Khôi phục trạng thái tùy chọn hiển thị thông tin khối
+            if (savedMeta && typeof savedMeta.showBlockInfo === 'boolean') {
+                if (document.getElementById('cadBlockDisplayFull')) {
+                    document.getElementById('cadBlockDisplayFull').checked = savedMeta.showBlockInfo;
+                    if (document.getElementById('cadBlockDisplayMinimal')) {
+                        document.getElementById('cadBlockDisplayMinimal').checked = !savedMeta.showBlockInfo;
+                    }
+                } else if (document.getElementById('cadShowBlockInfo')) {
+                    document.getElementById('cadShowBlockInfo').checked = savedMeta.showBlockInfo;
+                }
+            }
         } catch (e) {}
 
         this.renderExportBlockPicker();
@@ -9292,29 +9303,28 @@ const appCadTool = {
         csv += `Hệ tọa độ;VN-2000 (${AppState.provinceName || 'Tỉnh'});KTT;${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°);Tỷ lệ;1:${meta.scaleVal}\n`;
         csv += `Ngày hoàn thành;${meta.drawingDate};Số tờ/thửa;${meta.parcelNo || '01'};Tổng số khối;${selectedShapes.length}\n\n`;
 
-        // 1. PHẦN 1: BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (KÈM CỘT % TỈ LỆ)
+        // 1. PHẦN 1: BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (BỎ CỘT LOẠI VÀ CHU VI)
         csv += `=== BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT ===\n`;
         csv += showPercent 
-            ? `STT;Tên khối / Thửa;Loại ranh;Số đỉnh;Chu vi [m];Diện tích [m2];Diện tích [ha];Tỉ lệ diện tích [%];Ghi chú\n`
-            : `STT;Tên khối / Thửa;Loại ranh;Số đỉnh;Chu vi [m];Diện tích [m2];Diện tích [ha];Ghi chú\n`;
+            ? `STT;Tên khối / Thửa;Số đỉnh;Diện tích [m2];Diện tích [ha];Tỉ lệ diện tích [%];Ghi chú\n`
+            : `STT;Tên khối / Thửa;Số đỉnh;Diện tích [m2];Diện tích [ha];Ghi chú\n`;
 
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
-            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
 
             if (showPercent) {
-                csv += `${idx + 1};${s.name};${isPoly ? 'Đa giác' : 'Tuyến'};${s.vertices.length};${perim.toFixed(2)};${isPoly ? area.toFixed(2) : '--'};${isPoly ? (area / 10000).toFixed(4) : '--'};${pctStr};${s.isSnapped ? 'Hít mốc' : 'Tự do'}\n`;
+                csv += `${idx + 1};${s.name};${s.vertices.length};${isPoly ? area.toFixed(2) : '--'};${isPoly ? (area / 10000).toFixed(4) : '--'};${pctStr};${s.isSnapped ? 'Hít mốc' : 'Tự do'}\n`;
             } else {
-                csv += `${idx + 1};${s.name};${isPoly ? 'Đa giác' : 'Tuyến'};${s.vertices.length};${perim.toFixed(2)};${isPoly ? area.toFixed(2) : '--'};${isPoly ? (area / 10000).toFixed(4) : '--'};${s.isSnapped ? 'Hít mốc' : 'Tự do'}\n`;
+                csv += `${idx + 1};${s.name};${s.vertices.length};${isPoly ? area.toFixed(2) : '--'};${isPoly ? (area / 10000).toFixed(4) : '--'};${s.isSnapped ? 'Hít mốc' : 'Tự do'}\n`;
             }
         });
 
         const totalPctStr = (baseProjectArea > 0) ? ((totalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
         csv += showPercent
-            ? `--;TỔNG CỘNG;${selectedShapes.length} khối;--;${totalPerimeter.toFixed(2)};${totalArea.toFixed(2)};${totalHa.toFixed(4)};${totalPctStr};${meta.customTotalArea ? 'Theo DA quy hoạch' : 'Tổng đo thực tế'}\n\n`
-            : `--;TỔNG CỘNG;${selectedShapes.length} khối;--;${totalPerimeter.toFixed(2)};${totalArea.toFixed(2)};${totalHa.toFixed(4)};Tổng đo thực tế\n\n`;
+            ? `--;TỔNG CỘNG;${selectedShapes.length} khối;${totalArea.toFixed(2)};${totalHa.toFixed(4)};${totalPctStr};${meta.customTotalArea ? 'Theo DA quy hoạch' : 'Tổng đo thực tế'}\n\n`
+            : `--;TỔNG CỘNG;${selectedShapes.length} khối;${totalArea.toFixed(2)};${totalHa.toFixed(4)};Tổng đo thực tế\n\n`;
 
         // 2. PHẦN 2: BẢNG KÊ TỌA ĐỘ CHI TIẾT TỪNG ĐỈNH
         csv += `=== BẢNG KÊ TỌA ĐỘ CHI TIẾT CÁC ĐỈNH RANH (TCVN) ===\n`;
@@ -9533,9 +9543,7 @@ const appCadTool = {
       <tr>
         <th style="width: 50px;">STT</th>
         <th>Tên Khối / Thửa</th>
-        <th>Loại Ranh</th>
         <th>Số Đỉnh</th>
-        <th>Chu Vi (m)</th>
         <th>Diện Tích (m²)</th>
         <th>Diện Tích (ha)</th>
         ${showPercent ? '<th>Tỉ Lệ Diện Tích (%)</th>' : ''}
@@ -9547,7 +9555,6 @@ const appCadTool = {
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
-            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
             const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
 
@@ -9555,9 +9562,7 @@ const appCadTool = {
       <tr style="background-color: ${bg};">
         <td style="text-align: center;">${idx + 1}</td>
         <td><b>${s.name}</b></td>
-        <td style="text-align: center;">${isPoly ? 'Đa giác' : 'Tuyến'}</td>
         <td style="text-align: center;">${s.vertices.length}</td>
-        <td class="num-2">${perim.toFixed(2)}</td>
         <td class="num-2">${isPoly ? area.toFixed(2) : '--'}</td>
         <td class="num-4">${isPoly ? (area / 10000).toFixed(4) : '--'}</td>
         ${showPercent ? `<td class="num-pct">${pctStr}</td>` : ''}
@@ -9571,8 +9576,6 @@ const appCadTool = {
         <td style="text-align: center;">--</td>
         <td><b>TỔNG CỘNG</b></td>
         <td style="text-align: center;"><b>${selectedShapes.length} khối</b></td>
-        <td style="text-align: center;">--</td>
-        <td class="num-2"><b>${totalPerimeter.toFixed(2)}</b></td>
         <td class="num-2"><b>${totalArea.toFixed(2)}</b></td>
         <td class="num-4"><b>${totalHa.toFixed(4)}</b></td>
         ${showPercent ? `<td class="num-pct"><b>${totalPctStr}</b></td>` : ''}
@@ -9699,13 +9702,20 @@ const appCadTool = {
         const drawingDate = document.getElementById('cadExportDate')?.value?.trim() || new Date().toLocaleDateString('vi-VN');
 
         const showPercent = document.getElementById('cadShowPercentRatio') ? document.getElementById('cadShowPercentRatio').checked : (this.showPercentRatio !== false);
+        // showBlockInfo: true = hiện đầy đủ số liệu S, P, cạnh; false = chỉ hiện số thứ tự/ký hiệu khối tại tâm (mặc định)
+        let showBlockInfo = false;
+        if (document.getElementById('cadBlockDisplayFull')) {
+            showBlockInfo = document.getElementById('cadBlockDisplayFull').checked;
+        } else if (document.getElementById('cadShowBlockInfo')) {
+            showBlockInfo = document.getElementById('cadShowBlockInfo').checked;
+        }
         const customAreaVal = parseFloat(document.getElementById('cadCustomProjectArea')?.value || '0');
         const customTotalArea = (!isNaN(customAreaVal) && customAreaVal > 0) ? customAreaVal : null;
 
         // Lưu cấu hình vào localStorage để người dùng không phải nhập lại
         try {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
-                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, scaleVal, paper, showPercent, customTotalArea
+                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, scaleVal, paper, showPercent, showBlockInfo, customTotalArea
             }));
         } catch (e) {}
 
@@ -9714,7 +9724,7 @@ const appCadTool = {
         return { 
             scaleVal, paper, paperW, paperH, 
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
-            showPercent, customTotalArea
+            showPercent, showBlockInfo, customTotalArea
         };
     },
 
@@ -9731,6 +9741,22 @@ const appCadTool = {
         };
     },
 
+
+    // Chuyển đổi chuỗi tiếng Việt có dấu sang ASCII thuần túy tương thích tuyệt đối mọi phiên bản MiniCAD/AutoCAD
+    toCadAscii(str) {
+        if (!str) return '';
+        return String(str)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[đ]/g, 'd')
+            .replace(/[Đ]/g, 'D')
+            .replace(/[²]/g, '2')
+            .replace(/[³]/g, '3')
+            .replace(/[°]/g, ' deg')
+            .replace(/[\r\n\t]/g, ' ')
+            .replace(/[^\x20-\x7E]/g, '')
+            .trim();
+    },
 
     // === 1. TÍNH TOÁN BỐ CỤC KHUNG BẢN VẼ CHUẨN TCVN 7285 & THÔNG TƯ 25/2014/TT-BTNMT ===
     _calculatePaperLayout(selectedShapes, meta) {
@@ -9753,8 +9779,8 @@ const appCadTool = {
         const W_inner = (W_paper - M_left_mm - M_right_mm) * S;
         const H_inner = (H_paper - M_top_mm - M_bottom_mm) * S;
 
-        // Cột bảng biểu & Khung tên bên phải (mm trên giấy): A3 = 140mm, A4 = 105mm
-        const W_panel_mm = (W_paper >= 420) ? 140.0 : 105.0;
+        // Cột bảng biểu & Khung tên bên phải (mm trên giấy): A3 = 75mm, A4 = 60mm (tinh giản nhỏ hơn, dành tới 78-81% không gian cho bản vẽ thửa)
+        const W_panel_mm = (W_paper >= 420) ? 75.0 : 60.0;
         const W_panel = W_panel_mm * S;
 
         // Vùng vẽ bản đồ (Map Viewport) bên trái
@@ -9785,9 +9811,6 @@ const appCadTool = {
         const Cy = (minCadY + maxCadY) / 2.0;
 
         // TÍNH TOÁN TỌA ĐỘ GỐC TỜ GIẤY (X0, Y0) ĐỂ THỬA ĐẤT RƠI CHÍNH XÁC VÀO TRỌNG TÂM VÙNG BẢN ĐỒ
-        // Trọng tâm vùng bản đồ cách gốc tờ giấy (X0, Y0) là:
-        // RelCenter_X = M_left_mm * S + W_map / 2.0
-        // RelCenter_Y = M_bottom_mm * S + H_map / 2.0
         const X0 = Cx - (M_left_mm * S + W_map / 2.0);
         const Y0 = Cy - (M_bottom_mm * S + H_map / 2.0);
 
@@ -9800,8 +9823,8 @@ const appCadTool = {
         // Đường ranh giới chia giữa Vùng bản đồ và Cột bảng bên phải
         const Xpanel0 = Xin1 - W_panel;
 
-        // Chiều cao Khung Tên TCVN ở góc dưới bên phải (mm trên giấy: 38mm)
-        const H_title_mm = 38.0;
+        // Chiều cao Khung Tên TCVN ở góc dưới bên phải (mm trên giấy: 36mm)
+        const H_title_mm = 36.0;
         const H_title = H_title_mm * S;
         const YtitleTop = Yin0 + H_title;
 
@@ -9917,10 +9940,12 @@ const appCadTool = {
         const baseProjectArea = (meta.customTotalArea && meta.customTotalArea > 0) ? meta.customTotalArea : measuredTotalArea;
         const showPercent = meta.showPercent !== false;
 
-        // KHỞI TẠO FILE DXF AC1018 (AutoCAD 2004/2007) - CHUẨN TƯƠNG THÍCH UNICODE 100%
+        // KHỞI TẠO FILE DXF AC1015 (R2000/R2002) - TƯƠNG THÍCH HOÀN HẢO MINICAD & PHẦN MỀM ĐỊA CHÍNH
+        // Tùy chọn showBlockInfo: true = hiện đầy đủ S, P, cạnh; false (mặc định) = chỉ hiện số thứ tự/ký hiệu khối tại tâm
+        const showBlockInfo = meta.showBlockInfo === true;
         let dxf = "0\nSECTION\n2\nHEADER\n";
-        dxf += "9\n$ACADVER\n1\nAC1018\n";
-        dxf += "9\n$DWGCODEPAGE\n3\nUTF-8\n";
+        dxf += "9\n$ACADVER\n1\nAC1015\n";
+        dxf += "9\n$DWGCODEPAGE\n3\nANSI_1252\n";
         dxf += "9\n$INSUNITS\n70\n6\n";       // 6 = Meters (TCVN)
         dxf += "9\n$MEASUREMENT\n70\n1\n";    // 1 = Metric
         dxf += "9\n$LTSCALE\n40\n" + S.toFixed(4) + "\n";
@@ -9968,19 +9993,18 @@ const appCadTool = {
         dxf += "0\nLAYER\n2\nHUONG_BAC\n70\n0\n62\n4\n6\nCONTINUOUS\n370\n25\n";   // Cyan
         dxf += "0\nENDTAB\n";
 
-        // 4. Style table: Khai báo VN_ARIAL với Arial TrueType font chuẩn tiếng Việt
+        // 4. Style table: Khai báo STANDARD và VN_ARIAL chuẩn AC1015 (Không có group rỗng gây lỗi Minicad)
         dxf += "0\nTABLE\n2\nSTYLE\n70\n2\n";
-        dxf += "0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\ntxt\n4\n\n";
-        dxf += "0\nSTYLE\n2\nVN_ARIAL\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\narial.ttf\n4\n\n";
-        dxf += "1001\nACAD\n1000\nArial\n";
+        dxf += "0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\ntxt\n";
+        dxf += "0\nSTYLE\n2\nVN_ARIAL\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\narial.ttf\n";
         dxf += "0\nENDTAB\n";
 
         dxf += "0\nENDSEC\n";
 
         // BLOCKS SECTION
         dxf += "0\nSECTION\n2\nBLOCKS\n";
-        dxf += "0\nBLOCK\n8\n0\n2\n$MODEL_SPACE\n70\n0\n10\n0.0\n20\n0.0\n30\n0.0\n3\n$MODEL_SPACE\n1\n\n0\nENDBLK\n8\n0\n";
-        dxf += "0\nBLOCK\n8\n0\n2\n$PAPER_SPACE\n70\n0\n10\n0.0\n20\n0.0\n30\n0.0\n3\n$PAPER_SPACE\n1\n\n0\nENDBLK\n8\n0\n";
+        dxf += "0\nBLOCK\n8\n0\n2\n$MODEL_SPACE\n70\n0\n10\n0.0\n20\n0.0\n30\n0.0\n3\n$MODEL_SPACE\n0\nENDBLK\n8\n0\n";
+        dxf += "0\nBLOCK\n8\n0\n2\n$PAPER_SPACE\n70\n0\n10\n0.0\n20\n0.0\n30\n0.0\n3\n$PAPER_SPACE\n0\nENDBLK\n8\n0\n";
         dxf += "0\nENDSEC\n";
 
         // ENTITIES SECTION
@@ -10025,13 +10049,13 @@ const appCadTool = {
             }
             // Vạch chia & Tọa độ cạnh dưới
             dxf += `0\nLINE\n8\nLUOI_TOADO\n10\n${gx.toFixed(3)}\n20\n${L.Yin0.toFixed(3)}\n30\n0.0\n11\n${gx.toFixed(3)}\n21\n${(L.Yin0 + tickLen).toFixed(3)}\n31\n0.0\n`;
-            dxf += `0\nTEXT\n8\nLUOI_TOADO\n7\nVN_ARIAL\n10\n${(gx - 8 * S).toFixed(3)}\n20\n${(L.Yin0 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nY=${gx.toFixed(0)}\n`;
+            dxf += `0\nTEXT\n8\nLUOI_TOADO\n10\n${(gx - 8 * S).toFixed(3)}\n20\n${(L.Yin0 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nY=${gx.toFixed(0)}\n7\nVN_ARIAL\n`;
         }
 
         for (let gy = startGy; gy <= endGy; gy += L.gridInterval) {
             // Vạch chia & Tọa độ cạnh trái
             dxf += `0\nLINE\n8\nLUOI_TOADO\n10\n${L.Xin0.toFixed(3)}\n20\n${gy.toFixed(3)}\n30\n0.0\n11\n${(L.Xin0 + tickLen).toFixed(3)}\n21\n${gy.toFixed(3)}\n31\n0.0\n`;
-            dxf += `0\nTEXT\n8\nLUOI_TOADO\n7\nVN_ARIAL\n10\n${(L.Xin0 - 16 * S).toFixed(3)}\n20\n${(gy - 0.9 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nX=${gy.toFixed(0)}\n`;
+            dxf += `0\nTEXT\n8\nLUOI_TOADO\n10\n${(L.Xin0 - 16 * S).toFixed(3)}\n20\n${(gy - 0.9 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nX=${gy.toFixed(0)}\n7\nVN_ARIAL\n`;
         }
 
         // === C. KIM CHỈ HƯỚNG BẮC (NORTH ARROW CHUẨN ĐỊA CHÍNH TCVN) ===
@@ -10044,10 +10068,10 @@ const appCadTool = {
         dxf += `0\nLINE\n8\nHUONG_BAC\n10\n${naX.toFixed(3)}\n20\n${(naY - naR).toFixed(3)}\n30\n0.0\n11\n${naX.toFixed(3)}\n21\n${(naY + naH).toFixed(3)}\n31\n0.0\n`;
         dxf += `0\nLINE\n8\nHUONG_BAC\n10\n${(naX - naR * 0.8).toFixed(3)}\n20\n${naY.toFixed(3)}\n30\n0.0\n11\n${naX.toFixed(3)}\n21\n${(naY + naH).toFixed(3)}\n31\n0.0\n`;
         dxf += `0\nLINE\n8\nHUONG_BAC\n10\n${(naX + naR * 0.8).toFixed(3)}\n20\n${naY.toFixed(3)}\n30\n0.0\n11\n${naX.toFixed(3)}\n21\n${(naY + naH).toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nHUONG_BAC\n7\nVN_ARIAL\n10\n${(naX - 1.2 * S).toFixed(3)}\n20\n${(naY + naH + 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(3.2 * S).toFixed(4)}\n1\nB\n`;
+        dxf += `0\nTEXT\n8\nHUONG_BAC\n10\n${(naX - 1.2 * S).toFixed(3)}\n20\n${(naY + naH + 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(3.2 * S).toFixed(4)}\n1\nB\n7\nVN_ARIAL\n`;
 
         // === D. CÁC ĐỐI TƯỢNG ĐỒ HỌA THỬA ĐẤT (VÙNG TRỌNG TÂM BẢN ĐỒ) ===
-        selectedShapes.forEach(shape => {
+        selectedShapes.forEach((shape, shapeIdx) => {
             const pts = shape.vertices;
             const n = pts.length;
             if (n < 2) return;
@@ -10069,13 +10093,13 @@ const appCadTool = {
                 dxf += `0\nCIRCLE\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n40\n${mRadius.toFixed(4)}\n`;
                 dxf += `0\nPOINT\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n`;
 
-                // Tên mốc Đ1, Đ2 đặt lệch ra phía ngoài
-                const cleanName = (p.name || `Đ${idx + 1}`).replace(/[\r\n]/g, '');
-                dxf += `0\nTEXT\n8\nTEN_MOC\n7\nVN_ARIAL\n10\n${(cadX + 1.8 * S).toFixed(3)}\n20\n${(cadY + 1.5 * S).toFixed(3)}\n30\n0.0\n40\n${(2.2 * S).toFixed(4)}\n1\n${cleanName}\n`;
+                // Luôn hiện số thứ tự/tên đỉnh (bắt buộc)
+                const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
+                dxf += `0\nTEXT\n8\nTEN_MOC\n10\n${(cadX + 1.5 * S).toFixed(3)}\n20\n${(cadY + 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\n${cleanName}\n7\nVN_ARIAL\n`;
             });
 
-            // Chiều dài cạnh & Phương vị song song cạnh
-            if (stats.edges) {
+            // Chiều dài cạnh (chỉ vẽ khi showBlockInfo = true)
+            if (showBlockInfo && stats.edges) {
                 stats.edges.forEach((edge, idx) => {
                     const p1 = pts[idx];
                     const p2 = pts[(idx + 1) % n];
@@ -10088,31 +10112,45 @@ const appCadTool = {
                     let angDeg = Math.atan2(dy, dx) * (180.0 / Math.PI);
                     if (angDeg < 0) angDeg += 360;
 
-                    const offDist = 1.6 * S;
+                    const offDist = 1.4 * S;
                     const perpX = (-dy / (len || 1)) * offDist;
                     const perpY = (dx / (len || 1)) * offDist;
 
                     let textRot = angDeg;
                     if (angDeg > 90 && angDeg < 270) textRot = (angDeg + 180) % 360;
 
-                    dxf += `0\nTEXT\n8\nKICH_THUOC\n7\nVN_ARIAL\n10\n${(midX + perpX).toFixed(3)}\n20\n${(midY + perpY).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n50\n${textRot.toFixed(2)}\n1\n${edge.lengthFormatted}m\n`;
+                    dxf += `0\nTEXT\n8\nKICH_THUOC\n10\n${(midX + perpX).toFixed(3)}\n20\n${(midY + perpY).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n50\n${textRot.toFixed(2)}\n1\n${edge.lengthFormatted}m\n7\nVN_ARIAL\n`;
                 });
             }
 
-            // Nhãn tâm thửa đất
+            // Nhãn tâm thửa đất:
+            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI (BẢN VẼ GỌN GÀNG)
+            // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
             if (isClosed && stats.area > 0) {
                 let cX = 0, cY = 0;
                 pts.forEach(p => { cX += p.y; cY += p.x; });
                 cX /= n; cY /= n;
 
-                let pctStr = '';
-                if (showPercent && baseProjectArea > 0) {
-                    pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
+                const shapeLabel = this.toCadAscii(shape.name || `Thua ${shapeIdx + 1}`);
+                if (showBlockInfo) {
+                    // Chế độ đầy đủ: tên + diện tích + chu vi
+                    let pctStr = '';
+                    if (showPercent && baseProjectArea > 0) {
+                        pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
+                    }
+                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 10 * S).toFixed(3)}\n20\n${(cY + 3.0 * S).toFixed(3)}\n30\n0.0\n40\n${(2.8 * S).toFixed(4)}\n1\n${shapeLabel}${pctStr}\n7\nVN_ARIAL\n`;
+                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 10 * S).toFixed(3)}\n20\n${cY.toFixed(3)}\n30\n0.0\n40\n${(2.4 * S).toFixed(4)}\n1\nS=${stats.areaFormatted}m2 (${stats.haFormatted}ha)\n7\nVN_ARIAL\n`;
+                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 10 * S).toFixed(3)}\n20\n${(cY - 2.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nP=${stats.perimeterFormatted}m\n7\nVN_ARIAL\n`;
+                } else {
+                    // Chế độ tối giản (Bắt buộc theo yêu cầu): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI
+                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 3.5 * S).toFixed(3)}\n20\n${(cY - 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(3.2 * S).toFixed(4)}\n1\n${shapeLabel}\n7\nVN_ARIAL\n`;
                 }
-
-                dxf += `0\nTEXT\n8\nDIEN_TICH\n7\nVN_ARIAL\n10\n${(cX - 12 * S).toFixed(3)}\n20\n${(cY + 3.5 * S).toFixed(3)}\n30\n0.0\n40\n${(3.2 * S).toFixed(4)}\n1\n${shape.name}${pctStr}\n`;
-                dxf += `0\nTEXT\n8\nDIEN_TICH\n7\nVN_ARIAL\n10\n${(cX - 12 * S).toFixed(3)}\n20\n${cY.toFixed(3)}\n30\n0.0\n40\n${(2.8 * S).toFixed(4)}\n1\nS = ${stats.areaFormatted} m² (${stats.haFormatted} ha)\n`;
-                dxf += `0\nTEXT\n8\nDIEN_TICH\n7\nVN_ARIAL\n10\n${(cX - 12 * S).toFixed(3)}\n20\n${(cY - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\nP = ${stats.perimeterFormatted} m\n`;
+            } else if (!isClosed && shape.mode !== 'polygon') {
+                if (!showBlockInfo) {
+                    const midIdx = Math.floor(pts.length / 2);
+                    const mp = pts[midIdx] || pts[0];
+                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(mp.y + 1.5 * S).toFixed(3)}\n20\n${(mp.x + 1.5 * S).toFixed(3)}\n30\n0.0\n40\n${(2.6 * S).toFixed(4)}\n1\n${this.toCadAscii(shape.name)}\n7\nVN_ARIAL\n`;
+                }
             }
         });
 
@@ -10120,22 +10158,26 @@ const appCadTool = {
         const colWPanel = L.W_panel;
         let curTableY = L.Yin1;
 
-        // --- 1. BẢNG TỔNG HỢP DIỆN TÍCH CÁC THỬA ĐẤT ---
-        const sumRowH = 6.0 * S;
-        const colWSum = (L.W_paper >= 420)
-            ? [10*S, 32*S, 18*S, 22*S, 30*S, 28*S] // A3 (140mm)
-            : [8*S, 24*S, 13*S, 18*S, 22*S, 20*S]; // A4 (105mm)
+        // --- 1. BẢNG TỔNG HỢP DIỆN TÍCH CÁC THỬA ĐẤT (CHUẨN GỌN - ĐÃ BỎ CỘT LOẠI & CHU VI) ---
+        const sumRowH = 5.0 * S;
+        // 4 cột phân bổ chính xác 100% bề rộng cột bên phải (colWPanel)
+        const colWSum = [
+            colWPanel * 0.10, // STT
+            colWPanel * 0.34, // Tên thửa
+            colWPanel * 0.34, // Diện tích (m²)
+            colWPanel * 0.22  // Tỉ lệ (%)
+        ];
 
         // Tiêu đề bảng tổng hợp
         dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nTEXT_CHINH\n7\nVN_ARIAL\n10\n${(L.Xpanel0 + colWPanel / 2 - 28 * S).toFixed(3)}\n20\n${(curTableY - 4.8 * S).toFixed(3)}\n30\n0.0\n40\n${(2.8 * S).toFixed(4)}\n1\nBẢNG TỔNG HỢP DIỆN TÍCH\n`;
-        curTableY -= 7.0 * S;
+        dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\n20\n${(curTableY - 4.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.4 * S).toFixed(4)}\n1\nBANG TONG HOP DIEN TICH\n7\nVN_ARIAL\n`;
+        curTableY -= 6.0 * S;
         dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
 
-        const sumHeaders = ["STT", "Tên thửa", "Loại", "Chu vi (m)", "Diện tích (m²)", "Tỉ lệ (%)"];
+        const sumHeaders = ["STT", "Ten thua", "Dien tich(m2)", "Ti le(%)"];
         let shX = L.Xpanel0;
         sumHeaders.forEach((h, idx) => {
-            dxf += `0\nTEXT\n8\nTEXT_CHINH\n7\nVN_ARIAL\n10\n${(shX + 1.5 * S).toFixed(3)}\n20\n${(curTableY - 4.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\n${h}\n`;
+            dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(shX + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.6 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${h}\n7\nVN_ARIAL\n`;
             shX += colWSum[idx];
         });
 
@@ -10146,21 +10188,18 @@ const appCadTool = {
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
-            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
 
             const rowData = [
                 String(idx + 1),
-                s.name.replace(/[\r\n]/g, ''),
-                isPoly ? 'Đa giác' : 'Tuyến',
-                perim.toFixed(2),
+                this.toCadAscii(s.name),
                 isPoly ? area.toFixed(2) : '--',
                 pctStr
             ];
 
             let srX = L.Xpanel0;
             rowData.forEach((val, cIdx) => {
-                dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n7\nVN_ARIAL\n10\n${(srX + 1.5 * S).toFixed(3)}\n20\n${(curTableY - 4.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\n${val}\n`;
+                dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(srX + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.6 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${val}\n7\nVN_ARIAL\n`;
                 srX += colWSum[cIdx];
             });
 
@@ -10170,17 +10209,17 @@ const appCadTool = {
 
         // Dòng tổng cộng bảng tổng hợp
         const totalPctVal = (baseProjectArea > 0) ? ((measuredTotalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
-        const sumTotalRow = ['--', 'TỔNG CỘNG', `${selectedShapes.length} thửa`, '--', measuredTotalArea.toFixed(2), totalPctVal];
+        const sumTotalRow = ['--', 'TONG CONG', measuredTotalArea.toFixed(2), totalPctVal];
         let strX = L.Xpanel0;
         sumTotalRow.forEach((val, cIdx) => {
-            dxf += `0\nTEXT\n8\nTEXT_CHINH\n7\nVN_ARIAL\n10\n${(strX + 1.5 * S).toFixed(3)}\n20\n${(curTableY - 4.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\n${val}\n`;
+            dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(strX + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.6 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${val}\n7\nVN_ARIAL\n`;
             strX += colWSum[cIdx];
         });
 
         curTableY -= sumRowH;
         dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
 
-        // Kẻ dọc bảng tổng hợp
+        // Kẻ dọc bảng tổng hợp (chuẩn khít tuyệt đối với colWPanel)
         const sumBottomY = curTableY;
         let svLineX = L.Xpanel0;
         dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${svLineX.toFixed(3)}\n20\n${sumTopY.toFixed(3)}\n30\n0.0\n11\n${svLineX.toFixed(3)}\n21\n${sumBottomY.toFixed(3)}\n31\n0.0\n`;
@@ -10190,23 +10229,29 @@ const appCadTool = {
         });
 
         // --- 2. BẢNG KÊ TỌA ĐỘ RANH THỬA (TCVN 7285) ---
-        curTableY -= 5.0 * S;
-        const colWCoord = (L.W_paper >= 420)
-            ? [10*S, 20*S, 32*S, 32*S, 22*S, 24*S] // A3 (140mm)
-            : [8*S, 16*S, 24*S, 24*S, 16*S, 17*S];  // A4 (105mm)
-        const coordRowH = 5.0 * S;
+        curTableY -= 4.0 * S;
+        // 6 cột phân bổ vừa khít 100% colWPanel
+        const colWCoord = [
+            colWPanel * 0.10, // STT
+            colWPanel * 0.16, // Diem
+            colWPanel * 0.21, // X (Bac)
+            colWPanel * 0.21, // Y (Dong)
+            colWPanel * 0.16, // Canh (m)
+            colWPanel * 0.16  // Huong (Az)
+        ];
+        const coordRowH = 4.2 * S;
 
         // Chỉ vẽ bảng kê nếu còn đủ chỗ phía trên khung tên
-        if (curTableY > L.YtitleTop + 25 * S) {
+        if (curTableY > L.YtitleTop + 20 * S) {
             dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
-            dxf += `0\nTEXT\n8\nTEXT_CHINH\n7\nVN_ARIAL\n10\n${(L.Xpanel0 + colWPanel / 2 - 28 * S).toFixed(3)}\n20\n${(curTableY - 4.5 * S).toFixed(3)}\n30\n0.0\n40\n${(2.6 * S).toFixed(4)}\n1\nBẢNG KÊ TỌA ĐỘ RANH THỬA (TCVN)\n`;
-            curTableY -= 6.0 * S;
+            dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\n20\n${(curTableY - 3.8 * S).toFixed(3)}\n30\n0.0\n40\n${(2.2 * S).toFixed(4)}\n1\nBANG KE TOA DO RANH THUA\n7\nVN_ARIAL\n`;
+            curTableY -= 5.0 * S;
             dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
 
-            const coordHeaders = ["STT", "Điểm", "X (Bắc-m)", "Y (Đông-m)", "Cạnh (m)", "Hướng (Az)"];
+            const coordHeaders = ["STT", "Diem", "X(Bac)", "Y(Dong)", "Canh", "Az"];
             let chX = L.Xpanel0;
             coordHeaders.forEach((h, idx) => {
-                dxf += `0\nTEXT\n8\nTEXT_CHINH\n7\nVN_ARIAL\n10\n${(chX + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n1\n${h}\n`;
+                dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(chX + 1.0 * S).toFixed(3)}\n20\n${(curTableY - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\n${h}\n7\nVN_ARIAL\n`;
                 chX += colWCoord[idx];
             });
 
@@ -10217,20 +10262,19 @@ const appCadTool = {
             // Lấy danh sách điểm ranh
             selectedShapes.forEach(shape => {
                 const pts = shape.vertices;
-                const n = pts.length;
                 const stats = shape.stats || {};
                 pts.forEach((p, pIdx) => {
-                    if (curTableY <= L.YtitleTop + 8 * S) return; // Dừng nếu chạm khung tên
+                    if (curTableY <= L.YtitleTop + 6 * S) return; // Dừng nếu chạm khung tên
 
                     const edge = stats.edges ? stats.edges[pIdx] : null;
                     const edgeStr = edge ? edge.lengthFormatted : '--';
-                    const azStr = edge ? `${edge.azimuth.toFixed(1)}°` : '--';
-                    const cleanName = (p.name || `Đ${pIdx + 1}`).replace(/[\r\n]/g, '');
+                    const azStr = edge ? `${edge.azimuth.toFixed(1)} deg` : '--';
+                    const cleanName = this.toCadAscii(p.name || `D${pIdx + 1}`);
 
                     const row = [String(pIdx + 1), cleanName, p.x.toFixed(3), p.y.toFixed(3), edgeStr, azStr];
                     let rx = L.Xpanel0;
                     row.forEach((v, cIdx) => {
-                        dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n7\nVN_ARIAL\n10\n${(rx + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.6 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\n${v}\n`;
+                        dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(rx + 1.0 * S).toFixed(3)}\n20\n${(curTableY - 3.0 * S).toFixed(3)}\n30\n0.0\n40\n${(1.5 * S).toFixed(4)}\n1\n${v}\n7\nVN_ARIAL\n`;
                         rx += colWCoord[cIdx];
                     });
 
@@ -10239,7 +10283,7 @@ const appCadTool = {
                 });
             });
 
-            // Kẻ dọc bảng kê tọa độ
+            // Kẻ dọc bảng kê tọa độ (vừa khít colWPanel)
             const coordBottomY = curTableY;
             let cvLineX = L.Xpanel0;
             dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${cvLineX.toFixed(3)}\n20\n${coordTopY.toFixed(3)}\n30\n0.0\n11\n${cvLineX.toFixed(3)}\n21\n${coordBottomY.toFixed(3)}\n31\n0.0\n`;
@@ -10250,7 +10294,7 @@ const appCadTool = {
         }
 
         // --- 3. KHUNG TÊN BẢN VẼ CHUẨN TCVN 7285 & THÔNG TƯ 25/2014/TT-BTNMT ---
-        // Nằm ở góc dưới cùng bên phải: từ L.Xpanel0 đến L.Xin1, từ L.Yin0 đến L.YtitleTop (Cao 38mm)
+        // Nằm ở góc dưới cùng bên phải: từ L.Xpanel0 đến L.Xin1, từ L.Yin0 đến L.YtitleTop (Cao 36mm)
         const tY0 = L.Yin0;
         const tY_top = L.YtitleTop;
         const tX0 = L.Xpanel0;
@@ -10259,38 +10303,38 @@ const appCadTool = {
         // Khung bao quanh khung tên
         dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${tY_top.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${tY_top.toFixed(3)}\n31\n0.0\n`;
 
-        // Hàng 1 (Đơn vị đo vẽ - cao 9.5mm)
-        const yRow1 = tY_top - 9.5 * S;
+        // Hàng 1 (Đơn vị đo vẽ - cao 8.5mm)
+        const yRow1 = tY_top - 8.5 * S;
         dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${yRow1.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${yRow1.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(tX0 + 3.0 * S).toFixed(3)}\n20\n${(tY_top - 6.5 * S).toFixed(3)}\n30\n0.0\n40\n${(3.0 * S).toFixed(4)}\n1\n${(meta.organization || 'TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH').toUpperCase()}\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 2.0 * S).toFixed(3)}\n20\n${(tY_top - 5.8 * S).toFixed(3)}\n30\n0.0\n40\n${(2.4 * S).toFixed(4)}\n1\n${this.toCadAscii(meta.organization || 'TRUNG TAM KHAO SAT & DO DAC DIA CHINH').toUpperCase()}\n7\nVN_ARIAL\n`;
 
-        // Hàng 2 (Tên bản vẽ - cao 10.5mm)
-        const yRow2 = yRow1 - 10.5 * S;
+        // Hàng 2 (Tên bản vẽ - cao 9.5mm)
+        const yRow2 = yRow1 - 9.5 * S;
         dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${yRow2.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${yRow2.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(tX0 + 3.0 * S).toFixed(3)}\n20\n${(yRow1 - 7.0 * S).toFixed(3)}\n30\n0.0\n40\n${(3.6 * S).toFixed(4)}\n1\n${(meta.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT').toUpperCase()}\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 2.0 * S).toFixed(3)}\n20\n${(yRow1 - 6.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.8 * S).toFixed(4)}\n1\n${this.toCadAscii(meta.drawingName || 'BAN DO HIEN TRANG VI TRI THUA DAT').toUpperCase()}\n7\nVN_ARIAL\n`;
 
-        // Hàng 3 (Tên công trình / dự án - cao 7.0mm)
-        const yRow3 = yRow2 - 7.0 * S;
+        // Hàng 3 (Tên công trình / dự án - cao 6.0mm)
+        const yRow3 = yRow2 - 6.0 * S;
         dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${yRow3.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${yRow3.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(tX0 + 3.0 * S).toFixed(3)}\n20\n${(yRow2 - 5.0 * S).toFixed(3)}\n30\n0.0\n40\n${(2.4 * S).toFixed(4)}\n1\nDỰ ÁN: ${(meta.projectName || '').toUpperCase()}\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 2.0 * S).toFixed(3)}\n20\n${(yRow2 - 4.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\nDU AN: ${this.toCadAscii(meta.projectName || '').toUpperCase()}\n7\nVN_ARIAL\n`;
 
-        // Hàng 4 (Thông tin chi tiết chia 2 cột - cao 11.0mm)
-        const midColX = tX0 + colWPanel * 0.55;
+        // Hàng 4 (Thông tin chi tiết chia 2 cột - cao 12.0mm)
+        const midColX = tX0 + colWPanel * 0.52;
         dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${midColX.toFixed(3)}\n20\n${yRow3.toFixed(3)}\n30\n0.0\n11\n${midColX.toFixed(3)}\n21\n${tY0.toFixed(3)}\n31\n0.0\n`;
 
         // Cột trái hàng 4
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(tX0 + 2.5 * S).toFixed(3)}\n20\n${(yRow3 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n1\nHệ tọa độ: VN-2000 (${AppState.provinceName || 'Tỉnh'}) - KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(tX0 + 2.5 * S).toFixed(3)}\n20\n${(yRow3 - 6.5 * S).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n1\nNgười đo: ${(meta.surveyor || '').toUpperCase()}\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(tX0 + 2.5 * S).toFixed(3)}\n20\n${(yRow3 - 9.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n1\nKiểm tra: ${(meta.checker || '').toUpperCase()}\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nHe VN2k: ${this.toCadAscii(AppState.provinceName || 'Tinh')} KTT:${AppState.kttDeg}\n7\nVN_ARIAL\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 6.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nNguoi do: ${this.toCadAscii(meta.surveyor || '').toUpperCase()}\n7\nVN_ARIAL\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 10.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nKiem tra: ${this.toCadAscii(meta.checker || '').toUpperCase()}\n7\nVN_ARIAL\n`;
 
         // Cột phải hàng 4
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(midColX + 2.5 * S).toFixed(3)}\n20\n${(yRow3 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n1\nTỷ lệ: 1:${L.scaleVal}\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(midColX + 2.5 * S).toFixed(3)}\n20\n${(yRow3 - 6.5 * S).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n1\nSố tờ/thửa: ${meta.parcelNo || '01'}\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n7\nVN_ARIAL\n10\n${(midColX + 2.5 * S).toFixed(3)}\n20\n${(yRow3 - 9.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.9 * S).toFixed(4)}\n1\nNgày lập: ${meta.drawingDate}\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(midColX + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nTy le: 1:${L.scaleVal}\n7\nVN_ARIAL\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(midColX + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 6.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nSo to/thua: ${this.toCadAscii(meta.parcelNo || '01')}\n7\nVN_ARIAL\n`;
+        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(midColX + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 10.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nNgay lap: ${this.toCadAscii(meta.drawingDate)}\n7\nVN_ARIAL\n`;
 
         dxf += "0\nENDSEC\n0\nEOF\n";
 
-        const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
+        const blob = new Blob([dxf], { type: "application/dxf" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         const filename = `${projName}_BanDo_${meta.paper}_1-${L.scaleVal}.dxf`;
@@ -10473,8 +10517,9 @@ const appCadTool = {
                 ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
             });
 
-            // Chiều dài cạnh
-            if (stats.edges) {
+            // Chiều dài cạnh (chỉ vẽ khi showBlockInfo = true)
+            const showBlockInfo = meta.showBlockInfo === true;
+            if (showBlockInfo && stats.edges) {
                 ctx.font = `${Math.round(2.0 * pxPerMm)}px Arial`;
                 ctx.fillStyle = '#b45309';
                 stats.edges.forEach((edge, idx) => {
@@ -10493,17 +10538,34 @@ const appCadTool = {
                 const cX = sumX / n;
                 const cY = sumY / n;
 
-                ctx.font = `bold ${Math.round(3.5 * pxPerMm)}px Arial`;
-                ctx.fillStyle = '#0369a1';
-                ctx.textAlign = 'center';
-                ctx.fillText(shape.name, cX, cY - Math.round(3 * pxPerMm));
-                ctx.font = `bold ${Math.round(2.8 * pxPerMm)}px Arial`;
-                ctx.fillStyle = '#047857';
-                ctx.fillText(`S = ${stats.areaFormatted} m² (${stats.haFormatted} ha)`, cX, cY + Math.round(2 * pxPerMm));
-                ctx.font = `${Math.round(2.0 * pxPerMm)}px Arial`;
-                ctx.fillStyle = '#475569';
-                ctx.fillText(`Chu vi P = ${stats.perimeterFormatted} m`, cX, cY + Math.round(6 * pxPerMm));
-                ctx.textAlign = 'left';
+                if (showBlockInfo) {
+                    ctx.font = `bold ${Math.round(3.2 * pxPerMm)}px Arial`;
+                    ctx.fillStyle = '#0369a1';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(shape.name, cX, cY - Math.round(3 * pxPerMm));
+                    ctx.font = `bold ${Math.round(2.6 * pxPerMm)}px Arial`;
+                    ctx.fillStyle = '#047857';
+                    ctx.fillText(`S = ${stats.areaFormatted} m² (${stats.haFormatted} ha)`, cX, cY + Math.round(1.5 * pxPerMm));
+                    ctx.font = `${Math.round(2.0 * pxPerMm)}px Arial`;
+                    ctx.fillStyle = '#475569';
+                    ctx.fillText(`Chu vi P = ${stats.perimeterFormatted} m`, cX, cY + Math.round(5.5 * pxPerMm));
+                    ctx.textAlign = 'left';
+                } else {
+                    // Chế độ tối giản (Bắt buộc theo yêu cầu): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI
+                    ctx.font = `bold ${Math.round(3.8 * pxPerMm)}px Arial`;
+                    ctx.fillStyle = '#0369a1';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(shape.name, cX, cY + Math.round(1.2 * pxPerMm));
+                    ctx.textAlign = 'left';
+                }
+            } else if (!isClosed && shape.mode !== 'polygon') {
+                if (!showBlockInfo) {
+                    const midIdx = Math.floor(pts.length / 2);
+                    const mp = pts[midIdx] || pts[0];
+                    ctx.font = `bold ${Math.round(3.2 * pxPerMm)}px Arial`;
+                    ctx.fillStyle = '#0369a1';
+                    ctx.fillText(shape.name, toCvX(mp.y) + Math.round(2 * pxPerMm), toCvY(mp.x) - Math.round(2 * pxPerMm));
+                }
             }
         });
 
@@ -10511,23 +10573,26 @@ const appCadTool = {
         const pX = toCvX(L.Xpanel0);
         const pW = toCvDist(L.W_panel);
 
-        // --- Bảng tổng hợp diện tích ---
+        // --- Bảng tổng hợp diện tích (ĐÃ BỎ CỘT LOẠI & CHU VI) ---
         let curY = toCvY(L.Yin1);
-        const sumRowH_px = Math.round(6.0 * pxPerMm);
+        const sumRowH_px = Math.round(5.2 * pxPerMm);
 
         ctx.fillStyle = '#0284c7';
-        ctx.fillRect(pX, curY, pW, Math.round(7.0 * pxPerMm));
+        ctx.fillRect(pX, curY, pW, Math.round(6.5 * pxPerMm));
         ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.round(2.8 * pxPerMm)}px Arial`;
+        ctx.font = `bold ${Math.round(2.5 * pxPerMm)}px Arial`;
         ctx.textAlign = 'center';
-        ctx.fillText("BẢNG TỔNG HỢP DIỆN TÍCH", pX + pW / 2, curY + Math.round(4.8 * pxPerMm));
+        ctx.fillText("BẢNG TỔNG HỢP DIỆN TÍCH", pX + pW / 2, curY + Math.round(4.4 * pxPerMm));
         ctx.textAlign = 'left';
-        curY += Math.round(7.0 * pxPerMm);
+        curY += Math.round(6.5 * pxPerMm);
 
-        // Tiêu đề cột
-        const colW_px = (L.W_paper >= 420)
-            ? [10, 32, 18, 22, 30, 28].map(mm => Math.round(mm * pxPerMm))
-            : [8, 24, 13, 18, 22, 20].map(mm => Math.round(mm * pxPerMm));
+        // Tiêu đề 4 cột (Bỏ Loại và Chu vi, căn khít 100% pW)
+        const colW_px = [
+            Math.round(0.10 * pW),
+            Math.round(0.34 * pW),
+            Math.round(0.34 * pW),
+            pW - Math.round(0.10 * pW) - Math.round(0.34 * pW) - Math.round(0.34 * pW)
+        ];
 
         ctx.fillStyle = '#f1f5f9';
         ctx.fillRect(pX, curY, pW, sumRowH_px);
@@ -10535,12 +10600,12 @@ const appCadTool = {
         ctx.lineWidth = Math.round(0.2 * pxPerMm);
         ctx.strokeRect(pX, curY, pW, sumRowH_px);
         ctx.fillStyle = '#0f172a';
-        ctx.font = `bold ${Math.round(2.0 * pxPerMm)}px Arial`;
+        ctx.font = `bold ${Math.round(1.9 * pxPerMm)}px Arial`;
 
-        const sHeaders = ["STT", "Tên thửa", "Loại", "Chu vi", "Diện tích", "Tỉ lệ %"];
+        const sHeaders = ["STT", "Tên thửa", "Diện tích (m²)", "Tỉ lệ %"];
         let cX = pX;
         sHeaders.forEach((h, idx) => {
-            ctx.fillText(h, cX + Math.round(1.5 * pxPerMm), curY + Math.round(4.0 * pxPerMm));
+            ctx.fillText(h, cX + Math.round(1.5 * pxPerMm), curY + Math.round(3.6 * pxPerMm));
             cX += colW_px[idx];
         });
         curY += sumRowH_px;
@@ -10553,7 +10618,6 @@ const appCadTool = {
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
-            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
 
             ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
@@ -10562,11 +10626,11 @@ const appCadTool = {
             ctx.strokeRect(pX, curY, pW, sumRowH_px);
 
             ctx.fillStyle = '#1e293b';
-            ctx.font = `${Math.round(2.0 * pxPerMm)}px Arial`;
-            const row = [String(idx + 1), s.name, isPoly ? 'Đa giác' : 'Tuyến', perim.toFixed(2), isPoly ? area.toFixed(2) : '--', pctStr];
+            ctx.font = `${Math.round(1.9 * pxPerMm)}px Arial`;
+            const row = [String(idx + 1), s.name, isPoly ? area.toFixed(2) : '--', pctStr];
             let rx = pX;
             row.forEach((v, cIdx) => {
-                ctx.fillText(v, rx + Math.round(1.5 * pxPerMm), curY + Math.round(4.0 * pxPerMm));
+                ctx.fillText(v, rx + Math.round(1.5 * pxPerMm), curY + Math.round(3.6 * pxPerMm));
                 rx += colW_px[cIdx];
             });
             curY += sumRowH_px;
@@ -10579,14 +10643,14 @@ const appCadTool = {
         ctx.strokeStyle = '#cbd5e1';
         ctx.strokeRect(pX, curY, pW, sumRowH_px);
         ctx.fillStyle = '#0f172a';
-        ctx.font = `bold ${Math.round(2.0 * pxPerMm)}px Arial`;
-        const totRow = ['--', 'TỔNG CỘNG', `${selectedShapes.length} thửa`, '--', measuredTotalArea.toFixed(2), totalPctVal];
+        ctx.font = `bold ${Math.round(1.9 * pxPerMm)}px Arial`;
+        const totRow = ['--', 'TỔNG CỘNG', measuredTotalArea.toFixed(2), totalPctVal];
         let tx = pX;
         totRow.forEach((v, cIdx) => {
-            ctx.fillText(v, tx + Math.round(1.5 * pxPerMm), curY + Math.round(4.0 * pxPerMm));
+            ctx.fillText(v, tx + Math.round(1.5 * pxPerMm), curY + Math.round(3.6 * pxPerMm));
             tx += colW_px[cIdx];
         });
-        curY += sumRowH_px + Math.round(6.0 * pxPerMm);
+        curY += sumRowH_px + Math.round(5.0 * pxPerMm);
 
         // --- KHUNG TÊN BẢN VẼ TCVN Ở GÓC DƯỚI BÊN PHẢI ---
         const tBoxH_px = Math.round(38.0 * pxPerMm);
@@ -10682,6 +10746,7 @@ const appCadTool = {
         }
 
         const meta = this._getExportMeta();
+        const showBlockInfo = meta.showBlockInfo === true;
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
 
         // Bounding box
@@ -10761,9 +10826,9 @@ const appCadTool = {
                 svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="3"/>\n`;
             });
 
-            // Kích thước cạnh giữa đỉnh
+            // Kích thước cạnh giữa đỉnh (chỉ vẽ khi showBlockInfo = true)
             const stats = shape.stats;
-            if (stats && stats.edges) {
+            if (showBlockInfo && stats && stats.edges) {
                 stats.edges.forEach((edge, idx) => {
                     const p1 = pts[idx];
                     const p2 = pts[(idx + 1) % pts.length];
@@ -10773,15 +10838,26 @@ const appCadTool = {
                 });
             }
 
-            // Diện tích ở giữa đa giác
+            // Nhãn tâm khối:
+            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI (shape.name)
+            // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
             if (isClosed && stats) {
                 const cx = pts.reduce((s, p) => s + p.y, 0) / pts.length;
                 const cy = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-                let pctStr = '';
-                if (showPercent && baseProjectArea > 0) {
-                    pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
+                if (showBlockInfo) {
+                    let pctStr = '';
+                    if (showPercent && baseProjectArea > 0) {
+                        pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
+                    }
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) - 7).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="bold" fill="#0D47A1">${shape.name}</text>\n`;
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 7).toFixed(1)}" text-anchor="middle" font-size="10" fill="#6A1B9A">S=${stats.areaFormatted}m²${pctStr}</text>\n`;
+                } else {
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${toSvgY(cy).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="bold" fill="#0D47A1">${shape.name}</text>\n`;
                 }
-                svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${toSvgY(cy).toFixed(1)}" text-anchor="middle">S=${stats.areaFormatted}m²${pctStr}</text>\n`;
+            } else if (!isClosed && shape.mode !== 'polygon') {
+                const midIdx = Math.floor(pts.length / 2);
+                const mp = pts[midIdx] || pts[0];
+                svgContent += `  <text class="layer-dien-tich" x="${toSvgX(mp.y).toFixed(1)}" y="${toSvgY(mp.x).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="bold" fill="#0D47A1">${shape.name}</text>\n`;
             }
         });
 
@@ -10792,39 +10868,34 @@ const appCadTool = {
   <text x="${naXs}" y="${naYs-10}" text-anchor="middle" font-size="12" font-weight="bold" fill="#1565C0">N</text>
   <text x="${naXs}" y="${naYs+55}" text-anchor="middle" font-size="9" fill="#666">Bắc</text>\n`;
 
-        // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT NGAY TRÊN KHUNG TÊN)
+        // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT NGAY TRÊN KHUNG TÊN - ĐÃ BỎ CỘT LOẠI & CHU VI)
         const tblY = svgH - 170 - summaryTableH;
         svgContent += `  <!-- BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT -->
   <text x="25" y="${tblY - 6}" font-size="11" font-weight="bold" fill="#0D47A1">BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT (TCVN)</text>
   <rect class="layer-bang-ke" x="20" y="${tblY}" width="${svgW - 40}" height="${summaryTableH}"/>
   <line class="layer-bang-ke" x1="20" y1="${tblY + 22}" x2="${svgW - 20}" y2="${tblY + 22}"/>
 `;
-        // Header bảng
-        svgContent += `  <text class="layer-bang-ke-text" x="30" y="${tblY + 15}" font-weight="bold">STT</text>
-  <text class="layer-bang-ke-text" x="70" y="${tblY + 15}" font-weight="bold">Tên khối / thửa</text>
-  <text class="layer-bang-ke-text" x="220" y="${tblY + 15}" font-weight="bold">Loại ranh</text>
-  <text class="layer-bang-ke-text" x="310" y="${tblY + 15}" font-weight="bold">Số đỉnh</text>
-  <text class="layer-bang-ke-text" x="390" y="${tblY + 15}" font-weight="bold">Chu vi (m)</text>
-  <text class="layer-bang-ke-text" x="490" y="${tblY + 15}" font-weight="bold">Diện tích (m²)</text>
+        // Header bảng (Bỏ cột Loại và Chu vi)
+        svgContent += `  <text class="layer-bang-ke-text" x="35" y="${tblY + 15}" font-weight="bold">STT</text>
+  <text class="layer-bang-ke-text" x="90" y="${tblY + 15}" font-weight="bold">Tên khối / thửa</text>
+  <text class="layer-bang-ke-text" x="330" y="${tblY + 15}" font-weight="bold">Số đỉnh</text>
+  <text class="layer-bang-ke-text" x="460" y="${tblY + 15}" font-weight="bold">Diện tích (m²)</text>
   <text class="layer-bang-ke-text" x="610" y="${tblY + 15}" font-weight="bold">Diện tích (ha)</text>
-  ${showPercent ? `<text class="layer-bang-ke-text" x="730" y="${tblY + 15}" font-weight="bold">Tỉ lệ (%)</text>` : ''}
+  ${showPercent ? `<text class="layer-bang-ke-text" x="740" y="${tblY + 15}" font-weight="bold">Tỉ lệ (%)</text>` : ''}
 `;
         let curY = tblY + 22;
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
-            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
             curY += 20;
             svgContent += `  <line class="layer-bang-ke" x1="20" y1="${curY}" x2="${svgW - 20}" y2="${curY}"/>
-  <text class="layer-bang-ke-text" x="30" y="${curY - 6}">${idx + 1}</text>
-  <text class="layer-bang-ke-text" x="70" y="${curY - 6}" font-weight="bold">${s.name}</text>
-  <text class="layer-bang-ke-text" x="220" y="${curY - 6}">${isPoly ? 'Đa giác' : 'Tuyến'}</text>
-  <text class="layer-bang-ke-text" x="310" y="${curY - 6}">${s.vertices.length}</text>
-  <text class="layer-bang-ke-text" x="390" y="${curY - 6}">${perim.toFixed(2)}</text>
-  <text class="layer-bang-ke-text" x="490" y="${curY - 6}" font-weight="bold">${isPoly ? area.toFixed(2) : '--'}</text>
+  <text class="layer-bang-ke-text" x="35" y="${curY - 6}">${idx + 1}</text>
+  <text class="layer-bang-ke-text" x="90" y="${curY - 6}" font-weight="bold">${s.name}</text>
+  <text class="layer-bang-ke-text" x="330" y="${curY - 6}">${s.vertices.length}</text>
+  <text class="layer-bang-ke-text" x="460" y="${curY - 6}" font-weight="bold">${isPoly ? area.toFixed(2) : '--'}</text>
   <text class="layer-bang-ke-text" x="610" y="${curY - 6}">${isPoly ? (area/10000).toFixed(4) : '--'}</text>
-  ${showPercent ? `<text class="layer-bang-ke-text" x="730" y="${curY - 6}" font-weight="bold" fill="#E65100">${pctStr}</text>` : ''}
+  ${showPercent ? `<text class="layer-bang-ke-text" x="740" y="${curY - 6}" font-weight="bold" fill="#E65100">${pctStr}</text>` : ''}
 `;
         });
 
@@ -10832,10 +10903,10 @@ const appCadTool = {
         curY += 20;
         const totalPctStr = (baseProjectArea > 0) ? ((measuredTotalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
         svgContent += `  <line class="layer-bang-ke" x1="20" y1="${curY}" x2="${svgW - 20}" y2="${curY}"/>
-  <text class="layer-bang-ke-text" x="70" y="${curY - 6}" font-weight="bold" fill="#0D47A1">TỔNG CỘNG (${selectedShapes.length} KHỐI)</text>
-  <text class="layer-bang-ke-text" x="490" y="${curY - 6}" font-weight="bold" fill="#1B5E20">${measuredTotalArea.toFixed(2)}</text>
+  <text class="layer-bang-ke-text" x="90" y="${curY - 6}" font-weight="bold" fill="#0D47A1">TỔNG CỘNG (${selectedShapes.length} KHỐI)</text>
+  <text class="layer-bang-ke-text" x="460" y="${curY - 6}" font-weight="bold" fill="#1B5E20">${measuredTotalArea.toFixed(2)}</text>
   <text class="layer-bang-ke-text" x="610" y="${curY - 6}" font-weight="bold" fill="#1B5E20">${(measuredTotalArea/10000).toFixed(4)}</text>
-  ${showPercent ? `<text class="layer-bang-ke-text" x="730" y="${curY - 6}" font-weight="bold" fill="#E65100">${totalPctStr}</text>` : ''}
+  ${showPercent ? `<text class="layer-bang-ke-text" x="740" y="${curY - 6}" font-weight="bold" fill="#E65100">${totalPctStr}</text>` : ''}
 `;
 
         // Khung tên dưới cùng
@@ -10882,6 +10953,7 @@ const appCadTool = {
         }
 
         const meta = this._getExportMeta();
+        const showBlockInfo = meta.showBlockInfo === true;
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
 
         // Bounding box
@@ -10967,8 +11039,8 @@ const appCadTool = {
                 ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.stroke();
             });
 
-            // Kích thước cạnh
-            if (shape.stats && shape.stats.edges) {
+            // Kích thước cạnh (chỉ vẽ khi showBlockInfo = true)
+            if (showBlockInfo && shape.stats && shape.stats.edges) {
                 ctx.font = '10px Arial'; ctx.fillStyle = '#E65100';
                 shape.stats.edges.forEach((edge, idx) => {
                     const p1 = pts[idx], p2 = pts[(idx+1) % pts.length];
@@ -10978,20 +11050,38 @@ const appCadTool = {
                 });
             }
 
-            // Diện tích ở giữa
+            // Nhãn tâm khối:
+            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI (shape.name)
+            // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
             if (isClosed && shape.stats) {
-                ctx.font = 'bold 13px Arial'; ctx.fillStyle = '#6A1B9A';
                 const cx = pts.reduce((s, p) => s + p.y, 0) / pts.length;
                 const cy = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-                let pctStr = '';
-                if (showPercent && baseProjectArea > 0) {
-                    pctStr = ` (${((shape.stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
+                if (showBlockInfo) {
+                    ctx.font = 'bold 13px Arial'; ctx.fillStyle = '#0D47A1';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(shape.name, toX(cx), toY(cy) - 8);
+                    ctx.font = 'bold 11px Arial'; ctx.fillStyle = '#6A1B9A';
+                    let pctStr = '';
+                    if (showPercent && baseProjectArea > 0) {
+                        pctStr = ` (${((shape.stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
+                    }
+                    ctx.fillText(`S=${shape.stats.areaFormatted}m²${pctStr}`, toX(cx), toY(cy) + 8);
+                    ctx.textAlign = 'left';
+                } else {
+                    ctx.font = 'bold 15px Arial'; ctx.fillStyle = '#0D47A1';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(shape.name, toX(cx), toY(cy) + 5);
+                    ctx.textAlign = 'left';
                 }
-                ctx.fillText(`S=${shape.stats.areaFormatted}m²${pctStr}`, toX(cx), toY(cy));
+            } else if (!isClosed && shape.mode !== 'polygon') {
+                const midIdx = Math.floor(pts.length / 2);
+                const mp = pts[midIdx] || pts[0];
+                ctx.font = 'bold 13px Arial'; ctx.fillStyle = '#0D47A1';
+                ctx.fillText(shape.name, toX(mp.y) + 6, toY(mp.x) - 6);
             }
         });
 
-        // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT TRÊN KHUNG TÊN)
+        // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT TRÊN KHUNG TÊN - ĐÃ BỎ CỘT LOẠI & CHU VI)
         const tblY = H - 240 - summaryTableH;
         ctx.fillStyle = '#0D47A1';
         ctx.font = 'bold 13px Arial';
@@ -11000,27 +11090,24 @@ const appCadTool = {
         ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
         ctx.strokeRect(30, tblY, W - 60, summaryTableH);
 
-        // Header
+        // Header (Bỏ cột Loại và Chu vi)
         ctx.fillStyle = '#E3F2FD';
         ctx.fillRect(30, tblY, W - 60, 26);
         ctx.beginPath(); ctx.moveTo(30, tblY + 26); ctx.lineTo(W - 30, tblY + 26); ctx.stroke();
 
         ctx.fillStyle = '#0D47A1';
         ctx.font = 'bold 11.5px Arial';
-        ctx.fillText('STT', 42, tblY + 18);
-        ctx.fillText('Tên khối / thửa', 90, tblY + 18);
-        ctx.fillText('Loại ranh', 320, tblY + 18);
-        ctx.fillText('Số đỉnh', 430, tblY + 18);
-        ctx.fillText('Chu vi (m)', 530, tblY + 18);
-        ctx.fillText('Diện tích (m²)', 680, tblY + 18);
-        ctx.fillText('Diện tích (ha)', 850, tblY + 18);
-        if (showPercent) ctx.fillText('Tỉ lệ (%)', 1030, tblY + 18);
+        ctx.fillText('STT', 45, tblY + 18);
+        ctx.fillText('Tên khối / thửa', 100, tblY + 18);
+        ctx.fillText('Số đỉnh', 460, tblY + 18);
+        ctx.fillText('Diện tích (m²)', 620, tblY + 18);
+        ctx.fillText('Diện tích (ha)', 820, tblY + 18);
+        if (showPercent) ctx.fillText('Tỉ lệ (%)', 1010, tblY + 18);
 
         let rowY = tblY + 26;
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
-            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
 
             rowY += 26;
@@ -11028,21 +11115,19 @@ const appCadTool = {
 
             ctx.fillStyle = '#333';
             ctx.font = '11.5px Arial';
-            ctx.fillText(String(idx + 1), 42, rowY - 8);
+            ctx.fillText(String(idx + 1), 45, rowY - 8);
             ctx.font = 'bold 11.5px Arial';
-            ctx.fillText(s.name, 90, rowY - 8);
+            ctx.fillText(s.name, 100, rowY - 8);
             ctx.font = '11.5px Arial';
-            ctx.fillText(isPoly ? 'Đa giác' : 'Tuyến', 320, rowY - 8);
-            ctx.fillText(String(s.vertices.length), 430, rowY - 8);
-            ctx.fillText(perim.toFixed(2), 530, rowY - 8);
+            ctx.fillText(String(s.vertices.length), 460, rowY - 8);
             ctx.font = 'bold 11.5px Arial';
-            ctx.fillText(isPoly ? area.toFixed(2) : '--', 680, rowY - 8);
+            ctx.fillText(isPoly ? area.toFixed(2) : '--', 620, rowY - 8);
             ctx.font = '11.5px Arial';
-            ctx.fillText(isPoly ? (area / 10000).toFixed(4) : '--', 850, rowY - 8);
+            ctx.fillText(isPoly ? (area / 10000).toFixed(4) : '--', 820, rowY - 8);
             if (showPercent) {
                 ctx.fillStyle = '#E65100';
                 ctx.font = 'bold 11.5px Arial';
-                ctx.fillText(pctStr, 1030, rowY - 8);
+                ctx.fillText(pctStr, 1010, rowY - 8);
             }
         });
 
@@ -11051,14 +11136,14 @@ const appCadTool = {
         ctx.beginPath(); ctx.moveTo(30, rowY); ctx.lineTo(W - 30, rowY); ctx.stroke();
         ctx.fillStyle = '#0D47A1';
         ctx.font = 'bold 12px Arial';
-        ctx.fillText(`TỔNG CỘNG (${selectedShapes.length} KHỐI)`, 90, rowY - 8);
+        ctx.fillText(`TỔNG CỘNG (${selectedShapes.length} KHỐI)`, 100, rowY - 8);
         ctx.fillStyle = '#1B5E20';
-        ctx.fillText(measuredTotalArea.toFixed(2), 680, rowY - 8);
-        ctx.fillText((measuredTotalArea / 10000).toFixed(4), 850, rowY - 8);
+        ctx.fillText(measuredTotalArea.toFixed(2), 620, rowY - 8);
+        ctx.fillText((measuredTotalArea / 10000).toFixed(4), 820, rowY - 8);
         if (showPercent) {
             ctx.fillStyle = '#E65100';
             const totalPctStr = (baseProjectArea > 0) ? ((measuredTotalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
-            ctx.fillText(totalPctStr, 1030, rowY - 8);
+            ctx.fillText(totalPctStr, 1010, rowY - 8);
         }
 
         // Khung tên dưới cùng
