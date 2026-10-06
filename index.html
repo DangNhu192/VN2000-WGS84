@@ -3498,6 +3498,58 @@
       white-space: nowrap;
       font-family: ui-monospace, monospace;
     }
+    .cad-display-options-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .cad-check-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      cursor: pointer;
+      user-select: none;
+      padding: 3px 8px;
+      background: rgba(30, 41, 59, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .cad-check-label:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #ffffff;
+    }
+    .cad-check-label input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: #38bdf8;
+      cursor: pointer;
+      margin: 0;
+    }
+    .cad-export-check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      cursor: pointer;
+      padding: 7px 10px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 6px;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    .cad-export-check-item:hover {
+      background: rgba(51, 65, 85, 0.85);
+      border-color: rgba(167, 139, 250, 0.5);
+    }
 
     /* CAD Leaflet Visual Overlay Badges */
     /* Edge badge (cự ly cạnh): Ẩn mặc định, chỉ hiển thị khi rê chuột hoặc click vào đường kẻ/đỉnh */
@@ -4809,6 +4861,32 @@
               🗑️ Xóa chú thích
             </button>
             <span id="cadMarkupStatus" style="font-size: 10px; color: #38bdf8; margin-left: 6px; font-style: italic; display: none; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);"></span>
+          </div>
+          <!-- Dòng 4: Tùy Chọn Hiển Thị Các Thành Phần Trên Bản Vẽ (Ký hiệu đỉnh, khoảng cách, tâm khối...) -->
+          <div id="cadDisplayOptionsRow" class="cad-actions-row cad-display-options-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 5px; padding-bottom: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <span style="font-size: 10px; font-weight: 800; color: #38bdf8; padding: 2px 7px; background: rgba(56, 189, 248, 0.15); border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.35); display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+              👁️ HIỂN THỊ:
+            </span>
+            <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh (Đ1, Đ2, Đ3...) trên bản vẽ">
+              <input type="checkbox" id="cadCheckShowVertices" checked onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
+              <span>📍 Ký hiệu đỉnh</span>
+            </label>
+            <label class="cad-check-label" title="Hiện hoặc ẩn khoảng cách giữa các đỉnh (cự ly cạnh theo mét)">
+              <input type="checkbox" id="cadCheckShowDistances" checked onchange="appCadTool.toggleDisplayOption('showDistances', this.checked)">
+              <span>📏 Khoảng cách đỉnh (m)</span>
+            </label>
+            <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu tên và diện tích tại tâm các khối">
+              <input type="checkbox" id="cadCheckShowCenterLabels" checked onchange="appCadTool.toggleDisplayOption('showCenterLabels', this.checked)">
+              <span>🏷️ Ký hiệu & Tâm khối</span>
+            </label>
+            <label class="cad-check-label" title="Hiện hoặc ẩn các nét ghi chú: mũi tên, hướng Bắc, khối nhà, tem thửa, văn bản">
+              <input type="checkbox" id="cadCheckShowAnnotations" checked onchange="appCadTool.toggleDisplayOption('showAnnotations', this.checked)">
+              <span>🏹 Ghi chú kỹ thuật</span>
+            </label>
+            <label class="cad-check-label" title="Hiện hoặc ẩn đường viền ranh giới các khối">
+              <input type="checkbox" id="cadCheckShowBoundaries" checked onchange="appCadTool.toggleDisplayOption('showBoundaries', this.checked)">
+              <span>📐 Ranh giới khối</span>
+            </label>
           </div>
         </div>
 
@@ -6511,28 +6589,56 @@
           </div>
         </div>
 
-        <!-- Phần 4: Tùy chọn hiển thị thông tin khối trên bản vẽ (Tối giản vs Đầy đủ) -->
+        <!-- Phần 4: Tùy chọn hiển thị thành phần trên bản vẽ xuất (AutoCAD DXF, PDF, SVG, PNG) -->
         <div style="background: rgba(15,23,42,0.85); border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 10px 12px;">
           <div style="font-size: 11.5px; font-weight: 800; color: #a78bfa; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>🎛️</span>
-              <span>4. TÙY CHỌN HIỂN THỊ TRÊN BẢN VẼ:</span>
+              <span>4. TÙY CHỌN HIỂN THỊ THÀNH PHẦN TRÊN BẢN VẼ:</span>
             </div>
             <span style="font-size: 10px; color: #94a3b8;">(AutoCAD DXF / PDF / SVG / PNG)</span>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px;">
-            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 7px 10px; background: rgba(30,41,59,0.7); border: 1px solid rgba(99,102,241,0.4); border-radius: 6px; user-select: none;" title="Chỉ hiện số thứ tự hoặc ký hiệu khối tại tâm (khuyến nghị, bản vẽ thoáng đẹp)">
-              <input type="radio" name="cadBlockDisplayMode" id="cadBlockDisplayMinimal" value="minimal" checked style="accent-color: #a78bfa; width: 15px; height: 15px; margin-top: 2px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;">
+            <label class="cad-export-check-item">
+              <input type="checkbox" id="cadExportCheckVertices" checked style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
               <div>
-                <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">Chỉ hiện số thứ tự / ký hiệu khối (Tối giản)</div>
-                <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Ẩn diện tích S, chu vi P và kích thước cạnh để bản vẽ thoáng đẹp, không bị rối.</div>
+                <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📍 Ký hiệu đỉnh của khối</div>
+                <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">Hiện tên mốc Đ1, Đ2, Đ3... tại các góc ranh</div>
               </div>
             </label>
-            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 7px 10px; background: rgba(30,41,59,0.4); border: 1px solid rgba(148,163,184,0.2); border-radius: 6px; user-select: none;" title="Hiển thị thêm diện tích S, chu vi P và kích thước từng cạnh">
-              <input type="radio" name="cadBlockDisplayMode" id="cadBlockDisplayFull" value="full" style="accent-color: #a78bfa; width: 15px; height: 15px; margin-top: 2px;">
+            <label class="cad-export-check-item">
+              <input type="checkbox" id="cadExportCheckDistances" checked style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
               <div>
-                <div style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Hiển thị đầy đủ thông tin (Chi tiết)</div>
-                <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Hiện thêm diện tích (S), chu vi (P) và chiều dài từng cạnh trên ranh thửa.</div>
+                <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📏 Khoảng cách các đỉnh</div>
+                <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">Hiện cự ly chiều dài các cạnh theo mét (m)</div>
+              </div>
+            </label>
+            <label class="cad-export-check-item">
+              <input type="checkbox" id="cadExportCheckCenterLabels" checked style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🏷️ Ký hiệu & Nhãn tâm khối</div>
+                <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">Hiện tên khối / STT hoặc diện tích tại tâm khối</div>
+              </div>
+            </label>
+            <label class="cad-export-check-item">
+              <input type="checkbox" id="cadExportCheckAnnotations" checked style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🏹 Ghi chú & Hình khối</div>
+                <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">Hiện nét mũi tên, hướng Bắc, tem thửa, khối nhà, chữ</div>
+              </div>
+            </label>
+            <label class="cad-export-check-item">
+              <input type="checkbox" id="cadExportCheckBoundaries" checked style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📐 Nét ranh giới khối</div>
+                <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">Đường viền bao các khối / thửa đất</div>
+              </div>
+            </label>
+            <label class="cad-export-check-item">
+              <input type="checkbox" id="cadExportCheckFullDetails" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+              <div>
+                <div style="font-size: 11px; font-weight: 700; color: #cbd5e1;">📋 Chi tiết S, P, % tại tâm</div>
+                <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">In thêm diện tích (S), chu vi (P), tỷ lệ % tại tâm khối</div>
               </div>
             </label>
           </div>

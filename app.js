@@ -7290,6 +7290,89 @@ const appCadTool = {
     markupStepData: null,
     showAnnotations: true,
     palette: ['#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#38bdf8', '#84cc16', '#f97316'],
+    displaySettings: {
+        showVertices: true,
+        showDistances: true,
+        showCenterLabels: true,
+        showAnnotations: true,
+        showBoundaries: true
+    },
+
+    initDisplaySettings() {
+        let saved = null;
+        try {
+            const raw = localStorage.getItem('vn2k_cad_display_settings');
+            if (raw) saved = JSON.parse(raw);
+        } catch (e) {}
+
+        this.displaySettings = Object.assign({
+            showVertices: true,
+            showDistances: true,
+            showCenterLabels: true,
+            showAnnotations: true,
+            showBoundaries: true
+        }, saved || {});
+
+        this.showAnnotations = this.displaySettings.showAnnotations !== false;
+    },
+
+    syncDisplayCheckboxes() {
+        if (!this.displaySettings) this.initDisplaySettings();
+        const s = this.displaySettings;
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = !!val;
+        };
+
+        // Checkboxes trên thanh công cụ CAD
+        setVal('cadCheckShowVertices', s.showVertices);
+        setVal('cadCheckShowDistances', s.showDistances);
+        setVal('cadCheckShowCenterLabels', s.showCenterLabels);
+        setVal('cadCheckShowAnnotations', s.showAnnotations);
+        setVal('cadCheckShowBoundaries', s.showBoundaries);
+
+        // Checkboxes trong Modal Xuất bản vẽ
+        setVal('cadExportCheckVertices', s.showVertices);
+        setVal('cadExportCheckDistances', s.showDistances);
+        setVal('cadExportCheckCenterLabels', s.showCenterLabels);
+        setVal('cadExportCheckAnnotations', s.showAnnotations);
+        setVal('cadExportCheckBoundaries', s.showBoundaries);
+
+        // Nút toggle chú thích
+        const btnAnn = document.getElementById('btnCadMarkupToggle');
+        if (btnAnn) {
+            const cnt = this.annotations ? this.annotations.length : 0;
+            btnAnn.innerHTML = s.showAnnotations 
+                ? '👁️ Ẩn/Hiện (<span id="cadMarkupCount">' + cnt + '</span>)'
+                : '🙈 Đang ẩn (<span id="cadMarkupCount">' + cnt + '</span>)';
+            btnAnn.style.color = s.showAnnotations ? '#94a3b8' : '#f59e0b';
+        }
+    },
+
+    toggleDisplayOption(key, checked) {
+        if (!this.displaySettings) this.initDisplaySettings();
+        this.displaySettings[key] = !!checked;
+        if (key === 'showAnnotations') {
+            this.showAnnotations = !!checked;
+        }
+        try {
+            localStorage.setItem('vn2k_cad_display_settings', JSON.stringify(this.displaySettings));
+        } catch (e) {}
+
+        this.syncDisplayCheckboxes();
+        this.renderGeometry();
+        this.renderAnnotations();
+
+        const labels = {
+            showVertices: '📍 Ký hiệu đỉnh',
+            showDistances: '📏 Khoảng cách đỉnh (cự ly cạnh)',
+            showCenterLabels: '🏷️ Ký hiệu & Tâm khối',
+            showAnnotations: '🏹 Ghi chú kỹ thuật',
+            showBoundaries: '📐 Nét ranh khối'
+        };
+        const name = labels[key] || key;
+        showToast((checked ? '👁️ Đã BẬT: ' : '🙈 Đã TẮT: ') + name);
+    },
     layers: {
         group: null,
         annotationsGroup: null,
@@ -7313,6 +7396,7 @@ const appCadTool = {
         }
         this.bindEvents();
         this.initDraggablePanel();
+        this.initDisplaySettings();
         this.loadAnnotations();
         this.initHistory();
     },
@@ -7921,6 +8005,7 @@ const appCadTool = {
     openToolbar() {
         this.isActive = true;
         this.ensureLayers();
+        if (!this.displaySettings) this.initDisplaySettings();
         const bar = document.getElementById('mapCadToolbar');
         if (bar) bar.style.display = 'flex';
         const toggleBtn = document.getElementById('btnToggleCadTool');
@@ -7930,6 +8015,7 @@ const appCadTool = {
         const mapContainer = document.getElementById('map-view-container');
         if (mapContainer) mapContainer.classList.add('cad-active-map');
 
+        this.syncDisplayCheckboxes();
         this.updateUi();
         this.loadAnnotations();
         showToast("📐 Chế độ Vẽ CAD Mini đã kích hoạt! Chạm bản đồ để dựng mốc (Phím: P, L, S, C, U, D, E)");
@@ -9018,7 +9104,7 @@ const appCadTool = {
         const countEl = document.getElementById('cadMarkupCount');
         if (countEl) countEl.innerText = this.annotations ? this.annotations.length : 0;
 
-        if (!this.showAnnotations || !this.annotations || this.annotations.length === 0) {
+        if (this.displaySettings && this.displaySettings.showAnnotations === false || !this.showAnnotations || !this.annotations || this.annotations.length === 0) {
             return;
         }
 
@@ -9480,16 +9566,8 @@ const appCadTool = {
     },
 
     toggleAnnotationsVisible() {
-        this.showAnnotations = !this.showAnnotations;
-        const btn = document.getElementById('btnCadMarkupToggle');
-        if (btn) {
-            btn.innerHTML = this.showAnnotations 
-                ? '👁️ Ẩn/Hiện (<span id="cadMarkupCount">' + this.annotations.length + '</span>)'
-                : '🙈 Đang ẩn (<span id="cadMarkupCount">' + this.annotations.length + '</span>)';
-            btn.style.color = this.showAnnotations ? '#94a3b8' : '#f59e0b';
-        }
-        this.renderAnnotations();
-        showToast(this.showAnnotations ? '✓ Đang hiển thị chú thích & hình khối' : 'Đã ẩn chú thích & hình khối');
+        if (!this.displaySettings) this.initDisplaySettings();
+        this.toggleDisplayOption('showAnnotations', !this.displaySettings.showAnnotations);
     },
 
     calculateAreaAndPerimeter(customPts = null, customMode = null) {
@@ -9566,6 +9644,12 @@ const appCadTool = {
         if (!this.layers.group) return;
         this.layers.group.clearLayers();
 
+        if (!this.displaySettings) this.initDisplaySettings();
+        const showBoundaries = this.displaySettings.showBoundaries !== false;
+        const showVertices = this.displaySettings.showVertices !== false;
+        const showDistances = this.displaySettings.showDistances === true;
+        const showCenterLabels = this.displaySettings.showCenterLabels !== false;
+
         // 0. Vẽ tất cả các cấu trúc / thửa đã lưu trước đó (có check có hiển thị, bỏ check thì ẩn)
         this.savedShapes.forEach((shape, sIdx) => {
             if (shape.selected === false) return;
@@ -9580,7 +9664,7 @@ const appCadTool = {
 
             const edgeMarkers = [];
 
-            if (shape.mode === 'polygon' && sLen >= 3) {
+            if (showBoundaries && shape.mode === 'polygon' && sLen >= 3) {
                 sShapeLayer = L.polygon(sLatLngs, {
                     color: sColor,
                     weight: 2.5,
@@ -9616,6 +9700,7 @@ const appCadTool = {
                     });
                 });
 
+                if (showCenterLabels) {
                 // Nhãn tâm khối: Vị trí tâm trực quan tối ưu (Pole of Inaccessibility cho cả khối chữ L)
                 // và Scale kích thước vừa khít theo khoảng cách mép trong lòng khối
                 const [cLat, cLng, clearanceDeg] = this.calculatePolygonVisualCenter(sVerts);
@@ -9667,7 +9752,8 @@ const appCadTool = {
                 // iconAnchor [0, 0] kết hợp transform: translate(-50%, -50%) định tâm hoàn hảo, không bị trôi offset
                 const centerIcon = L.divIcon({ className: 'cad-center-divicon', html: badgeHtml, iconSize: [0, 0], iconAnchor: [0, 0] });
                 sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
-            } else if (sLen >= 2) {
+                }
+            } else if (showBoundaries && sLen >= 2) {
                 sShapeLayer = L.polyline(sLatLngs, {
                     color: sColor,
                     weight: 2.5,
@@ -9690,7 +9776,8 @@ const appCadTool = {
                     const midLat = (cur.lat + next.lat) / 2;
                     const midLng = (cur.lng + next.lng) / 2;
 
-                    const labelHtml = `<div class="cad-edge-badge interactive" style="border-color:${sColor}; color:${sColor};" title="Bấm vào để chèn thêm đỉnh mới vào [${shape.shortName}] (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
+                    const isDistPinned = (showDistances === true);
+                    const labelHtml = `<div class="cad-edge-badge interactive ${isDistPinned ? 'visible pinned' : ''}" style="border-color:${sColor}; color:${sColor};" title="Bấm vào để chèn thêm đỉnh mới vào [${shape.shortName}] (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
                     const labelIcon = L.divIcon({
                         className: '',
                         html: labelHtml,
@@ -9698,7 +9785,7 @@ const appCadTool = {
                         iconAnchor: [26, 9]
                     });
                     const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2350 }).addTo(this.layers.group);
-                    edgeMarker._pinned = false;
+                    edgeMarker._pinned = isDistPinned;
                     edgeMarkers.push(edgeMarker);
 
                     edgeMarker.on('click', (e) => {
@@ -9732,9 +9819,10 @@ const appCadTool = {
                 }
             }
 
-            // Đỉnh của cấu trúc đã lưu: Chấm nhỏ 9px mặc định, rê chuột/click bung STT đỉnh & cự ly cạnh kề
+            // Đỉnh của cấu trúc đã lưu: Ký hiệu Đ1, Đ2... Hiển thị khi bật tùy chọn showVertices
+            if (showVertices) {
             sVerts.forEach((v, vIdx) => {
-                const iconHtml = `<div class="cad-vertex-badge" style="background: ${sColor}; border-color: #ffffff;" title="${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết)">${v.name}</div>`;
+                const iconHtml = `<div class="cad-vertex-badge expanded" style="background: ${sColor}; border-color: #ffffff;" title="${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết)">${v.name}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: true }).addTo(this.layers.group);
 
@@ -9854,6 +9942,7 @@ const appCadTool = {
                     }
                 });
             });
+            }
         });
 
         const n = this.vertices.length;
@@ -9869,7 +9958,7 @@ const appCadTool = {
         }
 
         // 1. Vẽ đường bao (Polyline hoặc Polygon)
-        if (n >= 2) {
+        if (showBoundaries && n >= 2) {
             if (this.mode === 'polygon' && n >= 3) {
                 this.layers.shape = L.polygon(latlngs, {
                     color: isSelfIntersecting ? '#ef4444' : '#06b6d4',
@@ -9893,7 +9982,8 @@ const appCadTool = {
 
         // 2. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển nhanh)
         this.vertices.forEach((v, idx) => {
-            const iconHtml = `<div class="cad-vertex-badge expanded" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
+            const isActExp = showVertices ? 'expanded' : '';
+            const iconHtml = `<div class="cad-vertex-badge ${isActExp}" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
             const icon = L.divIcon({
                 className: '',
                 html: iconHtml,
@@ -10026,7 +10116,8 @@ const appCadTool = {
                 const midLat = (cur.lat + next.lat) / 2;
                 const midLng = (cur.lng + next.lng) / 2;
 
-                const labelHtml = `<div class="cad-edge-badge interactive" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
+                const isActDistPinned = (showDistances === true);
+                const labelHtml = `<div class="cad-edge-badge interactive ${isActDistPinned ? 'visible pinned' : ''}" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
                 const labelIcon = L.divIcon({
                     className: '',
                     html: labelHtml,
@@ -10034,7 +10125,7 @@ const appCadTool = {
                     iconAnchor: [26, 9]
                 });
                 const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2400 }).addTo(this.layers.group);
-                edgeMarker._pinned = false;
+                edgeMarker._pinned = isActDistPinned;
                 activeEdgeMarkers.push(edgeMarker);
 
                 edgeMarker.on('click', (e) => {
@@ -10074,7 +10165,7 @@ const appCadTool = {
         }
 
         // 4. Nếu là đa giác khép kín >= 3 đỉnh: hiển thị badge diện tích tại tâm đa giác (scale vừa khít)
-        if (this.mode === 'polygon' && n >= 3) {
+        if (showCenterLabels && this.mode === 'polygon' && n >= 3) {
             const [centerLat, centerLng, clearanceDeg] = this.calculatePolygonVisualCenter(this.vertices);
             const warningMsg = isSelfIntersecting ? '<div style="color:#ef4444; font-size:9px;">⚠️ Tự cắt!</div>' : '';
 
@@ -10347,17 +10438,30 @@ const appCadTool = {
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
-            // Khôi phục trạng thái tùy chọn hiển thị thông tin khối
-            if (savedMeta && typeof savedMeta.showBlockInfo === 'boolean') {
-                if (document.getElementById('cadBlockDisplayFull')) {
-                    document.getElementById('cadBlockDisplayFull').checked = savedMeta.showBlockInfo;
-                    if (document.getElementById('cadBlockDisplayMinimal')) {
-                        document.getElementById('cadBlockDisplayMinimal').checked = !savedMeta.showBlockInfo;
+            // Khôi phục trạng thái tùy chọn hiển thị thông tin khối & thành phần
+            if (savedMeta) {
+                if (typeof savedMeta.showBlockInfo === 'boolean') {
+                    if (document.getElementById('cadExportCheckFullDetails')) {
+                        document.getElementById('cadExportCheckFullDetails').checked = savedMeta.showBlockInfo;
                     }
-                } else if (document.getElementById('cadShowBlockInfo')) {
-                    document.getElementById('cadShowBlockInfo').checked = savedMeta.showBlockInfo;
+                    if (document.getElementById('cadBlockDisplayFull')) {
+                        document.getElementById('cadBlockDisplayFull').checked = savedMeta.showBlockInfo;
+                        if (document.getElementById('cadBlockDisplayMinimal')) {
+                            document.getElementById('cadBlockDisplayMinimal').checked = !savedMeta.showBlockInfo;
+                        }
+                    } else if (document.getElementById('cadShowBlockInfo')) {
+                        document.getElementById('cadShowBlockInfo').checked = savedMeta.showBlockInfo;
+                    }
+                }
+                if (this.displaySettings) {
+                    if (typeof savedMeta.showVertices === 'boolean') this.displaySettings.showVertices = savedMeta.showVertices;
+                    if (typeof savedMeta.showDistances === 'boolean') this.displaySettings.showDistances = savedMeta.showDistances;
+                    if (typeof savedMeta.showCenterLabels === 'boolean') this.displaySettings.showCenterLabels = savedMeta.showCenterLabels;
+                    if (typeof savedMeta.showAnnotations === 'boolean') this.displaySettings.showAnnotations = savedMeta.showAnnotations;
+                    if (typeof savedMeta.showBoundaries === 'boolean') this.displaySettings.showBoundaries = savedMeta.showBoundaries;
                 }
             }
+            this.syncDisplayCheckboxes();
         } catch (e) {}
 
         this.renderExportBlockPicker();
@@ -12115,9 +12219,29 @@ const appCadTool = {
         const drawingDate = document.getElementById('cadExportDate')?.value?.trim() || new Date().toLocaleDateString('vi-VN');
 
         const showPercent = document.getElementById('cadShowPercentRatio') ? document.getElementById('cadShowPercentRatio').checked : (this.showPercentRatio !== false);
-        // showBlockInfo: true = hiện đầy đủ số liệu S, P, cạnh; false = chỉ hiện số thứ tự/ký hiệu khối tại tâm (mặc định)
+        
+        // Tùy chọn hiển thị các thành phần trên bản vẽ xuất
+        const showVertices = document.getElementById('cadExportCheckVertices')
+            ? document.getElementById('cadExportCheckVertices').checked
+            : (this.displaySettings ? (this.displaySettings.showVertices !== false) : true);
+        const showDistances = document.getElementById('cadExportCheckDistances')
+            ? document.getElementById('cadExportCheckDistances').checked
+            : (this.displaySettings ? (this.displaySettings.showDistances === true) : true);
+        const showCenterLabels = document.getElementById('cadExportCheckCenterLabels')
+            ? document.getElementById('cadExportCheckCenterLabels').checked
+            : (this.displaySettings ? (this.displaySettings.showCenterLabels !== false) : true);
+        const showAnnotations = document.getElementById('cadExportCheckAnnotations')
+            ? document.getElementById('cadExportCheckAnnotations').checked
+            : (this.displaySettings ? (this.displaySettings.showAnnotations !== false) : true);
+        const showBoundaries = document.getElementById('cadExportCheckBoundaries')
+            ? document.getElementById('cadExportCheckBoundaries').checked
+            : (this.displaySettings ? (this.displaySettings.showBoundaries !== false) : true);
+
+        // showBlockInfo: true = hiện thêm chi tiết diện tích, chu vi, tỷ lệ % tại tâm
         let showBlockInfo = false;
-        if (document.getElementById('cadBlockDisplayFull')) {
+        if (document.getElementById('cadExportCheckFullDetails')) {
+            showBlockInfo = document.getElementById('cadExportCheckFullDetails').checked;
+        } else if (document.getElementById('cadBlockDisplayFull')) {
             showBlockInfo = document.getElementById('cadBlockDisplayFull').checked;
         } else if (document.getElementById('cadShowBlockInfo')) {
             showBlockInfo = document.getElementById('cadShowBlockInfo').checked;
@@ -12128,7 +12252,8 @@ const appCadTool = {
         // Lưu cấu hình vào localStorage để người dùng không phải nhập lại
         try {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
-                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, scaleVal, paper, showPercent, showBlockInfo, customTotalArea
+                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, scaleVal, paper, showPercent, showBlockInfo, customTotalArea,
+                showVertices, showDistances, showCenterLabels, showAnnotations, showBoundaries
             }));
         } catch (e) {}
 
@@ -12137,7 +12262,8 @@ const appCadTool = {
         return { 
             scaleVal, paper, paperW, paperH, 
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
-            showPercent, showBlockInfo, customTotalArea
+            showPercent, showBlockInfo, customTotalArea,
+            showVertices, showDistances, showCenterLabels, showAnnotations, showBoundaries
         };
     },
 
@@ -12489,27 +12615,30 @@ const appCadTool = {
             const stats = shape.stats || this.calculateAreaAndPerimeter(pts, shape.mode);
 
             // Đường ranh thửa nét đậm 0.50mm
-            dxf += `0\nPOLYLINE\n8\nRANH_THUA\n66\n1\n70\n${isClosed ? 1 : 0}\n10\n0.0\n20\n0.0\n30\n0.0\n`;
-            pts.forEach(p => {
-                dxf += `0\nVERTEX\n8\nRANH_THUA\n10\n${p.y.toFixed(3)}\n20\n${p.x.toFixed(3)}\n30\n0.0\n`;
-            });
-            dxf += `0\nSEQEND\n8\nRANH_THUA\n`;
+            if (meta.showBoundaries !== false) {
+                dxf += `0\nPOLYLINE\n8\nRANH_THUA\n66\n1\n70\n${isClosed ? 1 : 0}\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+                pts.forEach(p => {
+                    dxf += `0\nVERTEX\n8\nRANH_THUA\n10\n${p.y.toFixed(3)}\n20\n${p.x.toFixed(3)}\n30\n0.0\n`;
+                });
+                dxf += `0\nSEQEND\n8\nRANH_THUA\n`;
+            }
 
-            // Điểm đỉnh mốc & Nhãn tên mốc
-            const mRadius = 1.0 * S; // Bán kính mốc 1mm trên giấy
-            pts.forEach((p, idx) => {
-                const cadX = p.y;
-                const cadY = p.x;
-                dxf += `0\nCIRCLE\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n40\n${mRadius.toFixed(4)}\n`;
-                dxf += `0\nPOINT\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n`;
+            // Điểm đỉnh mốc & Nhãn tên mốc (Hiển thị khi meta.showVertices !== false)
+            if (meta.showVertices !== false) {
+                const mRadius = 1.0 * S; // Bán kính mốc 1mm trên giấy
+                pts.forEach((p, idx) => {
+                    const cadX = p.y;
+                    const cadY = p.x;
+                    dxf += `0\nCIRCLE\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n40\n${mRadius.toFixed(4)}\n`;
+                    dxf += `0\nPOINT\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n`;
 
-                // Luôn hiện số thứ tự/tên đỉnh (bắt buộc)
-                const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
-                dxf += `0\nTEXT\n8\nTEN_MOC\n10\n${(cadX + 1.5 * S).toFixed(3)}\n20\n${(cadY + 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\n${cleanName}\n7\nVN_ARIAL\n`;
-            });
+                    const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
+                    dxf += `0\nTEXT\n8\nTEN_MOC\n10\n${(cadX + 1.5 * S).toFixed(3)}\n20\n${(cadY + 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\n${cleanName}\n7\nVN_ARIAL\n`;
+                });
+            }
 
-            // Chiều dài cạnh (chỉ vẽ khi showBlockInfo = true)
-            if (showBlockInfo && stats.edges) {
+            // Chiều dài cạnh / khoảng cách đỉnh (vẽ khi meta.showDistances hoặc showBlockInfo)
+            if (meta.showDistances && stats.edges) {
                 stats.edges.forEach((edge, idx) => {
                     const p1 = pts[idx];
                     const p2 = pts[(idx + 1) % n];
@@ -12533,10 +12662,8 @@ const appCadTool = {
                 });
             }
 
-            // Nhãn tâm thửa đất (Visual Interior Center - tối ưu hiển thị trong lòng khối chữ L/khuyết góc):
-            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI (BẢN VẼ GỌN GÀNG)
-            // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
-            if (isClosed && stats.area > 0) {
+            // Nhãn tâm thửa đất (Visual Interior Center - tối ưu hiển thị trong lòng khối chữ L/khuyết góc)
+            if (meta.showCenterLabels !== false && isClosed && stats.area > 0) {
                 const center = this.calculatePolygonVisualCenter(pts.map(p => ({ x: p.y, y: p.x })));
                 const cX = center.x;
                 const cY = center.y;
@@ -12566,7 +12693,7 @@ const appCadTool = {
         });
 
         // === E. CÁC ĐỐI TƯỢNG CHÚ THÍCH & HÌNH KHỐI (MINICAD ANNOTATIONS) ===
-        if (this.annotations && this.annotations.length > 0) {
+        if (meta.showAnnotations !== false && this.annotations && this.annotations.length > 0) {
             this.annotations.forEach(ann => {
                 switch (ann.type) {
                     case 'arrow': {
@@ -13023,25 +13150,27 @@ const appCadTool = {
             ctx.stroke();
 
             // Điểm đỉnh mốc ranh & Tên đỉnh
-            pts.forEach((p, idx) => {
-                const px = toCvX(p.y);
-                const py = toCvY(p.x);
-                ctx.fillStyle = '#ef4444';
-                ctx.beginPath();
-                ctx.arc(px, py, Math.round(1.2 * pxPerMm), 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = Math.round(0.4 * pxPerMm);
-                ctx.stroke();
+            if (meta.showVertices !== false) {
+                pts.forEach((p, idx) => {
+                    const px = toCvX(p.y);
+                    const py = toCvY(p.x);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(px, py, Math.round(1.2 * pxPerMm), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = Math.round(0.4 * pxPerMm);
+                    ctx.stroke();
 
-                ctx.font = `bold ${Math.round(2.2 * pxPerMm)}px Arial`;
-                ctx.fillStyle = '#0f172a';
-                ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
-            });
+                    ctx.font = `bold ${Math.round(2.2 * pxPerMm)}px Arial`;
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
+                });
+            }
 
-            // Chiều dài cạnh (chỉ vẽ khi showBlockInfo = true)
+            // Chiều dài cạnh / khoảng cách đỉnh
             const showBlockInfo = meta.showBlockInfo === true;
-            if (showBlockInfo && stats.edges) {
+            if (meta.showDistances && stats.edges) {
                 ctx.font = `${Math.round(2.0 * pxPerMm)}px Arial`;
                 ctx.fillStyle = '#b45309';
                 stats.edges.forEach((edge, idx) => {
@@ -13054,7 +13183,7 @@ const appCadTool = {
             }
 
             // Tâm thửa đất (Visual Interior Center - chuẩn trong lòng khối chữ L)
-            if (isClosed && stats.area > 0) {
+            if (meta.showCenterLabels !== false && isClosed && stats.area > 0) {
                 const cvCenter = this.calculatePolygonVisualCenter(pts.map(p => ({ x: toCvX(p.y), y: toCvY(p.x) })));
                 const cX = cvCenter.x;
                 const cY = cvCenter.y;
@@ -13092,7 +13221,7 @@ const appCadTool = {
         });
 
         // 7.5. Vẽ các Chú Thích & Hình Khối Kỹ Thuật (MiniCAD Annotations)
-        if (this.annotations && this.annotations.length > 0) {
+        if (meta.showAnnotations !== false && this.annotations && this.annotations.length > 0) {
             this.annotations.forEach(ann => {
                 switch (ann.type) {
                     case 'arrow': {
@@ -13512,22 +13641,27 @@ const appCadTool = {
             const isClosed = shape.mode === 'polygon' && pts.length >= 3;
             const svgPts = pts.map(p => `${toSvgX(p.y).toFixed(1)},${toSvgY(p.x).toFixed(1)}`).join(' ');
 
-            if (isClosed) {
-                svgContent += `  <polygon class="layer-ranh" points="${svgPts}" fill="${shape.color}22"/>\n`;
-            } else {
-                svgContent += `  <polyline class="layer-ranh" points="${svgPts}"/>\n`;
+            if (meta.showBoundaries !== false) {
+                if (isClosed) {
+                    svgContent += `  <polygon class="layer-ranh" points="${svgPts}" fill="${shape.color}22"/>\n`;
+                } else {
+                    svgContent += `  <polyline class="layer-ranh" points="${svgPts}"/>\n`;
+                }
             }
 
-            // Điểm mốc
-            pts.forEach((p) => {
-                const sx2 = toSvgX(p.y);
-                const sy2 = toSvgY(p.x);
-                svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="3"/>\n`;
-            });
+            // Điểm mốc & ký hiệu đỉnh
+            if (meta.showVertices !== false) {
+                pts.forEach((p) => {
+                    const sx2 = toSvgX(p.y);
+                    const sy2 = toSvgY(p.x);
+                    svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="3"/>\n`;
+                    svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 4).toFixed(1)}" y="${(sy2 - 4).toFixed(1)}" font-size="10" fill="#0f172a" font-weight="bold">${p.name || ''}</text>\n`;
+                });
+            }
 
-            // Kích thước cạnh giữa đỉnh (chỉ vẽ khi showBlockInfo = true)
+            // Kích thước cạnh giữa đỉnh
             const stats = shape.stats;
-            if (showBlockInfo && stats && stats.edges) {
+            if (meta.showDistances && stats && stats.edges) {
                 stats.edges.forEach((edge, idx) => {
                     const p1 = pts[idx];
                     const p2 = pts[(idx + 1) % pts.length];
@@ -13537,10 +13671,8 @@ const appCadTool = {
                 });
             }
 
-            // Nhãn tâm khối (Visual Interior Center - chuẩn trong lòng khối chữ L):
-            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI
-            // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
-            if (isClosed && stats) {
+            // Nhãn tâm khối (Visual Interior Center - chuẩn trong lòng khối chữ L)
+            if (meta.showCenterLabels !== false && isClosed && stats) {
                 const center = this.calculatePolygonVisualCenter(pts.map(p => ({ x: p.y, y: p.x })));
                 const cx = center.x;
                 const cy = center.y;
@@ -13563,7 +13695,7 @@ const appCadTool = {
         });
 
         // Vẽ các Chú Thích & Hình Khối Kỹ Thuật (MiniCAD Annotations) trong SVG
-        if (this.annotations && this.annotations.length > 0) {
+        if (meta.showAnnotations !== false && this.annotations && this.annotations.length > 0) {
             this.annotations.forEach(ann => {
                 switch (ann.type) {
                     case 'arrow': {
@@ -13810,15 +13942,20 @@ const appCadTool = {
             if (isClosed) ctx.closePath();
             ctx.stroke();
 
-            // Điểm mốc (vòng tròn nhỏ)
-            pts.forEach((p) => {
-                const px = toX(p.y), py = toY(p.x);
-                ctx.strokeStyle = '#C62828'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.stroke();
-            });
+            // Điểm mốc & ký hiệu đỉnh
+            if (meta.showVertices !== false) {
+                pts.forEach((p) => {
+                    const px = toX(p.y), py = toY(p.x);
+                    ctx.strokeStyle = '#C62828'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.stroke();
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(p.name || '', px + 5, py - 5);
+                });
+            }
 
-            // Kích thước cạnh (chỉ vẽ khi showBlockInfo = true)
-            if (showBlockInfo && shape.stats && shape.stats.edges) {
+            // Kích thước cạnh
+            if (meta.showDistances && shape.stats && shape.stats.edges) {
                 ctx.font = '10px Arial'; ctx.fillStyle = '#E65100';
                 shape.stats.edges.forEach((edge, idx) => {
                     const p1 = pts[idx], p2 = pts[(idx+1) % pts.length];
@@ -13828,10 +13965,8 @@ const appCadTool = {
                 });
             }
 
-            // Nhãn tâm khối (Visual Interior Center - chuẩn trong lòng khối chữ L):
-            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI
-            // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
-            if (isClosed && shape.stats) {
+            // Nhãn tâm khối (Visual Interior Center - chuẩn trong lòng khối chữ L)
+            if (meta.showCenterLabels !== false && isClosed && shape.stats) {
                 const center = this.calculatePolygonVisualCenter(pts.map(p => ({ x: p.y, y: p.x })));
                 const cx = center.x;
                 const cy = center.y;
