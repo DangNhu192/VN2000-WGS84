@@ -7565,35 +7565,177 @@ const appCadTool = {
         }
     },
 
-    // Tính toán tâm hình học chính xác (Polygon Centroid) để nhãn luôn ở trung tâm khối
-    calculatePolygonCentroid(pts) {
+    // Tính toán tâm hiển thị tối ưu (Visual Interior Center / Pole of Inaccessibility):
+    // 1. Chuẩn hóa gốc tọa độ tương đối (Local Origin Normalization) triệt tiêu hoàn toàn sai số dấu phẩy động
+    // 2. Xác định tâm hình học Green, kiểm tra nếu điểm nằm an toàn trong lòng đa giác (clearance >= 12% max span)
+    // 3. Đối với các khối lõm như chữ L, chữ U, hình khuyết: Tự động dùng thuật toán cực nội tiếp (Pole of Inaccessibility)
+    //    để tìm điểm nằm sâu nhất trong phần thân rộng nhất của khối chữ L, 100% không bao giờ văng ra ngoài khoảng trống!
+    calculatePolygonVisualCenter(pts) {
         if (!pts || pts.length === 0) return [0, 0];
-        const len = pts.length;
-        if (len < 3) {
-            return [pts[0].lat, pts[0].lng];
+        const n = pts.length;
+        const isWgs = (pts[0].lat !== undefined && pts[0].lng !== undefined);
+        const isArray = Array.isArray(pts[0]);
+        let raw = [];
+        if (isWgs) raw = pts.map(p => ({ x: p.lng, y: p.lat }));
+        else if (isArray) raw = pts.map(p => ({ x: p[1], y: p[0] }));
+        else if (pts[0].x !== undefined && pts[0].y !== undefined) raw = pts.map(p => ({ x: p.x, y: p.y }));
+        else if (pts[0].X !== undefined && pts[0].Y !== undefined) raw = pts.map(p => ({ x: p.Y, y: p.X }));
+        else return isWgs ? [0, 0] : { x: 0, y: 0 };
+
+        if (n < 3) {
+            if (isWgs || isArray) {
+                const ret = [raw[0].y, raw[0].x, 0.0001];
+                ret.lat = raw[0].y; ret.lng = raw[0].x; ret.clearance = 0.0001;
+                return ret;
+            }
+            return { x: raw[0].x, y: raw[0].y, clearance: 1 };
         }
 
-        let area2 = 0;
-        let cLat = 0;
-        let cLng = 0;
-        for (let i = 0; i < len; i++) {
-            const p1 = pts[i];
-            const p2 = pts[(i + 1) % len];
-            const cross = (p1.lng * p2.lat) - (p2.lng * p1.lat);
+        // 1. Chuẩn hóa tọa độ theo gốc tương đối để triệt tiêu hoàn toàn sai số triệt tiêu số học
+        const oX = raw[0].x, oY = raw[0].y;
+        const norm = raw.map(p => ({ x: p.x - oX, y: p.y - oY }));
+
+        // Kiểm tra điểm nằm trong đa giác (Ray-Casting Algorithm)
+        const pip = (x, y) => {
+            let inside = false;
+            for (let i = 0, j = n - 1; i < n; j = i++) {
+                const xi = norm[i].x, yi = norm[i].y;
+                const xj = norm[j].x, yj = norm[j].y;
+                const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        };
+
+        // Khoảng cách từ điểm tới một đoạn thẳng
+        const distToSeg = (px, py, x1, y1, x2, y2) => {
+            const dx = x2 - x1, dy = y2 - y1;
+            const l2 = dx * dx + dy * dy;
+            if (l2 === 0) return Math.hypot(px - x1, py - y1);
+            let t = ((px - x1) * dx + (py - y1) * dy) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+        };
+
+        // Khoảng cách từ điểm tới cạnh gần nhất của đa giác (clearance)
+        const edgeDist = (px, py) => {
+            let minD = Infinity;
+            for (let i = 0, j = n - 1; i < n; j = i++) {
+                const d = distToSeg(px, py, norm[j].x, norm[j].y, norm[i].x, norm[i].y);
+                if (d < minD) minD = d;
+            }
+            return minD;
+        };
+
+        // 2. Trọng tâm hình học Green chuẩn hóa
+        let area2 = 0, cX = 0, cY = 0;
+        for (let i = 0; i < n; i++) {
+            const p1 = norm[i], p2 = norm[(i + 1) % n];
+            const cross = (p1.x * p2.y) - (p2.x * p1.y);
             area2 += cross;
-            cLng += (p1.lng + p2.lng) * cross;
-            cLat += (p1.lat + p2.lat) * cross;
+            cX += (p1.x + p2.x) * cross;
+            cY += (p1.y + p2.y) * cross;
         }
-        if (Math.abs(area2) > 1e-11) {
-            cLat /= (3 * area2);
-            cLng /= (3 * area2);
-            return [cLat, cLng];
+
+        let centroid = null;
+        if (Math.abs(area2) > 1e-15) {
+            cX /= (3 * area2);
+            cY /= (3 * area2);
+            centroid = { x: cX, y: cY };
+        } else {
+            centroid = {
+                x: norm.reduce((s, p) => s + p.x, 0) / n,
+                y: norm.reduce((s, p) => s + p.y, 0) / n
+            };
         }
-        // Fallback trọng tâm trung bình nếu đa giác thẳng hàng
-        return [
-            pts.reduce((s, p) => s + p.lat, 0) / len,
-            pts.reduce((s, p) => s + p.lng, 0) / len
-        ];
+
+        // Bounding box
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        norm.forEach(p => {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        });
+        const spanX = maxX - minX, spanY = maxY - minY;
+        const maxSpan = Math.max(spanX, spanY);
+
+        // Kiểm tra xem trọng tâm hình học có nằm trong đa giác và có khoảng cách an toàn tới các biên hay không
+        const centroidInside = pip(centroid.x, centroid.y);
+        const clearance = centroidInside ? edgeDist(centroid.x, centroid.y) : -1;
+
+        let resX, resY, resDist;
+        if (centroidInside && clearance >= maxSpan * 0.12) {
+            // Đa giác lồi thông thường: dùng trọng tâm hình học đã được chuẩn hóa
+            resX = centroid.x + oX;
+            resY = centroid.y + oY;
+            resDist = clearance;
+        } else {
+            // Đa giác lõm hình chữ L, chữ U, khuyết góc: Tìm Cực nội tiếp (Pole of Inaccessibility)
+            // Lấy mẫu lưới 16x16 bên trong bounding box, chọn điểm có khoảng cách tới các cạnh lớn nhất
+            let bestX = centroidInside ? centroid.x : (norm[0].x + norm[1].x) / 2;
+            let bestY = centroidInside ? centroid.y : (norm[0].y + norm[1].y) / 2;
+            let maxD = centroidInside ? clearance : -1;
+
+            const gridSteps = 16;
+            const stepX = spanX / gridSteps, stepY = spanY / gridSteps;
+
+            for (let i = 1; i < gridSteps; i++) {
+                const gx = minX + i * stepX;
+                for (let j = 1; j < gridSteps; j++) {
+                    const gy = minY + j * stepY;
+                    if (pip(gx, gy)) {
+                        const d = edgeDist(gx, gy);
+                        if (d > maxD) {
+                            maxD = d;
+                            bestX = gx;
+                            bestY = gy;
+                        }
+                    }
+                }
+            }
+
+            // Lưới vi chỉnh mịn (Fine Grid Refinement) quanh điểm tốt nhất
+            if (maxD > 0) {
+                const fineRadiusX = stepX * 0.8, fineRadiusY = stepY * 0.8;
+                const fineSteps = 6;
+                const fxStep = (fineRadiusX * 2) / fineSteps;
+                const fyStep = (fineRadiusY * 2) / fineSteps;
+                for (let fi = -fineSteps / 2; fi <= fineSteps / 2; fi++) {
+                    for (let fj = -fineSteps / 2; fj <= fineSteps / 2; fj++) {
+                        const fx = bestX + fi * fxStep;
+                        const fy = bestY + fj * fyStep;
+                        if (pip(fx, fy)) {
+                            const d = edgeDist(fx, fy);
+                            if (d > maxD) {
+                                maxD = d;
+                                bestX = fx;
+                                bestY = fy;
+                            }
+                        }
+                    }
+                }
+            }
+
+            resX = bestX + oX;
+            resY = bestY + oY;
+            resDist = maxD > 0 ? maxD : Math.max(0.00001, maxSpan * 0.05);
+        }
+
+        if (isWgs || isArray) {
+            const ret = [resY, resX, resDist];
+            ret.lat = resY;
+            ret.lng = resX;
+            ret.clearance = resDist;
+            return ret;
+        } else {
+            return { x: resX, y: resY, clearance: resDist };
+        }
+    },
+
+    // Alias tương thích ngược
+    calculatePolygonCentroid(pts) {
+        return this.calculatePolygonVisualCenter(pts);
     },
 
     // Thao tác chèn đỉnh mới vào cạnh
@@ -9425,8 +9567,9 @@ const appCadTool = {
                     });
                 });
 
-                // Nhãn tâm khối: Vị trí tâm hình học (Polygon Centroid) và Scale vừa khít không tràn ra ngoài
-                const [cLat, cLng] = this.calculatePolygonCentroid(sVerts);
+                // Nhãn tâm khối: Vị trí tâm trực quan tối ưu (Pole of Inaccessibility cho cả khối chữ L)
+                // và Scale kích thước vừa khít theo khoảng cách mép trong lòng khối
+                const [cLat, cLng, clearanceDeg] = this.calculatePolygonVisualCenter(sVerts);
                 const blockSymbol = shape.symbol || String(sIdx + 1);
 
                 // Tính toán kích thước pixel của khối trên màn hình để scale nhãn chuẩn xác
@@ -9439,14 +9582,23 @@ const appCadTool = {
                     const hPx = Math.abs(p2.y - p1.y);
                     const minDim = Math.min(wPx, hPx);
 
-                    maxW = Math.max(18, Math.floor(wPx * 0.82));
-                    maxH = Math.max(18, Math.floor(hPx * 0.82));
+                    // Tính bán kính an toàn thực tế theo pixel tại vị trí đặt nhãn (đặc biệt chuẩn xác cho khối chữ L)
+                    let clearancePx = 999;
+                    if (clearanceDeg && clearanceDeg > 0) {
+                        const cPt = AppState.leafletMap.latLngToContainerPoint([cLat, cLng]);
+                        const offPt = AppState.leafletMap.latLngToContainerPoint([cLat + clearanceDeg, cLng]);
+                        clearancePx = Math.max(8, Math.abs(offPt.y - cPt.y));
+                    }
+                    const safeInnerDiam = Math.min(minDim, Math.round(clearancePx * 1.85));
 
-                    if (minDim < 45) {
-                        // Khối rất nhỏ: Hiển thị chấm tròn ký hiệu cực gọn, lọt thỏm trong lòng khối
-                        const bDim = Math.min(22, maxW);
+                    maxW = Math.max(18, Math.min(Math.floor(wPx * 0.82), Math.floor(clearancePx * 2.2)));
+                    maxH = Math.max(18, Math.min(Math.floor(hPx * 0.82), Math.floor(clearancePx * 1.8)));
+
+                    if (safeInnerDiam < 45) {
+                        // Khối rất nhỏ hoặc nhánh chữ L hẹp: Hiển thị chấm tròn ký hiệu cực gọn, lọt thỏm trong lòng khối
+                        const bDim = Math.min(22, Math.max(16, safeInnerDiam));
                         badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.94); border:1.5px solid ${sColor}; color:${sColor}; width:${bDim}px; height:${bDim}px; min-width:${bDim}px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px; box-shadow:0 1px 6px rgba(0,0,0,0.5);" title="${shape.name} (${shape.stats?.areaFormatted || 0} m²)">${blockSymbol}</div>`;
-                    } else if (minDim < 85) {
+                    } else if (safeInnerDiam < 85) {
                         // Khối trung bình: Hiển thị ký hiệu + diện tích làm tròn
                         badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid ${sColor}; color:#ffffff; padding:1px 4px; border-radius:4px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.4);" title="${shape.name}">
                             <div style="font-weight:800; font-size:11px; color:${sColor}; line-height:1.1;">${blockSymbol}</div>
@@ -9463,7 +9615,8 @@ const appCadTool = {
                     badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.9); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:4px;"><div style="font-weight:800; font-size:12px; color:${sColor};">${blockSymbol}</div></div>`;
                 }
 
-                const centerIcon = L.divIcon({ className: '', html: badgeHtml, iconSize: [maxW, maxH], iconAnchor: [maxW / 2, maxH / 2] });
+                // iconAnchor [0, 0] kết hợp transform: translate(-50%, -50%) định tâm hoàn hảo, không bị trôi offset
+                const centerIcon = L.divIcon({ className: 'cad-center-divicon', html: badgeHtml, iconSize: [0, 0], iconAnchor: [0, 0] });
                 sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
             } else if (sLen >= 2) {
                 sShapeLayer = L.polyline(sLatLngs, {
@@ -9868,7 +10021,7 @@ const appCadTool = {
 
         // 4. Nếu là đa giác khép kín >= 3 đỉnh: hiển thị badge diện tích tại tâm đa giác (scale vừa khít)
         if (this.mode === 'polygon' && n >= 3) {
-            const [centerLat, centerLng] = this.calculatePolygonCentroid(this.vertices);
+            const [centerLat, centerLng, clearanceDeg] = this.calculatePolygonVisualCenter(this.vertices);
             const warningMsg = isSelfIntersecting ? '<div style="color:#ef4444; font-size:9px;">⚠️ Tự cắt!</div>' : '';
 
             let maxW = 110, maxH = 34, actBadgeHtml = '';
@@ -9880,10 +10033,18 @@ const appCadTool = {
                 const hPx = Math.abs(p2.y - p1.y);
                 const minDim = Math.min(wPx, hPx);
 
-                maxW = Math.max(20, Math.floor(wPx * 0.82));
-                maxH = Math.max(18, Math.floor(hPx * 0.82));
+                let clearancePx = 999;
+                if (clearanceDeg && clearanceDeg > 0) {
+                    const cPt = AppState.leafletMap.latLngToContainerPoint([centerLat, centerLng]);
+                    const offPt = AppState.leafletMap.latLngToContainerPoint([centerLat + clearanceDeg, centerLng]);
+                    clearancePx = Math.max(8, Math.abs(offPt.y - cPt.y));
+                }
+                const safeInnerDiam = Math.min(minDim, Math.round(clearancePx * 1.85));
 
-                if (minDim < 50) {
+                maxW = Math.max(20, Math.min(Math.floor(wPx * 0.82), Math.floor(clearancePx * 2.2)));
+                maxH = Math.max(18, Math.min(Math.floor(hPx * 0.82), Math.floor(clearancePx * 1.8)));
+
+                if (safeInnerDiam < 50) {
                     actBadgeHtml = `<div class="cad-center-badge" style="background:rgba(6,182,212,0.92); border:1.5px solid #06b6d4; color:#ffffff; padding:1px 4px; border-radius:4px; font-size:9.5px; font-weight:800; max-width:${maxW}px; overflow:hidden; text-align:center;">${Math.round(stats.area)} m²</div>`;
                 } else {
                     actBadgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid #06b6d4; color:#ffffff; padding:2px 6px; border-radius:5px; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; text-align:center;">
@@ -9897,10 +10058,10 @@ const appCadTool = {
             }
 
             const badgeIcon = L.divIcon({
-                className: '',
+                className: 'cad-center-divicon',
                 html: actBadgeHtml,
-                iconSize: [maxW, maxH],
-                iconAnchor: [maxW / 2, maxH / 2]
+                iconSize: [0, 0],
+                iconAnchor: [0, 0]
             });
             L.marker([centerLat, centerLng], { icon: badgeIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
         }
@@ -12318,13 +12479,13 @@ const appCadTool = {
                 });
             }
 
-            // Nhãn tâm thửa đất:
+            // Nhãn tâm thửa đất (Visual Interior Center - tối ưu hiển thị trong lòng khối chữ L/khuyết góc):
             // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI (BẢN VẼ GỌN GÀNG)
             // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
             if (isClosed && stats.area > 0) {
-                let cX = 0, cY = 0;
-                pts.forEach(p => { cX += p.y; cY += p.x; });
-                cX /= n; cY /= n;
+                const center = this.calculatePolygonVisualCenter(pts.map(p => ({ x: p.y, y: p.x })));
+                const cX = center.x;
+                const cY = center.y;
 
                 const blockSymbol = shape.symbol ? shape.symbol : String(shapeIdx + 1);
                 const cleanSymbol = this.toCadAscii(blockSymbol);
@@ -12838,12 +12999,11 @@ const appCadTool = {
                 });
             }
 
-            // Tâm thửa đất
+            // Tâm thửa đất (Visual Interior Center - chuẩn trong lòng khối chữ L)
             if (isClosed && stats.area > 0) {
-                let sumX = 0, sumY = 0;
-                pts.forEach(p => { sumX += toCvX(p.y); sumY += toCvY(p.x); });
-                const cX = sumX / n;
-                const cY = sumY / n;
+                const cvCenter = this.calculatePolygonVisualCenter(pts.map(p => ({ x: toCvX(p.y), y: toCvY(p.x) })));
+                const cX = cvCenter.x;
+                const cY = cvCenter.y;
 
                 const blockSymbol = shape.symbol ? shape.symbol : String(shapeIdx + 1);
                 if (showBlockInfo) {
@@ -13323,12 +13483,13 @@ const appCadTool = {
                 });
             }
 
-            // Nhãn tâm khối:
-            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI (shape.name)
+            // Nhãn tâm khối (Visual Interior Center - chuẩn trong lòng khối chữ L):
+            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI
             // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
             if (isClosed && stats) {
-                const cx = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-                const cy = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+                const center = this.calculatePolygonVisualCenter(pts.map(p => ({ x: p.y, y: p.x })));
+                const cx = center.x;
+                const cy = center.y;
                 const blockSymbol = shape.symbol ? shape.symbol : String(idx + 1);
                 if (showBlockInfo) {
                     let pctStr = '';
@@ -13613,16 +13774,18 @@ const appCadTool = {
                 });
             }
 
-            // Nhãn tâm khối:
-            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI (shape.name)
+            // Nhãn tâm khối (Visual Interior Center - chuẩn trong lòng khối chữ L):
+            // - Mặc định (showBlockInfo = false): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI
             // - Khi bật (showBlockInfo = true): Hiện thêm S, P, %
             if (isClosed && shape.stats) {
-                const cx = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-                const cy = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+                const center = this.calculatePolygonVisualCenter(pts.map(p => ({ x: p.y, y: p.x })));
+                const cx = center.x;
+                const cy = center.y;
+                const blockSymbol = shape.symbol ? shape.symbol : String(shapeIdx + 1);
                 if (showBlockInfo) {
                     ctx.font = 'bold 13px Arial'; ctx.fillStyle = '#0D47A1';
                     ctx.textAlign = 'center';
-                    ctx.fillText(shape.name, toX(cx), toY(cy) - 8);
+                    ctx.fillText(`[${blockSymbol}] ${shape.name}`, toX(cx), toY(cy) - 8);
                     ctx.font = 'bold 11px Arial'; ctx.fillStyle = '#6A1B9A';
                     let pctStr = '';
                     if (showPercent && baseProjectArea > 0) {
@@ -13633,7 +13796,7 @@ const appCadTool = {
                 } else {
                     ctx.font = 'bold 15px Arial'; ctx.fillStyle = '#0D47A1';
                     ctx.textAlign = 'center';
-                    ctx.fillText(shape.name, toX(cx), toY(cy) + 5);
+                    ctx.fillText(blockSymbol, toX(cx), toY(cy) + 5);
                     ctx.textAlign = 'left';
                 }
             } else if (!isClosed && shape.mode !== 'polygon') {

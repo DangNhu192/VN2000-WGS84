@@ -3580,7 +3580,13 @@
       box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4), 0 4px 12px rgba(0,0,0,0.7);
       z-index: 3500 !important;
     }
-    /* Center badge: Co giãn vừa khít khối, không tràn sang khối khác */
+    .cad-center-divicon {
+      background: transparent !important;
+      border: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    /* Center badge: Co giãn vừa khít khối, tối ưu tâm khối chữ L, không tràn sang khối khác */
     .cad-center-badge {
       background: rgba(15, 23, 42, 0.94);
       border: 1.5px solid #10b981;
@@ -3595,6 +3601,11 @@
       transform: translate(-50%, -50%);
       white-space: nowrap;
       transition: all 0.2s ease;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
     }
 
     /* CAD Cursor & Dynamic Input Helpers (Chuẩn AutoCAD) */
