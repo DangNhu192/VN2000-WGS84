@@ -7476,6 +7476,7 @@ const appCadTool = {
     mode: 'polygon', // 'polygon' | 'polyline'
     snapEnabled: true,
     snapThresholdPx: 24,
+    adjacentSnapThresholdMeters: 0.5, // Tự động bắt đỉnh khối liền kề trong phạm vi 0.5m thực địa
     _lastMouseLat: 0,
     _lastMouseLng: 0,
     _mouseRaf: null,
@@ -8326,12 +8327,42 @@ const appCadTool = {
     },
 
     resetCustomProjectArea() {
-        this.customProjectArea = null;
-        const input = document.getElementById('cadCustomProjectArea');
-        if (input) input.value = '';
         const allShapes = this._getAllExportShapes();
+        let measuredTotalArea = 0;
+        let polyCount = 0;
+        allShapes.forEach(s => {
+            if (s.selected !== false && s.mode === 'polygon') {
+                const stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
+                if (s.stats) {
+                    s.stats.area = stats.area;
+                    s.stats.areaFormatted = stats.areaFormatted;
+                    s.stats.ha = stats.ha;
+                    s.stats.haFormatted = stats.haFormatted;
+                    s.stats.perimeter = stats.perimeter;
+                    s.stats.perimeterFormatted = stats.perimeterFormatted;
+                }
+                measuredTotalArea += (stats?.area || 0);
+                polyCount++;
+            }
+        });
+        measuredTotalArea = parseFloat(measuredTotalArea.toFixed(2));
+        this.customProjectArea = measuredTotalArea > 0 ? measuredTotalArea : null;
+
+        const input = document.getElementById('cadCustomProjectArea');
+        if (input) {
+            input.value = measuredTotalArea > 0 ? measuredTotalArea : '';
+        }
+
+        // Cập nhật lại giao diện bảng khối và tóm tắt
         this.renderBlockList(allShapes);
-        showToast("✓ Đã đặt lại tổng diện tích theo số liệu đo thực tế");
+
+        const elAreaM2 = document.getElementById('cadModalAreaM2');
+        const elAreaHa = document.getElementById('cadModalAreaHa');
+        if (elAreaM2) elAreaM2.innerText = `${measuredTotalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
+        if (elAreaHa) elAreaHa.innerText = `≈ ${(measuredTotalArea / 10000).toFixed(4)} ha (${polyCount} đa giác)`;
+
+        triggerHaptic('success');
+        showToast(`✓ Đã tự động lấy diện tích thực: ${measuredTotalArea.toLocaleString('vi-VN')} m² (${polyCount} thửa đa giác)`);
     },
 
     _getAllExportShapes() {
@@ -8406,6 +8437,130 @@ const appCadTool = {
             }
         }
         return false;
+    },
+
+    /**
+     * Tự động tìm kiếm đỉnh của khối liền kề gần nhất trong phạm vi khoảng cách thực địa (mặc định 0.5m)
+     * Phục vụ khép góc ranh thửa và loại bỏ khe hở ranh (sliver polygon) theo chuẩn Thông tư 25/2014/TT-BTNMT
+     */
+    findAdjacentVertexSnap(currentLat, currentLng, excludeShapeIdx = -1, excludeVertexIdx = -1, thresholdMeters = 0.5) {
+        if (!AppState.leafletMap) return null;
+        const map = AppState.leafletMap;
+        let bestCandidate = null;
+        let minDistance = thresholdMeters || 0.5;
+
+        let curX = null, curY = null;
+        try {
+            const vn2k = convertWgsToVn2k(currentLat, currentLng, AppState.kttVal, AppState.scaleFactor);
+            curX = parseFloat(vn2k.X);
+            curY = parseFloat(vn2k.Y);
+        } catch (e) {}
+
+        // 1. Duyệt qua tất cả các khối / thửa liền kề đã lưu
+        (this.savedShapes || []).forEach((shape, sIdx) => {
+            if (excludeShapeIdx >= 0 && sIdx === excludeShapeIdx) return;
+            if (shape.selected === false) return;
+
+            const verts = shape.vertices || [];
+            verts.forEach((v, vIdx) => {
+                let dist = 999999;
+                if (curX !== null && curY !== null && v.x !== undefined && v.y !== undefined && !isNaN(v.x) && !isNaN(v.y)) {
+                    const dx = v.x - curX;
+                    const dy = v.y - curY;
+                    dist = Math.hypot(dx, dy);
+                } else {
+                    dist = map.distance([currentLat, currentLng], [v.lat, v.lng]);
+                }
+
+                if (dist <= minDistance) {
+                    minDistance = dist;
+                    bestCandidate = {
+                        lat: v.lat,
+                        lng: v.lng,
+                        x: parseFloat(parseFloat(v.x).toFixed(3)),
+                        y: parseFloat(parseFloat(v.y).toFixed(3)),
+                        h: v.h || 0,
+                        name: v.name,
+                        shapeName: shape.name || shape.shortName || `Khối ${sIdx + 1}`,
+                        shapeIdx: sIdx,
+                        vertexIdx: vIdx,
+                        distance: dist,
+                        isSnapped: true,
+                        snapType: 'adjacent_vertex',
+                        source: `${shape.shortName || shape.name || `Khối ${sIdx + 1}`} • ${v.name}`
+                    };
+                }
+            });
+        });
+
+        // 2. Nếu đang chỉnh sửa đỉnh của khối đã lưu và có nét vẽ dở this.vertices, cũng kiểm tra các đỉnh đó
+        if (excludeShapeIdx >= 0 && this.vertices && this.vertices.length >= 2) {
+            this.vertices.forEach((v, vIdx) => {
+                let dist = 999999;
+                if (curX !== null && curY !== null && v.x !== undefined && v.y !== undefined && !isNaN(v.x) && !isNaN(v.y)) {
+                    const dx = v.x - curX;
+                    const dy = v.y - curY;
+                    dist = Math.hypot(dx, dy);
+                } else {
+                    dist = map.distance([currentLat, currentLng], [v.lat, v.lng]);
+                }
+
+                if (dist <= minDistance) {
+                    minDistance = dist;
+                    bestCandidate = {
+                        lat: v.lat,
+                        lng: v.lng,
+                        x: parseFloat(parseFloat(v.x).toFixed(3)),
+                        y: parseFloat(parseFloat(v.y).toFixed(3)),
+                        h: v.h || 0,
+                        name: v.name,
+                        shapeName: 'Nét đang vẽ',
+                        shapeIdx: -1,
+                        vertexIdx: vIdx,
+                        distance: dist,
+                        isSnapped: true,
+                        snapType: 'adjacent_vertex',
+                        source: `Nét đang vẽ • ${v.name}`
+                    };
+                }
+            });
+        }
+
+        // 3. Nếu đang vẽ dở (excludeShapeIdx === -1), cũng kiểm tra các đỉnh khác trong this.vertices (loại trừ đỉnh đang kéo excludeVertexIdx)
+        if (excludeShapeIdx === -1 && this.vertices && this.vertices.length >= 2) {
+            this.vertices.forEach((v, vIdx) => {
+                if (excludeVertexIdx >= 0 && vIdx === excludeVertexIdx) return;
+                let dist = 999999;
+                if (curX !== null && curY !== null && v.x !== undefined && v.y !== undefined && !isNaN(v.x) && !isNaN(v.y)) {
+                    const dx = v.x - curX;
+                    const dy = v.y - curY;
+                    dist = Math.hypot(dx, dy);
+                } else {
+                    dist = map.distance([currentLat, currentLng], [v.lat, v.lng]);
+                }
+
+                if (dist <= minDistance) {
+                    minDistance = dist;
+                    bestCandidate = {
+                        lat: v.lat,
+                        lng: v.lng,
+                        x: parseFloat(parseFloat(v.x).toFixed(3)),
+                        y: parseFloat(parseFloat(v.y).toFixed(3)),
+                        h: v.h || 0,
+                        name: v.name,
+                        shapeName: 'Đỉnh cùng nét',
+                        shapeIdx: -1,
+                        vertexIdx: vIdx,
+                        distance: dist,
+                        isSnapped: true,
+                        snapType: 'adjacent_vertex',
+                        source: `Đỉnh cùng nét • ${v.name}`
+                    };
+                }
+            });
+        }
+
+        return bestCandidate;
     },
 
     findSnapCandidate(clickLat, clickLng) {
@@ -10473,12 +10628,31 @@ const appCadTool = {
                 });
 
                 marker.on('drag', (e) => {
-                    const newPos = e.target.getLatLng();
-                    v.lat = newPos.lat;
-                    v.lng = newPos.lng;
-                    const vn2k = convertWgsToVn2k(newPos.lat, newPos.lng, AppState.kttVal, AppState.scaleFactor);
-                    v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
-                    v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                    const rawPos = e.target.getLatLng();
+                    const adjSnap = (this.snapEnabled && this.findAdjacentVertexSnap) 
+                        ? this.findAdjacentVertexSnap(rawPos.lat, rawPos.lng, sIdx, vIdx, this.adjacentSnapThresholdMeters || 0.5) 
+                        : null;
+                    
+                    const badgeEl = marker.getElement() ? marker.getElement().querySelector('.cad-vertex-badge') : null;
+                    const displayLat = adjSnap ? adjSnap.lat : rawPos.lat;
+                    const displayLng = adjSnap ? adjSnap.lng : rawPos.lng;
+
+                    if (adjSnap) {
+                        if (badgeEl) badgeEl.classList.add('snapped-adjacent');
+                    } else {
+                        if (badgeEl) badgeEl.classList.remove('snapped-adjacent');
+                    }
+
+                    v.lat = displayLat;
+                    v.lng = displayLng;
+                    if (adjSnap && adjSnap.x !== undefined && adjSnap.y !== undefined) {
+                        v.x = adjSnap.x;
+                        v.y = adjSnap.y;
+                    } else {
+                        const vn2k = convertWgsToVn2k(rawPos.lat, rawPos.lng, AppState.kttVal, AppState.scaleFactor);
+                        v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
+                        v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                    }
 
                     if (sShapeLayer) {
                         sShapeLayer.setLatLngs(sVerts.map(pt => [pt.lat, pt.lng]));
@@ -10494,35 +10668,38 @@ const appCadTool = {
                     if (AppState.leafletMap) AppState.leafletMap.dragging.enable();
                     setTimeout(() => { isDragging = false; }, 150);
 
-                    const newPos = e.target.getLatLng();
-                    let targetLat = newPos.lat;
-                    let targetLng = newPos.lng;
-                    let targetX = v.x;
-                    let targetY = v.y;
+                    const finalPos = e.target.getLatLng();
+                    let targetLat = finalPos.lat;
+                    let targetLng = finalPos.lng;
+                    let targetX = null;
+                    let targetY = null;
                     let isSnapped = false;
                     let snapSource = null;
 
-                    if (this.snapEnabled) {
-                        const cand = this.findSnapCandidate(targetLat, targetLng);
-                        if (cand && (Math.abs(cand.lat - targetLat) > 0.0000001 || Math.abs(cand.lng - targetLng) > 0.0000001)) {
-                            targetLat = cand.lat;
-                            targetLng = cand.lng;
-                            targetX = cand.x;
-                            targetY = cand.y;
+                    // Chỉ tự động bắt đỉnh khi đến gần <= 0.5m đỉnh của khối liền kề
+                    if (this.snapEnabled && this.findAdjacentVertexSnap) {
+                        const adjSnap = this.findAdjacentVertexSnap(finalPos.lat, finalPos.lng, sIdx, vIdx, this.adjacentSnapThresholdMeters || 0.5);
+                        if (adjSnap) {
+                            targetLat = adjSnap.lat;
+                            targetLng = adjSnap.lng;
+                            targetX = adjSnap.x;
+                            targetY = adjSnap.y;
                             isSnapped = true;
-                            snapSource = cand.source;
+                            snapSource = adjSnap.source;
+                            marker.setLatLng([adjSnap.lat, adjSnap.lng]);
                         }
                     }
 
                     v.lat = targetLat;
                     v.lng = targetLng;
-                    if (targetX !== undefined && targetY !== undefined) {
+                    if (targetX !== null && targetY !== null && !isNaN(targetX) && !isNaN(targetY)) {
                         v.x = parseFloat(parseFloat(targetX).toFixed(3));
                         v.y = parseFloat(parseFloat(targetY).toFixed(3));
                     } else {
                         const vn2k = convertWgsToVn2k(targetLat, targetLng, AppState.kttVal, AppState.scaleFactor);
                         v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
                         v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                        marker.setLatLng([targetLat, targetLng]);
                     }
                     v.isSnapped = isSnapped;
                     v.snapSource = snapSource;
@@ -10532,11 +10709,12 @@ const appCadTool = {
 
                     this.renderGeometry();
                     this.renderBlocksPanel();
+                    this.updateUi();
                     triggerHaptic('success');
                     if (isSnapped) {
-                        showToast(`🧲 Đỉnh ${v.name} (${shape.shortName}) đã hít vào [${snapSource}]!`);
+                        showToast(`🧲 Đỉnh ${v.name} (${shape.shortName}) đã tự bắt khớp chuẩn 0.5m vào [${snapSource}]!`);
                     } else {
-                        showToast(`📍 Đã dời đỉnh ${v.name} (${shape.shortName}): X=${v.x.toFixed(2)}, Y=${v.y.toFixed(2)}`);
+                        showToast(`📍 Đã dời đỉnh ${v.name} (${shape.shortName}): X=${v.x.toFixed(3)}, Y=${v.y.toFixed(3)}`);
                     }
                 });
 
@@ -10635,12 +10813,31 @@ const appCadTool = {
             });
 
             marker.on('drag', (e) => {
-                const newPos = e.target.getLatLng();
-                v.lat = newPos.lat;
-                v.lng = newPos.lng;
-                const vn2k = convertWgsToVn2k(newPos.lat, newPos.lng, AppState.kttVal, AppState.scaleFactor);
-                v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
-                v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                const rawPos = e.target.getLatLng();
+                const adjSnap = (this.snapEnabled && this.findAdjacentVertexSnap)
+                    ? this.findAdjacentVertexSnap(rawPos.lat, rawPos.lng, -1, idx, this.adjacentSnapThresholdMeters || 0.5)
+                    : null;
+                
+                const badgeEl = marker.getElement() ? marker.getElement().querySelector('.cad-vertex-badge') : null;
+                const displayLat = adjSnap ? adjSnap.lat : rawPos.lat;
+                const displayLng = adjSnap ? adjSnap.lng : rawPos.lng;
+
+                if (adjSnap) {
+                    if (badgeEl) badgeEl.classList.add('snapped-adjacent');
+                } else {
+                    if (badgeEl) badgeEl.classList.remove('snapped-adjacent');
+                }
+
+                v.lat = displayLat;
+                v.lng = displayLng;
+                if (adjSnap && adjSnap.x !== undefined && adjSnap.y !== undefined) {
+                    v.x = adjSnap.x;
+                    v.y = adjSnap.y;
+                } else {
+                    const vn2k = convertWgsToVn2k(rawPos.lat, rawPos.lng, AppState.kttVal, AppState.scaleFactor);
+                    v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
+                    v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                }
 
                 // Cập nhật ngay đường bao (polyline/polygon) để mượt mà 60 FPS
                 if (this.layers.shape) {
@@ -10653,35 +10850,37 @@ const appCadTool = {
                 if (AppState.leafletMap) AppState.leafletMap.dragging.enable();
                 setTimeout(() => { isDragging = false; }, 150);
 
-                const newPos = e.target.getLatLng();
-                let targetLat = newPos.lat;
-                let targetLng = newPos.lng;
-                let targetX = v.x;
-                let targetY = v.y;
+                const finalPos = e.target.getLatLng();
+                let targetLat = finalPos.lat;
+                let targetLng = finalPos.lng;
+                let targetX = null;
+                let targetY = null;
                 let isSnapped = false;
                 let snapSource = null;
 
-                if (this.snapEnabled) {
-                    const cand = this.findSnapCandidate(targetLat, targetLng);
-                    if (cand && (Math.abs(cand.lat - targetLat) > 0.0000001 || Math.abs(cand.lng - targetLng) > 0.0000001 || cand.source !== v.name)) {
-                        targetLat = cand.lat;
-                        targetLng = cand.lng;
-                        targetX = cand.x;
-                        targetY = cand.y;
+                if (this.snapEnabled && this.findAdjacentVertexSnap) {
+                    const adjSnap = this.findAdjacentVertexSnap(finalPos.lat, finalPos.lng, -1, idx, this.adjacentSnapThresholdMeters || 0.5);
+                    if (adjSnap) {
+                        targetLat = adjSnap.lat;
+                        targetLng = adjSnap.lng;
+                        targetX = adjSnap.x;
+                        targetY = adjSnap.y;
                         isSnapped = true;
-                        snapSource = cand.source;
+                        snapSource = adjSnap.source;
+                        marker.setLatLng([adjSnap.lat, adjSnap.lng]);
                     }
                 }
 
                 v.lat = targetLat;
                 v.lng = targetLng;
-                if (targetX !== undefined && targetY !== undefined) {
+                if (targetX !== null && targetY !== null && !isNaN(targetX) && !isNaN(targetY)) {
                     v.x = parseFloat(parseFloat(targetX).toFixed(3));
                     v.y = parseFloat(parseFloat(targetY).toFixed(3));
                 } else {
                     const vn2k = convertWgsToVn2k(targetLat, targetLng, AppState.kttVal, AppState.scaleFactor);
                     v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
                     v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
+                    marker.setLatLng([targetLat, targetLng]);
                 }
                 v.isSnapped = isSnapped;
                 v.snapSource = snapSource;
@@ -10691,9 +10890,9 @@ const appCadTool = {
                 this.renderBlocksPanel();
                 triggerHaptic('success');
                 if (isSnapped) {
-                    showToast(`🧲 Đỉnh ${v.name} đã hít vào [${snapSource}]!`);
+                    showToast(`🧲 Đỉnh ${v.name} đã tự bắt khớp chuẩn 0.5m vào [${snapSource}]!`);
                 } else {
-                    showToast(`📍 Đã dời đỉnh ${v.name}: X=${v.x.toFixed(2)}, Y=${v.y.toFixed(2)}`);
+                    showToast(`📍 Đã dời đỉnh ${v.name}: X=${v.x.toFixed(3)}, Y=${v.y.toFixed(3)}`);
                 }
             });
 
@@ -11086,6 +11285,70 @@ const appCadTool = {
 
         this.renderExportBlockPicker();
         setTimeout(() => this.checkScalePaperFit(), 50);
+    },
+
+    saveTitleBlockInfo(showToastMsg = false) {
+        try {
+            const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
+            const data = {
+                drawingName: getVal('cadExportDrawingName') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
+                projectName: getVal('cadExportProjectName'),
+                organization: getVal('cadExportOrganization'),
+                owner: getVal('cadExportOwner'),
+                parcelNo: getVal('cadExportParcelNo'),
+                address: getVal('cadExportAddress'),
+                surveyor: getVal('cadExportSurveyor'),
+                checker: getVal('cadExportChecker'),
+                drawingCode: getVal('cadExportDrawingCode') || 'SĐ-01/01',
+                scaleVal: document.getElementById('cadExportScale')?.value || '500',
+                paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
+                savedAt: Date.now()
+            };
+
+            // 1. Lưu cấu hình khung tên mặc định toàn hệ thống
+            localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify(data));
+
+            // 2. Lưu cấu hình khung tên riêng theo dự án đang mở
+            if (AppState.currentProject) {
+                const projKey = 'vn2k_cad_meta_proj_' + AppState.currentProject.replace(/\.[^/.]+$/, "");
+                localStorage.setItem(projKey, JSON.stringify(data));
+            }
+
+            if (showToastMsg) {
+                triggerHaptic('success');
+                showToast('💾 Đã lưu thành công thông tin khung tên bản vẽ kỹ thuật!');
+            }
+            return data;
+        } catch (e) {
+            console.warn('Lỗi khi lưu thông tin khung tên:', e);
+            return null;
+        }
+    },
+
+    resetTitleBlockInfo() {
+        if (!confirm('Bạn có muốn đặt lại thông tin khung tên bản vẽ về mặc định không?')) return;
+        const curProj = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án mới";
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        };
+        setVal('cadExportDrawingName', 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
+        setVal('cadExportProjectName', curProj);
+        setVal('cadExportOrganization', '');
+        setVal('cadExportOwner', '');
+        setVal('cadExportParcelNo', '');
+        setVal('cadExportAddress', AppState.provinceName || '');
+        setVal('cadExportSurveyor', '');
+        setVal('cadExportChecker', '');
+        setVal('cadExportDrawingCode', 'SĐ-01/01');
+
+        if (AppState.currentProject) {
+            const projKey = 'vn2k_cad_meta_proj_' + AppState.currentProject.replace(/\.[^/.]+$/, "");
+            localStorage.removeItem(projKey);
+        }
+        localStorage.removeItem('vn2k_cad_meta_saved');
+        triggerHaptic('selection');
+        showToast('✓ Đã đặt lại thông tin khung tên về mặc định');
     },
 
     closeExportModal() {

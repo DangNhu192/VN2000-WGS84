@@ -3716,6 +3716,23 @@
       box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4), 0 4px 12px rgba(0,0,0,0.7) !important;
       z-index: 3500 !important;
     }
+    /* Tự động bắt dính đỉnh khối liền kề trong phạm vi <= 0.5m */
+    .cad-vertex-badge.snapped-adjacent {
+      opacity: 1 !important;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      border-color: #fef08a !important;
+      border-width: 2px !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.7), 0 0 16px rgba(16, 185, 129, 0.9) !important;
+      transform: translate(-50%, -50%) scale(1.3) !important;
+      animation: pulseSnapAdjacent 0.7s infinite alternate ease-in-out !important;
+      z-index: 4000 !important;
+    }
+    @keyframes pulseSnapAdjacent {
+      0% { transform: translate(-50%, -50%) scale(1.2); }
+      100% { transform: translate(-50%, -50%) scale(1.38); }
+    }
+
     .cad-center-divicon {
       background: transparent !important;
       border: none !important;
@@ -6631,48 +6648,48 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #38bdf8; font-weight: 700;">Tên bản vẽ (Tiêu đề in):</label>
-              <input type="text" id="cadExportDrawingName" class="app-input" style="height: 30px; font-size: 11.5px; font-weight: 700;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
+              <input type="text" id="cadExportDrawingName" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px; font-weight: 700;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
             </div>
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px; color: #fbbf24; font-weight: 700;">Tên dự án / Công trình:</label>
-              <input type="text" id="cadExportProjectName" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Khu dân cư Đô thị mới Mỹ Phú">
+              <input type="text" id="cadExportProjectName" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Khu dân cư Đô thị mới Mỹ Phú">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Đơn vị khảo sát / đo đạc:</label>
-              <input type="text" id="cadExportOrganization" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH">
+              <input type="text" id="cadExportOrganization" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH">
             </div>
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Chủ sở hữu / người sử dụng đất:</label>
-              <input type="text" id="cadExportOwner" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A">
+              <input type="text" id="cadExportOwner" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Số tờ / Số thửa:</label>
-              <input type="text" id="cadExportParcelNo" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 123 / Tờ 05">
+              <input type="text" id="cadExportParcelNo" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 123 / Tờ 05">
             </div>
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Địa chỉ thửa đất:</label>
-              <input type="text" id="cadExportAddress" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ấp 3, xã Mỹ Long, huyện Cao Lãnh">
+              <input type="text" id="cadExportAddress" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ấp 3, xã Mỹ Long, huyện Cao Lãnh">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Người đo vẽ:</label>
-              <input type="text" id="cadExportSurveyor" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B">
+              <input type="text" id="cadExportSurveyor" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B">
             </div>
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Người kiểm tra:</label>
-              <input type="text" id="cadExportChecker" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C">
+              <input type="text" id="cadExportChecker" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C">
             </div>
             <div>
               <label class="form-label" style="font-size: 10.5px; margin-bottom: 2px;">Ký hiệu bản vẽ:</label>
-              <input type="text" id="cadExportDrawingCode" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01">
+              <input type="text" id="cadExportDrawingCode" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01">
             </div>
           </div>
         </div>
