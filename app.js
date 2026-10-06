@@ -13441,11 +13441,15 @@ const appCadTool = {
         let scaleVal = (typeof meta.scaleVal === 'number' && !isNaN(meta.scaleVal) && meta.scaleVal > 0) ? meta.scaleVal : null;
         let isAuto = !scaleVal;
 
-        // Tính tỉ lệ chuẩn tối ưu tự động để hình vẽ thửa đất chiếm 70% - 75% không gian vùng vẽ
-        const reqScaleX = (spanCadX / (W_map_mm * 0.72)) * 1000;
-        const reqScaleY = (spanCadY / (H_map_mm * 0.72)) * 1000;
+        // Tính tỉ lệ chuẩn tối ưu tự động để hình vẽ thửa đất to, rõ, chiếm ~85% - 88% không gian vùng vẽ (tương tự độ lớn file ảnh PNG)
+        const targetFill = 0.88;
+        const reqScaleX = (spanCadX / (W_map_mm * targetFill)) * 1000;
+        const reqScaleY = (spanCadY / (H_map_mm * targetFill)) * 1000;
         const rawScale = Math.max(reqScaleX, reqScaleY);
-        const standardScales = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 25000, 50000];
+        const standardScales = [
+            20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500,
+            600, 750, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000, 10000
+        ];
         let autoSuggestedScale = 500;
         for (const sc of standardScales) {
             if (rawScale <= sc) {
@@ -13454,7 +13458,7 @@ const appCadTool = {
             }
         }
         if (rawScale > standardScales[standardScales.length - 1]) {
-            autoSuggestedScale = Math.ceil(rawScale / 10000) * 10000;
+            autoSuggestedScale = Math.ceil(rawScale / 1000) * 1000;
         }
 
         if (isAuto) {
@@ -13549,7 +13553,7 @@ const appCadTool = {
                         <span>⚡</span>
                         <span><b>Tự động tối ưu:</b> Đã chọn tỷ lệ chuẩn <b>1:${L.scaleVal}</b> trên khổ ${L.W_paper === 420 ? 'A3' : 'A4'} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
                     </div>
-                    <span style="background: rgba(56,189,248,0.2); padding: 2px 8px; border-radius: 4px; color: #e0f2fe; font-size: 10px;">Chuẩn TCVN (70-75% khung)</span>
+                    <span style="background: rgba(56,189,248,0.2); padding: 2px 8px; border-radius: 4px; color: #e0f2fe; font-size: 10px;">Chuẩn kỹ thuật (To, rõ ~85% khung nhìn)</span>
                 </div>
             `;
         } else if (L.fits) {
@@ -13579,7 +13583,21 @@ const appCadTool = {
     applySuggestedScale(val) {
         const scaleSelect = document.getElementById('cadExportScale');
         if (scaleSelect) {
-            scaleSelect.value = String(val);
+            let found = false;
+            for (let i = 0; i < scaleSelect.options.length; i++) {
+                if (scaleSelect.options[i].value === String(val)) {
+                    scaleSelect.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const opt = document.createElement('option');
+                opt.value = String(val);
+                opt.text = `1:${val} (Tối ưu)`;
+                scaleSelect.add(opt);
+                scaleSelect.value = String(val);
+            }
             this.checkScalePaperFit();
             showToast(`✅ Đã chuyển tỷ lệ sang 1:${val}`);
         }
@@ -14842,11 +14860,11 @@ const appCadTool = {
       .layer-bang-ke-text { font-size: 11px; fill: #1e293b; }
       .layer-khung-ten { fill: none; stroke: #0f172a; stroke-width: 1.5; }
       .layer-khung-ten-text { font-size: 11px; fill: #0f172a; }
-      .bg { fill: #FFFDE7; }
+      .bg { fill: #ffffff; }
       .grid { stroke: #B0BEC580; stroke-width: 0.5; stroke-dasharray: 4,4; }
     </style>
   </defs>
-  <!-- Nền vàng nhạt giấy in địa chính sang trọng -->
+  <!-- Nền trắng chuẩn bản vẽ kỹ thuật -->
   <rect class="bg" x="0" y="0" width="${svgW}" height="${svgH}"/>
 
   <!-- Lưới tọa độ thực địa -->
@@ -15182,8 +15200,8 @@ const appCadTool = {
         const toX = cx => pad + (cx - minX) * sc;
         const toY = cy => (H - 250 - summaryTableH - pad) - (cy - minY) * sc;
 
-        // Nền
-        ctx.fillStyle = '#FFFDE7';
+        // Nền trắng tinh khôi chuẩn bản vẽ kỹ thuật
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, W, H);
 
         // Grid lines
