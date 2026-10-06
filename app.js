@@ -3742,6 +3742,57 @@ function doGet(e) {
     },
 
     // Xuất file CSV chuẩn UTF-8 BOM hiển thị tiếng Việt sắc nét trên Excel
+    exportExcelFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+        
+        if (typeof XLSX !== 'undefined') {
+            const wb = XLSX.utils.book_new();
+            const headers = ["STT", "Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
+            const rows = [headers];
+
+            pts.forEach((p, idx) => {
+                rows.push([
+                    idx + 1,
+                    p.time || '',
+                    p.name || '',
+                    parseFloat(parseFloat(p.x || 0).toFixed(3)),
+                    parseFloat(parseFloat(p.y || 0).toFixed(3)),
+                    parseFloat(parseFloat(p.h || 0).toFixed(3)),
+                    parseFloat(parseFloat(p.lat || 0).toFixed(7)),
+                    parseFloat(parseFloat(p.lng || 0).toFixed(7)),
+                    p.mui || AppState.muiVal || 3,
+                    p.ktt || (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'"),
+                    p.note || ''
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 22 }];
+            XLSX.utils.book_append_sheet(wb, ws, "DanhSach_Moc");
+
+            const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const filename = projName + ".xlsx";
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("✓ Đã tải file Excel: " + filename);
+        } else {
+            this.exportCsvFile();
+        }
+    },
+
     exportCsvFile() {
         const pts = appData.getPoints(AppState.currentProject);
         if (pts.length === 0) {
@@ -3963,6 +4014,22 @@ function doGet(e) {
                 try {
                     const buffer = e.target.result;
                     const wb = XLSX.read(buffer, { type: 'array' });
+
+                    // Kiểm tra xem file có chứa các khối vẽ MiniCAD không
+                    if (typeof appCadTool !== 'undefined' && appCadTool._parseWorkbookToShapes) {
+                        try {
+                            const cadShapes = appCadTool._parseWorkbookToShapes(wb, file.name);
+                            if (cadShapes && cadShapes.length > 0) {
+                                const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\n\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
+                                if (wantCad) {
+                                    appCadTool._applyImportedShapes(cadShapes, file.name);
+                                }
+                            }
+                        } catch(cErr) {
+                            console.warn("CAD parse check:", cErr);
+                        }
+                    }
+
                     const points = appData.extractPointsFromWorkbook(wb);
                     if (points && points.length > 0) {
                         appData.saveImportedPoints(points, file.name);
@@ -3982,6 +4049,20 @@ function doGet(e) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
+
+                // Kiểm tra xem file CSV/HTML có chứa các khối bản vẽ MiniCAD không
+                if (typeof appCadTool !== 'undefined' && appCadTool._parseHtmlOrTextToShapes) {
+                    try {
+                        const cadShapes = appCadTool._parseHtmlOrTextToShapes(text, file.name);
+                        if (cadShapes && cadShapes.length > 0) {
+                            const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\n\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
+                            if (wantCad) {
+                                appCadTool._applyImportedShapes(cadShapes, file.name);
+                            }
+                        }
+                    } catch(cErr) {}
+                }
+
                 // Nếu file .xls xuất từ MiniCAD/HTML table
                 if (text && text.includes('<table') && typeof XLSX !== 'undefined') {
                     try {
@@ -9470,20 +9551,24 @@ const appCadTool = {
                 let shapes = [];
 
                 if (typeof XLSX !== 'undefined') {
-                    const wb = XLSX.read(buffer, { type: 'array' });
-                    shapes = this._parseWorkbookToShapes(wb, file.name);
+                    try {
+                        const wb = XLSX.read(buffer, { type: 'array' });
+                        shapes = this._parseWorkbookToShapes(wb, file.name);
+                    } catch (wbErr) {
+                        console.warn("SheetJS array parse warning:", wbErr);
+                    }
                 }
 
-                // Nếu không có kết quả từ SheetJS hoặc SheetJS chưa nạp, thử phân tích dạng text/HTML
+                // Nếu không có kết quả từ SheetJS, thử phân tích dạng text/HTML
                 if (!shapes || shapes.length === 0) {
                     const text = new TextDecoder('utf-8').decode(buffer);
-                    if (text && (text.includes('<table') || text.includes(',') || text.includes(';'))) {
+                    if (text) {
                         shapes = this._parseHtmlOrTextToShapes(text, file.name);
                     }
                 }
 
                 if (!shapes || shapes.length === 0) {
-                    showToast("⚠️ Không tìm thấy bảng kê tọa độ hợp lệ nào trong file Excel!", true);
+                    showToast("⚠️ Không tìm thấy bảng kê tọa độ hợp lệ nào trong file! Vui lòng kiểm tra định dạng file.", true);
                     return;
                 }
 
@@ -9499,7 +9584,114 @@ const appCadTool = {
 
     _parseWorkbookToShapes(wb, fileName = '') {
         const shapes = [];
+        if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) return shapes;
 
+        // --- CHIẾN LƯỢC 1: Tìm sheet master tổng hợp chi tiết (Có cột "Tên Khối" hoặc "Tên Thửa") ---
+        for (const sname of wb.SheetNames) {
+            const sheet = wb.Sheets[sname];
+            if (!sheet) continue;
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            if (!rows || rows.length < 2) continue;
+
+            let headerRowIdx = -1;
+            let colShape = -1, colMode = -1, colColor = -1, colName = -1, colX = -1, colY = -1, colLat = -1, colLng = -1, colH = -1, colNote = -1;
+
+            for (let r = 0; r < Math.min(rows.length, 6); r++) {
+                const row = rows[r];
+                if (!Array.isArray(row)) continue;
+
+                row.forEach((cell, cIdx) => {
+                    const s = String(cell || '').toLowerCase().trim();
+                    if (colShape === -1 && (s.includes('tên khối') || s.includes('tên thửa') || s === 'khối' || s === 'thửa' || s.includes('khối /') || s.includes('thửa /') || s === 'layer')) colShape = cIdx;
+                    if (colMode === -1 && (s.includes('loại hình') || s.includes('chế độ') || s === 'loại' || s === 'mode')) colMode = cIdx;
+                    if (colColor === -1 && (s.includes('màu sắc') || s.includes('mã màu') || s === 'màu' || s === 'color')) colColor = cIdx;
+                    if (colName === -1 && (s.includes('tên đỉnh') || s.includes('tên mốc') || s.includes('tên điểm') || s === 'đỉnh' || s === 'mốc' || s === 'point' || s === 'name')) colName = cIdx;
+                    if (colX === -1 && (s.includes('tọa độ x') || s.includes('x (bắc') || s.includes('x(bắc') || s.includes('x [m]') || s === 'x' || s.includes('north'))) colX = cIdx;
+                    if (colY === -1 && (s.includes('tọa độ y') || s.includes('y (đông') || s.includes('y(đông') || s.includes('y [m]') || s === 'y' || s.includes('east'))) colY = cIdx;
+                    if (colLat === -1 && (s.includes('vĩ độ') || s.includes('lat'))) colLat = cIdx;
+                    if (colLng === -1 && (s.includes('kinh độ') || s.includes('lng') || s.includes('lon') || s.includes('long'))) colLng = cIdx;
+                    if (colH === -1 && (s.includes('cao độ') || s.includes('h (m') || s === 'h' || s === 'z' || s === 'elev')) colH = cIdx;
+                    if (colNote === -1 && (s.includes('ghi chú') || s.includes('bắt điểm') || s.includes('note') || s.includes('desc'))) colNote = cIdx;
+                });
+
+                if (colShape !== -1 && ((colX !== -1 && colY !== -1) || (colLat !== -1 && colLng !== -1))) {
+                    headerRowIdx = r;
+                    break;
+                }
+            }
+
+            if (headerRowIdx !== -1 && colShape !== -1) {
+                const shapeMap = new Map();
+
+                for (let r = headerRowIdx + 1; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!Array.isArray(row) || row.length === 0) continue;
+                    const rowText = row.join(' ').toLowerCase();
+                    if (rowText.includes('tổng cộng') || rowText.includes('tiểu kế')) continue;
+
+                    const shapeName = String(row[colShape] || '').trim();
+                    if (!shapeName) continue;
+
+                    let x = colX !== -1 ? parseFloat(String(row[colX] || 0).replace(',', '.')) : 0;
+                    let y = colY !== -1 ? parseFloat(String(row[colY] || 0).replace(',', '.')) : 0;
+                    let lat = colLat !== -1 ? parseFloat(String(row[colLat] || 0).replace(',', '.')) : 0;
+                    let lng = colLng !== -1 ? parseFloat(String(row[colLng] || 0).replace(',', '.')) : 0;
+                    let h = colH !== -1 ? parseFloat(String(row[colH] || 0).replace(',', '.')) : 0;
+
+                    if (isNaN(x)) x = 0; if (isNaN(y)) y = 0; if (isNaN(lat)) lat = 0; if (isNaN(lng)) lng = 0; if (isNaN(h)) h = 0;
+                    if ((x === 0 && y === 0) && (lat === 0 && lng === 0)) continue;
+
+                    if ((lat === 0 && lng === 0) && (x !== 0 && y !== 0)) {
+                        try {
+                            const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                            lat = parseFloat(wgs.lat.toFixed(7));
+                            lng = parseFloat(wgs.lng.toFixed(7));
+                        } catch(e) {}
+                    } else if ((x === 0 && y === 0) && (lat !== 0 && lng !== 0)) {
+                        try {
+                            const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                            x = parseFloat(vn2k.X.toFixed(3));
+                            y = parseFloat(vn2k.Y.toFixed(3));
+                        } catch(e) {}
+                    }
+
+                    let shapeObj = shapeMap.get(shapeName);
+                    if (!shapeObj) {
+                        const modeVal = colMode !== -1 ? String(row[colMode] || '').toLowerCase() : '';
+                        const isPoly = !modeVal.includes('tuyến') && !modeVal.includes('polyline');
+                        const colorVal = colColor !== -1 ? String(row[colColor] || '').trim() : '';
+                        shapeObj = {
+                            name: shapeName,
+                            mode: isPoly ? 'polygon' : 'polyline',
+                            color: colorVal.startsWith('#') ? colorVal : null,
+                            vertices: []
+                        };
+                        shapeMap.set(shapeName, shapeObj);
+                    }
+
+                    const vName = colName !== -1 && row[colName] ? String(row[colName]).trim() : ("Đ" + (shapeObj.vertices.length + 1));
+                    const note = colNote !== -1 ? String(row[colNote] || '').trim() : '';
+                    const isSnapped = note.includes('Hít') || note.includes('Mốc') || note.includes('snap');
+
+                    shapeObj.vertices.push({
+                        name: vName, x, y, lat, lng, h,
+                        isSnapped,
+                        snapSource: isSnapped ? note : ("Excel: " + (fileName || 'File'))
+                    });
+                }
+
+                for (const [sName, sObj] of shapeMap.entries()) {
+                    if (sObj.vertices.length >= 2) {
+                        if (sObj.vertices.length < 3 && sObj.mode === 'polygon') sObj.mode = 'polyline';
+                        shapes.push(sObj);
+                    }
+                }
+
+                if (shapes.length > 0) return shapes;
+            }
+        }
+
+        // --- CHIẾN LƯỢC 2: Từng sheet là một khối hoặc các bảng khối nối tiếp nhau ---
         wb.SheetNames.forEach((sname, sheetIdx) => {
             const sheet = wb.Sheets[sname];
             if (!sheet) return;
@@ -9508,32 +9700,25 @@ const appCadTool = {
 
             // Kiểm tra nếu sheet chỉ là Bảng tổng hợp diện tích không chứa tọa độ đỉnh
             const firstFewRowsStr = rows.slice(0, 4).map(r => (r || []).join(' ')).join(' ').toLowerCase();
-            if (firstFewRowsStr.includes('bảng tổng hợp diện tích') || (firstFewRowsStr.includes('tổng hợp diện tích') && !firstFewRowsStr.includes('tọa độ x') && !firstFewRowsStr.includes('vĩ độ'))) {
-                let hasCoords = false;
-                for (let r = 0; r < Math.min(rows.length, 10); r++) {
-                    const rowStr = (rows[r] || []).join(' ').toLowerCase();
-                    if (rowStr.includes('tọa độ x') || rowStr.includes('x (bắc') || rowStr.includes('vĩ độ') || rowStr.includes('kinh độ')) {
-                        hasCoords = true;
-                        break;
-                    }
-                }
-                if (!hasCoords) {
-                    return; // Bỏ qua sheet tổng hợp
-                }
+            if (firstFewRowsStr.includes('bảng tổng hợp') || (firstFewRowsStr.includes('tổng hợp diện tích') && !firstFewRowsStr.includes('tọa độ x'))) {
+                let hasCoords = rows.slice(0, 8).some(r => (r || []).join(' ').toLowerCase().match(/tọa độ x|x \(bắc|vĩ độ/));
+                if (!hasCoords) return;
             }
 
-            let currentShapeName = '';
+            let currentShapeName = sname !== 'Sheet1' ? sname : (fileName ? fileName.replace(/\.[^/.]+$/, '') : ("Thửa " + (shapes.length + 1)));
             let currentIsPoly = true;
+            let currentColor = null;
             let currentVertices = [];
-            let colName = -1, colX = -1, colY = -1, colLat = -1, colLng = -1, colShape = -1, colH = -1;
+            let colName = -1, colX = -1, colY = -1, colLat = -1, colLng = -1, colH = -1, colShape = -1, colMode = -1, colColor = -1, colNote = -1;
             let hasHeader = false;
 
-            const flushCurrentShape = () => {
+            const flushCurrent = () => {
                 if (currentVertices.length >= 2) {
-                    const sName = currentShapeName || (shapes.length > 0 ? `Thửa ${shapes.length + 1}` : (sname !== 'Sheet1' ? sname : (fileName ? fileName.replace(/\.[^/.]+$/, '') : 'Thửa 1')));
+                    const sName = currentShapeName || ("Thửa " + (shapes.length + 1));
                     shapes.push({
                         name: sName,
                         mode: (currentVertices.length >= 3 && currentIsPoly) ? 'polygon' : 'polyline',
+                        color: currentColor,
                         vertices: currentVertices
                     });
                 }
@@ -9549,66 +9734,54 @@ const appCadTool = {
 
                 const fullRowText = nonEmpties.join(' ').toLowerCase();
 
-                // Kiểm tra dòng tiêu đề thửa/khối (banner row)
+                // Dòng tiêu đề khối (Banner Row)
                 if (nonEmpties.length <= 2) {
                     const firstCell = nonEmpties[0];
                     const lowerFirst = firstCell.toLowerCase();
-                    if (lowerFirst.includes('diện tích') || lowerFirst.includes('chiều dài') || lowerFirst.includes('thửa') || lowerFirst.includes('khối') || lowerFirst.includes('bảng kê')) {
-                        flushCurrentShape();
+                    if (lowerFirst.includes('diện tích') || lowerFirst.includes('chiều dài') || lowerFirst.includes('thửa') || lowerFirst.includes('khối') || lowerFirst.includes('tuyến')) {
+                        flushCurrent();
                         const match = firstCell.match(/^([^—–\-|:]+)/);
                         currentShapeName = (match ? match[1] : firstCell).replace(/^(bảng kê tọa độ|bảng kê|thửa đất|khối|tên khối\s*:?)/i, '').trim();
-                        if (lowerFirst.includes('tuyến') || lowerFirst.includes('chiều dài')) {
-                            currentIsPoly = false;
-                        } else {
-                            currentIsPoly = true;
-                        }
+                        currentIsPoly = !(lowerFirst.includes('tuyến') || lowerFirst.includes('chiều dài'));
+                        const colorMatch = firstCell.match(/#[0-9a-fA-F]{6}/);
+                        if (colorMatch) currentColor = colorMatch[0];
                         hasHeader = false;
                         continue;
                     }
                 }
 
-                // Nhận dạng dòng tiêu đề cột
-                let tempColName = -1, tempColX = -1, tempColY = -1, tempColLat = -1, tempColLng = -1, tempColShape = -1, tempColH = -1;
+                // Dòng tiêu đề cột
+                let tName = -1, tX = -1, tY = -1, tLat = -1, tLng = -1, tH = -1, tShape = -1, tMode = -1, tColor = -1, tNote = -1;
                 row.forEach((cell, cIdx) => {
                     const s = String(cell || '').toLowerCase().trim();
-                    if (tempColName === -1 && (s.includes('tên đỉnh') || s.includes('tên mốc') || s.includes('tên điểm') || s === 'đỉnh' || s === 'mốc' || s === 'điểm' || s === 'name' || s === 'point' || s === 'stt/tên')) {
-                        tempColName = cIdx;
-                    }
-                    if (tempColShape === -1 && (s === 'khối' || s === 'thửa' || s === 'tên khối' || s === 'tên thửa' || s.includes('khối /') || s.includes('thửa /') || s === 'layer')) {
-                        tempColShape = cIdx;
-                    }
-                    if (tempColX === -1 && (s.includes('tọa độ x') || s.includes('x (bắc') || s.includes('x(bắc') || s.includes('x [m]') || s === 'x' || s.includes('north'))) {
-                        tempColX = cIdx;
-                    }
-                    if (tempColY === -1 && (s.includes('tọa độ y') || s.includes('y (đông') || s.includes('y(đông') || s.includes('y [m]') || s === 'y' || s.includes('east'))) {
-                        tempColY = cIdx;
-                    }
-                    if (tempColLat === -1 && (s.includes('vĩ độ') || s.includes('lat'))) {
-                        tempColLat = cIdx;
-                    }
-                    if (tempColLng === -1 && (s.includes('kinh độ') || s.includes('lng') || s.includes('lon') || s.includes('long'))) {
-                        tempColLng = cIdx;
-                    }
-                    if (tempColH === -1 && (s.includes('cao độ') || s.includes('h (m') || s === 'h' || s === 'z' || s === 'elev')) {
-                        tempColH = cIdx;
-                    }
+                    if (tShape === -1 && (s.includes('tên khối') || s.includes('tên thửa') || s === 'khối' || s === 'thửa' || s === 'layer')) tShape = cIdx;
+                    if (tMode === -1 && (s.includes('loại') || s.includes('chế độ'))) tMode = cIdx;
+                    if (tColor === -1 && (s.includes('màu'))) tColor = cIdx;
+                    if (tName === -1 && (s.includes('tên đỉnh') || s.includes('tên mốc') || s.includes('tên điểm') || s === 'đỉnh' || s === 'mốc' || s === 'name' || s === 'point')) tName = cIdx;
+                    if (tX === -1 && (s.includes('tọa độ x') || s.includes('x (bắc') || s.includes('x(bắc') || s.includes('x [m]') || s === 'x' || s.includes('north'))) tX = cIdx;
+                    if (tY === -1 && (s.includes('tọa độ y') || s.includes('y (đông') || s.includes('y(đông') || s.includes('y [m]') || s === 'y' || s.includes('east'))) tY = cIdx;
+                    if (tLat === -1 && (s.includes('vĩ độ') || s.includes('lat'))) tLat = cIdx;
+                    if (tLng === -1 && (s.includes('kinh độ') || s.includes('lng') || s.includes('lon') || s.includes('long'))) tLng = cIdx;
+                    if (tH === -1 && (s.includes('cao độ') || s.includes('h (m') || s === 'h' || s === 'z' || s === 'elev')) tH = cIdx;
+                    if (tNote === -1 && (s.includes('ghi chú') || s.includes('bắt điểm') || s.includes('note'))) tNote = cIdx;
                 });
 
-                if ((tempColX !== -1 && tempColY !== -1) || (tempColLat !== -1 && tempColLng !== -1)) {
-                    colName = tempColName !== -1 ? tempColName : (colName !== -1 ? colName : 1);
-                    colShape = tempColShape;
-                    colX = tempColX;
-                    colY = tempColY;
-                    colLat = tempColLat;
-                    colLng = tempColLng;
-                    colH = tempColH;
+                if ((tX !== -1 && tY !== -1) || (tLat !== -1 && tLng !== -1)) {
+                    colName = tName !== -1 ? tName : 1;
+                    colX = tX;
+                    colY = tY;
+                    colLat = tLat;
+                    colLng = tLng;
+                    colH = tH;
+                    colShape = tShape;
+                    colMode = tMode;
+                    colColor = tColor;
+                    colNote = tNote;
                     hasHeader = true;
                     continue;
                 }
 
-                if (fullRowText.includes('tổng cộng') || fullRowText.includes('tiểu kế') || fullRowText.includes('trung bình')) {
-                    continue;
-                }
+                if (fullRowText.includes('tổng cộng') || fullRowText.includes('tiểu kế') || fullRowText.includes('trung bình')) continue;
 
                 // Tự động nhận diện cột nếu không có tiêu đề
                 if (!hasHeader) {
@@ -9633,22 +9806,31 @@ const appCadTool = {
 
                 if (!hasHeader) continue;
 
-                let name = (colName !== -1 && row[colName] !== undefined && row[colName] !== '') ? String(row[colName]).trim() : `Đ${currentVertices.length + 1}`;
+                // Nếu có cột Tên Khối thay đổi giữa chừng
+                if (colShape !== -1 && row[colShape]) {
+                    const rowShapeName = String(row[colShape]).trim();
+                    if (currentShapeName && currentShapeName !== rowShapeName) {
+                        flushCurrent();
+                    }
+                    currentShapeName = rowShapeName;
+                    if (colMode !== -1 && row[colMode]) {
+                        currentIsPoly = !String(row[colMode]).toLowerCase().includes('tuyến');
+                    }
+                    if (colColor !== -1 && row[colColor] && String(row[colColor]).startsWith('#')) {
+                        currentColor = String(row[colColor]).trim();
+                    }
+                }
+
+                let name = (colName !== -1 && row[colName] !== undefined && row[colName] !== '') ? String(row[colName]).trim() : ("Đ" + (currentVertices.length + 1));
                 let x = (colX !== -1) ? parseFloat(String(row[colX]).replace(',', '.')) : 0;
                 let y = (colY !== -1) ? parseFloat(String(row[colY]).replace(',', '.')) : 0;
                 let lat = (colLat !== -1) ? parseFloat(String(row[colLat]).replace(',', '.')) : 0;
                 let lng = (colLng !== -1) ? parseFloat(String(row[colLng]).replace(',', '.')) : 0;
                 let h = (colH !== -1) ? parseFloat(String(row[colH]).replace(',', '.')) : 0;
 
-                if (isNaN(x)) x = 0;
-                if (isNaN(y)) y = 0;
-                if (isNaN(lat)) lat = 0;
-                if (isNaN(lng)) lng = 0;
-                if (isNaN(h)) h = 0;
-
+                if (isNaN(x)) x = 0; if (isNaN(y)) y = 0; if (isNaN(lat)) lat = 0; if (isNaN(lng)) lng = 0; if (isNaN(h)) h = 0;
                 if ((x === 0 && y === 0) && (lat === 0 && lng === 0)) continue;
 
-                // Tự động chuyển đổi nếu thiếu 1 trong 2 hệ tọa độ
                 if ((lat === 0 && lng === 0) && (x !== 0 && y !== 0)) {
                     try {
                         const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
@@ -9663,22 +9845,17 @@ const appCadTool = {
                     } catch(e) {}
                 }
 
-                if (colShape !== -1 && row[colShape]) {
-                    const rowShapeName = String(row[colShape]).trim();
-                    if (currentShapeName && currentShapeName !== rowShapeName) {
-                        flushCurrentShape();
-                    }
-                    currentShapeName = rowShapeName;
-                }
+                const note = (colNote !== -1 && row[colNote]) ? String(row[colNote]).trim() : '';
+                const isSnapped = note.includes('Hít') || note.includes('Mốc') || note.includes('snap');
 
                 currentVertices.push({
                     name, x, y, lat, lng, h,
-                    isSnapped: true,
-                    snapSource: `Excel: ${fileName || 'File'}`
+                    isSnapped,
+                    snapSource: isSnapped ? note : ("Excel: " + (fileName || 'File'))
                 });
             }
 
-            flushCurrentShape();
+            flushCurrent();
         });
 
         return shapes;
@@ -9686,7 +9863,9 @@ const appCadTool = {
 
     _parseHtmlOrTextToShapes(text, fileName = '') {
         const shapes = [];
-        // Phân tích các khối <table> nếu là file HTML .xls
+        if (!text) return shapes;
+
+        // 1. Phân tích nếu là file HTML .xls
         if (text.includes('<table') && typeof DOMParser !== 'undefined') {
             const parser = new DOMParser();
             const doc = parser.parseFromString(text, 'text/html');
@@ -9697,19 +9876,33 @@ const appCadTool = {
                 const headerText = headerRow ? headerRow.textContent.trim() : '';
                 if (headerText.toLowerCase().includes('bảng tổng hợp diện tích')) return;
 
-                let sName = `Thửa ${tIdx + 1}`;
+                let sName = "Thửa " + (tIdx + 1);
                 let isPoly = true;
-                if (headerText) {
-                    const match = headerText.match(/^([^—–\-|:]+)/);
-                    if (match) sName = match[1].replace(/^(bảng kê tọa độ|bảng kê|thửa đất|khối|tên khối\s*:?)/i, '').trim();
-                    if (headerText.toLowerCase().includes('tuyến') || headerText.toLowerCase().includes('chiều dài')) {
-                        isPoly = false;
+                let sColor = null;
+
+                if (headerRow) {
+                    const dataName = headerRow.getAttribute('data-name');
+                    const dataMode = headerRow.getAttribute('data-mode');
+                    const dataColor = headerRow.getAttribute('data-color');
+
+                    if (dataName) sName = dataName;
+                    if (dataMode) isPoly = (dataMode === 'polygon');
+                    if (dataColor) sColor = dataColor;
+
+                    if (!dataName && headerText) {
+                        const match = headerText.match(/^([^—–\-|:]+)/);
+                        if (match) sName = match[1].replace(/^(bảng kê tọa độ|bảng kê|thửa đất|khối|tên khối\s*:?)/i, '').trim();
+                        if (headerText.toLowerCase().includes('tuyến') || headerText.toLowerCase().includes('chiều dài')) {
+                            isPoly = false;
+                        }
+                        const cMatch = headerText.match(/#[0-9a-fA-F]{6}/);
+                        if (cMatch) sColor = cMatch[0];
                     }
                 }
 
                 const rows = tbl.querySelectorAll('tr');
                 const vertices = [];
-                let colName = 1, colX = 2, colY = 3, colLat = 6, colLng = 7;
+                let colName = 1, colX = 2, colY = 3, colLat = 6, colLng = 7, colH = -1;
 
                 rows.forEach((r, rIdx) => {
                     const ths = r.querySelectorAll('th');
@@ -9721,6 +9914,7 @@ const appCadTool = {
                             if (txt.includes('tọa độ y')) colY = cIdx;
                             if (txt.includes('vĩ độ')) colLat = cIdx;
                             if (txt.includes('kinh độ')) colLng = cIdx;
+                            if (txt.includes('cao độ') || txt === 'h') colH = cIdx;
                         });
                         return;
                     }
@@ -9728,17 +9922,14 @@ const appCadTool = {
                     const tds = r.querySelectorAll('td');
                     if (tds.length < 3) return;
 
-                    let name = tds[colName] ? tds[colName].textContent.trim() : `Đ${vertices.length + 1}`;
+                    let name = tds[colName] ? tds[colName].textContent.trim() : ("Đ" + (vertices.length + 1));
                     let x = tds[colX] ? parseFloat(tds[colX].textContent.replace(',', '.')) : 0;
                     let y = tds[colY] ? parseFloat(tds[colY].textContent.replace(',', '.')) : 0;
-                    let lat = tds[colLat] ? parseFloat(tds[colLat].textContent.replace(',', '.')) : 0;
-                    let lng = tds[colLng] ? parseFloat(tds[colLng].textContent.replace(',', '.')) : 0;
+                    let lat = (colLat >= 0 && tds[colLat]) ? parseFloat(tds[colLat].textContent.replace(',', '.')) : 0;
+                    let lng = (colLng >= 0 && tds[colLng]) ? parseFloat(tds[colLng].textContent.replace(',', '.')) : 0;
+                    let h = (colH >= 0 && tds[colH]) ? parseFloat(tds[colH].textContent.replace(',', '.')) : 0;
 
-                    if (isNaN(x)) x = 0;
-                    if (isNaN(y)) y = 0;
-                    if (isNaN(lat)) lat = 0;
-                    if (isNaN(lng)) lng = 0;
-
+                    if (isNaN(x)) x = 0; if (isNaN(y)) y = 0; if (isNaN(lat)) lat = 0; if (isNaN(lng)) lng = 0; if (isNaN(h)) h = 0;
                     if ((x === 0 && y === 0) && (lat === 0 && lng === 0)) return;
 
                     if ((lat === 0 && lng === 0) && (x !== 0 && y !== 0)) {
@@ -9756,9 +9947,9 @@ const appCadTool = {
                     }
 
                     vertices.push({
-                        name, x, y, lat, lng, h: 0,
+                        name, x, y, lat, lng, h,
                         isSnapped: true,
-                        snapSource: `Excel: ${fileName || 'File'}`
+                        snapSource: ("Excel: " + (fileName || 'File'))
                     });
                 });
 
@@ -9766,11 +9957,139 @@ const appCadTool = {
                     shapes.push({
                         name: sName,
                         mode: (vertices.length >= 3 && isPoly) ? 'polygon' : 'polyline',
+                        color: sColor,
                         vertices: vertices
                     });
                 }
             });
+
+            if (shapes.length > 0) return shapes;
         }
+
+        // 2. Phân tích nếu là file CSV hoặc text
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length >= 2) {
+            const firstDataLine = lines.find(l => l.includes(';') || l.includes(',') || l.includes('\t')) || '';
+            const delimiter = firstDataLine.includes(';') ? ';' : (firstDataLine.includes('\t') ? '\t' : ',');
+
+            let currentShapeName = '';
+            let currentMode = 'polygon';
+            let currentColor = null;
+            let currentVertices = [];
+            let colName = -1, colX = -1, colY = -1, colLat = -1, colLng = -1, colH = -1, colShape = -1, colMode = -1, colColor = -1, colNote = -1;
+            let hasHeader = false;
+
+            const flushCsvShape = () => {
+                if (currentVertices.length >= 2) {
+                    shapes.push({
+                        name: currentShapeName || (shapes.length > 0 ? ("Thửa " + (shapes.length + 1)) : (fileName ? fileName.replace(/\.[^/.]+$/, '') : 'Thửa 1')),
+                        mode: (currentVertices.length >= 3 && currentMode === 'polygon') ? 'polygon' : 'polyline',
+                        color: currentColor,
+                        vertices: currentVertices
+                    });
+                }
+                currentVertices = [];
+            };
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                if (line.startsWith('---') || line.startsWith('===') || line.startsWith('#')) {
+                    const bannerClean = line.replace(/^[-=#]+\s*/, '').replace(/\s*[-=#]+$/, '').trim();
+                    const lowerBanner = bannerClean.toLowerCase();
+
+                    if (lowerBanner.includes('bảng tổng hợp') || lowerBanner.includes('bảng kê tọa độ ranh')) continue;
+
+                    if (lowerBanner.includes('thửa') || lowerBanner.includes('khối') || lowerBanner.includes('tuyến') || line.startsWith('---')) {
+                        flushCsvShape();
+                        const match = bannerClean.match(/^([^—–\-(|:]+)/);
+                        currentShapeName = match ? match[1].trim() : bannerClean;
+                        currentMode = (lowerBanner.includes('tuyến') || lowerBanner.includes('chiều dài') || lowerBanner.includes('polyline')) ? 'polyline' : 'polygon';
+                        const colorMatch = bannerClean.match(/#[0-9a-fA-F]{6}/);
+                        currentColor = colorMatch ? colorMatch[0] : null;
+                        hasHeader = false;
+                        continue;
+                    }
+                }
+
+                const cells = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+                if (cells.length < 2) continue;
+
+                let tName = -1, tX = -1, tY = -1, tLat = -1, tLng = -1, tH = -1, tShape = -1, tMode = -1, tColor = -1, tNote = -1;
+                cells.forEach((cell, cIdx) => {
+                    const s = cell.toLowerCase();
+                    if (tShape === -1 && (s.includes('tên khối') || s.includes('tên thửa') || s === 'khối' || s === 'thửa')) tShape = cIdx;
+                    if (tMode === -1 && (s.includes('loại') || s.includes('chế độ'))) tMode = cIdx;
+                    if (tColor === -1 && (s.includes('màu'))) tColor = cIdx;
+                    if (tName === -1 && (s.includes('tên đỉnh') || s.includes('tên mốc') || s === 'đỉnh')) tName = cIdx;
+                    if (tX === -1 && (s.includes('tọa độ x') || s.includes('x (bắc') || s.includes('x [m]') || s === 'x' || s.includes('ngang x'))) tX = cIdx;
+                    if (tY === -1 && (s.includes('tọa độ y') || s.includes('y (đông') || s.includes('y [m]') || s === 'y' || s.includes('đứng y'))) tY = cIdx;
+                    if (tLat === -1 && (s.includes('vĩ độ') || s.includes('lat'))) tLat = cIdx;
+                    if (tLng === -1 && (s.includes('kinh độ') || s.includes('lng') || s.includes('long') || s.includes('lon'))) tLng = cIdx;
+                    if (tH === -1 && (s.includes('cao độ') || s === 'h' || s === 'z')) tH = cIdx;
+                    if (tNote === -1 && (s.includes('ghi chú') || s.includes('note') || s.includes('bắt điểm'))) tNote = cIdx;
+                });
+
+                if ((tX !== -1 && tY !== -1) || (tLat !== -1 && tLng !== -1)) {
+                    colName = tName !== -1 ? tName : 1;
+                    colX = tX; colY = tY; colLat = tLat; colLng = tLng; colH = tH;
+                    colShape = tShape; colMode = tMode; colColor = tColor; colNote = tNote;
+                    hasHeader = true;
+                    continue;
+                }
+
+                if (!hasHeader) continue;
+                if (line.toLowerCase().match(/tổng cộng|tiểu kế/)) continue;
+
+                if (colShape !== -1 && cells[colShape]) {
+                    const rowShapeName = cells[colShape];
+                    if (currentShapeName && currentShapeName !== rowShapeName) {
+                        flushCsvShape();
+                    }
+                    currentShapeName = rowShapeName;
+                    if (colMode !== -1 && cells[colMode]) {
+                        currentMode = cells[colMode].toLowerCase().includes('tuyến') ? 'polyline' : 'polygon';
+                    }
+                    if (colColor !== -1 && cells[colColor] && cells[colColor].startsWith('#')) {
+                        currentColor = cells[colColor];
+                    }
+                }
+
+                let name = (colName !== -1 && cells[colName]) ? cells[colName] : ("Đ" + (currentVertices.length + 1));
+                let x = colX !== -1 ? parseFloat(cells[colX].replace(',', '.')) : 0;
+                let y = colY !== -1 ? parseFloat(cells[colY].replace(',', '.')) : 0;
+                let lat = colLat !== -1 ? parseFloat(cells[colLat].replace(',', '.')) : 0;
+                let lng = colLng !== -1 ? parseFloat(cells[colLng].replace(',', '.')) : 0;
+                let h = colH !== -1 ? parseFloat(cells[colH].replace(',', '.')) : 0;
+                const note = colNote !== -1 ? cells[colNote] : '';
+
+                if (isNaN(x)) x = 0; if (isNaN(y)) y = 0; if (isNaN(lat)) lat = 0; if (isNaN(lng)) lng = 0; if (isNaN(h)) h = 0;
+                if ((x === 0 && y === 0) && (lat === 0 && lng === 0)) continue;
+
+                if ((lat === 0 && lng === 0) && (x !== 0 && y !== 0)) {
+                    try {
+                        const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                        lat = parseFloat(wgs.lat.toFixed(7));
+                        lng = parseFloat(wgs.lng.toFixed(7));
+                    } catch(e) {}
+                } else if ((x === 0 && y === 0) && (lat !== 0 && lng !== 0)) {
+                    try {
+                        const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        x = parseFloat(vn2k.X.toFixed(3));
+                        y = parseFloat(vn2k.Y.toFixed(3));
+                    } catch(e) {}
+                }
+
+                currentVertices.push({
+                    name, x, y, lat, lng, h,
+                    isSnapped: note.includes('Hít') || note.includes('Mốc') || note.includes('snap'),
+                    snapSource: note || ("CSV: " + (fileName || 'File'))
+                });
+            }
+
+            flushCsvShape();
+        }
+
         return shapes;
     },
 
@@ -9781,7 +10100,7 @@ const appCadTool = {
         
         let appendMode = true;
         if (this.savedShapes && this.savedShapes.length > 0) {
-            const userChoice = confirm(`Bản vẽ hiện tại đang có ${this.savedShapes.length} cấu trúc/khối.\n\n- Nhấn OK: GIỮ NGUYÊN và THÊM TIẾP ${shapes.length} khối mới từ file Excel vào bản vẽ.\n- Nhấn CANCEL: XÓA CŨ và chỉ lấy ${shapes.length} khối mới từ file Excel.`);
+            const userChoice = confirm("Bản vẽ hiện tại đang có " + this.savedShapes.length + " cấu trúc/khối.\n\n- Nhấn OK: GIỮ NGUYÊN và THÊM TIẾP " + shapes.length + " khối mới từ file vào bản vẽ.\n- Nhấn CANCEL: XÓA CŨ và chỉ lấy " + shapes.length + " khối mới từ file.");
             if (!userChoice) {
                 this.savedShapes = [];
                 appendMode = false;
@@ -9794,7 +10113,7 @@ const appCadTool = {
         const allLatLngs = [];
 
         shapes.forEach((s, idx) => {
-            const sColor = colorPalette[(this.savedShapes.length + idx) % colorPalette.length];
+            const sColor = s.color || colorPalette[(this.savedShapes.length + idx) % colorPalette.length];
             const stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
             const shapeObj = {
                 id: 'excel_shape_' + Date.now() + '_' + idx,
@@ -9814,22 +10133,37 @@ const appCadTool = {
             });
         });
 
-        // Tự động mở thanh công cụ CAD nếu chưa mở
+        // 1. Chuyển sang màn hình bản đồ nếu đang ở màn hình khác
+        if (typeof appNav !== 'undefined' && appNav.openProjectMap) {
+            appNav.openProjectMap();
+        }
+
+        // 2. Mở thanh công cụ CAD nếu chưa mở
         if (!this.isActive) {
             this.openToolbar();
         }
 
+        // 3. Vẽ toàn bộ hình dạng các khối và nhãn lên bản đồ
         this.renderGeometry();
+
+        // 4. HIỂN THỊ BẢNG KÊ CÁC KHỐI TRÊN BẢN ĐỒ
+        const panel = document.getElementById('cadBlocksStatsPanel');
+        if (panel) {
+            panel.style.display = 'block';
+        }
         this.renderBlocksPanel();
-        if (this.redrawAllShapes) this.redrawAllShapes();
         this.updateUi();
 
-        // Thu phóng bản đồ bao quát các khối vừa nạp
+        // 5. Thu phóng bản đồ bao quát chính xác các khối vừa nạp
         if (allLatLngs.length > 0 && AppState.leafletMap) {
-            AppState.leafletMap.fitBounds(L.latLngBounds(allLatLngs).pad(0.15));
+            setTimeout(() => {
+                try {
+                    AppState.leafletMap.fitBounds(L.latLngBounds(allLatLngs).pad(0.18));
+                } catch(e) {}
+            }, 100);
         }
 
-        showToast(`✓ Đã nạp ${shapes.length} khối (${totalVertices} đỉnh) từ file "${fileName}" lên bản đồ CAD!`);
+        showToast("✓ Đã nạp thành công " + shapes.length + " khối (" + totalVertices + " đỉnh) và hiển thị bảng kê lên bản đồ!");
     },
 
     exportAreaCsv() {
@@ -9851,174 +10185,69 @@ const appCadTool = {
         const showPercent = meta.showPercent !== false;
 
         let csv = "\uFEFF"; // UTF-8 BOM
-        csv += `BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH\n`;
-        csv += `Tiêu đề bản vẽ;${meta.drawingName};Tên dự án;${meta.projectName}\n`;
-        csv += `Đơn vị đo vẽ;${meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI'};Người đo;${meta.surveyor || ''};Kiểm tra;${meta.checker || ''}\n`;
-        csv += `Hệ tọa độ;VN-2000 (${AppState.provinceName || 'Tỉnh'});KTT;${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°);Tỷ lệ;1:${meta.scaleVal}\n`;
-        csv += `Ngày hoàn thành;${meta.drawingDate};Số tờ/thửa;${meta.parcelNo || '01'};Tổng số khối;${selectedShapes.length}\n\n`;
+        csv += "BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH\n";
+        csv += "Tiêu đề bản vẽ;" + meta.drawingName + ";Tên dự án;" + meta.projectName + "\n";
+        csv += "Đơn vị đo vẽ;" + (meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI') + ";Người đo;" + (meta.surveyor || '') + ";Kiểm tra;" + (meta.checker || '') + "\n";
+        csv += "Hệ tọa độ;VN-2000 (" + (AppState.provinceName || 'Tỉnh') + ");KTT;" + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°);Tỷ lệ;1:" + meta.scaleVal + "\n";
+        csv += "Ngày hoàn thành;" + meta.drawingDate + ";Số tờ/thửa;" + (meta.parcelNo || '01') + ";Tổng số khối;" + selectedShapes.length + "\n\n";
 
-        // 1. PHẦN 1: BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (BỎ CỘT LOẠI VÀ CHU VI)
-        csv += `=== BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT ===\n`;
+        // 1. PHẦN 1: BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ
+        csv += "=== BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT ===\n";
         csv += showPercent 
-            ? `STT;Tên khối / Thửa;Số đỉnh;Diện tích [m2];Diện tích [ha];Tỉ lệ diện tích [%];Ghi chú\n`
-            : `STT;Tên khối / Thửa;Số đỉnh;Diện tích [m2];Diện tích [ha];Ghi chú\n`;
+            ? "STT;Tên khối / Thửa;Loại hình;Mã màu;Số đỉnh;Diện tích [m2];Diện tích [ha];Chu vi [m];Tỉ lệ diện tích [%];Ghi chú\n"
+            : "STT;Tên khối / Thửa;Loại hình;Mã màu;Số đỉnh;Diện tích [m2];Diện tích [ha];Chu vi [m];Ghi chú\n";
 
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
+            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
 
             if (showPercent) {
-                csv += `${idx + 1};${s.name};${s.vertices.length};${isPoly ? area.toFixed(2) : '--'};${isPoly ? (area / 10000).toFixed(4) : '--'};${pctStr};${s.isSnapped ? 'Hít mốc' : 'Tự do'}\n`;
+                csv += (idx + 1) + ";" + s.name + ";" + (isPoly ? 'Đa giác' : 'Tuyến') + ";" + (s.color || '#10b981') + ";" + s.vertices.length + ";" + (isPoly ? area.toFixed(2) : '--') + ";" + (isPoly ? (area / 10000).toFixed(4) : '--') + ";" + perim.toFixed(2) + ";" + pctStr + ";" + (s.isSnapped ? 'Hít mốc' : 'Tự do') + "\n";
             } else {
-                csv += `${idx + 1};${s.name};${s.vertices.length};${isPoly ? area.toFixed(2) : '--'};${isPoly ? (area / 10000).toFixed(4) : '--'};${s.isSnapped ? 'Hít mốc' : 'Tự do'}\n`;
+                csv += (idx + 1) + ";" + s.name + ";" + (isPoly ? 'Đa giác' : 'Tuyến') + ";" + (s.color || '#10b981') + ";" + s.vertices.length + ";" + (isPoly ? area.toFixed(2) : '--') + ";" + (isPoly ? (area / 10000).toFixed(4) : '--') + ";" + perim.toFixed(2) + ";" + (s.isSnapped ? 'Hít mốc' : 'Tự do') + "\n";
             }
         });
 
         const totalPctStr = (baseProjectArea > 0) ? ((totalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
         csv += showPercent
-            ? `--;TỔNG CỘNG;${selectedShapes.length} khối;${totalArea.toFixed(2)};${totalHa.toFixed(4)};${totalPctStr};${meta.customTotalArea ? 'Theo DA quy hoạch' : 'Tổng đo thực tế'}\n\n`
-            : `--;TỔNG CỘNG;${selectedShapes.length} khối;${totalArea.toFixed(2)};${totalHa.toFixed(4)};Tổng đo thực tế\n\n`;
+            ? "--;TỔNG CỘNG;--;--; " + totalVertices + " đỉnh;" + totalArea.toFixed(2) + ";" + totalHa.toFixed(4) + ";" + totalPerimeter.toFixed(2) + ";" + totalPctStr + ";" + (meta.customTotalArea ? 'Theo DA quy hoạch' : 'Tổng đo thực tế') + "\n\n"
+            : "--;TỔNG CỘNG;--;--; " + totalVertices + " đỉnh;" + totalArea.toFixed(2) + ";" + totalHa.toFixed(4) + ";" + totalPerimeter.toFixed(2) + ";Tổng đo thực tế\n\n";
 
         // 2. PHẦN 2: BẢNG KÊ TỌA ĐỘ CHI TIẾT TỪNG ĐỈNH
-        csv += `=== BẢNG KÊ TỌA ĐỘ CHI TIẾT CÁC ĐỈNH RANH (TCVN) ===\n`;
+        csv += "=== BẢNG KÊ TỌA ĐỘ CHI TIẾT CÁC ĐỈNH RANH (TCVN) ===\n";
         selectedShapes.forEach((shape) => {
-            csv += `--- ${shape.name.toUpperCase()} (${shape.mode === 'polygon' ? 'Đa giác' : 'Tuyến'}) ---\n`;
-            csv += `STT;Tên Đỉnh;Tọa độ X (Bắc) [m];Tọa độ Y (Đông) [m];Cạnh kế [m];Góc phương vị (Az);Vĩ độ WGS84;Kinh độ WGS84;Ghi chú\n`;
+            csv += "--- KHỐI: " + shape.name.toUpperCase() + " (" + (shape.mode === 'polygon' ? 'Đa giác' : 'Tuyến') + ") " + (shape.color || '#10b981') + " ---\n";
+            csv += "STT;Tên Khối;Loại;Mã Màu;Tên Đỉnh;Tọa độ X (Bắc) [m];Tọa độ Y (Đông) [m];Cạnh kế [m];Góc phương vị (Az);Vĩ độ WGS84;Kinh độ WGS84;Cao độ H;Ghi chú\n";
             shape.vertices.forEach((v, idx) => {
                 const edge = shape.stats?.edges ? shape.stats.edges[idx] : null;
                 const edgeLen = edge ? edge.length.toFixed(3) : '';
                 const azStr = edge ? edge.azFormatted : '';
-                csv += `${idx + 1};${v.name};${(v.x || 0).toFixed(3)};${(v.y || 0).toFixed(3)};${edgeLen};${azStr};${(v.lat || 0).toFixed(7)};${(v.lng || 0).toFixed(7)};${v.isSnapped ? v.snapSource : 'Vẽ tự do'}\n`;
+                csv += (idx + 1) + ";" + shape.name + ";" + (shape.mode === 'polygon' ? 'Đa giác' : 'Tuyến') + ";" + (shape.color || '#10b981') + ";" + v.name + ";" + (v.x || 0).toFixed(3) + ";" + (v.y || 0).toFixed(3) + ";" + edgeLen + ";" + azStr + ";" + (v.lat || 0).toFixed(7) + ";" + (v.lng || 0).toFixed(7) + ";" + (v.h || 0).toFixed(3) + ";" + (v.isSnapped ? v.snapSource : 'Vẽ tự do') + "\n";
             });
             if (shape.mode === 'polygon' && shape.vertices.length >= 3) {
-                csv += `Tiểu kế ${shape.shortName};;Diện tích [m2];${(shape.stats?.area || 0).toFixed(2)};Diện tích [ha];${(shape.stats?.ha || 0).toFixed(4)};Chu vi [m];${(shape.stats?.perimeter || 0).toFixed(3)};;\n\n`;
+                csv += "Tiểu kế " + shape.shortName + ";;;;Diện tích [m2];" + (shape.stats?.area || 0).toFixed(2) + ";Diện tích [ha];" + (shape.stats?.ha || 0).toFixed(4) + ";Chu vi [m];" + (shape.stats?.perimeter || 0).toFixed(3) + ";;;\n\n";
             } else {
-                csv += `Tiểu kế ${shape.shortName};;Chiều dài tuyến [m];${(shape.stats?.perimeter || 0).toFixed(3)};;;;;;\n\n`;
+                csv += "Tiểu kế " + shape.shortName + ";;;;Chiều dài tuyến [m];" + (shape.stats?.perimeter || 0).toFixed(3) + ";;;;;;;\n\n";
             }
         });
 
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const filename = `${projName}_Bang_Tong_Hop_Dien_Tich.csv`;
+        const filename = projName + "_Bang_Tong_Hop_Dien_Tich.csv";
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất bảng tổng hợp diện tích & tọa độ CSV: ${filename}`);
-    },
-    // === CÔNG CỤ HÌNH HỌC TƯƠNG TÁC (CHÈN ĐỈNH TRÊN CẠNH & XÓA ĐỈNH) ===
-    insertVertexOnEdge(shapeIdx, edgeIdx) {
-        if (!AppState.leafletMap) return;
-        if (shapeIdx === -1) {
-            const n = this.vertices.length;
-            if (n < 2) return;
-            const v1 = this.vertices[edgeIdx];
-            const v2 = this.vertices[(edgeIdx + 1) % n];
-            const midLat = (v1.lat + v2.lat) / 2;
-            const midLng = (v1.lng + v2.lng) / 2;
-            const midX = parseFloat(((v1.x + v2.x) / 2).toFixed(3));
-            const midY = parseFloat(((v1.y + v2.y) / 2).toFixed(3));
-            const midH = parseFloat((((v1.h || 0) + (v2.h || 0)) / 2).toFixed(3));
-
-            const newVert = {
-                name: `Đ${n + 1}`,
-                lat: midLat,
-                lng: midLng,
-                x: midX,
-                y: midY,
-                h: midH,
-                isSnapped: false,
-                snapSource: 'Thêm trên cạnh'
-            };
-
-            this.vertices.splice(edgeIdx + 1, 0, newVert);
-            this.vertices.forEach((v, i) => { v.name = `Đ${i + 1}`; });
-
-            this.renderGeometry();
-            this.updateUi();
-            triggerHaptic('success');
-            showToast(`✓ Đã chèn đỉnh mới ${newVert.name} vào cạnh! Bạn có thể kéo thả để nắn ranh.`);
-        } else {
-            const shape = this.savedShapes[shapeIdx];
-            if (!shape || !shape.vertices) return;
-            const verts = shape.vertices;
-            const n = verts.length;
-            if (n < 2) return;
-            const v1 = verts[edgeIdx];
-            const v2 = verts[(edgeIdx + 1) % n];
-            const midLat = (v1.lat + v2.lat) / 2;
-            const midLng = (v1.lng + v2.lng) / 2;
-            const midX = parseFloat(((v1.x + v2.x) / 2).toFixed(3));
-            const midY = parseFloat(((v1.y + v2.y) / 2).toFixed(3));
-            const midH = parseFloat((((v1.h || 0) + (v2.h || 0)) / 2).toFixed(3));
-
-            const newVert = {
-                name: `Đ${n + 1}`,
-                lat: midLat,
-                lng: midLng,
-                x: midX,
-                y: midY,
-                h: midH,
-                isSnapped: false,
-                snapSource: 'Thêm trên cạnh'
-            };
-
-            verts.splice(edgeIdx + 1, 0, newVert);
-            verts.forEach((v, i) => { v.name = `Đ${i + 1}`; });
-            shape.stats = this.calculateAreaAndPerimeter(verts, shape.mode);
-
-            this.renderGeometry();
-            this.renderBlocksPanel();
-            triggerHaptic('success');
-            showToast(`✓ Đã thêm đỉnh mới vào [${shape.shortName}]! Kéo thả để nắn ranh.`);
-        }
+        showToast("✓ Đã xuất bảng tổng hợp diện tích & tọa độ CSV: " + filename);
     },
 
-    deleteVertex(shapeIdx, vIdx) {
-        if (shapeIdx === -1) {
-            if (this.vertices.length <= 2) {
-                showToast("⚠️ Nét vẽ cần tối thiểu 2 đỉnh!", true);
-                return;
-            }
-            const deleted = this.vertices.splice(vIdx, 1)[0];
-            this.vertices.forEach((v, i) => { v.name = `Đ${i + 1}`; });
-            this.renderGeometry();
-            this.updateUi();
-            triggerHaptic('warning');
-            showToast(`🗑️ Đã xóa đỉnh ${deleted.name}!`);
-        } else {
-            const shape = this.savedShapes[shapeIdx];
-            if (!shape || !shape.vertices) return;
-            const minV = shape.mode === 'polygon' ? 3 : 2;
-            if (shape.vertices.length <= minV) {
-                showToast(`⚠️ Khối ${shape.shortName} cần tối thiểu ${minV} đỉnh! Nếu muốn xóa cả khối, hãy dùng nút Xóa trên bảng khối.`, true);
-                return;
-            }
-            const deleted = shape.vertices.splice(vIdx, 1)[0];
-            shape.vertices.forEach((v, i) => { v.name = `Đ${i + 1}`; });
-            shape.stats = this.calculateAreaAndPerimeter(shape.vertices, shape.mode);
-
-            this.renderGeometry();
-            this.renderBlocksPanel();
-            triggerHaptic('warning');
-            showToast(`🗑️ Đã xóa đỉnh ${deleted.name} của [${shape.shortName}]!`);
-        }
-    },
-
-    // Mã hóa text tiếng Việt Unicode sang mã chuẩn AutoCAD \\U+XXXX (Zero Font Corruption)
-    _dxfText(str) {
-        if (str === null || str === undefined) return '';
-        return String(str)
-            .replace(/[\r\n]/g, ' ')
-            .replace(/[^\x00-\x7F]/g, c => '\\U+' + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0'));
-    },
-
-    // Xuất bảng tính Excel (.xls) có định dạng màu sắc & border chuyên nghiệp chuẩn TCVN
-    exportAreaExcel() {
+    // Xuất bảng tính Excel chuẩn (.xlsx) hoặc bảng tính có định dạng màu sắc (.xls)
+    exportAreaExcel(format = 'xlsx') {
         const allShapes = this._getAllExportShapes();
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         if (selectedShapes.length === 0) {
@@ -10031,176 +10260,311 @@ const appCadTool = {
         const totalArea = selectedShapes.reduce((sum, s) => sum + (s.mode === 'polygon' ? (s.stats?.area || 0) : 0), 0);
         const totalHa = totalArea / 10000.0;
         const totalPerimeter = selectedShapes.reduce((sum, s) => sum + (s.stats?.perimeter || 0), 0);
+        const totalVertices = selectedShapes.reduce((sum, s) => sum + s.vertices.length, 0);
         const baseProjectArea = (meta.customTotalArea && meta.customTotalArea > 0) ? meta.customTotalArea : totalArea;
         const showPercent = meta.showPercent !== false;
 
-        let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<!--[if gte mso 9]>
-<xml>
- <x:ExcelWorkbook>
-  <x:ExcelWorksheets>
-   <x:ExcelWorksheet>
-    <x:Name>Bảng Kê VN-2000</x:Name>
-    <x:WorksheetOptions>
-     <x:DisplayGridlines/>
-     <x:Print><x:ValidPrinterInfo/><x:PaperSizeIndex>9</x:PaperSizeIndex></x:Print>
-    </x:WorksheetOptions>
-   </x:ExcelWorksheet>
-  </x:ExcelWorksheets>
- </x:ExcelWorkbook>
-</xml>
-<![endif]-->
-<style>
-  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; }
-  table { border-collapse: collapse; margin-bottom: 24px; width: 100%; }
-  th { background-color: #0284c7; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px 10px; text-align: center; }
-  td { border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 10pt; }
-  .title-main { font-size: 16pt; font-weight: bold; color: #0369a1; text-align: center; padding: 12px; }
-  .meta-table td { border: none; padding: 4px 8px; font-size: 10.5pt; }
-  .num-3 { mso-number-format: '0\\.000'; text-align: right; }
-  .num-2 { mso-number-format: '0\\.00'; text-align: right; }
-  .num-4 { mso-number-format: '0\\.0000'; text-align: right; }
-  .num-pct { mso-number-format: '0\\.00%'; text-align: right; }
-  .row-total { background-color: #fef08a; font-weight: bold; }
-  .section-title { font-size: 12pt; font-weight: bold; color: #0284c7; background-color: #f0f9ff; padding: 8px; margin-top: 14px; margin-bottom: 6px; }
-  .shape-header { background-color: #e0f2fe; font-weight: bold; color: #0369a1; }
-</style>
-</head>
-<body>
-  <table>
-    <tr><td colspan="${showPercent ? 9 : 8}" class="title-main">${meta.drawingName || 'BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH'}</td></tr>
-  </table>
+        // Nếu xuất định dạng chuẩn Microsoft Excel (.xlsx) qua SheetJS
+        if (format === 'xlsx' && typeof XLSX !== 'undefined') {
+            const wb = XLSX.utils.book_new();
 
-  <table class="meta-table">
-    <tr>
-      <td><b>Dự án:</b> ${meta.projectName || ''}</td>
-      <td><b>Đơn vị đo:</b> ${meta.organization || ''}</td>
-      <td><b>Cán bộ đo:</b> ${meta.surveyor || ''}</td>
-    </tr>
-    <tr>
-      <td><b>Hệ tọa độ:</b> VN-2000 (${AppState.provinceName || 'Tỉnh'})</td>
-      <td><b>KTT:</b> ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)</td>
-      <td><b>Kiểm tra:</b> ${meta.checker || ''}</td>
-    </tr>
-    <tr>
-      <td><b>Số tờ/thửa:</b> ${meta.parcelNo || '01'}</td>
-      <td><b>Tỷ lệ bản vẽ:</b> 1:${meta.scaleVal}</td>
-      <td><b>Ngày hoàn thành:</b> ${meta.drawingDate}</td>
-    </tr>
-  </table>
+            // 1. Sheet 1: Bảng tổng hợp diện tích
+            const summaryRows = [
+                ["BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT - " + (meta.drawingName || 'MẶT BẰNG CÔNG TRÌNH')],
+                ["Dự án: " + (meta.projectName || projName) + " | Đơn vị: " + (meta.organization || '') + " | Cán bộ đo: " + (meta.surveyor || '') + " | Hệ tọa độ: VN-2000 (" + (AppState.provinceName || '') + ") | KTT: " + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°) | Tỷ lệ: 1:" + meta.scaleVal + " | Ngày: " + meta.drawingDate],
+                [],
+                ['STT', 'Tên Khối / Thửa', 'Loại Hình', 'Số Đỉnh', 'Diện Tích (m²)', 'Diện Tích (ha)', 'Chu Vi / Chiều Dài (m)', 'Tỉ Lệ (%)', 'Mã Màu', 'Ghi Chú']
+            ];
 
-  <div class="section-title">I. BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT</div>
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 50px;">STT</th>
-        <th>Tên Khối / Thửa</th>
-        <th>Số Đỉnh</th>
-        <th>Diện Tích (m²)</th>
-        <th>Diện Tích (ha)</th>
-        ${showPercent ? '<th>Tỉ Lệ Diện Tích (%)</th>' : ''}
-        <th>Ghi Chú</th>
-      </tr>
-    </thead>
-    <tbody>`;
+            selectedShapes.forEach((s, idx) => {
+                const isPoly = s.mode === 'polygon';
+                const area = s.stats?.area || 0;
+                const perim = s.stats?.perimeter || 0;
+                const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
+                summaryRows.push([
+                    idx + 1,
+                    s.name,
+                    isPoly ? 'Đa giác' : 'Tuyến',
+                    s.vertices.length,
+                    isPoly ? parseFloat(area.toFixed(2)) : '--',
+                    isPoly ? parseFloat((area / 10000.0).toFixed(4)) : '--',
+                    parseFloat(perim.toFixed(2)),
+                    pctStr,
+                    s.color || '#10b981',
+                    s.isSnapped ? 'Hít mốc' : 'Tự do'
+                ]);
+            });
+
+            const totalPctStr = (baseProjectArea > 0) ? ((totalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
+            summaryRows.push([
+                '--', 'TỔNG CỘNG', selectedShapes.length + ' khối', totalVertices,
+                parseFloat(totalArea.toFixed(2)), parseFloat(totalHa.toFixed(4)), parseFloat(totalPerimeter.toFixed(2)),
+                totalPctStr, '--', meta.customTotalArea ? 'Theo DA quy hoạch' : 'Tổng đo thực tế'
+            ]);
+
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+            wsSummary['!cols'] = [{ wch: 6 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 18 }];
+            XLSX.utils.book_append_sheet(wb, wsSummary, 'TongHop_DienTich');
+
+            // 2. Sheet 2: Master detail sheet (BangKe_ToaDo)
+            const detailRows = [
+                ['BẢNG KÊ TỌA ĐỘ CHI TIẾT CÁC ĐỈNH RANH (TCVN)'],
+                ["Dự án: " + (meta.projectName || projName) + " | Hệ tọa độ: VN-2000 | Tổng số khối: " + selectedShapes.length],
+                [],
+                ['STT', 'Tên Khối / Thửa', 'Loại Hình', 'Mã Màu', 'Tên Đỉnh', 'Tọa độ X (Bắc) [m]', 'Tọa độ Y (Đông) [m]', 'Cạnh Kế [m]', 'Phương Vị (Az)', 'Vĩ độ WGS-84', 'Kinh độ WGS-84', 'Cao độ H [m]', 'Bắt Điểm / Ghi Chú']
+            ];
+
+            let ptCounter = 1;
+            selectedShapes.forEach(shape => {
+                const isPoly = shape.mode === 'polygon';
+                const stats = shape.stats || {};
+                shape.vertices.forEach((v, vIdx) => {
+                    const edge = stats.edges ? stats.edges[vIdx] : null;
+                    const edgeLen = edge ? parseFloat(edge.length.toFixed(3)) : '--';
+                    const azStr = edge ? edge.azFormatted : '--';
+                    detailRows.push([
+                        ptCounter++,
+                        shape.name,
+                        isPoly ? 'Đa giác' : 'Tuyến',
+                        shape.color || '#10b981',
+                        v.name,
+                        parseFloat((v.x || 0).toFixed(3)),
+                        parseFloat((v.y || 0).toFixed(3)),
+                        edgeLen,
+                        azStr,
+                        parseFloat((v.lat || 0).toFixed(7)),
+                        parseFloat((v.lng || 0).toFixed(7)),
+                        parseFloat((v.h || 0).toFixed(3)),
+                        v.isSnapped ? (v.snapSource || 'Hít mốc') : 'Vẽ tự do'
+                    ]);
+                });
+            });
+
+            const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+            wsDetail['!cols'] = [
+                { wch: 6 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+                { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 20 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsDetail, 'BangKe_ToaDo');
+
+            // 3. Từng sheet cho từng khối
+            selectedShapes.forEach((shape, idx) => {
+                const isPoly = shape.mode === 'polygon';
+                const stats = shape.stats || {};
+                const shapeSheetRows = [
+                    [shape.name.toUpperCase() + " - " + (isPoly ? ("Diện tích: " + (stats.area || 0).toFixed(2) + " m² (" + (stats.ha || 0).toFixed(4) + " ha) | Chu vi: " + (stats.perimeter || 0).toFixed(2) + " m") : ("Chiều dài: " + (stats.perimeter || 0).toFixed(2) + " m")) + " | Màu: " + (shape.color || '')],
+                    ['STT', 'Tên Đỉnh', 'Tọa độ X (Bắc) [m]', 'Tọa độ Y (Đông) [m]', 'Cạnh Kế [m]', 'Phương Vị (Az)', 'Vĩ độ WGS-84', 'Kinh độ WGS-84', 'Cao độ H [m]', 'Ghi Chú']
+                ];
+                shape.vertices.forEach((v, vIdx) => {
+                    const edge = stats.edges ? stats.edges[vIdx] : null;
+                    const edgeLen = edge ? parseFloat(edge.length.toFixed(3)) : '--';
+                    const azStr = edge ? edge.azFormatted : '--';
+                    shapeSheetRows.push([
+                        vIdx + 1,
+                        v.name,
+                        parseFloat((v.x || 0).toFixed(3)),
+                        parseFloat((v.y || 0).toFixed(3)),
+                        edgeLen,
+                        azStr,
+                        parseFloat((v.lat || 0).toFixed(7)),
+                        parseFloat((v.lng || 0).toFixed(7)),
+                        parseFloat((v.h || 0).toFixed(3)),
+                        v.isSnapped ? (v.snapSource || 'Hít mốc') : 'Vẽ tự do'
+                    ]);
+                });
+                let sNameClean = shape.name.replace(/[\\/*?:\[\]]/g, '_').slice(0, 28);
+                if (!sNameClean || wb.SheetNames.includes(sNameClean)) sNameClean = "Thửa_" + (idx + 1);
+                const wsPerShape = XLSX.utils.aoa_to_sheet(shapeSheetRows);
+                wsPerShape['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 20 }];
+                XLSX.utils.book_append_sheet(wb, wsPerShape, sNameClean);
+            });
+
+            const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const filename = projName + "_Bang_Tong_Hop_Dien_Tich.xlsx";
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("✓ Đã xuất file Excel chuẩn (.xlsx): " + filename);
+            return;
+        }
+
+        // Xuất file HTML .xls có nhúng đầy đủ metadata và data-* attributes
+        let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">\n' +
+'<head>\n' +
+'<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n' +
+'<!--[if gte mso 9]>\n' +
+'<xml>\n' +
+' <x:ExcelWorkbook>\n' +
+'  <x:ExcelWorksheets>\n' +
+'   <x:ExcelWorksheet>\n' +
+'    <x:Name>Bảng Kê VN-2000</x:Name>\n' +
+'    <x:WorksheetOptions>\n' +
+'     <x:DisplayGridlines/>\n' +
+'     <x:Print><x:ValidPrinterInfo/><x:PaperSizeIndex>9</x:PaperSizeIndex></x:Print>\n' +
+'    </x:WorksheetOptions>\n' +
+'   </x:ExcelWorksheet>\n' +
+'  </x:ExcelWorksheets>\n' +
+' </x:ExcelWorkbook>\n' +
+'</xml>\n' +
+'<![endif]-->\n' +
+'<style>\n' +
+'  body { font-family: \'Segoe UI\', Arial, sans-serif; font-size: 11pt; color: #1e293b; }\n' +
+'  table { border-collapse: collapse; margin-bottom: 24px; width: 100%; }\n' +
+'  th { background-color: #0284c7; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px 10px; text-align: center; }\n' +
+'  td { border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 10pt; }\n' +
+'  .title-main { font-size: 16pt; font-weight: bold; color: #0369a1; text-align: center; padding: 12px; }\n' +
+'  .meta-table td { border: none; padding: 4px 8px; font-size: 10.5pt; }\n' +
+'  .num-3 { mso-number-format: \'0\\.000\'; text-align: right; }\n' +
+'  .num-2 { mso-number-format: \'0\\.00\'; text-align: right; }\n' +
+'  .num-4 { mso-number-format: \'0\\.0000\'; text-align: right; }\n' +
+'  .num-pct { mso-number-format: \'0\\.00%\'; text-align: right; }\n' +
+'  .row-total { background-color: #fef08a; font-weight: bold; }\n' +
+'  .section-title { font-size: 12pt; font-weight: bold; color: #0284c7; background-color: #f0f9ff; padding: 8px; margin-top: 14px; margin-bottom: 6px; }\n' +
+'  .shape-header { background-color: #e0f2fe; font-weight: bold; color: #0369a1; }\n' +
+'</style>\n' +
+'</head>\n' +
+'<body>\n' +
+'  <table>\n' +
+'    <tr><td colspan="' + (showPercent ? 10 : 9) + '" class="title-main">' + (meta.drawingName || 'BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH') + '</td></tr>\n' +
+'  </table>\n\n' +
+'  <table class="meta-table">\n' +
+'    <tr>\n' +
+'      <td><b>Dự án:</b> ' + (meta.projectName || '') + '</td>\n' +
+'      <td><b>Đơn vị đo:</b> ' + (meta.organization || '') + '</td>\n' +
+'      <td><b>Cán bộ đo:</b> ' + (meta.surveyor || '') + '</td>\n' +
+'    </tr>\n' +
+'    <tr>\n' +
+'      <td><b>Hệ tọa độ:</b> VN-2000 (' + (AppState.provinceName || 'Tỉnh') + ')</td>\n' +
+'      <td><b>KTT:</b> ' + AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + '°)</td>\n' +
+'      <td><b>Kiểm tra:</b> ' + (meta.checker || '') + '</td>\n' +
+'    </tr>\n' +
+'    <tr>\n' +
+'      <td><b>Số tờ/thửa:</b> ' + (meta.parcelNo || '01') + '</td>\n' +
+'      <td><b>Tỷ lệ bản vẽ:</b> 1:' + meta.scaleVal + '</td>\n' +
+'      <td><b>Ngày hoàn thành:</b> ' + meta.drawingDate + '</td>\n' +
+'    </tr>\n' +
+'  </table>\n\n' +
+'  <div class="section-title">I. BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT</div>\n' +
+'  <table>\n' +
+'    <thead>\n' +
+'      <tr>\n' +
+'        <th style="width: 50px;">STT</th>\n' +
+'        <th>Tên Khối / Thửa</th>\n' +
+'        <th>Loại Hình</th>\n' +
+'        <th>Số Đỉnh</th>\n' +
+'        <th>Diện Tích (m²)</th>\n' +
+'        <th>Diện Tích (ha)</th>\n' +
+'        <th>Chu Vi / Chiều Dài (m)</th>\n' +
+        (showPercent ? '        <th>Tỉ Lệ Diện Tích (%)</th>\n' : '') +
+'        <th>Mã Màu</th>\n' +
+'        <th>Ghi Chú</th>\n' +
+'      </tr>\n' +
+'    </thead>\n' +
+'    <tbody>';
 
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
+            const perim = s.stats?.perimeter || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
             const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
 
-            html += `
-      <tr style="background-color: ${bg};">
-        <td style="text-align: center;">${idx + 1}</td>
-        <td><b>${s.name}</b></td>
-        <td style="text-align: center;">${s.vertices.length}</td>
-        <td class="num-2">${isPoly ? area.toFixed(2) : '--'}</td>
-        <td class="num-4">${isPoly ? (area / 10000).toFixed(4) : '--'}</td>
-        ${showPercent ? `<td class="num-pct">${pctStr}</td>` : ''}
-        <td style="text-align: center;">${s.isSnapped ? 'Hít mốc' : 'Tự do'}</td>
-      </tr>`;
+            html += '\n      <tr style="background-color: ' + bg + ';" data-shape-idx="' + idx + '" data-color="' + (s.color || '#10b981') + '">' +
+'\n        <td style="text-align: center;">' + (idx + 1) + '</td>' +
+'\n        <td><b>' + s.name + '</b></td>' +
+'\n        <td style="text-align: center;">' + (isPoly ? 'Đa giác' : 'Tuyến') + '</td>' +
+'\n        <td style="text-align: center;">' + s.vertices.length + '</td>' +
+'\n        <td class="num-2">' + (isPoly ? area.toFixed(2) : '--') + '</td>' +
+'\n        <td class="num-4">' + (isPoly ? (area / 10000).toFixed(4) : '--') + '</td>' +
+'\n        <td class="num-2">' + perim.toFixed(2) + '</td>' +
+        (showPercent ? ('\n        <td class="num-pct">' + pctStr + '</td>') : '') +
+'\n        <td style="text-align: center; color: ' + (s.color || '#10b981') + '; font-weight: bold;">' + (s.color || '#10b981') + '</td>' +
+'\n        <td style="text-align: center;">' + (s.isSnapped ? 'Hít mốc' : 'Tự do') + '</td>' +
+'\n      </tr>';
         });
 
         const totalPctStr = (baseProjectArea > 0) ? ((totalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
-        html += `
-      <tr class="row-total">
-        <td style="text-align: center;">--</td>
-        <td><b>TỔNG CỘNG</b></td>
-        <td style="text-align: center;"><b>${selectedShapes.length} khối</b></td>
-        <td class="num-2"><b>${totalArea.toFixed(2)}</b></td>
-        <td class="num-4"><b>${totalHa.toFixed(4)}</b></td>
-        ${showPercent ? `<td class="num-pct"><b>${totalPctStr}</b></td>` : ''}
-        <td style="text-align: center;"><b>${meta.customTotalArea ? 'Theo quy hoạch' : 'Đo thực tế'}</b></td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="section-title">II. BẢNG KÊ TỌA ĐỘ CHI TIẾT TỪNG ĐỈNH RANH (TCVN)</div>`;
+        html += '\n      <tr class="row-total">' +
+'\n        <td style="text-align: center;">--</td>' +
+'\n        <td><b>TỔNG CỘNG</b></td>' +
+'\n        <td style="text-align: center;">--</td>' +
+'\n        <td style="text-align: center;"><b>' + totalVertices + ' đỉnh</b></td>' +
+'\n        <td class="num-2"><b>' + totalArea.toFixed(2) + '</b></td>' +
+'\n        <td class="num-4"><b>' + totalHa.toFixed(4) + '</b></td>' +
+'\n        <td class="num-2"><b>' + totalPerimeter.toFixed(2) + '</b></td>' +
+        (showPercent ? ('\n        <td class="num-pct"><b>' + totalPctStr + '</b></td>') : '') +
+'\n        <td style="text-align: center;">--</td>' +
+'\n        <td style="text-align: center;"><b>' + (meta.customTotalArea ? 'Theo quy hoạch' : 'Đo thực tế') + '</b></td>' +
+'\n      </tr>' +
+'\n    </tbody>' +
+'\n  </table>' +
+'\n\n  <div class="section-title">II. BẢNG KÊ TỌA ĐỘ CHI TIẾT TỪNG ĐỈNH RANH (TCVN)</div>';
 
         selectedShapes.forEach((shape) => {
             const isPoly = shape.mode === 'polygon';
             const stats = shape.stats || {};
-            html += `
-  <table>
-    <thead>
-      <tr class="shape-header">
-        <td colspan="8">
-          <b>${shape.name.toUpperCase()}</b> - ${isPoly ? `Diện tích: ${(stats.area || 0).toFixed(2)} m² (${(stats.ha || 0).toFixed(4)} ha) | Chu vi: ${(stats.perimeter || 0).toFixed(2)} m` : `Chiều dài: ${(stats.perimeter || 0).toFixed(2)} m`}
-        </td>
-      </tr>
-      <tr>
-        <th style="width: 45px;">STT</th>
-        <th>Tên Đỉnh</th>
-        <th>Tọa độ X (Bắc) [m]</th>
-        <th>Tọa độ Y (Đông) [m]</th>
-        <th>Cạnh Kế [m]</th>
-        <th>Phương Vị (Az)</th>
-        <th>Vĩ độ WGS-84</th>
-        <th>Kinh độ WGS-84</th>
-      </tr>
-    </thead>
-    <tbody>`;
+            html += '\n  <table>' +
+'\n    <thead>' +
+'\n      <tr class="shape-header" data-name="' + shape.name + '" data-mode="' + shape.mode + '" data-color="' + (shape.color || '#10b981') + '" data-area="' + (stats.area || 0).toFixed(2) + '" data-perimeter="' + (stats.perimeter || 0).toFixed(2) + '">' +
+'\n        <td colspan="9">' +
+'\n          <b>' + shape.name.toUpperCase() + '</b> [' + (isPoly ? 'Đa giác' : 'Tuyến') + '] - ' + (isPoly ? ("Diện tích: " + (stats.area || 0).toFixed(2) + " m² (" + (stats.ha || 0).toFixed(4) + " ha) | Chu vi: " + (stats.perimeter || 0).toFixed(2) + " m") : ("Chiều dài: " + (stats.perimeter || 0).toFixed(2) + " m")) + " | Màu: " + (shape.color || '#10b981') +
+'\n        </td>' +
+'\n      </tr>' +
+'\n      <tr>' +
+'\n        <th style="width: 45px;">STT</th>' +
+'\n        <th>Tên Đỉnh</th>' +
+'\n        <th>Tọa độ X (Bắc) [m]</th>' +
+'\n        <th>Tọa độ Y (Đông) [m]</th>' +
+'\n        <th>Cạnh Kế [m]</th>' +
+'\n        <th>Phương Vị (Az)</th>' +
+'\n        <th>Vĩ độ WGS-84</th>' +
+'\n        <th>Kinh độ WGS-84</th>' +
+'\n        <th>Cao độ H [m]</th>' +
+'\n      </tr>' +
+'\n    </thead>' +
+'\n    <tbody>';
             shape.vertices.forEach((v, idx) => {
                 const edge = stats.edges ? stats.edges[idx] : null;
                 const edgeLen = edge ? edge.length.toFixed(3) : '--';
                 const azStr = edge ? edge.azFormatted : '--';
                 const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-                html += `
-      <tr style="background-color: ${bg};">
-        <td style="text-align: center;">${idx + 1}</td>
-        <td><b>${v.name}</b></td>
-        <td class="num-3">${(v.x || 0).toFixed(3)}</td>
-        <td class="num-3">${(v.y || 0).toFixed(3)}</td>
-        <td class="num-3">${edgeLen}</td>
-        <td style="text-align: center;">${azStr}</td>
-        <td class="num-3">${(v.lat || 0).toFixed(7)}</td>
-        <td class="num-3">${(v.lng || 0).toFixed(7)}</td>
-      </tr>`;
+                html += '\n      <tr style="background-color: ' + bg + ';">' +
+'\n        <td style="text-align: center;">' + (idx + 1) + '</td>' +
+'\n        <td><b>' + v.name + '</b></td>' +
+'\n        <td class="num-3">' + (v.x || 0).toFixed(3) + '</td>' +
+'\n        <td class="num-3">' + (v.y || 0).toFixed(3) + '</td>' +
+'\n        <td class="num-3">' + edgeLen + '</td>' +
+'\n        <td style="text-align: center;">' + azStr + '</td>' +
+'\n        <td class="num-3">' + (v.lat || 0).toFixed(7) + '</td>' +
+'\n        <td class="num-3">' + (v.lng || 0).toFixed(7) + '</td>' +
+'\n        <td class="num-3">' + (v.h || 0).toFixed(3) + '</td>' +
+'\n      </tr>';
             });
 
-            html += `
-    </tbody>
-  </table>`;
+            html += '\n    </tbody>' +
+'\n  </table>';
         });
 
-        html += `
-</body>
-</html>`;
+        html += '\n</body>' +
+'\n</html>';
 
         const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const filename = `${projName}_Bang_Tong_Hop_Dien_Tich.xls`;
+        const filename = projName + "_Bang_Tong_Hop_Dien_Tich.xls";
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất file Excel bảng tổng hợp diện tích & tọa độ: ${filename}`);
+        showToast("✓ Đã xuất file Excel bảng tổng hợp diện tích & tọa độ: " + filename);
     },
 
 

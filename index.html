@@ -4737,8 +4737,8 @@
             <button class="cad-btn" style="background: rgba(250, 204, 21, 0.15); border-color: rgba(250, 204, 21, 0.4); color: #fde047;" onclick="appCadTool.openLoadProjectModal()" title="Nạp mốc tọa độ từ các dự án đã lưu vào MiniCAD">
               📁 Nạp mốc dự án
             </button>
-            <button class="cad-btn" style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #6ee7b7; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xls, .xlsx) hoặc CSV">
-              📥 Nhập Excel (.xls)
+            <button class="cad-btn" style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #6ee7b7; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xlsx, .xls) hoặc CSV">
+              📥 Nhập Excel / CSV
             </button>
             <input type="file" id="cadFileInputExcel" accept=".xls,.xlsx,.csv,.txt" style="display: none;" onchange="appCadTool.importExcel(event)">
             <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
@@ -4763,6 +4763,7 @@
             </div>
             <div style="display: flex; gap: 5px; align-items: center;">
               <span id="cadPanelTotalAreaBadge" style="font-size: 10.5px; color: #4ade80; font-weight: 700;">0 m²</span>
+              <button class="btn-sm" style="height: 20px; padding: 0 6px; font-size: 10px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 700;" onclick="appCadTool.openAreaTableModal()" title="Mở bảng kê chi tiết diện tích & tọa độ các đỉnh ranh">📋 Bảng Kê</button>
               <button id="btnCadPanelMinimize" class="btn-sm" style="height: 20px; padding: 0 5px; font-size: 10px; background: rgba(255,255,255,0.1); color: #94a3b8;" onclick="appCadTool.toggleMinimizeBlocksPanel()" title="Thu nhỏ / Mở rộng bảng">▾</button>
               <button class="btn-sm btn-red" style="height: 20px; padding: 0 5px; font-size: 10px;" onclick="appCadTool.toggleBlocksPanel()" title="Đóng bảng">✕</button>
             </div>
@@ -6303,8 +6304,8 @@
           <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);" onclick="appCadTool.exportAreaCsv()" title="Xuất dữ liệu thô CSV">
             📄 Xuất CSV
           </button>
-          <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xls, .xlsx) hoặc CSV">
-            📥 Nhập Excel (.xls)
+          <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xlsx, .xls) hoặc CSV">
+            📥 Nhập Excel / CSV
           </button>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
@@ -6570,8 +6571,8 @@
         <button class="btn-sm btn-red" onclick="appCadTool.closeLoadProjectModal()" style="height: 36px; padding: 0 12px;">
           Hủy
         </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập trực tiếp từ file Excel (.xls, .xlsx) hoặc CSV">
-          📥 Nhập từ Excel (.xls)
+        <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập trực tiếp từ file Excel (.xlsx, .xls) hoặc CSV">
+          📥 Nhập từ Excel / CSV
         </button>
         <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appCadTool.confirmLoadProjectAsSnap()" title="Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do">
           🧲 Bật mốc để Snap
