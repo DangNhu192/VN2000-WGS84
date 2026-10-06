@@ -2017,21 +2017,25 @@ const appMap = {
         container.addEventListener('mousedown', onStart);
         container.addEventListener('touchstart', onStart, { passive: true });
 
-        // Khởi tạo bản đồ Leaflet
+        // Khởi tạo bản đồ Leaflet - Hỗ trợ siêu phóng to mức 24 phục vụ vẽ CAD chi tiết từng centimet
         const map = L.map('leaflet-map', {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            maxZoom: 24,
+            minZoom: 4
         }).setView([10.5, 106.0], 12);
 
-        // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa)
+        // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa, nội suy siêu nét lên mức 24)
         const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 22,
+            maxZoom: 24,
+            maxNativeZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         });
 
-        // Lớp OpenStreetMap đường phố
+        // Lớp OpenStreetMap đường phố (nội suy lên mức 24)
         const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+            maxZoom: 24,
+            maxNativeZoom: 19
         });
 
         googleHybrid.addTo(map);
@@ -8170,6 +8174,15 @@ const appCadTool = {
             } else if (key === 'E') {
                 e.preventDefault();
                 this.openAreaTableModal();
+            } else if (key === 'Z' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                this.zoomMax();
+            } else if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                this.zoomIn();
+            } else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                this.zoomOut();
             } else if (key === 'X') {
                 e.preventDefault();
                 this.clearDrawing();
@@ -8641,7 +8654,11 @@ const appCadTool = {
         const clickPt = map.latLngToContainerPoint([clickLat, clickLng]);
 
         let bestVertex = null;
-        let minVertexDist = this.snapThresholdPx || 30; // Bán kính bắt đỉnh: 30px (chuẩn công thái học)
+        let minVertexDist = this.snapThresholdPx || 24; // Bán kính bắt đỉnh: pixel màn hình
+        const curZoom = map.getZoom ? map.getZoom() : 18;
+        // Giới hạn khoảng cách thực địa tối đa để tránh hút nhầm điểm khi bản đồ đang thu nhỏ / nhìn toàn cảnh:
+        // Ở mức zoom cao (>=22): 0.8m; ở mức zoom 20-21: 0.6m; ở mức zoom < 20: giới hạn nghiêm ngặt 0.4m
+        const maxRealSnapMeters = (curZoom >= 22) ? 0.8 : (curZoom >= 20 ? 0.6 : 0.4);
 
         // --- BƯỚC 1: TÌM ĐỈNH TRÙNG KHỚP (VERTEX / ENDPOINT SNAP - ƯU TIÊN SỐ 1) ---
         // 1.1 Kiểm tra các đỉnh của các khối / thửa đã lưu trước đó (Bảo toàn diện tích tiếp giáp)
@@ -8651,6 +8668,32 @@ const appCadTool = {
                 const ptScreen = map.latLngToContainerPoint([v.lat, v.lng]);
                 const d = Math.hypot(ptScreen.x - clickPt.x, ptScreen.y - clickPt.y);
                 if (d < minVertexDist) {
+                    const gDist = map.distance([clickLat, clickLng], [v.lat, v.lng]);
+                    if (gDist <= maxRealSnapMeters) {
+                        minVertexDist = d;
+                        bestVertex = {
+                            lat: v.lat,
+                            lng: v.lng,
+                            x: v.x,
+                            y: v.y,
+                            h: v.h || 0,
+                            name: v.name,
+                            snapType: 'vertex',
+                            isSnapped: true,
+                            source: `${shape.shortName || `Thửa ${sIdx + 1}`} • ${v.name}`
+                        };
+                    }
+                }
+            });
+        });
+
+        // 1.2 Kiểm tra các đỉnh của nét vẽ hiện tại
+        this.vertices.forEach((v, vIdx) => {
+            const ptScreen = map.latLngToContainerPoint([v.lat, v.lng]);
+            const d = Math.hypot(ptScreen.x - clickPt.x, ptScreen.y - clickPt.y);
+            if (d < minVertexDist) {
+                const gDist = map.distance([clickLat, clickLng], [v.lat, v.lng]);
+                if (gDist <= maxRealSnapMeters) {
                     minVertexDist = d;
                     bestVertex = {
                         lat: v.lat,
@@ -8661,29 +8704,9 @@ const appCadTool = {
                         name: v.name,
                         snapType: 'vertex',
                         isSnapped: true,
-                        source: `${shape.shortName || `Thửa ${sIdx + 1}`} • ${v.name}`
+                        source: `Đỉnh đang vẽ (${v.name})`
                     };
                 }
-            });
-        });
-
-        // 1.2 Kiểm tra các đỉnh của nét vẽ hiện tại
-        this.vertices.forEach((v, vIdx) => {
-            const ptScreen = map.latLngToContainerPoint([v.lat, v.lng]);
-            const d = Math.hypot(ptScreen.x - clickPt.x, ptScreen.y - clickPt.y);
-            if (d < minVertexDist) {
-                minVertexDist = d;
-                bestVertex = {
-                    lat: v.lat,
-                    lng: v.lng,
-                    x: v.x,
-                    y: v.y,
-                    h: v.h || 0,
-                    name: v.name,
-                    snapType: 'vertex',
-                    isSnapped: true,
-                    source: `Đỉnh đang vẽ (${v.name})`
-                };
             }
         });
 
@@ -8696,18 +8719,21 @@ const appCadTool = {
                 const ptScreen = map.latLngToContainerPoint([pLat, pLng]);
                 const d = Math.hypot(ptScreen.x - clickPt.x, ptScreen.y - clickPt.y);
                 if (d < minVertexDist) {
-                    minVertexDist = d;
-                    bestVertex = {
-                        lat: pLat,
-                        lng: pLng,
-                        x: parseFloat(p.x) || 0,
-                        y: parseFloat(p.y) || 0,
-                        h: parseFloat(p.h || p.z || 0),
-                        name: p.name || 'Mốc',
-                        snapType: 'vertex',
-                        isSnapped: true,
-                        source: `Mốc dự án (${p.name || ''})`
-                    };
+                    const gDist = map.distance([clickLat, clickLng], [pLat, pLng]);
+                    if (gDist <= maxRealSnapMeters) {
+                        minVertexDist = d;
+                        bestVertex = {
+                            lat: pLat,
+                            lng: pLng,
+                            x: parseFloat(p.x) || 0,
+                            y: parseFloat(p.y) || 0,
+                            h: parseFloat(p.h || p.z || 0),
+                            name: p.name || 'Mốc',
+                            snapType: 'vertex',
+                            isSnapped: true,
+                            source: `Mốc dự án (${p.name || ''})`
+                        };
+                    }
                 }
             }
         });
@@ -8913,8 +8939,10 @@ const appCadTool = {
                         const exactWgs = convertVn2kToWgs(exactX, exactY, AppState.kttVal, AppState.scaleFactor);
                         const ptScreen = map.latLngToContainerPoint([exactWgs.lat, exactWgs.lng]);
                         const d = Math.hypot(ptScreen.x - clickPt.x, ptScreen.y - clickPt.y);
+                        const edgeRealDist = map.distance([clickLat, clickLng], [exactWgs.lat, exactWgs.lng]);
+                        const maxEdgeRealMeters = (curZoom >= 22) ? 0.6 : 0.35;
 
-                        if (d < minEdgeDist) {
+                        if (d < minEdgeDist && edgeRealDist <= maxEdgeRealMeters) {
                             minEdgeDist = d;
                             bestEdgeCandidate = {
                                 lat: exactWgs.lat,
@@ -12159,9 +12187,37 @@ const appCadTool = {
         if (!pts || pts.length === 0) return;
         const coords = pts.map(p => [parseFloat(p.lat), parseFloat(p.lng)]).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
         if (coords.length > 0) {
-            AppState.leafletMap.fitBounds(coords, { padding: [60, 60] });
+            AppState.leafletMap.fitBounds(coords, { padding: [60, 60], maxZoom: 23 });
             showToast(`🔍 Thu phóng đến khối: "${this.savedShapes[index].name}"`);
         }
+    },
+
+    zoomIn() {
+        if (!AppState.leafletMap) return;
+        AppState.leafletMap.zoomIn();
+    },
+
+    zoomOut() {
+        if (!AppState.leafletMap) return;
+        AppState.leafletMap.zoomOut();
+    },
+
+    zoomMax() {
+        if (!AppState.leafletMap) return;
+        const map = AppState.leafletMap;
+        let center = null;
+        if (this.vertices && this.vertices.length > 0) {
+            const last = this.vertices[this.vertices.length - 1];
+            center = [last.lat, last.lng];
+        } else if (this.savedShapes && this.savedShapes.length > 0) {
+            const lastShape = this.savedShapes[this.savedShapes.length - 1];
+            if (lastShape.vertices && lastShape.vertices.length > 0) {
+                center = [lastShape.vertices[0].lat, lastShape.vertices[0].lng];
+            }
+        }
+        if (!center) center = map.getCenter();
+        map.setView(center, 23);
+        showToast("🔍 Đã phóng to cực đại (Mức 23 - Chuẩn từng centimet, không bị hút điểm nhầm)");
     },
 
     renameBlock(idx, newName) {

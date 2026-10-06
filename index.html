@@ -4898,6 +4898,9 @@
             <button class="cad-btn" onclick="appCadTool.closeLoop()" title="Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: C)">
               🔒 Khép góc [C]
             </button>
+            <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" onclick="appCadTool.zoomMax()" title="Phóng to cực đại mức 23-24 để nắn đỉnh chuẩn centimet, không bị hút điểm nhầm (Phím tắt: Z)">
+              🔍 Siêu Zoom [Z]
+            </button>
             <input type="text" id="cadActiveShapeName" class="app-input" style="height: 26px; width: 110px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px; flex: none;" placeholder="Tên khối (Thửa 1)" title="Đặt tên khối trước khi vẽ hoặc lưu">
             <button id="btnCadSaveShape" class="cad-btn" style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #a7f3d0; font-weight: 700;" onclick="appCadTool.saveAndStartNewShape()" title="Lưu cấu trúc/thửa đất này và bắt đầu vẽ cấu trúc mới (Phím tắt: N)">
               ➕ Lưu & Vẽ mới [N]
@@ -5018,6 +5021,12 @@
           <div id="dragHandleRightControls" class="drag-handle-right-controls" title="Nhấp & kéo giữ để di chuyển thanh nút lên xuống">
             <span>⠿</span>
           </div>
+          <button class="btn-map-fab" title="Phóng to bản đồ (Tối đa mức 24 siêu chi tiết)" onclick="AppState.leafletMap && AppState.leafletMap.zoomIn()">
+            ➕
+          </button>
+          <button class="btn-map-fab" title="Thu nhỏ bản đồ" onclick="AppState.leafletMap && AppState.leafletMap.zoomOut()">
+            ➖
+          </button>
           <button class="btn-map-fab" title="Đổi lớp bản đồ (Vệ tinh / Đường phố)" onclick="appMap.toggleMapLayer()">
             🛰️
           </button>
