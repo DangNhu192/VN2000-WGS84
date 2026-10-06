@@ -8459,41 +8459,44 @@ const appCadTool = {
                     continue;
                 }
 
-                // 2.2 Kiểm tra điểm chiếu vuông góc lên đoạn thẳng (Orthogonal Edge Projection)
-                const dx = p2.x - p1.x;
-                const dy = p2.y - p1.y;
-                const lenSq = dx * dx + dy * dy;
-                if (lenSq === 0) continue;
+                // 2.2 Kiểm tra điểm chiếu vuông góc lên đoạn thẳng (Orthogonal Edge Projection trong hệ tọa độ phẳng VN-2000 thực địa)
+                const clickVn = convertWgsToVn2k(clickLat, clickLng, AppState.kttVal, AppState.scaleFactor);
+                const segDx = v2.x - v1.x;
+                const segDy = v2.y - v1.y;
+                const segLenSq = segDx * segDx + segDy * segDy;
+                if (segLenSq > 1e-4) {
+                    // Tham số hình chiếu t = ((P_vn - V1) . (V2 - V1)) / lenSq
+                    let tMetric = ((clickVn.X - v1.x) * segDx + (clickVn.Y - v1.y) * segDy) / segLenSq;
+                    if (tMetric > 0.015 && tMetric < 0.985) {
+                        // Tọa độ VN-2000 nằm nghiêm ngặt trên đường thẳng V1-V2 (Độ lệch diện tích Shoelace = 0.0000 m²)
+                        const exactX = v1.x + tMetric * segDx;
+                        const exactY = v1.y + tMetric * segDy;
+                        const exactH = (v1.h || 0) + tMetric * ((v2.h || 0) - (v1.h || 0));
+                        // Chuyển ngược sang WGS-84 bảo toàn tuyệt đối tọa độ trắc địa
+                        const exactWgs = convertVn2kToWgs(exactX, exactY, AppState.kttVal, AppState.scaleFactor);
+                        const ptScreen = map.latLngToContainerPoint([exactWgs.lat, exactWgs.lng]);
+                        const d = Math.hypot(ptScreen.x - clickPt.x, ptScreen.y - clickPt.y);
 
-                // Tham số chiếu t = ((P - P1) . (P2 - P1)) / lenSq
-                const t = ((clickPt.x - p1.x) * dx + (clickPt.y - p1.y) * dy) / lenSq;
-
-                // Chỉ xét điểm nằm trong lòng đoạn thẳng (loại trừ 2 đầu mút vì đã có vertex snap)
-                if (t > 0.04 && t < 0.96) {
-                    const projX = p1.x + t * dx;
-                    const projY = p1.y + t * dy;
-                    const d = Math.hypot(projX - clickPt.x, projY - clickPt.y);
-
-                    if (d < minEdgeDist) {
-                        minEdgeDist = d;
-                        // Nội suy tọa độ VN-2000 chuẩn xác theo phương trình đoạn thẳng (loại bỏ hoàn toàn khe hở diện tích)
-                        const exactX = v1.x + t * (v2.x - v1.x);
-                        const exactY = v1.y + t * (v2.y - v1.y);
-                        const exactLat = v1.lat + t * (v2.lat - v1.lat);
-                        const exactLng = v1.lng + t * (v2.lng - v1.lng);
-                        const exactH = (v1.h || 0) + t * ((v2.h || 0) - (v1.h || 0));
-
-                        bestEdgeCandidate = {
-                            lat: exactLat,
-                            lng: exactLng,
-                            x: parseFloat(exactX.toFixed(3)),
-                            y: parseFloat(exactY.toFixed(3)),
-                            h: parseFloat(exactH.toFixed(3)),
-                            name: `Cạnh[${v1.name}-${v2.name}]`,
-                            snapType: 'edge',
-                            isSnapped: true,
-                            source: `Cạnh ${shape.shortName || `Thửa ${sIdx + 1}`}: ${v1.name}-${v2.name}`
-                        };
+                        if (d < minEdgeDist) {
+                            minEdgeDist = d;
+                            bestEdgeCandidate = {
+                                lat: exactWgs.lat,
+                                lng: exactWgs.lng,
+                                x: parseFloat(exactX.toFixed(3)),
+                                y: parseFloat(exactY.toFixed(3)),
+                                h: parseFloat(exactH.toFixed(3)),
+                                name: `Đ${this.vertices.length + 1}`,
+                                snapType: 'edge',
+                                isSnapped: true,
+                                shapeIdx: sIdx,
+                                shape: shape,
+                                edgeIdx: i,
+                                v1: v1,
+                                v2: v2,
+                                tMetric: tMetric,
+                                source: `Cạnh ${shape.shortName || `Thửa ${sIdx + 1}`}: ${v1.name}-${v2.name}`
+                            };
+                        }
                     }
                 }
             }
@@ -8679,7 +8682,20 @@ const appCadTool = {
                     return;
                 }
             }
-            this.addVertex(candidate.lat, candidate.lng, candidate.name, true, candidate.source, candidate.x, candidate.y, candidate.h);
+            const vertexName = candidate.snapType === 'edge' ? `Đ${this.vertices.length + 1}` : candidate.name;
+            this.addVertex(candidate.lat, candidate.lng, vertexName, true, candidate.source, candidate.x, candidate.y, candidate.h);
+            if (candidate.snapType === 'edge') {
+                const lastAdded = this.vertices[this.vertices.length - 1];
+                if (lastAdded) {
+                    lastAdded.snappedToEdge = {
+                        shape: candidate.shape,
+                        edgeIdx: candidate.edgeIdx,
+                        v1: candidate.v1,
+                        v2: candidate.v2,
+                        tMetric: candidate.tMetric
+                    };
+                }
+            }
             triggerHaptic('success');
             showToast(`🧲 Đã bắt trùng: ${candidate.source || candidate.name}`);
         } else {
@@ -8771,6 +8787,35 @@ const appCadTool = {
         }
 
         const color = this.palette[(idx - 1) % this.palette.length];
+
+        // Đồng bộ điểm chung trên các cạnh đã bắt điểm (Bảo toàn 100% diện tích và khớp nối ranh thửa tuyệt đối)
+        if (this.savedShapes && this.savedShapes.length > 0) {
+            this.vertices.forEach(v => {
+                if (v.snappedToEdge && v.snappedToEdge.shape && v.snappedToEdge.shape.vertices) {
+                    const targetShape = v.snappedToEdge.shape;
+                    const verts = targetShape.vertices;
+                    const alreadyExists = verts.some(tv => Math.hypot(tv.x - v.x, tv.y - v.y) < 0.005);
+                    if (!alreadyExists) {
+                        const v1Idx = verts.findIndex(tv => (v.snappedToEdge.v1 && tv.id === v.snappedToEdge.v1.id) || (Math.hypot(tv.x - v.snappedToEdge.v1.x, tv.y - v.snappedToEdge.v1.y) < 0.005));
+                        if (v1Idx >= 0) {
+                            const insertIdx = v1Idx + 1;
+                            verts.splice(insertIdx, 0, {
+                                id: Date.now() + Math.random(),
+                                name: `${v.snappedToEdge.v1.name}b`,
+                                lat: v.lat,
+                                lng: v.lng,
+                                x: v.x,
+                                y: v.y,
+                                h: v.h || 0,
+                                isSnapped: true,
+                                snapSource: `Điểm chung cạnh với ${chosenName}`
+                            });
+                            targetShape.stats = this.calculateAreaAndPerimeter(verts, targetShape.mode);
+                        }
+                    }
+                }
+            });
+        }
 
         this.pushHistoryState(`Lưu khối "${chosenName}"`);
         this.savedShapes.push({
@@ -11062,6 +11107,7 @@ const appCadTool = {
                         `}
                     </div>
                     <button onclick="appCadTool.zoomToShape(${idx})" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Thu phóng đến khối này">🔍</button>
+                    <button onclick="appCadTool.continueShape(${idx})" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Tiếp tục vẽ / bổ sung đỉnh cho khối này">✏️</button>
                     <button onclick="appCadTool.deleteShape(${idx})" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Xóa khối này">🗑️</button>
                 </div>`;
             });
@@ -11095,6 +11141,29 @@ const appCadTool = {
         if (!isShown) {
             this.renderBlocksPanel();
         }
+    },
+
+    continueShape(index) {
+        if (!this.savedShapes || !this.savedShapes[index]) return;
+        const s = this.savedShapes[index];
+        if (this.vertices && this.vertices.length > 0) {
+            if (!confirm(`Bạn đang có nét vẽ dở (${this.vertices.length} đỉnh). Tiếp tục vẽ khối "${s.name}" sẽ nạp các đỉnh của khối này vào nét vẽ hiện tại. Bạn có muốn tiếp tục?`)) {
+                return;
+            }
+        }
+        this.pushHistoryState(`Tiếp tục vẽ khối "${s.name}"`);
+        this.vertices = [...s.vertices];
+        this.mode = s.mode || 'polygon';
+        this.isActive = true;
+        this.savedShapes.splice(index, 1);
+        const nameInput = document.getElementById('cadActiveShapeName');
+        if (nameInput) {
+            nameInput.value = s.name || '';
+        }
+        this.renderGeometry();
+        this.updateUi();
+        this.renderBlocksPanel();
+        showToast(`✏️ Đang tiếp tục vẽ khối "${s.name}". Hãy nhấp trên bản đồ để thêm đỉnh hoặc khép góc.`);
     },
 
     deleteShape(index) {
@@ -12488,6 +12557,8 @@ const appCadTool = {
         dxf += "9\n$MEASUREMENT\n70\n1\n";    // 1 = Metric
         dxf += "9\n$LTSCALE\n40\n" + S.toFixed(4) + "\n";
         dxf += "9\n$TEXTSIZE\n40\n" + (2.5 * S).toFixed(4) + "\n";
+        dxf += "9\n$VIEWCTR\n10\n" + L.Cx.toFixed(3) + "\n20\n" + L.Cy.toFixed(3) + "\n";
+        dxf += "9\n$VIEWSIZE\n40\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\n";
         dxf += "9\n$EXTMIN\n10\n" + L.X0.toFixed(3) + "\n20\n" + L.Y0.toFixed(3) + "\n30\n0.0\n";
         dxf += "9\n$EXTMAX\n10\n" + (L.X0 + L.W_sheet).toFixed(3) + "\n20\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\n30\n0.0\n";
         dxf += "9\n$LIMMIN\n10\n" + L.X0.toFixed(3) + "\n20\n" + L.Y0.toFixed(3) + "\n";
@@ -12497,12 +12568,12 @@ const appCadTool = {
         // TABLES SECTION
         dxf += "0\nSECTION\n2\nTABLES\n";
 
-        // 1. Viewport: Camera tự động zoom vừa khít khổ giấy khi mở bản vẽ
+        // 1. Viewport: Camera tự động zoom lớn trực diện vào trung tâm bản vẽ thửa đất khi mở trong AutoCAD
         dxf += "0\nTABLE\n2\nVPORT\n70\n1\n";
         dxf += "0\nVPORT\n2\n*ACTIVE\n70\n0\n";
         dxf += "10\n0.0\n20\n0.0\n11\n1.0\n21\n1.0\n";
-        dxf += "12\n" + (L.X0 + L.W_sheet / 2).toFixed(3) + "\n22\n" + (L.Y0 + L.H_sheet / 2).toFixed(3) + "\n";
-        dxf += "40\n" + (L.H_sheet * 1.05).toFixed(3) + "\n";
+        dxf += "12\n" + L.Cx.toFixed(3) + "\n22\n" + L.Cy.toFixed(3) + "\n";
+        dxf += "40\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\n";
         dxf += "41\n" + (L.W_sheet / L.H_sheet).toFixed(4) + "\n";
         dxf += "0\nENDTAB\n";
 
@@ -12830,6 +12901,25 @@ const appCadTool = {
         curTableY -= sumRowH;
         dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
 
+        function wrapDxfLines(txt, maxLen = 18) {
+            if (!txt) return [''];
+            const words = String(txt).trim().split(/\s+/);
+            const lines = [];
+            let cur = '';
+            for (const w of words) {
+                if (!cur) {
+                    cur = w;
+                } else if ((cur + ' ' + w).length <= maxLen) {
+                    cur += ' ' + w;
+                } else {
+                    lines.push(cur);
+                    cur = w;
+                }
+            }
+            if (cur) lines.push(cur);
+            return lines.length > 0 ? lines : [''];
+        }
+
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
@@ -12838,21 +12928,21 @@ const appCadTool = {
             const cleanName = this.toCadAscii(s.name || `Thua ${idx + 1}`);
             const rowSymbol = s.symbol ? `[${this.toCadAscii(s.symbol)}] ` : '';
             const fullLabel = rowSymbol + cleanName;
-            const rowName = fullLabel.length > 20 ? fullLabel.slice(0, 18) + '..' : fullLabel;
-            const rowData = [
-                String(idx + 1),
-                rowName,
-                isPoly ? area.toFixed(2) : '--',
-                pctStr
-            ];
+            const nameLines = wrapDxfLines(fullLabel, 18);
+            const dynamicRowH = (Math.max(1, nameLines.length) * 2.8 + 2.2) * S;
 
-            let srX = L.Xpanel0;
-            rowData.forEach((val, cIdx) => {
-                dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(srX + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.6 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${val}\n7\nVN_ARIAL\n`;
-                srX += colWSum[cIdx];
+            // STT, Area, Pct hiển thị tại dòng đầu tiên
+            dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.4 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${idx + 1}\n7\nVN_ARIAL\n`;
+            
+            // Xuống dòng tên khối/thửa không xóa mất ký tự hay thay bằng ".."
+            nameLines.forEach((line, lIdx) => {
+                dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + colWSum[0] + 1.2 * S).toFixed(3)}\n20\n${(curTableY - (3.4 + lIdx * 2.8) * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${line}\n7\nVN_ARIAL\n`;
             });
 
-            curTableY -= sumRowH;
+            dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.4 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${isPoly ? area.toFixed(2) : '--'}\n7\nVN_ARIAL\n`;
+            dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + colWSum[2] + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.4 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${pctStr}\n7\nVN_ARIAL\n`;
+
+            curTableY -= dynamicRowH;
             dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
         });
 
@@ -13123,7 +13213,7 @@ const appCadTool = {
         ctx.fillText("B", naX - Math.round(1.5 * pxPerMm), naY - naH - Math.round(2 * pxPerMm));
 
         // 7. Vẽ các thửa đất (Parcel)
-        selectedShapes.forEach(shape => {
+        selectedShapes.forEach((shape, shapeIdx) => {
             const pts = shape.vertices;
             const n = pts.length;
             if (n < 2) return;
@@ -13393,21 +13483,46 @@ const appCadTool = {
         ctx.textAlign = 'left';
         curY += Math.round(6.5 * pxPerMm);
 
-        // Tiêu đề 4 cột (Căn chỉnh rộng rãi cho tên khối, tránh tràn đè nội dung)
+        // Tiêu đề 4 cột (Căn chỉnh rộng rãi cho tên khối, tự động xuống dòng không cắt ngắn)
         const colW_px = [
             Math.round(0.10 * pW), // STT
             Math.round(0.44 * pW), // Ký hiệu & Tên thửa
             Math.round(0.28 * pW), // Diện tích (m²)
             pW - Math.round(0.10 * pW) - Math.round(0.44 * pW) - Math.round(0.28 * pW) // Tỉ lệ %
         ];
-        function truncateText(txt, maxW) {
-            if (!txt) return '';
-            if (ctx.measureText(txt).width <= maxW) return txt;
-            let t = String(txt);
-            while (t.length > 3 && ctx.measureText(t + '...').width > maxW) {
-                t = t.slice(0, -1);
+
+        function wrapPdfTextLines(txt, maxW) {
+            if (!txt) return [''];
+            const str = String(txt).trim();
+            if (ctx.measureText(str).width <= maxW) return [str];
+            const words = str.split(/\s+/);
+            const lines = [];
+            let cur = '';
+            for (let i = 0; i < words.length; i++) {
+                const w = words[i];
+                const test = cur ? (cur + ' ' + w) : w;
+                if (ctx.measureText(test).width <= maxW) {
+                    cur = test;
+                } else {
+                    if (cur) lines.push(cur);
+                    if (ctx.measureText(w).width > maxW) {
+                        let sub = '';
+                        for (let c of w) {
+                            if (ctx.measureText(sub + c).width <= maxW) {
+                                sub += c;
+                            } else {
+                                if (sub) lines.push(sub);
+                                sub = c;
+                            }
+                        }
+                        cur = sub;
+                    } else {
+                        cur = w;
+                    }
+                }
             }
-            return t + '...';
+            if (cur) lines.push(cur);
+            return lines.length > 0 ? lines : [''];
         }
 
         ctx.fillStyle = '#f1f5f9';
@@ -13431,37 +13546,45 @@ const appCadTool = {
         selectedShapes.forEach(s => { if (s.mode === 'polygon') measuredTotalArea += (s.stats?.area || 0); });
         const baseProjectArea = (meta.customTotalArea && meta.customTotalArea > 0) ? meta.customTotalArea : measuredTotalArea;
 
+        const lineH_px = Math.round(2.6 * pxPerMm);
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
 
-            ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-            ctx.fillRect(pX, curY, pW, sumRowH_px);
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.strokeRect(pX, curY, pW, sumRowH_px);
-
-            ctx.fillStyle = '#1e293b';
             ctx.font = `${Math.round(1.9 * pxPerMm)}px Arial`;
-            const displayName = s.symbol ? `[${s.symbol}] ${s.name}` : s.name;
-            const fitName = truncateText(displayName, colW_px[1] - Math.round(3 * pxPerMm));
-            const row = [String(idx + 1), fitName, isPoly ? area.toFixed(2) : '--', pctStr];
-            let rx = pX;
-            row.forEach((v, cIdx) => {
-                ctx.fillText(v, rx + Math.round(1.5 * pxPerMm), curY + Math.round(3.6 * pxPerMm));
-                rx += colW_px[cIdx];
+            const displayName = s.symbol ? `[${s.symbol}] ${s.name}` : (s.name || `Thửa ${idx + 1}`);
+            const nameLines = wrapPdfTextLines(displayName, colW_px[1] - Math.round(3 * pxPerMm));
+            const dynamicRowH = Math.max(sumRowH_px, Math.round(1.4 * pxPerMm) + nameLines.length * lineH_px + Math.round(1.4 * pxPerMm));
+
+            ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+            ctx.fillRect(pX, curY, pW, dynamicRowH);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.strokeRect(pX, curY, pW, dynamicRowH);
+
+            const baselineY = curY + Math.round(3.4 * pxPerMm);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillText(String(idx + 1), pX + Math.round(1.5 * pxPerMm), baselineY);
+
+            // Xuống dòng từng dòng tên khối, bảo toàn trọn vẹn ký tự không bị cắt ngắn thành "..."
+            nameLines.forEach((l, lIdx) => {
+                ctx.fillText(l, pX + colW_px[0] + Math.round(1.5 * pxPerMm), baselineY + lIdx * lineH_px);
             });
-            // Vẽ vạch kẻ dọc phân chia các cột
+
+            ctx.fillText(isPoly ? area.toFixed(2) : '--', pX + colW_px[0] + colW_px[1] + Math.round(1.5 * pxPerMm), baselineY);
+            ctx.fillText(pctStr, pX + colW_px[0] + colW_px[1] + colW_px[2] + Math.round(1.5 * pxPerMm), baselineY);
+
+            // Vẽ vạch kẻ dọc phân chia các cột theo chiều cao thực tế của hàng
             let divX = pX;
             colW_px.forEach(w => {
                 divX += w;
                 ctx.strokeStyle = '#e2e8f0';
                 ctx.beginPath();
                 ctx.moveTo(divX, curY);
-                ctx.lineTo(divX, curY + sumRowH_px);
+                ctx.lineTo(divX, curY + dynamicRowH);
                 ctx.stroke();
             });
-            curY += sumRowH_px;
+            curY += dynamicRowH;
         });
 
         // Dòng tổng cộng
@@ -13594,48 +13717,85 @@ const appCadTool = {
         const baseProjectArea = (meta.customTotalArea && meta.customTotalArea > 0) ? meta.customTotalArea : measuredTotalArea;
         const showPercent = meta.showPercent !== false;
 
-        // Chiều cao bổ sung cho bảng tổng hợp khối (mỗi khối 20px)
-        const summaryTableH = (selectedShapes.length + 3) * 20;
+        // Hàm ngắt dòng thông minh không cắt ngắn chữ thành "..."
+        function wrapSvgLines(txt, maxChars = 34) {
+            if (!txt) return [''];
+            const words = String(txt).trim().split(/\s+/);
+            const lines = [];
+            let cur = '';
+            for (const w of words) {
+                if (!cur) {
+                    cur = w;
+                } else if ((cur + ' ' + w).length <= maxChars) {
+                    cur += ' ' + w;
+                } else {
+                    lines.push(cur);
+                    cur = w;
+                }
+            }
+            if (cur) lines.push(cur);
+            return lines.length > 0 ? lines : [''];
+        }
 
-        // SVG viewport
-        const svgW = 860;
-        const svgH = Math.round(svgW * spanY / spanX) + 200 + summaryTableH;
-        const pad = 60;
-        const sx = (svgW - pad*2) / spanX;
-        const sy = (svgH - pad*2 - 180 - summaryTableH) / spanY;
-        const sc = Math.min(sx, sy);
+        // Tính chiều cao động của từng hàng và toàn bộ bảng tổng hợp
+        const svgRowInfos = selectedShapes.map((s, idx) => {
+            const displayName = s.symbol ? `[${s.symbol}] ${s.name}` : (s.name || `Thửa ${idx + 1}`);
+            const lines = wrapSvgLines(displayName, 34);
+            const rowH = Math.max(26, 8 + lines.length * 14);
+            return { shape: s, displayName, lines, rowH };
+        });
+        const summaryTableH = 26 + svgRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+
+        // Kích thước SVG khổ lớn độ nét cao 1200px đồng bộ chất lượng với PNG
+        const svgW = 1200;
+        const mapH = Math.max(550, Math.min(1300, Math.round(1000 * spanY / spanX)));
+        const svgH = mapH + 260 + summaryTableH;
+        const pad = 80;
+        const sc = Math.min((svgW - pad*2) / spanX, (mapH - pad*2) / spanY);
 
         const toSvgX = cx => pad + (cx - minX) * sc;
-        const toSvgY = cy => (svgH - 180 - summaryTableH - pad) - (cy - minY) * sc;
+        const toSvgY = cy => (mapH - pad) - (cy - minY) * sc;
 
         let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
   <defs>
     <style>
       text { font-family: Arial, sans-serif; }
-      .layer-ranh { fill: none; stroke: #1565C0; stroke-width: 2; }
-      .layer-ky-hieu { fill: none; stroke: #C62828; stroke-width: 1; }
-      .layer-kich-thuoc { font-size: 9.5px; fill: #F57F17; }
-      .layer-dien-tich { font-size: 12px; fill: #6A1B9A; font-weight: bold; }
-      .layer-bang-ke { fill: none; stroke: #333; stroke-width: 0.5; }
-      .layer-bang-ke-text { font-size: 9.5px; fill: #1B5E20; }
-      .layer-khung-ten { fill: none; stroke: #000; stroke-width: 1.5; }
-      .layer-khung-ten-text { font-size: 11px; fill: #000; }
+      .layer-ranh { fill: none; stroke: #1565C0; stroke-width: 2.5; }
+      .layer-ky-hieu { fill: #ef4444; stroke: #ffffff; stroke-width: 1.2; }
+      .layer-ky-hieu-text { font-size: 11px; fill: #0f172a; font-weight: bold; }
+      .layer-kich-thuoc { font-size: 10px; fill: #b45309; font-weight: bold; }
+      .layer-dien-tich { font-size: 13px; fill: #0369a1; font-weight: bold; }
+      .layer-bang-ke { fill: none; stroke: #cbd5e1; stroke-width: 1; }
+      .layer-bang-ke-text { font-size: 11px; fill: #1e293b; }
+      .layer-khung-ten { fill: none; stroke: #0f172a; stroke-width: 1.5; }
+      .layer-khung-ten-text { font-size: 11px; fill: #0f172a; }
       .bg { fill: #FFFDE7; }
-      .grid { stroke: #B0BEC5; stroke-width: 0.3; stroke-dasharray: 4,4; }
+      .grid { stroke: #B0BEC580; stroke-width: 0.5; stroke-dasharray: 4,4; }
     </style>
   </defs>
-  <!-- Nền vàng nhạt giấy in địa chính -->
+  <!-- Nền vàng nhạt giấy in địa chính sang trọng -->
   <rect class="bg" x="0" y="0" width="${svgW}" height="${svgH}"/>
 
-  <!-- Khung ngoài bản vẽ -->
-  <rect x="10" y="10" width="${svgW-20}" height="${svgH-20}" fill="none" stroke="#000" stroke-width="2"/>
-  <rect x="15" y="15" width="${svgW-30}" height="${svgH-30}" fill="none" stroke="#000" stroke-width="0.5"/>
+  <!-- Lưới tọa độ thực địa -->
+`;
+        const gridInt = meta.scaleVal >= 2000 ? 100 : meta.scaleVal >= 1000 ? 50 : 20;
+        for (let gx = Math.floor(minX / gridInt) * gridInt; gx <= maxX + gridInt; gx += gridInt) {
+            svgContent += `  <line class="grid" x1="${toSvgX(gx).toFixed(1)}" y1="${pad}" x2="${toSvgX(gx).toFixed(1)}" y2="${mapH - pad}"/>\n`;
+        }
+        for (let gy = Math.floor(minY / gridInt) * gridInt; gy <= maxY + gridInt; gy += gridInt) {
+            svgContent += `  <line class="grid" x1="${pad}" y1="${toSvgY(gy).toFixed(1)}" x2="${svgW - pad}" y2="${toSvgY(gy).toFixed(1)}"/>\n`;
+        }
+
+        svgContent += `
+  <!-- Khung ngoài bản vẽ TCVN -->
+  <rect x="20" y="20" width="${svgW-40}" height="${svgH-40}" fill="none" stroke="#000" stroke-width="2.5"/>
+  <rect x="26" y="26" width="${svgW-52}" height="${svgH-52}" fill="none" stroke="#000" stroke-width="0.8"/>
 
 `;
 
         // Vẽ các đối tượng được chọn
-        selectedShapes.forEach((shape) => {
+        selectedShapes.forEach((shape, shapeIdx) => {
             const pts = shape.vertices;
             if (pts.length < 2) return;
             const isClosed = shape.mode === 'polygon' && pts.length >= 3;
@@ -13643,7 +13803,7 @@ const appCadTool = {
 
             if (meta.showBoundaries !== false) {
                 if (isClosed) {
-                    svgContent += `  <polygon class="layer-ranh" points="${svgPts}" fill="${shape.color}22"/>\n`;
+                    svgContent += `  <polygon class="layer-ranh" points="${svgPts}" fill="${shape.color || '#38bdf8'}30"/>\n`;
                 } else {
                     svgContent += `  <polyline class="layer-ranh" points="${svgPts}"/>\n`;
                 }
@@ -13651,11 +13811,11 @@ const appCadTool = {
 
             // Điểm mốc & ký hiệu đỉnh
             if (meta.showVertices !== false) {
-                pts.forEach((p) => {
+                pts.forEach((p, idx) => {
                     const sx2 = toSvgX(p.y);
                     const sy2 = toSvgY(p.x);
-                    svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="3"/>\n`;
-                    svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 4).toFixed(1)}" y="${(sy2 - 4).toFixed(1)}" font-size="10" fill="#0f172a" font-weight="bold">${p.name || ''}</text>\n`;
+                    svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="4"/>\n`;
+                    svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}">${p.name || ('Đ' + (idx+1))}</text>\n`;
                 });
             }
 
@@ -13667,7 +13827,7 @@ const appCadTool = {
                     const p2 = pts[(idx + 1) % pts.length];
                     const mx = toSvgX((p1.y + p2.y) / 2);
                     const my = toSvgY((p1.x + p2.x) / 2);
-                    svgContent += `  <text class="layer-kich-thuoc" x="${mx.toFixed(1)}" y="${(my-3).toFixed(1)}" text-anchor="middle">${edge.lengthFormatted}m</text>\n`;
+                    svgContent += `  <text class="layer-kich-thuoc" x="${mx.toFixed(1)}" y="${(my-4).toFixed(1)}" text-anchor="middle">${edge.lengthFormatted}m</text>\n`;
                 });
             }
 
@@ -13676,21 +13836,21 @@ const appCadTool = {
                 const center = this.calculatePolygonVisualCenter(pts.map(p => ({ x: p.y, y: p.x })));
                 const cx = center.x;
                 const cy = center.y;
-                const blockSymbol = shape.symbol ? shape.symbol : String(idx + 1);
+                const blockSymbol = shape.symbol ? shape.symbol : String(shapeIdx + 1);
                 if (showBlockInfo) {
                     let pctStr = '';
                     if (showPercent && baseProjectArea > 0) {
                         pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
                     }
-                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) - 7).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="bold" fill="#0D47A1">[${blockSymbol}] ${shape.name}</text>\n`;
-                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 7).toFixed(1)}" text-anchor="middle" font-size="10" fill="#6A1B9A">S=${stats.areaFormatted}m²${pctStr}</text>\n`;
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) - 8).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="bold" fill="#0D47A1">[${blockSymbol}] ${shape.name}</text>\n`;
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="#6A1B9A">S=${stats.areaFormatted}m²${pctStr}</text>\n`;
                 } else {
-                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${toSvgY(cy).toFixed(1)}" text-anchor="middle" font-size="14" font-weight="bold" fill="#0D47A1">${blockSymbol}</text>\n`;
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 5).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="bold" fill="#0D47A1">${blockSymbol}</text>\n`;
                 }
             } else if (!isClosed && shape.mode !== 'polygon') {
                 const midIdx = Math.floor(pts.length / 2);
                 const mp = pts[midIdx] || pts[0];
-                svgContent += `  <text class="layer-dien-tich" x="${toSvgX(mp.y).toFixed(1)}" y="${toSvgY(mp.x).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="bold" fill="#0D47A1">${shape.name}</text>\n`;
+                svgContent += `  <text class="layer-dien-tich" x="${toSvgX(mp.y).toFixed(1)}" y="${toSvgY(mp.x).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="bold" fill="#0D47A1">${shape.name}</text>\n`;
             }
         });
 
@@ -13703,17 +13863,17 @@ const appCadTool = {
                         const vnEnd = convertWgsToVn2k(ann.endLat, ann.endLng, AppState.kttVal, AppState.scaleFactor);
                         const x1 = toSvgX(vnStart.Y), y1 = toSvgY(vnStart.X);
                         const x2 = toSvgX(vnEnd.Y), y2 = toSvgY(vnEnd.X);
-                        svgContent += '  <line x1="' + x2.toFixed(1) + '" y1="' + y2.toFixed(1) + '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '" stroke="' + (ann.color || '#f59e0b') + '" stroke-width="1.5" stroke-dasharray="3,3"/>\n';
-                        svgContent += '  <circle cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="3" fill="' + (ann.color || '#f59e0b') + '"/>\n';
-                        svgContent += '  <text x="' + (x2 + 4).toFixed(1) + '" y="' + (y2 - 3).toFixed(1) + '" font-size="' + (ann.fontSize || 11) + '" font-weight="bold" fill="#0f172a">' + (ann.arrowText || 'Ghi chú') + '</text>\n';
+                        svgContent += '  <line x1="' + x2.toFixed(1) + '" y1="' + y2.toFixed(1) + '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '" stroke="' + (ann.color || '#f59e0b') + '" stroke-width="2" stroke-dasharray="4,4"/>\n';
+                        svgContent += '  <circle cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="4" fill="' + (ann.color || '#f59e0b') + '"/>\n';
+                        svgContent += '  <text x="' + (x2 + 6).toFixed(1) + '" y="' + (y2 - 4).toFixed(1) + '" font-size="' + (ann.fontSize || 12) + '" font-weight="bold" fill="#0f172a">' + (ann.arrowText || 'Ghi chú') + '</text>\n';
                         break;
                     }
                     case 'north_arrow': {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
-                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="16" fill="#fff" stroke="' + (ann.color || '#38bdf8') + '" stroke-width="2"/>\n';
-                        svgContent += '  <polygon points="' + cx.toFixed(1) + ',' + (cy-13).toFixed(1) + ' ' + (cx-5).toFixed(1) + ',' + cy.toFixed(1) + ' ' + (cx+5).toFixed(1) + ',' + cy.toFixed(1) + '" fill="#e11d48"/>\n';
-                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+11).toFixed(1) + '" font-size="10" font-weight="bold" text-anchor="middle" fill="#0284c7">N</text>\n';
+                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="18" fill="#fff" stroke="' + (ann.color || '#38bdf8') + '" stroke-width="2"/>\n';
+                        svgContent += '  <polygon points="' + cx.toFixed(1) + ',' + (cy-15).toFixed(1) + ' ' + (cx-6).toFixed(1) + ',' + cy.toFixed(1) + ' ' + (cx+6).toFixed(1) + ',' + cy.toFixed(1) + '" fill="#e11d48"/>\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+13).toFixed(1) + '" font-size="11" font-weight="bold" text-anchor="middle" fill="#0284c7">N</text>\n';
                         break;
                     }
                     case 'rect': {
@@ -13722,11 +13882,11 @@ const appCadTool = {
                                 const vn = convertWgsToVn2k(c[0], c[1], AppState.kttVal, AppState.scaleFactor);
                                 return toSvgX(vn.Y).toFixed(1) + ',' + toSvgY(vn.X).toFixed(1);
                             }).join(' ');
-                            svgContent += '  <polygon points="' + pts + '" fill="' + (ann.color || '#ec4899') + '33" stroke="' + (ann.color || '#ec4899') + '" stroke-width="1.8"/>\n';
+                            svgContent += '  <polygon points="' + pts + '" fill="' + (ann.color || '#ec4899') + '33" stroke="' + (ann.color || '#ec4899') + '" stroke-width="2"/>\n';
                             const vnC = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                             const cx = toSvgX(vnC.Y), cy = toSvgY(vnC.X);
-                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy-4).toFixed(1) + '" font-size="10" font-weight="bold" text-anchor="middle" fill="#831843">' + (ann.rectName || 'Khối nhà') + '</text>\n';
-                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+8).toFixed(1) + '" font-size="8.5" text-anchor="middle" fill="#9d174d">' + ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)</text>\n';
+                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy-4).toFixed(1) + '" font-size="11" font-weight="bold" text-anchor="middle" fill="#831843">' + (ann.rectName || 'Khối nhà') + '</text>\n';
+                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+10).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#9d174d">' + ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)</text>\n';
                         }
                         break;
                     }
@@ -13734,112 +13894,127 @@ const appCadTool = {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
                         const r_px = (ann.radiusM || 10) * sc;
-                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + r_px.toFixed(1) + '" fill="' + (ann.color || '#10b981') + '22" stroke="' + (ann.color || '#10b981') + '" stroke-width="1.5" stroke-dasharray="4,4"/>\n';
-                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="9" font-weight="bold" text-anchor="middle" fill="#065f46">' + (ann.circleName || 'Vùng bảo vệ') + ' (R=' + ann.radiusM + 'm)</text>\n';
+                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + r_px.toFixed(1) + '" fill="' + (ann.color || '#10b981') + '22" stroke="' + (ann.color || '#10b981') + '" stroke-width="1.8" stroke-dasharray="4,4"/>\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="10" font-weight="bold" text-anchor="middle" fill="#065f46">' + (ann.circleName || 'Vùng bảo vệ') + ' (R=' + ann.radiusM + 'm)</text>\n';
                         break;
                     }
                     case 'stamp': {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
-                        const stW = 100, stH = 60;
+                        const stW = 120, stH = 70;
                         const left = cx - stW / 2, top = cy - stH / 2;
-                        svgContent += '  <rect x="' + left.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + stW + '" height="' + stH + '" rx="4" fill="#ffffff" stroke="' + (ann.color || '#0284c7') + '" stroke-width="1.8"/>\n';
-                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+14).toFixed(1) + '" font-size="9.5" font-weight="bold" fill="#0369a1">TỜ: ' + (ann.sheetNo || '01') + ' - THỬA: ' + (ann.parcelNo || '01') + '</text>\n';
-                        svgContent += '  <line x1="' + left.toFixed(1) + '" y1="' + (top+18).toFixed(1) + '" x2="' + (left+stW).toFixed(1) + '" y2="' + (top+18).toFixed(1) + '" stroke="#cbd5e1" stroke-width="0.8"/>\n';
-                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+30).toFixed(1) + '" font-size="8.5" fill="#0f172a">DT: ' + (ann.area || '--') + '</text>\n';
-                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+42).toFixed(1) + '" font-size="8.5" fill="#0f172a">Chủ: ' + (ann.owner || '--') + '</text>\n';
-                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+54).toFixed(1) + '" font-size="8.5" fill="#0f172a">Loại: ' + (ann.landType || '--') + '</text>\n';
+                        svgContent += '  <rect x="' + left.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + stW + '" height="' + stH + '" rx="5" fill="#ffffff" stroke="' + (ann.color || '#0284c7') + '" stroke-width="2"/>\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+16).toFixed(1) + '" font-size="10.5" font-weight="bold" fill="#0369a1">TỜ: ' + (ann.sheetNo || '01') + ' - THỬA: ' + (ann.parcelNo || '01') + '</text>\n';
+                        svgContent += '  <line x1="' + left.toFixed(1) + '" y1="' + (top+22).toFixed(1) + '" x2="' + (left+stW).toFixed(1) + '" y2="' + (top+22).toFixed(1) + '" stroke="#cbd5e1" stroke-width="1"/>\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+36).toFixed(1) + '" font-size="9.5" fill="#0f172a">DT: ' + (ann.area || '--') + '</text>\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+50).toFixed(1) + '" font-size="9.5" fill="#0f172a">Chủ: ' + (ann.owner || '--') + '</text>\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+64).toFixed(1) + '" font-size="9.5" fill="#0f172a">Loại: ' + (ann.landType || '--') + '</text>\n';
                         break;
                     }
                     case 'text': {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
-                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="' + (ann.fontSize || 12) + '" font-weight="bold" fill="' + (ann.color || '#0f172a') + '">' + (ann.text || 'Ghi chú') + '</text>\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="' + (ann.fontSize || 13) + '" font-weight="bold" fill="' + (ann.color || '#0f172a') + '">' + (ann.text || 'Ghi chú') + '</text>\n';
                         break;
                     }
                 }
             });
         }
 
-        // North Arrow
-        const naXs = svgW - 70, naYs = 80;
-        svgContent += `  <line x1="${naXs}" y1="${naYs+40}" x2="${naXs}" y2="${naYs}" stroke="#1565C0" stroke-width="2"/>
-  <polygon points="${naXs},${naYs-5} ${naXs-6},${naYs+10} ${naXs+6},${naYs+10}" fill="#1565C0"/>
-  <text x="${naXs}" y="${naYs-10}" text-anchor="middle" font-size="12" font-weight="bold" fill="#1565C0">N</text>
-  <text x="${naXs}" y="${naYs+55}" text-anchor="middle" font-size="9" fill="#666">Bắc</text>\n`;
+        // Kim chỉ hướng Bắc
+        const naXs = svgW - 80, naYs = 90;
+        svgContent += `  <circle cx="${naXs}" cy="${naYs+20}" r="22" fill="#ffffff" stroke="#1565C0" stroke-width="2"/>
+  <polygon points="${naXs},${naYs-5} ${naXs-7},${naYs+18} ${naXs+7},${naYs+18}" fill="#e11d48"/>
+  <text x="${naXs}" y="${naYs+36}" text-anchor="middle" font-size="13" font-weight="bold" fill="#0284c7">N</text>
+  <text x="${naXs}" y="${naYs+52}" text-anchor="middle" font-size="9.5" fill="#666">Bắc</text>\n`;
 
-        // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐÃ LOẠI BỎ SỐ ĐỈNH, TRÌNH BÀY GỌN GÀNG CÓ KẺ DỌC)
-        const tblY = svgH - 170 - summaryTableH;
-        const colX_Name = 70;
-        const colX_AreaM2 = 450;
-        const colX_AreaHa = 590;
-        const colX_Pct = 710;
-        const tableRight = svgW - 20;
+        // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT TRÊN KHUNG TÊN - XUỐNG DÒNG ĐẦY ĐỦ KHÔNG BỊ CẮT "...")
+        const tblY = mapH + 30;
+        const colX_Name = 80;
+        const colX_AreaM2 = 620;
+        const colX_AreaHa = 820;
+        const colX_Pct = 1010;
+        const tableRight = svgW - 30;
 
         svgContent += `  <!-- BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT -->
-  <text x="25" y="${tblY - 6}" font-size="11" font-weight="bold" fill="#0D47A1">BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT (TCVN)</text>
-  <rect class="layer-bang-ke" x="20" y="${tblY}" width="${svgW - 40}" height="${summaryTableH}"/>
-  <line class="layer-bang-ke" x1="20" y1="${tblY + 22}" x2="${tableRight}" y2="${tblY + 22}"/>
+  <text x="35" y="${tblY - 8}" font-size="13" font-weight="bold" fill="#0D47A1">BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT (TCVN)</text>
+  <rect class="layer-bang-ke" x="30" y="${tblY}" width="${svgW - 60}" height="${summaryTableH}" fill="#ffffff"/>
+  <rect x="30" y="${tblY}" width="${svgW - 60}" height="26" fill="#E3F2FD"/>
+  <line class="layer-bang-ke" x1="30" y1="${tblY + 26}" x2="${tableRight}" y2="${tblY + 26}"/>
   <line class="layer-bang-ke" x1="${colX_Name}" y1="${tblY}" x2="${colX_Name}" y2="${tblY + summaryTableH}"/>
   <line class="layer-bang-ke" x1="${colX_AreaM2}" y1="${tblY}" x2="${colX_AreaM2}" y2="${tblY + summaryTableH}"/>
   <line class="layer-bang-ke" x1="${colX_AreaHa}" y1="${tblY}" x2="${colX_AreaHa}" y2="${tblY + summaryTableH}"/>
   ${showPercent ? `<line class="layer-bang-ke" x1="${colX_Pct}" y1="${tblY}" x2="${colX_Pct}" y2="${tblY + summaryTableH}"/>` : ''}
+
+  <!-- Header bảng -->
+  <text class="layer-bang-ke-text" x="45" y="${tblY + 18}" font-weight="bold" fill="#0D47A1">STT</text>
+  <text class="layer-bang-ke-text" x="95" y="${tblY + 18}" font-weight="bold" fill="#0D47A1">Ký hiệu & Tên khối / thửa</text>
+  <text class="layer-bang-ke-text" x="${colX_AreaM2 + 15}" y="${tblY + 18}" font-weight="bold" fill="#0D47A1">Diện tích (m²)</text>
+  <text class="layer-bang-ke-text" x="${colX_AreaHa + 15}" y="${tblY + 18}" font-weight="bold" fill="#0D47A1">Diện tích (ha)</text>
+  ${showPercent ? `<text class="layer-bang-ke-text" x="${colX_Pct + 15}" y="${tblY + 18}" font-weight="bold" fill="#0D47A1">Tỉ lệ (%)</text>` : ''}
 `;
-        // Header bảng (Đã bỏ cột Số đỉnh, phân chia rõ ràng)
-        svgContent += `  <text class="layer-bang-ke-text" x="35" y="${tblY + 15}" font-weight="bold">STT</text>
-  <text class="layer-bang-ke-text" x="80" y="${tblY + 15}" font-weight="bold">Ký hiệu & Tên khối / thửa</text>
-  <text class="layer-bang-ke-text" x="465" y="${tblY + 15}" font-weight="bold">Diện tích (m²)</text>
-  <text class="layer-bang-ke-text" x="605" y="${tblY + 15}" font-weight="bold">Diện tích (ha)</text>
-  ${showPercent ? `<text class="layer-bang-ke-text" x="725" y="${tblY + 15}" font-weight="bold">Tỉ lệ (%)</text>` : ''}
-`;
-        let curY = tblY + 22;
-        selectedShapes.forEach((s, idx) => {
+
+        let curY = tblY + 26;
+        svgRowInfos.forEach((r, idx) => {
+            const s = r.shape;
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
-            curY += 20;
-            const displayName = s.symbol ? `[${s.symbol}] ${s.name}` : s.name;
-            const safeName = displayName.length > 42 ? displayName.slice(0, 40) + '...' : displayName;
-            svgContent += `  <line class="layer-bang-ke" x1="20" y1="${curY}" x2="${tableRight}" y2="${curY}"/>
-  <text class="layer-bang-ke-text" x="35" y="${curY - 6}">${idx + 1}</text>
-  <text class="layer-bang-ke-text" x="80" y="${curY - 6}" font-weight="bold">${safeName}</text>
-  <text class="layer-bang-ke-text" x="465" y="${curY - 6}" font-weight="bold">${isPoly ? area.toFixed(2) : '--'}</text>
-  <text class="layer-bang-ke-text" x="605" y="${curY - 6}">${isPoly ? (area/10000).toFixed(4) : '--'}</text>
-  ${showPercent ? `<text class="layer-bang-ke-text" x="725" y="${curY - 6}" font-weight="bold" fill="#E65100">${pctStr}</text>` : ''}
-`;
+            const rowBottom = curY + r.rowH;
+
+            svgContent += `  <line class="layer-bang-ke" x1="30" y1="${rowBottom}" x2="${tableRight}" y2="${rowBottom}"/>\n`;
+            svgContent += `  <text class="layer-bang-ke-text" x="45" y="${curY + 17}">${idx + 1}</text>\n`;
+            
+            // Xuống dòng tên khối bằng tspan, bảo toàn 100% ký tự
+            svgContent += `  <text class="layer-bang-ke-text" x="95" y="${curY + 17}" font-weight="bold">\n`;
+            r.lines.forEach((l, lIdx) => {
+                if (lIdx === 0) {
+                    svgContent += `    <tspan x="95">${l}</tspan>\n`;
+                } else {
+                    svgContent += `    <tspan x="95" dy="14">${l}</tspan>\n`;
+                }
+            });
+            svgContent += `  </text>\n`;
+
+            svgContent += `  <text class="layer-bang-ke-text" x="${colX_AreaM2 + 15}" y="${curY + 17}" font-weight="bold">${isPoly ? area.toFixed(2) : '--'}</text>\n`;
+            svgContent += `  <text class="layer-bang-ke-text" x="${colX_AreaHa + 15}" y="${curY + 17}">${isPoly ? (area/10000).toFixed(4) : '--'}</text>\n`;
+            if (showPercent) {
+                svgContent += `  <text class="layer-bang-ke-text" x="${colX_Pct + 15}" y="${curY + 17}" font-weight="bold" fill="#E65100">${pctStr}</text>\n`;
+            }
+            curY = rowBottom;
         });
 
         // Hàng tổng cộng
-        curY += 20;
+        curY += 26;
         const totalPctStr = (baseProjectArea > 0) ? ((measuredTotalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
-        svgContent += `  <line class="layer-bang-ke" x1="20" y1="${curY}" x2="${tableRight}" y2="${curY}"/>
-  <text class="layer-bang-ke-text" x="80" y="${curY - 6}" font-weight="bold" fill="#0D47A1">TỔNG CỘNG (${selectedShapes.length} KHỐI)</text>
-  <text class="layer-bang-ke-text" x="465" y="${curY - 6}" font-weight="bold" fill="#1B5E20">${measuredTotalArea.toFixed(2)}</text>
-  <text class="layer-bang-ke-text" x="605" y="${curY - 6}" font-weight="bold" fill="#1B5E20">${(measuredTotalArea/10000).toFixed(4)}</text>
-  ${showPercent ? `<text class="layer-bang-ke-text" x="725" y="${curY - 6}" font-weight="bold" fill="#E65100">${totalPctStr}</text>` : ''}
+        svgContent += `  <line class="layer-bang-ke" x1="30" y1="${curY}" x2="${tableRight}" y2="${curY}"/>
+  <text class="layer-bang-ke-text" x="95" y="${curY - 8}" font-weight="bold" fill="#0D47A1">TỔNG CỘNG (${selectedShapes.length} KHỐI)</text>
+  <text class="layer-bang-ke-text" x="${colX_AreaM2 + 15}" y="${curY - 8}" font-weight="bold" fill="#1B5E20">${measuredTotalArea.toFixed(2)}</text>
+  <text class="layer-bang-ke-text" x="${colX_AreaHa + 15}" y="${curY - 8}" font-weight="bold" fill="#1B5E20">${(measuredTotalArea/10000).toFixed(4)}</text>
+  ${showPercent ? `<text class="layer-bang-ke-text" x="${colX_Pct + 15}" y="${curY - 8}" font-weight="bold" fill="#E65100">${totalPctStr}</text>` : ''}
 `;
 
-        // Khung tên dưới cùng
-        const khy = svgH - 165;
+        // Khung tên dưới cùng chuẩn TCVN 7285
+        const khy = svgH - 180;
         svgContent += `  <!-- Khung tên bản vẽ chuẩn TCVN 7285 -->
-  <rect class="layer-khung-ten" x="20" y="${khy}" width="${svgW-40}" height="145"/>
-  <line class="layer-khung-ten" x1="20" y1="${khy+30}" x2="${svgW-20}" y2="${khy+30}"/>
-  <line class="layer-khung-ten" x1="20" y1="${khy+70}" x2="${svgW-20}" y2="${khy+70}"/>
-  <line class="layer-khung-ten" x1="${(svgW-40)*0.55+20}" y1="${khy+70}" x2="${(svgW-40)*0.55+20}" y2="${khy+145}"/>
+  <rect class="layer-khung-ten" x="30" y="${khy}" width="${svgW-60}" height="150" fill="#ffffff"/>
+  <line class="layer-khung-ten" x1="30" y1="${khy+30}" x2="${svgW-30}" y2="${khy+30}"/>
+  <line class="layer-khung-ten" x1="30" y1="${khy+70}" x2="${svgW-30}" y2="${khy+70}"/>
+  <line class="layer-khung-ten" x1="${(svgW-60)*0.55+30}" y1="${khy+70}" x2="${(svgW-60)*0.55+30}" y2="${khy+150}"/>
 
-  <text class="layer-khung-ten-text" x="30" y="${khy+20}" font-weight="bold">${(meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI').toUpperCase()}</text>
-  <text class="layer-khung-ten-text" x="30" y="${khy+50}" font-weight="bold" font-size="13">${(meta.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT').toUpperCase()}</text>
-  <text class="layer-khung-ten-text" x="30" y="${khy+64}" font-size="10">DỰ ÁN: ${(meta.projectName || '').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+20}" font-weight="bold">${(meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+50}" font-weight="bold" font-size="14">${(meta.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+65}" font-size="10.5">DỰ ÁN: ${(meta.projectName || '').toUpperCase()}</text>
 
-  <text class="layer-khung-ten-text" x="30" y="${khy+88}" font-size="10">Hệ tọa độ: VN-2000 (${AppState.provinceName || 'Tỉnh'})</text>
-  <text class="layer-khung-ten-text" x="30" y="${khy+103}" font-size="10">KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)</text>
-  <text class="layer-khung-ten-text" x="30" y="${khy+118}" font-size="10">Người đo: ${(meta.surveyor || '').toUpperCase()}</text>
-  <text class="layer-khung-ten-text" x="30" y="${khy+133}" font-size="10">Kiểm tra: ${(meta.checker || '').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+90}" font-size="10.5">Hệ tọa độ: VN-2000 (${AppState.provinceName || 'Tỉnh'})</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+106}" font-size="10.5">KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+122}" font-size="10.5">Người đo: ${(meta.surveyor || '').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+138}" font-size="10.5">Kiểm tra: ${(meta.checker || '').toUpperCase()}</text>
 
-  <text class="layer-khung-ten-text" x="${(svgW-40)*0.55+30}" y="${khy+88}" font-size="10">Tỷ lệ: 1:${meta.scaleVal}</text>
-  <text class="layer-khung-ten-text" x="${(svgW-40)*0.55+30}" y="${khy+103}" font-size="10">Số tờ/thửa: ${meta.parcelNo || '01'}</text>
-  <text class="layer-khung-ten-text" x="${(svgW-40)*0.55+30}" y="${khy+118}" font-size="10">Ngày: ${meta.drawingDate}</text>
-  <text class="layer-khung-ten-text" x="${(svgW-40)*0.55+30}" y="${khy+133}" font-size="10">Số đối tượng: ${selectedShapes.length}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+90}" font-size="10.5">Tỷ lệ: 1:${meta.scaleVal}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+106}" font-size="10.5">Số tờ/thửa: ${meta.parcelNo || '01'}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+122}" font-size="10.5">Ngày: ${meta.drawingDate}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+138}" font-size="10.5">Số đối tượng: ${selectedShapes.length}</text>
 </svg>`;
 
         const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
@@ -13851,7 +14026,7 @@ const appCadTool = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất bản vẽ SVG Vector kèm bảng tổng hợp: ${projName}_BanDo_1-${meta.scaleVal}.svg`);
+        showToast(`✓ Đã xuất bản vẽ SVG Vector độ nét cao: ${projName}_BanDo_1-${meta.scaleVal}.svg`);
     },
 
     exportPng() {
@@ -13883,7 +14058,40 @@ const appCadTool = {
         const baseProjectArea = (meta.customTotalArea && meta.customTotalArea > 0) ? meta.customTotalArea : measuredTotalArea;
         const showPercent = meta.showPercent !== false;
 
-        const summaryTableH = (selectedShapes.length + 3) * 26;
+        function wrapPngLines(txt, maxW, fontCtx) {
+            if (!txt) return [''];
+            const str = String(txt).trim();
+            if (fontCtx.measureText(str).width <= maxW) return [str];
+            const words = str.split(/\s+/);
+            const lines = [];
+            let cur = '';
+            for (let i = 0; i < words.length; i++) {
+                const w = words[i];
+                const test = cur ? (cur + ' ' + w) : w;
+                if (fontCtx.measureText(test).width <= maxW) {
+                    cur = test;
+                } else {
+                    if (cur) lines.push(cur);
+                    cur = w;
+                }
+            }
+            if (cur) lines.push(cur);
+            return lines.length > 0 ? lines : [''];
+        }
+
+        // Tạo canvas tạm để đo chữ chính xác
+        const measureCanvas = document.createElement('canvas');
+        const measureCtx = measureCanvas.getContext('2d');
+        measureCtx.font = 'bold 11.5px Arial';
+
+        const pngRowInfos = selectedShapes.map((s, idx) => {
+            const displayName = s.symbol ? `[${s.symbol}] ${s.name}` : (s.name || `Thửa ${idx + 1}`);
+            const lines = wrapPngLines(displayName, 500, measureCtx);
+            const rowH = Math.max(26, 8 + lines.length * 15);
+            return { shape: s, displayName, lines, rowH };
+        });
+        const summaryTableH = 26 + pngRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+
         const W = 1200;
         const H = Math.round(W * spanY / spanX) + 380 + summaryTableH;
         const canvas = document.createElement('canvas');
@@ -14019,29 +14227,34 @@ const appCadTool = {
         if (showPercent) ctx.fillText('Tỉ lệ (%)', 1010, tblY + 18);
 
         let rowY = tblY + 26;
-        selectedShapes.forEach((s, idx) => {
+        pngRowInfos.forEach((r, idx) => {
+            const s = r.shape;
             const isPoly = s.mode === 'polygon';
             const area = s.stats?.area || 0;
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
+            const rowBottom = rowY + r.rowH;
 
-            rowY += 26;
-            ctx.beginPath(); ctx.moveTo(30, rowY); ctx.lineTo(W - 30, rowY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(30, rowBottom); ctx.lineTo(W - 30, rowBottom); ctx.stroke();
 
             ctx.fillStyle = '#333';
             ctx.font = '11.5px Arial';
-            ctx.fillText(String(idx + 1), 45, rowY - 8);
+            ctx.fillText(String(idx + 1), 45, rowY + 17);
+
+            // Xuống dòng tên khối/thửa trên PNG không xóa mất ký tự
             ctx.font = 'bold 11.5px Arial';
-            const displayName = s.symbol ? `[${s.symbol}] ${s.name}` : s.name;
-            ctx.fillText(displayName, 100, rowY - 8);
-            ctx.font = 'bold 11.5px Arial';
-            ctx.fillText(isPoly ? area.toFixed(2) : '--', 620, rowY - 8);
+            r.lines.forEach((l, lIdx) => {
+                ctx.fillText(l, 100, rowY + 17 + lIdx * 15);
+            });
+
+            ctx.fillText(isPoly ? area.toFixed(2) : '--', 620, rowY + 17);
             ctx.font = '11.5px Arial';
-            ctx.fillText(isPoly ? (area / 10000).toFixed(4) : '--', 820, rowY - 8);
+            ctx.fillText(isPoly ? (area / 10000).toFixed(4) : '--', 820, rowY + 17);
             if (showPercent) {
                 ctx.fillStyle = '#E65100';
                 ctx.font = 'bold 11.5px Arial';
-                ctx.fillText(pctStr, 1010, rowY - 8);
+                ctx.fillText(pctStr, 1010, rowY + 17);
             }
+            rowY = rowBottom;
         });
 
         // Hàng tổng cộng
