@@ -3956,13 +3956,227 @@ function doGet(e) {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target.result;
-            appData.processImportedText(text, file.name);
-        };
-        reader.readAsText(file, "UTF-8");
+        const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+        if (isExcel && typeof XLSX !== 'undefined') {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const buffer = e.target.result;
+                    const wb = XLSX.read(buffer, { type: 'array' });
+                    const points = appData.extractPointsFromWorkbook(wb);
+                    if (points && points.length > 0) {
+                        appData.saveImportedPoints(points, file.name);
+                    } else {
+                        // Thử đọc sheet đầu tiên dạng CSV
+                        const firstSheet = wb.Sheets[wb.SheetNames[0]];
+                        const csv = XLSX.utils.sheet_to_csv(firstSheet);
+                        appData.processImportedText(csv, file.name);
+                    }
+                } catch (err) {
+                    console.error("Lỗi đọc Excel dự án:", err);
+                    showToast("❌ Không thể đọc file Excel: " + (err.message || err), true);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                // Nếu file .xls xuất từ MiniCAD/HTML table
+                if (text && text.includes('<table') && typeof XLSX !== 'undefined') {
+                    try {
+                        const wb = XLSX.read(text, { type: 'string' });
+                        const points = appData.extractPointsFromWorkbook(wb);
+                        if (points && points.length > 0) {
+                            return appData.saveImportedPoints(points, file.name);
+                        }
+                    } catch(err) {}
+                }
+                appData.processImportedText(text, file.name);
+            };
+            reader.readAsText(file, "UTF-8");
+        }
         event.target.value = "";
+    },
+
+    extractPointsFromWorkbook(wb) {
+        const points = [];
+        const now = new Date().toLocaleString('vi-VN');
+
+        wb.SheetNames.forEach(sname => {
+            const sheet = wb.Sheets[sname];
+            if (!sheet) return;
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            if (!rows || rows.length < 2) return;
+
+            let colName = -1, colX = -1, colY = -1, colLat = -1, colLng = -1, colH = -1, colNote = -1;
+            let headerRowIdx = -1;
+
+            for (let r = 0; r < Math.min(rows.length, 10); r++) {
+                const row = rows[r];
+                if (!Array.isArray(row)) continue;
+
+                let tempColName = -1, tempColX = -1, tempColY = -1, tempColLat = -1, tempColLng = -1, tempColH = -1, tempColNote = -1;
+                row.forEach((cell, cIdx) => {
+                    const s = String(cell || '').toLowerCase().trim();
+                    if (tempColName === -1 && (s.includes('tên đỉnh') || s.includes('tên mốc') || s.includes('tên điểm') || s === 'đỉnh' || s === 'mốc' || s === 'điểm' || s === 'name' || s === 'point' || s === 'stt/tên')) {
+                        tempColName = cIdx;
+                    }
+                    if (tempColX === -1 && (s.includes('tọa độ x') || s.includes('x (bắc') || s.includes('x(bắc') || s.includes('x [m]') || s === 'x' || s.includes('north'))) {
+                        tempColX = cIdx;
+                    }
+                    if (tempColY === -1 && (s.includes('tọa độ y') || s.includes('y (đông') || s.includes('y(đông') || s.includes('y [m]') || s === 'y' || s.includes('east'))) {
+                        tempColY = cIdx;
+                    }
+                    if (tempColLat === -1 && (s.includes('vĩ độ') || s.includes('lat'))) {
+                        tempColLat = cIdx;
+                    }
+                    if (tempColLng === -1 && (s.includes('kinh độ') || s.includes('lng') || s.includes('lon') || s.includes('long'))) {
+                        tempColLng = cIdx;
+                    }
+                    if (tempColH === -1 && (s.includes('cao độ') || s.includes('h (m') || s === 'h' || s === 'z' || s === 'elev')) {
+                        tempColH = cIdx;
+                    }
+                    if (tempColNote === -1 && (s.includes('ghi chú') || s.includes('note') || s.includes('mô tả') || s.includes('desc'))) {
+                        tempColNote = cIdx;
+                    }
+                });
+
+                if ((tempColX !== -1 && tempColY !== -1) || (tempColLat !== -1 && tempColLng !== -1)) {
+                    headerRowIdx = r;
+                    colName = tempColName !== -1 ? tempColName : (colName !== -1 ? colName : 1);
+                    colX = tempColX;
+                    colY = tempColY;
+                    colLat = tempColLat;
+                    colLng = tempColLng;
+                    colH = tempColH;
+                    colNote = tempColNote;
+                    break;
+                }
+            }
+
+            if (headerRowIdx === -1) {
+                for (let r = 0; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row || row.length < 2) continue;
+                    for (let c = 0; c < row.length - 1; c++) {
+                        const v1 = parseFloat(String(row[c]).replace(',', '.'));
+                        const v2 = parseFloat(String(row[c+1]).replace(',', '.'));
+                        if (!isNaN(v1) && !isNaN(v2) && v1 > 1000 && v2 > 1000) {
+                            colX = c;
+                            colY = c + 1;
+                            colName = (c > 0) ? (c - 1) : 0;
+                            headerRowIdx = r - 1;
+                            break;
+                        } else if (!isNaN(v1) && !isNaN(v2) && v1 >= 8 && v1 <= 24 && v2 >= 102 && v2 <= 110) {
+                            colLat = c;
+                            colLng = c + 1;
+                            colName = (c > 0) ? (c - 1) : 0;
+                            headerRowIdx = r - 1;
+                            break;
+                        }
+                    }
+                    if (headerRowIdx !== -1) break;
+                }
+            }
+
+            if (headerRowIdx === -1) return;
+
+            for (let r = headerRowIdx + 1; r < rows.length; r++) {
+                const row = rows[r];
+                if (!Array.isArray(row) || row.length === 0) continue;
+
+                const rowText = row.join(' ').toLowerCase();
+                if (rowText.includes('tổng cộng') || rowText.includes('tiểu kế')) continue;
+
+                let name = (colName !== -1 && row[colName] !== undefined && row[colName] !== '') ? String(row[colName]).trim() : `M${points.length + 1}`;
+                let x = (colX !== -1) ? parseFloat(String(row[colX]).replace(',', '.')) : 0;
+                let y = (colY !== -1) ? parseFloat(String(row[colY]).replace(',', '.')) : 0;
+                let lat = (colLat !== -1) ? parseFloat(String(row[colLat]).replace(',', '.')) : 0;
+                let lng = (colLng !== -1) ? parseFloat(String(row[colLng]).replace(',', '.')) : 0;
+                let h = (colH !== -1) ? parseFloat(String(row[colH]).replace(',', '.')) : 0;
+                let note = (colNote !== -1 && row[colNote] !== undefined) ? String(row[colNote]).trim() : "";
+
+                if (isNaN(x)) x = 0;
+                if (isNaN(y)) y = 0;
+                if (isNaN(lat)) lat = 0;
+                if (isNaN(lng)) lng = 0;
+                if (isNaN(h)) h = 0;
+
+                if ((x === 0 && y === 0) && (lat === 0 && lng === 0)) continue;
+
+                if ((lat === 0 && lng === 0) && (x !== 0 && y !== 0)) {
+                    try {
+                        const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                        lat = parseFloat(wgs.lat.toFixed(6));
+                        lng = parseFloat(wgs.lng.toFixed(6));
+                    } catch(e) {}
+                } else if ((x === 0 && y === 0) && (lat !== 0 && lng !== 0)) {
+                    try {
+                        const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        x = parseFloat(vn2k.X.toFixed(3));
+                        y = parseFloat(vn2k.Y.toFixed(3));
+                    } catch(e) {}
+                }
+
+                points.push({
+                    time: now,
+                    name: name,
+                    x: x,
+                    y: y,
+                    lat: lat,
+                    lng: lng,
+                    h: h,
+                    mui: AppState.muiVal,
+                    ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`,
+                    note: note
+                });
+            }
+        });
+
+        return points;
+    },
+
+    saveImportedPoints(parsedPoints, defaultName) {
+        if (!parsedPoints || parsedPoints.length === 0) {
+            return showToast("⚠️ Không nhận dạng được mốc tọa độ hợp lệ nào! Vui lòng kiểm tra lại file.", true);
+        }
+
+        const targetMode = document.querySelector('input[name="importTargetMode"]:checked')?.value || 'new';
+        let targetProj = AppState.currentProject;
+
+        if (targetMode === 'new') {
+            const inputName = document.getElementById('txtImportNewProjectName')?.value?.trim();
+            targetProj = inputName || defaultName || `DuAn_${Date.now().toString().slice(-4)}.csv`;
+            if (!targetProj.toLowerCase().endsWith('.csv')) targetProj += '.csv';
+
+            if (!AppState.projectsList.includes(targetProj)) {
+                AppState.projectsList.push(targetProj);
+                localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+            }
+            parsedPoints.forEach(p => { p.project = targetProj; });
+            appData.savePoints(targetProj, parsedPoints);
+        } else {
+            parsedPoints.forEach(p => { p.project = targetProj; });
+            const existing = appData.getPoints(targetProj);
+            parsedPoints.forEach(p => existing.push(p));
+            appData.savePoints(targetProj, existing);
+        }
+
+        AppState.currentProject = targetProj;
+        localStorage.setItem('vn2k_cur_project', targetProj);
+
+        appData.populateProjectSelect();
+        appNav.updateBanner();
+        if (AppState.currentScreen === 'datamgmt') {
+            appData.refreshTable();
+        }
+
+        appModal.closeImportProjectModal();
+        showToast(`✓ Đã nạp thành công ${parsedPoints.length} mốc vào dự án: ${targetProj}!`, true);
+
+        // Mở bản đồ và zoom bao quát các mốc vừa nạp
+        appNav.openProjectMap();
     },
 
     importManualPastedPoints() {
@@ -4063,41 +4277,7 @@ function doGet(e) {
             return showToast("⚠️ Không nhận dạng được mốc tọa độ hợp lệ nào! Vui lòng tải file mẫu để xem định dạng chuẩn.", true);
         }
 
-        const targetMode = document.querySelector('input[name="importTargetMode"]:checked')?.value || 'new';
-        let targetProj = AppState.currentProject;
-
-        if (targetMode === 'new') {
-            const inputName = document.getElementById('txtImportNewProjectName')?.value?.trim();
-            targetProj = inputName || defaultName || `DuAn_${Date.now().toString().slice(-4)}.csv`;
-            if (!targetProj.toLowerCase().endsWith('.csv')) targetProj += '.csv';
-
-            if (!AppState.projectsList.includes(targetProj)) {
-                AppState.projectsList.push(targetProj);
-                localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
-            }
-            parsedPoints.forEach(p => { p.project = targetProj; });
-            appData.savePoints(targetProj, parsedPoints);
-        } else {
-            parsedPoints.forEach(p => { p.project = targetProj; });
-            const existing = appData.getPoints(targetProj);
-            parsedPoints.forEach(p => existing.push(p));
-            appData.savePoints(targetProj, existing);
-        }
-
-        AppState.currentProject = targetProj;
-        localStorage.setItem('vn2k_cur_project', targetProj);
-
-        appData.populateProjectSelect();
-        appNav.updateBanner();
-        if (AppState.currentScreen === 'datamgmt') {
-            appData.refreshTable();
-        }
-
-        appModal.closeImportProjectModal();
-        showToast(`✓ Đã nạp thành công ${parsedPoints.length} mốc vào dự án: ${targetProj}!`, true);
-
-        // Mở bản đồ và zoom bao quát các mốc vừa nạp
-        appNav.openProjectMap();
+        appData.saveImportedPoints(parsedPoints, defaultName);
     }
 };
 
@@ -9276,6 +9456,380 @@ const appCadTool = {
     closeAreaTableModal() {
         const modal = document.getElementById('modalCadAreaTable');
         if (modal) modal.style.display = 'none';
+    },
+
+    // Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xls, .xlsx) hoặc CSV
+    importExcel(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const buffer = e.target.result;
+                let shapes = [];
+
+                if (typeof XLSX !== 'undefined') {
+                    const wb = XLSX.read(buffer, { type: 'array' });
+                    shapes = this._parseWorkbookToShapes(wb, file.name);
+                }
+
+                // Nếu không có kết quả từ SheetJS hoặc SheetJS chưa nạp, thử phân tích dạng text/HTML
+                if (!shapes || shapes.length === 0) {
+                    const text = new TextDecoder('utf-8').decode(buffer);
+                    if (text && (text.includes('<table') || text.includes(',') || text.includes(';'))) {
+                        shapes = this._parseHtmlOrTextToShapes(text, file.name);
+                    }
+                }
+
+                if (!shapes || shapes.length === 0) {
+                    showToast("⚠️ Không tìm thấy bảng kê tọa độ hợp lệ nào trong file Excel!", true);
+                    return;
+                }
+
+                this._applyImportedShapes(shapes, file.name);
+            } catch (err) {
+                console.error("Lỗi khi đọc file Excel:", err);
+                showToast("❌ Có lỗi xảy ra khi phân tích file Excel: " + (err.message || err), true);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+        event.target.value = "";
+    },
+
+    _parseWorkbookToShapes(wb, fileName = '') {
+        const shapes = [];
+
+        wb.SheetNames.forEach((sname, sheetIdx) => {
+            const sheet = wb.Sheets[sname];
+            if (!sheet) return;
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            if (!rows || rows.length < 2) return;
+
+            // Kiểm tra nếu sheet chỉ là Bảng tổng hợp diện tích không chứa tọa độ đỉnh
+            const firstFewRowsStr = rows.slice(0, 4).map(r => (r || []).join(' ')).join(' ').toLowerCase();
+            if (firstFewRowsStr.includes('bảng tổng hợp diện tích') || (firstFewRowsStr.includes('tổng hợp diện tích') && !firstFewRowsStr.includes('tọa độ x') && !firstFewRowsStr.includes('vĩ độ'))) {
+                let hasCoords = false;
+                for (let r = 0; r < Math.min(rows.length, 10); r++) {
+                    const rowStr = (rows[r] || []).join(' ').toLowerCase();
+                    if (rowStr.includes('tọa độ x') || rowStr.includes('x (bắc') || rowStr.includes('vĩ độ') || rowStr.includes('kinh độ')) {
+                        hasCoords = true;
+                        break;
+                    }
+                }
+                if (!hasCoords) {
+                    return; // Bỏ qua sheet tổng hợp
+                }
+            }
+
+            let currentShapeName = '';
+            let currentIsPoly = true;
+            let currentVertices = [];
+            let colName = -1, colX = -1, colY = -1, colLat = -1, colLng = -1, colShape = -1, colH = -1;
+            let hasHeader = false;
+
+            const flushCurrentShape = () => {
+                if (currentVertices.length >= 2) {
+                    const sName = currentShapeName || (shapes.length > 0 ? `Thửa ${shapes.length + 1}` : (sname !== 'Sheet1' ? sname : (fileName ? fileName.replace(/\.[^/.]+$/, '') : 'Thửa 1')));
+                    shapes.push({
+                        name: sName,
+                        mode: (currentVertices.length >= 3 && currentIsPoly) ? 'polygon' : 'polyline',
+                        vertices: currentVertices
+                    });
+                }
+                currentVertices = [];
+            };
+
+            for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                if (!Array.isArray(row) || row.length === 0) continue;
+
+                const nonEmpties = row.map(c => String(c !== null && c !== undefined ? c : '').trim()).filter(c => c !== '');
+                if (nonEmpties.length === 0) continue;
+
+                const fullRowText = nonEmpties.join(' ').toLowerCase();
+
+                // Kiểm tra dòng tiêu đề thửa/khối (banner row)
+                if (nonEmpties.length <= 2) {
+                    const firstCell = nonEmpties[0];
+                    const lowerFirst = firstCell.toLowerCase();
+                    if (lowerFirst.includes('diện tích') || lowerFirst.includes('chiều dài') || lowerFirst.includes('thửa') || lowerFirst.includes('khối') || lowerFirst.includes('bảng kê')) {
+                        flushCurrentShape();
+                        const match = firstCell.match(/^([^—–\-|:]+)/);
+                        currentShapeName = (match ? match[1] : firstCell).replace(/^(bảng kê tọa độ|bảng kê|thửa đất|khối|tên khối\s*:?)/i, '').trim();
+                        if (lowerFirst.includes('tuyến') || lowerFirst.includes('chiều dài')) {
+                            currentIsPoly = false;
+                        } else {
+                            currentIsPoly = true;
+                        }
+                        hasHeader = false;
+                        continue;
+                    }
+                }
+
+                // Nhận dạng dòng tiêu đề cột
+                let tempColName = -1, tempColX = -1, tempColY = -1, tempColLat = -1, tempColLng = -1, tempColShape = -1, tempColH = -1;
+                row.forEach((cell, cIdx) => {
+                    const s = String(cell || '').toLowerCase().trim();
+                    if (tempColName === -1 && (s.includes('tên đỉnh') || s.includes('tên mốc') || s.includes('tên điểm') || s === 'đỉnh' || s === 'mốc' || s === 'điểm' || s === 'name' || s === 'point' || s === 'stt/tên')) {
+                        tempColName = cIdx;
+                    }
+                    if (tempColShape === -1 && (s === 'khối' || s === 'thửa' || s === 'tên khối' || s === 'tên thửa' || s.includes('khối /') || s.includes('thửa /') || s === 'layer')) {
+                        tempColShape = cIdx;
+                    }
+                    if (tempColX === -1 && (s.includes('tọa độ x') || s.includes('x (bắc') || s.includes('x(bắc') || s.includes('x [m]') || s === 'x' || s.includes('north'))) {
+                        tempColX = cIdx;
+                    }
+                    if (tempColY === -1 && (s.includes('tọa độ y') || s.includes('y (đông') || s.includes('y(đông') || s.includes('y [m]') || s === 'y' || s.includes('east'))) {
+                        tempColY = cIdx;
+                    }
+                    if (tempColLat === -1 && (s.includes('vĩ độ') || s.includes('lat'))) {
+                        tempColLat = cIdx;
+                    }
+                    if (tempColLng === -1 && (s.includes('kinh độ') || s.includes('lng') || s.includes('lon') || s.includes('long'))) {
+                        tempColLng = cIdx;
+                    }
+                    if (tempColH === -1 && (s.includes('cao độ') || s.includes('h (m') || s === 'h' || s === 'z' || s === 'elev')) {
+                        tempColH = cIdx;
+                    }
+                });
+
+                if ((tempColX !== -1 && tempColY !== -1) || (tempColLat !== -1 && tempColLng !== -1)) {
+                    colName = tempColName !== -1 ? tempColName : (colName !== -1 ? colName : 1);
+                    colShape = tempColShape;
+                    colX = tempColX;
+                    colY = tempColY;
+                    colLat = tempColLat;
+                    colLng = tempColLng;
+                    colH = tempColH;
+                    hasHeader = true;
+                    continue;
+                }
+
+                if (fullRowText.includes('tổng cộng') || fullRowText.includes('tiểu kế') || fullRowText.includes('trung bình')) {
+                    continue;
+                }
+
+                // Tự động nhận diện cột nếu không có tiêu đề
+                if (!hasHeader) {
+                    for (let c = 0; c < row.length - 1; c++) {
+                        const v1 = parseFloat(String(row[c]).replace(',', '.'));
+                        const v2 = parseFloat(String(row[c+1]).replace(',', '.'));
+                        if (!isNaN(v1) && !isNaN(v2) && v1 > 1000 && v2 > 1000) {
+                            colX = c;
+                            colY = c + 1;
+                            colName = (c > 0) ? (c - 1) : 0;
+                            hasHeader = true;
+                            break;
+                        } else if (!isNaN(v1) && !isNaN(v2) && v1 >= 8 && v1 <= 24 && v2 >= 102 && v2 <= 110) {
+                            colLat = c;
+                            colLng = c + 1;
+                            colName = (c > 0) ? (c - 1) : 0;
+                            hasHeader = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasHeader) continue;
+
+                let name = (colName !== -1 && row[colName] !== undefined && row[colName] !== '') ? String(row[colName]).trim() : `Đ${currentVertices.length + 1}`;
+                let x = (colX !== -1) ? parseFloat(String(row[colX]).replace(',', '.')) : 0;
+                let y = (colY !== -1) ? parseFloat(String(row[colY]).replace(',', '.')) : 0;
+                let lat = (colLat !== -1) ? parseFloat(String(row[colLat]).replace(',', '.')) : 0;
+                let lng = (colLng !== -1) ? parseFloat(String(row[colLng]).replace(',', '.')) : 0;
+                let h = (colH !== -1) ? parseFloat(String(row[colH]).replace(',', '.')) : 0;
+
+                if (isNaN(x)) x = 0;
+                if (isNaN(y)) y = 0;
+                if (isNaN(lat)) lat = 0;
+                if (isNaN(lng)) lng = 0;
+                if (isNaN(h)) h = 0;
+
+                if ((x === 0 && y === 0) && (lat === 0 && lng === 0)) continue;
+
+                // Tự động chuyển đổi nếu thiếu 1 trong 2 hệ tọa độ
+                if ((lat === 0 && lng === 0) && (x !== 0 && y !== 0)) {
+                    try {
+                        const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                        lat = parseFloat(wgs.lat.toFixed(7));
+                        lng = parseFloat(wgs.lng.toFixed(7));
+                    } catch(e) {}
+                } else if ((x === 0 && y === 0) && (lat !== 0 && lng !== 0)) {
+                    try {
+                        const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        x = parseFloat(vn2k.X.toFixed(3));
+                        y = parseFloat(vn2k.Y.toFixed(3));
+                    } catch(e) {}
+                }
+
+                if (colShape !== -1 && row[colShape]) {
+                    const rowShapeName = String(row[colShape]).trim();
+                    if (currentShapeName && currentShapeName !== rowShapeName) {
+                        flushCurrentShape();
+                    }
+                    currentShapeName = rowShapeName;
+                }
+
+                currentVertices.push({
+                    name, x, y, lat, lng, h,
+                    isSnapped: true,
+                    snapSource: `Excel: ${fileName || 'File'}`
+                });
+            }
+
+            flushCurrentShape();
+        });
+
+        return shapes;
+    },
+
+    _parseHtmlOrTextToShapes(text, fileName = '') {
+        const shapes = [];
+        // Phân tích các khối <table> nếu là file HTML .xls
+        if (text.includes('<table') && typeof DOMParser !== 'undefined') {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const tables = doc.querySelectorAll('table');
+
+            tables.forEach((tbl, tIdx) => {
+                const headerRow = tbl.querySelector('.shape-header') || tbl.querySelector('tr:first-child');
+                const headerText = headerRow ? headerRow.textContent.trim() : '';
+                if (headerText.toLowerCase().includes('bảng tổng hợp diện tích')) return;
+
+                let sName = `Thửa ${tIdx + 1}`;
+                let isPoly = true;
+                if (headerText) {
+                    const match = headerText.match(/^([^—–\-|:]+)/);
+                    if (match) sName = match[1].replace(/^(bảng kê tọa độ|bảng kê|thửa đất|khối|tên khối\s*:?)/i, '').trim();
+                    if (headerText.toLowerCase().includes('tuyến') || headerText.toLowerCase().includes('chiều dài')) {
+                        isPoly = false;
+                    }
+                }
+
+                const rows = tbl.querySelectorAll('tr');
+                const vertices = [];
+                let colName = 1, colX = 2, colY = 3, colLat = 6, colLng = 7;
+
+                rows.forEach((r, rIdx) => {
+                    const ths = r.querySelectorAll('th');
+                    if (ths.length >= 3) {
+                        ths.forEach((th, cIdx) => {
+                            const txt = th.textContent.toLowerCase();
+                            if (txt.includes('tên đỉnh')) colName = cIdx;
+                            if (txt.includes('tọa độ x')) colX = cIdx;
+                            if (txt.includes('tọa độ y')) colY = cIdx;
+                            if (txt.includes('vĩ độ')) colLat = cIdx;
+                            if (txt.includes('kinh độ')) colLng = cIdx;
+                        });
+                        return;
+                    }
+
+                    const tds = r.querySelectorAll('td');
+                    if (tds.length < 3) return;
+
+                    let name = tds[colName] ? tds[colName].textContent.trim() : `Đ${vertices.length + 1}`;
+                    let x = tds[colX] ? parseFloat(tds[colX].textContent.replace(',', '.')) : 0;
+                    let y = tds[colY] ? parseFloat(tds[colY].textContent.replace(',', '.')) : 0;
+                    let lat = tds[colLat] ? parseFloat(tds[colLat].textContent.replace(',', '.')) : 0;
+                    let lng = tds[colLng] ? parseFloat(tds[colLng].textContent.replace(',', '.')) : 0;
+
+                    if (isNaN(x)) x = 0;
+                    if (isNaN(y)) y = 0;
+                    if (isNaN(lat)) lat = 0;
+                    if (isNaN(lng)) lng = 0;
+
+                    if ((x === 0 && y === 0) && (lat === 0 && lng === 0)) return;
+
+                    if ((lat === 0 && lng === 0) && (x !== 0 && y !== 0)) {
+                        try {
+                            const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                            lat = parseFloat(wgs.lat.toFixed(7));
+                            lng = parseFloat(wgs.lng.toFixed(7));
+                        } catch(e) {}
+                    } else if ((x === 0 && y === 0) && (lat !== 0 && lng !== 0)) {
+                        try {
+                            const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                            x = parseFloat(vn2k.X.toFixed(3));
+                            y = parseFloat(vn2k.Y.toFixed(3));
+                        } catch(e) {}
+                    }
+
+                    vertices.push({
+                        name, x, y, lat, lng, h: 0,
+                        isSnapped: true,
+                        snapSource: `Excel: ${fileName || 'File'}`
+                    });
+                });
+
+                if (vertices.length >= 2) {
+                    shapes.push({
+                        name: sName,
+                        mode: (vertices.length >= 3 && isPoly) ? 'polygon' : 'polyline',
+                        vertices: vertices
+                    });
+                }
+            });
+        }
+        return shapes;
+    },
+
+    _applyImportedShapes(shapes, fileName) {
+        if (!shapes || shapes.length === 0) return;
+
+        const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
+        
+        let appendMode = true;
+        if (this.savedShapes && this.savedShapes.length > 0) {
+            const userChoice = confirm(`Bản vẽ hiện tại đang có ${this.savedShapes.length} cấu trúc/khối.\n\n- Nhấn OK: GIỮ NGUYÊN và THÊM TIẾP ${shapes.length} khối mới từ file Excel vào bản vẽ.\n- Nhấn CANCEL: XÓA CŨ và chỉ lấy ${shapes.length} khối mới từ file Excel.`);
+            if (!userChoice) {
+                this.savedShapes = [];
+                appendMode = false;
+            }
+        } else if (!this.savedShapes) {
+            this.savedShapes = [];
+        }
+
+        let totalVertices = 0;
+        const allLatLngs = [];
+
+        shapes.forEach((s, idx) => {
+            const sColor = colorPalette[(this.savedShapes.length + idx) % colorPalette.length];
+            const stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
+            const shapeObj = {
+                id: 'excel_shape_' + Date.now() + '_' + idx,
+                name: s.name,
+                shortName: s.name,
+                mode: s.mode,
+                vertices: s.vertices,
+                color: sColor,
+                selected: true,
+                stats: stats
+            };
+            this.savedShapes.push(shapeObj);
+            totalVertices += s.vertices.length;
+
+            s.vertices.forEach(v => {
+                if (v.lat && v.lng) allLatLngs.push([v.lat, v.lng]);
+            });
+        });
+
+        // Tự động mở thanh công cụ CAD nếu chưa mở
+        if (!this.isActive) {
+            this.openToolbar();
+        }
+
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (this.redrawAllShapes) this.redrawAllShapes();
+        this.updateUi();
+
+        // Thu phóng bản đồ bao quát các khối vừa nạp
+        if (allLatLngs.length > 0 && AppState.leafletMap) {
+            AppState.leafletMap.fitBounds(L.latLngBounds(allLatLngs).pad(0.15));
+        }
+
+        showToast(`✓ Đã nạp ${shapes.length} khối (${totalVertices} đỉnh) từ file "${fileName}" lên bản đồ CAD!`);
     },
 
     exportAreaCsv() {

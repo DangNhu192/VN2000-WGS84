@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.7.1';
+const CACHE_NAME = 'vn2000-pro-v2.7.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -14,7 +14,8 @@ const ASSETS_TO_CACHE = [
   './favicon.png',
   './VN2k-WGS84.png',
   './manifest.json',
-  './jspdf.umd.min.js'
+  './jspdf.umd.min.js',
+  './xlsx.full.min.js'
 ];
 
 // 1. Cài đặt Service Worker và nạp sẵn tài nguyên cốt lõi vào Cache

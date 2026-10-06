@@ -4737,6 +4737,10 @@
             <button class="cad-btn" style="background: rgba(250, 204, 21, 0.15); border-color: rgba(250, 204, 21, 0.4); color: #fde047;" onclick="appCadTool.openLoadProjectModal()" title="Nạp mốc tọa độ từ các dự án đã lưu vào MiniCAD">
               📁 Nạp mốc dự án
             </button>
+            <button class="cad-btn" style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #6ee7b7; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xls, .xlsx) hoặc CSV">
+              📥 Nhập Excel (.xls)
+            </button>
+            <input type="file" id="cadFileInputExcel" accept=".xls,.xlsx,.csv,.txt" style="display: none;" onchange="appCadTool.importExcel(event)">
             <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
               ↔ Offset [O]
             </button>
@@ -6299,6 +6303,9 @@
           <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);" onclick="appCadTool.exportAreaCsv()" title="Xuất dữ liệu thô CSV">
             📄 Xuất CSV
           </button>
+          <button class="btn-sm" style="height: 36px; padding: 0 12px; font-weight: 700; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xls, .xlsx) hoặc CSV">
+            📥 Nhập Excel (.xls)
+          </button>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button class="btn-sm" style="height: 36px; padding: 0 16px; font-weight: 800; font-size: 12px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1.5px solid #38bdf8; box-shadow: 0 2px 10px rgba(2,132,199,0.4); border-radius: 6px;" onclick="appCadTool.openExportModal()" title="Mở hộp thoại cấu hình tỷ lệ, khổ giấy và thông tin khung tên xuất bản vẽ CAD/PDF">
@@ -6563,6 +6570,9 @@
         <button class="btn-sm btn-red" onclick="appCadTool.closeLoadProjectModal()" style="height: 36px; padding: 0 12px;">
           Hủy
         </button>
+        <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập trực tiếp từ file Excel (.xls, .xlsx) hoặc CSV">
+          📥 Nhập từ Excel (.xls)
+        </button>
         <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appCadTool.confirmLoadProjectAsSnap()" title="Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do">
           🧲 Bật mốc để Snap
         </button>
@@ -6775,13 +6785,13 @@
       <!-- Phân vùng 2: Chọn File từ thiết bị -->
       <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
         <div style="font-weight: 800; color: #fbbf24; font-size: 13px; display: flex; align-items: center; gap: 6px;">
-          <span>📂 2. CHỌN FILE TỌA ĐỘ TỪ MÁY (.CSV, .TXT, .DAT)</span>
+          <span>📂 2. CHỌN FILE TỌA ĐỘ TỪ MÁY (.XLS, .XLSX, .CSV, .TXT, .DAT)</span>
         </div>
         <div style="font-size: 12px; color: #94a3b8; margin: 6px 0 10px 0; line-height: 1.4;">
           Nhận dạng tự động cột Tên, X, Y (hoặc Lat, Lng). Tự tính toán chuyển đổi tọa độ còn thiếu theo KTT hiện tại.
         </div>
         
-        <input type="file" id="fileInputProject" accept=".csv,.txt,.dat,.xyz" style="display: none;" onchange="appData.handleFileImport(event)">
+        <input type="file" id="fileInputProject" accept=".xls,.xlsx,.csv,.txt,.dat,.xyz" style="display: none;" onchange="appData.handleFileImport(event)">
         <button class="btn-sm btn-blue" style="width: 100%; height: 40px; font-weight: 700; font-size: 12.5px;" onclick="document.getElementById('fileInputProject').click()">
           📁 CHỌN FILE TỪ THIẾT BỊ...
         </button>
@@ -7187,8 +7197,11 @@
   <!-- JSPDF OFFLINE VECTOR/PDF ENGINE -->
   <script src="jspdf.umd.min.js"></script>
 
+  <!-- SHEETJS EXCEL PARSER & BUILDER ENGINE -->
+  <script src="xlsx.full.min.js"></script>
+
   <!-- APPLICATION CORE SCRIPT -->
-  <script src="app.js?v=2.7.0"></script>
+  <script src="app.js?v=2.7.2"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
