@@ -3442,11 +3442,17 @@
       animation: slideDownCad 0.25s ease;
     }
     .map-cad-toolbar.collapsed {
+      cursor: pointer;
       padding: 4px 10px;
       background: rgba(15, 23, 42, 0.88);
       border-color: rgba(56, 189, 248, 0.45);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
       gap: 0;
+    }
+    .map-cad-toolbar.collapsed:hover {
+      background: rgba(15, 23, 42, 0.98);
+      border-color: #38bdf8;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25);
     }
     .map-cad-toolbar.collapsed .map-cad-toolbar-header {
       border-bottom: none;
@@ -3653,15 +3659,15 @@
       z-index: 3500 !important;
     }
 
-    /* Vertex badge (đỉnh mốc): Mặc định là chấm tròn nhỏ gọn (9px), rê chuột hoặc click mới bung số thứ tự */
+    /* Vertex badge (đỉnh mốc): Mặc định ẩn hoàn toàn (opacity: 0), rê chuột vào khối hoặc đỉnh mới bung ra */
     .cad-vertex-badge {
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       color: #ffffff;
       border: 1.5px solid #ffffff;
       border-radius: 50%;
-      width: 9px;
-      height: 9px;
-      min-width: 9px;
+      width: 8px;
+      height: 8px;
+      min-width: 8px;
       font-size: 0px;
       overflow: hidden;
       display: flex;
@@ -3673,30 +3679,41 @@
       user-select: none;
       touch-action: none;
       position: relative;
+      opacity: 0;
+      pointer-events: auto;
       transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .cad-vertex-badge::after {
       content: '';
       position: absolute;
-      top: -8px;
-      left: -8px;
-      right: -8px;
-      bottom: -8px;
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
       border-radius: 50%;
     }
+    /* Khi rê chuột vào khối polygon hoặc khi đang vẽ: hiện chấm đỉnh mốc tròn nhỏ */
+    .cad-vertex-badge.dot-visible {
+      opacity: 0.9 !important;
+      width: 8px !important;
+      height: 8px !important;
+      min-width: 8px !important;
+    }
+    /* Khi rê chuột trực tiếp vào đỉnh, hoặc khi bật tùy chọn "Ký hiệu đỉnh" (.expanded) */
     .cad-vertex-badge:hover,
     .cad-vertex-badge.expanded,
     .cad-vertex-badge:active,
     .leaflet-dragging .cad-vertex-badge {
-      width: auto;
-      min-width: 22px;
-      height: 22px;
-      font-size: 10px;
-      line-height: 20px;
-      padding: 0 5px;
-      border-radius: 11px;
-      transform: translate(-50%, -50%) scale(1.15);
-      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4), 0 4px 12px rgba(0,0,0,0.7);
+      opacity: 1 !important;
+      width: auto !important;
+      min-width: 22px !important;
+      height: 22px !important;
+      font-size: 10px !important;
+      line-height: 20px !important;
+      padding: 0 6px !important;
+      border-radius: 11px !important;
+      transform: translate(-50%, -50%) scale(1.15) !important;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4), 0 4px 12px rgba(0,0,0,0.7) !important;
       z-index: 3500 !important;
     }
     .cad-center-divicon {
@@ -3863,7 +3880,8 @@
       padding: 6px 8px;
       border-bottom: 1px solid rgba(51, 65, 85, 0.4);
       color: #f1f5f9;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-word;
     }
     .cad-coord-table tbody tr:nth-child(even) {
       background: rgba(255, 255, 255, 0.02);
@@ -6670,14 +6688,14 @@
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;">
             <label class="cad-export-check-item">
-              <input type="checkbox" id="cadExportCheckVertices" checked style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+              <input type="checkbox" id="cadExportCheckVertices" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
               <div>
                 <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📍 Ký hiệu đỉnh của khối</div>
                 <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">Hiện tên mốc Đ1, Đ2, Đ3... tại các góc ranh</div>
               </div>
             </label>
             <label class="cad-export-check-item">
-              <input type="checkbox" id="cadExportCheckDistances" checked style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+              <input type="checkbox" id="cadExportCheckDistances" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
               <div>
                 <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📏 Khoảng cách các đỉnh</div>
                 <div style="font-size: 9.5px; color: #94a3b8; margin-top: 1px;">Hiện cự ly chiều dài các cạnh theo mét (m)</div>

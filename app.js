@@ -2260,6 +2260,12 @@ const appMap = {
                 AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
                 AppState.projectPolygonLayer = null;
             }
+            if (typeof appCadTool !== 'undefined') {
+                appCadTool.savedShapes = [];
+                if (appCadTool.layers && appCadTool.layers.group) appCadTool.layers.group.clearLayers();
+                const panel = document.getElementById('cadBlocksStatsPanel');
+                if (panel) panel.style.display = 'none';
+            }
             const hud = document.getElementById('mapDistanceHud');
             if (hud) hud.style.display = 'none';
             showToast("🗺️ Đã mở bản đồ mới (sạch)");
@@ -2270,6 +2276,15 @@ const appMap = {
         appData.populateProjectSelect();
         appNav.updateTreeNavState();
         appNav.updateBanner();
+
+        // Đồng bộ nạp khối CAD của dự án được chọn (hoặc tái tạo từ mốc nếu có shapeName)
+        if (typeof appCadTool !== 'undefined') {
+            appCadTool.savedShapes = [];
+            if (!appCadTool.loadShapesForProject(projectName)) {
+                appCadTool.reconstructShapesFromPoints(projectName);
+            }
+        }
+
         appMap.loadProjectMarkers();
         appMap.fitProjectBounds();
         showToast(`📁 Đã nạp và hiển thị dự án: ${projectName}`);
@@ -2386,26 +2401,48 @@ const appMap = {
 
         // 1. Kiểm tra xem dự án có khối CAD nào không (hoặc CAD Mini đang hoạt động)
         const isCadActive = typeof appCadTool !== 'undefined' && appCadTool.isActive;
-        const hasCadShapes = typeof appCadTool !== 'undefined' && (
-            (appCadTool.savedShapes && appCadTool.savedShapes.length > 0) ||
-            appCadTool.hasShapesForProject(AppState.currentProject)
-        );
+        let hasCadShapes = false;
+        if (typeof appCadTool !== 'undefined') {
+            hasCadShapes = appCadTool.hasShapesForProject(AppState.currentProject);
+            if (!hasCadShapes && AppState.currentProject) {
+                // Thử nạp hoặc tái tạo từ mốc nếu mốc chứa shapeName
+                hasCadShapes = appCadTool.loadShapesForProject(AppState.currentProject);
+            }
+        }
 
         if (typeof appCadTool !== 'undefined' && (isCadActive || hasCadShapes)) {
             const hudEl = document.getElementById('mapDistanceHud');
             if (hudEl) hudEl.style.display = 'none';
             appCadTool.ensureLayers();
-            if (appCadTool.hasShapesForProject(AppState.currentProject)) {
+            if (hasCadShapes) {
                 appCadTool.loadShapesForProject(AppState.currentProject);
             }
             appCadTool.renderGeometry();
             if (appCadTool.renderBlocksPanel) appCadTool.renderBlocksPanel();
+        } else if (typeof appCadTool !== 'undefined') {
+            // Dọn sạch khối CAD nếu dự án hiện tại không có hình CAD để không vẽ đè rác cũ
+            appCadTool.savedShapes = [];
+            if (appCadTool.layers && appCadTool.layers.group) appCadTool.layers.group.clearLayers();
+            const panel = document.getElementById('cadBlocksStatsPanel');
+            if (panel) panel.style.display = 'none';
         }
 
         // 2. Nạp các mốc dự án lên bản đồ để người dùng quan sát và bắt điểm (Snap)
         // Mặc định: Hiển thị chấm mốc tinh gọn (map-proj-point-dot), ẨN nhãn số thứ tự, chỉ bung ra khi rê chuột đến
         const validCoords = [];
         const validPoints = [];
+
+        // Tập hợp tọa độ đỉnh CAD đã được render (để tránh vẽ đè 2 marker lên cùng 1 tọa độ)
+        const cadPointKeys = new Set();
+        if ((hasCadShapes || isCadActive) && typeof appCadTool !== 'undefined' && appCadTool.savedShapes) {
+            appCadTool.savedShapes.forEach(s => {
+                (s.vertices || []).forEach(v => {
+                    if (isFinite(v.lat) && isFinite(v.lng)) {
+                        cadPointKeys.add(v.lat.toFixed(6) + '_' + v.lng.toFixed(6));
+                    }
+                });
+            });
+        }
 
         pts.forEach((p, idx) => {
             const lat = parseFloat(p.lat);
@@ -2414,6 +2451,10 @@ const appMap = {
 
             validCoords.push([lat, lng]);
             validPoints.push(p);
+
+            // Bỏ qua vẽ marker chấm tròn dự án nếu đỉnh này đã được MiniCAD vẽ badge đỉnh tương tác
+            const ptKey = lat.toFixed(6) + '_' + lng.toFixed(6);
+            if (cadPointKeys.has(ptKey)) return;
 
             // Chấm mốc định vị tinh gọn (8px), rê chuột vào bung badge hiển thị tên & số thứ tự
             const pointName = p.name || ('M' + (idx + 1));
@@ -3144,6 +3185,9 @@ const appData = {
         const pointsToSend = pts.map(p => {
             const copy = Object.assign({}, p);
             copy.project = proj;
+            copy.shapeName = copy.shapeName || copy.blockName || '';
+            copy.shapeMode = copy.shapeMode || (copy.mode === 'polyline' ? 'Tuyến' : (copy.mode === 'polygon' ? 'Đa giác' : ''));
+            copy.shapeOrder = copy.shapeOrder || '';
             return copy;
         });
 
@@ -3185,6 +3229,9 @@ const appData = {
             pts.forEach(p => {
                 const copy = Object.assign({}, p);
                 copy.project = proj;
+                copy.shapeName = copy.shapeName || copy.blockName || '';
+                copy.shapeMode = copy.shapeMode || (copy.mode === 'polyline' ? 'Tuyến' : (copy.mode === 'polygon' ? 'Đa giác' : ''));
+                copy.shapeOrder = copy.shapeOrder || '';
                 allPoints.push(copy);
             });
         });
@@ -3241,7 +3288,12 @@ const appData = {
         const payload = {
             action: 'add_point',
             project: proj,
-            point: point
+            point: {
+                ...point,
+                shapeName: point.shapeName || point.blockName || '',
+                shapeMode: point.shapeMode || (point.mode === 'polyline' ? 'Tuyến' : (point.mode === 'polygon' ? 'Đa giác' : '')),
+                shapeOrder: point.shapeOrder || ''
+            }
         };
 
         fetch(AppState.googleScriptUrl, {
@@ -3265,10 +3317,13 @@ const appData = {
         const count = AppState.offlineQueue.length;
         console.log(`[Google Sync] Đang gửi ${count} mốc từ hàng đợi ngoại tuyến...`);
 
-        // Đảm bảo từng mốc mang đúng tên dự án của chính nó
+        // Đảm bảo từng mốc mang đúng tên dự án của chính nó và bảo toàn khối CAD
         const pointsToSend = AppState.offlineQueue.map(item => {
             const pt = Object.assign({}, item.point);
             pt.project = item.project || pt.project || AppState.currentProject;
+            pt.shapeName = pt.shapeName || pt.blockName || '';
+            pt.shapeMode = pt.shapeMode || (pt.mode === 'polyline' ? 'Tuyến' : (pt.mode === 'polygon' ? 'Đa giác' : ''));
+            pt.shapeOrder = pt.shapeOrder || '';
             return pt;
         });
 
@@ -3322,13 +3377,16 @@ const appData = {
             point: {
                 time: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`,
                 name: "Mốc Thử Nghiệm",
+                shapeName: "Khối Thử Nghiệm",
+                shapeMode: "Đa giác",
+                shapeOrder: 1,
                 x: "1144058.623",
                 y: "539624.574",
                 lat: "10.345211",
                 lng: "106.113617",
                 mui: AppState.muiVal,
                 ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
-                note: "Thử nghiệm kết nối từ PWA",
+                note: "Thử nghiệm kết nối từ PWA & MiniCAD",
                 project: "Kiểm Tra Kết Nối"
             }
         };
@@ -3341,7 +3399,7 @@ const appData = {
             },
             body: JSON.stringify(testPayload)
         }).then(() => {
-            showToast("✅ Kết nối Google Apps Script thành công! (Dòng thử nghiệm đã được ghi vào Sheet)", true);
+            showToast("✅ Kết nối Google Apps Script thành công! (Dòng thử nghiệm 14 cột đã được ghi vào Sheet)", true);
         }).catch(err => {
             showToast(`❌ Thất bại: ${err.message}`, true);
         });
@@ -3351,17 +3409,17 @@ const appData = {
         const scriptCode = `/**
  * =========================================================================
  * GOOGLE APPS SCRIPT ĐỒNG BỘ SỔ ĐO TỌA ĐỘ TRẮC ĐỊA VN-2000 & WGS-84 PRO
- * Tác giả: Đặng Như (dnpn.ttqt@gmail.com) - Phiên bản Tối Ưu v2.3
+ * Tác giả: Đặng Như (dnpn.ttqt@gmail.com) - Phiên bản Tối Ưu v3.0 (Hỗ trợ MiniCAD & AppSheet)
  * =========================================================================
  * Tính năng tự động hóa vượt trội:
  * 1. Lưu TẬP TRUNG tất cả dự án vào 1 Sheet (Tab) duy nhất "Sổ Đo Tọa Độ",
- *    phân biệt rõ ràng theo cột "Dự Án" (cột 10) - Không bị tách nhỏ tab.
- * 2. Tự động bật bộ lọc dữ liệu (Filter) giúp lọc xem từng dự án chỉ với 1 click.
- * 3. Chống trùng lặp mốc tuyệt đối: Định danh mốc theo [Dự Án + Tên Mốc + X + Y].
- *    Dù bấm đồng bộ nhiều lần, số lượng mốc của từng dự án luôn chuẩn xác 100%.
- * 4. Tự động tạo công thức Google Maps vệ tinh chuẩn tiếng Việt dấu chấm phẩy (;).
- * 5. Định dạng trắc địa chuẩn (X, Y: 3 số lẻ; Lat, Lng: 6 số lẻ).
- * 6. Hàm tiện ích "gopVaLamSachSoDo()": Tự động gom các tab cũ và dọn sạch trùng lặp!
+ *    phân biệt rõ ràng theo cột "Dự Án" (cột 13) và "Khối / Thửa Đất" (cột 3).
+ * 2. Tương thích 100% với phân hệ vẽ CAD Mini và phần mềm AppSheet (gom nhóm thửa đất, tính diện tích).
+ * 3. Tự động bật bộ lọc dữ liệu (Filter) giúp lọc xem từng dự án hoặc từng thửa chỉ với 1 click.
+ * 4. Chống trùng lặp mốc tuyệt đối: Định danh mốc theo [Dự Án + Khối + Tên Mốc + X + Y].
+ * 5. Tự động tạo công thức Google Maps vệ tinh chuẩn tiếng Việt dấu chấm phẩy (;).
+ * 6. Định dạng trắc địa chuẩn (X, Y: 3 số lẻ; Lat, Lng: 6 số lẻ).
+ * 7. Hàm tiện ích "gopVaLamSachSoDo()": Tự động gom các tab cũ, nâng cấp lên 14 cột và dọn sạch trùng lặp!
  */
 
 function doPost(e) {
@@ -3378,7 +3436,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var defaultProject = (data.project || "So_Do_Mac_Dinh").replace(/[:\\\\/?*\\[\\]]/g, "_").replace(/\\.csv$/i, "");
 
-    // 1. Lưu tập trung toàn bộ dự án vào 1 Sheet (Tab) duy nhất
+    // 1. Lưu tập trung toàn bộ dự án vào 1 Sheet (Tab) duy nhất "Sổ Đo Tọa Độ"
     var sheetName = "Sổ Đo Tọa Độ";
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
@@ -3391,11 +3449,13 @@ function doPost(e) {
       }
     }
 
-    // 2. Khởi tạo dòng tiêu đề chuẩn nếu Tab còn trống
+    // 2. Khởi tạo dòng tiêu đề chuẩn 14 cột nếu Tab còn trống
     if (sheet.getLastRow() === 0) {
       initSheetHeader(sheet);
     }
 
+    var lastCol = sheet.getLastColumn();
+    var isNew14Col = (lastCol >= 14 || sheet.getLastRow() <= 1);
     var addedCount = 0;
     var existingKeys = getExistingKeys(sheet);
 
@@ -3406,12 +3466,13 @@ function doPost(e) {
       data.points.forEach(function(p) {
         var pProj = String(p.project || defaultProject).replace(/\\.csv$/i, "").trim();
         var pName = String(p.name || "Mốc").trim();
+        var pShape = String(p.shapeName || p.blockName || p.shape || "").trim();
         var pX = parseFloat(p.x) || 0;
         var pY = parseFloat(p.y) || 0;
-        var key = pProj.toLowerCase() + "_" + pName.toLowerCase() + "_" + pX.toFixed(3) + "_" + pY.toFixed(3);
+        var key = pProj.toLowerCase() + "_" + pShape.toLowerCase() + "_" + pName.toLowerCase() + "_" + pX.toFixed(3) + "_" + pY.toFixed(3);
 
         if (!existingKeys[key]) {
-          rowsToAdd.push(formatPointRow(p, pProj));
+          rowsToAdd.push(formatPointRow(p, pProj, isNew14Col ? 14 : 11));
           existingKeys[key] = true;
           addedCount++;
         }
@@ -3421,7 +3482,7 @@ function doPost(e) {
         var startRow = sheet.getLastRow() + 1;
         var range = sheet.getRange(startRow, 1, rowsToAdd.length, rowsToAdd[0].length);
         range.setValues(rowsToAdd);
-        formatDataRange(sheet, startRow, rowsToAdd.length);
+        formatDataRange(sheet, startRow, rowsToAdd.length, isNew14Col ? 14 : 11);
       }
     } 
     // 4. Xử lý lưu mốc lẻ theo thời gian thực (Real-time Single Point)
@@ -3429,15 +3490,16 @@ function doPost(e) {
       var p = data.point;
       var pProj = String(p.project || defaultProject).replace(/\\.csv$/i, "").trim();
       var pName = String(p.name || "Mốc").trim();
+      var pShape = String(p.shapeName || p.blockName || p.shape || "").trim();
       var pX = parseFloat(p.x) || 0;
       var pY = parseFloat(p.y) || 0;
-      var key = pProj.toLowerCase() + "_" + pName.toLowerCase() + "_" + pX.toFixed(3) + "_" + pY.toFixed(3);
+      var key = pProj.toLowerCase() + "_" + pShape.toLowerCase() + "_" + pName.toLowerCase() + "_" + pX.toFixed(3) + "_" + pY.toFixed(3);
 
       if (!existingKeys[key]) {
-        var rowData = formatPointRow(p, pProj);
+        var rowData = formatPointRow(p, pProj, isNew14Col ? 14 : 11);
         sheet.appendRow(rowData);
         var lastRow = sheet.getLastRow();
-        formatDataRange(sheet, lastRow, 1);
+        formatDataRange(sheet, lastRow, 1, isNew14Col ? 14 : 11);
         addedCount = 1;
       }
     }
@@ -3450,7 +3512,8 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       added: addedCount,
-      sheet: sheetName
+      sheet: sheetName,
+      columns: isNew14Col ? 14 : 11
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -3463,12 +3526,12 @@ function doPost(e) {
   }
 }
 
-// Khởi tạo dòng tiêu đề sang trọng, đóng băng hàng 1 và tạo bộ lọc Filter
+// Khởi tạo dòng tiêu đề chuẩn 14 cột tích hợp MiniCAD & AppSheet
 function initSheetHeader(sheet) {
   var headers = [
-    "Thời Gian Đo", "Tên Điểm Mốc", "Tọa Độ X (Bắc - m)", "Tọa Độ Y (Đông - m)",
-    "Vĩ Độ (Lat - °)", "Kinh Độ (Long - °)", "Múi Chiếu", "Kinh Tuyến Trục",
-    "Ghi Chú Hiện Trường", "Dự Án", "Vị Trí Google Maps"
+    "Thời Gian Đo", "Tên Điểm Mốc", "Khối / Thửa Đất", "Loại Hình", "STT Đỉnh",
+    "Tọa Độ X (Bắc - m)", "Tọa Độ Y (Đông - m)", "Vĩ Độ (Lat - °)", "Kinh Độ (Long - °)",
+    "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú Hiện Trường", "Dự Án", "Vị Trí Google Maps"
   ];
   sheet.appendRow(headers);
   var headerRange = sheet.getRange(1, 1, 1, headers.length);
@@ -3486,15 +3549,16 @@ function initSheetHeader(sheet) {
 function ensureFilterRange(sheet) {
   try {
     var lastRow = Math.max(sheet.getLastRow(), 2);
+    var lastCol = Math.max(sheet.getLastColumn(), 11);
     var filter = sheet.getFilter();
     if (!filter) {
-      sheet.getRange(1, 1, lastRow, 11).createFilter();
+      sheet.getRange(1, 1, lastRow, lastCol).createFilter();
     }
   } catch(e) {}
 }
 
-// Định dạng dữ liệu một dòng kèm tên Dự Án chuẩn xác
-function formatPointRow(p, projectName) {
+// Định dạng dữ liệu một dòng (hỗ trợ cả chuẩn mới 14 cột và bảng cũ 11 cột)
+function formatPointRow(p, projectName, numCols) {
   var lat = parseFloat(p.lat) || 0;
   var lng = parseFloat(p.lng) || 0;
   var proj = String(p.project || projectName || "Mặc định").replace(/\\.csv$/i, "").trim();
@@ -3502,9 +3566,36 @@ function formatPointRow(p, projectName) {
     ? '=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lng + '"; "🗺️ Xem Vị Trí")'
     : "";
 
+  var sName = String(p.shapeName || p.blockName || p.shape || "").trim();
+  var sMode = String(p.shapeMode || (p.mode === 'polyline' ? 'Tuyến' : (p.mode === 'polygon' ? 'Đa giác' : '')) || "").trim();
+  var sOrder = p.shapeOrder || p.vertexOrder || "";
+
+  // Trường hợp tương thích ngược bảng cũ 11 cột
+  if (numCols === 11) {
+    var noteCombined = (p.note || "");
+    if (sName) noteCombined = (noteCombined ? (noteCombined + " | ") : "") + "Khối: " + sName;
+    return [
+      p.time || new Date(),
+      p.name || "Mốc",
+      parseFloat(p.x) || p.x || 0,
+      parseFloat(p.y) || p.y || 0,
+      parseFloat(p.lat) || p.lat || 0,
+      parseFloat(p.lng) || p.lng || 0,
+      p.mui ? ("Múi " + p.mui + "°") : "Múi 3°",
+      p.ktt || "",
+      noteCombined,
+      proj,
+      mapFormula
+    ];
+  }
+
+  // Chuẩn mới 14 cột chuyên biệt cho MiniCAD & AppSheet
   return [
     p.time || new Date(),
     p.name || "Mốc",
+    sName || "Khối mặc định",
+    sMode || "Đa giác",
+    sOrder || "--",
     parseFloat(p.x) || p.x || 0,
     parseFloat(p.y) || p.y || 0,
     parseFloat(p.lat) || p.lat || 0,
@@ -3518,54 +3609,93 @@ function formatPointRow(p, projectName) {
 }
 
 // Định dạng số liệu trắc địa & áp dụng setFormulasLocal đảm bảo 100% không bị lỗi #ERROR!
-function formatDataRange(sheet, startRow, numRows) {
+function formatDataRange(sheet, startRow, numRows, numCols) {
   try {
-    sheet.getRange(startRow, 3, numRows, 2).setNumberFormat("#,##0.000");
-    sheet.getRange(startRow, 5, numRows, 2).setNumberFormat("0.000000");
-    sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
-    sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#b45309");
-    sheet.getRange(startRow, 10, numRows, 1).setFontWeight("bold").setFontColor("#0284c7").setHorizontalAlignment("center");
-    sheet.getRange(startRow, 11, numRows, 1).setHorizontalAlignment("center");
+    if (numCols === 14) {
+      // 14 Cột: X (cột 6), Y (cột 7), Lat (cột 8), Lng (cột 9), Dự Án (cột 13), Map (cột 14)
+      sheet.getRange(startRow, 6, numRows, 2).setNumberFormat("#,##0.000");
+      sheet.getRange(startRow, 8, numRows, 2).setNumberFormat("0.000000");
+      sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
+      sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#b45309");
+      sheet.getRange(startRow, 3, numRows, 1).setFontWeight("bold").setFontColor("#059669"); // Tên Khối/Thửa
+      sheet.getRange(startRow, 4, numRows, 2).setHorizontalAlignment("center"); // Loại hình & STT
+      sheet.getRange(startRow, 13, numRows, 1).setFontWeight("bold").setFontColor("#0284c7").setHorizontalAlignment("center");
+      sheet.getRange(startRow, 14, numRows, 1).setHorizontalAlignment("center");
 
-    var latLngValues = sheet.getRange(startRow, 5, numRows, 2).getValues();
-    var formulas = [];
-    for (var i = 0; i < latLngValues.length; i++) {
-      var lat = parseFloat(latLngValues[i][0]) || 0;
-      var lng = parseFloat(latLngValues[i][1]) || 0;
-      if (lat !== 0 && lng !== 0) {
-        formulas.push(['=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lng + '"; "🗺️ Xem Vị Trí")']);
-      } else {
-        formulas.push([""]);
+      var latLngValues = sheet.getRange(startRow, 8, numRows, 2).getValues();
+      var formulas = [];
+      for (var i = 0; i < latLngValues.length; i++) {
+        var lat = parseFloat(latLngValues[i][0]) || 0;
+        var lng = parseFloat(latLngValues[i][1]) || 0;
+        if (lat !== 0 && lng !== 0) {
+          formulas.push(['=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lng + '"; "🗺️ Xem Vị Trí")']);
+        } else {
+          formulas.push([""]);
+        }
       }
-    }
-    var mapRange = sheet.getRange(startRow, 11, numRows, 1);
-    try {
-      mapRange.setFormulasLocal(formulas);
-    } catch (e) {
-      mapRange.setValues(formulas);
+      var mapRange = sheet.getRange(startRow, 14, numRows, 1);
+      try {
+        mapRange.setFormulasLocal(formulas);
+      } catch (e) {
+        mapRange.setValues(formulas);
+      }
+    } else {
+      // Bảng cũ 11 Cột
+      sheet.getRange(startRow, 3, numRows, 2).setNumberFormat("#,##0.000");
+      sheet.getRange(startRow, 5, numRows, 2).setNumberFormat("0.000000");
+      sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
+      sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#b45309");
+      sheet.getRange(startRow, 10, numRows, 1).setFontWeight("bold").setFontColor("#0284c7").setHorizontalAlignment("center");
+      sheet.getRange(startRow, 11, numRows, 1).setHorizontalAlignment("center");
+
+      var latLngValues11 = sheet.getRange(startRow, 5, numRows, 2).getValues();
+      var formulas11 = [];
+      for (var j = 0; j < latLngValues11.length; j++) {
+        var lat11 = parseFloat(latLngValues11[j][0]) || 0;
+        var lng11 = parseFloat(latLngValues11[j][1]) || 0;
+        if (lat11 !== 0 && lng11 !== 0) {
+          formulas11.push(['=HYPERLINK("https://www.google.com/maps?q=' + lat11 + ',' + lng11 + '"; "🗺️ Xem Vị Trí")']);
+        } else {
+          formulas11.push([""]);
+        }
+      }
+      var mapRange11 = sheet.getRange(startRow, 11, numRows, 1);
+      try {
+        mapRange11.setFormulasLocal(formulas11);
+      } catch (e) {
+        mapRange11.setValues(formulas11);
+      }
     }
   } catch(e) {}
 }
 
-// Lấy danh sách khóa mốc đã có theo [Dự Án + Tên Mốc + X + Y] để chống trùng lặp tuyệt đối
+// Lấy danh sách khóa mốc đã có theo [Dự Án + Khối + Tên Mốc + X + Y] để chống trùng lặp tuyệt đối
 function getExistingKeys(sheet) {
   var keys = {};
   var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
   if (lastRow > 1) {
-    var data = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+    var data = sheet.getRange(2, 1, lastRow - 1, Math.min(lastCol, 14)).getValues();
+    var is14 = lastCol >= 14;
+
     for (var i = 0; i < data.length; i++) {
-      var rowName = String(data[i][1] || "").trim().toLowerCase();
-      var rowX = parseFloat(data[i][2]) || 0;
-      var rowY = parseFloat(data[i][3]) || 0;
-      var rowProj = String(data[i][9] || "").trim().toLowerCase().replace(/\\.csv$/i, "");
-      var key = rowProj + "_" + rowName + "_" + rowX.toFixed(3) + "_" + rowY.toFixed(3);
+      var row = data[i];
+      var rowName = String(row[1] || "").trim().toLowerCase();
+      var rowShape = is14 ? String(row[2] || "").trim().toLowerCase() : "";
+      var rowX = parseFloat(is14 ? row[5] : row[2]) || 0;
+      var rowY = parseFloat(is14 ? row[6] : row[3]) || 0;
+      var rowProj = String(is14 ? (row[12] || "") : (row[9] || "")).trim().toLowerCase().replace(/\\.csv$/i, "");
+      
+      var key = rowProj + "_" + rowShape + "_" + rowName + "_" + rowX.toFixed(3) + "_" + rowY.toFixed(3);
       keys[key] = true;
+      var fallbackKey = rowProj + "__" + rowName + "_" + rowX.toFixed(3) + "_" + rowY.toFixed(3);
+      keys[fallbackKey] = true;
     }
   }
   return keys;
 }
 
-// HÀM TIỆN ÍCH DỌN DẸP: Gom tất cả các tab cũ về 1 tab "Sổ Đo Tọa Độ", khử trùng lặp & xóa tab thừa
+// HÀM TIỆN ÍCH DỌN DẸP & NÂNG CẤP: Gom các tab cũ, nâng cấp lên 14 cột chuẩn MiniCAD/AppSheet
 function gopVaLamSachSoDo() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var targetSheet = ss.getSheetByName("Sổ Đo Tọa Độ");
@@ -3587,30 +3717,35 @@ function gopVaLamSachSoDo() {
     var lastRow = sh.getLastRow();
     if (lastRow > 1) {
       var numRows = lastRow - 1;
-      var values = sh.getRange(2, 1, numRows, Math.min(sh.getLastColumn(), 11)).getValues();
+      var values = sh.getRange(2, 1, numRows, Math.min(sh.getLastColumn(), 14)).getValues();
       var rowsToAdd = [];
 
       for (var r = 0; r < values.length; r++) {
         var row = values[r];
         var rowTime = row[0] || new Date();
         var rowName = String(row[1] || "Mốc").trim();
-        var rowX = parseFloat(row[2]) || 0;
-        var rowY = parseFloat(row[3]) || 0;
-        var rowLat = parseFloat(row[4]) || 0;
-        var rowLng = parseFloat(row[5]) || 0;
-        var rowMui = row[6] || "Múi 3°";
-        var rowKtt = row[7] || "";
-        var rowNote = row[8] || "";
-        var rowProj = String(row[9] || sh.getName()).replace(/\\.csv$/i, "").trim();
+        var rowShape = (row.length >= 14 && row[2]) ? String(row[2]).trim() : "Khối mặc định";
+        var rowMode = (row.length >= 14 && row[3]) ? String(row[3]).trim() : "Đa giác";
+        var rowOrder = (row.length >= 14 && row[4]) ? row[4] : (r + 1);
+        
+        var rowX = parseFloat(row.length >= 14 ? row[5] : row[2]) || 0;
+        var rowY = parseFloat(row.length >= 14 ? row[6] : row[3]) || 0;
+        var rowLat = parseFloat(row.length >= 14 ? row[7] : row[4]) || 0;
+        var rowLng = parseFloat(row.length >= 14 ? row[8] : row[5]) || 0;
+        var rowMui = (row.length >= 14 ? row[9] : row[6]) || "Múi 3°";
+        var rowKtt = (row.length >= 14 ? row[10] : row[7]) || "";
+        var rowNote = (row.length >= 14 ? row[11] : row[8]) || "";
+        var rowProj = String((row.length >= 14 ? row[12] : row[9]) || sh.getName()).replace(/\\.csv$/i, "").trim();
 
-        var key = rowProj.toLowerCase() + "_" + rowName.toLowerCase() + "_" + rowX.toFixed(3) + "_" + rowY.toFixed(3);
+        var key = rowProj.toLowerCase() + "_" + rowShape.toLowerCase() + "_" + rowName.toLowerCase() + "_" + rowX.toFixed(3) + "_" + rowY.toFixed(3);
         if (!existingKeys[key] && (rowX !== 0 || rowLat !== 0)) {
           var mapFormula = (rowLat !== 0 && rowLng !== 0) 
             ? '=HYPERLINK("https://www.google.com/maps?q=' + rowLat + ',' + rowLng + '"; "🗺️ Xem Vị Trí")'
             : "";
 
           rowsToAdd.push([
-            rowTime, rowName, rowX, rowY, rowLat, rowLng, rowMui, rowKtt, rowNote, rowProj, mapFormula
+            rowTime, rowName, rowShape, rowMode, rowOrder,
+            rowX, rowY, rowLat, rowLng, rowMui, rowKtt, rowNote, rowProj, mapFormula
           ]);
           existingKeys[key] = true;
           totalImported++;
@@ -3621,7 +3756,7 @@ function gopVaLamSachSoDo() {
         var startRow = targetSheet.getLastRow() + 1;
         var range = targetSheet.getRange(startRow, 1, rowsToAdd.length, rowsToAdd[0].length);
         range.setValues(rowsToAdd);
-        formatDataRange(targetSheet, startRow, rowsToAdd.length);
+        formatDataRange(targetSheet, startRow, rowsToAdd.length, 14);
       }
     }
 
@@ -3637,17 +3772,18 @@ function gopVaLamSachSoDo() {
   });
 
   ensureFilterRange(targetSheet);
-  return "✓ Đã gom và làm sạch thành công " + totalImported + " mốc vào duy nhất tab 'Sổ Đo Tọa Độ'!";
+  return "✓ Đã gom và nâng cấp thành công " + totalImported + " mốc vào bảng 14 cột chuẩn 'Sổ Đo Tọa Độ'!";
 }
 
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",
-    message: "Google Apps Script VN-2000 Pro sẵn sàng hoạt động!"
+    version: "3.0",
+    message: "Google Apps Script VN-2000 Pro & MiniCAD đã sẵn sàng!"
   })).setMimeType(ContentService.MimeType.JSON);
 }`;
         copyToClipboard(scriptCode);
-        showToast("📋 Đã sao chép mã Apps Script Pro! Mở Tiện ích mở rộng > Apps Script trên Google Sheet để dán.", true);
+        showToast("📋 Đã sao chép mã Apps Script Pro v3.0! Mở Tiện ích mở rộng > Apps Script trên Google Sheet để dán.", true);
     },
 
     onProjectSelectChange() {
@@ -4106,6 +4242,7 @@ function doGet(e) {
                                 const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\n\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
                                 if (wantCad) {
                                     appCadTool._applyImportedShapes(cadShapes, file.name);
+                                    return; // Đã nạp thành công qua MiniCAD, không chạy tiếp extractPointsFromWorkbook làm đè mốc
                                 }
                             }
                         } catch(cErr) {
@@ -4141,6 +4278,7 @@ function doGet(e) {
                             const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\n\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
                             if (wantCad) {
                                 appCadTool._applyImportedShapes(cadShapes, file.name);
+                                return; // Đã nạp thành công qua MiniCAD
                             }
                         }
                     } catch(cErr) {}
@@ -4174,6 +4312,7 @@ function doGet(e) {
             if (!rows || rows.length < 2) return;
 
             let colName = -1, colX = -1, colY = -1, colLat = -1, colLng = -1, colH = -1, colNote = -1;
+            let colShape = -1, colMode = -1, colOrder = -1;
             let headerRowIdx = -1;
 
             for (let r = 0; r < Math.min(rows.length, 10); r++) {
@@ -4181,8 +4320,18 @@ function doGet(e) {
                 if (!Array.isArray(row)) continue;
 
                 let tempColName = -1, tempColX = -1, tempColY = -1, tempColLat = -1, tempColLng = -1, tempColH = -1, tempColNote = -1;
+                let tempColShape = -1, tempColMode = -1, tempColOrder = -1;
                 row.forEach((cell, cIdx) => {
                     const s = String(cell || '').toLowerCase().trim();
+                    if (tempColShape === -1 && (s.includes('tên khối') || s.includes('tên thửa') || s === 'khối' || s === 'thửa' || s.includes('khối /') || s.includes('thửa /') || s === 'layer')) {
+                        tempColShape = cIdx;
+                    }
+                    if (tempColMode === -1 && (s.includes('loại hình') || s.includes('chế độ') || s === 'loại' || s === 'mode')) {
+                        tempColMode = cIdx;
+                    }
+                    if (tempColOrder === -1 && (s.includes('stt đỉnh') || s === 'đỉnh stt' || s === 'thứ tự')) {
+                        tempColOrder = cIdx;
+                    }
                     if (tempColName === -1 && (s.includes('tên đỉnh') || s.includes('tên mốc') || s.includes('tên điểm') || s === 'đỉnh' || s === 'mốc' || s === 'điểm' || s === 'name' || s === 'point' || s === 'stt/tên')) {
                         tempColName = cIdx;
                     }
@@ -4215,6 +4364,9 @@ function doGet(e) {
                     colLng = tempColLng;
                     colH = tempColH;
                     colNote = tempColNote;
+                    colShape = tempColShape;
+                    colMode = tempColMode;
+                    colOrder = tempColOrder;
                     break;
                 }
             }
@@ -4283,6 +4435,16 @@ function doGet(e) {
                     } catch(e) {}
                 }
 
+                let shapeName = (colShape !== -1 && row[colShape] !== undefined && row[colShape] !== '')
+                    ? String(row[colShape]).trim()
+                    : (wb.SheetNames.length > 1 ? sname : "");
+                let shapeMode = (colMode !== -1 && row[colMode] !== undefined && row[colMode] !== '')
+                    ? String(row[colMode]).trim().toLowerCase()
+                    : "polygon";
+                let shapeOrder = (colOrder !== -1 && row[colOrder] !== undefined && row[colOrder] !== '')
+                    ? parseInt(row[colOrder])
+                    : (points.length + 1);
+
                 points.push({
                     time: now,
                     name: name,
@@ -4293,7 +4455,10 @@ function doGet(e) {
                     h: h,
                     mui: AppState.muiVal,
                     ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`,
-                    note: note
+                    note: note,
+                    shapeName: shapeName,
+                    shapeMode: (shapeMode.includes('tuyến') || shapeMode.includes('polyline')) ? 'polyline' : 'polygon',
+                    shapeOrder: shapeOrder
                 });
             }
         });
@@ -4329,6 +4494,14 @@ function doGet(e) {
 
         AppState.currentProject = targetProj;
         localStorage.setItem('vn2k_cur_project', targetProj);
+
+        // Khôi phục và tái tạo các khối CAD nếu mốc có chứa thuộc tính shapeName
+        if (typeof appCadTool !== 'undefined') {
+            appCadTool.savedShapes = [];
+            if (!appCadTool.loadShapesForProject(targetProj)) {
+                appCadTool.reconstructShapesFromPoints(targetProj);
+            }
+        }
 
         appData.populateProjectSelect();
         appNav.updateBanner();
@@ -7326,7 +7499,7 @@ const appCadTool = {
     initDisplaySettings() {
         let saved = null;
         try {
-            const raw = localStorage.getItem('vn2k_cad_display_settings_v2');
+            const raw = localStorage.getItem('vn2k_cad_display_settings_v3');
             if (raw) saved = JSON.parse(raw);
         } catch (e) {}
 
@@ -7337,6 +7510,10 @@ const appCadTool = {
             showAnnotations: true,
             showBoundaries: true
         }, saved || {});
+
+        // Đảm bảo mặc định showVertices và showDistances luôn là false nếu người dùng chưa chủ động tích chọn
+        if (!saved || typeof saved.showVertices !== 'boolean') this.displaySettings.showVertices = false;
+        if (!saved || typeof saved.showDistances !== 'boolean') this.displaySettings.showDistances = false;
 
         this.showAnnotations = this.displaySettings.showAnnotations !== false;
     },
@@ -7381,7 +7558,7 @@ const appCadTool = {
             this.showAnnotations = !!checked;
         }
         try {
-            localStorage.setItem('vn2k_cad_display_settings_v2', JSON.stringify(this.displaySettings));
+            localStorage.setItem('vn2k_cad_display_settings_v3', JSON.stringify(this.displaySettings));
         } catch (e) {}
 
         this.syncDisplayCheckboxes();
@@ -9718,39 +9895,181 @@ const appCadTool = {
         };
     },
 
-    // === LƯU / KHÔI PHỤC PHIÊN VẼ THEO TỪNG DỰ ÁN (giữ nguyên hình dạng các khối sau khi tải lại trang) ===
-    SESSION_KEY: 'vn2k_cad_session_v1',
+    // === LƯU / KHÔI PHỤC PHIÊN VẼ THEO TỪNG DỰ ÁN (Tối ưu hóa theo MiniCAD & chống mất khối khi F5) ===
+    SESSION_KEY: 'vn2k_cad_session_v2',
+
+    getProjectStorageKey(projName) {
+        if (!projName) return '';
+        return String(projName).replace(/(\.(csv|xlsx|xls|txt))+$/i, "").trim();
+    },
 
     saveShapesForProject(projName) {
         const curProj = projName || AppState.currentProject;
         if (!curProj) return;
         try {
-            const key = 'vn2k_cad_shapes_' + curProj.replace(/\.[^/.]+$/, "");
-            const data = { savedShapes: this.savedShapes || [], mode: this.mode };
-            localStorage.setItem(key, JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val));
+            const cleanKey = this.getProjectStorageKey(curProj);
+            const data = { savedShapes: this.savedShapes || [], mode: this.mode, updated: Date.now() };
+            const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
+            
+            // Lưu theo khóa chuẩn hóa (không extension) và khóa gốc
+            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, json);
+            if (curProj !== cleanKey) {
+                localStorage.setItem('vn2k_cad_shapes_' + curProj, json);
+            }
+
+            // Tự động đồng bộ các đỉnh thành danh sách mốc Sổ Đo Dự Án mang đầy đủ thuộc tính Khối/Thửa
+            this.syncShapesToProjectPoints(curProj);
         } catch (e) {
             console.warn('CAD save project shapes failed:', e);
         }
+    },
+
+    syncShapesToProjectPoints(projName) {
+        const curProj = projName || AppState.currentProject;
+        if (!curProj || !this.savedShapes || this.savedShapes.length === 0) return;
+
+        try {
+            const allPoints = [];
+            const now = new Date().toLocaleString('vi-VN');
+
+            this.savedShapes.forEach((shape, sIdx) => {
+                const isPoly = (shape.mode === 'polygon');
+                const sName = shape.name || `Khối ${sIdx + 1}`;
+                const sColor = shape.color || '#10b981';
+
+                (shape.vertices || []).forEach((v, vIdx) => {
+                    allPoints.push({
+                        time: v.time || now,
+                        name: v.name || (`Đ${vIdx + 1}`),
+                        x: parseFloat(parseFloat(v.x || 0).toFixed(3)),
+                        y: parseFloat(parseFloat(v.y || 0).toFixed(3)),
+                        lat: parseFloat(parseFloat(v.lat || 0).toFixed(7)),
+                        lng: parseFloat(parseFloat(v.lng || 0).toFixed(7)),
+                        h: parseFloat(parseFloat(v.h || 0).toFixed(3)),
+                        mui: AppState.muiVal || 3,
+                        ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`,
+                        note: v.snapSource || (v.isSnapped ? 'Hít mốc' : (isPoly ? `Đỉnh ranh ${sName}` : `Đỉnh tuyến ${sName}`)),
+                        project: curProj,
+                        shapeId: shape.id,
+                        shapeName: sName,
+                        shapeMode: shape.mode || 'polygon',
+                        shapeColor: sColor,
+                        shapeOrder: vIdx + 1
+                    });
+                });
+            });
+
+            if (allPoints.length > 0 && typeof appData !== 'undefined' && appData.savePoints) {
+                appData.savePoints(curProj, allPoints);
+            }
+        } catch (e) {
+            console.warn('CAD sync shapes to points failed:', e);
+        }
+    },
+
+    reconstructShapesFromPoints(projName) {
+        const curProj = projName || AppState.currentProject;
+        if (!curProj || typeof appData === 'undefined' || !appData.getPoints) return false;
+        const pts = appData.getPoints(curProj);
+        if (!pts || pts.length === 0) return false;
+
+        // Phân loại mốc theo Khối/Thửa Đất
+        const shapeMap = new Map();
+        let hasShapeTag = false;
+
+        pts.forEach((p, idx) => {
+            const sName = p.shapeName || p.blockName;
+            if (sName) {
+                hasShapeTag = true;
+                if (!shapeMap.has(sName)) {
+                    shapeMap.set(sName, {
+                        name: sName,
+                        mode: p.shapeMode || 'polygon',
+                        color: p.shapeColor || null,
+                        vertices: []
+                    });
+                }
+                shapeMap.get(sName).vertices.push(p);
+            }
+        });
+
+        if (hasShapeTag && shapeMap.size > 0) {
+            const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
+            const reconstructed = [];
+            let cIdx = 0;
+
+            shapeMap.forEach((sObj, sName) => {
+                const validVerts = sObj.vertices.map((v, i) => ({
+                    name: v.name || (`Đ${i + 1}`),
+                    x: parseFloat(v.x) || 0,
+                    y: parseFloat(v.y) || 0,
+                    lat: parseFloat(v.lat) || 0,
+                    lng: parseFloat(v.lng) || 0,
+                    h: parseFloat(v.h) || 0,
+                    isSnapped: true,
+                    snapSource: `Dự án: ${curProj}`,
+                    shapeName: sName,
+                    shapeMode: sObj.mode,
+                    shapeOrder: i + 1
+                })).filter(v => isFinite(v.lat) && isFinite(v.lng));
+
+                if (validVerts.length >= 2) {
+                    const sColor = sObj.color || colorPalette[cIdx % colorPalette.length];
+                    cIdx++;
+                    const sMode = (validVerts.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
+                    reconstructed.push({
+                        id: 'recon_shape_' + Date.now() + '_' + cIdx,
+                        name: sName,
+                        shortName: sName,
+                        mode: sMode,
+                        color: sColor,
+                        vertices: validVerts,
+                        selected: true,
+                        stats: this.calculateAreaAndPerimeter(validVerts, sMode)
+                    });
+                }
+            });
+
+            if (reconstructed.length > 0) {
+                this.savedShapes = reconstructed;
+                // Lưu lại ngay vào CAD storage
+                const cleanKey = this.getProjectStorageKey(curProj);
+                const data = { savedShapes: this.savedShapes, mode: this.mode, updated: Date.now() };
+                const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
+                localStorage.setItem('vn2k_cad_shapes_' + cleanKey, json);
+                if (curProj !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + curProj, json);
+                return true;
+            }
+        }
+        return false;
     },
 
     loadShapesForProject(projName) {
         const curProj = projName || AppState.currentProject;
         if (!curProj) return false;
         try {
-            const key = 'vn2k_cad_shapes_' + curProj.replace(/\.[^/.]+$/, "");
-            const raw = localStorage.getItem(key);
-            if (!raw) return false;
-            const data = JSON.parse(raw);
-            if (data && data.savedShapes && data.savedShapes.length > 0) {
-                const validVerts = (arr) => (arr || []).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
-                this.savedShapes = data.savedShapes.map(s => {
-                    const vertices = validVerts(s.vertices);
-                    const stats = s.customArea && s.stats ? s.stats : this.calculateAreaAndPerimeter(vertices, s.mode);
-                    return { ...s, vertices, stats };
-                }).filter(s => s.vertices.length > 0);
-                if (data.mode) this.mode = data.mode;
-                return this.savedShapes.length > 0;
+            const cleanKey = this.getProjectStorageKey(curProj);
+            let raw = localStorage.getItem('vn2k_cad_shapes_' + cleanKey);
+            if (!raw && curProj !== cleanKey) {
+                raw = localStorage.getItem('vn2k_cad_shapes_' + curProj);
             }
+
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data && data.savedShapes && data.savedShapes.length > 0) {
+                    const validVerts = (arr) => (arr || []).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
+                    this.savedShapes = data.savedShapes.map(s => {
+                        const vertices = validVerts(s.vertices);
+                        const stats = s.customArea && s.stats ? s.stats : this.calculateAreaAndPerimeter(vertices, s.mode);
+                        return { ...s, vertices, stats };
+                    }).filter(s => s.vertices.length > 0);
+                    if (data.mode) this.mode = data.mode;
+                    return this.savedShapes.length > 0;
+                }
+            }
+
+            // Nếu chưa có file CAD riêng, thử tái tạo từ các mốc dự án có chứa thông tin khối
+            return this.reconstructShapesFromPoints(curProj);
         } catch (e) {
             console.warn('CAD load project shapes failed:', e);
         }
@@ -9760,8 +10079,16 @@ const appCadTool = {
     hasShapesForProject(projName) {
         const curProj = projName || AppState.currentProject;
         if (!curProj) return false;
-        const key = 'vn2k_cad_shapes_' + curProj.replace(/\.[^/.]+$/, "");
-        return !!localStorage.getItem(key);
+        const cleanKey = this.getProjectStorageKey(curProj);
+        if (localStorage.getItem('vn2k_cad_shapes_' + cleanKey)) return true;
+        if (curProj !== cleanKey && localStorage.getItem('vn2k_cad_shapes_' + curProj)) return true;
+        
+        // Kiểm tra xem mốc của dự án có chứa shapeName không
+        if (typeof appData !== 'undefined' && appData.getPoints) {
+            const pts = appData.getPoints(curProj);
+            if (pts && pts.some(p => p.shapeName || p.blockName)) return true;
+        }
+        return false;
     },
 
     persistSession() {
@@ -9838,8 +10165,17 @@ const appCadTool = {
         const bar = document.getElementById('mapCadToolbar');
         if (!bar || bar._autoCollapseInit) return;
         bar._autoCollapseInit = true;
-        const expand = () => { this._toolbarHover = true; this.setToolbarCollapsed(false); };
-        const leave = () => { this._toolbarHover = false; this.scheduleToolbarCollapse(this.toolbarIdleMs); };
+        this._toolbarHover = false;
+
+        const expand = () => {
+            this._toolbarHover = true;
+            this.setToolbarCollapsed(false);
+        };
+        const leave = () => {
+            this._toolbarHover = false;
+            this.scheduleToolbarCollapse(this.toolbarIdleMs);
+        };
+
         bar.addEventListener('mouseenter', expand);
         bar.addEventListener('mouseleave', leave);
         bar.addEventListener('focusin', expand);
@@ -9848,6 +10184,36 @@ const appCadTool = {
             clearTimeout(this._toolbarTimer);
             if (bar.classList.contains('collapsed')) this.setToolbarCollapsed(false);
             this.scheduleToolbarCollapse(this.toolbarIdleMs * 2);
+        }, { passive: true });
+
+        // Tự động thu nhỏ thông minh ngay khi người dùng thao tác bấm hoặc di chuyển bản đồ
+        if (AppState.leafletMap && !AppState.leafletMap._cadCollapseBound) {
+            AppState.leafletMap._cadCollapseBound = true;
+            AppState.leafletMap.on('click', () => {
+                if (!this.isActive) return;
+                this._toolbarHover = false;
+                this.setToolbarCollapsed(true);
+            });
+            AppState.leafletMap.on('movestart', () => {
+                if (!this.isActive) return;
+                this._toolbarHover = false;
+                this.scheduleToolbarCollapse(800);
+            });
+            AppState.leafletMap.on('zoomstart', () => {
+                if (!this.isActive) return;
+                this._toolbarHover = false;
+                this.scheduleToolbarCollapse(800);
+            });
+        }
+
+        // Tự động thu nhỏ khi chạm ra ngoài thanh công cụ trên điện thoại/máy tính bảng
+        document.addEventListener('touchstart', (e) => {
+            if (!this.isActive) return;
+            const toggleBtn = document.getElementById('btnToggleCadTool');
+            if (bar && !bar.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
+                this._toolbarHover = false;
+                this.scheduleToolbarCollapse(800);
+            }
         }, { passive: true });
     },
 
@@ -9888,7 +10254,7 @@ const appCadTool = {
 
         if (!this.displaySettings) this.initDisplaySettings();
         const showBoundaries = this.displaySettings.showBoundaries !== false;
-        const showVertices = this.displaySettings.showVertices !== false;
+        const showVertices = this.displaySettings.showVertices === true;
         const showDistances = this.displaySettings.showDistances === true;
         const showCenterLabels = this.displaySettings.showCenterLabels !== false;
 
@@ -9905,6 +10271,7 @@ const appCadTool = {
             let sCenterMarker = null;
 
             const edgeMarkers = [];
+            const vertexMarkers = [];
 
             if (showBoundaries && shape.mode === 'polygon' && sLen >= 3) {
                 sShapeLayer = L.polygon(sLatLngs, {
@@ -9916,14 +10283,18 @@ const appCadTool = {
                     interactive: true
                 }).addTo(this.layers.group);
 
-                // Khi rê chuột hoặc click vào polygon: hiện/ẩn cự ly các cạnh
+                // Khi rê chuột hoặc click vào polygon: hiện/ẩn cự ly các cạnh và hiện chấm góc đỉnh
                 sShapeLayer.on('mouseover', () => {
                     edgeMarkers.forEach(em => em.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible'));
+                    vertexMarkers.forEach(vm => vm.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('dot-visible'));
                 });
                 sShapeLayer.on('mouseout', () => {
                     if (!shape._pinned) {
                         edgeMarkers.forEach(em => {
                             if (!em._pinned) em.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                        });
+                        vertexMarkers.forEach(vm => {
+                            if (!vm._pinned) vm.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('dot-visible');
                         });
                     }
                 });
@@ -9939,6 +10310,11 @@ const appCadTool = {
                         const b = em.getElement()?.querySelector('.cad-edge-badge');
                         if (shape._pinned) b?.classList.add('visible', 'pinned');
                         else b?.classList.remove('visible', 'pinned');
+                    });
+                    vertexMarkers.forEach(vm => {
+                        const b = vm.getElement()?.querySelector('.cad-vertex-badge');
+                        if (shape._pinned) b?.classList.add('dot-visible');
+                        else b?.classList.remove('dot-visible');
                     });
                 });
 
@@ -10061,13 +10437,15 @@ const appCadTool = {
                 }
             }
 
-            // Đỉnh của cấu trúc đã lưu: Ký hiệu Đ1, Đ2... Hiển thị khi bật tùy chọn showVertices
+            // Đỉnh của cấu trúc đã lưu: Ký hiệu Đ1, Đ2... Ẩn mặc định, chỉ hiển thị khi rê chuột đến hoặc bật tùy chọn showVertices
             {
             sVerts.forEach((v, vIdx) => {
-                const iconHtml = `<div class="cad-vertex-badge ${showVertices ? 'expanded' : ''}" style="background: ${sColor}; border-color: #ffffff;" title="${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết)">${v.name}</div>`;
+                const isExpanded = (showVertices === true);
+                const iconHtml = `<div class="cad-vertex-badge ${isExpanded ? 'expanded' : ''}" style="background: ${sColor}; border-color: #ffffff;" title="${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết)">${v.name}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: true }).addTo(this.layers.group);
-                marker._pinned = showVertices;
+                marker._pinned = isExpanded;
+                vertexMarkers.push(marker);
 
                 // Rê chuột vào đỉnh: bung nhãn đỉnh và hiện cự ly các cạnh nối với đỉnh này
                 marker.on('mouseover', () => {
@@ -10225,8 +10603,8 @@ const appCadTool = {
 
         // 2. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển nhanh)
         this.vertices.forEach((v, idx) => {
-            const isActExp = showVertices ? 'expanded' : '';
-            const iconHtml = `<div class="cad-vertex-badge ${isActExp}" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
+            const isActExp = (showVertices === true) ? 'expanded' : '';
+            const iconHtml = `<div class="cad-vertex-badge dot-visible ${isActExp}" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
             const icon = L.divIcon({
                 className: '',
                 html: iconHtml,
@@ -10238,7 +10616,7 @@ const appCadTool = {
                 zIndexOffset: 2500,
                 draggable: true 
             }).addTo(this.layers.group);
-            marker._pinned = showVertices;
+            marker._pinned = (showVertices === true);
 
             marker.on('mouseover', () => {
                 marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
@@ -10910,43 +11288,111 @@ const appCadTool = {
             return;
         }
 
-        if (mode === 'polygon' && checkedIdxs.length < 3) {
-            showToast("⚠️ Cần ít nhất 3 mốc để tạo đa giác ranh khép kín!", true);
-            return;
-        }
+        const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
+        const customTargetName = document.getElementById('cadLoadTargetShapeName')?.value?.trim();
 
-        const shapeName = document.getElementById('cadLoadTargetShapeName')?.value?.trim() || `Thửa ${this.savedShapes.length + 1}`;
-        const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e'];
-        const shapeColor = colorPalette[this.savedShapes.length % colorPalette.length];
+        // Kiểm tra xem các mốc được chọn có thuộc các khối khác nhau không
+        const shapeGroups = new Map();
+        let hasMultiShapes = false;
 
-        const vertices = [];
         checkedIdxs.forEach((idx, orderIdx) => {
             const p = allPts[idx];
             if (!p) return;
+            const sName = p.shapeName || customTargetName || `Thửa ${this.savedShapes.length + 1}`;
+            if (p.shapeName && !customTargetName) hasMultiShapes = true;
+
+            if (!shapeGroups.has(sName)) {
+                shapeGroups.set(sName, {
+                    name: sName,
+                    mode: p.shapeMode || mode,
+                    color: p.shapeColor || null,
+                    vertices: []
+                });
+            }
+
             const x = parseFloat(p.x);
             const y = parseFloat(p.y);
             const lat = parseFloat(p.lat);
             const lng = parseFloat(p.lng);
-            vertices.push({
+
+            shapeGroups.get(sName).vertices.push({
                 x, y, lat, lng,
+                h: parseFloat(p.h || 0),
                 name: p.name || `Đ${orderIdx + 1}`,
                 isSnapped: true,
-                snapSource: `Dự án: ${selProj}`
+                snapSource: `Dự án: ${selProj}`,
+                shapeName: sName,
+                shapeMode: p.shapeMode || mode
             });
         });
 
-        const shape = {
-            id: 'proj_shape_' + Date.now(),
-            name: shapeName,
-            shortName: shapeName,
-            mode: mode,
-            vertices: vertices,
-            color: shapeColor,
-            selected: true,
-            stats: this.calculateAreaAndPerimeter(vertices, mode)
-        };
+        // Nếu người dùng chỉ định tên khối cụ thể hoặc mốc không mang thông tin khối riêng
+        if (!hasMultiShapes || customTargetName) {
+            const finalName = customTargetName || `Thửa ${this.savedShapes.length + 1}`;
+            const vertices = [];
+            checkedIdxs.forEach((idx, orderIdx) => {
+                const p = allPts[idx];
+                if (!p) return;
+                vertices.push({
+                    x: parseFloat(p.x),
+                    y: parseFloat(p.y),
+                    lat: parseFloat(p.lat),
+                    lng: parseFloat(p.lng),
+                    h: parseFloat(p.h || 0),
+                    name: p.name || `Đ${orderIdx + 1}`,
+                    isSnapped: true,
+                    snapSource: `Dự án: ${selProj}`,
+                    shapeName: finalName,
+                    shapeMode: mode
+                });
+            });
 
-        this.savedShapes.push(shape);
+            if (mode === 'polygon' && vertices.length < 3) {
+                showToast("⚠️ Cần ít nhất 3 mốc để tạo đa giác ranh khép kín!", true);
+                return;
+            }
+
+            const shapeColor = colorPalette[this.savedShapes.length % colorPalette.length];
+            const shape = {
+                id: 'proj_shape_' + Date.now(),
+                name: finalName,
+                shortName: finalName,
+                mode: mode,
+                vertices: vertices,
+                color: shapeColor,
+                selected: true,
+                stats: this.calculateAreaAndPerimeter(vertices, mode)
+            };
+            this.savedShapes.push(shape);
+            showToast(`✓ Đã nạp ${vertices.length} mốc từ "${selProj}" thành khối [${mode === 'polygon' ? 'Đa giác' : 'Tuyến'}]: "${finalName}"!`);
+        } else {
+            // Tự động phân tách nạp thành các khối riêng biệt theo đúng ranh thửa của từng khối
+            let loadedShapesCount = 0;
+            let loadedVertCount = 0;
+
+            shapeGroups.forEach((sObj, sName) => {
+                if (sObj.vertices.length >= 2) {
+                    const sMode = (sObj.vertices.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
+                    const sColor = sObj.color || colorPalette[(this.savedShapes.length + loadedShapesCount) % colorPalette.length];
+                    const shape = {
+                        id: 'proj_shape_' + Date.now() + '_' + loadedShapesCount,
+                        name: sName,
+                        shortName: sName,
+                        mode: sMode,
+                        vertices: sObj.vertices,
+                        color: sColor,
+                        selected: true,
+                        stats: this.calculateAreaAndPerimeter(sObj.vertices, sMode)
+                    };
+                    this.savedShapes.push(shape);
+                    loadedShapesCount++;
+                    loadedVertCount += sObj.vertices.length;
+                }
+            });
+
+            showToast(`✓ Đã tự động phân tách nạp thành công ${loadedShapesCount} khối (${loadedVertCount} đỉnh) từ "${selProj}"!`);
+        }
+
         this.renderGeometry();
         this.renderBlocksPanel();
         if (this.redrawAllShapes) this.redrawAllShapes();
@@ -10954,7 +11400,6 @@ const appCadTool = {
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.closeLoadProjectModal();
-        showToast(`✓ Đã nạp ${vertices.length} mốc từ "${selProj}" thành khối [${mode === 'polygon' ? 'Đa giác' : 'Tuyến'}]: "${shapeName}"!`);
     },
 
     confirmLoadProjectAsSnap() {
@@ -12010,10 +12455,51 @@ const appCadTool = {
             this.openToolbar();
         }
 
-        // 3. Vẽ toàn bộ hình dạng các khối và nhãn lên bản đồ
+        // 3. Xác định và đồng bộ tên dự án tương ứng với file nạp
+        let targetProj = AppState.currentProject;
+        if (fileName && (!appendMode || !targetProj)) {
+            const cleanName = fileName.replace(/(\.(csv|xlsx|xls|txt))+$/i, "").trim();
+            targetProj = cleanName ? `${cleanName}.csv` : (targetProj || `DuAn_${Date.now().toString().slice(-4)}.csv`);
+        }
+        if (!targetProj) targetProj = `DuAn_${Date.now().toString().slice(-4)}.csv`;
+        if (!targetProj.toLowerCase().endsWith('.csv')) targetProj += '.csv';
+
+        if (!AppState.projectsList.includes(targetProj)) {
+            AppState.projectsList.push(targetProj);
+            if (typeof appData !== 'undefined' && appData.saveProjectsList) {
+                appData.saveProjectsList();
+            } else {
+                localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+            }
+        }
+        AppState.currentProject = targetProj;
+        localStorage.setItem('vn2k_cur_project', targetProj);
+
+        // Lưu bền vững vào CAD storage và tự động đồng bộ sang Sổ Đo Dự Án (kèm tag shapeName)
+        this.saveShapesForProject(targetProj);
+        this.persistSession();
+
+        if (typeof appData !== 'undefined' && appData.populateProjectSelect) appData.populateProjectSelect();
+        if (typeof appMap !== 'undefined' && appMap.populateMapProjectSelect) appMap.populateMapProjectSelect(targetProj);
+        if (typeof appNav !== 'undefined') {
+            if (appNav.updateTreeNavState) appNav.updateTreeNavState();
+            if (appNav.updateBanner) appNav.updateBanner();
+        }
+
+        // Đảm bảo khi nạp từ Excel: mặc định ẩn nhãn đỉnh và khung kích thước cạnh (chỉ hiển thị khi rê chuột đến)
+        if (!this.displaySettings) this.initDisplaySettings();
+        this.displaySettings.showVertices = false;
+        this.displaySettings.showDistances = false;
+        try {
+            localStorage.setItem('vn2k_cad_display_settings_v3', JSON.stringify(this.displaySettings));
+        } catch(e) {}
+        this.syncDisplayCheckboxes();
+        this.scheduleToolbarCollapse(this.toolbarIdleMs);
+
+        // 4. Vẽ toàn bộ hình dạng các khối và nhãn lên bản đồ
         this.renderGeometry();
 
-        // 4. HIỂN THỊ BẢNG KÊ CÁC KHỐI TRÊN BẢN ĐỒ
+        // 5. HIỂN THỊ BẢNG KÊ CÁC KHỐI TRÊN BẢN ĐỒ
         const panel = document.getElementById('cadBlocksStatsPanel');
         if (panel) {
             panel.style.display = 'block';
@@ -12021,7 +12507,7 @@ const appCadTool = {
         this.renderBlocksPanel();
         this.updateUi();
 
-        // 5. Thu phóng bản đồ bao quát chính xác các khối vừa nạp
+        // 6. Thu phóng bản đồ bao quát chính xác các khối vừa nạp
         if (allLatLngs.length > 0 && AppState.leafletMap) {
             setTimeout(() => {
                 try {
@@ -12491,10 +12977,10 @@ const appCadTool = {
         // Tùy chọn hiển thị các thành phần trên bản vẽ xuất
         const showVertices = document.getElementById('cadExportCheckVertices')
             ? document.getElementById('cadExportCheckVertices').checked
-            : (this.displaySettings ? (this.displaySettings.showVertices !== false) : true);
+            : (this.displaySettings ? (this.displaySettings.showVertices === true) : false);
         const showDistances = document.getElementById('cadExportCheckDistances')
             ? document.getElementById('cadExportCheckDistances').checked
-            : (this.displaySettings ? (this.displaySettings.showDistances === true) : true);
+            : (this.displaySettings ? (this.displaySettings.showDistances === true) : false);
         const showCenterLabels = document.getElementById('cadExportCheckCenterLabels')
             ? document.getElementById('cadExportCheckCenterLabels').checked
             : (this.displaySettings ? (this.displaySettings.showCenterLabels !== false) : true);
