@@ -7305,9 +7305,16 @@ const appCadTool = {
 
     init() {
         this.ensureLayers();
+        if (!this._zoomListenerBound && AppState.leafletMap) {
+            this._zoomListenerBound = true;
+            AppState.leafletMap.on('zoomend', () => {
+                if (this.isActive) this.renderGeometry();
+            });
+        }
         this.bindEvents();
         this.initDraggablePanel();
         this.loadAnnotations();
+        this.initHistory();
     },
 
     initDraggablePanel() {
@@ -7425,7 +7432,7 @@ const appCadTool = {
             s.stats.ha = val / 10000.0;
             s.stats.areaFormatted = val.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             s.customArea = true;
-
+            this.pushHistoryState(`Sửa diện tích ${s.name}`);
             this.renderGeometry();
             this.renderBlocksPanel();
             if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
@@ -7435,12 +7442,267 @@ const appCadTool = {
         }
     },
 
+    // === HỆ THỐNG LÙI / TIẾN (UNDO / REDO) ĐA TẦNG CHO MỌI THAO TÁC MINI CAD ===
+    historyStack: [],
+    historyIndex: -1,
+    maxHistory: 50,
+    isHistoryAction: false,
+
+    initHistory() {
+        if (!this.historyStack || this.historyStack.length === 0) {
+            this.historyStack = [{
+                vertices: (this.vertices || []).map(v => ({ ...v })),
+                savedShapes: (this.savedShapes || []).map(s => ({
+                    ...s,
+                    vertices: (s.vertices || []).map(v => ({ ...v })),
+                    stats: s.stats ? { ...s.stats } : null
+                })),
+                annotations: (this.annotations || []).map(a => ({ ...a })),
+                mode: this.mode,
+                desc: 'Khởi đầu'
+            }];
+            this.historyIndex = 0;
+            this.updateUndoRedoUi();
+        }
+    },
+
+    pushHistoryState(description = '') {
+        if (this.isHistoryAction) return;
+        this.initHistory();
+
+        // Cắt bỏ các nhánh tương lai nếu người dùng vẽ tiếp sau khi lùi
+        if (this.historyIndex < this.historyStack.length - 1) {
+            this.historyStack = this.historyStack.slice(0, this.historyIndex + 1);
+        }
+
+        const snapshot = {
+            vertices: (this.vertices || []).map(v => ({ ...v })),
+            savedShapes: (this.savedShapes || []).map(s => ({
+                ...s,
+                vertices: (s.vertices || []).map(v => ({ ...v })),
+                stats: s.stats ? { ...s.stats } : null
+            })),
+            annotations: (this.annotations || []).map(a => ({ ...a })),
+            mode: this.mode,
+            desc: description
+        };
+
+        this.historyStack.push(snapshot);
+        if (this.historyStack.length > this.maxHistory) {
+            this.historyStack.shift();
+        } else {
+            this.historyIndex++;
+        }
+        this.updateUndoRedoUi();
+    },
+
+    undo() {
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
+            const state = this.historyStack[this.historyIndex];
+            this.applyHistoryState(state);
+            triggerHaptic('selection');
+            showToast(`↩ Đã lùi: ${state.desc || 'Thao tác trước'} [Ctrl+Z]`);
+        } else if (this.vertices && this.vertices.length > 0) {
+            this.undoVertex();
+        } else {
+            showToast("⚠️ Không còn thao tác trước đó để hoàn tác!", true);
+        }
+    },
+
+    redo() {
+        if (this.historyIndex < this.historyStack.length - 1) {
+            this.historyIndex++;
+            const state = this.historyStack[this.historyIndex];
+            this.applyHistoryState(state);
+            triggerHaptic('selection');
+            showToast(`↪ Đã tiến: ${state.desc || 'Thao tác sau'} [Ctrl+Y]`);
+        } else {
+            showToast("⚠️ Đang ở thao tác mới nhất, không thể tiến thêm!", true);
+        }
+    },
+
+    applyHistoryState(state) {
+        if (!state) return;
+        this.isHistoryAction = true;
+        try {
+            this.vertices = (state.vertices || []).map(v => ({ ...v }));
+            this.savedShapes = (state.savedShapes || []).map(s => ({
+                ...s,
+                vertices: (s.vertices || []).map(v => ({ ...v })),
+                stats: s.stats ? { ...s.stats } : null
+            }));
+            this.annotations = (state.annotations || []).map(a => ({ ...a }));
+            this.mode = state.mode || this.mode;
+
+            this.renderGeometry();
+            this.updateUi();
+            this.renderBlocksPanel();
+            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                this.openAreaTableModal();
+            }
+            this.updateUndoRedoUi();
+        } finally {
+            this.isHistoryAction = false;
+        }
+    },
+
+    updateUndoRedoUi() {
+        const btnUndo = document.getElementById('btnCadUndo');
+        const btnRedo = document.getElementById('btnCadRedo');
+        const canUndo = this.historyIndex > 0 || (this.vertices && this.vertices.length > 0);
+        const canRedo = this.historyIndex < this.historyStack.length - 1;
+
+        if (btnUndo) {
+            btnUndo.disabled = !canUndo;
+            btnUndo.style.opacity = canUndo ? '1' : '0.45';
+            btnUndo.style.cursor = canUndo ? 'pointer' : 'not-allowed';
+        }
+        if (btnRedo) {
+            btnRedo.disabled = !canRedo;
+            btnRedo.style.opacity = canRedo ? '1' : '0.45';
+            btnRedo.style.cursor = canRedo ? 'pointer' : 'not-allowed';
+        }
+    },
+
+    // Tính toán tâm hình học chính xác (Polygon Centroid) để nhãn luôn ở trung tâm khối
+    calculatePolygonCentroid(pts) {
+        if (!pts || pts.length === 0) return [0, 0];
+        const len = pts.length;
+        if (len < 3) {
+            return [pts[0].lat, pts[0].lng];
+        }
+
+        let area2 = 0;
+        let cLat = 0;
+        let cLng = 0;
+        for (let i = 0; i < len; i++) {
+            const p1 = pts[i];
+            const p2 = pts[(i + 1) % len];
+            const cross = (p1.lng * p2.lat) - (p2.lng * p1.lat);
+            area2 += cross;
+            cLng += (p1.lng + p2.lng) * cross;
+            cLat += (p1.lat + p2.lat) * cross;
+        }
+        if (Math.abs(area2) > 1e-11) {
+            cLat /= (3 * area2);
+            cLng /= (3 * area2);
+            return [cLat, cLng];
+        }
+        // Fallback trọng tâm trung bình nếu đa giác thẳng hàng
+        return [
+            pts.reduce((s, p) => s + p.lat, 0) / len,
+            pts.reduce((s, p) => s + p.lng, 0) / len
+        ];
+    },
+
+    // Thao tác chèn đỉnh mới vào cạnh
+    insertVertexOnEdge(shapeIdx, edgeIdx) {
+        if (shapeIdx === -1) {
+            // Khối đang vẽ dở
+            if (this.vertices.length < 2) return;
+            const p1 = this.vertices[edgeIdx];
+            const p2 = this.vertices[(edgeIdx + 1) % this.vertices.length];
+            const midLat = (p1.lat + p2.lat) / 2;
+            const midLng = (p1.lng + p2.lng) / 2;
+            const midVn = convertWgsToVn2k(midLat, midLng, AppState.kttVal, AppState.scaleFactor);
+
+            this.pushHistoryState(`Chèn đỉnh mới`);
+            this.vertices.splice(edgeIdx + 1, 0, {
+                id: Date.now() + Math.random(),
+                name: `Đ${this.vertices.length + 1}`,
+                lat: midLat,
+                lng: midLng,
+                x: parseFloat(parseFloat(midVn.X).toFixed(3)),
+                y: parseFloat(parseFloat(midVn.Y).toFixed(3)),
+                h: 0,
+                isSnapped: false
+            });
+            this.renderGeometry();
+            this.updateUi();
+            showToast(`✓ Đã chèn đỉnh mới vào cạnh ${edgeIdx + 1}! Kéo thả để nắn ranh.`);
+        } else if (this.savedShapes && this.savedShapes[shapeIdx]) {
+            // Khối đã lưu
+            const s = this.savedShapes[shapeIdx];
+            const p1 = s.vertices[edgeIdx];
+            const p2 = s.vertices[(edgeIdx + 1) % s.vertices.length];
+            const midLat = (p1.lat + p2.lat) / 2;
+            const midLng = (p1.lng + p2.lng) / 2;
+            const midVn = convertWgsToVn2k(midLat, midLng, AppState.kttVal, AppState.scaleFactor);
+
+            this.pushHistoryState(`Chèn đỉnh khối [${s.shortName}]`);
+            s.vertices.splice(edgeIdx + 1, 0, {
+                id: Date.now() + Math.random(),
+                name: `D${s.vertices.length + 1}`,
+                lat: midLat,
+                lng: midLng,
+                x: parseFloat(parseFloat(midVn.X).toFixed(3)),
+                y: parseFloat(parseFloat(midVn.Y).toFixed(3)),
+                h: 0,
+                isSnapped: false
+            });
+            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
+            this.renderGeometry();
+            this.renderBlocksPanel();
+            showToast(`✓ Đã chèn đỉnh mới vào khối [${s.shortName}]! Kéo thả để nắn ranh.`);
+        }
+    },
+
+    // Thao tác xóa đỉnh
+    deleteVertex(shapeIdx, vertexIdx) {
+        if (shapeIdx === -1) {
+            // Khối đang vẽ dở
+            if (this.vertices.length <= 1) {
+                this.clearDrawing();
+                return;
+            }
+            this.pushHistoryState(`Xóa đỉnh ${this.vertices[vertexIdx]?.name || ''}`);
+            const removed = this.vertices.splice(vertexIdx, 1);
+            this.renderGeometry();
+            this.updateUi();
+            showToast(`🗑️ Đã xóa đỉnh ${removed[0]?.name || ''}! Có thể nhấn [Ctrl+Z] để hoàn tác.`);
+        } else if (this.savedShapes && this.savedShapes[shapeIdx]) {
+            // Khối đã lưu
+            const s = this.savedShapes[shapeIdx];
+            if (s.mode === 'polygon' && s.vertices.length <= 3) {
+                showToast("⚠️ Đa giác cần tối thiểu 3 đỉnh! Hãy dùng nút xóa khối nếu muốn xóa toàn bộ.", true);
+                return;
+            }
+            if (s.mode === 'polyline' && s.vertices.length <= 2) {
+                showToast("⚠️ Tuyến cần tối thiểu 2 đỉnh!", true);
+                return;
+            }
+            this.pushHistoryState(`Xóa đỉnh [${s.shortName}]`);
+            const removed = s.vertices.splice(vertexIdx, 1);
+            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
+            this.renderGeometry();
+            this.renderBlocksPanel();
+            showToast(`🗑️ Đã xóa đỉnh ${removed[0]?.name || ''}! Có thể nhấn [Ctrl+Z] để hoàn tác.`);
+        }
+    },
+
     bindEvents() {
         // Phím tắt bàn phím chuẩn thao tác AutoCAD chuyên nghiệp
         window.addEventListener('keydown', (e) => {
             if (!this.isActive) return;
             // Bỏ qua khi người dùng đang nhập liệu trong ô input / textarea
             if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key.toLowerCase() === 'z') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        this.redo();
+                    } else {
+                        this.undo();
+                    }
+                    return;
+                } else if (e.key.toLowerCase() === 'y') {
+                    e.preventDefault();
+                    this.redo();
+                    return;
+                }
+            }
 
             const key = e.key.toUpperCase();
             if (key === 'P') {
@@ -7457,7 +7719,10 @@ const appCadTool = {
                 this.closeLoop();
             } else if (key === 'U') {
                 e.preventDefault();
-                this.undoVertex();
+                this.undo();
+            } else if (key === 'R' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                this.redo();
             } else if (key === 'N') {
                 e.preventDefault();
                 this.saveAndStartNewShape();
@@ -8169,6 +8434,7 @@ const appCadTool = {
             y = vn2k.Y;
         }
 
+        this.pushHistoryState(`Thêm đỉnh`);
         const v = {
             id: Date.now() + Math.random(),
             name: name || `Đ${this.vertices.length + 1}`,
@@ -8234,6 +8500,7 @@ const appCadTool = {
 
         const color = this.palette[(idx - 1) % this.palette.length];
 
+        this.pushHistoryState(`Lưu khối "${chosenName}"`);
         this.savedShapes.push({
             id: 'shape_' + Date.now(),
             name: chosenName,
@@ -9125,6 +9392,8 @@ const appCadTool = {
             let sShapeLayer = null;
             let sCenterMarker = null;
 
+            const edgeMarkers = [];
+
             if (shape.mode === 'polygon' && sLen >= 3) {
                 sShapeLayer = L.polygon(sLatLngs, {
                     color: sColor,
@@ -9132,17 +9401,69 @@ const appCadTool = {
                     fillColor: sColor,
                     fillOpacity: 0.18,
                     lineJoin: 'round',
-                    interactive: false // Không nuốt click để vẽ nét sau bắt điểm mượt mà
+                    interactive: true
                 }).addTo(this.layers.group);
 
-                // Nhãn tâm thửa đất
-                const cLat = sVerts.reduce((a, b) => a + b.lat, 0) / sLen;
-                const cLng = sVerts.reduce((a, b) => a + b.lng, 0) / sLen;
-                const centerHtml = `<div class="cad-center-badge" style="background: rgba(15, 23, 42, 0.88); border: 1.5px solid ${sColor}; color: #ffffff;">
-                    <div style="font-weight: 800; font-size: 13px; color: ${sColor}; line-height: 1.2;">${shape.symbol || (sIdx + 1)}</div>
-                    <div style="font-weight: 700; font-size: 10px;">${shape.stats?.areaFormatted || 0} m²</div>
-                </div>`;
-                const centerIcon = L.divIcon({ className: '', html: centerHtml, iconSize: [90, 36], iconAnchor: [45, 18] });
+                // Khi rê chuột hoặc click vào polygon: hiện/ẩn cự ly các cạnh
+                sShapeLayer.on('mouseover', () => {
+                    edgeMarkers.forEach(em => em.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible'));
+                });
+                sShapeLayer.on('mouseout', () => {
+                    if (!shape._pinned) {
+                        edgeMarkers.forEach(em => {
+                            if (!em._pinned) em.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                        });
+                    }
+                });
+                sShapeLayer.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    shape._pinned = !shape._pinned;
+                    edgeMarkers.forEach(em => {
+                        const b = em.getElement()?.querySelector('.cad-edge-badge');
+                        if (shape._pinned) b?.classList.add('visible', 'pinned');
+                        else b?.classList.remove('visible', 'pinned');
+                    });
+                });
+
+                // Nhãn tâm khối: Vị trí tâm hình học (Polygon Centroid) và Scale vừa khít không tràn ra ngoài
+                const [cLat, cLng] = this.calculatePolygonCentroid(sVerts);
+                const blockSymbol = shape.symbol || String(sIdx + 1);
+
+                // Tính toán kích thước pixel của khối trên màn hình để scale nhãn chuẩn xác
+                let maxW = 75, maxH = 32, badgeHtml = '';
+                if (AppState.leafletMap) {
+                    const b = L.latLngBounds(sLatLngs);
+                    const p1 = AppState.leafletMap.latLngToContainerPoint(b.getSouthWest());
+                    const p2 = AppState.leafletMap.latLngToContainerPoint(b.getNorthEast());
+                    const wPx = Math.abs(p2.x - p1.x);
+                    const hPx = Math.abs(p2.y - p1.y);
+                    const minDim = Math.min(wPx, hPx);
+
+                    maxW = Math.max(18, Math.floor(wPx * 0.82));
+                    maxH = Math.max(18, Math.floor(hPx * 0.82));
+
+                    if (minDim < 45) {
+                        // Khối rất nhỏ: Hiển thị chấm tròn ký hiệu cực gọn, lọt thỏm trong lòng khối
+                        const bDim = Math.min(22, maxW);
+                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.94); border:1.5px solid ${sColor}; color:${sColor}; width:${bDim}px; height:${bDim}px; min-width:${bDim}px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px; box-shadow:0 1px 6px rgba(0,0,0,0.5);" title="${shape.name} (${shape.stats?.areaFormatted || 0} m²)">${blockSymbol}</div>`;
+                    } else if (minDim < 85) {
+                        // Khối trung bình: Hiển thị ký hiệu + diện tích làm tròn
+                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid ${sColor}; color:#ffffff; padding:1px 4px; border-radius:4px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.4);" title="${shape.name}">
+                            <div style="font-weight:800; font-size:11px; color:${sColor}; line-height:1.1;">${blockSymbol}</div>
+                            <div style="font-weight:700; font-size:8.5px; color:#f8fafc; white-space:nowrap;">${Math.round(shape.stats?.area || 0)} m²</div>
+                        </div>`;
+                    } else {
+                        // Khối lớn: Hiển thị đầy đủ
+                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.90); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:5px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.45);" title="${shape.name}">
+                            <div style="font-weight:800; font-size:13px; color:${sColor}; line-height:1.15;">${blockSymbol}</div>
+                            <div style="font-weight:700; font-size:10px; color:#f8fafc; white-space:nowrap;">${shape.stats?.areaFormatted || 0} m²</div>
+                        </div>`;
+                    }
+                } else {
+                    badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.9); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:4px;"><div style="font-weight:800; font-size:12px; color:${sColor};">${blockSymbol}</div></div>`;
+                }
+
+                const centerIcon = L.divIcon({ className: '', html: badgeHtml, iconSize: [maxW, maxH], iconAnchor: [maxW / 2, maxH / 2] });
                 sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
             } else if (sLen >= 2) {
                 sShapeLayer = L.polyline(sLatLngs, {
@@ -9150,13 +9471,18 @@ const appCadTool = {
                     weight: 2.5,
                     dashArray: '4, 4',
                     lineJoin: 'round',
-                    interactive: false // Không nuốt click
+                    interactive: true
                 }).addTo(this.layers.group);
             }
 
-            // Nhãn cạnh và điểm chèn đỉnh mới (+) cho cấu trúc đã lưu
-            if (shape.mode === 'polygon' && sLen >= 3 && shape.stats?.edges) {
-                shape.stats.edges.forEach((edge, eIdx) => {
+            // Nhãn cạnh và cự ly: Ẩn mặc định, hiển thị khi click hoặc rê chuột đến đỉnh/cạnh
+            if (sLen >= 2 && shape.stats?.edges) {
+                const isClosed = shape.mode === 'polygon' && sLen >= 3;
+                const edgeCount = isClosed ? sLen : sLen - 1;
+
+                for (let eIdx = 0; eIdx < edgeCount; eIdx++) {
+                    const edge = shape.stats.edges[eIdx];
+                    if (!edge) continue;
                     const cur = sVerts[eIdx];
                     const next = sVerts[(eIdx + 1) % sLen];
                     const midLat = (cur.lat + next.lat) / 2;
@@ -9170,21 +9496,67 @@ const appCadTool = {
                         iconAnchor: [26, 9]
                     });
                     const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2350 }).addTo(this.layers.group);
+                    edgeMarker._pinned = false;
+                    edgeMarkers.push(edgeMarker);
+
                     edgeMarker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
                         this.insertVertexOnEdge(sIdx, eIdx);
                     });
-                });
+
+                    // Đường bắt rê chuột vô hình (Invisible Hit-Line) dọc theo cạnh để hiển thị cự ly khi rê chuột
+                    const hitLine = L.polyline([[cur.lat, cur.lng], [next.lat, next.lng]], {
+                        weight: 16,
+                        color: '#000',
+                        opacity: 0.001,
+                        interactive: true
+                    }).addTo(this.layers.group);
+
+                    hitLine.on('mouseover', () => {
+                        edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
+                    });
+                    hitLine.on('mouseout', () => {
+                        if (!edgeMarker._pinned && !shape._pinned) {
+                            edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                        }
+                    });
+                    hitLine.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        edgeMarker._pinned = !edgeMarker._pinned;
+                        const b = edgeMarker.getElement()?.querySelector('.cad-edge-badge');
+                        if (edgeMarker._pinned) b?.classList.add('visible', 'pinned');
+                        else b?.classList.remove('visible', 'pinned');
+                    });
+                }
             }
 
-            // Đỉnh của cấu trúc đã lưu (Kéo thả di chuyển nhanh hoặc bấm để bắt snap)
+            // Đỉnh của cấu trúc đã lưu: Chấm nhỏ 9px mặc định, rê chuột/click bung STT đỉnh & cự ly cạnh kề
             sVerts.forEach((v, vIdx) => {
-                const iconHtml = `<div class="cad-vertex-badge" style="background: ${sColor}; border-color: #ffffff; width: 20px; height: 20px; font-size: 9.5px; line-height: 20px; cursor: grab;" title="${shape.shortName} - ${v.name} (Kéo thả để điều chỉnh đỉnh)">${v.name}</div>`;
-                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [20, 20], iconAnchor: [10, 10] });
+                const iconHtml = `<div class="cad-vertex-badge" style="background: ${sColor}; border-color: #ffffff;" title="${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết)">${v.name}</div>`;
+                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: true }).addTo(this.layers.group);
+
+                // Rê chuột vào đỉnh: bung nhãn đỉnh và hiện cự ly các cạnh nối với đỉnh này
+                marker.on('mouseover', () => {
+                    marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
+                    const prevE = edgeMarkers[(vIdx - 1 + edgeMarkers.length) % edgeMarkers.length];
+                    const nextE = edgeMarkers[vIdx];
+                    prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
+                    nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
+                });
+                marker.on('mouseout', () => {
+                    if (!marker._pinned) {
+                        marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('expanded');
+                    }
+                    const prevE = edgeMarkers[(vIdx - 1 + edgeMarkers.length) % edgeMarkers.length];
+                    const nextE = edgeMarkers[vIdx];
+                    if (!prevE?._pinned && !shape._pinned) prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                    if (!nextE?._pinned && !shape._pinned) nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                });
 
                 let isDragging = false;
                 marker.on('dragstart', () => {
+                    this.pushHistoryState(`Dời đỉnh ${v.name}`);
                     isDragging = true;
                     if (AppState.leafletMap) AppState.leafletMap.dragging.disable();
                 });
@@ -9332,9 +9704,19 @@ const appCadTool = {
                 draggable: true 
             }).addTo(this.layers.group);
 
+            marker.on('mouseover', () => {
+                marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
+            });
+            marker.on('mouseout', () => {
+                if (!marker._pinned) {
+                    marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('expanded');
+                }
+            });
+
             let isDragging = false;
             marker.on('dragstart', () => {
-                isDragging = true;
+                    this.pushHistoryState(`Dời đỉnh ${v.name}`);
+                    isDragging = true;
                 if (AppState.leafletMap) AppState.leafletMap.dragging.disable();
             });
 
@@ -9426,46 +9808,99 @@ const appCadTool = {
             });
         });
 
-        // 3. Hiển thị nhãn kích thước cạnh (m)
+        // 3. Hiển thị nhãn kích thước cạnh (m) cho nét vẽ hiện tại (Ẩn mặc định, hover/click đường kẻ để hiện)
         const stats = this.calculateAreaAndPerimeter();
-        stats.edges.forEach((edge, idx) => {
-            const cur = this.vertices[idx];
-            const next = this.vertices[(idx + 1) % n];
-            const midLat = (cur.lat + next.lat) / 2;
-            const midLng = (cur.lng + next.lng) / 2;
+        const activeEdgeMarkers = [];
 
-            const labelHtml = `<div class="cad-edge-badge interactive" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
-            const labelIcon = L.divIcon({
-                className: '',
-                html: labelHtml,
-                iconSize: [52, 18],
-                iconAnchor: [26, 9]
-            });
-            const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2400 }).addTo(this.layers.group);
-            edgeMarker.on('click', (e) => {
-                L.DomEvent.stopPropagation(e);
-                this.insertVertexOnEdge(-1, idx);
-            });
-        });
+        if (stats && stats.edges && n >= 2) {
+            const isClosed = this.mode === 'polygon' && n >= 3;
+            const edgeCount = isClosed ? n : n - 1;
 
-        // 4. Nếu là đa giác khép kín >= 3 đỉnh: hiển thị badge diện tích tại tâm đa giác
+            for (let idx = 0; idx < edgeCount; idx++) {
+                const edge = stats.edges[idx];
+                if (!edge) continue;
+                const cur = this.vertices[idx];
+                const next = this.vertices[(idx + 1) % n];
+                const midLat = (cur.lat + next.lat) / 2;
+                const midLng = (cur.lng + next.lng) / 2;
+
+                const labelHtml = `<div class="cad-edge-badge interactive" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
+                const labelIcon = L.divIcon({
+                    className: '',
+                    html: labelHtml,
+                    iconSize: [52, 18],
+                    iconAnchor: [26, 9]
+                });
+                const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2400 }).addTo(this.layers.group);
+                edgeMarker._pinned = false;
+                activeEdgeMarkers.push(edgeMarker);
+
+                edgeMarker.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    this.insertVertexOnEdge(-1, idx);
+                });
+
+                // Bắt rê chuột vào cạnh vẽ hiện tại
+                const hitLine = L.polyline([[cur.lat, cur.lng], [next.lat, next.lng]], {
+                    weight: 16,
+                    color: '#000',
+                    opacity: 0.001,
+                    interactive: true
+                }).addTo(this.layers.group);
+
+                hitLine.on('mouseover', () => {
+                    edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
+                });
+                hitLine.on('mouseout', () => {
+                    if (!edgeMarker._pinned) {
+                        edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                    }
+                });
+                hitLine.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    edgeMarker._pinned = !edgeMarker._pinned;
+                    const b = edgeMarker.getElement()?.querySelector('.cad-edge-badge');
+                    if (edgeMarker._pinned) b?.classList.add('visible', 'pinned');
+                    else b?.classList.remove('visible', 'pinned');
+                });
+            }
+        }
+
+        // 4. Nếu là đa giác khép kín >= 3 đỉnh: hiển thị badge diện tích tại tâm đa giác (scale vừa khít)
         if (this.mode === 'polygon' && n >= 3) {
-            const centerLat = latlngs.reduce((sum, p) => sum + p[0], 0) / n;
-            const centerLng = latlngs.reduce((sum, p) => sum + p[1], 0) / n;
+            const [centerLat, centerLng] = this.calculatePolygonCentroid(this.vertices);
+            const warningMsg = isSelfIntersecting ? '<div style="color:#ef4444; font-size:9px;">⚠️ Tự cắt!</div>' : '';
 
-            const warningMsg = isSelfIntersecting ? '<div style="color:#ef4444; font-size:9px;">⚠️ Đa giác tự cắt chéo!</div>' : '';
-            const badgeHtml = `
-                <div class="cad-center-badge">
-                    <div>📐 <b>S = ${stats.areaFormatted} m²</b></div>
-                    <div style="font-size: 9.5px; opacity: 0.9; margin-top: 1px;">(${stats.haFormatted} ha • P = ${stats.perimeterFormatted} m)</div>
-                    ${warningMsg}
-                </div>
-            `;
+            let maxW = 110, maxH = 34, actBadgeHtml = '';
+            if (AppState.leafletMap) {
+                const b = L.latLngBounds(latlngs);
+                const p1 = AppState.leafletMap.latLngToContainerPoint(b.getSouthWest());
+                const p2 = AppState.leafletMap.latLngToContainerPoint(b.getNorthEast());
+                const wPx = Math.abs(p2.x - p1.x);
+                const hPx = Math.abs(p2.y - p1.y);
+                const minDim = Math.min(wPx, hPx);
+
+                maxW = Math.max(20, Math.floor(wPx * 0.82));
+                maxH = Math.max(18, Math.floor(hPx * 0.82));
+
+                if (minDim < 50) {
+                    actBadgeHtml = `<div class="cad-center-badge" style="background:rgba(6,182,212,0.92); border:1.5px solid #06b6d4; color:#ffffff; padding:1px 4px; border-radius:4px; font-size:9.5px; font-weight:800; max-width:${maxW}px; overflow:hidden; text-align:center;">${Math.round(stats.area)} m²</div>`;
+                } else {
+                    actBadgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid #06b6d4; color:#ffffff; padding:2px 6px; border-radius:5px; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; text-align:center;">
+                        <div style="color:#38bdf8; font-weight:800; font-size:11.5px;">S = ${stats.areaFormatted} m²</div>
+                        <div style="font-size:9px; color:#cbd5e1;">${stats.haFormatted} ha</div>
+                        ${warningMsg}
+                    </div>`;
+                }
+            } else {
+                actBadgeHtml = `<div class="cad-center-badge"><div>S = ${stats.areaFormatted} m²</div></div>`;
+            }
+
             const badgeIcon = L.divIcon({
                 className: '',
-                html: badgeHtml,
-                iconSize: [140, 36],
-                iconAnchor: [70, 18]
+                html: actBadgeHtml,
+                iconSize: [maxW, maxH],
+                iconAnchor: [maxW / 2, maxH / 2]
             });
             L.marker([centerLat, centerLng], { icon: badgeIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
         }
@@ -10347,6 +10782,7 @@ const appCadTool = {
         if (!this.savedShapes || !this.savedShapes[index]) return;
         const name = this.savedShapes[index].name;
         if (!confirm(`Bạn có chắc muốn xóa khối "${name}" không?`)) return;
+        this.pushHistoryState(`Xóa khối "${name}"`);
         this.savedShapes.splice(index, 1);
         this.renderGeometry();
         this.updateUi();

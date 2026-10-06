@@ -3500,8 +3500,9 @@
     }
 
     /* CAD Leaflet Visual Overlay Badges */
+    /* Edge badge (cự ly cạnh): Ẩn mặc định, chỉ hiển thị khi rê chuột hoặc click vào đường kẻ/đỉnh */
     .cad-edge-badge {
-      background: rgba(15, 23, 42, 0.92);
+      background: rgba(15, 23, 42, 0.94);
       border: 1px solid #38bdf8;
       color: #38bdf8;
       padding: 1px 6px;
@@ -3509,43 +3510,51 @@
       font-size: 10px;
       font-weight: 700;
       white-space: nowrap;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      transition: all 0.15s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(0.9);
+      opacity: 0;
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .cad-edge-badge.visible,
+    .cad-edge-badge:hover,
+    .cad-edge-badge.pinned {
+      opacity: 1 !important;
+      transform: translate(-50%, -50%) scale(1) !important;
+      z-index: 2999 !important;
     }
     .cad-edge-badge.interactive {
-      pointer-events: auto !important;
       cursor: pointer;
     }
     .cad-edge-badge.interactive:hover {
       background: #0284c7 !important;
       color: #ffffff !important;
       border-color: #38bdf8 !important;
-      transform: translate(-50%, -50%) scale(1.18);
+      transform: translate(-50%, -50%) scale(1.15) !important;
       box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
-      z-index: 2999 !important;
+      z-index: 3000 !important;
     }
+    /* Vertex badge (đỉnh mốc): Mặc định là chấm tròn nhỏ gọn (9px), rê chuột hoặc click mới bung số thứ tự */
     .cad-vertex-badge {
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       color: #ffffff;
       border: 1.5px solid #ffffff;
       border-radius: 50%;
-      min-width: 22px;
-      height: 22px;
-      padding: 0 4px;
+      width: 9px;
+      height: 9px;
+      min-width: 9px;
+      font-size: 0px;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
-      font-weight: 800;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
       transform: translate(-50%, -50%);
       cursor: grab;
       user-select: none;
       touch-action: none;
       position: relative;
-      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .cad-vertex-badge::after {
       content: '';
@@ -3556,30 +3565,36 @@
       bottom: -8px;
       border-radius: 50%;
     }
-    .cad-vertex-badge:hover {
-      transform: translate(-50%, -50%) scale(1.18);
+    .cad-vertex-badge:hover,
+    .cad-vertex-badge.expanded,
+    .cad-vertex-badge:active,
+    .leaflet-dragging .cad-vertex-badge {
+      width: auto;
+      min-width: 22px;
+      height: 22px;
+      font-size: 10px;
+      line-height: 20px;
+      padding: 0 5px;
+      border-radius: 11px;
+      transform: translate(-50%, -50%) scale(1.15);
       box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.4), 0 4px 12px rgba(0,0,0,0.7);
+      z-index: 3500 !important;
     }
-    .cad-vertex-badge:active, .leaflet-dragging .cad-vertex-badge {
-      cursor: grabbing !important;
-      transform: translate(-50%, -50%) scale(1.28);
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.6), 0 6px 16px rgba(0,0,0,0.8);
-      z-index: 9999;
-    }
+    /* Center badge: Co giãn vừa khít khối, không tràn sang khối khác */
     .cad-center-badge {
       background: rgba(15, 23, 42, 0.94);
       border: 1.5px solid #10b981;
       color: #a7f3d0;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: 11.5px;
+      padding: 3px 6px;
+      border-radius: 6px;
+      font-size: 11px;
       font-weight: 800;
       text-align: center;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.5);
       pointer-events: none;
       transform: translate(-50%, -50%);
       white-space: nowrap;
-      line-height: 1.35;
+      transition: all 0.2s ease;
     }
 
     /* CAD Cursor & Dynamic Input Helpers (Chuẩn AutoCAD) */
@@ -4708,8 +4723,11 @@
             <button class="cad-btn" onclick="appCadTool.openCoordModal()" title="Nhập đỉnh trực tiếp bằng tọa độ VN-2000 (X, Y)">
               📌 Nhập X,Y
             </button>
-            <button class="cad-btn" onclick="appCadTool.undoVertex()" title="Hoàn tác điểm vừa vẽ (Phím tắt: U)">
-              ↩ Lùi [U]
+            <button id="btnCadUndo" class="cad-btn" onclick="appCadTool.undo()" title="Hoàn tác thao tác trước: vẽ, dời điểm, xóa, thêm đỉnh... (Phím tắt: Ctrl+Z hoặc U)">
+              ↩ Lùi [Ctrl+Z]
+            </button>
+            <button id="btnCadRedo" class="cad-btn" onclick="appCadTool.redo()" title="Làm lại thao tác vừa lùi (Phím tắt: Ctrl+Y)">
+              ↪ Tiến [Ctrl+Y]
             </button>
             <button class="cad-btn" onclick="appCadTool.closeLoop()" title="Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: C)">
               🔒 Khép góc [C]
