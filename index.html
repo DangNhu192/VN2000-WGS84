@@ -1960,6 +1960,12 @@
       cursor: pointer;
       display: inline-block;
       user-select: none;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+    }
+    .map-dist-pill.visible,
+    .map-dist-pill.pinned {
+      opacity: 1;
     }
 
     .map-dist-pill:hover {
@@ -3432,7 +3438,34 @@
       display: none;
       flex-direction: column;
       gap: 6px;
+      transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
       animation: slideDownCad 0.25s ease;
+    }
+    .map-cad-toolbar.collapsed {
+      padding: 4px 10px;
+      background: rgba(15, 23, 42, 0.88);
+      border-color: rgba(56, 189, 248, 0.45);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      gap: 0;
+    }
+    .map-cad-toolbar.collapsed .map-cad-toolbar-header {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .map-cad-toolbar.collapsed .cad-collapsible-row {
+      display: none !important;
+      max-height: 0 !important;
+      opacity: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      pointer-events: none !important;
+      overflow: hidden !important;
+      border: none !important;
+    }
+    .map-cad-toolbar:not(.collapsed) .cad-collapsible-row {
+      max-height: 140px;
+      opacity: 1;
+      transition: max-height 0.25s ease, opacity 0.2s ease;
     }
     @keyframes slideDownCad {
       from { opacity: 0; transform: translateY(-10px); }
@@ -3586,6 +3619,40 @@
       box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
       z-index: 3000 !important;
     }
+    /* Chấm mốc dự án trên bản đồ: Mặc định là chấm tròn nhỏ 8px tinh gọn, rê chuột mới bung nhãn số thứ tự và tên mốc */
+    .map-proj-point-dot {
+      background: #ef4444;
+      border: 1.5px solid #ffffff;
+      border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+      transform: translate(-50%, -50%);
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0px;
+      color: #ffffff;
+      overflow: hidden;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .map-proj-point-dot:hover,
+    .map-proj-point-dot.expanded {
+      width: auto !important;
+      min-width: 24px !important;
+      height: 22px !important;
+      padding: 0 6px !important;
+      font-size: 11px !important;
+      font-weight: 800 !important;
+      border-radius: 11px !important;
+      transform: translate(-50%, -50%) scale(1.15) !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4), 0 4px 12px rgba(0,0,0,0.8) !important;
+      z-index: 3500 !important;
+    }
+
     /* Vertex badge (đỉnh mốc): Mặc định là chấm tròn nhỏ gọn (9px), rê chuột hoặc click mới bung số thứ tự */
     .cad-vertex-badge {
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
@@ -4726,7 +4793,7 @@
           <button class="btn-map-action" title="Nhập file dự án / Tải file mẫu" onclick="appModal.openImportProjectModal()">
             📥 Nhập File
           </button>
-          <button id="btnToggleDistance" class="btn-map-action active" title="Bật/Tắt hiển thị khoảng cách giữa các điểm" onclick="appMap.toggleDistanceDisplay()">
+          <button id="btnToggleDistance" class="btn-map-action" title="Bật/Tắt hiển thị khoảng cách giữa các điểm" onclick="appMap.toggleDistanceDisplay()">
             📏 <span id="txtDistToggle">Khoảng cách</span>
           </button>
           <button id="btnToggleCadTool" class="btn-map-action" title="Mở bộ công cụ vẽ mặt bằng CAD Mini trên bản đồ" onclick="appCadTool.toggleToolbar()">
@@ -4758,19 +4825,20 @@
 
         <!-- ================= 3.5 THANH CÔNG CỤ VẼ MẶT BẰNG CAD MINI ================= -->
         <div id="mapCadToolbar" class="map-cad-toolbar">
-          <div class="map-cad-toolbar-header">
-            <div class="cad-toolbar-title">
+          <div class="map-cad-toolbar-header" id="mapCadToolbarHeader">
+            <div class="cad-toolbar-title" onclick="appCadTool.toggleToolbarCollapse()" style="cursor: pointer;" title="Nhấn để thu nhỏ / mở rộng thanh công cụ">
               <span>📐 VẼ CAD MINI</span>
               <span id="cadModeBadge" style="font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 1px 6px; border-radius: 4px;">Đa giác ranh</span>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
-              <span id="cadStatsPill" class="cad-stats-pill">0 đỉnh • 0 m • 0 m²</span>
+              <span id="cadStatsPill" class="cad-stats-pill" onclick="appCadTool.toggleToolbarCollapse()" style="cursor: pointer;" title="Nhấn để thu nhỏ / mở rộng">0 đỉnh • 0 m • 0 m²</span>
+              <button id="btnCadToolbarCollapse" type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 11px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px;" onclick="appCadTool.toggleToolbarCollapse()" title="Thu nhỏ / Mở rộng thanh công cụ CAD">▾ Thu gọn</button>
               <button class="btn-sm btn-red" style="height: 24px; padding: 0 6px; font-size: 11px;" onclick="appCadTool.closeToolbar()" title="Đóng thanh công cụ CAD">✕</button>
             </div>
           </div>
 
           <!-- Dòng 1: Công cụ vẽ & Thao tác đỉnh -->
-          <div class="cad-actions-row">
+          <div class="cad-actions-row cad-collapsible-row">
             <button id="btnCadModePoly" class="cad-btn active" onclick="appCadTool.setMode('polygon')" title="Vẽ đa giác khép kín tính diện tích thửa đất (Phím tắt: P)">
               📐 Đa giác [P]
             </button>
@@ -4805,7 +4873,7 @@
           </div>
 
           <!-- Dòng 2: Xuất dữ liệu & Xem bảng diện tích -->
-          <div class="cad-actions-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px;">
+          <div class="cad-actions-row cad-collapsible-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px;">
             <button class="cad-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="appCadTool.openAreaTableModal()" title="Xem bảng kê tọa độ ranh góc và bảng tính diện tích (Phím tắt: E)">
               📋 Bảng kê [E]
             </button>
@@ -4834,7 +4902,7 @@
           </div>
 
           <!-- Dòng 3: Ghi Chú & Hình Khối Kỹ Thuật (Nâng Cao) -->
-          <div id="cadMarkupRow" class="cad-actions-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+          <div id="cadMarkupRow" class="cad-actions-row cad-collapsible-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
             <span style="font-size: 10px; font-weight: 800; color: #f59e0b; padding: 2px 6px; background: rgba(245, 158, 11, 0.15); border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">🏷️ GHI CHÚ:</span>
             <button id="btnCadMarkupArrow" class="cad-btn" onclick="appCadTool.setMarkupMode('arrow')" title="Nét mũi tên ghi chú (Leader Arrow): Click mốc ranh rồi click điểm ghi chú">
               🏹 Mũi tên
@@ -4863,16 +4931,16 @@
             <span id="cadMarkupStatus" style="font-size: 10px; color: #38bdf8; margin-left: 6px; font-style: italic; display: none; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);"></span>
           </div>
           <!-- Dòng 4: Tùy Chọn Hiển Thị Các Thành Phần Trên Bản Vẽ (Ký hiệu đỉnh, khoảng cách, tâm khối...) -->
-          <div id="cadDisplayOptionsRow" class="cad-actions-row cad-display-options-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 5px; padding-bottom: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <div id="cadDisplayOptionsRow" class="cad-actions-row cad-display-options-row cad-collapsible-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 5px; padding-bottom: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
             <span style="font-size: 10px; font-weight: 800; color: #38bdf8; padding: 2px 7px; background: rgba(56, 189, 248, 0.15); border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.35); display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
               👁️ HIỂN THỊ:
             </span>
             <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh (Đ1, Đ2, Đ3...) trên bản vẽ">
-              <input type="checkbox" id="cadCheckShowVertices" checked onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
+              <input type="checkbox" id="cadCheckShowVertices" onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
               <span>📍 Ký hiệu đỉnh</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn khoảng cách giữa các đỉnh (cự ly cạnh theo mét)">
-              <input type="checkbox" id="cadCheckShowDistances" checked onchange="appCadTool.toggleDisplayOption('showDistances', this.checked)">
+              <input type="checkbox" id="cadCheckShowDistances" onchange="appCadTool.toggleDisplayOption('showDistances', this.checked)">
               <span>📏 Khoảng cách đỉnh (m)</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu tên và diện tích tại tâm các khối">
