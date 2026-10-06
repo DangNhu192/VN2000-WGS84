@@ -7724,6 +7724,10 @@ const appCadTool = {
             this.pushHistoryState(`Sửa diện tích ${s.name}`);
             this.renderGeometry();
             this.renderBlocksPanel();
+            this.renderExportBlockPicker();
+            this.checkScalePaperFit();
+            const allShapes = this._getAllExportShapes();
+            this.renderBlockList(allShapes);
             if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
                 this.openAreaTableModal();
             }
@@ -8324,6 +8328,8 @@ const appCadTool = {
         this.customProjectArea = (!isNaN(num) && num > 0) ? num : null;
         const allShapes = this._getAllExportShapes();
         this.renderBlockList(allShapes);
+        this.renderExportBlockPicker();
+        this.checkScalePaperFit();
     },
 
     resetCustomProjectArea() {
@@ -8365,31 +8371,97 @@ const appCadTool = {
         showToast(`✓ Đã tự động lấy diện tích thực: ${measuredTotalArea.toLocaleString('vi-VN')} m² (${polyCount} thửa đa giác)`);
     },
 
+    _normalizeVertex(v, idx = 0) {
+        if (!v) return null;
+        let lat = parseFloat(v.lat);
+        let lng = parseFloat(v.lng);
+        let x = parseFloat(v.x);
+        let y = parseFloat(v.y);
+
+        // Nếu x hoặc y chưa có hoặc bằng 0, tính lại ngay từ lat/lng qua VN2000
+        if (isNaN(x) || isNaN(y) || (x === 0 && y === 0) || Math.abs(x) < 90) {
+            if (isFinite(lat) && isFinite(lng) && lat !== 0) {
+                try {
+                    const conv = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                    x = parseFloat(conv.X);
+                    y = parseFloat(conv.Y);
+                } catch (e) {}
+            }
+        }
+
+        // Ngược lại nếu lat/lng chưa có nhưng có x/y VN2000
+        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
+            if (isFinite(x) && isFinite(y) && x > 1000) {
+                try {
+                    const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                    lat = parseFloat(wgs.lat);
+                    lng = parseFloat(wgs.lng);
+                } catch (e) {}
+            }
+        }
+
+        return {
+            ...v,
+            name: v.name || (`Đ${idx + 1}`),
+            lat: isFinite(lat) ? lat : 0,
+            lng: isFinite(lng) ? lng : 0,
+            x: isFinite(x) ? parseFloat(x.toFixed(3)) : 0,
+            y: isFinite(y) ? parseFloat(y.toFixed(3)) : 0,
+            h: isFinite(parseFloat(v.h)) ? parseFloat(parseFloat(v.h).toFixed(3)) : 0
+        };
+    },
+
+    applySuggestedScale(scale) {
+        const sel = document.getElementById('cadExportScale');
+        if (sel) {
+            let found = false;
+            for (let i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === String(scale)) {
+                    sel.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const opt = document.createElement('option');
+                opt.value = String(scale);
+                opt.text = `1:${scale} (Tối ưu)`;
+                sel.add(opt);
+                sel.value = String(scale);
+            }
+            this.checkScalePaperFit();
+            showToast(`✓ Đã áp dụng tỷ lệ tối ưu 1:${scale}`);
+        }
+    },
+
     _getAllExportShapes() {
         const allShapes = [];
         (this.savedShapes || []).forEach((s, idx) => {
+            const rawVerts = s.vertices || [];
+            const vertices = rawVerts.map((v, i) => this._normalizeVertex(v, i)).filter(Boolean);
             allShapes.push({
                 id: s.id,
                 name: s.name,
                 shortName: s.shortName || `Thửa ${idx + 1}`,
                 symbol: s.symbol || String(idx + 1),
                 mode: s.mode,
-                vertices: s.vertices,
-                stats: s.stats,
+                vertices: vertices,
+                stats: s.stats || this.calculateAreaAndPerimeter(vertices, s.mode),
                 color: s.color || '#10b981',
                 selected: s.selected !== false
             });
         });
         if (this.vertices && this.vertices.length >= 2) {
             const actIdx = allShapes.length + 1;
+            const vertices = this.vertices.map((v, i) => this._normalizeVertex(v, i)).filter(Boolean);
             allShapes.push({
                 id: 'active_draft',
                 name: `Cấu trúc ${actIdx} (Đang vẽ)`,
                 shortName: `Thửa ${actIdx}`,
                 symbol: String(actIdx),
                 mode: this.mode,
-                vertices: [...this.vertices],
-                stats: this.calculateAreaAndPerimeter(),
+                vertices: vertices,
+                stats: this.calculateAreaAndPerimeter(vertices, this.mode),
                 color: '#06b6d4',
                 selected: this._draftSelected !== false
             });
@@ -10154,19 +10226,17 @@ const appCadTool = {
             let cIdx = 0;
 
             shapeMap.forEach((sObj, sName) => {
-                const validVerts = sObj.vertices.map((v, i) => ({
-                    name: v.name || (`Đ${i + 1}`),
-                    x: parseFloat(v.x) || 0,
-                    y: parseFloat(v.y) || 0,
-                    lat: parseFloat(v.lat) || 0,
-                    lng: parseFloat(v.lng) || 0,
-                    h: parseFloat(v.h) || 0,
-                    isSnapped: true,
-                    snapSource: `Dự án: ${curProj}`,
-                    shapeName: sName,
-                    shapeMode: sObj.mode,
-                    shapeOrder: i + 1
-                })).filter(v => isFinite(v.lat) && isFinite(v.lng));
+                const validVerts = sObj.vertices.map((v, i) => {
+                    const norm = this._normalizeVertex(v, i);
+                    return {
+                        ...norm,
+                        isSnapped: true,
+                        snapSource: `Dự án: ${curProj}`,
+                        shapeName: sName,
+                        shapeMode: sObj.mode,
+                        shapeOrder: i + 1
+                    };
+                }).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
 
                 if (validVerts.length >= 2) {
                     const sColor = sObj.color || colorPalette[cIdx % colorPalette.length];
@@ -10212,9 +10282,8 @@ const appCadTool = {
             if (raw) {
                 const data = JSON.parse(raw);
                 if (data && data.savedShapes && data.savedShapes.length > 0) {
-                    const validVerts = (arr) => (arr || []).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                     this.savedShapes = data.savedShapes.map(s => {
-                        const vertices = validVerts(s.vertices);
+                        const vertices = (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                         const stats = s.customArea && s.stats ? s.stats : this.calculateAreaAndPerimeter(vertices, s.mode);
                         return { ...s, vertices, stats };
                     }).filter(s => s.vertices.length > 0);
@@ -10272,13 +10341,12 @@ const appCadTool = {
                 const raw = localStorage.getItem(this.SESSION_KEY);
                 if (raw) {
                     const data = JSON.parse(raw);
-                    const validVerts = (arr) => (arr || []).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                     this.savedShapes = (data.savedShapes || []).map(s => {
-                        const vertices = validVerts(s.vertices);
+                        const vertices = (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                         const stats = s.customArea && s.stats ? s.stats : this.calculateAreaAndPerimeter(vertices, s.mode);
                         return { ...s, vertices, stats };
                     }).filter(s => s.vertices.length > 0);
-                    this.vertices = validVerts(data.vertices);
+                    this.vertices = (data.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                     if (data.mode) this.mode = data.mode;
                 }
             }
@@ -13222,7 +13290,8 @@ const appCadTool = {
 
     // === HELPER: Lấy thông tin xuất bản vẽ từ form ===
     _getExportMeta() {
-        const scaleVal = parseInt(document.getElementById('cadExportScale')?.value || '500');
+        const rawScaleVal = document.getElementById('cadExportScale')?.value;
+        const scaleVal = (rawScaleVal && rawScaleVal !== 'auto') ? parseInt(rawScaleVal) : null;
         const paper = document.getElementById('cadExportPaperSize')?.value || 'A3';
         const drawingName = document.getElementById('cadExportDrawingName')?.value?.trim() || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT';
         const projectName = document.getElementById('cadExportProjectName')?.value?.trim() || AppState.currentProject.replace(/\.[^/.]+$/, "");
@@ -13316,8 +13385,6 @@ const appCadTool = {
 
     // === 1. TÍNH TOÁN BỐ CỤC KHUNG BẢN VẼ CHUẨN TCVN 7285 & THÔNG TƯ 25/2014/TT-BTNMT ===
     _calculatePaperLayout(selectedShapes, meta) {
-        const scaleVal = meta.scaleVal || 500;
-        const S = scaleVal / 1000.0; // 1 mm trên giấy = S mét thực địa
         const W_paper = meta.paperW || 420; // mm (A3: 420, A4: 297)
         const H_paper = meta.paperH || 297; // mm (A3: 297, A4: 210)
 
@@ -13327,40 +13394,89 @@ const appCadTool = {
         const M_top_mm = 10.0;
         const M_bottom_mm = 10.0;
 
+        // Cột bảng biểu & Khung tên bên phải (mm trên giấy): A3 = 75mm, A4 = 60mm
+        const W_panel_mm = (W_paper >= 420) ? 75.0 : 60.0;
+        const W_inner_mm = W_paper - M_left_mm - M_right_mm;
+        const H_inner_mm = H_paper - M_top_mm - M_bottom_mm;
+        const W_map_mm = W_inner_mm - W_panel_mm;
+        const H_map_mm = H_inner_mm;
+
+        // 1. Tính toán Bounding Box chính xác (lọc sạch tọa độ 0 hoặc rác, đảm bảo tọa độ chuẩn VN2000)
+        let minCadX = Infinity, maxCadX = -Infinity;
+        let minCadY = Infinity, maxCadY = -Infinity;
+
+        selectedShapes.forEach(shape => {
+            (shape.vertices || []).forEach((p, idx) => {
+                let cx = parseFloat(p.y);
+                let cy = parseFloat(p.x);
+                if (isNaN(cx) || isNaN(cy) || cx < 10000 || cy < 10000) {
+                    if (isFinite(p.lat) && isFinite(p.lng) && p.lat !== 0) {
+                        try {
+                            const conv = convertWgsToVn2k(p.lat, p.lng, AppState.kttVal, AppState.scaleFactor);
+                            cx = parseFloat(conv.Y);
+                            cy = parseFloat(conv.X);
+                            p.x = cy;
+                            p.y = cx;
+                        } catch (e) {}
+                    }
+                }
+                if (isFinite(cx) && cx > 10000) {
+                    if (cx < minCadX) minCadX = cx;
+                    if (cx > maxCadX) maxCadX = cx;
+                }
+                if (isFinite(cy) && cy > 10000) {
+                    if (cy < minCadY) minCadY = cy;
+                    if (cy > maxCadY) maxCadY = cy;
+                }
+            });
+        });
+
+        if (!isFinite(minCadX) || minCadX === maxCadX) { minCadX -= 25; maxCadX += 25; }
+        if (!isFinite(minCadY) || minCadY === maxCadY) { minCadY -= 25; maxCadY += 25; }
+
+        const spanCadX = Math.max(maxCadX - minCadX, 1.0);
+        const spanCadY = Math.max(maxCadY - minCadY, 1.0);
+
+        // 2. Tính tỉ lệ bản vẽ tối ưu (Tự động hoặc theo người dùng chọn)
+        let scaleVal = (typeof meta.scaleVal === 'number' && !isNaN(meta.scaleVal) && meta.scaleVal > 0) ? meta.scaleVal : null;
+        let isAuto = !scaleVal;
+
+        // Tính tỉ lệ chuẩn tối ưu tự động để hình vẽ thửa đất chiếm 70% - 75% không gian vùng vẽ
+        const reqScaleX = (spanCadX / (W_map_mm * 0.72)) * 1000;
+        const reqScaleY = (spanCadY / (H_map_mm * 0.72)) * 1000;
+        const rawScale = Math.max(reqScaleX, reqScaleY);
+        const standardScales = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 25000, 50000];
+        let autoSuggestedScale = 500;
+        for (const sc of standardScales) {
+            if (rawScale <= sc) {
+                autoSuggestedScale = sc;
+                break;
+            }
+        }
+        if (rawScale > standardScales[standardScales.length - 1]) {
+            autoSuggestedScale = Math.ceil(rawScale / 10000) * 10000;
+        }
+
+        if (isAuto) {
+            scaleVal = autoSuggestedScale;
+        }
+
+        const S = scaleVal / 1000.0; // 1 mm trên giấy = S mét thực địa
+
         // Kích thước khổ giấy thực tế (mét trong CAD)
         const W_sheet = W_paper * S;
         const H_sheet = H_paper * S;
 
         // Kích thước khung trong bản vẽ (mét)
-        const W_inner = (W_paper - M_left_mm - M_right_mm) * S;
-        const H_inner = (H_paper - M_top_mm - M_bottom_mm) * S;
+        const W_inner = W_inner_mm * S;
+        const H_inner = H_inner_mm * S;
 
-        // Cột bảng biểu & Khung tên bên phải (mm trên giấy): A3 = 75mm, A4 = 60mm (tinh giản nhỏ hơn, dành tới 78-81% không gian cho bản vẽ thửa)
-        const W_panel_mm = (W_paper >= 420) ? 75.0 : 60.0;
+        // Cột bảng biểu & Khung tên bên phải (mét)
         const W_panel = W_panel_mm * S;
 
-        // Vùng vẽ bản đồ (Map Viewport) bên trái
+        // Vùng vẽ bản đồ (Map Viewport) bên trái (mét)
         const W_map = W_inner - W_panel;
         const H_map = H_inner;
-
-        // 1. Tính toán Bounding Box của tất cả các đỉnh trong các khối được chọn (VN2000 Y = CAD X, VN2000 X = CAD Y)
-        let minCadX = Infinity, maxCadX = -Infinity;
-        let minCadY = Infinity, maxCadY = -Infinity;
-        selectedShapes.forEach(shape => {
-            shape.vertices.forEach(p => {
-                const cx = p.y;
-                const cy = p.x;
-                if (cx < minCadX) minCadX = cx;
-                if (cx > maxCadX) maxCadX = cx;
-                if (cy < minCadY) minCadY = cy;
-                if (cy > maxCadY) maxCadY = cy;
-            });
-        });
-        if (minCadX === Infinity || minCadX === maxCadX) { minCadX -= 20; maxCadX += 20; }
-        if (minCadY === Infinity || minCadY === maxCadY) { minCadY -= 20; maxCadY += 20; }
-
-        const spanCadX = maxCadX - minCadX;
-        const spanCadY = maxCadY - minCadY;
 
         // Trọng tâm thực địa của các khối thửa đất
         const Cx = (minCadX + maxCadX) / 2.0;
@@ -13390,13 +13506,14 @@ const appCadTool = {
         else if (scaleVal >= 2000) gridInterval = 200;
         else if (scaleVal >= 1000) gridInterval = 100;
         else if (scaleVal >= 500) gridInterval = 50;
-        else gridInterval = 20;
+        else if (scaleVal >= 200) gridInterval = 20;
+        else gridInterval = 10;
 
         // Kiểm tra xem thửa đất có nằm trọn vẹn trong vùng bản đồ không
-        const fits = (spanCadX <= W_map * 0.94 && spanCadY <= H_map * 0.94);
+        const fits = (spanCadX <= W_map * 0.95 && spanCadY <= H_map * 0.95);
 
         return {
-            scaleVal, S, W_paper, H_paper,
+            scaleVal, S, isAuto, autoSuggestedScale, W_paper, H_paper,
             M_left_mm, M_right_mm, M_top_mm, M_bottom_mm,
             W_sheet, H_sheet, W_inner, H_inner,
             W_panel_mm, W_panel, W_map, H_map,
@@ -13425,7 +13542,17 @@ const appCadTool = {
         const L = this._calculatePaperLayout(selectedShapes, meta);
 
         noticeEl.style.display = 'block';
-        if (L.fits) {
+        if (L.isAuto) {
+            noticeEl.innerHTML = `
+                <div style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(56, 189, 248, 0.45); padding: 7px 10px; border-radius: 6px; color: #38bdf8; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>⚡</span>
+                        <span><b>Tự động tối ưu:</b> Đã chọn tỷ lệ chuẩn <b>1:${L.scaleVal}</b> trên khổ ${L.W_paper === 420 ? 'A3' : 'A4'} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
+                    </div>
+                    <span style="background: rgba(56,189,248,0.2); padding: 2px 8px; border-radius: 4px; color: #e0f2fe; font-size: 10px;">Chuẩn TCVN (70-75% khung)</span>
+                </div>
+            `;
+        } else if (L.fits) {
             noticeEl.innerHTML = `
                 <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 7px 10px; border-radius: 6px; color: #4ade80; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
@@ -13435,25 +13562,14 @@ const appCadTool = {
                 </div>
             `;
         } else {
-            // Tính tỷ lệ tiêu chuẩn gợi ý để vừa vặn
-            const reqScaleX = (L.spanCadX / (L.W_map / L.S)) * 1000 * 1.15;
-            const reqScaleY = (L.spanCadY / (L.H_map / L.S)) * 1000 * 1.15;
-            const reqScale = Math.max(reqScaleX, reqScaleY);
-            let suggested = 500;
-            if (reqScale > 2000) suggested = 5000;
-            else if (reqScale > 1000) suggested = 2000;
-            else if (reqScale > 500) suggested = 1000;
-            else if (reqScale > 200) suggested = 500;
-            else suggested = 200;
-
             noticeEl.innerHTML = `
                 <div style="background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.45); padding: 7px 10px; border-radius: 6px; color: #facc15; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span>⚠️</span>
-                        <span><b>Vượt kích thước vùng vẽ:</b> Ranh (${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m) vượt khổ ${L.W_paper === 420 ? 'A3' : 'A4'} ở 1:${L.scaleVal}. Khuyến nghị: <b>1:${suggested}</b>.</span>
+                        <span><b>Vượt kích thước vùng vẽ:</b> Ranh (${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m) vượt khổ ${L.W_paper === 420 ? 'A3' : 'A4'} ở 1:${L.scaleVal}. Khuyến nghị: <b>1:${L.autoSuggestedScale}</b>.</span>
                     </div>
-                    <button type="button" class="btn-sm" style="padding: 3px 10px; font-size: 11px; font-weight: 800; background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: #0f172a; border: none; border-radius: 4px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.3);" onclick="appCadTool.applySuggestedScale(${suggested})" title="Bấm để chuyển ngay sang tỷ lệ khuyến nghị 1:${suggested}">
-                        ⚡ Đổi sang 1:${suggested}
+                    <button type="button" class="btn-sm" style="padding: 3px 10px; font-size: 11px; font-weight: 800; background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: #0f172a; border: none; border-radius: 4px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.3);" onclick="appCadTool.applySuggestedScale(${L.autoSuggestedScale})" title="Bấm để chuyển ngay sang tỷ lệ khuyến nghị 1:${L.autoSuggestedScale}">
+                        ⚡ Đổi sang 1:${L.autoSuggestedScale}
                     </button>
                 </div>
             `;
@@ -13627,7 +13743,8 @@ const appCadTool = {
 
         // === D. CÁC ĐỐI TƯỢNG ĐỒ HỌA THỬA ĐẤT (VÙNG TRỌNG TÂM BẢN ĐỒ) ===
         selectedShapes.forEach((shape, shapeIdx) => {
-            const pts = shape.vertices;
+            const rawPts = shape.vertices || [];
+            const pts = rawPts.map((p, i) => this._normalizeVertex(p, i)).filter(p => isFinite(p.x) && isFinite(p.y) && p.x > 1000);
             const n = pts.length;
             if (n < 2) return;
             const isClosed = (shape.mode === 'polygon' && n >= 3);
@@ -14162,7 +14279,8 @@ const appCadTool = {
 
         // 7. Vẽ các thửa đất (Parcel)
         selectedShapes.forEach((shape, shapeIdx) => {
-            const pts = shape.vertices;
+            const rawPts = shape.vertices || [];
+            const pts = rawPts.map((p, i) => this._normalizeVertex(p, i)).filter(p => isFinite(p.x) && isFinite(p.y) && p.x > 1000);
             const n = pts.length;
             if (n < 2) return;
             const isClosed = (shape.mode === 'polygon' && n >= 3);
@@ -14648,12 +14766,18 @@ const appCadTool = {
         const showBlockInfo = meta.showBlockInfo === true;
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
 
-        // Bounding box
+        // Bounding box (chuẩn hóa tọa độ VN2000 tránh lỗi tọa độ 0 hoặc rác)
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        selectedShapes.forEach(s => s.vertices.forEach(p => {
-            if (p.y < minX) minX = p.y; if (p.y > maxX) maxX = p.y;
-            if (p.x < minY) minY = p.x; if (p.x > maxY) maxY = p.x;
-        }));
+        selectedShapes.forEach(s => {
+            (s.vertices || []).forEach((p, idx) => {
+                const norm = this._normalizeVertex(p, idx);
+                p.x = norm.x; p.y = norm.y;
+                if (norm.y > 1000) { if (norm.y < minX) minX = norm.y; if (norm.y > maxX) maxX = norm.y; }
+                if (norm.x > 1000) { if (norm.x < minY) minY = norm.x; if (norm.x > maxY) maxY = norm.x; }
+            });
+        });
+        if (!isFinite(minX) || minX === maxX) { minX -= 25; maxX += 25; }
+        if (!isFinite(minY) || minY === maxY) { minY -= 25; maxY += 25; }
         const spanX = Math.max(maxX - minX, 10);
         const spanY = Math.max(maxY - minY, 10);
 
@@ -14989,12 +15113,18 @@ const appCadTool = {
         const showBlockInfo = meta.showBlockInfo === true;
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
 
-        // Bounding box
+        // Bounding box (chuẩn hóa tọa độ VN2000 tránh lỗi tọa độ 0 hoặc rác)
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        selectedShapes.forEach(s => s.vertices.forEach(p => {
-            if (p.y < minX) minX = p.y; if (p.y > maxX) maxX = p.y;
-            if (p.x < minY) minY = p.x; if (p.x > maxY) maxY = p.x;
-        }));
+        selectedShapes.forEach(s => {
+            (s.vertices || []).forEach((p, idx) => {
+                const norm = this._normalizeVertex(p, idx);
+                p.x = norm.x; p.y = norm.y;
+                if (norm.y > 1000) { if (norm.y < minX) minX = norm.y; if (norm.y > maxX) maxX = norm.y; }
+                if (norm.x > 1000) { if (norm.x < minY) minY = norm.x; if (norm.x > maxY) maxY = norm.x; }
+            });
+        });
+        if (!isFinite(minX) || minX === maxX) { minX -= 25; maxX += 25; }
+        if (!isFinite(minY) || minY === maxY) { minY -= 25; maxY += 25; }
         const spanX = Math.max(maxX - minX, 10);
         const spanY = Math.max(maxY - minY, 10);
 
@@ -15041,12 +15171,13 @@ const appCadTool = {
         const summaryTableH = 26 + pngRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
 
         const W = 1200;
-        const H = Math.round(W * spanY / spanX) + 380 + summaryTableH;
+        const mapH = Math.max(Math.round(W * spanY / spanX), 450);
+        const H = mapH + 380 + summaryTableH;
         const canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
         const pad = 80;
-        const sc = Math.min((W - pad*2) / spanX, (H - pad*2 - 250 - summaryTableH) / spanY);
+        const sc = Math.min((W - pad*2) / spanX, (mapH - pad) / spanY);
 
         const toX = cx => pad + (cx - minX) * sc;
         const toY = cy => (H - 250 - summaryTableH - pad) - (cy - minY) * sc;
