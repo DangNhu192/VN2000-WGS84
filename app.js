@@ -8391,9 +8391,17 @@ const appCadTool = {
         let x = parseFloat(v.x);
         let y = parseFloat(v.y);
 
-        // Nếu x hoặc y chưa có hoặc bằng 0, tính lại ngay từ lat/lng qua VN2000
-        if (isNaN(x) || isNaN(y) || (x === 0 && y === 0) || Math.abs(x) < 90) {
-            if (isFinite(lat) && isFinite(lng) && lat !== 0) {
+        // Phát hiện và tự đảo ngược nếu X (Bắc) và Y (Đông) bị hoán đổi
+        // Tại Việt Nam: Northing X luôn > 800,000 m (8.5° - 23.5° Bắc); Easting Y luôn < 800,000 m (kinh tuyến trục 500,000 m ± 300,000 m)
+        if (isFinite(x) && isFinite(y) && x < 850000 && y > 850000) {
+            const temp = x;
+            x = y;
+            y = temp;
+        }
+
+        // Nếu x hoặc y chưa có hoặc bằng 0 hoặc < 10000 (không phải tọa độ phẳng VN2000), tính lại ngay từ lat/lng qua VN2000
+        if (isNaN(x) || isNaN(y) || (x === 0 && y === 0) || x < 10000 || y < 10000) {
+            if (isFinite(lat) && isFinite(lng) && lat > 1 && lng > 50) {
                 try {
                     const conv = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
                     x = parseFloat(conv.X);
@@ -8402,9 +8410,9 @@ const appCadTool = {
             }
         }
 
-        // Ngược lại nếu lat/lng chưa có nhưng có x/y VN2000
-        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
-            if (isFinite(x) && isFinite(y) && x > 1000) {
+        // Ngược lại nếu lat/lng chưa có hoặc = 0 nhưng có x/y VN2000 hợp lệ
+        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0) || lat < 1 || lng < 50) {
+            if (isFinite(x) && isFinite(y) && x > 10000) {
                 try {
                     const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
                     lat = parseFloat(wgs.lat);
@@ -8416,8 +8424,8 @@ const appCadTool = {
         return {
             ...v,
             name: v.name || (`Đ${idx + 1}`),
-            lat: isFinite(lat) ? lat : 0,
-            lng: isFinite(lng) ? lng : 0,
+            lat: isFinite(lat) ? parseFloat(lat.toFixed(7)) : 0,
+            lng: isFinite(lng) ? parseFloat(lng.toFixed(7)) : 0,
             x: isFinite(x) ? parseFloat(x.toFixed(3)) : 0,
             y: isFinite(y) ? parseFloat(y.toFixed(3)) : 0,
             h: isFinite(parseFloat(v.h)) ? parseFloat(parseFloat(v.h).toFixed(3)) : 0
@@ -8640,6 +8648,87 @@ const appCadTool = {
                         isSnapped: true,
                         snapType: 'adjacent_vertex',
                         source: `Đỉnh cùng nét • ${v.name}`
+                    };
+                }
+            });
+        }
+
+        // 4. Kiểm tra các mốc dự án đã lưu (Project Points)
+        if (typeof appData !== 'undefined' && appData.getPoints) {
+            const projPts = appData.getPoints(AppState.currentProject) || [];
+            projPts.forEach((p, pIdx) => {
+                const pLat = parseFloat(p.lat);
+                const pLng = parseFloat(p.lng);
+                let pX = parseFloat(p.x);
+                let pY = parseFloat(p.y);
+                if (!isFinite(pLat) || !isFinite(pLng)) return;
+
+                if (!isFinite(pX) || !isFinite(pY) || pX < 10000) {
+                    try {
+                        const vn = convertWgsToVn2k(pLat, pLng, AppState.kttVal, AppState.scaleFactor);
+                        pX = parseFloat(vn.X);
+                        pY = parseFloat(vn.Y);
+                    } catch (e) {}
+                }
+
+                let dist = 999999;
+                if (curX !== null && curY !== null && isFinite(pX) && isFinite(pY)) {
+                    dist = Math.hypot(pX - curX, pY - curY);
+                } else {
+                    dist = map.distance([currentLat, currentLng], [pLat, pLng]);
+                }
+
+                if (dist <= minDistance) {
+                    minDistance = dist;
+                    bestCandidate = {
+                        lat: pLat,
+                        lng: pLng,
+                        x: parseFloat(pX.toFixed(3)),
+                        y: parseFloat(pY.toFixed(3)),
+                        h: parseFloat(p.h || 0),
+                        name: p.name || `Mốc ${pIdx + 1}`,
+                        shapeName: `Mốc dự án`,
+                        shapeIdx: -2,
+                        vertexIdx: pIdx,
+                        distance: dist,
+                        isSnapped: true,
+                        snapType: 'project_point',
+                        source: `Mốc dự án • ${p.name || (`Mốc ${pIdx + 1}`)}`
+                    };
+                }
+            });
+        }
+
+        // 5. Nếu đang chỉnh sửa đỉnh của khối đã lưu (excludeShapeIdx >= 0), cũng cho phép bắt vào các đỉnh khác trong cùng khối (trừ chính đỉnh đang kéo)
+        if (excludeShapeIdx >= 0 && this.savedShapes && this.savedShapes[excludeShapeIdx]) {
+            const sameShape = this.savedShapes[excludeShapeIdx];
+            (sameShape.vertices || []).forEach((v, vIdx) => {
+                if (excludeVertexIdx >= 0 && vIdx === excludeVertexIdx) return;
+                let dist = 999999;
+                if (curX !== null && curY !== null && v.x !== undefined && v.y !== undefined && !isNaN(v.x) && !isNaN(v.y)) {
+                    const dx = v.x - curX;
+                    const dy = v.y - curY;
+                    dist = Math.hypot(dx, dy);
+                } else {
+                    dist = map.distance([currentLat, currentLng], [v.lat, v.lng]);
+                }
+
+                if (dist <= minDistance) {
+                    minDistance = dist;
+                    bestCandidate = {
+                        lat: v.lat,
+                        lng: v.lng,
+                        x: parseFloat(parseFloat(v.x).toFixed(3)),
+                        y: parseFloat(parseFloat(v.y).toFixed(3)),
+                        h: v.h || 0,
+                        name: v.name,
+                        shapeName: sameShape.name || sameShape.shortName || `Cùng khối`,
+                        shapeIdx: excludeShapeIdx,
+                        vertexIdx: vIdx,
+                        distance: dist,
+                        isSnapped: true,
+                        snapType: 'same_shape_vertex',
+                        source: `Đỉnh cùng khối • ${v.name}`
                     };
                 }
             });
@@ -10082,10 +10171,9 @@ const appCadTool = {
     },
 
     calculateAreaAndPerimeter(customPts = null, customMode = null) {
-        const pts = customPts || this.vertices;
+        const rawPts = customPts || this.vertices;
         const mode = customMode || this.mode;
-        const n = pts.length;
-        if (n < 2) {
+        if (!rawPts || rawPts.length < 2) {
             return {
                 area: 0,
                 areaFormatted: '0.00',
@@ -10097,6 +10185,19 @@ const appCadTool = {
             };
         }
 
+        // Chuẩn hóa 100% tọa độ các đỉnh trước khi tính toán để chống sai số khoảng cách
+        const pts = rawPts.map((p, idx) => {
+            const norm = this._normalizeVertex(p, idx);
+            if (norm) {
+                p.x = norm.x;
+                p.y = norm.y;
+                p.lat = norm.lat;
+                p.lng = norm.lng;
+            }
+            return norm || p;
+        });
+
+        const n = pts.length;
         let sumArea = 0;
         let perimeter = 0;
         const edges = [];
@@ -10112,9 +10213,21 @@ const appCadTool = {
                 sumArea += (cur.x * next.y - next.x * cur.y);
             }
 
-            const dx = next.x - cur.x;
-            const dy = next.y - cur.y;
-            const length = Math.hypot(dx, dy);
+            let dx = next.x - cur.x;
+            let dy = next.y - cur.y;
+            let length = Math.hypot(dx, dy);
+
+            // Fallback bảo vệ an toàn: nếu length không hợp lệ hoặc = 0 trong khi lat/lng khác nhau
+            if (!isFinite(length) || (length === 0 && (cur.lat !== next.lat || cur.lng !== next.lng))) {
+                if (isFinite(cur.lat) && isFinite(cur.lng) && isFinite(next.lat) && isFinite(next.lng)) {
+                    if (AppState.leafletMap) {
+                        length = AppState.leafletMap.distance([cur.lat, cur.lng], [next.lat, next.lng]);
+                    } else if (typeof calcGeoDistanceAndAzimuth === 'function') {
+                        length = calcGeoDistanceAndAzimuth(cur.lat, cur.lng, next.lat, next.lng).distance;
+                    }
+                }
+            }
+
             perimeter += length;
 
             // Tính phương vị trắc địa VN2000 (Azimuth từ trục X Bắc theo chiều kim đồng hồ)
@@ -10515,6 +10628,8 @@ const appCadTool = {
             const sVerts = shape.vertices;
             const sLen = sVerts.length;
             if (sLen === 0) return;
+            // Luôn đảm bảo shape.stats đồng bộ mới nhất 100% với các đỉnh thực tế
+            shape.stats = this.calculateAreaAndPerimeter(shape.vertices, shape.mode);
             const sLatLngs = sVerts.map(v => [v.lat, v.lng]);
             const sColor = shape.color || '#10b981';
 
@@ -10523,6 +10638,7 @@ const appCadTool = {
 
             const edgeMarkers = [];
             const vertexMarkers = [];
+            const hitLines = [];
 
             if (showBoundaries && shape.mode === 'polygon' && sLen >= 3) {
                 sShapeLayer = L.polygon(sLatLngs, {
@@ -10669,6 +10785,7 @@ const appCadTool = {
                         opacity: 0.001,
                         interactive: true
                     }).addTo(this.layers.group);
+                    hitLines.push(hitLine);
 
                     hitLine.on('mouseover', () => {
                         edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
@@ -10741,11 +10858,11 @@ const appCadTool = {
 
                     v.lat = displayLat;
                     v.lng = displayLng;
-                    if (adjSnap && adjSnap.x !== undefined && adjSnap.y !== undefined) {
+                    if (adjSnap && adjSnap.x !== undefined && adjSnap.y !== undefined && adjSnap.x > 10000) {
                         v.x = adjSnap.x;
                         v.y = adjSnap.y;
                     } else {
-                        const vn2k = convertWgsToVn2k(rawPos.lat, rawPos.lng, AppState.kttVal, AppState.scaleFactor);
+                        const vn2k = convertWgsToVn2k(displayLat, displayLng, AppState.kttVal, AppState.scaleFactor);
                         v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
                         v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
                     }
@@ -10757,6 +10874,57 @@ const appCadTool = {
                         const curCLat = sVerts.reduce((a, b) => a + b.lat, 0) / sLen;
                         const curCLng = sVerts.reduce((a, b) => a + b.lng, 0) / sLen;
                         sCenterMarker.setLatLng([curCLat, curCLng]);
+                    }
+
+                    // Cập nhật vị trí và khoảng cách các cạnh liền kề theo thời gian thực (Live 60 FPS)
+                    const isClosed = shape.mode === 'polygon' && sLen >= 3;
+                    if (isClosed || vIdx > 0) {
+                        const prevEIdx = (vIdx - 1 + sLen) % sLen;
+                        const pA = sVerts[prevEIdx];
+                        const pB = v;
+                        if (pA && pB && edgeMarkers[prevEIdx]) {
+                            const dx = pB.x - pA.x;
+                            const dy = pB.y - pA.y;
+                            let len = Math.hypot(dx, dy);
+                            if (!isFinite(len) || len === 0) {
+                                len = AppState.leafletMap ? AppState.leafletMap.distance([pA.lat, pA.lng], [pB.lat, pB.lng]) : 0;
+                            }
+                            const midLat = (pA.lat + pB.lat) / 2;
+                            const midLng = (pA.lng + pB.lng) / 2;
+                            edgeMarkers[prevEIdx].setLatLng([midLat, midLng]);
+                            const bEl = edgeMarkers[prevEIdx].getElement()?.querySelector('.cad-edge-badge');
+                            if (bEl) {
+                                bEl.innerHTML = `${len.toFixed(2)}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                                bEl.classList.add('visible');
+                            }
+                            if (hitLines[prevEIdx]) {
+                                hitLines[prevEIdx].setLatLngs([[pA.lat, pA.lng], [pB.lat, pB.lng]]);
+                            }
+                        }
+                    }
+                    if (isClosed || vIdx < sLen - 1) {
+                        const nextEIdx = vIdx;
+                        const pA = v;
+                        const pB = sVerts[(vIdx + 1) % sLen];
+                        if (pA && pB && edgeMarkers[nextEIdx]) {
+                            const dx = pB.x - pA.x;
+                            const dy = pB.y - pA.y;
+                            let len = Math.hypot(dx, dy);
+                            if (!isFinite(len) || len === 0) {
+                                len = AppState.leafletMap ? AppState.leafletMap.distance([pA.lat, pA.lng], [pB.lat, pB.lng]) : 0;
+                            }
+                            const midLat = (pA.lat + pB.lat) / 2;
+                            const midLng = (pA.lng + pB.lng) / 2;
+                            edgeMarkers[nextEIdx].setLatLng([midLat, midLng]);
+                            const bEl = edgeMarkers[nextEIdx].getElement()?.querySelector('.cad-edge-badge');
+                            if (bEl) {
+                                bEl.innerHTML = `${len.toFixed(2)}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                                bEl.classList.add('visible');
+                            }
+                            if (hitLines[nextEIdx]) {
+                                hitLines[nextEIdx].setLatLngs([[pA.lat, pA.lng], [pB.lat, pB.lng]]);
+                            }
+                        }
                     }
                 });
 
@@ -10772,7 +10940,7 @@ const appCadTool = {
                     let isSnapped = false;
                     let snapSource = null;
 
-                    // Chỉ tự động bắt đỉnh khi đến gần <= 0.5m đỉnh của khối liền kề
+                    // Chỉ tự động bắt đỉnh khi đến gần <= 0.5m đỉnh của khối liền kề hoặc mốc dự án
                     if (this.snapEnabled && this.findAdjacentVertexSnap) {
                         const adjSnap = this.findAdjacentVertexSnap(finalPos.lat, finalPos.lng, sIdx, vIdx, this.adjacentSnapThresholdMeters || 0.5);
                         if (adjSnap) {
@@ -10788,7 +10956,7 @@ const appCadTool = {
 
                     v.lat = targetLat;
                     v.lng = targetLng;
-                    if (targetX !== null && targetY !== null && !isNaN(targetX) && !isNaN(targetY)) {
+                    if (targetX !== null && targetY !== null && !isNaN(targetX) && !isNaN(targetY) && targetX > 10000) {
                         v.x = parseFloat(parseFloat(targetX).toFixed(3));
                         v.y = parseFloat(parseFloat(targetY).toFixed(3));
                     } else {
@@ -10800,15 +10968,22 @@ const appCadTool = {
                     v.isSnapped = isSnapped;
                     v.snapSource = snapSource;
 
-                    // Cập nhật lại thống kê diện tích / chu vi của khối
+                    // Cập nhật lại thống kê diện tích / chu vi và các cạnh của khối
                     shape.stats = this.calculateAreaAndPerimeter(shape.vertices, shape.mode);
+
+                    // Lưu dữ liệu ngay vào Sổ đo dự án & CAD storage để không bị mất khi reload
+                    this.saveShapesForProject(AppState.currentProject);
+                    this.persistSession();
 
                     this.renderGeometry();
                     this.renderBlocksPanel();
                     this.updateUi();
+                    if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                        this.openAreaTableModal();
+                    }
                     triggerHaptic('success');
                     if (isSnapped) {
-                        showToast(`🧲 Đỉnh ${v.name} (${shape.shortName}) đã tự bắt khớp chuẩn 0.5m vào [${snapSource}]!`);
+                        showToast(`🧲 Đỉnh ${v.name} (${shape.shortName}) đã tự bắt khớp chuẩn vào [${snapSource}]!`);
                     } else {
                         showToast(`📍 Đã dời đỉnh ${v.name} (${shape.shortName}): X=${v.x.toFixed(3)}, Y=${v.y.toFixed(3)}`);
                     }
@@ -10875,7 +11050,73 @@ const appCadTool = {
             }
         }
 
-        // 2. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển nhanh)
+        // 2. Hiển thị nhãn kích thước cạnh (m) cho nét vẽ hiện tại (Tạo trước để hỗ trợ cập nhật thời gian thực khi kéo thả)
+        const stats = this.calculateAreaAndPerimeter();
+        const activeEdgeMarkers = [];
+        const activeHitLines = [];
+
+        if (stats && stats.edges && n >= 2) {
+            const isClosed = this.mode === 'polygon' && n >= 3;
+            const edgeCount = isClosed ? n : n - 1;
+
+            for (let eIdx = 0; eIdx < edgeCount; eIdx++) {
+                const edge = stats.edges[eIdx];
+                if (!edge) continue;
+                const cur = this.vertices[eIdx];
+                const next = this.vertices[(eIdx + 1) % n];
+                const midLat = (cur.lat + next.lat) / 2;
+                const midLng = (cur.lng + next.lng) / 2;
+
+                const isActDistPinned = (showDistances === true);
+                const labelHtml = `<div class="cad-edge-badge interactive ${isActDistPinned ? 'visible pinned' : ''}" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
+                const labelIcon = L.divIcon({
+                    className: '',
+                    html: labelHtml,
+                    iconSize: [52, 18],
+                    iconAnchor: [26, 9]
+                });
+                const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2400 }).addTo(this.layers.group);
+                edgeMarker._pinned = isActDistPinned;
+                activeEdgeMarkers.push(edgeMarker);
+
+                edgeMarker.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    this.insertVertexOnEdge(-1, eIdx);
+                });
+
+                // Bắt rê chuột vào cạnh vẽ hiện tại
+                const hitLine = L.polyline([[cur.lat, cur.lng], [next.lat, next.lng]], {
+                    weight: 16,
+                    color: '#000',
+                    opacity: 0.001,
+                    interactive: true
+                }).addTo(this.layers.group);
+                activeHitLines.push(hitLine);
+
+                hitLine.on('mouseover', () => {
+                    edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
+                });
+                hitLine.on('mouseout', () => {
+                    if (!edgeMarker._pinned) {
+                        edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                    }
+                });
+                hitLine.on('click', (e) => {
+                    if (appCadTool.isActive) {
+                        L.DomEvent.stopPropagation(e);
+                        appCadTool.handleMapClick(e.latlng.lat, e.latlng.lng);
+                        return;
+                    }
+                    L.DomEvent.stopPropagation(e);
+                    edgeMarker._pinned = !edgeMarker._pinned;
+                    const b = edgeMarker.getElement()?.querySelector('.cad-edge-badge');
+                    if (edgeMarker._pinned) b?.classList.add('visible', 'pinned');
+                    else b?.classList.remove('visible', 'pinned');
+                });
+            }
+        }
+
+        // 3. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển mượt mà kèm cập nhật cự ly tức thì)
         this.vertices.forEach((v, idx) => {
             const isActExp = (showVertices === true) ? 'expanded' : '';
             const iconHtml = `<div class="cad-vertex-badge dot-visible ${isActExp}" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
@@ -10894,17 +11135,25 @@ const appCadTool = {
 
             marker.on('mouseover', () => {
                 marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
+                const prevE = activeEdgeMarkers[(idx - 1 + activeEdgeMarkers.length) % activeEdgeMarkers.length];
+                const nextE = activeEdgeMarkers[idx];
+                prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
+                nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
             });
             marker.on('mouseout', () => {
                 if (!marker._pinned) {
                     marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('expanded');
                 }
+                const prevE = activeEdgeMarkers[(idx - 1 + activeEdgeMarkers.length) % activeEdgeMarkers.length];
+                const nextE = activeEdgeMarkers[idx];
+                if (!prevE?._pinned) prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
+                if (!nextE?._pinned) nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
             });
 
             let isDragging = false;
             marker.on('dragstart', () => {
-                    this.pushHistoryState(`Dời đỉnh ${v.name}`);
-                    isDragging = true;
+                this.pushHistoryState(`Dời đỉnh ${v.name}`);
+                isDragging = true;
                 if (AppState.leafletMap) AppState.leafletMap.dragging.disable();
             });
 
@@ -10926,11 +11175,11 @@ const appCadTool = {
 
                 v.lat = displayLat;
                 v.lng = displayLng;
-                if (adjSnap && adjSnap.x !== undefined && adjSnap.y !== undefined) {
+                if (adjSnap && adjSnap.x !== undefined && adjSnap.y !== undefined && adjSnap.x > 10000) {
                     v.x = adjSnap.x;
                     v.y = adjSnap.y;
                 } else {
-                    const vn2k = convertWgsToVn2k(rawPos.lat, rawPos.lng, AppState.kttVal, AppState.scaleFactor);
+                    const vn2k = convertWgsToVn2k(displayLat, displayLng, AppState.kttVal, AppState.scaleFactor);
                     v.x = parseFloat(parseFloat(vn2k.X).toFixed(3));
                     v.y = parseFloat(parseFloat(vn2k.Y).toFixed(3));
                 }
@@ -10939,6 +11188,58 @@ const appCadTool = {
                 if (this.layers.shape) {
                     this.layers.shape.setLatLngs(this.vertices.map(pt => [pt.lat, pt.lng]));
                 }
+
+                // Cập nhật khoảng cách 2 cạnh liền kề với đỉnh đang kéo theo thời gian thực (Live 60 FPS)
+                const isClosed = this.mode === 'polygon' && n >= 3;
+                if (isClosed || idx > 0) {
+                    const prevEIdx = (idx - 1 + n) % n;
+                    const pA = this.vertices[prevEIdx];
+                    const pB = v;
+                    if (pA && pB && activeEdgeMarkers[prevEIdx]) {
+                        const dx = pB.x - pA.x;
+                        const dy = pB.y - pA.y;
+                        let len = Math.hypot(dx, dy);
+                        if (!isFinite(len) || len === 0) {
+                            len = AppState.leafletMap ? AppState.leafletMap.distance([pA.lat, pA.lng], [pB.lat, pB.lng]) : 0;
+                        }
+                        const midLat = (pA.lat + pB.lat) / 2;
+                        const midLng = (pA.lng + pB.lng) / 2;
+                        activeEdgeMarkers[prevEIdx].setLatLng([midLat, midLng]);
+                        const bEl = activeEdgeMarkers[prevEIdx].getElement()?.querySelector('.cad-edge-badge');
+                        if (bEl) {
+                            bEl.innerHTML = `${len.toFixed(2)}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                            bEl.classList.add('visible');
+                        }
+                        if (activeHitLines[prevEIdx]) {
+                            activeHitLines[prevEIdx].setLatLngs([[pA.lat, pA.lng], [pB.lat, pB.lng]]);
+                        }
+                    }
+                }
+                if (isClosed || idx < n - 1) {
+                    const nextEIdx = idx;
+                    const pA = v;
+                    const pB = this.vertices[(idx + 1) % n];
+                    if (pA && pB && activeEdgeMarkers[nextEIdx]) {
+                        const dx = pB.x - pA.x;
+                        const dy = pB.y - pA.y;
+                        let len = Math.hypot(dx, dy);
+                        if (!isFinite(len) || len === 0) {
+                            len = AppState.leafletMap ? AppState.leafletMap.distance([pA.lat, pA.lng], [pB.lat, pB.lng]) : 0;
+                        }
+                        const midLat = (pA.lat + pB.lat) / 2;
+                        const midLng = (pA.lng + pB.lng) / 2;
+                        activeEdgeMarkers[nextEIdx].setLatLng([midLat, midLng]);
+                        const bEl = activeEdgeMarkers[nextEIdx].getElement()?.querySelector('.cad-edge-badge');
+                        if (bEl) {
+                            bEl.innerHTML = `${len.toFixed(2)}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                            bEl.classList.add('visible');
+                        }
+                        if (activeHitLines[nextEIdx]) {
+                            activeHitLines[nextEIdx].setLatLngs([[pA.lat, pA.lng], [pB.lat, pB.lng]]);
+                        }
+                    }
+                }
+
                 this.updateUi();
             });
 
@@ -10969,7 +11270,7 @@ const appCadTool = {
 
                 v.lat = targetLat;
                 v.lng = targetLng;
-                if (targetX !== null && targetY !== null && !isNaN(targetX) && !isNaN(targetY)) {
+                if (targetX !== null && targetY !== null && !isNaN(targetX) && !isNaN(targetY) && targetX > 10000) {
                     v.x = parseFloat(parseFloat(targetX).toFixed(3));
                     v.y = parseFloat(parseFloat(targetY).toFixed(3));
                 } else {
@@ -10981,12 +11282,16 @@ const appCadTool = {
                 v.isSnapped = isSnapped;
                 v.snapSource = snapSource;
 
+                this.persistSession();
                 this.renderGeometry();
                 this.updateUi();
                 this.renderBlocksPanel();
+                if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                    this.openAreaTableModal();
+                }
                 triggerHaptic('success');
                 if (isSnapped) {
-                    showToast(`🧲 Đỉnh ${v.name} đã tự bắt khớp chuẩn 0.5m vào [${snapSource}]!`);
+                    showToast(`🧲 Đỉnh ${v.name} đã tự bắt khớp chuẩn vào [${snapSource}]!`);
                 } else {
                     showToast(`📍 Đã dời đỉnh ${v.name}: X=${v.x.toFixed(3)}, Y=${v.y.toFixed(3)}`);
                 }
@@ -11016,70 +11321,6 @@ const appCadTool = {
                 }
             });
         });
-
-        // 3. Hiển thị nhãn kích thước cạnh (m) cho nét vẽ hiện tại (Ẩn mặc định, hover/click đường kẻ để hiện)
-        const stats = this.calculateAreaAndPerimeter();
-        const activeEdgeMarkers = [];
-
-        if (stats && stats.edges && n >= 2) {
-            const isClosed = this.mode === 'polygon' && n >= 3;
-            const edgeCount = isClosed ? n : n - 1;
-
-            for (let idx = 0; idx < edgeCount; idx++) {
-                const edge = stats.edges[idx];
-                if (!edge) continue;
-                const cur = this.vertices[idx];
-                const next = this.vertices[(idx + 1) % n];
-                const midLat = (cur.lat + next.lat) / 2;
-                const midLng = (cur.lng + next.lng) / 2;
-
-                const isActDistPinned = (showDistances === true);
-                const labelHtml = `<div class="cad-edge-badge interactive ${isActDistPinned ? 'visible pinned' : ''}" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
-                const labelIcon = L.divIcon({
-                    className: '',
-                    html: labelHtml,
-                    iconSize: [52, 18],
-                    iconAnchor: [26, 9]
-                });
-                const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2400 }).addTo(this.layers.group);
-                edgeMarker._pinned = isActDistPinned;
-                activeEdgeMarkers.push(edgeMarker);
-
-                edgeMarker.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    this.insertVertexOnEdge(-1, idx);
-                });
-
-                // Bắt rê chuột vào cạnh vẽ hiện tại
-                const hitLine = L.polyline([[cur.lat, cur.lng], [next.lat, next.lng]], {
-                    weight: 16,
-                    color: '#000',
-                    opacity: 0.001,
-                    interactive: true
-                }).addTo(this.layers.group);
-
-                hitLine.on('mouseover', () => {
-                    edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
-                });
-                hitLine.on('mouseout', () => {
-                    if (!edgeMarker._pinned) {
-                        edgeMarker.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
-                    }
-                });
-                hitLine.on('click', (e) => {
-                    if (appCadTool.isActive) {
-                        L.DomEvent.stopPropagation(e);
-                        appCadTool.handleMapClick(e.latlng.lat, e.latlng.lng);
-                        return;
-                    }
-                    L.DomEvent.stopPropagation(e);
-                    edgeMarker._pinned = !edgeMarker._pinned;
-                    const b = edgeMarker.getElement()?.querySelector('.cad-edge-badge');
-                    if (edgeMarker._pinned) b?.classList.add('visible', 'pinned');
-                    else b?.classList.remove('visible', 'pinned');
-                });
-            }
-        }
 
         // 4. Nếu là đa giác khép kín >= 3 đỉnh: hiển thị badge diện tích tại tâm đa giác (scale vừa khít)
         if (showCenterLabels && this.mode === 'polygon' && n >= 3) {
@@ -11776,6 +12017,8 @@ const appCadTool = {
         setTimeout(() => this.checkScalePaperFit(), 50);
         const allShapes = [];
         this.savedShapes.forEach((s, idx) => {
+            // Luôn đảm bảo s.stats đồng bộ mới nhất 100% với các đỉnh thực tế
+            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
             allShapes.push({
                 id: s.id,
                 name: s.name,
