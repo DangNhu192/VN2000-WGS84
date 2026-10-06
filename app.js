@@ -7894,8 +7894,13 @@ const appCadTool = {
         if (!this.layers.annotationsGroup) {
             this.layers.annotationsGroup = L.layerGroup().addTo(AppState.leafletMap);
         }
-        // Gắn sự kiện chuột di chuyển trên bản đồ cho Dynamic Input & Rubberband
+        // Gắn sự kiện chuột di chuyển, zoom và click trực tiếp trên bản đồ cho CAD Tool
         if (!this._mapEventsBound && AppState.leafletMap) {
+            AppState.leafletMap.on('click', (e) => {
+                if (this.isActive) {
+                    this.handleMapClick(e.latlng.lat, e.latlng.lng);
+                }
+            });
             AppState.leafletMap.on('mousemove', (e) => {
                 if (this.isActive) {
                     this.handleMouseMove(e.latlng.lat, e.latlng.lng);
@@ -7903,6 +7908,11 @@ const appCadTool = {
             });
             AppState.leafletMap.on('mouseout', () => {
                 this.clearDynamicHelpers();
+            });
+            AppState.leafletMap.on('zoomend', () => {
+                if (this.isActive) {
+                    this.renderGeometry();
+                }
             });
             this._mapEventsBound = true;
         }
@@ -7966,6 +7976,26 @@ const appCadTool = {
 
     setMode(mode) {
         this.mode = mode;
+        this.isActive = true;
+        this.markupMode = null;
+        this.ensureLayers();
+
+        // Tắt trạng thái active của các nút ghi chú/markup
+        const modeBtns = {
+            arrow: 'btnCadMarkupArrow',
+            north_arrow: 'btnCadMarkupNorth',
+            rect: 'btnCadMarkupRect',
+            circle: 'btnCadMarkupCircle',
+            stamp: 'btnCadMarkupStamp',
+            text: 'btnCadMarkupText'
+        };
+        Object.keys(modeBtns).forEach(k => {
+            const btn = document.getElementById(modeBtns[k]);
+            if (btn) btn.classList.remove('active');
+        });
+        const statusEl = document.getElementById('cadMarkupStatus');
+        if (statusEl) { statusEl.style.display = 'none'; statusEl.innerText = ''; }
+
         const btnPoly = document.getElementById('btnCadModePoly');
         const btnLine = document.getElementById('btnCadModeLine');
         const badge = document.getElementById('cadModeBadge');
@@ -7974,12 +8004,12 @@ const appCadTool = {
                 btnPoly.classList.add('active');
                 btnLine.classList.remove('active');
                 if (badge) badge.innerText = "Đa giác ranh";
-                showToast("Chế độ: Đa giác khép kín [P]");
+                showToast("📐 Chế độ vẽ: Đa giác khép kín (Chạm bản đồ để dựng mốc)");
             } else {
                 btnLine.classList.add('active');
                 btnPoly.classList.remove('active');
                 if (badge) badge.innerText = "Đường tim tuyến";
-                showToast("Chế độ: Tuyến hở Polyline [L]");
+                showToast("📏 Chế độ vẽ: Tim tuyến hở (Chạm bản đồ để dựng mốc)");
             }
         }
         this.renderGeometry();
@@ -8536,6 +8566,11 @@ const appCadTool = {
     },
 
     handleMapClick(lat, lng) {
+        const now = Date.now();
+        if (this._lastClickTime && (now - this._lastClickTime < 120)) {
+            return; // Khử nhiễu nhấp đúp hoặc sự kiện trùng lặp
+        }
+        this._lastClickTime = now;
         this.ensureLayers();
         if (this.markupMode) {
             this.handleMarkupClick(lat, lng);
@@ -8592,6 +8627,8 @@ const appCadTool = {
         this.vertices.push(v);
         this.renderGeometry();
         this.updateUi();
+        triggerHaptic('light');
+        showToast(`📍 Đã thêm đỉnh ${v.name}: X=${v.x.toFixed(2)}, Y=${v.y.toFixed(2)}`);
     },
 
     undoVertex() {
@@ -8618,6 +8655,13 @@ const appCadTool = {
     },
 
     saveAndStartNewShape() {
+        if (this.vertices.length === 0) {
+            this.isActive = true;
+            this.setMode('polygon');
+            this.ensureLayers();
+            showToast("📐 Sẵn sàng vẽ khối mới! Hãy chạm vào bản đồ để tạo các đỉnh");
+            return;
+        }
         if (this.vertices.length < 2) {
             showToast("⚠️ Cần tối thiểu 2 đỉnh để lưu cấu trúc trước khi tạo mới!", true);
             return;
@@ -9558,6 +9602,11 @@ const appCadTool = {
                     }
                 });
                 sShapeLayer.on('click', (e) => {
+                    if (appCadTool.isActive) {
+                        L.DomEvent.stopPropagation(e);
+                        appCadTool.handleMapClick(e.latlng.lat, e.latlng.lng);
+                        return;
+                    }
                     L.DomEvent.stopPropagation(e);
                     shape._pinned = !shape._pinned;
                     edgeMarkers.forEach(em => {
@@ -9844,7 +9893,7 @@ const appCadTool = {
 
         // 2. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển nhanh)
         this.vertices.forEach((v, idx) => {
-            const iconHtml = `<div class="cad-vertex-badge" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
+            const iconHtml = `<div class="cad-vertex-badge expanded" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
             const icon = L.divIcon({
                 className: '',
                 html: iconHtml,
@@ -10010,6 +10059,11 @@ const appCadTool = {
                     }
                 });
                 hitLine.on('click', (e) => {
+                    if (appCadTool.isActive) {
+                        L.DomEvent.stopPropagation(e);
+                        appCadTool.handleMapClick(e.latlng.lat, e.latlng.lng);
+                        return;
+                    }
                     L.DomEvent.stopPropagation(e);
                     edgeMarker._pinned = !edgeMarker._pinned;
                     const b = edgeMarker.getElement()?.querySelector('.cad-edge-badge');
