@@ -3776,6 +3776,64 @@ function doGet(e) {
             ws['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 22 }];
             XLSX.utils.book_append_sheet(wb, ws, "DanhSach_Moc");
 
+            // 4. Bổ sung Sheet Chú Thích & Hình Khối (nếu có)
+            if (this.annotations && this.annotations.length > 0) {
+                const annRows = [
+                    ['DANH MỤC CHÚ THÍCH & HÌNH KHỐI KỸ THUẬT (MINICAD)'],
+                    ['STT', 'Loại Đối Tượng', 'Tên / Nội Dung Ghi Chú', 'Kích Thước / Bán Kính', 'Diện Tích (m²)', 'Tọa Độ X (Bắc)', 'Tọa Độ Y (Đông)', 'Vĩ Độ (WGS84)', 'Kinh Độ (WGS84)', 'Màu Sắc']
+                ];
+                const typeLabels = {
+                    arrow: 'Mũi tên chỉ dẫn',
+                    north_arrow: 'La bàn hướng Bắc',
+                    rect: 'Khối nhà / Công trình',
+                    circle: 'Vùng đệm bảo vệ',
+                    stamp: 'Tem nhãn thửa đất',
+                    text: 'Chữ ghi chú'
+                };
+                this.annotations.forEach((ann, aIdx) => {
+                    let desc = '', dim = '', area = '--', lat = ann.lat, lng = ann.lng;
+                    if (ann.type === 'arrow') {
+                        desc = ann.arrowText || 'Ghi chú mốc';
+                        lat = ann.endLat; lng = ann.endLng;
+                    } else if (ann.type === 'north_arrow') {
+                        desc = 'Chỉ hướng Bắc trắc địa';
+                    } else if (ann.type === 'rect') {
+                        desc = ann.rectName || 'Khối nhà';
+                        dim = ann.widthM + 'm x ' + ann.lengthM + 'm';
+                        area = ann.rectArea || '--';
+                    } else if (ann.type === 'circle') {
+                        desc = ann.circleName || 'Vùng bảo vệ';
+                        dim = 'Bán kính R = ' + ann.radiusM + 'm';
+                        area = (Math.PI * Math.pow(ann.radiusM, 2)).toFixed(2);
+                    } else if (ann.type === 'stamp') {
+                        desc = 'Tờ: ' + ann.sheetNo + ' - Thửa: ' + ann.parcelNo + ' - Chủ: ' + ann.owner;
+                        area = ann.area || '--';
+                        dim = 'Loại đất: ' + ann.landType;
+                    } else if (ann.type === 'text') {
+                        desc = ann.text || '';
+                    }
+                    const vn = convertWgsToVn2k(lat || 0, lng || 0, AppState.kttVal, AppState.scaleFactor);
+                    annRows.push([
+                        aIdx + 1,
+                        typeLabels[ann.type] || ann.type,
+                        desc,
+                        dim || '--',
+                        area,
+                        parseFloat((vn.X || 0).toFixed(3)),
+                        parseFloat((vn.Y || 0).toFixed(3)),
+                        parseFloat((lat || 0).toFixed(7)),
+                        parseFloat((lng || 0).toFixed(7)),
+                        ann.color || '#f59e0b'
+                    ]);
+                });
+                const wsAnn = XLSX.utils.aoa_to_sheet(annRows);
+                wsAnn['!cols'] = [
+                    { wch: 6 }, { wch: 22 }, { wch: 35 }, { wch: 24 }, { wch: 15 },
+                    { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 12 }
+                ];
+                XLSX.utils.book_append_sheet(wb, wsAnn, 'ChuThich_HinhKhoi');
+            }
+
             const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
             const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const filename = projName + ".xlsx";
@@ -7227,9 +7285,14 @@ const appCadTool = {
     customProjectArea: null,
     vertices: [], // [{ id, name, lat, lng, x, y, h, isSnapped, snapSource }]
     savedShapes: [], // [{ id, name, shortName, mode, vertices, stats, color }]
+    annotations: [], // [{ id, type, lat, lng, color, ... }]
+    markupMode: null, // null | 'arrow' | 'north_arrow' | 'rect' | 'circle' | 'stamp' | 'text'
+    markupStepData: null,
+    showAnnotations: true,
     palette: ['#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#38bdf8', '#84cc16', '#f97316'],
     layers: {
         group: null,
+        annotationsGroup: null,
         shape: null,
         markers: [],
         edgeLabels: [],
@@ -7244,6 +7307,7 @@ const appCadTool = {
         this.ensureLayers();
         this.bindEvents();
         this.initDraggablePanel();
+        this.loadAnnotations();
     },
 
     initDraggablePanel() {
@@ -7407,6 +7471,9 @@ const appCadTool = {
         if (!this.layers.group) {
             this.layers.group = L.layerGroup().addTo(AppState.leafletMap);
         }
+        if (!this.layers.annotationsGroup) {
+            this.layers.annotationsGroup = L.layerGroup().addTo(AppState.leafletMap);
+        }
         // Gắn sự kiện chuột di chuyển trên bản đồ cho Dynamic Input & Rubberband
         if (!this._mapEventsBound && AppState.leafletMap) {
             AppState.leafletMap.on('mousemove', (e) => {
@@ -7434,6 +7501,7 @@ const appCadTool = {
         if (mapContainer) mapContainer.classList.add('cad-active-map');
 
         this.updateUi();
+        this.loadAnnotations();
         showToast("📐 Chế độ Vẽ CAD Mini đã kích hoạt! Chạm bản đồ để dựng mốc (Phím: P, L, S, C, U, D, E)");
     },
 
@@ -8046,6 +8114,10 @@ const appCadTool = {
 
     handleMapClick(lat, lng) {
         this.ensureLayers();
+        if (this.markupMode) {
+            this.handleMarkupClick(lat, lng);
+            return;
+        }
         let candidate = null;
         if (this.snapEnabled) {
             candidate = this.findSnapCandidate(lat, lng);
@@ -8203,6 +8275,752 @@ const appCadTool = {
         this.renderGeometry();
         this.updateUi();
         showToast("Đã dọn dẹp bản vẽ CAD!");
+    },
+
+    // =========================================================================
+    // CÁC CHỨC NĂNG CHÚ THÍCH & HÌNH KHỐI KỸ THUẬT (MARKUP & ANNOTATIONS)
+    // =========================================================================
+    setMarkupMode(mode) {
+        if (this.markupMode === mode) {
+            this.markupMode = null;
+        } else {
+            this.markupMode = mode;
+        }
+        this.markupStepData = null;
+
+        const modeBtns = {
+            arrow: 'btnCadMarkupArrow',
+            north_arrow: 'btnCadMarkupNorth',
+            rect: 'btnCadMarkupRect',
+            circle: 'btnCadMarkupCircle',
+            stamp: 'btnCadMarkupStamp',
+            text: 'btnCadMarkupText'
+        };
+
+        Object.keys(modeBtns).forEach(k => {
+            const btn = document.getElementById(modeBtns[k]);
+            if (btn) {
+                if (this.markupMode === k) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        });
+
+        const statusEl = document.getElementById('cadMarkupStatus');
+        if (statusEl) {
+            if (!this.markupMode) {
+                statusEl.style.display = 'none';
+                statusEl.innerText = '';
+            } else {
+                statusEl.style.display = 'inline-block';
+                switch (this.markupMode) {
+                    case 'arrow':
+                        statusEl.innerText = '🏹 Click mốc ranh rồi click điểm đặt chữ ghi chú';
+                        showToast('🏹 Mũi tên: Click vào mốc ranh rồi click điểm đặt chữ');
+                        break;
+                    case 'north_arrow':
+                        statusEl.innerText = '🧭 Click 1 điểm trên bản đồ để chèn La bàn hướng Bắc';
+                        showToast('🧭 Hướng Bắc: Click vị trí muốn đặt la bàn');
+                        break;
+                    case 'rect':
+                        statusEl.innerText = '🏠 Click 2 góc đối diện (hoặc click để đặt khối 5x10m)';
+                        showToast('🏠 Khối nhà: Click để đặt khối công trình');
+                        break;
+                    case 'circle':
+                        statusEl.innerText = '⭕ Click tâm đối tượng để vẽ Vùng đệm bán kính bảo vệ';
+                        showToast('⭕ Bán kính: Click tâm đối tượng (giếng, trụ điện, hành lang)');
+                        break;
+                    case 'stamp':
+                        statusEl.innerText = '🏷️ Click lên thửa đất để đóng Tem nhãn địa chính';
+                        showToast('🏷️ Tem thửa: Click lên thửa đất để đóng khung nhãn');
+                        break;
+                    case 'text':
+                        statusEl.innerText = '🔤 Click 1 điểm trên bản đồ để chèn Chữ ghi chú';
+                        showToast('🔤 Chữ: Click vị trí muốn viết chữ ghi chú');
+                        break;
+                }
+            }
+        }
+    },
+
+    handleMarkupClick(lat, lng) {
+        if (!this.markupMode) return;
+
+        let candidate = null;
+        if (this.snapEnabled) {
+            candidate = this.findSnapCandidate(lat, lng);
+        }
+        const clickLat = (candidate && candidate.isSnapped) ? candidate.lat : lat;
+        const clickLng = (candidate && candidate.isSnapped) ? candidate.lng : lng;
+
+        switch (this.markupMode) {
+            case 'arrow': {
+                if (!this.markupStepData) {
+                    this.markupStepData = { startLat: clickLat, startLng: clickLng };
+                    const statusEl = document.getElementById('cadMarkupStatus');
+                    if (statusEl) statusEl.innerText = '🏹 Đã chọn gốc mũi tên. Giờ click điểm đặt chữ ghi chú...';
+                    showToast('🏹 Đã chọn gốc mũi tên! Click điểm đặt chữ ghi chú...');
+                } else {
+                    const defText = candidate ? (candidate.name || 'Mốc ranh') : 'Mốc ranh';
+                    const text = prompt('Nhập nội dung ghi chú cho mũi tên (ví dụ: Mốc M1, Ranh thửa, Bờ kênh...):', defText);
+                    if (text !== null) {
+                        const ann = {
+                            id: 'ann_' + Date.now(),
+                            type: 'arrow',
+                            startLat: this.markupStepData.startLat,
+                            startLng: this.markupStepData.startLng,
+                            endLat: clickLat,
+                            endLng: clickLng,
+                            arrowText: text.trim() || 'Mốc ranh',
+                            color: '#f59e0b',
+                            fontSize: 12
+                        };
+                        this.annotations.push(ann);
+                        this.saveAnnotations();
+                        this.renderAnnotations();
+                        showToast('✓ Đã thêm mũi tên chỉ dẫn: ' + ann.arrowText);
+                    }
+                    this.markupStepData = null;
+                    this.setMarkupMode(null);
+                }
+                break;
+            }
+
+            case 'north_arrow': {
+                const ann = {
+                    id: 'ann_' + Date.now(),
+                    type: 'north_arrow',
+                    lat: clickLat,
+                    lng: clickLng,
+                    color: '#38bdf8',
+                    size: 44
+                };
+                this.annotations.push(ann);
+                this.saveAnnotations();
+                this.renderAnnotations();
+                this.setMarkupMode(null);
+                showToast('✓ Đã chèn La bàn hướng Bắc trắc địa!');
+                break;
+            }
+
+            case 'rect': {
+                if (!this.markupStepData) {
+                    this.markupStepData = { p1: { lat: clickLat, lng: clickLng } };
+                    const statusEl = document.getElementById('cadMarkupStatus');
+                    if (statusEl) statusEl.innerText = '🏠 Click góc đối diện (hoặc click lại cùng vị trí để tạo khối 5m x 10m)';
+                    showToast('🏠 Click góc đối diện (hoặc click tiếp để đặt khối 5m x 10m)');
+                } else {
+                    const p1 = this.markupStepData.p1;
+                    const p2 = { lat: clickLat, lng: clickLng };
+
+                    const vn1 = convertWgsToVn2k(p1.lat, p1.lng, AppState.kttVal, AppState.scaleFactor);
+                    const vn2 = convertWgsToVn2k(p2.lat, p2.lng, AppState.kttVal, AppState.scaleFactor);
+
+                    let w = Math.abs(vn2.Y - vn1.Y);
+                    let l = Math.abs(vn2.X - vn1.X);
+
+                    if (w < 2 || l < 2) {
+                        w = 5.0;
+                        l = 10.0;
+                    }
+
+                    w = Math.max(1, parseFloat(w.toFixed(2)));
+                    l = Math.max(1, parseFloat(l.toFixed(2)));
+                    const area = parseFloat((w * l).toFixed(2));
+
+                    const minX = Math.min(vn1.X, vn2.X);
+                    const minY = Math.min(vn1.Y, vn2.Y);
+                    const maxX = minX + l;
+                    const maxY = minY + w;
+
+                    const c1 = convertVn2kToWgs(maxX, minY, AppState.kttVal, AppState.scaleFactor);
+                    const c2 = convertVn2kToWgs(maxX, maxY, AppState.kttVal, AppState.scaleFactor);
+                    const c3 = convertVn2kToWgs(minX, maxY, AppState.kttVal, AppState.scaleFactor);
+                    const c4 = convertVn2kToWgs(minX, minY, AppState.kttVal, AppState.scaleFactor);
+
+                    const ann = {
+                        id: 'ann_' + Date.now(),
+                        type: 'rect',
+                        lat: (c1.lat + c3.lat) / 2,
+                        lng: (c1.lng + c3.lng) / 2,
+                        corners: [
+                            [c1.lat, c1.lng],
+                            [c2.lat, c2.lng],
+                            [c3.lat, c3.lng],
+                            [c4.lat, c4.lng]
+                        ],
+                        widthM: w,
+                        lengthM: l,
+                        rectArea: area,
+                        rectName: 'Khối nhà',
+                        color: '#ec4899'
+                    };
+                    this.annotations.push(ann);
+                    this.saveAnnotations();
+                    this.renderAnnotations();
+                    this.markupStepData = null;
+                    this.setMarkupMode(null);
+                    showToast('✓ Đã tạo khối công trình: ' + w + 'm x ' + l + 'm (' + area + ' m²)');
+                }
+                break;
+            }
+
+            case 'circle': {
+                const rStr = prompt('Nhập bán kính vùng đệm / bảo vệ (mét):', '10');
+                if (rStr !== null) {
+                    const r = parseFloat(rStr) || 10;
+                    const name = prompt('Tên đối tượng bảo vệ (giếng khoan, trụ điện, hành lang lộ giới...):', 'Vùng bảo vệ') || 'Vùng bảo vệ';
+                    const ann = {
+                        id: 'ann_' + Date.now(),
+                        type: 'circle',
+                        lat: clickLat,
+                        lng: clickLng,
+                        radiusM: Math.max(0.5, r),
+                        circleName: name.trim(),
+                        color: '#10b981'
+                    };
+                    this.annotations.push(ann);
+                    this.saveAnnotations();
+                    this.renderAnnotations();
+                    showToast('✓ Đã tạo vùng đệm R=' + ann.radiusM + 'm: "' + ann.circleName + '"');
+                }
+                this.setMarkupMode(null);
+                break;
+            }
+
+            case 'stamp': {
+                let matchedShape = null;
+                if (this.savedShapes && this.savedShapes.length > 0) {
+                    matchedShape = this.savedShapes[this.savedShapes.length - 1];
+                }
+                const defArea = (matchedShape && matchedShape.stats) ? (matchedShape.stats.area.toFixed(1) + ' m²') : '150.0 m²';
+                const defParcel = (matchedShape && matchedShape.name) ? (matchedShape.name.replace(/[^0-9]/g, '') || '01') : '01';
+
+                const ann = {
+                    id: 'ann_' + Date.now(),
+                    type: 'stamp',
+                    lat: clickLat,
+                    lng: clickLng,
+                    sheetNo: '01',
+                    parcelNo: defParcel,
+                    area: defArea,
+                    owner: 'Chủ sử dụng đất',
+                    landType: 'ONT',
+                    color: '#38bdf8'
+                };
+                this.annotations.push(ann);
+                this.saveAnnotations();
+                this.renderAnnotations();
+                this.setMarkupMode(null);
+                showToast('✓ Đã đóng tem nhãn thửa đất! Nhấp vào tem để sửa thông tin.');
+                this.openAnnotationModal(ann.id);
+                break;
+            }
+
+            case 'text': {
+                const txt = prompt('Nhập nội dung chữ ghi chú:', 'Ghi chú kỹ thuật');
+                if (txt !== null && txt.trim() !== '') {
+                    const ann = {
+                        id: 'ann_' + Date.now(),
+                        type: 'text',
+                        lat: clickLat,
+                        lng: clickLng,
+                        text: txt.trim(),
+                        fontSize: 12,
+                        color: '#f8fafc',
+                        bgColor: 'rgba(15, 23, 42, 0.85)',
+                        borderColor: '#38bdf8'
+                    };
+                    this.annotations.push(ann);
+                    this.saveAnnotations();
+                    this.renderAnnotations();
+                    showToast('✓ Đã thêm chữ ghi chú: "' + ann.text + '"');
+                }
+                this.setMarkupMode(null);
+                break;
+            }
+        }
+    },
+
+    renderAnnotations() {
+        this.ensureLayers();
+        if (!this.layers.annotationsGroup) return;
+        this.layers.annotationsGroup.clearLayers();
+
+        const countEl = document.getElementById('cadMarkupCount');
+        if (countEl) countEl.innerText = this.annotations ? this.annotations.length : 0;
+
+        if (!this.showAnnotations || !this.annotations || this.annotations.length === 0) {
+            return;
+        }
+
+        this.annotations.forEach(ann => {
+            switch (ann.type) {
+                case 'arrow': {
+                    const polyline = L.polyline([
+                        [ann.startLat, ann.startLng],
+                        [ann.endLat, ann.endLng]
+                    ], {
+                        color: ann.color || '#f59e0b',
+                        weight: 2,
+                        dashArray: '4,4',
+                        interactive: true
+                    });
+                    polyline.on('click', () => this.openAnnotationModal(ann.id));
+                    this.layers.annotationsGroup.addLayer(polyline);
+
+                    const dy = ann.startLat - ann.endLat;
+                    const dx = (ann.startLng - ann.endLng) * Math.cos((ann.startLat + ann.endLat) * Math.PI / 360);
+                    const angleDeg = Math.atan2(dx, dy) * 180 / Math.PI;
+
+                    const arrowIcon = L.divIcon({
+                        className: 'cad-arrow-tip-marker',
+                        html: '<div style="transform: rotate(' + angleDeg + 'deg); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 12px solid ' + (ann.color || '#f59e0b') + '; margin-left: -5px; margin-top: -6px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));"></div>',
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    });
+                    const headMarker = L.marker([ann.startLat, ann.startLng], {
+                        icon: arrowIcon,
+                        interactive: true
+                    });
+                    headMarker.on('click', () => this.openAnnotationModal(ann.id));
+                    this.layers.annotationsGroup.addLayer(headMarker);
+
+                    const labelIcon = L.divIcon({
+                        className: 'cad-arrow-label-marker',
+                        html: '<div style="background: rgba(15,23,42,0.92); border: 1.5px solid ' + (ann.color || '#f59e0b') + '; color: #f8fafc; font-size: ' + (ann.fontSize || 12) + 'px; font-weight: 700; padding: 2px 7px; border-radius: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: move; user-select: none;">' + (ann.arrowText || 'Ghi chú') + '</div>',
+                        iconSize: null,
+                        iconAnchor: [0, 10]
+                    });
+                    const textMarker = L.marker([ann.endLat, ann.endLng], {
+                        icon: labelIcon,
+                        draggable: true,
+                        zIndexOffset: 3200
+                    });
+                    textMarker.on('drag', (e) => {
+                        const pos = e.target.getLatLng();
+                        ann.endLat = pos.lat;
+                        ann.endLng = pos.lng;
+                        polyline.setLatLngs([
+                            [ann.startLat, ann.startLng],
+                            [ann.endLat, ann.endLng]
+                        ]);
+                    });
+                    textMarker.on('dragend', () => {
+                        this.saveAnnotations();
+                        this.renderAnnotations();
+                    });
+                    textMarker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        this.openAnnotationModal(ann.id);
+                    });
+                    this.layers.annotationsGroup.addLayer(textMarker);
+                    break;
+                }
+
+                case 'north_arrow': {
+                    const compassHtml = '<div style="width: 44px; height: 44px; background: rgba(15,23,42,0.9); border: 2px solid ' + (ann.color || '#38bdf8') + '; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.6); cursor: move; user-select: none;">' +
+                        '<span style="font-size: 11px; font-weight: 900; color: #f43f5e; line-height: 1; margin-top: -2px;">▲</span>' +
+                        '<span style="font-size: 11px; font-weight: 900; color: #38bdf8; line-height: 1; margin-top: 1px;">N</span>' +
+                        '</div>';
+                    const compassIcon = L.divIcon({
+                        className: 'cad-north-arrow-marker',
+                        html: compassHtml,
+                        iconSize: [44, 44],
+                        iconAnchor: [22, 22]
+                    });
+                    const marker = L.marker([ann.lat, ann.lng], {
+                        icon: compassIcon,
+                        draggable: true,
+                        zIndexOffset: 3200
+                    });
+                    marker.on('dragend', (e) => {
+                        const pos = e.target.getLatLng();
+                        ann.lat = pos.lat;
+                        ann.lng = pos.lng;
+                        this.saveAnnotations();
+                    });
+                    marker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        this.openAnnotationModal(ann.id);
+                    });
+                    this.layers.annotationsGroup.addLayer(marker);
+                    break;
+                }
+
+                case 'rect': {
+                    if (ann.corners && ann.corners.length >= 4) {
+                        const poly = L.polygon(ann.corners, {
+                            color: ann.color || '#ec4899',
+                            weight: 2,
+                            fillColor: ann.color || '#ec4899',
+                            fillOpacity: 0.25,
+                            interactive: true
+                        });
+                        poly.on('click', () => this.openAnnotationModal(ann.id));
+                        this.layers.annotationsGroup.addLayer(poly);
+                    }
+
+                    const rectLabelHtml = '<div style="background: rgba(15,23,42,0.85); border: 1px solid ' + (ann.color || '#ec4899') + '; color: #fce7f3; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-align: center; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: move;">' +
+                        '<div>' + (ann.rectName || 'Khối nhà') + '</div>' +
+                        '<div style="color: #f472b6; font-size: 9.5px;">' + ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)</div>' +
+                        '</div>';
+                    const labelIcon = L.divIcon({
+                        className: 'cad-rect-label-marker',
+                        html: rectLabelHtml,
+                        iconSize: null,
+                        iconAnchor: [40, 15]
+                    });
+                    const marker = L.marker([ann.lat, ann.lng], {
+                        icon: labelIcon,
+                        draggable: true,
+                        zIndexOffset: 3200
+                    });
+                    marker.on('dragend', (e) => {
+                        const pos = e.target.getLatLng();
+                        const dLat = pos.lat - ann.lat;
+                        const dLng = pos.lng - ann.lng;
+                        ann.lat = pos.lat;
+                        ann.lng = pos.lng;
+                        if (ann.corners) {
+                            ann.corners = ann.corners.map(c => [c[0] + dLat, c[1] + dLng]);
+                        }
+                        this.saveAnnotations();
+                        this.renderAnnotations();
+                    });
+                    marker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        this.openAnnotationModal(ann.id);
+                    });
+                    this.layers.annotationsGroup.addLayer(marker);
+                    break;
+                }
+
+                case 'circle': {
+                    const circ = L.circle([ann.lat, ann.lng], {
+                        radius: ann.radiusM || 10,
+                        color: ann.color || '#10b981',
+                        weight: 2,
+                        dashArray: '5,5',
+                        fillColor: ann.color || '#10b981',
+                        fillOpacity: 0.15,
+                        interactive: true
+                    });
+                    circ.on('click', () => this.openAnnotationModal(ann.id));
+                    this.layers.annotationsGroup.addLayer(circ);
+
+                    const circLabelHtml = '<div style="background: rgba(15,23,42,0.85); border: 1px solid ' + (ann.color || '#10b981') + '; color: #a7f3d0; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-align: center; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: move;">' +
+                        '<div>⭕ ' + (ann.circleName || 'Vùng bảo vệ') + '</div>' +
+                        '<div style="color: #6ee7b7; font-size: 9px;">R = ' + ann.radiusM + 'm</div>' +
+                        '</div>';
+                    const labelIcon = L.divIcon({
+                        className: 'cad-circle-label-marker',
+                        html: circLabelHtml,
+                        iconSize: null,
+                        iconAnchor: [35, 12]
+                    });
+                    const marker = L.marker([ann.lat, ann.lng], {
+                        icon: labelIcon,
+                        draggable: true,
+                        zIndexOffset: 3200
+                    });
+                    marker.on('dragend', (e) => {
+                        const pos = e.target.getLatLng();
+                        ann.lat = pos.lat;
+                        ann.lng = pos.lng;
+                        this.saveAnnotations();
+                        this.renderAnnotations();
+                    });
+                    marker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        this.openAnnotationModal(ann.id);
+                    });
+                    this.layers.annotationsGroup.addLayer(marker);
+                    break;
+                }
+
+                case 'stamp': {
+                    const stampHtml = '<div style="background: rgba(15,23,42,0.94); border: 2px solid ' + (ann.color || '#38bdf8') + '; border-radius: 6px; padding: 5px 8px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 4px 14px rgba(0,0,0,0.6); min-width: 140px; cursor: move; user-select: none; text-align: left;">' +
+                        '<div style="font-weight: 800; color: #38bdf8; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 3px; margin-bottom: 4px; display: flex; justify-content: space-between; font-size: 11px;">' +
+                        '<span>TỜ: <b style="color: #fff;">' + (ann.sheetNo || '01') + '</b></span>' +
+                        '<span>THỬA: <b style="color: #fff;">' + (ann.parcelNo || '01') + '</b></span>' +
+                        '</div>' +
+                        '<div style="font-size: 10px; color: #cbd5e1; line-height: 1.4;">' +
+                        '<div>📐 DT: <b style="color: #4ade80;">' + (ann.area || '--') + '</b></div>' +
+                        '<div>👤 Chủ: <b style="color: #f1f5f9;">' + (ann.owner || '--') + '</b></div>' +
+                        '<div>🏷️ Loại: <b style="color: #fbbf24;">' + (ann.landType || '--') + '</b></div>' +
+                        '</div>' +
+                        '</div>';
+                    const stampIcon = L.divIcon({
+                        className: 'cad-parcel-stamp-marker',
+                        html: stampHtml,
+                        iconSize: null,
+                        iconAnchor: [70, 30]
+                    });
+                    const marker = L.marker([ann.lat, ann.lng], {
+                        icon: stampIcon,
+                        draggable: true,
+                        zIndexOffset: 3200
+                    });
+                    marker.on('dragend', (e) => {
+                        const pos = e.target.getLatLng();
+                        ann.lat = pos.lat;
+                        ann.lng = pos.lng;
+                        this.saveAnnotations();
+                    });
+                    marker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        this.openAnnotationModal(ann.id);
+                    });
+                    this.layers.annotationsGroup.addLayer(marker);
+                    break;
+                }
+
+                case 'text': {
+                    const textHtml = '<div style="background: ' + (ann.bgColor || 'rgba(15, 23, 42, 0.88)') + '; border: 1.5px solid ' + (ann.borderColor || ann.color || '#38bdf8') + '; border-radius: 4px; padding: 2px 7px; color: ' + (ann.color || '#f8fafc') + '; font-size: ' + (ann.fontSize || 12) + 'px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: move; user-select: none;">' +
+                        (ann.text || 'Ghi chú') +
+                        '</div>';
+                    const textIcon = L.divIcon({
+                        className: 'cad-custom-text-marker',
+                        html: textHtml,
+                        iconSize: null,
+                        iconAnchor: [0, 10]
+                    });
+                    const marker = L.marker([ann.lat, ann.lng], {
+                        icon: textIcon,
+                        draggable: true,
+                        zIndexOffset: 3200
+                    });
+                    marker.on('dragend', (e) => {
+                        const pos = e.target.getLatLng();
+                        ann.lat = pos.lat;
+                        ann.lng = pos.lng;
+                        this.saveAnnotations();
+                    });
+                    marker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        this.openAnnotationModal(ann.id);
+                    });
+                    this.layers.annotationsGroup.addLayer(marker);
+                    break;
+                }
+            }
+        });
+    },
+
+    saveAnnotations() {
+        try {
+            const proj = AppState.currentProject || 'default';
+            const key = 'vn2k_cad_annotations_' + proj;
+            localStorage.setItem(key, JSON.stringify(this.annotations || []));
+        } catch (e) {
+            console.warn("Lỗi lưu annotations:", e);
+        }
+    },
+
+    loadAnnotations() {
+        try {
+            const proj = AppState.currentProject || 'default';
+            const key = 'vn2k_cad_annotations_' + proj;
+            const raw = localStorage.getItem(key);
+            if (raw) {
+                this.annotations = JSON.parse(raw) || [];
+            } else {
+                this.annotations = [];
+            }
+        } catch (e) {
+            console.warn("Lỗi đọc annotations:", e);
+            this.annotations = [];
+        }
+        this.renderAnnotations();
+    },
+
+    openAnnotationModal(annId) {
+        const ann = (this.annotations || []).find(a => a.id === annId);
+        if (!ann) return;
+
+        const modal = document.getElementById('modalCadEditAnnotation');
+        if (!modal) return;
+
+        document.getElementById('txtCadEditAnnId').value = ann.id;
+        document.getElementById('txtCadEditAnnType').value = ann.type;
+        document.getElementById('lblCadEditAnnColorHex').innerText = ann.color || '#f59e0b';
+        document.getElementById('txtCadEditAnnColor').value = ann.color || '#f59e0b';
+
+        const grpText = document.getElementById('grpCadEditAnnText');
+        const grpStamp = document.getElementById('grpCadEditAnnStamp');
+        const grpRect = document.getElementById('grpCadEditAnnRect');
+        const grpCircle = document.getElementById('grpCadEditAnnCircle');
+        const grpFont = document.getElementById('grpCadEditAnnFontSize');
+
+        if (grpText) grpText.style.display = 'none';
+        if (grpStamp) grpStamp.style.display = 'none';
+        if (grpRect) grpRect.style.display = 'none';
+        if (grpCircle) grpCircle.style.display = 'none';
+        if (grpFont) grpFont.style.display = 'none';
+
+        const titleEl = document.getElementById('lblCadEditAnnTitle');
+
+        switch (ann.type) {
+            case 'arrow':
+                if (titleEl) titleEl.innerText = '🏹 Sửa Mũi Tên Chỉ Dẫn';
+                if (grpText) grpText.style.display = 'block';
+                if (grpFont) grpFont.style.display = 'block';
+                document.getElementById('txtCadEditAnnText').value = ann.arrowText || '';
+                document.getElementById('txtCadEditAnnFontSize').value = ann.fontSize || 12;
+                break;
+
+            case 'text':
+                if (titleEl) titleEl.innerText = '🔤 Sửa Chữ Ghi Chú';
+                if (grpText) grpText.style.display = 'block';
+                if (grpFont) grpFont.style.display = 'block';
+                document.getElementById('txtCadEditAnnText').value = ann.text || '';
+                document.getElementById('txtCadEditAnnFontSize').value = ann.fontSize || 12;
+                break;
+
+            case 'stamp':
+                if (titleEl) titleEl.innerText = '🏷️ Sửa Tem Nhãn Thửa Đất';
+                if (grpStamp) grpStamp.style.display = 'flex';
+                document.getElementById('txtCadEditAnnSheet').value = ann.sheetNo || '';
+                document.getElementById('txtCadEditAnnParcel').value = ann.parcelNo || '';
+                document.getElementById('txtCadEditAnnArea').value = ann.area || '';
+                document.getElementById('txtCadEditAnnLandType').value = ann.landType || '';
+                document.getElementById('txtCadEditAnnOwner').value = ann.owner || '';
+                break;
+
+            case 'rect':
+                if (titleEl) titleEl.innerText = '🏠 Sửa Khối Công Trình / Nhà';
+                if (grpRect) grpRect.style.display = 'flex';
+                document.getElementById('txtCadEditAnnRectName').value = ann.rectName || '';
+                document.getElementById('txtCadEditAnnWidth').value = ann.widthM || '';
+                document.getElementById('txtCadEditAnnLength').value = ann.lengthM || '';
+                break;
+
+            case 'circle':
+                if (titleEl) titleEl.innerText = '⭕ Sửa Vùng Đệm / Bán Kính';
+                if (grpCircle) grpCircle.style.display = 'flex';
+                document.getElementById('txtCadEditAnnCircleName').value = ann.circleName || '';
+                document.getElementById('txtCadEditAnnRadius').value = ann.radiusM || '';
+                break;
+
+            case 'north_arrow':
+                if (titleEl) titleEl.innerText = '🧭 La Bàn Hướng Bắc';
+                break;
+        }
+
+        modal.classList.add('show');
+    },
+
+    closeAnnotationModal() {
+        const modal = document.getElementById('modalCadEditAnnotation');
+        if (modal) modal.classList.remove('show');
+    },
+
+    saveAnnotationEdit() {
+        const id = document.getElementById('txtCadEditAnnId').value;
+        const ann = (this.annotations || []).find(a => a.id === id);
+        if (!ann) return;
+
+        ann.color = document.getElementById('txtCadEditAnnColor').value;
+
+        switch (ann.type) {
+            case 'arrow':
+                ann.arrowText = document.getElementById('txtCadEditAnnText').value.trim() || 'Ghi chú';
+                ann.fontSize = parseInt(document.getElementById('txtCadEditAnnFontSize').value, 10) || 12;
+                break;
+
+            case 'text':
+                ann.text = document.getElementById('txtCadEditAnnText').value.trim() || 'Ghi chú';
+                ann.fontSize = parseInt(document.getElementById('txtCadEditAnnFontSize').value, 10) || 12;
+                break;
+
+            case 'stamp':
+                ann.sheetNo = document.getElementById('txtCadEditAnnSheet').value.trim();
+                ann.parcelNo = document.getElementById('txtCadEditAnnParcel').value.trim();
+                ann.area = document.getElementById('txtCadEditAnnArea').value.trim();
+                ann.landType = document.getElementById('txtCadEditAnnLandType').value.trim();
+                ann.owner = document.getElementById('txtCadEditAnnOwner').value.trim();
+                break;
+
+            case 'rect': {
+                ann.rectName = document.getElementById('txtCadEditAnnRectName').value.trim() || 'Khối nhà';
+                const w = parseFloat(document.getElementById('txtCadEditAnnWidth').value) || 5;
+                const l = parseFloat(document.getElementById('txtCadEditAnnLength').value) || 10;
+                ann.widthM = w;
+                ann.lengthM = l;
+                ann.rectArea = parseFloat((w * l).toFixed(2));
+
+                const vnCenter = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                const minX = vnCenter.X - l / 2;
+                const minY = vnCenter.Y - w / 2;
+                const maxX = minX + l;
+                const maxY = minY + w;
+
+                const c1 = convertVn2kToWgs(maxX, minY, AppState.kttVal, AppState.scaleFactor);
+                const c2 = convertVn2kToWgs(maxX, maxY, AppState.kttVal, AppState.scaleFactor);
+                const c3 = convertVn2kToWgs(minX, maxY, AppState.kttVal, AppState.scaleFactor);
+                const c4 = convertVn2kToWgs(minX, minY, AppState.kttVal, AppState.scaleFactor);
+                ann.corners = [
+                    [c1.lat, c1.lng],
+                    [c2.lat, c2.lng],
+                    [c3.lat, c3.lng],
+                    [c4.lat, c4.lng]
+                ];
+                break;
+            }
+
+            case 'circle':
+                ann.circleName = document.getElementById('txtCadEditAnnCircleName').value.trim() || 'Vùng bảo vệ';
+                ann.radiusM = parseFloat(document.getElementById('txtCadEditAnnRadius').value) || 10;
+                break;
+        }
+
+        this.saveAnnotations();
+        this.renderAnnotations();
+        this.closeAnnotationModal();
+        showToast('✓ Đã cập nhật chú thích thành công!');
+    },
+
+    deleteCurrentEditAnnotation() {
+        const id = document.getElementById('txtCadEditAnnId').value;
+        if (!id) return;
+        this.deleteAnnotation(id);
+        this.closeAnnotationModal();
+    },
+
+    deleteAnnotation(id) {
+        const idx = (this.annotations || []).findIndex(a => a.id === id);
+        if (idx !== -1) {
+            this.annotations.splice(idx, 1);
+            this.saveAnnotations();
+            this.renderAnnotations();
+            showToast('✓ Đã xóa chú thích');
+        }
+    },
+
+    clearAnnotations() {
+        if (!this.annotations || this.annotations.length === 0) {
+            showToast('⚠️ Không có chú thích hoặc hình khối nào để xóa!');
+            return;
+        }
+        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ ' + this.annotations.length + ' chú thích & hình khối trên bản vẽ?')) {
+            this.annotations = [];
+            this.saveAnnotations();
+            this.renderAnnotations();
+            showToast('✓ Đã xóa toàn bộ chú thích');
+        }
+    },
+
+    toggleAnnotationsVisible() {
+        this.showAnnotations = !this.showAnnotations;
+        const btn = document.getElementById('btnCadMarkupToggle');
+        if (btn) {
+            btn.innerHTML = this.showAnnotations 
+                ? '👁️ Ẩn/Hiện (<span id="cadMarkupCount">' + this.annotations.length + '</span>)'
+                : '🙈 Đang ẩn (<span id="cadMarkupCount">' + this.annotations.length + '</span>)';
+            btn.style.color = this.showAnnotations ? '#94a3b8' : '#f59e0b';
+        }
+        this.renderAnnotations();
+        showToast(this.showAnnotations ? '✓ Đang hiển thị chú thích & hình khối' : 'Đã ẩn chú thích & hình khối');
     },
 
     calculateAreaAndPerimeter(customPts = null, customMode = null) {
@@ -10894,7 +11712,11 @@ const appCadTool = {
         dxf += "0\nENDTAB\n";
 
         // 3. Layer table chuẩn kỹ thuật địa chính
-        dxf += "0\nTABLE\n2\nLAYER\n70\n14\n";
+        dxf += "0\nTABLE\n2\nLAYER\n70\n18\n";
+        dxf += "0\nLAYER\n2\nCAD_MUITEN\n70\n0\n62\n2\n6\nCONTINUOUS\n370\n25\n";
+        dxf += "0\nLAYER\n2\nCAD_TEXT\n70\n0\n62\n7\n6\nCONTINUOUS\n370\n25\n";
+        dxf += "0\nLAYER\n2\nCAD_HINHKHOI\n70\n0\n62\n6\n6\nCONTINUOUS\n370\n30\n";
+        dxf += "0\nLAYER\n2\nCAD_TEMNHAN\n70\n0\n62\n4\n6\nCONTINUOUS\n370\n25\n";
         dxf += "0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n";
         dxf += "0\nLAYER\n2\nKHUNG_NGOAI\n70\n0\n62\n7\n6\nCONTINUOUS\n370\n15\n"; // Mảnh 0.15mm
         dxf += "0\nLAYER\n2\nKHUNG_TRONG\n70\n0\n62\n7\n6\nCONTINUOUS\n370\n50\n"; // Đậm 0.50mm
@@ -11071,6 +11893,113 @@ const appCadTool = {
                 }
             }
         });
+
+        // === E. CÁC ĐỐI TƯỢNG CHÚ THÍCH & HÌNH KHỐI (MINICAD ANNOTATIONS) ===
+        if (this.annotations && this.annotations.length > 0) {
+            this.annotations.forEach(ann => {
+                switch (ann.type) {
+                    case 'arrow': {
+                        const vnStart = convertWgsToVn2k(ann.startLat, ann.startLng, AppState.kttVal, AppState.scaleFactor);
+                        const vnEnd = convertWgsToVn2k(ann.endLat, ann.endLng, AppState.kttVal, AppState.scaleFactor);
+                        const x1 = vnStart.Y, y1 = vnStart.X;
+                        const x2 = vnEnd.Y, y2 = vnEnd.X;
+
+                        dxf += "0\nLINE\n8\nCAD_MUITEN\n10\n" + x1.toFixed(3) + "\n20\n" + y1.toFixed(3) + "\n30\n0.0\n11\n" + x2.toFixed(3) + "\n21\n" + y2.toFixed(3) + "\n31\n0.0\n";
+
+                        const dx = x1 - x2, dy = y1 - y2;
+                        const len = Math.hypot(dx, dy) || 1;
+                        const ux = dx / len, uy = dy / len;
+                        const aLen = 2.5 * S;
+                        const aWid = 1.0 * S;
+                        const ax = x1 - ux * aLen, ay = y1 - uy * aLen;
+                        const px1 = ax - uy * aWid, py1 = ay + ux * aWid;
+                        const px2 = ax + uy * aWid, py2 = ay - ux * aWid;
+
+                        dxf += "0\nSOLID\n8\nCAD_MUITEN\n10\n" + x1.toFixed(3) + "\n20\n" + y1.toFixed(3) + "\n30\n0.0\n11\n" + px1.toFixed(3) + "\n21\n" + py1.toFixed(3) + "\n31\n0.0\n12\n" + px2.toFixed(3) + "\n21\n" + py2.toFixed(3) + "\n31\n0.0\n13\n" + x1.toFixed(3) + "\n23\n" + y1.toFixed(3) + "\n33\n0.0\n";
+
+                        const textStr = this.toCadAscii(ann.arrowText || 'Ghi chu');
+                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (x2 + 1.2 * S).toFixed(3) + "\n20\n" + (y2 + 0.8 * S).toFixed(3) + "\n30\n0.0\n40\n" + (((ann.fontSize || 12) * 0.22 * S).toFixed(4)) + "\n1\n" + textStr + "\n7\nVN_ARIAL\n";
+                        break;
+                    }
+
+                    case 'north_arrow': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cX = vn.Y, cY = vn.X;
+                        const nR = 4.0 * S;
+                        const nH = 12.0 * S;
+                        dxf += "0\nCIRCLE\n8\nHUONG_BAC\n10\n" + cX.toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + nR.toFixed(4) + "\n";
+                        dxf += "0\nLINE\n8\nHUONG_BAC\n10\n" + cX.toFixed(3) + "\n20\n" + (cY - nR).toFixed(3) + "\n30\n0.0\n11\n" + cX.toFixed(3) + "\n21\n" + (cY + nH).toFixed(3) + "\n31\n0.0\n";
+                        dxf += "0\nLINE\n8\nHUONG_BAC\n10\n" + (cX - nR * 0.7).toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n11\n" + cX.toFixed(3) + "\n21\n" + (cY + nH).toFixed(3) + "\n31\n0.0\n";
+                        dxf += "0\nLINE\n8\nHUONG_BAC\n10\n" + (cX + nR * 0.7).toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n11\n" + cX.toFixed(3) + "\n21\n" + (cY + nH).toFixed(3) + "\n31\n0.0\n";
+                        dxf += "0\nTEXT\n8\nHUONG_BAC\n10\n" + (cX - 1.0 * S).toFixed(3) + "\n20\n" + (cY + nH + 1.2 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((2.8 * S).toFixed(4)) + "\n1\nB\n7\nVN_ARIAL\n";
+                        break;
+                    }
+
+                    case 'rect': {
+                        if (ann.corners && ann.corners.length >= 4) {
+                            const vnPts = ann.corners.map(c => convertWgsToVn2k(c[0], c[1], AppState.kttVal, AppState.scaleFactor));
+                            dxf += "0\nPOLYLINE\n8\nCAD_HINHKHOI\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n";
+                            vnPts.forEach(p => {
+                                dxf += "0\nVERTEX\n8\nCAD_HINHKHOI\n10\n" + p.Y.toFixed(3) + "\n20\n" + p.X.toFixed(3) + "\n30\n0.0\n";
+                            });
+                            dxf += "0\nSEQEND\n8\nCAD_HINHKHOI\n";
+
+                            const vnCenter = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                            const nameStr = this.toCadAscii(ann.rectName || 'Khoi nha');
+                            const dimStr = ann.widthM + "x" + ann.lengthM + "m (" + ann.rectArea + "m2)";
+                            dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\n20\n" + (vnCenter.X + 1 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((2.0 * S).toFixed(4)) + "\n1\n" + nameStr + "\n7\nVN_ARIAL\n";
+                            dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\n20\n" + (vnCenter.X - 2 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.6 * S).toFixed(4)) + "\n1\n" + dimStr + "\n7\nVN_ARIAL\n";
+                        }
+                        break;
+                    }
+
+                    case 'circle': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cX = vn.Y, cY = vn.X;
+                        const r = ann.radiusM || 10;
+                        dxf += "0\nCIRCLE\n8\nCAD_HINHKHOI\n10\n" + cX.toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + r.toFixed(4) + "\n";
+                        const nameStr = this.toCadAscii(ann.circleName || 'Vung bao ve');
+                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - 6 * S).toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + ((1.8 * S).toFixed(4)) + "\n1\n" + nameStr + " (R=" + r + "m)\n7\nVN_ARIAL\n";
+                        break;
+                    }
+
+                    case 'stamp': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cX = vn.Y, cY = vn.X;
+                        const stampW = 24.0 * S;
+                        const stampH = 14.0 * S;
+                        dxf += "0\nPOLYLINE\n8\nCAD_TEMNHAN\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n";
+                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX - stampW / 2).toFixed(3) + "\n20\n" + (cY - stampH / 2).toFixed(3) + "\n30\n0.0\n";
+                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX + stampW / 2).toFixed(3) + "\n20\n" + (cY - stampH / 2).toFixed(3) + "\n30\n0.0\n";
+                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX + stampW / 2).toFixed(3) + "\n20\n" + (cY + stampH / 2).toFixed(3) + "\n30\n0.0\n";
+                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX - stampW / 2).toFixed(3) + "\n20\n" + (cY + stampH / 2).toFixed(3) + "\n30\n0.0\n";
+                        dxf += "0\nSEQEND\n8\nCAD_TEMNHAN\n";
+
+                        dxf += "0\nLINE\n8\nCAD_TEMNHAN\n10\n" + (cX - stampW / 2).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\n30\n0.0\n11\n" + (cX + stampW / 2).toFixed(3) + "\n21\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\n31\n0.0\n";
+
+                        const h1 = "To: " + (ann.sheetNo || '01') + " - Thua: " + (ann.parcelNo || '01');
+                        const h2 = "DT: " + this.toCadAscii(ann.area || '--');
+                        const h3 = "Chu: " + this.toCadAscii(ann.owner || '--');
+                        const h4 = "Loai: " + this.toCadAscii(ann.landType || '--');
+
+                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 3.0 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.8 * S).toFixed(4)) + "\n1\n" + h1 + "\n7\nVN_ARIAL\n";
+                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 6.5 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.5 * S).toFixed(4)) + "\n1\n" + h2 + "\n7\nVN_ARIAL\n";
+                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 9.5 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.5 * S).toFixed(4)) + "\n1\n" + h3 + "\n7\nVN_ARIAL\n";
+                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 12.5 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.5 * S).toFixed(4)) + "\n1\n" + h4 + "\n7\nVN_ARIAL\n";
+                        break;
+                    }
+
+                    case 'text': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cX = vn.Y, cY = vn.X;
+                        const txt = this.toCadAscii(ann.text || 'Ghi chu');
+                        const fSize = (ann.fontSize || 12) * 0.22 * S;
+                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + cX.toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + fSize.toFixed(4) + "\n1\n" + txt + "\n7\nVN_ARIAL\n";
+                        break;
+                    }
+                }
+            });
+        }
 
         // === E. BẢNG BIỂU & KHUNG TÊN CỘT BÊN PHẢI (RIGHT PANEL - CHUẨN TCVN 7285) ===
         const colWPanel = L.W_panel;
@@ -11487,6 +12416,162 @@ const appCadTool = {
             }
         });
 
+        // 7.5. Vẽ các Chú Thích & Hình Khối Kỹ Thuật (MiniCAD Annotations)
+        if (this.annotations && this.annotations.length > 0) {
+            this.annotations.forEach(ann => {
+                switch (ann.type) {
+                    case 'arrow': {
+                        const vnStart = convertWgsToVn2k(ann.startLat, ann.startLng, AppState.kttVal, AppState.scaleFactor);
+                        const vnEnd = convertWgsToVn2k(ann.endLat, ann.endLng, AppState.kttVal, AppState.scaleFactor);
+                        const x1 = toCvX(vnStart.Y), y1 = toCvY(vnStart.X);
+                        const x2 = toCvX(vnEnd.Y), y2 = toCvY(vnEnd.X);
+
+                        ctx.strokeStyle = ann.color || '#f59e0b';
+                        ctx.lineWidth = Math.round(0.35 * pxPerMm);
+                        ctx.beginPath();
+                        ctx.moveTo(x2, y2);
+                        ctx.lineTo(x1, y1);
+                        ctx.stroke();
+
+                        const dx = x1 - x2, dy = y1 - y2;
+                        const len = Math.hypot(dx, dy) || 1;
+                        const ux = dx / len, uy = dy / len;
+                        const aLen = Math.round(2.8 * pxPerMm);
+                        const aWid = Math.round(1.2 * pxPerMm);
+                        const ax = x1 - ux * aLen, ay = y1 - uy * aLen;
+
+                        ctx.fillStyle = ann.color || '#f59e0b';
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(ax - uy * aWid, ay + ux * aWid);
+                        ctx.lineTo(ax + uy * aWid, ay - ux * aWid);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.font = 'bold ' + Math.round(2.2 * pxPerMm) + 'px Arial';
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText(ann.arrowText || 'Ghi chú', x2 + Math.round(1.5 * pxPerMm), y2 - Math.round(1.0 * pxPerMm));
+                        break;
+                    }
+
+                    case 'north_arrow': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toCvX(vn.Y), cy = toCvY(vn.X);
+                        const r = Math.round(4.0 * pxPerMm);
+                        ctx.strokeStyle = ann.color || '#38bdf8';
+                        ctx.lineWidth = Math.round(0.35 * pxPerMm);
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#e11d48';
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy - Math.round(7 * pxPerMm));
+                        ctx.lineTo(cx - Math.round(2 * pxPerMm), cy);
+                        ctx.lineTo(cx + Math.round(2 * pxPerMm), cy);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.font = 'bold ' + Math.round(2.6 * pxPerMm) + 'px Arial';
+                        ctx.fillStyle = '#0284c7';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('N', cx, cy - Math.round(8 * pxPerMm));
+                        ctx.textAlign = 'left';
+                        break;
+                    }
+
+                    case 'rect': {
+                        if (ann.corners && ann.corners.length >= 4) {
+                            const cvPts = ann.corners.map(c => {
+                                const vn = convertWgsToVn2k(c[0], c[1], AppState.kttVal, AppState.scaleFactor);
+                                return { x: toCvX(vn.Y), y: toCvY(vn.X) };
+                            });
+                            ctx.beginPath();
+                            ctx.moveTo(cvPts[0].x, cvPts[0].y);
+                            for (let i = 1; i < cvPts.length; i++) ctx.lineTo(cvPts[i].x, cvPts[i].y);
+                            ctx.closePath();
+                            ctx.fillStyle = 'rgba(236, 72, 153, 0.15)';
+                            ctx.fill();
+                            ctx.strokeStyle = ann.color || '#ec4899';
+                            ctx.lineWidth = Math.round(0.4 * pxPerMm);
+                            ctx.stroke();
+
+                            const vnC = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                            const cx = toCvX(vnC.Y), cy = toCvY(vnC.X);
+                            ctx.font = 'bold ' + Math.round(2.0 * pxPerMm) + 'px Arial';
+                            ctx.fillStyle = '#831843';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(ann.rectName || 'Khối nhà', cx, cy - Math.round(1 * pxPerMm));
+                            ctx.font = Math.round(1.6 * pxPerMm) + 'px Arial';
+                            ctx.fillText(ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)', cx, cy + Math.round(2 * pxPerMm));
+                            ctx.textAlign = 'left';
+                        }
+                        break;
+                    }
+
+                    case 'circle': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toCvX(vn.Y), cy = toCvY(vn.X);
+                        const r_px = toCvDist(ann.radiusM || 10);
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, r_px, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.1)';
+                        ctx.fill();
+                        ctx.strokeStyle = ann.color || '#10b981';
+                        ctx.lineWidth = Math.round(0.35 * pxPerMm);
+                        ctx.stroke();
+
+                        ctx.font = 'bold ' + Math.round(1.8 * pxPerMm) + 'px Arial';
+                        ctx.fillStyle = '#065f46';
+                        ctx.textAlign = 'center';
+                        ctx.fillText((ann.circleName || 'Vùng bảo vệ') + ' (R=' + ann.radiusM + 'm)', cx, cy);
+                        ctx.textAlign = 'left';
+                        break;
+                    }
+
+                    case 'stamp': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toCvX(vn.Y), cy = toCvY(vn.X);
+                        const stW = Math.round(28 * pxPerMm);
+                        const stH = Math.round(18 * pxPerMm);
+                        const left = cx - stW / 2;
+                        const top = cy - stH / 2;
+
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                        ctx.fillRect(left, top, stW, stH);
+                        ctx.strokeStyle = ann.color || '#0284c7';
+                        ctx.lineWidth = Math.round(0.4 * pxPerMm);
+                        ctx.strokeRect(left, top, stW, stH);
+
+                        ctx.font = 'bold ' + Math.round(2.0 * pxPerMm) + 'px Arial';
+                        ctx.fillStyle = '#0369a1';
+                        ctx.fillText('TỜ: ' + (ann.sheetNo || '01') + '  -  THỬA: ' + (ann.parcelNo || '01'), left + Math.round(1.5 * pxPerMm), top + Math.round(3.5 * pxPerMm));
+                        ctx.strokeStyle = '#cbd5e1';
+                        ctx.beginPath();
+                        ctx.moveTo(left, top + Math.round(5 * pxPerMm));
+                        ctx.lineTo(left + stW, top + Math.round(5 * pxPerMm));
+                        ctx.stroke();
+
+                        ctx.font = Math.round(1.7 * pxPerMm) + 'px Arial';
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText('DT: ' + (ann.area || '--'), left + Math.round(1.5 * pxPerMm), top + Math.round(8.5 * pxPerMm));
+                        ctx.fillText('Chủ: ' + (ann.owner || '--'), left + Math.round(1.5 * pxPerMm), top + Math.round(12.0 * pxPerMm));
+                        ctx.fillText('Loại: ' + (ann.landType || '--'), left + Math.round(1.5 * pxPerMm), top + Math.round(15.5 * pxPerMm));
+                        break;
+                    }
+
+                    case 'text': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toCvX(vn.Y), cy = toCvY(vn.X);
+                        ctx.font = 'bold ' + Math.round(((ann.fontSize || 12) / 4.5) * pxPerMm) + 'px Arial';
+                        ctx.fillStyle = ann.color || '#0f172a';
+                        ctx.fillText(ann.text || 'Ghi chú', cx, cy);
+                        break;
+                    }
+                }
+            });
+        }
+
         // 8. Bảng Kê Bên Phải & Khung Tên TCVN
         const pX = toCvX(L.Xpanel0);
         const pW = toCvDist(L.W_panel);
@@ -11778,6 +12863,73 @@ const appCadTool = {
                 svgContent += `  <text class="layer-dien-tich" x="${toSvgX(mp.y).toFixed(1)}" y="${toSvgY(mp.x).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="bold" fill="#0D47A1">${shape.name}</text>\n`;
             }
         });
+
+        // Vẽ các Chú Thích & Hình Khối Kỹ Thuật (MiniCAD Annotations) trong SVG
+        if (this.annotations && this.annotations.length > 0) {
+            this.annotations.forEach(ann => {
+                switch (ann.type) {
+                    case 'arrow': {
+                        const vnStart = convertWgsToVn2k(ann.startLat, ann.startLng, AppState.kttVal, AppState.scaleFactor);
+                        const vnEnd = convertWgsToVn2k(ann.endLat, ann.endLng, AppState.kttVal, AppState.scaleFactor);
+                        const x1 = toSvgX(vnStart.Y), y1 = toSvgY(vnStart.X);
+                        const x2 = toSvgX(vnEnd.Y), y2 = toSvgY(vnEnd.X);
+                        svgContent += '  <line x1="' + x2.toFixed(1) + '" y1="' + y2.toFixed(1) + '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '" stroke="' + (ann.color || '#f59e0b') + '" stroke-width="1.5" stroke-dasharray="3,3"/>\n';
+                        svgContent += '  <circle cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="3" fill="' + (ann.color || '#f59e0b') + '"/>\n';
+                        svgContent += '  <text x="' + (x2 + 4).toFixed(1) + '" y="' + (y2 - 3).toFixed(1) + '" font-size="' + (ann.fontSize || 11) + '" font-weight="bold" fill="#0f172a">' + (ann.arrowText || 'Ghi chú') + '</text>\n';
+                        break;
+                    }
+                    case 'north_arrow': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
+                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="16" fill="#fff" stroke="' + (ann.color || '#38bdf8') + '" stroke-width="2"/>\n';
+                        svgContent += '  <polygon points="' + cx.toFixed(1) + ',' + (cy-13).toFixed(1) + ' ' + (cx-5).toFixed(1) + ',' + cy.toFixed(1) + ' ' + (cx+5).toFixed(1) + ',' + cy.toFixed(1) + '" fill="#e11d48"/>\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+11).toFixed(1) + '" font-size="10" font-weight="bold" text-anchor="middle" fill="#0284c7">N</text>\n';
+                        break;
+                    }
+                    case 'rect': {
+                        if (ann.corners && ann.corners.length >= 4) {
+                            const pts = ann.corners.map(c => {
+                                const vn = convertWgsToVn2k(c[0], c[1], AppState.kttVal, AppState.scaleFactor);
+                                return toSvgX(vn.Y).toFixed(1) + ',' + toSvgY(vn.X).toFixed(1);
+                            }).join(' ');
+                            svgContent += '  <polygon points="' + pts + '" fill="' + (ann.color || '#ec4899') + '33" stroke="' + (ann.color || '#ec4899') + '" stroke-width="1.8"/>\n';
+                            const vnC = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                            const cx = toSvgX(vnC.Y), cy = toSvgY(vnC.X);
+                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy-4).toFixed(1) + '" font-size="10" font-weight="bold" text-anchor="middle" fill="#831843">' + (ann.rectName || 'Khối nhà') + '</text>\n';
+                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+8).toFixed(1) + '" font-size="8.5" text-anchor="middle" fill="#9d174d">' + ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)</text>\n';
+                        }
+                        break;
+                    }
+                    case 'circle': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
+                        const r_px = (ann.radiusM || 10) * sc;
+                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + r_px.toFixed(1) + '" fill="' + (ann.color || '#10b981') + '22" stroke="' + (ann.color || '#10b981') + '" stroke-width="1.5" stroke-dasharray="4,4"/>\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="9" font-weight="bold" text-anchor="middle" fill="#065f46">' + (ann.circleName || 'Vùng bảo vệ') + ' (R=' + ann.radiusM + 'm)</text>\n';
+                        break;
+                    }
+                    case 'stamp': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
+                        const stW = 100, stH = 60;
+                        const left = cx - stW / 2, top = cy - stH / 2;
+                        svgContent += '  <rect x="' + left.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + stW + '" height="' + stH + '" rx="4" fill="#ffffff" stroke="' + (ann.color || '#0284c7') + '" stroke-width="1.8"/>\n';
+                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+14).toFixed(1) + '" font-size="9.5" font-weight="bold" fill="#0369a1">TỜ: ' + (ann.sheetNo || '01') + ' - THỬA: ' + (ann.parcelNo || '01') + '</text>\n';
+                        svgContent += '  <line x1="' + left.toFixed(1) + '" y1="' + (top+18).toFixed(1) + '" x2="' + (left+stW).toFixed(1) + '" y2="' + (top+18).toFixed(1) + '" stroke="#cbd5e1" stroke-width="0.8"/>\n';
+                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+30).toFixed(1) + '" font-size="8.5" fill="#0f172a">DT: ' + (ann.area || '--') + '</text>\n';
+                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+42).toFixed(1) + '" font-size="8.5" fill="#0f172a">Chủ: ' + (ann.owner || '--') + '</text>\n';
+                        svgContent += '  <text x="' + (left+6).toFixed(1) + '" y="' + (top+54).toFixed(1) + '" font-size="8.5" fill="#0f172a">Loại: ' + (ann.landType || '--') + '</text>\n';
+                        break;
+                    }
+                    case 'text': {
+                        const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
+                        const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="' + (ann.fontSize || 12) + '" font-weight="bold" fill="' + (ann.color || '#0f172a') + '">' + (ann.text || 'Ghi chú') + '</text>\n';
+                        break;
+                    }
+                }
+            });
+        }
 
         // North Arrow
         const naXs = svgW - 70, naYs = 80;

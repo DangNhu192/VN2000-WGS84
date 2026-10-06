@@ -4751,6 +4751,36 @@
               💡 [P] Đa giác • [L] Tuyến • [S] Snap • Click cạnh để thêm đỉnh • Chuột phải đỉnh để xóa
             </div>
           </div>
+
+          <!-- Dòng 3: Ghi Chú & Hình Khối Kỹ Thuật (Nâng Cao) -->
+          <div id="cadMarkupRow" class="cad-actions-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+            <span style="font-size: 10px; font-weight: 800; color: #f59e0b; padding: 2px 6px; background: rgba(245, 158, 11, 0.15); border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">🏷️ GHI CHÚ:</span>
+            <button id="btnCadMarkupArrow" class="cad-btn" onclick="appCadTool.setMarkupMode('arrow')" title="Nét mũi tên ghi chú (Leader Arrow): Click mốc ranh rồi click điểm ghi chú">
+              🏹 Mũi tên
+            </button>
+            <button id="btnCadMarkupNorth" class="cad-btn" onclick="appCadTool.setMarkupMode('north_arrow')" title="Mũi tên chỉ hướng Bắc (North Arrow / La bàn trắc địa)">
+              🧭 Hướng Bắc
+            </button>
+            <button id="btnCadMarkupRect" class="cad-btn" onclick="appCadTool.setMarkupMode('rect')" title="Khối công trình / Nhà ở (Rectangle Box): Click 2 góc đối diện hoặc kéo">
+              🏠 Khối nhà
+            </button>
+            <button id="btnCadMarkupCircle" class="cad-btn" onclick="appCadTool.setMarkupMode('circle')" title="Vùng đệm / Bán kính bảo vệ (Circle/Buffer): Giếng khoan, trụ điện, hành lang">
+              ⭕ Bán kính
+            </button>
+            <button id="btnCadMarkupStamp" class="cad-btn" onclick="appCadTool.setMarkupMode('stamp')" title="Tem nhãn thông tin thửa đất (Land Parcel Stamp): Số tờ, số thửa, diện tích, chủ sử dụng">
+              🏷️ Tem thửa
+            </button>
+            <button id="btnCadMarkupText" class="cad-btn" onclick="appCadTool.setMarkupMode('text')" title="Văn bản ghi chú tùy biến (Text Annotation) trên bản đồ">
+              🔤 Chữ [Text]
+            </button>
+            <button id="btnCadMarkupToggle" class="cad-btn" style="background: rgba(100, 116, 139, 0.2); border-color: rgba(148, 163, 184, 0.3); color: #94a3b8;" onclick="appCadTool.toggleAnnotationsVisible()" title="Ẩn / Hiện tất cả chú thích & hình khối">
+              👁️ Ẩn/Hiện (<span id="cadMarkupCount">0</span>)
+            </button>
+            <button class="cad-btn" style="color: #f87171; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3);" onclick="appCadTool.clearAnnotations()" title="Xóa toàn bộ chú thích & hình khối">
+              🗑️ Xóa chú thích
+            </button>
+            <span id="cadMarkupStatus" style="font-size: 10px; color: #38bdf8; margin-left: 6px; font-style: italic; display: none; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);"></span>
+          </div>
         </div>
 
         <!-- Panel Thống Kê Các Khối MiniCAD Trên Bản Đồ (Hỗ trợ kéo thả di chuyển vị trí & thu nhỏ) -->
@@ -6647,7 +6677,110 @@
     </div>
   </div>
 
-  <!-- MODAL HỎI MỞ BẢN ĐỒ SAU KHI CHUYỂN ĐỔI (CHUẨN THEO ANDROID) -->
+    <!-- ================= MODAL CHỈNH SỬA CHÚ THÍCH & HÌNH KHỐI MINICAD ================= -->
+  <div id="modalCadEditAnnotation" class="modal-overlay">
+    <div class="modal-box" style="max-width: 460px;">
+      <div class="modal-title">
+        <span id="lblCadEditAnnTitle" style="color: #f59e0b;">🏷️ Chỉnh Sửa Chú Thích</span>
+        <button class="btn-modal-close" onclick="appCadTool.closeAnnotationModal()">✕</button>
+      </div>
+      <input type="hidden" id="txtCadEditAnnId">
+      <input type="hidden" id="txtCadEditAnnType">
+
+      <!-- Form trường chung & riêng theo từng loại -->
+      <div id="cadEditAnnBody" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
+        <!-- Trường dành cho Text & Arrow -->
+        <div id="grpCadEditAnnText">
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Nội dung hiển thị:</label>
+          <input type="text" id="txtCadEditAnnText" class="form-control" placeholder="Nhập ghi chú..." style="width: 100%; height: 36px;">
+        </div>
+
+        <!-- Trường dành cho Tem thửa đất (Stamp) -->
+        <div id="grpCadEditAnnStamp" style="display: none; flex-direction: column; gap: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Số tờ bản đồ:</label>
+              <input type="text" id="txtCadEditAnnSheet" class="form-control" placeholder="Ví dụ: 12" style="width: 100%; height: 34px;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Số thửa đất:</label>
+              <input type="text" id="txtCadEditAnnParcel" class="form-control" placeholder="Ví dụ: 45" style="width: 100%; height: 34px;">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Diện tích (m²):</label>
+              <input type="text" id="txtCadEditAnnArea" class="form-control" placeholder="Ví dụ: 150.8 m²" style="width: 100%; height: 34px;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Loại đất:</label>
+              <input type="text" id="txtCadEditAnnLandType" class="form-control" placeholder="Ví dụ: ONT, CLN, LUC" style="width: 100%; height: 34px;">
+            </div>
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên chủ sử dụng / Chủ đất:</label>
+            <input type="text" id="txtCadEditAnnOwner" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" style="width: 100%; height: 34px;">
+          </div>
+        </div>
+
+        <!-- Trường dành cho Khối nhà (Rect) -->
+        <div id="grpCadEditAnnRect" style="display: none; flex-direction: column; gap: 8px;">
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên khối công trình / Nhà:</label>
+            <input type="text" id="txtCadEditAnnRectName" class="form-control" placeholder="Ví dụ: Nhà cấp 4, Nhà kho..." style="width: 100%; height: 34px;">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Bề rộng (m):</label>
+              <input type="number" step="0.1" id="txtCadEditAnnWidth" class="form-control" placeholder="5.0" style="width: 100%; height: 34px;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Chiều dài (m):</label>
+              <input type="number" step="0.1" id="txtCadEditAnnLength" class="form-control" placeholder="10.0" style="width: 100%; height: 34px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Trường dành cho Circle (Vùng đệm) -->
+        <div id="grpCadEditAnnCircle" style="display: none; flex-direction: column; gap: 8px;">
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên đối tượng / Hành lang:</label>
+            <input type="text" id="txtCadEditAnnCircleName" class="form-control" placeholder="Ví dụ: Giếng khoan, Hành lang điện..." style="width: 100%; height: 34px;">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Bán kính bảo vệ (mét):</label>
+            <input type="number" step="0.5" id="txtCadEditAnnRadius" class="form-control" placeholder="10.0" style="width: 100%; height: 34px;">
+          </div>
+        </div>
+
+        <!-- Tùy chỉnh màu sắc & Cỡ chữ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Màu sắc chủ đạo:</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="color" id="txtCadEditAnnColor" oninput="document.getElementById('lblCadEditAnnColorHex').innerText = this.value" style="width: 36px; height: 34px; padding: 1px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; background: transparent;">
+              <span id="lblCadEditAnnColorHex" style="font-size: 11px; font-family: monospace; color: #94a3b8;">#f59e0b</span>
+            </div>
+          </div>
+          <div id="grpCadEditAnnFontSize">
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Cỡ chữ (px):</label>
+            <input type="number" id="txtCadEditAnnFontSize" class="form-control" value="12" min="8" max="40" style="width: 100%; height: 34px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Nút thao tác -->
+      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center;">
+        <button class="btn-sm btn-red" style="height: 36px; padding: 0 12px; font-weight: 700;" onclick="appCadTool.deleteCurrentEditAnnotation()">🗑️ Xóa</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-sm" style="height: 36px; padding: 0 14px; background: rgba(148, 163, 184, 0.2); color: #cbd5e1;" onclick="appCadTool.closeAnnotationModal()">Hủy</button>
+          <button class="btn-sm btn-green" style="height: 36px; padding: 0 18px; font-weight: 700;" onclick="appCadTool.saveAnnotationEdit()">💾 Lưu thay đổi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- MODAL HỎI MỞ BẢN ĐỒ SAU KHI CHUYỂN ĐỔI (CHUẨN THEO ANDROID) -->
   <div id="modalPromptConvertedMap" class="modal-overlay">
     <div class="modal-box" style="border-color: #0d9488;">
       <div class="modal-title" style="color: #2dd4bf;">
