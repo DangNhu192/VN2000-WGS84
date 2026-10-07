@@ -8128,16 +8128,18 @@ const appCadTool = {
         } catch (e) {}
 
         this.displaySettings = Object.assign({
-            showVertices: false,
-            showDistances: false,
+            showVertices: true,
+            showDistances: true,
             showCenterLabels: true,
             showAnnotations: true,
             showBoundaries: true
         }, saved || {});
 
-        // Đảm bảo mặc định showVertices và showDistances luôn là false nếu người dùng chưa chủ động tích chọn
-        if (!saved || typeof saved.showVertices !== 'boolean') this.displaySettings.showVertices = false;
-        if (!saved || typeof saved.showDistances !== 'boolean') this.displaySettings.showDistances = false;
+        // Mặc định hiển thị đầy đủ các thành phần tương quan bản vẽ (đỉnh, cự ly cạnh, ranh, tâm khối)
+        if (!saved || typeof saved.showVertices !== 'boolean') this.displaySettings.showVertices = true;
+        if (!saved || typeof saved.showDistances !== 'boolean') this.displaySettings.showDistances = true;
+        if (!saved || typeof saved.showBoundaries !== 'boolean') this.displaySettings.showBoundaries = true;
+        if (!saved || typeof saved.showCenterLabels !== 'boolean') this.displaySettings.showCenterLabels = true;
 
         this.showAnnotations = this.displaySettings.showAnnotations !== false;
     },
@@ -8881,6 +8883,15 @@ const appCadTool = {
         this.isActive = true;
         this.ensureLayers();
         if (!this.displaySettings) this.initDisplaySettings();
+
+        // Tự động nạp hoặc tái tạo các khối của dự án nếu danh sách khối hiện đang rỗng
+        const curProj = AppState.currentProject;
+        if (curProj && (!this.savedShapes || this.savedShapes.length === 0)) {
+            if (!this.loadShapesForProject(curProj)) {
+                this.reconstructShapesFromPoints(curProj);
+            }
+        }
+
         const bar = document.getElementById('mapCadToolbar');
         if (bar) bar.style.display = 'flex';
         const toggleBtn = document.getElementById('btnToggleCadTool');
@@ -9062,10 +9073,10 @@ const appCadTool = {
 
     _normalizeVertex(v, idx = 0, forceSyncVn2k = false) {
         if (!v) return null;
-        let lat = parseFloat(v.lat);
-        let lng = parseFloat(v.lng);
-        let x = parseFloat(v.x);
-        let y = parseFloat(v.y);
+        let lat = parseFloat(v.lat !== undefined ? v.lat : (v.Lat !== undefined ? v.Lat : v.latitude));
+        let lng = parseFloat(v.lng !== undefined ? v.lng : (v.Lng !== undefined ? v.Lng : v.longitude));
+        let x = parseFloat(v.x !== undefined ? v.x : (v.X !== undefined ? v.X : v.northing));
+        let y = parseFloat(v.y !== undefined ? v.y : (v.Y !== undefined ? v.Y : v.easting));
 
         // Phát hiện và tự đảo ngược nếu X (Bắc) và Y (Đông) bị hoán đổi
         // Tại Việt Nam: Northing X luôn > 800,000 m (8.5° - 23.5° Bắc); Easting Y luôn < 800,000 m (kinh tuyến trục 500,000 m ± 300,000 m)
@@ -9097,15 +9108,31 @@ const appCadTool = {
             } catch (e) {}
         }
 
-        return {
+        const normH = isFinite(parseFloat(v.h !== undefined ? v.h : (v.H !== undefined ? v.H : (v.z !== undefined ? v.z : 0))))
+            ? parseFloat(parseFloat(v.h !== undefined ? v.h : (v.H !== undefined ? v.H : (v.z !== undefined ? v.z : 0))).toFixed(3))
+            : 0;
+
+        const norm = {
             ...v,
             name: v.name || (`Đ${idx + 1}`),
             lat: isFinite(lat) ? parseFloat(lat.toFixed(7)) : 0,
             lng: isFinite(lng) ? parseFloat(lng.toFixed(7)) : 0,
             x: isFinite(x) ? parseFloat(x.toFixed(3)) : 0,
             y: isFinite(y) ? parseFloat(y.toFixed(3)) : 0,
-            h: isFinite(parseFloat(v.h)) ? parseFloat(parseFloat(v.h).toFixed(3)) : 0
+            h: normH
         };
+
+        // Đồng thời gán đồng bộ trực tiếp vào đối tượng gốc v
+        try {
+            v.name = norm.name;
+            v.lat = norm.lat;
+            v.lng = norm.lng;
+            v.x = norm.x;
+            v.y = norm.y;
+            v.h = norm.h;
+        } catch (e) {}
+
+        return norm;
     },
 
     applySuggestedScale(scale) {
