@@ -4422,6 +4422,100 @@
       font-size: 12px;
     }
 
+    /* CAD Realtime Status & Coordinates HUD Bar */
+    .cad-status-hud {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: auto;
+      max-width: calc(100% - 24px);
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 8px;
+      padding: 4px 10px;
+      z-index: 995;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #f1f5f9;
+      user-select: none;
+      pointer-events: auto;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .cad-status-hud .cad-hud-coords {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .cad-status-hud .cad-hud-label {
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    .cad-status-hud .cad-hud-val {
+      color: #fef08a;
+      font-weight: 600;
+    }
+    .cad-status-hud .cad-hud-divider {
+      width: 1px;
+      height: 14px;
+      background: rgba(148, 163, 184, 0.35);
+      flex-shrink: 0;
+    }
+    .cad-status-hud .cad-hud-toggles {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .cad-status-hud .cad-hud-btn {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #94a3b8;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .cad-status-hud .cad-hud-btn:hover {
+      background: rgba(51, 65, 85, 0.95);
+      color: #ffffff;
+    }
+    .cad-status-hud .cad-hud-btn.active {
+      background: rgba(2, 132, 199, 0.45);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.35);
+    }
+    .cad-status-hud .cad-hud-tips {
+      font-size: 10.5px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+    .cad-status-hud .cad-hud-tips b {
+      color: #e2e8f0;
+    }
+    @media (max-width: 640px) {
+      .cad-status-hud .cad-hud-tips {
+        display: none;
+      }
+      .cad-status-hud {
+        bottom: 8px;
+        left: 6px;
+        padding: 3px 8px;
+        font-size: 10px;
+      }
+    }
+
     /* Modal Bảng Diện Tích & Bảng Kê Tọa Độ */
     .cad-summary-grid {
       display: grid;
@@ -5559,7 +5653,7 @@
 
           <!-- TAB 2: CHỌN ĐỐI TƯỢNG (SELECT & EDIT TOOL) -->
           <div id="cadPanelSelect" class="cad-actions-row cad-collapsible-row" style="display: none;">
-            <button id="btnCadToolSelectMode" class="cad-btn active" onclick="appCadTool.setMode('select')" title="Bật chế độ con trỏ chọn đối tượng (Phím tắt: V hoặc Esc)">
+            <button id="btnCadToolSelectMode" class="cad-btn" onclick="appCadTool.setMode('select')" title="Bật chế độ con trỏ chọn đối tượng (Phím tắt: V hoặc Esc)">
               ↖️ Con trỏ Chọn [V]
             </button>
             <span id="cadSelectedObjectName" style="font-size: 11px; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.15); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(251, 191, 36, 0.3); white-space: nowrap;">
@@ -5589,6 +5683,9 @@
             </button>
             <button id="btnCadMarkupStamp" class="cad-btn" onclick="appCadTool.setMarkupMode('stamp')" title="Tem / Nhãn bản vẽ: Đóng khung thông tin thửa đất, nhãn công trình hoặc tiêu đề kỹ thuật">
               🏷️ Tem / Nhãn bản vẽ
+            </button>
+            <button id="btnCadMarkupStampConfig" class="cad-btn" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.35); color: #38bdf8;" onclick="appCadTool.openDefaultStampSettingsModal()" title="Cài đặt thông tin mẫu trước cho Tem / Nhãn bản vẽ">
+              ⚙️ Cài đặt tem
             </button>
             <button id="btnCadMarkupRect" class="cad-btn" onclick="appCadTool.setMarkupMode('rect')" title="Khối công trình / Nhà ở: Tùy biến Dài x Rộng, Góc xoay, loại công trình">
               🏠 Khối nhà linh hoạt
@@ -5710,6 +5807,25 @@
 
         <!-- Leaflet Map Canvas -->
         <div id="leaflet-map"></div>
+
+        <!-- MiniCAD Status & Coordinates HUD Bar (Chuẩn AutoCAD Status Bar) -->
+        <div id="cadStatusHud" class="cad-status-hud">
+          <div class="cad-hud-coords">
+            <span class="cad-hud-label">VN-2000:</span>
+            <span id="cadHudCoordX" class="cad-hud-val">X: --</span>
+            <span id="cadHudCoordY" class="cad-hud-val">Y: --</span>
+          </div>
+          <div class="cad-hud-divider"></div>
+          <div class="cad-hud-toggles">
+            <button type="button" id="btnCadHudSnap" class="cad-hud-btn active" onclick="appCadTool.toggleSnap()" title="Bật/Tắt Bắt điểm Osnap [F3/S]">🧲 SNAP</button>
+            <button type="button" id="btnCadHudSnapLine" class="cad-hud-btn active" onclick="appCadTool.toggleSnapLine()" title="Bắt line liền kề [B]">🔗 LINE</button>
+            <button type="button" id="btnCadHudZoomExtents" class="cad-hud-btn" onclick="appCadTool.zoomExtents()" title="Zoom toàn cảnh [Z / Chuột giữa x2]">🔍 EXTENTS</button>
+          </div>
+          <div class="cad-hud-divider"></div>
+          <div class="cad-hud-tips" id="cadHudQuickTips">
+            <span class="cad-hud-tip-text">💡 <b>Esc</b>: Hủy | <b>Space/Chuột phải</b>: Khép góc/Lưu | <b>Chuột giữa kéo</b>: Pan</span>
+          </div>
+        </div>
 
         <!-- Bottom Sheet Popup -->
         <div id="mapBottomSheet" class="map-bottom-sheet" style="display: none;">
