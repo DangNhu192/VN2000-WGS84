@@ -99,6 +99,7 @@ const appSettings = {
             AppState.savedMapView = s.mapView;
         }
         if (bool(s.cadSnapEnabled) !== null) AppState.savedCadSnap = s.cadSnapEnabled;
+        if (bool(s.cadSnapLineEnabled) !== null) AppState.savedCadSnapLine = s.cadSnapLineEnabled;
     },
 
     snapshot() {
@@ -123,6 +124,7 @@ const appSettings = {
             isGpsTracking: AppState.isGpsTracking,
             mapView,
             cadSnapEnabled: (typeof appCadTool !== 'undefined') ? appCadTool.snapEnabled !== false : AppState.savedCadSnap,
+            cadSnapLineEnabled: (typeof appCadTool !== 'undefined') ? appCadTool.snapLineEnabled !== false : (AppState.savedCadSnapLine !== false),
             updated: Date.now()
         };
     },
@@ -153,12 +155,20 @@ const appSettings = {
         const dTxt = document.getElementById('txtDistToggle');
         if (dBtn) dBtn.classList.toggle('active', AppState.showProjectDistance);
         if (dTxt) dTxt.innerText = AppState.showProjectDistance ? "Khoảng cách" : "Ẩn cự ly";
-        if (typeof appCadTool !== 'undefined' && typeof AppState.savedCadSnap === 'boolean') {
-            appCadTool.snapEnabled = AppState.savedCadSnap;
-            const sBtn = document.getElementById('btnCadSnap');
-            if (sBtn) {
-                sBtn.classList.toggle('active', appCadTool.snapEnabled);
-                sBtn.innerHTML = appCadTool.snapEnabled ? "🧲 Snap: BẬT [S]" : "🧲 Snap: TẮT [S]";
+        if (typeof appCadTool !== 'undefined') {
+            if (typeof AppState.savedCadSnap === 'boolean') {
+                appCadTool.snapEnabled = AppState.savedCadSnap;
+                const sBtn = document.getElementById('btnCadSnap');
+                if (sBtn) {
+                    sBtn.classList.toggle('active', appCadTool.snapEnabled);
+                    sBtn.innerHTML = appCadTool.snapEnabled ? "🧲 Snap: BẬT [S]" : "🧲 Snap: TẮT [S]";
+                }
+            }
+            if (typeof AppState.savedCadSnapLine === 'boolean') {
+                appCadTool.snapLineEnabled = AppState.savedCadSnapLine;
+            }
+            if (appCadTool.updateSnapLineUi) {
+                appCadTool.updateSnapLineUi();
             }
         }
     },
@@ -7826,8 +7836,10 @@ const appCadTool = {
     activeToolTab: 'draw', // 'draw' | 'select' | 'markup' | 'data' | 'layers'
     selectedItem: null, // { type: 'shape' | 'annotation', id, index, name }
     snapEnabled: true,
+    snapLineEnabled: true,
     snapThresholdPx: 24,
     adjacentSnapThresholdMeters: 0.5, // Tự động bắt đỉnh khối liền kề trong phạm vi 0.5m thực địa
+    adjacentEdgeSnapThresholdMeters: 0.5, // Tự động bắt line/cạnh khối liền kề trong phạm vi 0.5m thực địa (chống chồng lấn)
     _lastMouseLat: 0,
     _lastMouseLng: 0,
     _mouseRaf: null,
@@ -8142,6 +8154,19 @@ const appCadTool = {
         if (!saved || typeof saved.showCenterLabels !== 'boolean') this.displaySettings.showCenterLabels = true;
 
         this.showAnnotations = this.displaySettings.showAnnotations !== false;
+
+        let savedSnapLine = null;
+        try {
+            const rawLine = localStorage.getItem('vn2k_cad_snap_line_enabled');
+            if (rawLine !== null) savedSnapLine = JSON.parse(rawLine);
+        } catch (e) {}
+        if (savedSnapLine !== null) {
+            this.snapLineEnabled = !!savedSnapLine;
+        } else if (typeof AppState.savedCadSnapLine === 'boolean') {
+            this.snapLineEnabled = AppState.savedCadSnapLine;
+        } else {
+            this.snapLineEnabled = true;
+        }
     },
 
     syncDisplayCheckboxes() {
@@ -8158,6 +8183,7 @@ const appCadTool = {
         setVal('cadCheckShowCenterLabels', s.showCenterLabels);
         setVal('cadCheckShowAnnotations', s.showAnnotations);
         setVal('cadCheckShowBoundaries', s.showBoundaries);
+        setVal('cadCheckSnapLine', this.snapLineEnabled);
 
         // Checkboxes trong Modal Xuất bản vẽ
         setVal('cadExportCheckVertices', s.showVertices);
@@ -8165,6 +8191,9 @@ const appCadTool = {
         setVal('cadExportCheckCenterLabels', s.showCenterLabels);
         setVal('cadExportCheckAnnotations', s.showAnnotations);
         setVal('cadExportCheckBoundaries', s.showBoundaries);
+
+        // Cập nhật trạng thái bắt line khối liền kề
+        if (this.updateSnapLineUi) this.updateSnapLineUi();
 
         // Nút toggle chú thích
         const btnAnn = document.getElementById('btnCadMarkupToggle');
@@ -8211,7 +8240,8 @@ const appCadTool = {
         offsetLayer: null,
         rubberbandLine: null,
         dynamicInputMarker: null,
-        osnapMarker: null
+        osnapMarker: null,
+        snapEdgeLine: null
     },
 
     init() {
@@ -8796,6 +8826,9 @@ const appCadTool = {
             } else if (key === 'S') {
                 e.preventDefault();
                 this.toggleSnap();
+            } else if (key === 'B') {
+                e.preventDefault();
+                this.toggleSnapLine();
             } else if (key === 'C') {
                 e.preventDefault();
                 this.closeLoop();
@@ -8941,6 +8974,9 @@ const appCadTool = {
         if (this.layers.osnapMarker) {
             AppState.leafletMap.removeLayer(this.layers.osnapMarker);
             this.layers.osnapMarker = null;
+        }
+        if (this.clearSnapEdgeGuide) {
+            this.clearSnapEdgeGuide();
         }
     },
 

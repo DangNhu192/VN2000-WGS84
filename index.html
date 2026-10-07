@@ -4289,6 +4289,22 @@
       0% { transform: translate(-50%, -50%) scale(1.2); }
       100% { transform: translate(-50%, -50%) scale(1.38); }
     }
+    /* Tự động bắt dính line/cạnh khối liền kề trong phạm vi <= 0.5m */
+    .cad-vertex-badge.snapped-edge {
+      opacity: 1 !important;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+      border-color: #38bdf8 !important;
+      border-width: 2px !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.7), 0 0 16px rgba(14, 165, 233, 0.9) !important;
+      transform: translate(-50%, -50%) scale(1.28) !important;
+      animation: pulseSnapEdge 0.7s infinite alternate ease-in-out !important;
+      z-index: 4000 !important;
+    }
+    @keyframes pulseSnapEdge {
+      0% { transform: translate(-50%, -50%) scale(1.15); }
+      100% { transform: translate(-50%, -50%) scale(1.32); }
+    }
     /* Đỉnh đang được chọn trong Chế độ Chọn (Select Tool) */
     .cad-vertex-badge.selected-vertex {
       opacity: 1 !important;
@@ -5511,6 +5527,9 @@
             <button id="btnCadSnap" class="cad-btn active" onclick="appCadTool.toggleSnap()" title="Tự động bắt điểm (Snap) vào mốc dự án và đỉnh CAD (Phím tắt: S)">
               🧲 Snap: BẬT [S]
             </button>
+            <button id="btnCadSnapLine" class="cad-btn active" onclick="appCadTool.toggleSnapLine()" title="Tự động bắt cạnh/line khối liền kề chống hở ranh và chống chồng lấn thửa đất (Phím tắt: B)">
+              🔗 Bắt line: BẬT [B]
+            </button>
             <button class="cad-btn" onclick="appCadTool.openPolarModal()" title="Bắn điểm tiếp theo theo Cự ly & Góc phương vị (Phím tắt: D)">
               🎯 Bắn điểm [D]
             </button>
@@ -5630,6 +5649,10 @@
             <label class="cad-check-label" title="Hiện hoặc ẩn đường viền ranh giới các khối">
               <input type="checkbox" id="cadCheckShowBoundaries" checked onchange="appCadTool.toggleDisplayOption('showBoundaries', this.checked)">
               <span>📐 Ranh giới khối</span>
+            </label>
+            <label class="cad-check-label" title="Tự động bắt cạnh/line khối liền kề chống hở ranh và chống chồng lấn thửa đất">
+              <input type="checkbox" id="cadCheckSnapLine" checked onchange="appCadTool.toggleSnapLine(this.checked)">
+              <span>🔗 Bắt line liền kề</span>
             </label>
           </div>
         </div>
