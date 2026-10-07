@@ -411,11 +411,27 @@
       margin-bottom: 24px;
     }
 
+    /* ==========================================================================
+       DASHBOARD MODERN HUB (MISSION CONTROL V3.0)
+       ========================================================================== */
+    .dashboard-modern-hub {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* TOP BAR: SECTION TITLE & QUICK CONTEXT */
+    .dashboard-header-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     .dashboard-section-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
       padding: 0 2px;
     }
 
@@ -423,21 +439,22 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
       color: var(--text-muted, #94a3b8);
       text-transform: uppercase;
     }
 
     .dashboard-bar-title .bar-title-icon {
       font-size: 14px;
+      color: #38bdf8;
     }
 
     .dashboard-bar-title .bar-badge {
-      background: rgba(56, 189, 248, 0.15);
+      background: rgba(56, 189, 248, 0.12);
       color: var(--accent-cyan, #38bdf8);
-      border: 1px solid rgba(56, 189, 248, 0.3);
+      border: 1px solid rgba(56, 189, 248, 0.28);
       font-size: 10px;
       font-weight: 700;
       padding: 1px 7px;
@@ -447,11 +464,11 @@
     .btn-customize-pins {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       background: rgba(251, 191, 36, 0.12);
-      border: 1px solid rgba(251, 191, 36, 0.3);
+      border: 1px solid rgba(251, 191, 36, 0.32);
       color: #fbbf24;
-      padding: 5px 11px;
+      padding: 5px 12px;
       border-radius: 8px;
       font-size: 11.5px;
       font-weight: 600;
@@ -463,19 +480,80 @@
     .btn-customize-pins:hover {
       background: rgba(251, 191, 36, 0.22);
       border-color: rgba(251, 191, 36, 0.6);
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.25);
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
     }
 
     .btn-customize-pins:active {
       transform: scale(0.95);
     }
 
+    /* QUICK FIELD STATUS CHIPS (1-TAP FIELD CONTEXT) */
+    .dashboard-quick-chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .quick-chip-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(9, 15, 29, 0.9) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.16);
+      border-radius: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .quick-chip-pill:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .quick-chip-pill:active {
+      transform: scale(0.97);
+    }
+
+    .quick-chip-pill .chip-content {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .quick-chip-pill .chip-icon {
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .quick-chip-pill .chip-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quick-chip-pill .chip-arrow {
+      font-size: 10px;
+      color: #64748b;
+      flex-shrink: 0;
+    }
+
     /* 4 BIG ACTION TILES GRID (2x2 Mobile, 4 columns Desktop) */
     .big-action-tiles-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 18px;
+      gap: 10px;
+      margin-bottom: 2px;
     }
 
     @media (min-width: 768px) {
@@ -486,33 +564,114 @@
     }
 
     .big-action-tile {
-      background: linear-gradient(145deg, rgba(19, 29, 49, 0.95) 0%, rgba(11, 17, 32, 0.9) 100%);
+      background: linear-gradient(145deg, rgba(16, 26, 46, 0.94) 0%, rgba(9, 15, 29, 0.96) 100%);
       border: 1px solid rgba(56, 189, 248, 0.2);
       border-radius: 16px;
-      padding: clamp(12px, 3vw, 18px) clamp(10px, 2.5vw, 16px);
+      padding: clamp(12px, 2.8vw, 16px) clamp(10px, 2.5vw, 14px);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: clamp(130px, 22vw, 170px);
+      min-height: clamp(118px, 18vw, 148px);
       position: relative;
       cursor: pointer;
       touch-action: manipulation;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 16px rgba(0, 0, 0, 0.35);
       transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+      overflow: hidden;
+    }
+
+    .big-action-tile::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: radial-gradient(circle at 15% 15%, var(--tile-glow, rgba(56, 189, 248, 0.08)), transparent 60%);
+      pointer-events: none;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
     }
 
     .big-action-tile:hover {
       transform: translateY(-3px);
-      border-color: rgba(56, 189, 248, 0.45);
-      box-shadow: 0 10px 24px -4px rgba(56, 189, 248, 0.22);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 10px 24px -4px var(--tile-shadow, rgba(56, 189, 248, 0.22));
+    }
+
+    .big-action-tile:hover::before {
+      opacity: 1;
     }
 
     .big-action-tile:active {
-      transform: scale(0.96);
+      transform: scale(0.97);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     }
+
+    /* THEMED TILES */
+    .big-action-tile.tile-cyan {
+      --tile-glow: rgba(56, 189, 248, 0.12);
+      --tile-shadow: rgba(56, 189, 248, 0.24);
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+    .big-action-tile.tile-cyan:hover { border-color: rgba(56, 189, 248, 0.55); }
+
+    .big-action-tile.tile-emerald {
+      --tile-glow: rgba(52, 211, 153, 0.12);
+      --tile-shadow: rgba(52, 211, 153, 0.24);
+      border-color: rgba(52, 211, 153, 0.25);
+    }
+    .big-action-tile.tile-emerald:hover { border-color: rgba(52, 211, 153, 0.55); }
+
+    .big-action-tile.tile-amber {
+      --tile-glow: rgba(251, 191, 36, 0.12);
+      --tile-shadow: rgba(251, 191, 36, 0.24);
+      border-color: rgba(251, 191, 36, 0.25);
+    }
+    .big-action-tile.tile-amber:hover { border-color: rgba(251, 191, 36, 0.55); }
+
+    .big-action-tile.tile-purple {
+      --tile-glow: rgba(192, 132, 252, 0.12);
+      --tile-shadow: rgba(192, 132, 252, 0.24);
+      border-color: rgba(192, 132, 252, 0.25);
+    }
+    .big-action-tile.tile-purple:hover { border-color: rgba(192, 132, 252, 0.55); }
+
+    .big-action-tile.tile-pink {
+      --tile-glow: rgba(244, 114, 182, 0.12);
+      --tile-shadow: rgba(244, 114, 182, 0.24);
+      border-color: rgba(244, 114, 182, 0.25);
+    }
+    .big-action-tile.tile-pink:hover { border-color: rgba(244, 114, 182, 0.55); }
+
+    .big-action-tile.tile-blue {
+      --tile-glow: rgba(96, 165, 250, 0.12);
+      --tile-shadow: rgba(96, 165, 250, 0.24);
+      border-color: rgba(96, 165, 250, 0.25);
+    }
+    .big-action-tile.tile-blue:hover { border-color: rgba(96, 165, 250, 0.55); }
+
+    .big-action-tile.tile-teal {
+      --tile-glow: rgba(45, 212, 191, 0.12);
+      --tile-shadow: rgba(45, 212, 191, 0.24);
+      border-color: rgba(45, 212, 191, 0.25);
+    }
+    .big-action-tile.tile-teal:hover { border-color: rgba(45, 212, 191, 0.55); }
+
+    .big-action-tile.tile-yellow {
+      --tile-glow: rgba(250, 204, 21, 0.12);
+      --tile-shadow: rgba(250, 204, 21, 0.24);
+      border-color: rgba(250, 204, 21, 0.25);
+    }
+    .big-action-tile.tile-yellow:hover { border-color: rgba(250, 204, 21, 0.55); }
+
+    .big-action-tile.tile-slate {
+      --tile-glow: rgba(148, 163, 184, 0.12);
+      --tile-shadow: rgba(148, 163, 184, 0.24);
+      border-color: rgba(148, 163, 184, 0.25);
+    }
+    .big-action-tile.tile-slate:hover { border-color: rgba(148, 163, 184, 0.55); }
 
     .big-action-tile * {
       pointer-events: none;
@@ -520,21 +679,42 @@
 
     .big-tile-top {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
-      margin-bottom: clamp(8px, 2vw, 14px);
+      margin-bottom: clamp(6px, 1.8vw, 10px);
+      position: relative;
+      z-index: 1;
     }
 
     .big-tile-icon-box {
-      width: clamp(44px, 11vw, 64px);
-      height: clamp(44px, 11vw, 64px);
-      border-radius: clamp(10px, 2.5vw, 16px);
+      width: clamp(40px, 9.5vw, 52px);
+      height: clamp(40px, 9.5vw, 52px);
+      border-radius: clamp(10px, 2.4vw, 14px);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(22px, 5.5vw, 32px);
+      font-size: clamp(20px, 5vw, 26px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
       flex-shrink: 0;
+    }
+
+    .big-tile-launch-arrow {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.35);
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      transition: all 0.2s ease;
+    }
+
+    .big-action-tile:hover .big-tile-launch-arrow {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.12);
+      transform: translate(2px, -2px);
     }
 
     .icon-box-cyan {
@@ -591,42 +771,233 @@
       color: #94a3b8;
     }
 
-    /* Ngôi sao ghim: ẩn khỏi giao diện thẻ */
-    .big-tile-pin-badge {
-      display: none;
-    }
-
     .big-tile-bottom {
       display: flex;
       flex-direction: column;
       gap: 3px;
+      position: relative;
+      z-index: 1;
     }
 
     .big-tile-title {
-      font-size: clamp(12px, 3.2vw, 15px);
+      font-size: clamp(12.5px, 3.2vw, 15px);
       font-weight: 700;
       color: #f8fafc;
       line-height: 1.25;
+      letter-spacing: -0.2px;
     }
 
     .big-tile-subtitle {
-      font-size: clamp(10px, 2.5vw, 12px);
+      font-size: clamp(10px, 2.4vw, 11.5px);
       color: var(--text-muted, #94a3b8);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      line-height: 1.3;
     }
 
     .big-tile-metric {
-      font-size: clamp(9.5px, 2.2vw, 11px);
-      font-weight: 600;
-      color: var(--accent-cyan, #38bdf8);
-      font-family: var(--font-mono, monospace);
-      font-variant-numeric: tabular-nums;
       margin-top: 4px;
+      display: flex;
+      align-items: center;
     }
 
-    /* ACCORDION ADVANCED TOOLS */
+    .tile-metric-pill {
+      font-size: clamp(9px, 2.1vw, 10.5px);
+      font-weight: 700;
+      font-family: var(--font-mono, monospace);
+      font-variant-numeric: tabular-nums;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .tile-metric-pill.metric-cyan { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.08); }
+    .tile-metric-pill.metric-emerald { color: #34d399; border-color: rgba(52, 211, 153, 0.3); background: rgba(52, 211, 153, 0.08); }
+    .tile-metric-pill.metric-amber { color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.08); }
+    .tile-metric-pill.metric-purple { color: #c084fc; border-color: rgba(192, 132, 252, 0.3); background: rgba(192, 132, 252, 0.08); }
+    .tile-metric-pill.metric-pink { color: #f472b6; border-color: rgba(244, 114, 182, 0.3); background: rgba(244, 114, 182, 0.08); }
+    .tile-metric-pill.metric-blue { color: #60a5fa; border-color: rgba(96, 165, 250, 0.3); background: rgba(96, 165, 250, 0.08); }
+    .tile-metric-pill.metric-teal { color: #2dd4bf; border-color: rgba(45, 212, 191, 0.3); background: rgba(45, 212, 191, 0.08); }
+    .tile-metric-pill.metric-yellow { color: #facc15; border-color: rgba(250, 204, 21, 0.3); background: rgba(250, 204, 21, 0.08); }
+    .tile-metric-pill.metric-slate { color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); background: rgba(148, 163, 184, 0.08); }
+
+    /* DASHBOARD INFO & GPS ROW */
+    .dashboard-info-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 2px;
+    }
+
+    .dash-info-card {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(7, 13, 26, 0.92) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      border-radius: 14px;
+      padding: 11px 13px;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+      min-height: 86px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dash-info-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: linear-gradient(135deg, rgba(20, 32, 56, 0.95) 0%, rgba(10, 18, 36, 0.92) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .dash-info-card:active {
+      transform: scale(0.98);
+    }
+
+    .dash-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .dash-card-head-left {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .dash-card-icon {
+      font-size: 11px;
+    }
+
+    .dash-card-heading {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .dash-card-action-link {
+      font-size: 10px;
+      font-weight: 600;
+      color: #38bdf8;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    .dash-info-card:hover .dash-card-action-link {
+      opacity: 1;
+    }
+
+    .dash-card-main-val {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.35;
+    }
+
+    .dash-card-main-val.font-mono {
+      font-family: var(--font-mono, monospace);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .dash-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .dash-chip-badge {
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 1px 7px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .dash-chip-badge.cyan {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      font-family: var(--font-mono, monospace);
+    }
+
+    .dash-chip-badge.slate {
+      background: rgba(148, 163, 184, 0.1);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .dash-chip-badge.amber {
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      font-family: var(--font-mono, monospace);
+    }
+
+    .dash-chip-badge.status-pill {
+      background: rgba(148, 163, 184, 0.12);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .dash-gps-live-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 12px;
+      height: 12px;
+    }
+
+    .gps-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+      display: inline-block;
+      transition: background 0.2s ease;
+    }
+
+    .gps-pulse-dot.pulse-active {
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+      animation: gpsPulse 1.8s infinite;
+    }
+
+    .gps-pulse-dot.pulse-searching {
+      background: #fbbf24;
+      box-shadow: 0 0 6px #fbbf24;
+      animation: gpsPulse 1.2s infinite;
+    }
+
+    @keyframes gpsPulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.25); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    /* ACCORDION ADVANCED TOOLS & UTILITIES */
     .accordion-advanced-wrapper {
       background: var(--bg-card, #131d31);
       border: 1px solid var(--border-color, rgba(56, 189, 248, 0.18));
@@ -640,7 +1011,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 14px;
+      padding: 10px 12px;
       background: transparent;
       border: none;
       cursor: pointer;
@@ -665,8 +1036,17 @@
       gap: 10px;
     }
 
-    .accordion-header-icon {
-      font-size: 20px;
+    .accordion-header-icon-box {
+      font-size: 18px;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      flex-shrink: 0;
     }
 
     .accordion-header-titles {
@@ -676,13 +1056,14 @@
     }
 
     .accordion-title-main {
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 700;
       color: #f8fafc;
+      letter-spacing: -0.1px;
     }
 
     .accordion-title-sub {
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--text-muted, #94a3b8);
     }
 
@@ -696,14 +1077,14 @@
       background: rgba(56, 189, 248, 0.12);
       color: var(--accent-cyan, #38bdf8);
       border: 1px solid rgba(56, 189, 248, 0.25);
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 600;
       padding: 2px 8px;
       border-radius: 999px;
     }
 
     .accordion-chevron {
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--text-muted, #94a3b8);
       display: inline-block;
       transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -721,24 +1102,83 @@
     }
 
     .accordion-content.expanded {
-      max-height: 1200px;
+      max-height: 1400px;
       opacity: 1;
-      margin-top: 8px;
+      margin-top: 6px;
       padding: 4px 6px 10px 6px;
     }
 
+    /* ACCORDION QUICK SEARCH */
+    .accordion-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(11, 17, 32, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.16);
+      border-radius: 10px;
+      padding: 6px 10px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s ease;
+    }
+
+    .accordion-search-bar:focus-within {
+      border-color: rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+
+    .acc-search-icon {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .acc-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f1f5f9;
+      font-size: 11.5px;
+    }
+
+    .acc-search-input::placeholder {
+      color: #64748b;
+    }
+
+    .acc-search-clear {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .acc-search-clear:hover {
+      color: #f8fafc;
+    }
+
+    /* COMPACT TOOLS LIST & GRID (RESPONSIVE) */
     .compact-tools-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
+    @media (min-width: 640px) {
+      .compact-tools-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+    }
+
     .compact-tool-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 12px;
-      background: rgba(11, 17, 32, 0.6);
+      padding: 9px 12px;
+      background: rgba(11, 17, 32, 0.65);
       border: 1px solid rgba(56, 189, 248, 0.12);
       border-radius: 12px;
       cursor: pointer;
@@ -750,7 +1190,7 @@
 
     .compact-tool-card:hover {
       background: rgba(30, 41, 59, 0.7);
-      border-color: rgba(56, 189, 248, 0.3);
+      border-color: rgba(56, 189, 248, 0.35);
       transform: translateX(2px);
     }
 
@@ -772,7 +1212,7 @@
     }
 
     .compact-tool-icon {
-      font-size: 20px;
+      font-size: 18px;
       width: 36px;
       height: 36px;
       border-radius: 10px;
@@ -787,15 +1227,34 @@
       flex-direction: column;
       gap: 2px;
       min-width: 0;
+      flex: 1;
+    }
+
+    .compact-tool-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
     }
 
     .compact-tool-title {
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       color: #f1f5f9;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .compact-tool-tag {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 1px 5px;
+      border-radius: 4px;
+      flex-shrink: 0;
     }
 
     .compact-tool-desc {
@@ -811,22 +1270,29 @@
       align-items: center;
       gap: 6px;
       flex-shrink: 0;
+      margin-left: 8px;
     }
 
     .btn-compact-pin {
       background: transparent;
-      border: none;
+      border: 1px solid rgba(251, 191, 36, 0.2);
       color: #64748b;
-      font-size: 15px;
-      padding: 6px;
+      font-size: 12px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       border-radius: 6px;
-      transition: color 0.2s ease, transform 0.2s ease;
+      transition: all 0.2s ease;
     }
 
     .btn-compact-pin:hover {
       color: #fbbf24;
-      transform: scale(1.2);
+      border-color: rgba(251, 191, 36, 0.6);
+      background: rgba(251, 191, 36, 0.1);
+      transform: scale(1.15);
     }
 
     .btn-compact-launch {
@@ -837,6 +1303,14 @@
       font-weight: 600;
       padding: 4px 8px;
       border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .compact-tool-card:hover .btn-compact-launch {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: rgba(56, 189, 248, 0.5);
+      color: #f8fafc;
     }
 
     /* MODAL TÙY CHỈNH 4 TÍNH NĂNG GHIM */
@@ -847,16 +1321,21 @@
       padding: 10px 12px;
       background: rgba(19, 29, 49, 0.8);
       border: 1px solid rgba(56, 189, 248, 0.15);
-      border-radius: 10px;
+      border-radius: 12px;
       margin-bottom: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
+    .pin-picker-item:hover {
+      background: rgba(30, 41, 59, 0.7);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
     .pin-picker-item.selected {
       border-color: #fbbf24;
       background: rgba(251, 191, 36, 0.08);
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.15);
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
     }
 
     .pin-picker-checkbox {
@@ -4086,16 +4565,36 @@
 
         <!-- ================= DASHBOARD MODERN HUB (UI/UX PRO MAX) ================= -->
         <div id="dashboardModernHub" class="dashboard-modern-hub">
-          <!-- Bar tiêu đề 4 tính năng ghim + Nút đổi ghim -->
-          <div class="dashboard-section-bar">
-            <div class="dashboard-bar-title">
-              <span class="bar-title-icon">⚡</span>
-              <span class="bar-title-text">CHỨC NĂNG CỐT LÕI THỰC ĐỊA</span>
-              <span class="bar-badge">4 mục</span>
+          <!-- Thanh Tiện Ích Trắc Địa Nhanh (1-Tap Context) -->
+          <div class="dashboard-header-container">
+            <div class="dashboard-section-bar">
+              <div class="dashboard-bar-title">
+                <span class="bar-title-icon">⚡</span>
+                <span class="bar-title-text">CHỨC NĂNG CỐT LÕI THỰC ĐỊA</span>
+                <span class="bar-badge" id="pinnedFeaturesCountBadge">4 mục</span>
+              </div>
+              <button type="button" class="btn-customize-pins" onclick="appDashboard.openPinModal()" title="Tùy chỉnh 4 tính năng ghim trên màn hình chính">
+                ⭐ Đổi ghim
+              </button>
             </div>
-            <button type="button" class="btn-customize-pins" onclick="appDashboard.openPinModal()" title="Tùy chỉnh 4 tính năng ghim trên màn hình chính">
-              ⭐ Đổi ghim
-            </button>
+
+            <!-- Dải trạng thái nhanh (KTT / Tỉnh & Nơi lưu trữ) -->
+            <div class="dashboard-quick-chips">
+              <div class="quick-chip-pill" onclick="appModal.openUnifiedSettings('ktt')" title="Chạm để thay đổi Tỉnh thành & Kinh tuyến trục">
+                <div class="chip-content">
+                  <span class="chip-icon">📍</span>
+                  <span class="chip-label" id="dashChipProvinceKtt">TP. Hồ Chí Minh (105°45')</span>
+                </div>
+                <span class="chip-arrow">▾</span>
+              </div>
+              <div class="quick-chip-pill" onclick="appModal.openGoogleConfig()" title="Chạm để cấu hình nơi lưu trữ (Máy / Google Sheet)">
+                <div class="chip-content">
+                  <span class="chip-icon">💾</span>
+                  <span class="chip-label" id="dashChipStorage">Ngoại tuyến (Máy)</span>
+                </div>
+                <span class="chip-arrow">⚙️</span>
+              </div>
+            </div>
           </div>
 
           <!-- Lưới 4 Khối lớn 2x2 -->
@@ -4103,42 +4602,63 @@
             <!-- Rendered dynamically by appDashboard.renderDashboard() -->
           </div>
 
-
           <!-- THÔNG TIN DỰ ÁN + GPS MINI STATUS -->
-          <div id="dashboardInfoRow" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-            <div style="background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(7,13,26,0.9));border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:12px 14px;cursor:pointer;" onclick="appNav.navigateTo('datamgmt')">
-              <div style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:5px;">📁 DỰ ÁN HIỆN TẠI</div>
-              <div id="dashInfoProjName" style="font-size:12.5px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;">VN2000_SoLieu_DoDac.csv</div>
-              <div style="display:flex;align-items:center;justify-content:space-between;">
-                <span id="dashInfoProjPoints" style="font-size:11px;color:#38bdf8;font-weight:700;font-family:monospace;">0 mốc</span>
-                <span id="dashInfoKttShort" style="font-size:10px;color:#94a3b8;font-weight:600;"></span>
+          <div id="dashboardInfoRow" class="dashboard-info-row">
+            <div class="dash-info-card card-project" onclick="appNav.showScreen('datamgmt')" title="Mở Sổ đo & Quản lý dự án">
+              <div class="dash-card-header">
+                <div class="dash-card-head-left">
+                  <span class="dash-card-icon">📁</span>
+                  <span class="dash-card-heading">DỰ ÁN ĐANG MỞ</span>
+                </div>
+                <span class="dash-card-action-link">Sổ đo ›</span>
+              </div>
+              <div id="dashInfoProjName" class="dash-card-main-val">VN2000_SoLieu_DoDac.csv</div>
+              <div class="dash-card-footer">
+                <span id="dashInfoProjPoints" class="dash-chip-badge cyan">0 mốc</span>
+                <span id="dashInfoKttShort" class="dash-chip-badge slate">KTT</span>
               </div>
             </div>
-            <div style="background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(7,13,26,0.9));border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:12px 14px;cursor:pointer;" onclick="appGps.toggleTracking()">
-              <div style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:5px;">🛰️ VỊ TRÍ GPS</div>
-              <div id="dashGpsMiniCoord" style="font-size:11px;font-weight:600;color:#f1f5f9;font-family:monospace;line-height:1.45;margin-bottom:5px;">Đang tìm...</div>
-              <div style="display:flex;align-items:center;justify-content:space-between;">
-                <span id="dashGpsMiniAccuracy" style="font-size:11px;color:#fbbf24;font-weight:700;font-family:monospace;">± --</span>
-                <span id="dashGpsMiniStatus" style="font-size:10px;padding:1px 7px;border-radius:999px;background:rgba(251,191,36,0.12);color:#fbbf24;font-weight:700;">Tìm...</span>
+
+            <div class="dash-info-card card-gps" onclick="appGps.toggleTracking()" title="Chạm để bật / tắt định vị GPS thực địa">
+              <div class="dash-card-header">
+                <div class="dash-card-head-left">
+                  <span class="dash-card-icon">🛰️</span>
+                  <span class="dash-card-heading">VỊ TRÍ GPS</span>
+                </div>
+                <span class="dash-gps-live-indicator" id="dashGpsLiveIndicator">
+                  <span class="gps-pulse-dot" id="dashGpsPulseDot"></span>
+                </span>
+              </div>
+              <div id="dashGpsMiniCoord" class="dash-card-main-val font-mono">Chạm để bật GPS</div>
+              <div class="dash-card-footer">
+                <span id="dashGpsMiniAccuracy" class="dash-chip-badge amber">± --</span>
+                <span id="dashGpsMiniStatus" class="dash-chip-badge status-pill">Chạm bật</span>
               </div>
             </div>
           </div>
-          <!-- Khối Accordion Kỹ thuật Nâng cao & Tiện ích -->
+
+          <!-- Khối Accordion Kỹ thuật Nâng cao & Tiện ích -->
           <div class="accordion-advanced-wrapper">
             <button type="button" id="btnAccordionTools" class="accordion-header-btn" onclick="appDashboard.toggleAccordion()" title="Nhấp để hiển thị hoặc ẩn các công cụ nâng cao">
               <div class="accordion-header-left">
-                <span class="accordion-header-icon">🛠️</span>
+                <div class="accordion-header-icon-box">🛠️</div>
                 <div class="accordion-header-titles">
                   <div class="accordion-title-main">Công Cụ Kỹ Thuật & Tiện Ích Khác</div>
-                  <div class="accordion-title-sub">Chạm để ẩn / hiện 7 chức năng chuyên sâu</div>
+                  <div class="accordion-title-sub">Nghiệp vụ trắc địa & đồ họa chuyên sâu</div>
                 </div>
               </div>
               <div class="accordion-header-right">
-                <span class="accordion-badge" id="accordionToolsCount">6 công cụ</span>
+                <span class="accordion-badge" id="accordionToolsCount">7 công cụ</span>
                 <span id="accordionChevronIcon" class="accordion-chevron expanded">▼</span>
               </div>
             </button>
             <div id="accordionToolsContent" class="accordion-content expanded">
+              <!-- Thanh tìm kiếm lọc nhanh công cụ -->
+              <div class="accordion-search-bar">
+                <span class="acc-search-icon">🔍</span>
+                <input type="text" id="txtDashToolFilter" class="acc-search-input" placeholder="Tìm nhanh (cad, rtk, geoid, đào đắp, camera...)" oninput="appDashboard.filterTools(this.value)">
+                <button type="button" class="acc-search-clear" id="btnDashToolFilterClear" onclick="appDashboard.clearToolFilter()" title="Xóa tìm kiếm" style="display: none;">✕</button>
+              </div>
               <div id="compactToolsContainer" class="compact-tools-list">
                 <!-- Rendered dynamically by appDashboard.renderDashboard() -->
               </div>

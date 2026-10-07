@@ -993,6 +993,8 @@ const appDashboard = {
         { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.7.0 Pro', action: () => appNav.showScreen('about') }
     ],
 
+    toolFilterQuery: '',
+
     init() {
         const viewMode = (typeof localStorage !== 'undefined' && localStorage.getItem('vn2000_main_menu_view'))
             ? localStorage.getItem('vn2000_main_menu_view')
@@ -1036,21 +1038,85 @@ const appDashboard = {
         if (chevron) chevron.classList.toggle('expanded', appDashboard.isAccordionExpanded);
     },
 
-    renderDashboard() {
-        const grid = document.getElementById('bigActionTilesGrid');
+    filterTools(query) {
+        appDashboard.toolFilterQuery = (query || '').trim().toLowerCase();
+        const clearBtn = document.getElementById('btnDashToolFilterClear');
+        if (clearBtn) clearBtn.style.display = appDashboard.toolFilterQuery ? 'inline-block' : 'none';
+        appDashboard.renderAccordionToolsOnly();
+    },
+
+    clearToolFilter() {
+        appDashboard.toolFilterQuery = '';
+        const input = document.getElementById('txtDashToolFilter');
+        const clearBtn = document.getElementById('btnDashToolFilterClear');
+        if (input) input.value = '';
+        if (clearBtn) clearBtn.style.display = 'none';
+        appDashboard.renderAccordionToolsOnly();
+    },
+
+    renderAccordionToolsOnly() {
         const compactList = document.getElementById('compactToolsContainer');
         const countBadge = document.getElementById('accordionToolsCount');
-        if (!grid || !compactList) return;
+        if (!compactList) return;
+
+        const pinnedIds = appDashboard.getPinnedFeatureIds();
+        let unpinnedFeatures = appDashboard.allFeatures.filter(f => !pinnedIds.includes(f.id));
+
+        if (appDashboard.toolFilterQuery) {
+            const q = appDashboard.toolFilterQuery;
+            unpinnedFeatures = unpinnedFeatures.filter(f =>
+                f.name.toLowerCase().includes(q) ||
+                f.sub.toLowerCase().includes(q) ||
+                (f.tag && f.tag.toLowerCase().includes(q)) ||
+                f.short.toLowerCase().includes(q) ||
+                f.id.toLowerCase().includes(q)
+            );
+        }
+
+        if (unpinnedFeatures.length === 0) {
+            compactList.innerHTML = `
+              <div style="grid-column: 1/-1; text-align: center; padding: 22px 10px; color: #64748b; font-size: 12px;">
+                🔍 Không tìm thấy công cụ nào phù hợp với từ khóa "${escapeHtml(appDashboard.toolFilterQuery)}"
+              </div>
+            `;
+        } else {
+            compactList.innerHTML = unpinnedFeatures.map(f => {
+                return `
+                  <div class="compact-tool-card" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
+                    <div class="compact-tool-left">
+                      <div class="compact-tool-icon icon-box-${f.color}">${f.icon}</div>
+                      <div class="compact-tool-info">
+                        <div class="compact-tool-title-row">
+                          <span class="compact-tool-title">${f.name}</span>
+                          ${f.tag ? `<span class="compact-tool-tag">${f.tag}</span>` : ''}
+                        </div>
+                        <div class="compact-tool-desc">${f.sub}</div>
+                      </div>
+                    </div>
+                    <div class="compact-tool-right">
+                      <button type="button" class="btn-compact-pin" onclick="event.stopPropagation(); appDashboard.quickSwapPin('${f.id}')" title="Ghim lên màn hình chính">⭐</button>
+                      <span class="btn-compact-launch">Mở ➔</span>
+                    </div>
+                  </div>
+                `;
+            }).join('');
+        }
+
+        if (countBadge) {
+            countBadge.innerText = `${unpinnedFeatures.length} công cụ`;
+        }
+    },
+
+    renderDashboard() {
+        const grid = document.getElementById('bigActionTilesGrid');
+        if (!grid) return;
 
         const pinnedIds = appDashboard.getPinnedFeatureIds();
         const pinnedFeatures = [];
-        const unpinnedFeatures = [];
 
         appDashboard.allFeatures.forEach(f => {
             if (pinnedIds.includes(f.id)) {
                 pinnedFeatures.push(f);
-            } else {
-                unpinnedFeatures.push(f);
             }
         });
 
@@ -1058,38 +1124,26 @@ const appDashboard = {
         grid.innerHTML = pinnedFeatures.map(f => {
             const metricVal = typeof f.metric === 'function' ? f.metric() : f.metric;
             return `
-              <div class="big-action-tile" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
+              <div class="big-action-tile tile-${f.color}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
                 <div class="big-tile-top">
                   <div class="big-tile-icon-box icon-box-${f.color}">${f.icon}</div>
+                  <span class="big-tile-launch-arrow">➔</span>
                 </div>
                 <div class="big-tile-bottom">
                   <div class="big-tile-title">${f.short}</div>
                   <div class="big-tile-subtitle">${f.sub}</div>
-                  <div class="big-tile-metric">${metricVal}</div>
+                  <div class="big-tile-metric">
+                    <span class="tile-metric-pill metric-${f.color}">${metricVal}</span>
+                  </div>
                 </div>
               </div>
             `;
         }).join('');
 
         // 2. Render Accordion Tools
-        compactList.innerHTML = unpinnedFeatures.map(f => {
-            return `
-              <div class="compact-tool-card" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
-                <div class="compact-tool-left">
-                  <div class="compact-tool-icon icon-box-${f.color}">${f.icon}</div>
-                  <div class="compact-tool-info">
-                    <div class="compact-tool-title">${f.name}</div>
-                    <div class="compact-tool-desc">${f.sub}</div>
-                  </div>
-                </div>
-                <div class="compact-tool-right">
-                  <span class="btn-compact-launch">Mở ➔</span>
-                </div>
-              </div>
-            `;
-        }).join('');
+        appDashboard.renderAccordionToolsOnly();
 
-        if (countBadge) countBadge.innerText = `${unpinnedFeatures.length} công cụ`;
+        // 3. Update Status Chips & Info Row
         appDashboard.updateDashboardInfoRow();
     },
 
@@ -1104,8 +1158,12 @@ const appDashboard = {
         triggerHaptic('medium');
         const pinned = appDashboard.getPinnedFeatureIds();
         if (!pinned.includes(idToPin)) {
+            // Thay thế vị trí thứ 4 bằng tính năng được chọn
             pinned[3] = idToPin;
             appDashboard.savePinnedFeatureIds(pinned);
+            showToast("⭐ Đã ghim tính năng mới lên Màn hình chính!");
+        } else {
+            showToast("ℹ️ Tính năng này đã có sẵn trên Màn hình chính!");
         }
     },
 
@@ -1186,18 +1244,34 @@ const appDashboard = {
             const prov = (AppState.provinceIndex >= 0 && typeof VN_PROVINCES !== 'undefined') ? VN_PROVINCES[AppState.provinceIndex] : null;
             kttShort.textContent = prov ? 'KTT ' + prov.deg + '°' + String(prov.min).padStart(2,'0') + '\'' : 'KTT ' + AppState.kttDeg + '°' + AppState.kttMin + '\'';
         }
+
+        // Cập nhật 2 chip trạng thái nhanh ở đầu trang chủ
+        const chipKtt = document.getElementById('dashChipProvinceKtt');
+        if (chipKtt) {
+            chipKtt.textContent = `${AppState.provinceName || 'TP. Hồ Chí Minh'} (${AppState.kttDeg || 105}°${String(AppState.kttMin || 45).padStart(2,'0')}')`;
+        }
+        const chipStorage = document.getElementById('dashChipStorage');
+        if (chipStorage) {
+            if (AppState.storageMode === 'auto_google') {
+                chipStorage.innerHTML = `Google Sheets ${AppState.googleScriptUrl ? '🟢' : '⚠️'}`;
+            } else {
+                chipStorage.textContent = 'Ngoại tuyến (Máy)';
+            }
+        }
     },
 
     updateGpsMiniCard(lat, lng, acc, statusText) {
         const coord = document.getElementById('dashGpsMiniCoord');
         const accuracy = document.getElementById('dashGpsMiniAccuracy');
         const status = document.getElementById('dashGpsMiniStatus');
+        const pulseDot = document.getElementById('dashGpsPulseDot');
+
         if (coord) {
             if (lat && lng) {
                 coord.textContent = lat.toFixed(6) + '°N  ' + lng.toFixed(6) + '°E';
                 coord.style.color = '#4ade80';
             } else {
-                coord.textContent = 'Đang tìm tín hiệu...';
+                coord.textContent = statusText === 'searching' ? 'Đang tìm tín hiệu...' : 'Chạm để bật GPS';
                 coord.style.color = '#64748b';
             }
         }
@@ -1211,13 +1285,21 @@ const appDashboard = {
                 status.style.background = 'rgba(74,222,128,0.15)';
                 status.style.color = '#4ade80';
             } else if (statusText === 'off') {
-                status.textContent = 'Tắt';
+                status.textContent = 'Chạm bật';
                 status.style.background = 'rgba(148,163,184,0.12)';
-                status.style.color = '#64748b';
+                status.style.color = '#94a3b8';
             } else {
-                status.textContent = 'Tìm...';
+                status.textContent = 'Đang tìm...';
                 status.style.background = 'rgba(251,191,36,0.12)';
                 status.style.color = '#fbbf24';
+            }
+        }
+        if (pulseDot) {
+            pulseDot.classList.remove('pulse-active', 'pulse-searching');
+            if (statusText === 'fix') {
+                pulseDot.classList.add('pulse-active');
+            } else if (statusText === 'searching') {
+                pulseDot.classList.add('pulse-searching');
             }
         }
     },
