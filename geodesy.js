@@ -463,6 +463,97 @@ function calculatePolygonAreaAndPerimeter(points) {
     return { area, perimeter };
 }
 
+/**
+ * =========================================================================
+ * BỘ TIỆN ÍCH AN TOÀN TRẮC ĐỊA & HÌNH HỌC (RUST-INSPIRED RESULT PATTERN)
+ * =========================================================================
+ */
+
+const Ok = (val) => ({ ok: true, val, err: null });
+const Err = (err) => ({ ok: false, val: null, err });
+
+/**
+ * Kiểm tra tính hợp lệ của tọa độ WGS-84 (kinh độ, vĩ độ)
+ * Trả về Result kiểu Rust kèm cảnh báo lãnh thổ Việt Nam
+ */
+function validateWgsCoordinates(lat, lng) {
+    const numLat = parseFloat(lat);
+    const numLng = parseFloat(lng);
+    if (isNaN(numLat) || isNaN(numLng)) {
+        return Err("Tọa độ không hợp lệ: Giá trị vĩ độ hoặc kinh độ không phải là số hợp lệ.");
+    }
+    if (numLat < -90 || numLat > 90) {
+        return Err(`Vĩ độ vượt dải hợp lệ [-90, 90]: ${numLat}`);
+    }
+    if (numLng < -180 || numLng > 180) {
+        return Err(`Kinh độ vượt dải hợp lệ [-180, 180]: ${numLng}`);
+    }
+    // Cảnh báo phạm vi lãnh thổ Việt Nam (8°N - 24°N, 102°E - 110°E)
+    const isInsideVietnam = (numLat >= 8.0 && numLat <= 24.0 && numLng >= 102.0 && numLng <= 110.0);
+    return Ok({
+        lat: numLat,
+        lng: numLng,
+        isInsideVietnam,
+        warning: isInsideVietnam ? null : "⚠️ Tọa độ nằm ngoài phạm vi lãnh thổ Việt Nam (8° - 24°B, 102° - 110°Đ)."
+    });
+}
+
+/**
+ * Kiểm tra tính hợp lệ của tọa độ phẳng VN-2000 (X: Bắc, Y: Đông)
+ */
+function validateVn2kCoordinates(x, y) {
+    const numX = parseFloat(x);
+    const numY = parseFloat(y);
+    if (isNaN(numX) || isNaN(numY)) {
+        return Err("Tọa độ không hợp lệ: X hoặc Y không phải là số.");
+    }
+    // Kiểm tra dải giá trị thông thường của VN2000 tại Việt Nam
+    const isNormalVnRange = (numX >= 500000 && numX <= 3000000 && numY >= 100000 && numY <= 900000);
+    return Ok({
+        X: numX,
+        Y: numY,
+        isNormalVnRange,
+        warning: isNormalVnRange ? null : "⚠️ Tọa độ X hoặc Y có dải giá trị bất thường so với lưới chiếu VN-2000 tiêu chuẩn."
+    });
+}
+
+/**
+ * Kiểm tra 2 đoạn thẳng AB và CD có cắt chéo nhau không (Cross Product Ray Test)
+ */
+function doLineSegmentsIntersect(p1, p2, p3, p4) {
+    const ccw = (a, b, c) => (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
+    const isSamePoint = (a, b) => Math.abs(a.x - b.x) < 1e-7 && Math.abs(a.y - b.y) < 1e-7;
+    if (isSamePoint(p1, p3) || isSamePoint(p1, p4) || isSamePoint(p2, p3) || isSamePoint(p2, p4)) {
+        return false;
+    }
+    return (ccw(p1, p3, p4) !== ccw(p2, p3, p4)) && (ccw(p1, p2, p3) !== ccw(p1, p2, p4));
+}
+
+/**
+ * Kiểm tra đa giác có bị tự cắt chéo (self-intersecting polygon) không
+ */
+function checkPolygonSelfIntersection(vertices) {
+    if (!vertices || vertices.length < 4) return Ok({ hasSelfIntersection: false });
+    const n = vertices.length;
+    for (let i = 0; i < n; i++) {
+        const p1 = { x: vertices[i].x ?? vertices[i].lng ?? vertices[i].X, y: vertices[i].y ?? vertices[i].lat ?? vertices[i].Y };
+        const p2 = { x: vertices[(i + 1) % n].x ?? vertices[(i + 1) % n].lng ?? vertices[(i + 1) % n].X, y: vertices[(i + 1) % n].y ?? vertices[(i + 1) % n].lat ?? vertices[(i + 1) % n].Y };
+        for (let j = i + 2; j < n; j++) {
+            if (i === 0 && j === n - 1) continue; // Cạnh liền kề chia sẻ đỉnh đầu-cuối
+            const p3 = { x: vertices[j].x ?? vertices[j].lng ?? vertices[j].X, y: vertices[j].y ?? vertices[j].lat ?? vertices[j].Y };
+            const p4 = { x: vertices[(j + 1) % n].x ?? vertices[(j + 1) % n].lng ?? vertices[(j + 1) % n].X, y: vertices[(j + 1) % n].y ?? vertices[(j + 1) % n].lat ?? vertices[(j + 1) % n].Y };
+            if (doLineSegmentsIntersect(p1, p2, p3, p4)) {
+                return Ok({
+                    hasSelfIntersection: true,
+                    intersectingSegments: [i, j],
+                    warning: `⚠️ Cạnh [${i + 1}-${((i + 1) % n) + 1}] và cạnh [${j + 1}-${((j + 1) % n) + 1}] tự cắt chéo nhau!`
+                });
+            }
+        }
+    }
+    return Ok({ hasSelfIntersection: false });
+}
+
 // Xuất các hàm ra phạm vi toàn cục hoặc module
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -475,6 +566,13 @@ if (typeof module !== 'undefined' && module.exports) {
         convertWgsToVn2k,
         convertVn2kToWgs,
         calculateDistanceAndAzimuth,
-        calculatePolygonAreaAndPerimeter
+        calculatePolygonAreaAndPerimeter,
+        Ok,
+        Err,
+        validateWgsCoordinates,
+        validateVn2kCoordinates,
+        doLineSegmentsIntersect,
+        checkPolygonSelfIntersection
     };
 }
+

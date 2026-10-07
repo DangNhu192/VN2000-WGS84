@@ -359,6 +359,7 @@ const appNav = window.appNav = {
             // Ép browser kích hoạt reflow tức thì, loại bỏ triệt để độ trễ repaint của Chromium
             void targetScreen.offsetHeight;
         }
+        this.syncBottomNav(screenName);
     },
 
     handleHeaderBack() {
@@ -526,6 +527,24 @@ const appNav = window.appNav = {
         } else if (screenName === 'menu') {
             appNav.setActiveMenuItem(null);
         }
+    },
+
+    syncBottomNav(screenName) {
+        const itemMap = {
+            'menu': 'bnavMenu',
+            'transform': 'bnavTransform',
+            'map': 'bnavMap',
+            'cad_tool': 'bnavCad',
+            'cad': 'bnavCad',
+            'stakeout': 'bnavStakeout',
+            'camera': 'bnavStakeout',
+            'gps': 'bnavStakeout'
+        };
+        const activeId = itemMap[screenName] || (screenName === 'map' ? 'bnavMap' : 'bnavMenu');
+        ['bnavMenu', 'bnavTransform', 'bnavMap', 'bnavCad', 'bnavStakeout'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.classList.toggle('active', id === activeId);
+        });
     },
 
     filterMainCategories(category) {
@@ -809,6 +828,7 @@ const appNav = window.appNav = {
         if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
 
         appNav.setActiveMenuItem('drawerItem_map');
+        this.syncBottomNav(typeof appCadTool !== 'undefined' && appCadTool.isActive ? 'cad' : 'map');
 
         appMap.initMap();
         if (appMap.initRightControlsDrag) appMap.initRightControlsDrag();
@@ -9196,6 +9216,7 @@ const appCadTool = {
         this.initToolbarAutoCollapse();
         this.setToolbarCollapsed(false);
         this.scheduleToolbarCollapse(this.toolbarIdleMs * 2);
+        if (typeof appNav !== 'undefined' && appNav.syncBottomNav) appNav.syncBottomNav('cad');
         showToast("📐 MiniCAD sẵn sàng! Chuột trái: Đặt mốc • Chuột phải/Space: Khép góc • Chuột giữa: Pan/Zoom");
     },
 
@@ -9216,6 +9237,7 @@ const appCadTool = {
         if (mapContainer) mapContainer.classList.remove('cad-active-map');
 
         this.clearDynamicHelpers();
+        if (typeof appNav !== 'undefined' && appNav.syncBottomNav) appNav.syncBottomNav('map');
         showToast("Đã đóng công cụ CAD Mini");
     },
 

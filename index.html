@@ -4638,6 +4638,93 @@
     .nav-tree-drawer { z-index: 2200 !important; }
     .modal-overlay { z-index: 3000 !important; }
     .modal-overlay.active { z-index: 3000 !important; display: flex !important; }
+
+    /* ================= MOBILE BOTTOM NAVIGATION (MODERN PWA EXPERIENCE) ================= */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: calc(56px + var(--sat-safe-bottom));
+      padding-bottom: var(--sat-safe-bottom);
+      background: rgba(11, 17, 32, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(56, 189, 248, 0.22);
+      z-index: 2400;
+      align-items: center;
+      justify-content: space-around;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
+      user-select: none;
+    }
+
+    @media (max-width: 768px) {
+      .mobile-bottom-nav {
+        display: flex;
+      }
+      .screen-view {
+        padding-bottom: calc(var(--sat-safe-bottom) + 72px) !important;
+      }
+    }
+
+    .bottom-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      height: 100%;
+      padding: 4px 2px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+
+    .bottom-nav-item:active {
+      transform: scale(0.92);
+    }
+
+    .bottom-nav-item.active {
+      color: #38bdf8;
+    }
+
+    .bottom-nav-icon {
+      font-size: 18px;
+      line-height: 1.2;
+      margin-bottom: 2px;
+      transition: transform 0.2s ease;
+    }
+
+    .bottom-nav-item.active .bottom-nav-icon {
+      transform: translateY(-1px) scale(1.1);
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.5));
+    }
+
+    .bottom-nav-item .nav-indicator {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 3px;
+      border-radius: 0 0 4px 4px;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+
+    .bottom-nav-item.active .nav-indicator {
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
   </style>
 </head>
 <body>
@@ -6909,6 +6996,35 @@
       </section>
 
     </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR (PWA MISSION CONTROL) -->
+    <nav id="mobileBottomNav" class="mobile-bottom-nav">
+      <button type="button" class="bottom-nav-item active" id="bnavMenu" onclick="appNav.goToMenu()" title="Trang chủ tính năng">
+        <span class="nav-indicator"></span>
+        <span class="bottom-nav-icon">🏠</span>
+        <span>Trang Chủ</span>
+      </button>
+      <button type="button" class="bottom-nav-item" id="bnavTransform" onclick="appNav.showScreen('transform')" title="Chuyển đổi tọa độ WGS84 - VN2000">
+        <span class="nav-indicator"></span>
+        <span class="bottom-nav-icon">🔄</span>
+        <span>Chuyển Đổi</span>
+      </button>
+      <button type="button" class="bottom-nav-item" id="bnavMap" onclick="appNav.openProjectMap()" title="Bản đồ trắc địa vệ tinh">
+        <span class="nav-indicator"></span>
+        <span class="bottom-nav-icon">🗺️</span>
+        <span>Bản Đồ</span>
+      </button>
+      <button type="button" class="bottom-nav-item" id="bnavCad" onclick="appNav.navigateTo('cad_tool')" title="Vẽ mặt bằng & Bảng kê MiniCAD">
+        <span class="nav-indicator"></span>
+        <span class="bottom-nav-icon">📐</span>
+        <span>MiniCAD</span>
+      </button>
+      <button type="button" class="bottom-nav-item" id="bnavStakeout" onclick="appNav.showScreen('stakeout')" title="Cắm mốc thực địa & GPS">
+        <span class="nav-indicator"></span>
+        <span class="bottom-nav-icon">🎯</span>
+        <span>Cắm Mốc</span>
+      </button>
+    </nav>
   </div>
 
   <!-- MODAL CÀI ĐẶT HỆ THỐNG (LƯU DỮ LIỆU & KTT) -->
