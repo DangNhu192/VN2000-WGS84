@@ -4289,6 +4289,29 @@
       0% { transform: translate(-50%, -50%) scale(1.2); }
       100% { transform: translate(-50%, -50%) scale(1.38); }
     }
+    /* Đỉnh đang được chọn trong Chế độ Chọn (Select Tool) */
+    .cad-vertex-badge.selected-vertex {
+      opacity: 1 !important;
+      background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%) !important;
+      border: 2px solid #ffffff !important;
+      color: #0f172a !important;
+      font-weight: 800 !important;
+      width: auto !important;
+      min-width: 24px !important;
+      height: 24px !important;
+      font-size: 11px !important;
+      line-height: 20px !important;
+      padding: 0 7px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.65), 0 0 16px rgba(250, 204, 21, 0.9) !important;
+      transform: translate(-50%, -50%) scale(1.25) !important;
+      z-index: 4500 !important;
+      animation: pulseSelectedVertex 0.8s infinite alternate ease-in-out !important;
+    }
+    @keyframes pulseSelectedVertex {
+      0% { transform: translate(-50%, -50%) scale(1.2); }
+      100% { transform: translate(-50%, -50%) scale(1.35); }
+    }
 
     .cad-center-divicon {
       background: transparent !important;

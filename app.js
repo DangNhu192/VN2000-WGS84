@@ -7939,9 +7939,25 @@ const appCadTool = {
         if (item) {
             let label = 'Đang chọn: ';
             if (item.type === 'shape') {
-                const s = this.savedShapes[item.index];
-                const areaStr = (s && s.stats) ? s.stats.areaFormatted + ' m²' : '';
-                label += `Khối [${s ? (s.name || s.shortName) : 'Thửa'}] ${areaStr}`;
+                const s = this.savedShapes ? this.savedShapes[item.index] : null;
+                if (s) {
+                    const areaStr = (s.stats && s.stats.areaFormatted) ? ` • S = ${s.stats.areaFormatted} m²` : '';
+                    const vCount = (s.vertices || []).length;
+                    label += `Khối [${s.name || s.shortName}]${areaStr} (${vCount} đỉnh)`;
+                } else {
+                    label += 'Khối';
+                }
+            } else if (item.type === 'vertex') {
+                const v = item.point;
+                const shapeName = item.shapeName || (item.shapeIndex >= 0 && this.savedShapes && this.savedShapes[item.shapeIndex] ? this.savedShapes[item.shapeIndex].shortName : 'Đang vẽ');
+                if (v) {
+                    label += `Đỉnh [${v.name}] thuộc [${shapeName}] (X: ${v.x?.toFixed(3) || '--'}, Y: ${v.y?.toFixed(3) || '--'})`;
+                } else {
+                    label += 'Đỉnh';
+                }
+            } else if (item.type === 'active_shape') {
+                const stats = this.calculateAreaAndPerimeter();
+                label += `Khối đang vẽ • ${this.vertices.length} đỉnh • S = ${stats.areaFormatted} m²`;
             } else if (item.type === 'annotation') {
                 const a = (this.annotations || []).find(ann => ann.id === item.id);
                 if (a) {
@@ -7961,7 +7977,7 @@ const appCadTool = {
                 nameEl.style.background = 'rgba(56, 189, 248, 0.2)';
             }
             if (btnEdit) btnEdit.style.display = 'inline-flex';
-            if (btnColor) btnColor.style.display = 'inline-flex';
+            if (btnColor) btnColor.style.display = (item.type === 'shape' || item.type === 'annotation') ? 'inline-flex' : 'none';
             if (btnDel) btnDel.style.display = 'inline-flex';
             if (btnDesel) btnDesel.style.display = 'inline-flex';
 
@@ -8007,17 +8023,32 @@ const appCadTool = {
         }
         const item = this.selectedItem;
         if (item.type === 'shape') {
-            const s = this.savedShapes[item.index];
-            const sName = s ? (s.name || s.shortName) : 'khối';
+            const s = this.savedShapes ? this.savedShapes[item.index] : null;
+            if (!s) { this.deselectCurrent(); return; }
+            const sName = s.name || s.shortName || 'Khối';
             if (confirm(`Bạn có chắc chắn muốn xóa khối "${sName}" khỏi bản đồ không?`)) {
-                this.pushHistoryState(`Xóa khối ${sName}`);
-                this.deleteShape(item.index);
+                this.deleteShape(item.index, true);
+            }
+        } else if (item.type === 'vertex') {
+            const shapeIdx = item.shapeIndex;
+            const vertexIdx = item.vertexIndex;
+            const vName = item.point?.name || 'Đỉnh';
+            const shapeName = item.shapeName || (shapeIdx >= 0 && this.savedShapes && this.savedShapes[shapeIdx] ? this.savedShapes[shapeIdx].shortName : 'khối');
+            if (confirm(`Bạn có chắc chắn muốn xóa đỉnh ${vName} của [${shapeName}] không?`)) {
+                this.deleteVertex(shapeIdx, vertexIdx);
+                this.deselectCurrent();
+            }
+        } else if (item.type === 'active_shape') {
+            if (confirm('Bạn có chắc chắn muốn hủy khối đang vẽ dở này không?')) {
+                this.clearDrawing();
                 this.deselectCurrent();
             }
         } else if (item.type === 'annotation') {
-            this.pushHistoryState('Xóa chú thích');
-            this.deleteAnnotation(item.id);
-            this.deselectCurrent();
+            if (confirm('Bạn có chắc chắn muốn xóa ghi chú/ký tự này không?')) {
+                this.pushHistoryState('Xóa chú thích');
+                this.deleteAnnotation(item.id);
+                this.deselectCurrent();
+            }
         }
     },
 
@@ -8025,7 +8056,7 @@ const appCadTool = {
         if (!this.selectedItem) return;
         const item = this.selectedItem;
         if (item.type === 'shape') {
-            const s = this.savedShapes[item.index];
+            const s = this.savedShapes ? this.savedShapes[item.index] : null;
             if (!s) return;
             const newName = prompt('Nhập tên mới cho khối này:', s.name || s.shortName);
             if (newName && newName.trim()) {
@@ -8033,10 +8064,26 @@ const appCadTool = {
                 s.name = newName.trim();
                 s.shortName = newName.trim();
                 this.saveShapesForProject(AppState.currentProject);
+                this.persistSession();
                 this.renderGeometry();
                 this.renderBlocksPanel();
                 this.selectItem(item);
                 showToast(`✓ Đã đổi tên thành: ${s.name}`);
+            }
+        } else if (item.type === 'vertex') {
+            const v = item.point;
+            if (!v) return;
+            const newName = prompt(`Nhập tên mới cho đỉnh "${v.name}":`, v.name);
+            if (newName && newName.trim()) {
+                this.pushHistoryState(`Đổi tên đỉnh ${v.name}`);
+                v.name = newName.trim();
+                if (item.shapeIndex >= 0 && this.savedShapes && this.savedShapes[item.shapeIndex]) {
+                    this.saveShapesForProject(AppState.currentProject);
+                    this.persistSession();
+                }
+                this.renderGeometry();
+                this.selectItem(item);
+                showToast(`✓ Đã đổi tên đỉnh thành: ${v.name}`);
             }
         } else if (item.type === 'annotation') {
             this.openAnnotationModal(item.id);
@@ -8049,13 +8096,14 @@ const appCadTool = {
         const colors = ['#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#38bdf8', '#84cc16', '#ef4444', '#f97316'];
         
         if (item.type === 'shape') {
-            const s = this.savedShapes[item.index];
+            const s = this.savedShapes ? this.savedShapes[item.index] : null;
             if (!s) return;
             this.pushHistoryState(`Đổi màu khối ${s.name}`);
             const curIdx = colors.indexOf(s.color || '#06b6d4');
             const nextColor = colors[(curIdx + 1) % colors.length];
             s.color = nextColor;
             this.saveShapesForProject(AppState.currentProject);
+            this.persistSession();
             this.renderGeometry();
             this.renderBlocksPanel();
             showToast(`🎨 Đã đổi màu khối: ${nextColor}`);
@@ -8608,6 +8656,15 @@ const appCadTool = {
 
     // Thao tác chèn đỉnh mới vào cạnh
     insertVertexOnEdge(shapeIdx, edgeIdx) {
+        if (this.mode === 'select') {
+            if (shapeIdx >= 0 && this.savedShapes && this.savedShapes[shapeIdx]) {
+                this.selectItem({ type: 'shape', index: shapeIdx, name: this.savedShapes[shapeIdx].name });
+            } else if (shapeIdx === -1 && this.vertices && this.vertices.length > 0) {
+                this.selectItem({ type: 'active_shape', name: 'Khối đang vẽ' });
+            }
+            return;
+        }
+
         if (shapeIdx === -1) {
             // Khối đang vẽ dở
             if (this.vertices.length < 2) return;
@@ -8643,7 +8700,7 @@ const appCadTool = {
             this.pushHistoryState(`Chèn đỉnh khối [${s.shortName}]`);
             s.vertices.splice(edgeIdx + 1, 0, {
                 id: Date.now() + Math.random(),
-                name: `D${s.vertices.length + 1}`,
+                name: `Đ${s.vertices.length + 1}`,
                 lat: midLat,
                 lng: midLng,
                 x: parseFloat(parseFloat(midVn.X).toFixed(3)),
@@ -8651,9 +8708,14 @@ const appCadTool = {
                 h: 0,
                 isSnapped: false
             });
-            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
+            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode, true);
+            this.saveShapesForProject(AppState.currentProject);
+            this.persistSession();
             this.renderGeometry();
             this.renderBlocksPanel();
+            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                this.openAreaTableModal();
+            }
             showToast(`✓ Đã chèn đỉnh mới vào khối [${s.shortName}]! Kéo thả để nắn ranh.`);
         }
     },
@@ -8684,9 +8746,14 @@ const appCadTool = {
             }
             this.pushHistoryState(`Xóa đỉnh [${s.shortName}]`);
             const removed = s.vertices.splice(vertexIdx, 1);
-            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
+            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode, true);
+            this.saveShapesForProject(AppState.currentProject);
+            this.persistSession();
             this.renderGeometry();
             this.renderBlocksPanel();
+            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                this.openAreaTableModal();
+            }
             showToast(`🗑️ Đã xóa đỉnh ${removed[0]?.name || ''}! Có thể nhấn [Ctrl+Z] để hoàn tác.`);
         }
     },
@@ -8715,7 +8782,10 @@ const appCadTool = {
             }
 
             const key = e.key.toUpperCase();
-            if (key === 'P') {
+            if (key === 'V') {
+                e.preventDefault();
+                this.switchToolTab('select');
+            } else if (key === 'P') {
                 e.preventDefault();
                 this.setMode('polygon');
             } else if (key === 'L') {
@@ -8757,8 +8827,20 @@ const appCadTool = {
             } else if (key === 'X') {
                 e.preventDefault();
                 this.clearDrawing();
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (this.selectedItem) {
+                    e.preventDefault();
+                    this.deleteSelectedItem();
+                }
             } else if (e.key === 'Escape') {
-                this.closeToolbar();
+                e.preventDefault();
+                if (this.selectedItem) {
+                    this.deselectCurrent();
+                } else if (this.mode === 'select') {
+                    this.setMode('polygon');
+                } else {
+                    this.closeToolbar();
+                }
             }
         });
     },
@@ -8860,10 +8942,25 @@ const appCadTool = {
     },
 
     setMode(mode) {
+        if (mode !== 'select' && this.selectedItem) {
+            this.deselectCurrent();
+        }
+        if (mode === 'select') {
+            this.clearDynamicHelpers();
+        }
+
         this.mode = mode;
         this.isActive = true;
         this.markupMode = null;
         this.ensureLayers();
+
+        // Cập nhật con trỏ bản đồ
+        if (AppState.leafletMap) {
+            const container = AppState.leafletMap.getContainer();
+            if (container) {
+                container.style.cursor = (mode === 'select') ? 'default' : 'crosshair';
+            }
+        }
 
         // Tắt trạng thái active của các nút ghi chú/markup
         const modeBtns = {
@@ -8884,10 +8981,12 @@ const appCadTool = {
         const btnLine = document.getElementById('btnCadModeLine');
         const btnSelect = document.getElementById('btnCadToolSelectMode');
         const badge = document.getElementById('cadModeBadge');
+        const subbar = document.getElementById('cadSelectSubbar');
 
         if (btnPoly) btnPoly.classList.toggle('active', mode === 'polygon');
         if (btnLine) btnLine.classList.toggle('active', mode === 'polyline');
         if (btnSelect) btnSelect.classList.toggle('active', mode === 'select');
+        if (subbar) subbar.style.display = (mode === 'select') ? 'flex' : 'none';
 
         if (badge) {
             if (mode === 'polygon') badge.innerText = "Đa giác ranh";
@@ -8896,7 +8995,7 @@ const appCadTool = {
         }
 
         if (mode === 'select') {
-            showToast("↖️ Chế độ Chọn: Chạm vào thửa đất hoặc nhãn để chọn/sửa/xóa");
+            showToast("↖️ Chế độ Chọn: Chạm vào thửa đất, đỉnh hoặc nhãn để chọn/sửa/xóa");
         } else if (mode === 'polygon') {
             showToast("📐 Chế độ vẽ: Đa giác khép kín (Chạm bản đồ để dựng mốc)");
         } else if (mode === 'polyline') {
@@ -9843,6 +9942,7 @@ const appCadTool = {
     },
 
     addVertex(lat, lng, name, isSnapped = false, snapSource = null, explicitX = null, explicitY = null, explicitH = 0) {
+        if (this.mode === 'select') return;
         let x = explicitX;
         let y = explicitY;
         if (x === null || y === null || isNaN(x) || isNaN(y)) {
@@ -13108,15 +13208,21 @@ const appCadTool = {
         showToast(`✏️ Đang tiếp tục vẽ khối "${s.name}". Hãy nhấp trên bản đồ để thêm đỉnh hoặc khép góc.`);
     },
 
-    deleteShape(index) {
+    deleteShape(index, skipConfirm = false) {
         if (!this.savedShapes || !this.savedShapes[index]) return;
-        const name = this.savedShapes[index].name;
-        if (!confirm(`Bạn có chắc muốn xóa khối "${name}" không?`)) return;
+        const name = this.savedShapes[index].name || this.savedShapes[index].shortName || 'Khối';
+        if (!skipConfirm && !confirm(`Bạn có chắc muốn xóa khối "${name}" không?`)) return;
         this.pushHistoryState(`Xóa khối "${name}"`);
         this.savedShapes.splice(index, 1);
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.deselectCurrent();
         this.renderGeometry();
         this.updateUi();
         this.renderBlocksPanel();
+        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.openAreaTableModal();
+        }
         showToast(`🗑️ Đã xóa khối "${name}"`);
     },
 
