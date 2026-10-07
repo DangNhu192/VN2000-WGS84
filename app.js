@@ -64,6 +64,135 @@ const AppState = {
     boundaryPoints: []
 };
 
+// ================= 1b. LƯU CÀI ĐẶT BỀN VỮNG TRÊN THIẾT BỊ =================
+// Ghi nhớ thông số người dùng (KTT, múi, định dạng, bản đồ, GPS, Snap CAD) giữa các lần mở app.
+const appSettings = {
+    KEY: 'vn2k_app_settings_v1',
+    _timer: null,
+
+    load() {
+        let s;
+        try { s = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) { s = null; }
+        if (!s || typeof s !== 'object') return;
+
+        const num = (v) => (typeof v === 'number' && isFinite(v)) ? v : null;
+        const bool = (v) => (typeof v === 'boolean') ? v : null;
+
+        if (num(s.kttDeg) !== null && num(s.kttMin) !== null) {
+            AppState.kttDeg = s.kttDeg;
+            AppState.kttMin = s.kttMin;
+            AppState.kttVal = s.kttDeg + s.kttMin / 60.0;
+        }
+        if (num(s.provinceIndex) !== null) AppState.provinceIndex = s.provinceIndex;
+        if (typeof s.provinceName === 'string' && s.provinceName) AppState.provinceName = s.provinceName;
+        if (s.muiVal === 3 || s.muiVal === 6) {
+            AppState.muiVal = s.muiVal;
+            AppState.scaleFactor = (s.muiVal === 3) ? 0.9999 : 0.9996;
+        }
+        if ([0, 1, 2].includes(s.formatType)) AppState.formatType = s.formatType;
+        if (s.activeBaseLayerId === 'google_hybrid' || s.activeBaseLayerId === 'osm_streets') AppState.activeBaseLayerId = s.activeBaseLayerId;
+        if (bool(s.is34ProvVisible) !== null) AppState.is34ProvVisible = s.is34ProvVisible;
+        if (bool(s.isDtCommunesVisible) !== null) AppState.isDtCommunesVisible = s.isDtCommunesVisible;
+        if (bool(s.showProjectDistance) !== null) AppState.showProjectDistance = s.showProjectDistance;
+        if (bool(s.isGpsTracking) !== null) AppState.isGpsTracking = s.isGpsTracking;
+        if (s.mapView && num(s.mapView.lat) !== null && num(s.mapView.lng) !== null && num(s.mapView.zoom) !== null) {
+            AppState.savedMapView = s.mapView;
+        }
+        if (bool(s.cadSnapEnabled) !== null) AppState.savedCadSnap = s.cadSnapEnabled;
+    },
+
+    snapshot() {
+        const map = AppState.leafletMap;
+        let mapView = AppState.savedMapView || null;
+        if (map) {
+            const ctr = map.getCenter();
+            mapView = { lat: ctr.lat, lng: ctr.lng, zoom: map.getZoom() };
+            AppState.savedMapView = mapView;
+        }
+        return {
+            provinceIndex: AppState.provinceIndex,
+            provinceName: AppState.provinceName,
+            kttDeg: AppState.kttDeg,
+            kttMin: AppState.kttMin,
+            muiVal: AppState.muiVal,
+            formatType: AppState.formatType,
+            activeBaseLayerId: AppState.activeBaseLayerId,
+            is34ProvVisible: AppState.is34ProvVisible,
+            isDtCommunesVisible: AppState.isDtCommunesVisible,
+            showProjectDistance: AppState.showProjectDistance,
+            isGpsTracking: AppState.isGpsTracking,
+            mapView,
+            cadSnapEnabled: (typeof appCadTool !== 'undefined') ? appCadTool.snapEnabled !== false : AppState.savedCadSnap,
+            updated: Date.now()
+        };
+    },
+
+    saveNow() {
+        clearTimeout(this._timer);
+        this._timer = null;
+        try { localStorage.setItem(this.KEY, JSON.stringify(this.snapshot())); } catch (e) { console.warn('Lưu cài đặt thất bại:', e); }
+    },
+
+    // Gộp nhiều thay đổi liên tiếp (vd: kéo/zoom bản đồ) thành 1 lần ghi
+    save() {
+        clearTimeout(this._timer);
+        this._timer = setTimeout(() => this.saveNow(), 400);
+    },
+
+    // Đồng bộ các control giao diện theo cài đặt đã nạp
+    applyToUi() {
+        const tfSel = document.getElementById('tfSelectProvince');
+        if (tfSel) tfSel.value = String(AppState.provinceIndex);
+        const b3 = document.getElementById('btnMui3');
+        const b6 = document.getElementById('btnMui6');
+        if (b3) b3.classList.toggle('active', AppState.muiVal === 3);
+        if (b6) b6.classList.toggle('active', AppState.muiVal === 6);
+        const fmt = document.getElementById('selFormatWgs');
+        if (fmt) fmt.value = String(AppState.formatType);
+        const dBtn = document.getElementById('btnToggleDistance');
+        const dTxt = document.getElementById('txtDistToggle');
+        if (dBtn) dBtn.classList.toggle('active', AppState.showProjectDistance);
+        if (dTxt) dTxt.innerText = AppState.showProjectDistance ? "Khoảng cách" : "Ẩn cự ly";
+        if (typeof appCadTool !== 'undefined' && typeof AppState.savedCadSnap === 'boolean') {
+            appCadTool.snapEnabled = AppState.savedCadSnap;
+            const sBtn = document.getElementById('btnCadSnap');
+            if (sBtn) {
+                sBtn.classList.toggle('active', appCadTool.snapEnabled);
+                sBtn.innerHTML = appCadTool.snapEnabled ? "🧲 Snap: BẬT [S]" : "🧲 Snap: TẮT [S]";
+            }
+        }
+    },
+
+    // Áp dụng lớp nền, lớp ranh giới và khung nhìn đã lưu ngay sau khi bản đồ khởi tạo
+    applyToMap(map) {
+        if (!map) return;
+        const v = AppState.savedMapView;
+        if (v) map.setView([v.lat, v.lng], v.zoom);
+
+        const wantBase = AppState.activeBaseLayerId;
+        if (wantBase === 'osm_streets' && AppState.baseLayers['osm_streets']) {
+            map.removeLayer(AppState.baseLayers['google_hybrid']);
+            AppState.baseLayers['osm_streets'].addTo(map);
+        }
+
+        if (AppState.is34ProvVisible && AppState.layer34Prov) {
+            AppState.layer34Prov.addTo(map);
+            document.getElementById('btnMap34Prov')?.classList.add('active');
+        } else {
+            AppState.is34ProvVisible = false;
+        }
+        if (AppState.isDtCommunesVisible && AppState.layerDtCommunes) {
+            AppState.layerDtCommunes.addTo(map);
+            document.getElementById('btnMapDtCommunes')?.classList.add('active');
+        } else {
+            AppState.isDtCommunesVisible = false;
+        }
+
+        map.on('moveend zoomend', () => this.save());
+    }
+};
+appSettings.load();
+
 // ================= 2. TIỆN ÍCH TOAST & CLIPBOARD =================
 function showToast(msg, isLong = false) {
     const el = document.getElementById('toast-msg');
@@ -1114,9 +1243,10 @@ const appTransform = {
                 const opt = document.createElement('option');
                 opt.value = idx;
                 opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2,'0')}')`;
-                if (p.name.includes("Hồ Chí Minh")) opt.selected = true;
+                if (idx === AppState.provinceIndex) opt.selected = true;
                 sel.appendChild(opt);
             });
+            sel.value = String(AppState.provinceIndex);
         }
     },
 
@@ -1126,6 +1256,7 @@ const appTransform = {
         document.getElementById('btnMui3').classList.toggle('active', mui === 3);
         document.getElementById('btnMui6').classList.toggle('active', mui === 6);
         appNav.updateBanner();
+        appSettings.save();
         showToast(`Đã chọn Múi ${mui}° (k0 = ${AppState.scaleFactor})`);
     },
 
@@ -1143,11 +1274,13 @@ const appTransform = {
             appModal.openSettings();
         }
         appNav.updateBanner();
+        appSettings.save();
     },
 
     onFormatChange() {
         const val = parseInt(document.getElementById('selFormatWgs').value, 10);
         AppState.formatType = val;
+        appSettings.save();
         // Nếu đang có số Lat/Lng thì cập nhật lại định dạng hiển thị
         const rawLat = parseCoordinateNumber(document.getElementById('txtWgsLat').value);
         const rawLng = parseCoordinateNumber(document.getElementById('txtWgsLng').value);
@@ -1586,6 +1719,11 @@ const appGps = {
             appGps.updateHeaderGpsUI('unsupported');
             return;
         }
+        // Tôn trọng lựa chọn tắt GPS ở lần sử dụng trước
+        if (AppState.isGpsTracking === false) {
+            appGps.stopTracking();
+            return;
+        }
         appGps.updateHeaderGpsUI('searching');
         appGps.startTracking();
     },
@@ -1626,6 +1764,7 @@ const appGps = {
     startTracking() {
         if (AppState.gpsWatchId) return;
         AppState.isGpsTracking = true;
+        appSettings.save();
         appGps.updateHeaderGpsUI('searching');
 
         const btn = document.getElementById('btnToggleGpsTracking');
@@ -1674,6 +1813,7 @@ const appGps = {
             AppState.gpsWatchId = null;
         }
         AppState.isGpsTracking = false;
+        appSettings.save();
         const btn = document.getElementById('btnToggleGpsTracking');
         if (btn) btn.innerText = "▶️ Tiếp tục bắt GPS";
         const badge = document.getElementById('gpsLiveStatusBadge');
@@ -2041,7 +2181,6 @@ const appMap = {
         googleHybrid.addTo(map);
         AppState.baseLayers['google_hybrid'] = googleHybrid;
         AppState.baseLayers['osm_streets'] = osmStreets;
-        AppState.activeBaseLayerId = 'google_hybrid';
 
         AppState.projectMarkersGroup = L.layerGroup().addTo(map);
         AppState.projectDistanceLabelsGroup = L.layerGroup().addTo(map);
@@ -2063,6 +2202,8 @@ const appMap = {
             appMap.initDongThapCommunesLayer();
         }
 
+        appSettings.applyToMap(map);
+
         setTimeout(() => map.invalidateSize(), 250);
     },
 
@@ -2073,11 +2214,13 @@ const appMap = {
             map.removeLayer(AppState.baseLayers['google_hybrid']);
             AppState.baseLayers['osm_streets'].addTo(map);
             AppState.activeBaseLayerId = 'osm_streets';
+            appSettings.save();
             showToast("🗺️ Bản đồ Đường phố (OSM)");
         } else {
             map.removeLayer(AppState.baseLayers['osm_streets']);
             AppState.baseLayers['google_hybrid'].addTo(map);
             AppState.activeBaseLayerId = 'google_hybrid';
+            appSettings.save();
             showToast("🛰️ Bản đồ Vệ tinh (Google Hybrid)");
         }
     },
@@ -2126,11 +2269,13 @@ const appMap = {
         if (AppState.is34ProvVisible) {
             AppState.leafletMap.removeLayer(AppState.layer34Prov);
             AppState.is34ProvVisible = false;
+            appSettings.save();
             if (btn) btn.classList.remove('active');
             showToast("Đã ẩn ranh giới 34 Tỉnh thành");
         } else {
             AppState.layer34Prov.addTo(AppState.leafletMap);
             AppState.is34ProvVisible = true;
+            appSettings.save();
             if (btn) btn.classList.add('active');
             showToast("✓ Đã hiển thị ranh giới 34 Tỉnh thành");
         }
@@ -2181,11 +2326,13 @@ const appMap = {
         if (AppState.isDtCommunesVisible) {
             AppState.leafletMap.removeLayer(AppState.layerDtCommunes);
             AppState.isDtCommunesVisible = false;
+            appSettings.save();
             if (btn) btn.classList.remove('active');
             showToast("Đã ẩn ranh giới xã Đồng Tháp");
         } else {
             AppState.layerDtCommunes.addTo(AppState.leafletMap);
             AppState.isDtCommunesVisible = true;
+            appSettings.save();
             if (btn) btn.classList.add('active');
             showToast("✓ Đã hiển thị ranh giới xã Đồng Tháp");
         }
@@ -2296,6 +2443,7 @@ const appMap = {
 
     toggleDistanceDisplay() {
         AppState.showProjectDistance = !AppState.showProjectDistance;
+        appSettings.save();
         const btn = document.getElementById('btnToggleDistance');
         const txt = document.getElementById('txtDistToggle');
         if (btn) btn.classList.toggle('active', AppState.showProjectDistance);
@@ -5051,6 +5199,7 @@ const appModal = {
         if (mui6Btn) mui6Btn.classList.toggle('active', AppState.muiVal === 6);
 
         appNav.updateBanner();
+        appSettings.saveNow();
         appModal.closeSettings();
         showToast(`✓ Đã lưu KTT: ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`);
     },
@@ -8606,6 +8755,7 @@ const appCadTool = {
 
     toggleSnap() {
         this.snapEnabled = !this.snapEnabled;
+        appSettings.save();
         const btn = document.getElementById('btnCadSnap');
         if (btn) {
             if (this.snapEnabled) {
@@ -15816,7 +15966,14 @@ window.addEventListener('DOMContentLoaded', () => {
     appGps.init();
     if (typeof appDashboard !== 'undefined') appDashboard.init();
     if (typeof appCadTool !== 'undefined') appCadTool.init();
+    appSettings.applyToUi();
     appNav.updateBanner();
+
+    // Lưu chắc chắn khi người dùng đóng tab / chuyển app (PWA trên di động)
+    window.addEventListener('pagehide', () => appSettings.saveNow());
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') appSettings.saveNow();
+    });
 
 
     // Lắng nghe phím bấm Escape để đóng cây thư mục chức năng
@@ -15845,4 +16002,5 @@ if (typeof window !== 'undefined') {
     window.appGeodesy = appGeodesy;
     window.triggerHaptic = triggerHaptic;
     window.showToast = showToast;
+    window.appSettings = appSettings;
 }
