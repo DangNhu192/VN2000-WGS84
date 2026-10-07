@@ -7740,7 +7740,9 @@ const appGeoidVigac = {
 // Tích hợp chuẩn thiết kế TCVN & kiểm soát chất lượng từ vn-autocad-skill
 const appCadTool = {
     isActive: false,
-    mode: 'polygon', // 'polygon' | 'polyline'
+    mode: 'polygon', // 'polygon' | 'polyline' | 'select'
+    activeToolTab: 'draw', // 'draw' | 'select' | 'markup' | 'data' | 'layers'
+    selectedItem: null, // { type: 'shape' | 'annotation', id, index, name }
     snapEnabled: true,
     snapThresholdPx: 24,
     adjacentSnapThresholdMeters: 0.5, // Tự động bắt đỉnh khối liền kề trong phạm vi 0.5m thực địa
@@ -7762,6 +7764,230 @@ const appCadTool = {
         showCenterLabels: true,
         showAnnotations: true,
         showBoundaries: true
+    },
+
+    
+    // === CHUYỂN ĐỔI TAB CÔNG CỤ TRÊN THANH MINICAD TIẾT KIỆM KHÔNG GIAN ===
+    
+    computeRectCorners(centerX, centerY, widthM, lengthM, rotationDeg = 0) {
+        const w = Math.max(0.5, parseFloat(widthM) || 5);
+        const l = Math.max(0.5, parseFloat(lengthM) || 10);
+        const rot = parseFloat(rotationDeg) || 0;
+        const rad = (rot * Math.PI) / 180.0;
+        const cosA = Math.cos(rad);
+        const sinA = Math.sin(rad);
+
+        const hw = w / 2.0;
+        const hl = l / 2.0;
+
+        // 4 local corners (length along X, width along Y)
+        const localCorners = [
+            { dx: hl, dy: -hw },
+            { dx: hl, dy: hw },
+            { dx: -hl, dy: hw },
+            { dx: -hl, dy: -hw }
+        ];
+
+        return localCorners.map(pt => {
+            const rotX = pt.dx * cosA - pt.dy * sinA;
+            const rotY = pt.dx * sinA + pt.dy * cosA;
+            const vnX = centerX + rotX;
+            const vnY = centerY + rotY;
+            const wgs = convertVn2kToWgs(vnX, vnY, AppState.kttVal, AppState.scaleFactor);
+            return [wgs.lat, wgs.lng];
+        });
+    },
+
+    onStampTypeChange(type) {
+        const pBox = document.getElementById('boxStampFieldsParcel');
+        const dBox = document.getElementById('boxStampFieldsDrawing');
+        if (pBox) pBox.style.display = (type === 'parcel' || type === 'custom') ? 'block' : 'none';
+        if (dBox) dBox.style.display = (type === 'drawing') ? 'block' : 'none';
+    },
+
+    switchToolTab(tabKey) {
+        this.activeToolTab = tabKey;
+        const tabs = ['draw', 'select', 'markup', 'data', 'layers'];
+        const tabBtns = {
+            draw: 'cadTabDraw',
+            select: 'cadTabSelect',
+            markup: 'cadTabMarkup',
+            data: 'cadTabData',
+            layers: 'cadTabLayers'
+        };
+        const panels = {
+            draw: 'cadPanelDraw',
+            select: 'cadPanelSelect',
+            markup: 'cadPanelMarkup',
+            data: 'cadPanelData',
+            layers: 'cadPanelLayers'
+        };
+
+        tabs.forEach(t => {
+            const btn = document.getElementById(tabBtns[t]);
+            const panel = document.getElementById(panels[t]);
+            if (btn) btn.classList.toggle('active', t === tabKey);
+            if (panel) {
+                if (t === tabKey) {
+                    panel.style.display = 'flex';
+                    panel.classList.add('active');
+                } else {
+                    panel.style.display = 'none';
+                    panel.classList.remove('active');
+                }
+            }
+        });
+
+        if (tabKey === 'select') {
+            this.setMode('select');
+        } else if (tabKey === 'draw' && this.mode === 'select') {
+            this.setMode('polygon');
+        }
+    },
+
+    // === CÔNG CỤ CHỌN ĐỐI TƯỢNG (SELECT & EDIT TOOL ↖️) ===
+    selectItem(item) {
+        this.selectedItem = item;
+        const nameEl = document.getElementById('cadSelectedObjectName');
+        const btnEdit = document.getElementById('btnCadEditSelected');
+        const btnColor = document.getElementById('btnCadColorSelected');
+        const btnDel = document.getElementById('btnCadDeleteSelected');
+        const btnDesel = document.getElementById('btnCadDeselect');
+
+        if (item) {
+            let label = 'Đang chọn: ';
+            if (item.type === 'shape') {
+                const s = this.savedShapes[item.index];
+                const areaStr = (s && s.stats) ? s.stats.areaFormatted + ' m²' : '';
+                label += `Khối [${s ? (s.name || s.shortName) : 'Thửa'}] ${areaStr}`;
+            } else if (item.type === 'annotation') {
+                const a = (this.annotations || []).find(ann => ann.id === item.id);
+                if (a) {
+                    if (a.type === 'arrow') label += `Mũi tên "${a.arrowText || 'Ghi chú'}"`;
+                    else if (a.type === 'stamp') label += `Tem thửa ${a.parcelNo || ''} (Tờ ${a.sheetNo || ''})`;
+                    else if (a.type === 'rect') label += `Khối "${a.rectName || 'Nhà'}" (${a.widthM || 0}x${a.lengthM || 0}m)`;
+                    else if (a.type === 'circle') label += `Vùng đệm R=${a.radiusM || 0}m`;
+                    else if (a.type === 'text') label += `Chữ "${a.text || ''}"`;
+                    else label += 'Chú thích';
+                }
+            }
+
+            if (nameEl) {
+                nameEl.innerText = label;
+                nameEl.style.color = '#38bdf8';
+                nameEl.style.borderColor = '#38bdf8';
+                nameEl.style.background = 'rgba(56, 189, 248, 0.2)';
+            }
+            if (btnEdit) btnEdit.style.display = 'inline-flex';
+            if (btnColor) btnColor.style.display = 'inline-flex';
+            if (btnDel) btnDel.style.display = 'inline-flex';
+            if (btnDesel) btnDesel.style.display = 'inline-flex';
+
+            // Tự động chuyển qua tab Chọn nếu chưa ở tab này
+            if (this.activeToolTab !== 'select') {
+                this.switchToolTab('select');
+            }
+            triggerHaptic('selection');
+            showToast(`↖️ ${label}`);
+        } else {
+            this.deselectCurrent();
+        }
+        this.renderGeometry();
+        this.renderAnnotations();
+    },
+
+    deselectCurrent() {
+        this.selectedItem = null;
+        const nameEl = document.getElementById('cadSelectedObjectName');
+        const btnEdit = document.getElementById('btnCadEditSelected');
+        const btnColor = document.getElementById('btnCadColorSelected');
+        const btnDel = document.getElementById('btnCadDeleteSelected');
+        const btnDesel = document.getElementById('btnCadDeselect');
+
+        if (nameEl) {
+            nameEl.innerText = 'Chưa chọn đối tượng nào';
+            nameEl.style.color = '#fbbf24';
+            nameEl.style.borderColor = 'rgba(251, 191, 36, 0.3)';
+            nameEl.style.background = 'rgba(251, 191, 36, 0.15)';
+        }
+        if (btnEdit) btnEdit.style.display = 'none';
+        if (btnColor) btnColor.style.display = 'none';
+        if (btnDel) btnDel.style.display = 'none';
+        if (btnDesel) btnDesel.style.display = 'none';
+        this.renderGeometry();
+        this.renderAnnotations();
+    },
+
+    deleteSelectedItem() {
+        if (!this.selectedItem) {
+            showToast('⚠️ Vui lòng nhấp chọn đối tượng cần xóa trước!');
+            return;
+        }
+        const item = this.selectedItem;
+        if (item.type === 'shape') {
+            const s = this.savedShapes[item.index];
+            const sName = s ? (s.name || s.shortName) : 'khối';
+            if (confirm(`Bạn có chắc chắn muốn xóa khối "${sName}" khỏi bản đồ không?`)) {
+                this.pushHistoryState(`Xóa khối ${sName}`);
+                this.deleteShape(item.index);
+                this.deselectCurrent();
+            }
+        } else if (item.type === 'annotation') {
+            this.pushHistoryState('Xóa chú thích');
+            this.deleteAnnotation(item.id);
+            this.deselectCurrent();
+        }
+    },
+
+    editSelectedItem() {
+        if (!this.selectedItem) return;
+        const item = this.selectedItem;
+        if (item.type === 'shape') {
+            const s = this.savedShapes[item.index];
+            if (!s) return;
+            const newName = prompt('Nhập tên mới cho khối này:', s.name || s.shortName);
+            if (newName && newName.trim()) {
+                this.pushHistoryState(`Đổi tên khối ${s.name}`);
+                s.name = newName.trim();
+                s.shortName = newName.trim();
+                this.saveShapesForProject(AppState.currentProject);
+                this.renderGeometry();
+                this.renderBlocksPanel();
+                this.selectItem(item);
+                showToast(`✓ Đã đổi tên thành: ${s.name}`);
+            }
+        } else if (item.type === 'annotation') {
+            this.openAnnotationModal(item.id);
+        }
+    },
+
+    changeSelectedColor() {
+        if (!this.selectedItem) return;
+        const item = this.selectedItem;
+        const colors = ['#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#38bdf8', '#84cc16', '#ef4444', '#f97316'];
+        
+        if (item.type === 'shape') {
+            const s = this.savedShapes[item.index];
+            if (!s) return;
+            this.pushHistoryState(`Đổi màu khối ${s.name}`);
+            const curIdx = colors.indexOf(s.color || '#06b6d4');
+            const nextColor = colors[(curIdx + 1) % colors.length];
+            s.color = nextColor;
+            this.saveShapesForProject(AppState.currentProject);
+            this.renderGeometry();
+            this.renderBlocksPanel();
+            showToast(`🎨 Đã đổi màu khối: ${nextColor}`);
+        } else if (item.type === 'annotation') {
+            const a = (this.annotations || []).find(ann => ann.id === item.id);
+            if (!a) return;
+            this.pushHistoryState('Đổi màu chú thích');
+            const curIdx = colors.indexOf(a.color || '#f59e0b');
+            const nextColor = colors[(curIdx + 1) % colors.length];
+            a.color = nextColor;
+            this.saveAnnotations();
+            this.renderAnnotations();
+            showToast(`🎨 Đã đổi màu chú thích: ${nextColor}`);
+        }
     },
 
     initDisplaySettings() {
@@ -8560,7 +8786,6 @@ const appCadTool = {
         // Tắt trạng thái active của các nút ghi chú/markup
         const modeBtns = {
             arrow: 'btnCadMarkupArrow',
-            north_arrow: 'btnCadMarkupNorth',
             rect: 'btnCadMarkupRect',
             circle: 'btnCadMarkupCircle',
             stamp: 'btnCadMarkupStamp',
@@ -8575,20 +8800,27 @@ const appCadTool = {
 
         const btnPoly = document.getElementById('btnCadModePoly');
         const btnLine = document.getElementById('btnCadModeLine');
+        const btnSelect = document.getElementById('btnCadToolSelectMode');
         const badge = document.getElementById('cadModeBadge');
-        if (btnPoly && btnLine) {
-            if (mode === 'polygon') {
-                btnPoly.classList.add('active');
-                btnLine.classList.remove('active');
-                if (badge) badge.innerText = "Đa giác ranh";
-                showToast("📐 Chế độ vẽ: Đa giác khép kín (Chạm bản đồ để dựng mốc)");
-            } else {
-                btnLine.classList.add('active');
-                btnPoly.classList.remove('active');
-                if (badge) badge.innerText = "Đường tim tuyến";
-                showToast("📏 Chế độ vẽ: Tim tuyến hở (Chạm bản đồ để dựng mốc)");
-            }
+
+        if (btnPoly) btnPoly.classList.toggle('active', mode === 'polygon');
+        if (btnLine) btnLine.classList.toggle('active', mode === 'polyline');
+        if (btnSelect) btnSelect.classList.toggle('active', mode === 'select');
+
+        if (badge) {
+            if (mode === 'polygon') badge.innerText = "Đa giác ranh";
+            else if (mode === 'polyline') badge.innerText = "Đường tim tuyến";
+            else if (mode === 'select') badge.innerText = "Chọn đối tượng ↖️";
         }
+
+        if (mode === 'select') {
+            showToast("↖️ Chế độ Chọn: Chạm vào thửa đất hoặc nhãn để chọn/sửa/xóa");
+        } else if (mode === 'polygon') {
+            showToast("📐 Chế độ vẽ: Đa giác khép kín (Chạm bản đồ để dựng mốc)");
+        } else if (mode === 'polyline') {
+            showToast("📏 Chế độ vẽ: Tim tuyến hở (Chạm bản đồ để dựng mốc)");
+        }
+
         this.renderGeometry();
         this.updateUi();
     },
@@ -9480,6 +9712,11 @@ const appCadTool = {
         }
         this._lastClickTime = now;
         this.ensureLayers();
+        if (this.mode === 'select') {
+            // Khi ở chế độ chọn, nếu click vào khoảng trống trên bản đồ thì bỏ chọn
+            this.deselectCurrent();
+            return;
+        }
         if (this.markupMode) {
             this.handleMarkupClick(lat, lng);
             return;
@@ -9667,6 +9904,7 @@ const appCadTool = {
     },
 
     clearDrawing() {
+        this.pushHistoryState('Xóa bản vẽ CAD');
         if (this.vertices.length === 0 && this.savedShapes.length === 0) {
             showToast("Bản vẽ hiện đang trống!");
             return;
@@ -9776,12 +10014,13 @@ const appCadTool = {
                 if (!this.markupStepData) {
                     this.markupStepData = { startLat: clickLat, startLng: clickLng };
                     const statusEl = document.getElementById('cadMarkupStatus');
-                    if (statusEl) statusEl.innerText = '🏹 Đã chọn gốc mũi tên. Giờ click điểm đặt chữ ghi chú...';
-                    showToast('🏹 Đã chọn gốc mũi tên! Click điểm đặt chữ ghi chú...');
+                    if (statusEl) statusEl.innerText = '🏹 Đã chọn gốc mũi tên. Giờ click điểm đặt nhãn ghi chú...';
+                    showToast('🏹 Đã chọn gốc mũi tên! Click điểm đặt nhãn ghi chú...');
                 } else {
                     const defText = candidate ? (candidate.name || 'Mốc ranh') : 'Mốc ranh';
                     const text = prompt('Nhập nội dung ghi chú cho mũi tên (ví dụ: Mốc M1, Ranh thửa, Bờ kênh...):', defText);
                     if (text !== null) {
+                        this.pushHistoryState('Thêm mũi tên CAD');
                         const ann = {
                             id: 'ann_' + Date.now(),
                             type: 'arrow',
@@ -9804,29 +10043,12 @@ const appCadTool = {
                 break;
             }
 
-            case 'north_arrow': {
-                const ann = {
-                    id: 'ann_' + Date.now(),
-                    type: 'north_arrow',
-                    lat: clickLat,
-                    lng: clickLng,
-                    color: '#38bdf8',
-                    size: 44
-                };
-                this.annotations.push(ann);
-                this.saveAnnotations();
-                this.renderAnnotations();
-                this.setMarkupMode(null);
-                showToast('✓ Đã chèn La bàn hướng Bắc trắc địa!');
-                break;
-            }
-
             case 'rect': {
                 if (!this.markupStepData) {
                     this.markupStepData = { p1: { lat: clickLat, lng: clickLng } };
                     const statusEl = document.getElementById('cadMarkupStatus');
-                    if (statusEl) statusEl.innerText = '🏠 Click góc đối diện (hoặc click lại cùng vị trí để tạo khối 5m x 10m)';
-                    showToast('🏠 Click góc đối diện (hoặc click tiếp để đặt khối 5m x 10m)');
+                    if (statusEl) statusEl.innerText = '🏠 Click góc đối diện (hoặc click tiếp để đặt khối 5x10m)';
+                    showToast('🏠 Click góc đối diện (hoặc click tiếp để tạo khối 5x10m)');
                 } else {
                     const p1 = this.markupStepData.p1;
                     const p2 = { lat: clickLat, lng: clickLng };
@@ -9846,39 +10068,32 @@ const appCadTool = {
                     l = Math.max(1, parseFloat(l.toFixed(2)));
                     const area = parseFloat((w * l).toFixed(2));
 
-                    const minX = Math.min(vn1.X, vn2.X);
-                    const minY = Math.min(vn1.Y, vn2.Y);
-                    const maxX = minX + l;
-                    const maxY = minY + w;
+                    const cX = (vn1.X + vn2.X) / 2;
+                    const cY = (vn1.Y + vn2.Y) / 2;
+                    const cWgs = convertVn2kToWgs(cX, cY, AppState.kttVal, AppState.scaleFactor);
 
-                    const c1 = convertVn2kToWgs(maxX, minY, AppState.kttVal, AppState.scaleFactor);
-                    const c2 = convertVn2kToWgs(maxX, maxY, AppState.kttVal, AppState.scaleFactor);
-                    const c3 = convertVn2kToWgs(minX, maxY, AppState.kttVal, AppState.scaleFactor);
-                    const c4 = convertVn2kToWgs(minX, minY, AppState.kttVal, AppState.scaleFactor);
-
+                    this.pushHistoryState('Thêm khối công trình');
                     const ann = {
                         id: 'ann_' + Date.now(),
                         type: 'rect',
-                        lat: (c1.lat + c3.lat) / 2,
-                        lng: (c1.lng + c3.lng) / 2,
-                        corners: [
-                            [c1.lat, c1.lng],
-                            [c2.lat, c2.lng],
-                            [c3.lat, c3.lng],
-                            [c4.lat, c4.lng]
-                        ],
+                        lat: cWgs.lat,
+                        lng: cWgs.lng,
                         widthM: w,
                         lengthM: l,
+                        rotationDeg: 0,
+                        shapeType: 'rect',
                         rectArea: area,
                         rectName: 'Khối nhà',
                         color: '#ec4899'
                     };
+                    ann.corners = this.computeRectCorners(cX, cY, w, l, 0);
+
                     this.annotations.push(ann);
                     this.saveAnnotations();
                     this.renderAnnotations();
                     this.markupStepData = null;
                     this.setMarkupMode(null);
-                    showToast('✓ Đã tạo khối công trình: ' + w + 'm x ' + l + 'm (' + area + ' m²)');
+                    showToast(`✓ Đã tạo khối công trình: ${w}m x ${l}m (${area} m²)`);
                 }
                 break;
             }
@@ -9888,6 +10103,7 @@ const appCadTool = {
                 if (rStr !== null) {
                     const r = parseFloat(rStr) || 10;
                     const name = prompt('Tên đối tượng bảo vệ (giếng khoan, trụ điện, hành lang lộ giới...):', 'Vùng bảo vệ') || 'Vùng bảo vệ';
+                    this.pushHistoryState('Thêm vùng đệm bán kính');
                     const ann = {
                         id: 'ann_' + Date.now(),
                         type: 'circle',
@@ -9914,9 +10130,11 @@ const appCadTool = {
                 const defArea = (matchedShape && matchedShape.stats) ? (matchedShape.stats.area.toFixed(1) + ' m²') : '150.0 m²';
                 const defParcel = (matchedShape && matchedShape.name) ? (matchedShape.name.replace(/[^0-9]/g, '') || '01') : '01';
 
+                this.pushHistoryState('Đóng tem nhãn bản vẽ');
                 const ann = {
                     id: 'ann_' + Date.now(),
                     type: 'stamp',
+                    stampType: 'parcel',
                     lat: clickLat,
                     lng: clickLng,
                     sheetNo: '01',
@@ -9924,13 +10142,16 @@ const appCadTool = {
                     area: defArea,
                     owner: 'Chủ sử dụng đất',
                     landType: 'ONT',
+                    drawTitle: 'HIỆN TRẠNG KHU ĐẤT',
+                    drawScale: '1:500',
+                    drawAuthor: 'Kỹ sư trắc địa',
                     color: '#38bdf8'
                 };
                 this.annotations.push(ann);
                 this.saveAnnotations();
                 this.renderAnnotations();
                 this.setMarkupMode(null);
-                showToast('✓ Đã đóng tem nhãn thửa đất! Nhấp vào tem để sửa thông tin.');
+                showToast('✓ Đã đóng tem nhãn bản vẽ! Nhấp vào tem để chỉnh sửa nội dung.');
                 this.openAnnotationModal(ann.id);
                 break;
             }
@@ -9938,6 +10159,7 @@ const appCadTool = {
             case 'text': {
                 const txt = prompt('Nhập nội dung chữ ghi chú:', 'Ghi chú kỹ thuật');
                 if (txt !== null && txt.trim() !== '') {
+                    this.pushHistoryState('Thêm chữ ghi chú');
                     const ann = {
                         id: 'ann_' + Date.now(),
                         type: 'text',
@@ -9946,7 +10168,7 @@ const appCadTool = {
                         text: txt.trim(),
                         fontSize: 12,
                         color: '#f8fafc',
-                        bgColor: 'rgba(15, 23, 42, 0.85)',
+                        bgColor: 'rgba(15, 23, 42, 0.88)',
                         borderColor: '#38bdf8'
                     };
                     this.annotations.push(ann);
@@ -9973,47 +10195,83 @@ const appCadTool = {
         }
 
         this.annotations.forEach(ann => {
+            const isSelected = this.selectedItem && this.selectedItem.type === 'annotation' && this.selectedItem.id === ann.id;
+            const annColor = isSelected ? '#facc15' : (ann.color || '#38bdf8');
+
             switch (ann.type) {
                 case 'arrow': {
+                    // Đường gióng nét liền sắc nét chuẩn CAD (Leader Line)
                     const polyline = L.polyline([
                         [ann.startLat, ann.startLng],
                         [ann.endLat, ann.endLng]
                     ], {
-                        color: ann.color || '#f59e0b',
-                        weight: 2,
-                        dashArray: '4,4',
+                        color: annColor,
+                        weight: isSelected ? 3.5 : 2,
+                        lineJoin: 'round',
+                        lineCap: 'round',
                         interactive: true
                     });
-                    polyline.on('click', () => this.openAnnotationModal(ann.id));
+                    polyline.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: ann.arrowText || 'Mũi tên' });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
+                    });
                     this.layers.annotationsGroup.addLayer(polyline);
 
+                    // Tính góc phương vị từ điểm đặt chữ về điểm chỉ mốc để mũi tên chỉ trúng đích
                     const dy = ann.startLat - ann.endLat;
                     const dx = (ann.startLng - ann.endLng) * Math.cos((ann.startLat + ann.endLat) * Math.PI / 360);
-                    const angleDeg = Math.atan2(dx, dy) * 180 / Math.PI;
+                    // Góc xoay hướng về phía gốc mốc ranh
+                    const pointAngleDeg = Math.atan2(dx, dy) * 180 / Math.PI;
+
+                    // Mũi tên Vector SVG chuẩn kỹ thuật CAD (góc nhọn 18° thanh thoát, viền sắc nét)
+                    const arrowSvg = `<svg width="24" height="24" viewBox="-12 -12 24 24" style="transform: rotate(${pointAngleDeg}deg); overflow: visible; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); cursor: pointer;">
+                        <path d="M0,-9 L5,5 L0,1.5 L-5,5 Z" fill="${annColor}" stroke="#0f172a" stroke-width="1.2" />
+                    </svg>`;
 
                     const arrowIcon = L.divIcon({
                         className: 'cad-arrow-tip-marker',
-                        html: '<div style="transform: rotate(' + angleDeg + 'deg); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 12px solid ' + (ann.color || '#f59e0b') + '; margin-left: -5px; margin-top: -6px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));"></div>',
-                        iconSize: [12, 12],
-                        iconAnchor: [6, 6]
+                        html: arrowSvg,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
                     });
                     const headMarker = L.marker([ann.startLat, ann.startLng], {
                         icon: arrowIcon,
-                        interactive: true
+                        interactive: true,
+                        zIndexOffset: 3300
                     });
-                    headMarker.on('click', () => this.openAnnotationModal(ann.id));
+                    headMarker.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: ann.arrowText || 'Mũi tên' });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
+                    });
                     this.layers.annotationsGroup.addLayer(headMarker);
 
+                    // Nhãn chữ ghi chú tại đuôi mũi tên
+                    const labelHtml = `<div class="cad-arrow-label-marker" style="background: rgba(15,23,42,0.94); border: 1.5px solid ${annColor}; color: #f8fafc; font-size: ${ann.fontSize || 12}px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; display: flex; align-items: center; gap: 4px; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                        <span style="color: ${annColor}; font-size: 11px;">🏹</span>
+                        <span>${ann.arrowText || 'Ghi chú'}</span>
+                    </div>`;
                     const labelIcon = L.divIcon({
-                        className: 'cad-arrow-label-marker',
-                        html: '<div style="background: rgba(15,23,42,0.92); border: 1.5px solid ' + (ann.color || '#f59e0b') + '; color: #f8fafc; font-size: ' + (ann.fontSize || 12) + 'px; font-weight: 700; padding: 2px 7px; border-radius: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: move; user-select: none;">' + (ann.arrowText || 'Ghi chú') + '</div>',
+                        className: 'cad-arrow-label-icon',
+                        html: labelHtml,
                         iconSize: null,
-                        iconAnchor: [0, 10]
+                        iconAnchor: [0, 12]
                     });
                     const textMarker = L.marker([ann.endLat, ann.endLng], {
                         icon: labelIcon,
                         draggable: true,
-                        zIndexOffset: 3200
+                        zIndexOffset: 3400
+                    });
+
+                    textMarker.on('dragstart', () => {
+                        this.pushHistoryState('Dời nhãn mũi tên');
                     });
                     textMarker.on('drag', (e) => {
                         const pos = e.target.getLatLng();
@@ -10030,69 +10288,55 @@ const appCadTool = {
                     });
                     textMarker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
-                        this.openAnnotationModal(ann.id);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: ann.arrowText || 'Mũi tên' });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
                     });
                     this.layers.annotationsGroup.addLayer(textMarker);
-                    break;
-                }
-
-                case 'north_arrow': {
-                    const compassHtml = '<div style="width: 44px; height: 44px; background: rgba(15,23,42,0.9); border: 2px solid ' + (ann.color || '#38bdf8') + '; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.6); cursor: move; user-select: none;">' +
-                        '<span style="font-size: 11px; font-weight: 900; color: #f43f5e; line-height: 1; margin-top: -2px;">▲</span>' +
-                        '<span style="font-size: 11px; font-weight: 900; color: #38bdf8; line-height: 1; margin-top: 1px;">N</span>' +
-                        '</div>';
-                    const compassIcon = L.divIcon({
-                        className: 'cad-north-arrow-marker',
-                        html: compassHtml,
-                        iconSize: [44, 44],
-                        iconAnchor: [22, 22]
-                    });
-                    const marker = L.marker([ann.lat, ann.lng], {
-                        icon: compassIcon,
-                        draggable: true,
-                        zIndexOffset: 3200
-                    });
-                    marker.on('dragend', (e) => {
-                        const pos = e.target.getLatLng();
-                        ann.lat = pos.lat;
-                        ann.lng = pos.lng;
-                        this.saveAnnotations();
-                    });
-                    marker.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        this.openAnnotationModal(ann.id);
-                    });
-                    this.layers.annotationsGroup.addLayer(marker);
                     break;
                 }
 
                 case 'rect': {
                     if (ann.corners && ann.corners.length >= 4) {
                         const poly = L.polygon(ann.corners, {
-                            color: ann.color || '#ec4899',
-                            weight: 2,
+                            color: annColor,
+                            weight: isSelected ? 3.5 : 2,
                             fillColor: ann.color || '#ec4899',
-                            fillOpacity: 0.25,
+                            fillOpacity: isSelected ? 0.45 : 0.25,
                             interactive: true
                         });
-                        poly.on('click', () => this.openAnnotationModal(ann.id));
+                        poly.on('click', (e) => {
+                            L.DomEvent.stopPropagation(e);
+                            if (this.mode === 'select') {
+                                this.selectItem({ type: 'annotation', id: ann.id, name: ann.rectName || 'Khối nhà' });
+                            } else {
+                                this.openAnnotationModal(ann.id);
+                            }
+                        });
                         this.layers.annotationsGroup.addLayer(poly);
                     }
 
-                    const rectLabelHtml = '<div style="background: rgba(15,23,42,0.85); border: 1px solid ' + (ann.color || '#ec4899') + '; color: #fce7f3; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-align: center; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: move;">' +
-                        '<div>' + (ann.rectName || 'Khối nhà') + '</div>' +
-                        '<div style="color: #f472b6; font-size: 9.5px;">' + ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)</div>' +
-                        '</div>';
+                    const rotInfo = ann.rotationDeg ? ` • ${ann.rotationDeg}°` : '';
+                    const rectLabelHtml = `<div style="background: rgba(15,23,42,0.92); border: 1.5px solid ${annColor}; color: #fce7f3; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-align: center; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                        <div>🏠 ${ann.rectName || 'Khối nhà'}</div>
+                        <div style="color: #f472b6; font-size: 9.5px; font-weight: 600;">${ann.widthM || 0}x${ann.lengthM || 0}m (${ann.rectArea || 0}m²)${rotInfo}</div>
+                    </div>`;
                     const labelIcon = L.divIcon({
                         className: 'cad-rect-label-marker',
                         html: rectLabelHtml,
                         iconSize: null,
-                        iconAnchor: [40, 15]
+                        iconAnchor: [45, 18]
                     });
                     const marker = L.marker([ann.lat, ann.lng], {
                         icon: labelIcon,
                         draggable: true,
-                        zIndexOffset: 3200
+                        zIndexOffset: 3400
+                    });
+
+                    marker.on('dragstart', () => {
+                        this.pushHistoryState('Dời khối nhà');
                     });
                     marker.on('dragend', (e) => {
                         const pos = e.target.getLatLng();
@@ -10108,39 +10352,62 @@ const appCadTool = {
                     });
                     marker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
-                        this.openAnnotationModal(ann.id);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: ann.rectName || 'Khối nhà' });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
                     });
                     this.layers.annotationsGroup.addLayer(marker);
                     break;
                 }
 
-                case 'circle': {
-                    const circ = L.circle([ann.lat, ann.lng], {
-                        radius: ann.radiusM || 10,
-                        color: ann.color || '#10b981',
-                        weight: 2,
-                        dashArray: '5,5',
-                        fillColor: ann.color || '#10b981',
-                        fillOpacity: 0.15,
-                        interactive: true
-                    });
-                    circ.on('click', () => this.openAnnotationModal(ann.id));
-                    this.layers.annotationsGroup.addLayer(circ);
+                case 'stamp': {
+                    let stampInner = '';
+                    if (ann.stampType === 'drawing') {
+                        stampInner = `
+                            <div style="font-weight: 800; color: ${annColor}; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 3px; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">
+                                📋 ${ann.drawTitle || 'HIỆN TRẠNG KHU ĐẤT'}
+                            </div>
+                            <div style="font-size: 10px; color: #cbd5e1; line-height: 1.45;">
+                                <div>📐 Tỷ lệ: <b style="color: #4ade80;">${ann.drawScale || '1:500'}</b></div>
+                                <div>👤 Người lập: <b style="color: #f1f5f9;">${ann.drawAuthor || '--'}</b></div>
+                                <div>🏷️ Thửa/Khối: <b style="color: #fbbf24;">${ann.parcelNo || '--'} (Tờ ${ann.sheetNo || '--'})</b></div>
+                            </div>
+                        `;
+                    } else {
+                        // Mặc định hoặc tem thửa đất
+                        stampInner = `
+                            <div style="font-weight: 800; color: ${annColor}; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 3px; margin-bottom: 4px; display: flex; justify-content: space-between; font-size: 11px;">
+                                <span>TỜ: <b style="color: #fff;">${ann.sheetNo || '01'}</b></span>
+                                <span>THỬA: <b style="color: #fff;">${ann.parcelNo || '01'}</b></span>
+                            </div>
+                            <div style="font-size: 10px; color: #cbd5e1; line-height: 1.45;">
+                                <div>📐 DT: <b style="color: #4ade80;">${ann.area || '--'}</b></div>
+                                <div>👤 Chủ: <b style="color: #f1f5f9;">${ann.owner || '--'}</b></div>
+                                <div>🏷️ Loại: <b style="color: #fbbf24;">${ann.landType || '--'}</b></div>
+                            </div>
+                        `;
+                    }
 
-                    const circLabelHtml = '<div style="background: rgba(15,23,42,0.85); border: 1px solid ' + (ann.color || '#10b981') + '; color: #a7f3d0; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-align: center; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: move;">' +
-                        '<div>⭕ ' + (ann.circleName || 'Vùng bảo vệ') + '</div>' +
-                        '<div style="color: #6ee7b7; font-size: 9px;">R = ' + ann.radiusM + 'm</div>' +
-                        '</div>';
-                    const labelIcon = L.divIcon({
-                        className: 'cad-circle-label-marker',
-                        html: circLabelHtml,
+                    const stampHtml = `<div style="background: rgba(15,23,42,0.95); border: 2px solid ${annColor}; border-radius: 8px; padding: 6px 10px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 6px 18px rgba(0,0,0,0.65); min-width: 145px; cursor: move; user-select: none; text-align: left; ${isSelected ? 'box-shadow: 0 0 12px #facc15;' : ''}">
+                        ${stampInner}
+                    </div>`;
+
+                    const stampIcon = L.divIcon({
+                        className: 'cad-parcel-stamp-marker',
+                        html: stampHtml,
                         iconSize: null,
-                        iconAnchor: [35, 12]
+                        iconAnchor: [72, 35]
                     });
                     const marker = L.marker([ann.lat, ann.lng], {
-                        icon: labelIcon,
+                        icon: stampIcon,
                         draggable: true,
-                        zIndexOffset: 3200
+                        zIndexOffset: 3400
+                    });
+
+                    marker.on('dragstart', () => {
+                        this.pushHistoryState('Dời tem nhãn bản vẽ');
                     });
                     marker.on('dragend', (e) => {
                         const pos = e.target.getLatLng();
@@ -10151,73 +10418,107 @@ const appCadTool = {
                     });
                     marker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
-                        this.openAnnotationModal(ann.id);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: 'Tem nhãn ' + (ann.parcelNo || '') });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
                     });
                     this.layers.annotationsGroup.addLayer(marker);
                     break;
                 }
 
-                case 'stamp': {
-                    const stampHtml = '<div style="background: rgba(15,23,42,0.94); border: 2px solid ' + (ann.color || '#38bdf8') + '; border-radius: 6px; padding: 5px 8px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 4px 14px rgba(0,0,0,0.6); min-width: 140px; cursor: move; user-select: none; text-align: left;">' +
-                        '<div style="font-weight: 800; color: #38bdf8; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 3px; margin-bottom: 4px; display: flex; justify-content: space-between; font-size: 11px;">' +
-                        '<span>TỜ: <b style="color: #fff;">' + (ann.sheetNo || '01') + '</b></span>' +
-                        '<span>THỬA: <b style="color: #fff;">' + (ann.parcelNo || '01') + '</b></span>' +
-                        '</div>' +
-                        '<div style="font-size: 10px; color: #cbd5e1; line-height: 1.4;">' +
-                        '<div>📐 DT: <b style="color: #4ade80;">' + (ann.area || '--') + '</b></div>' +
-                        '<div>👤 Chủ: <b style="color: #f1f5f9;">' + (ann.owner || '--') + '</b></div>' +
-                        '<div>🏷️ Loại: <b style="color: #fbbf24;">' + (ann.landType || '--') + '</b></div>' +
-                        '</div>' +
-                        '</div>';
-                    const stampIcon = L.divIcon({
-                        className: 'cad-parcel-stamp-marker',
-                        html: stampHtml,
+                case 'circle': {
+                    const circ = L.circle([ann.lat, ann.lng], {
+                        radius: ann.radiusM || 10,
+                        color: annColor,
+                        weight: isSelected ? 3.5 : 2,
+                        dashArray: '5,5',
+                        fillColor: ann.color || '#10b981',
+                        fillOpacity: isSelected ? 0.35 : 0.15,
+                        interactive: true
+                    });
+                    circ.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: ann.circleName || 'Vùng đệm' });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
+                    });
+                    this.layers.annotationsGroup.addLayer(circ);
+
+                    const circLabelHtml = `<div style="background: rgba(15,23,42,0.9); border: 1.5px solid ${annColor}; color: #a7f3d0; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-align: center; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: move; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                        <div>⭕ ${ann.circleName || 'Vùng bảo vệ'}</div>
+                        <div style="color: #6ee7b7; font-size: 9px;">R = ${ann.radiusM}m</div>
+                    </div>`;
+                    const labelIcon = L.divIcon({
+                        className: 'cad-circle-label-marker',
+                        html: circLabelHtml,
                         iconSize: null,
-                        iconAnchor: [70, 30]
+                        iconAnchor: [38, 14]
                     });
                     const marker = L.marker([ann.lat, ann.lng], {
-                        icon: stampIcon,
+                        icon: labelIcon,
                         draggable: true,
-                        zIndexOffset: 3200
+                        zIndexOffset: 3400
+                    });
+
+                    marker.on('dragstart', () => {
+                        this.pushHistoryState('Dời vùng đệm');
                     });
                     marker.on('dragend', (e) => {
                         const pos = e.target.getLatLng();
                         ann.lat = pos.lat;
                         ann.lng = pos.lng;
                         this.saveAnnotations();
+                        this.renderAnnotations();
                     });
                     marker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
-                        this.openAnnotationModal(ann.id);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: ann.circleName || 'Vùng đệm' });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
                     });
                     this.layers.annotationsGroup.addLayer(marker);
                     break;
                 }
 
                 case 'text': {
-                    const textHtml = '<div style="background: ' + (ann.bgColor || 'rgba(15, 23, 42, 0.88)') + '; border: 1.5px solid ' + (ann.borderColor || ann.color || '#38bdf8') + '; border-radius: 4px; padding: 2px 7px; color: ' + (ann.color || '#f8fafc') + '; font-size: ' + (ann.fontSize || 12) + 'px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: move; user-select: none;">' +
-                        (ann.text || 'Ghi chú') +
-                        '</div>';
+                    const textHtml = `<div style="background: ${ann.bgColor || 'rgba(15, 23, 42, 0.9)'}; border: 1.5px solid ${annColor}; border-radius: 6px; padding: 3px 8px; color: ${ann.color || '#f8fafc'}; font-size: ${ann.fontSize || 12}px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: move; user-select: none; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                        ${ann.text || 'Ghi chú'}
+                    </div>`;
                     const textIcon = L.divIcon({
-                        className: 'cad-custom-text-marker',
+                        className: 'cad-text-note-marker',
                         html: textHtml,
                         iconSize: null,
-                        iconAnchor: [0, 10]
+                        iconAnchor: [10, 10]
                     });
                     const marker = L.marker([ann.lat, ann.lng], {
                         icon: textIcon,
                         draggable: true,
-                        zIndexOffset: 3200
+                        zIndexOffset: 3400
+                    });
+
+                    marker.on('dragstart', () => {
+                        this.pushHistoryState('Dời chữ ghi chú');
                     });
                     marker.on('dragend', (e) => {
                         const pos = e.target.getLatLng();
                         ann.lat = pos.lat;
                         ann.lng = pos.lng;
                         this.saveAnnotations();
+                        this.renderAnnotations();
                     });
                     marker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
-                        this.openAnnotationModal(ann.id);
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: ann.text || 'Chữ' });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
                     });
                     this.layers.annotationsGroup.addLayer(marker);
                     break;
@@ -10281,7 +10582,7 @@ const appCadTool = {
 
         switch (ann.type) {
             case 'arrow':
-                if (titleEl) titleEl.innerText = '🏹 Sửa Mũi Tên Chỉ Dẫn';
+                if (titleEl) titleEl.innerText = '🏹 Sửa Mũi Tên Chỉ Dẫn CAD';
                 if (grpText) grpText.style.display = 'block';
                 if (grpFont) grpFont.style.display = 'block';
                 document.getElementById('txtCadEditAnnText').value = ann.arrowText || '';
@@ -10297,32 +10598,48 @@ const appCadTool = {
                 break;
 
             case 'stamp':
-                if (titleEl) titleEl.innerText = '🏷️ Sửa Tem Nhãn Thửa Đất';
+                if (titleEl) titleEl.innerText = '🏷️ Sửa Tem / Nhãn Bản Vẽ';
                 if (grpStamp) grpStamp.style.display = 'flex';
+                const sTypeEl = document.getElementById('selCadEditAnnStampType');
+                if (sTypeEl) sTypeEl.value = ann.stampType || 'parcel';
+                this.onStampTypeChange(ann.stampType || 'parcel');
+
                 document.getElementById('txtCadEditAnnSheet').value = ann.sheetNo || '';
                 document.getElementById('txtCadEditAnnParcel').value = ann.parcelNo || '';
                 document.getElementById('txtCadEditAnnArea').value = ann.area || '';
                 document.getElementById('txtCadEditAnnLandType').value = ann.landType || '';
                 document.getElementById('txtCadEditAnnOwner').value = ann.owner || '';
+
+                if (document.getElementById('txtCadEditAnnDrawTitle')) {
+                    document.getElementById('txtCadEditAnnDrawTitle').value = ann.drawTitle || 'HIỆN TRẠNG KHU ĐẤT';
+                }
+                if (document.getElementById('txtCadEditAnnDrawScale')) {
+                    document.getElementById('txtCadEditAnnDrawScale').value = ann.drawScale || '1:500';
+                }
+                if (document.getElementById('txtCadEditAnnDrawAuthor')) {
+                    document.getElementById('txtCadEditAnnDrawAuthor').value = ann.drawAuthor || 'Kỹ sư trắc địa';
+                }
                 break;
 
             case 'rect':
-                if (titleEl) titleEl.innerText = '🏠 Sửa Khối Công Trình / Nhà';
+                if (titleEl) titleEl.innerText = '🏠 Sửa Khối Công Trình / Nhà Ở';
                 if (grpRect) grpRect.style.display = 'flex';
                 document.getElementById('txtCadEditAnnRectName').value = ann.rectName || '';
-                document.getElementById('txtCadEditAnnWidth').value = ann.widthM || '';
-                document.getElementById('txtCadEditAnnLength').value = ann.lengthM || '';
+                document.getElementById('txtCadEditAnnWidth').value = ann.widthM || 5;
+                document.getElementById('txtCadEditAnnLength').value = ann.lengthM || 10;
+                if (document.getElementById('txtCadEditAnnRotation')) {
+                    document.getElementById('txtCadEditAnnRotation').value = ann.rotationDeg || 0;
+                }
+                if (document.getElementById('selCadEditAnnRectShape')) {
+                    document.getElementById('selCadEditAnnRectShape').value = ann.shapeType || 'rect';
+                }
                 break;
 
             case 'circle':
                 if (titleEl) titleEl.innerText = '⭕ Sửa Vùng Đệm / Bán Kính';
                 if (grpCircle) grpCircle.style.display = 'flex';
                 document.getElementById('txtCadEditAnnCircleName').value = ann.circleName || '';
-                document.getElementById('txtCadEditAnnRadius').value = ann.radiusM || '';
-                break;
-
-            case 'north_arrow':
-                if (titleEl) titleEl.innerText = '🧭 La Bàn Hướng Bắc';
+                document.getElementById('txtCadEditAnnRadius').value = ann.radiusM || 10;
                 break;
         }
 
@@ -10339,6 +10656,7 @@ const appCadTool = {
         const ann = (this.annotations || []).find(a => a.id === id);
         if (!ann) return;
 
+        this.pushHistoryState('Chỉnh sửa chú thích');
         ann.color = document.getElementById('txtCadEditAnnColor').value;
 
         switch (ann.type) {
@@ -10353,37 +10671,36 @@ const appCadTool = {
                 break;
 
             case 'stamp':
+                ann.stampType = document.getElementById('selCadEditAnnStampType')?.value || 'parcel';
                 ann.sheetNo = document.getElementById('txtCadEditAnnSheet').value.trim();
                 ann.parcelNo = document.getElementById('txtCadEditAnnParcel').value.trim();
                 ann.area = document.getElementById('txtCadEditAnnArea').value.trim();
                 ann.landType = document.getElementById('txtCadEditAnnLandType').value.trim();
                 ann.owner = document.getElementById('txtCadEditAnnOwner').value.trim();
+                if (document.getElementById('txtCadEditAnnDrawTitle')) {
+                    ann.drawTitle = document.getElementById('txtCadEditAnnDrawTitle').value.trim();
+                }
+                if (document.getElementById('txtCadEditAnnDrawScale')) {
+                    ann.drawScale = document.getElementById('txtCadEditAnnDrawScale').value.trim();
+                }
+                if (document.getElementById('txtCadEditAnnDrawAuthor')) {
+                    ann.drawAuthor = document.getElementById('txtCadEditAnnDrawAuthor').value.trim();
+                }
                 break;
 
             case 'rect': {
                 ann.rectName = document.getElementById('txtCadEditAnnRectName').value.trim() || 'Khối nhà';
                 const w = parseFloat(document.getElementById('txtCadEditAnnWidth').value) || 5;
                 const l = parseFloat(document.getElementById('txtCadEditAnnLength').value) || 10;
+                const rot = parseFloat(document.getElementById('txtCadEditAnnRotation')?.value) || 0;
                 ann.widthM = w;
                 ann.lengthM = l;
+                ann.rotationDeg = rot;
                 ann.rectArea = parseFloat((w * l).toFixed(2));
+                ann.shapeType = document.getElementById('selCadEditAnnRectShape')?.value || 'rect';
 
                 const vnCenter = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
-                const minX = vnCenter.X - l / 2;
-                const minY = vnCenter.Y - w / 2;
-                const maxX = minX + l;
-                const maxY = minY + w;
-
-                const c1 = convertVn2kToWgs(maxX, minY, AppState.kttVal, AppState.scaleFactor);
-                const c2 = convertVn2kToWgs(maxX, maxY, AppState.kttVal, AppState.scaleFactor);
-                const c3 = convertVn2kToWgs(minX, maxY, AppState.kttVal, AppState.scaleFactor);
-                const c4 = convertVn2kToWgs(minX, minY, AppState.kttVal, AppState.scaleFactor);
-                ann.corners = [
-                    [c1.lat, c1.lng],
-                    [c2.lat, c2.lng],
-                    [c3.lat, c3.lng],
-                    [c4.lat, c4.lng]
-                ];
+                ann.corners = this.computeRectCorners(vnCenter.X, vnCenter.Y, w, l, rot);
                 break;
             }
 
@@ -10407,6 +10724,7 @@ const appCadTool = {
     },
 
     deleteAnnotation(id) {
+        this.pushHistoryState('Xóa chú thích');
         const idx = (this.annotations || []).findIndex(a => a.id === id);
         if (idx !== -1) {
             this.annotations.splice(idx, 1);
@@ -10422,6 +10740,7 @@ const appCadTool = {
             return;
         }
         if (confirm('Bạn có chắc chắn muốn xóa toàn bộ ' + this.annotations.length + ' chú thích & hình khối trên bản vẽ?')) {
+            this.pushHistoryState('Xóa toàn bộ chú thích');
             this.annotations = [];
             this.saveAnnotations();
             this.renderAnnotations();
@@ -11003,13 +11322,20 @@ const appCadTool = {
                 sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
                 }
             } else if (showBoundaries && sLen >= 2) {
+                const isSelected = this.selectedItem && this.selectedItem.type === 'shape' && this.selectedItem.index === sIdx;
                 sShapeLayer = L.polyline(sLatLngs, {
-                    color: sColor,
-                    weight: 2.5,
-                    dashArray: '4, 4',
+                    color: isSelected ? '#facc15' : sColor,
+                    weight: isSelected ? 4 : 2.5,
+                    dashArray: isSelected ? null : '4, 4',
                     lineJoin: 'round',
                     interactive: true
                 }).addTo(this.layers.group);
+                sShapeLayer.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    if (this.mode === 'select') {
+                        this.selectItem({ type: 'shape', index: sIdx, name: shape.name || shape.shortName });
+                    }
+                });
             }
 
             // Nhãn cạnh và cự ly: Ẩn mặc định, hiển thị khi click hoặc rê chuột đến đỉnh/cạnh
@@ -11659,6 +11985,7 @@ const appCadTool = {
             return;
         }
 
+        this.pushHistoryState('Dựng đường Offset');
         const pts = this.vertices;
         const n = pts.length;
         const isClosed = (this.mode === 'polygon' && n >= 3);

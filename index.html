@@ -1708,7 +1708,7 @@
 
     .map-right-controls {
       position: absolute;
-      top: calc(var(--sat-safe-top) + 112px);
+      top: calc(var(--sat-safe-top) + 58px);
       right: 10px;
       display: flex;
       flex-direction: column;
@@ -1748,7 +1748,7 @@
     }
 
     .cad-active-map .map-right-controls {
-      top: calc(var(--sat-safe-top) + 215px);
+      top: calc(var(--sat-safe-top) + 120px);
     }
 
     .btn-map-fab {
@@ -1842,7 +1842,7 @@
     /* Map Project Bar & Controls */
     .map-project-bar {
       position: absolute;
-      top: calc(var(--sat-safe-top) + 64px);
+      top: calc(var(--sat-safe-top) + 10px);
       left: 10px;
       right: 10px;
       height: 40px;
@@ -2274,6 +2274,22 @@
         height: 29px !important;
         padding: 2px 7px !important;
         font-size: 10.5px !important;
+      }
+      .map-cad-toolbar-header {
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+      }
+      .cad-tab-group {
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+      }
+      .cad-tab-btn {
+        padding: 0 6px !important;
+        font-size: 10.5px !important;
+      }
+      .cad-btn-icon {
+        padding: 0 5px !important;
+        font-size: 10px !important;
       }
       #modalCadExportConfig .modal-body {
         padding: 8px 10px !important;
@@ -3384,6 +3400,68 @@
     }
 
     /* ================= 12. THANH CÔNG CỤ VẼ MẶT BẰNG CAD TRÊN BẢN ĐỒ ================= */
+    
+    /* MINI CAD SMART TABBED TOOLBAR STYLES */
+    .cad-tab-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 2px 3px;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+    .cad-tab-btn {
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .cad-tab-btn:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .cad-tab-btn.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      box-shadow: 0 1px 6px rgba(2, 132, 199, 0.4);
+    }
+    .cad-btn-icon {
+      height: 24px;
+      padding: 0 7px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(30, 41, 59, 0.85);
+      color: #cbd5e1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s ease;
+    }
+    .cad-btn-icon:hover {
+      background: rgba(51, 65, 85, 0.9);
+      color: #ffffff;
+      border-color: #38bdf8;
+    }
+    .cad-mode-badge {
+      font-size: 10px;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
     /* Bảng thống kê các khối đã vẽ trên bản đồ MiniCAD */
     .cad-blocks-panel {
       position: absolute;
@@ -3425,7 +3503,7 @@
 
     .map-cad-toolbar {
       position: absolute;
-      top: calc(var(--sat-safe-top) + 108px);
+      top: calc(var(--sat-safe-top) + 54px);
       left: 10px;
       right: 10px;
       background: rgba(15, 23, 42, 0.94);
@@ -4349,7 +4427,7 @@
                   <div class="tree-leaf-title">1.1 Chuyển đổi 2 chiều đơn điểm (VN2K ⇄ WGS84)</div>
                   <div class="tree-leaf-desc">Chuẩn 7 tham số theo Quyết định 05/2007/QĐ-BTNMT, múi 3°/6°</div>
                 </div>
-                <button class="btn-leaf-action">Mở ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.navigateTo('batch_import')">
                 <div class="tree-leaf-connector">└─</div>
@@ -4358,7 +4436,7 @@
                   <div class="tree-leaf-title">1.2 Chuyển đổi danh sách hàng loạt & Nhập file</div>
                   <div class="tree-leaf-desc">Nhập file CSV mốc hoặc dán bảng số liệu nhiều điểm từ Zalo/Excel</div>
                 </div>
-                <button class="btn-leaf-action">Nhập ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
             </div>
           </div>
@@ -4383,7 +4461,7 @@
                   <div class="tree-leaf-title">2.1 Bản đồ dự án & Chấm điểm vệ tinh</div>
                   <div class="tree-leaf-desc">Bản đồ Leaflet vệ tinh, xem mốc dự án, GPS, ranh 34 tỉnh/xã</div>
                 </div>
-                <button class="btn-leaf-action">Mở ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.showScreen('stakeout')">
                 <div class="tree-leaf-connector">├─</div>
@@ -4392,7 +4470,7 @@
                   <div class="tree-leaf-title">2.2 Dẫn đường cắm mốc thực địa (Stakeout)</div>
                   <div class="tree-leaf-desc">La bàn số 360°, radar dẫn hướng, đo cự ly & góc lệch, bíp đích</div>
                 </div>
-                <button class="btn-leaf-action">Cắm mốc ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.showScreen('camera')">
                 <div class="tree-leaf-connector">└─</div>
@@ -4401,7 +4479,7 @@
                   <div class="tree-leaf-title">2.3 Camera thực địa đóng dấu thủy ấn</div>
                   <div class="tree-leaf-desc">Chụp ảnh in nổi tọa độ VN-2000, WGS-84, sai số GPS, la bàn, ngày giờ</div>
                 </div>
-                <button class="btn-leaf-action">Chụp ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
             </div>
           </div>
@@ -4426,7 +4504,7 @@
                   <div class="tree-leaf-title">3.1 Đo cự ly & góc phương vị giữa các mốc</div>
                   <div class="tree-leaf-desc">Khoảng cách trắc địa và hướng góc phương vị tuyến giữa 2 điểm</div>
                 </div>
-                <button class="btn-leaf-action">Đo cự ly ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.navigateTo('measure_polygon')">
                 <div class="tree-leaf-connector">├─</div>
@@ -4435,7 +4513,7 @@
                   <div class="tree-leaf-title">3.2 Khép góc ranh thửa & tính chu vi diện tích</div>
                   <div class="tree-leaf-desc">Đa giác khép góc chuỗi mốc ranh thửa, tự động tính m² và chu vi</div>
                 </div>
-                <button class="btn-leaf-action">Khép góc ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appElevationProfile.openModal()">
                 <div class="tree-leaf-connector">├─</div>
@@ -4444,7 +4522,7 @@
                   <div class="tree-leaf-title">3.3 Trắc dọc địa hình & Đào đắp</div>
                   <div class="tree-leaf-desc">Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp theo tuyến hoặc diện tích</div>
                 </div>
-                <button class="btn-leaf-action">Trắc dọc ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appGeoidVigac.openModal()">
                 <div class="tree-leaf-connector">├─</div>
@@ -4453,7 +4531,7 @@
                   <div class="tree-leaf-title">3.4 Cao độ Thủy chuẩn Quốc gia Hòn Dấu</div>
                   <div class="tree-leaf-desc">Mô hình Geoid VIGAC2017 / EGM2008 chuyển đổi độ cao</div>
                 </div>
-                <button class="btn-leaf-action">Quy đổi ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.navigateTo('cad_tool')">
                 <div class="tree-leaf-connector">└─</div>
@@ -4462,7 +4540,7 @@
                   <div class="tree-leaf-title">3.5 Vẽ mặt bằng công trình CAD Mini</div>
                   <div class="tree-leaf-desc">Dựng ranh, bắt điểm Snap, offset song song, tính diện tích thửa</div>
                 </div>
-                <button class="btn-leaf-action">Vẽ CAD ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
             </div>
           </div>
@@ -4487,7 +4565,7 @@
                   <div class="tree-leaf-title">4.1 Sổ đo mốc & Quản lý danh sách dự án</div>
                   <div class="tree-leaf-desc">Quản lý từng dự án độc lập, xem bảng mốc, chỉnh sửa, lọc</div>
                 </div>
-                <button class="btn-leaf-action">Sổ đo ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appData.exportDxfFile()">
                 <div class="tree-leaf-connector">├─</div>
@@ -4496,7 +4574,7 @@
                   <div class="tree-leaf-title">4.2 Xuất bản vẽ AutoCAD (.DXF R12)</div>
                   <div class="tree-leaf-desc">3 layer CAD: MOC_TOADO, TEN_MOC, RANH_THUA</div>
                 </div>
-                <button class="btn-leaf-action">Tải DXF ⬇</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appData.exportKmlFile()">
                 <div class="tree-leaf-connector">├─</div>
@@ -4505,7 +4583,7 @@
                   <div class="tree-leaf-title">4.3 Xuất Google Earth (.KML)</div>
                   <div class="tree-leaf-desc">Placemarks WGS-84, popup bóng thông tin HTML và ranh thửa</div>
                 </div>
-                <button class="btn-leaf-action">Tải KML ⬇</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appData.exportCsvFile()">
                 <div class="tree-leaf-connector">├─</div>
@@ -4514,7 +4592,7 @@
                   <div class="tree-leaf-title">4.4 Xuất bảng tính Excel (.CSV UTF-8)</div>
                   <div class="tree-leaf-desc">Xuất file CSV chuẩn có dấu tiếng Việt tương thích Excel</div>
                 </div>
-                <button class="btn-leaf-action">Tải CSV ⬇</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.navigateTo('settings_storage')">
                 <div class="tree-leaf-connector">└─</div>
@@ -4523,7 +4601,7 @@
                   <div class="tree-leaf-title">4.5 Cấu hình đồng bộ Google Sheets / AppSheet</div>
                   <div class="tree-leaf-desc">Lưu mốc tự động lên trang tính cá nhân</div>
                 </div>
-                <button class="btn-leaf-action">Cấu hình ⚙️</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
             </div>
           </div>
@@ -4548,7 +4626,7 @@
                   <div class="tree-leaf-title">5.1 Cài đặt Kinh tuyến trục 63 tỉnh thành</div>
                   <div class="tree-leaf-desc">Tra cứu và thay đổi KTT địa phương, múi chiếu 3° hoặc 6°</div>
                 </div>
-                <button class="btn-leaf-action">Đổi KTT ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appGps.toggleTracking()">
                 <div class="tree-leaf-connector">├─</div>
@@ -4557,7 +4635,7 @@
                   <div class="tree-leaf-title">5.2 Bật/Tắt định vị GPS & Kiểm tra sai số</div>
                   <div class="tree-leaf-desc">Theo dõi tọa độ vệ tinh ngoài thực địa, độ chính xác ±m</div>
                 </div>
-                <button class="btn-leaf-action">Bật/Tắt ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.showScreen('about')">
                 <div class="tree-leaf-connector">└─</div>
@@ -4566,7 +4644,7 @@
                   <div class="tree-leaf-title">5.3 Thông tin phần mềm & Hướng dẫn kỹ thuật</div>
                   <div class="tree-leaf-desc">Cẩm nang 10 nghiệp vụ, cài đặt PWA & 7 tham số Bursa-Wolf BTNMT</div>
                 </div>
-                <button class="btn-leaf-action">Xem ➔</button>
+                <span class="tree-leaf-arrow">›</span>
               </div>
             </div>
           </div>
@@ -4806,13 +4884,8 @@
 
       <!-- ================= SCREEN 3: BẢN ĐỒ DỰ ÁN & CHẤM ĐIỂM ================= -->
       <div id="map-view-container">
-        <!-- Top Bar -->
-        <div class="map-top-bar">
-          <span class="map-mode-text" id="mapModeIndicator">📍 BẢN ĐỒ DỰ ÁN</span>
-          <button class="btn-sm btn-green" style="flex:none; padding: 4px 10px; height: 32px;" onclick="appMap.togglePickMode()">
-            🎯 Chấm điểm
-          </button>
-        </div>
+        <!-- Mode indicator giữ lại để tương thích JS nhưng ẩn đi để tiết kiệm không gian -->
+        <span id="mapModeIndicator" style="display: none;">📍 BẢN ĐỒ DỰ ÁN</span>
 
         <!-- Project Selector & Measurement Quick Bar on Map -->
         <div class="map-project-bar">
@@ -4858,22 +4931,34 @@
           <div id="measureDetails" style="font-size: 12px; color: #f8fafc; line-height: 1.5;"></div>
         </div>
 
-        <!-- ================= 3.5 THANH CÔNG CỤ VẼ MẶT BẰNG CAD MINI ================= -->
+        <!-- ================= 3.5 THANH CÔNG CỤ VẼ MẶT BẰNG CAD MINI (SMART COMPACT TOOLBAR) ================= -->
         <div id="mapCadToolbar" class="map-cad-toolbar">
           <div class="map-cad-toolbar-header" id="mapCadToolbarHeader">
             <div class="cad-toolbar-title" onclick="appCadTool.toggleToolbarCollapse()" style="cursor: pointer;" title="Nhấn để thu nhỏ / mở rộng thanh công cụ">
-              <span>📐 VẼ CAD MINI</span>
-              <span id="cadModeBadge" style="font-size: 10px; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 1px 6px; border-radius: 4px;">Đa giác ranh</span>
+              <span style="font-weight: 800; color: #38bdf8;">📐 MINICAD</span>
+              <span id="cadModeBadge" class="cad-mode-badge">Đa giác ranh</span>
             </div>
-            <div style="display: flex; gap: 4px; align-items: center;">
-              <span id="cadStatsPill" class="cad-stats-pill" onclick="appCadTool.toggleToolbarCollapse()" style="cursor: pointer;" title="Nhấn để thu nhỏ / mở rộng">0 đỉnh • 0 m • 0 m²</span>
-              <button id="btnCadToolbarCollapse" type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 11px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px;" onclick="appCadTool.toggleToolbarCollapse()" title="Thu nhỏ / Mở rộng thanh công cụ CAD">▾ Thu gọn</button>
+
+            <!-- Segmented Tool Switcher Tabs -->
+            <div class="cad-tab-group" id="cadTabGroup">
+              <button type="button" class="cad-tab-btn active" id="cadTabDraw" onclick="appCadTool.switchToolTab('draw')" title="Công cụ vẽ đa giác, tuyến, khép góc, snap">📐 Vẽ</button>
+              <button type="button" class="cad-tab-btn" id="cadTabSelect" onclick="appCadTool.switchToolTab('select')" title="Chọn đối tượng trên bản đồ để sửa, đổi màu hoặc xóa">↖️ Chọn</button>
+              <button type="button" class="cad-tab-btn" id="cadTabMarkup" onclick="appCadTool.switchToolTab('markup')" title="Mũi tên, tem nhãn, khối nhà, chữ ghi chú">🏷️ Nhãn</button>
+              <button type="button" class="cad-tab-btn" id="cadTabData" onclick="appCadTool.switchToolTab('data')" title="Bảng kê diện tích, danh sách khối, xuất CAD/PDF">📤 Dữ liệu</button>
+              <button type="button" class="cad-tab-btn" id="cadTabLayers" onclick="appCadTool.switchToolTab('layers')" title="Tùy chọn ẩn hiện lớp đỉnh, cự ly cạnh, tâm khối">👁️ Lớp</button>
+            </div>
+
+            <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
+              <button id="btnCadUndo" class="cad-btn-icon" onclick="appCadTool.undo()" title="Hoàn tác thao tác trước cho mọi đối tượng (Ctrl+Z hoặc U)">↩ Lùi</button>
+              <button id="btnCadRedo" class="cad-btn-icon" onclick="appCadTool.redo()" title="Làm lại thao tác vừa lùi (Ctrl+Y)">↪ Tiến</button>
+              <span id="cadStatsPill" class="cad-stats-pill" onclick="appCadTool.toggleToolbarCollapse()" style="cursor: pointer;" title="Nhấn để thu nhỏ / mở rộng">0 đỉnh • 0 m²</span>
+              <button id="btnCadToolbarCollapse" type="button" class="btn-sm" style="height: 24px; padding: 0 6px; font-size: 11px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 4px; cursor: pointer;" onclick="appCadTool.toggleToolbarCollapse()" title="Thu nhỏ / Mở rộng">▾</button>
               <button class="btn-sm btn-red" style="height: 24px; padding: 0 6px; font-size: 11px;" onclick="appCadTool.closeToolbar()" title="Đóng thanh công cụ CAD">✕</button>
             </div>
           </div>
 
-          <!-- Dòng 1: Công cụ vẽ & Thao tác đỉnh -->
-          <div class="cad-actions-row cad-collapsible-row">
+          <!-- TAB 1: CÔNG CỤ VẼ & BIÊN TẬP HÌNH HỌC -->
+          <div id="cadPanelDraw" class="cad-actions-row cad-collapsible-row active">
             <button id="btnCadModePoly" class="cad-btn active" onclick="appCadTool.setMode('polygon')" title="Vẽ đa giác khép kín tính diện tích thửa đất (Phím tắt: P)">
               📐 Đa giác [P]
             </button>
@@ -4889,29 +4974,80 @@
             <button class="cad-btn" onclick="appCadTool.openCoordModal()" title="Nhập đỉnh trực tiếp bằng tọa độ VN-2000 (X, Y)">
               📌 Nhập X,Y
             </button>
-            <button id="btnCadUndo" class="cad-btn" onclick="appCadTool.undo()" title="Hoàn tác thao tác trước: vẽ, dời điểm, xóa, thêm đỉnh... (Phím tắt: Ctrl+Z hoặc U)">
-              ↩ Lùi [Ctrl+Z]
-            </button>
-            <button id="btnCadRedo" class="cad-btn" onclick="appCadTool.redo()" title="Làm lại thao tác vừa lùi (Phím tắt: Ctrl+Y)">
-              ↪ Tiến [Ctrl+Y]
-            </button>
             <button class="cad-btn" onclick="appCadTool.closeLoop()" title="Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: C)">
               🔒 Khép góc [C]
             </button>
-            <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" onclick="appCadTool.zoomMax()" title="Phóng to cực đại mức 23-24 để nắn đỉnh chuẩn centimet, không bị hút điểm nhầm (Phím tắt: Z)">
+            <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
+              ↔ Offset [O]
+            </button>
+            <button class="cad-btn" style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;" onclick="appCadTool.zoomMax()" title="Phóng to cực đại mức 23-24 (Phím tắt: Z)">
               🔍 Siêu Zoom [Z]
             </button>
             <input type="text" id="cadActiveShapeName" class="app-input" style="height: 26px; width: 110px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px; flex: none;" placeholder="Tên khối (Thửa 1)" title="Đặt tên khối trước khi vẽ hoặc lưu">
             <button id="btnCadSaveShape" class="cad-btn" style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #a7f3d0; font-weight: 700;" onclick="appCadTool.saveAndStartNewShape()" title="Lưu cấu trúc/thửa đất này và bắt đầu vẽ cấu trúc mới (Phím tắt: N)">
-              ➕ Lưu & Vẽ mới [N]
+              ➕ Lưu [N]
             </button>
             <button class="cad-btn" style="color: #f87171;" onclick="appCadTool.clearDrawing()" title="Xóa toàn bộ bản vẽ CAD (Phím tắt: X)">
               🗑️ Xóa hết [X]
             </button>
+            <span id="cadQcWarning" style="font-size: 10.5px; color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 4px; padding: 2px 6px; display: none; font-weight: 700; white-space: nowrap;">
+              ⚠️ Tự cắt chéo!
+            </span>
           </div>
 
-          <!-- Dòng 2: Xuất dữ liệu & Xem bảng diện tích -->
-          <div class="cad-actions-row cad-collapsible-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px;">
+          <!-- TAB 2: CHỌN ĐỐI TƯỢNG (SELECT & EDIT TOOL) -->
+          <div id="cadPanelSelect" class="cad-actions-row cad-collapsible-row" style="display: none;">
+            <button id="btnCadToolSelectMode" class="cad-btn active" onclick="appCadTool.setMode('select')" title="Bật chế độ con trỏ chọn đối tượng (Phím tắt: V hoặc Esc)">
+              ↖️ Con trỏ Chọn [V]
+            </button>
+            <span id="cadSelectedObjectName" style="font-size: 11px; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.15); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(251, 191, 36, 0.3); white-space: nowrap;">
+              Chưa chọn đối tượng nào
+            </span>
+            <button id="btnCadEditSelected" class="cad-btn" style="display: none;" onclick="appCadTool.editSelectedItem()" title="Chỉnh sửa thông số hoặc thuộc tính đối tượng đang chọn">
+              ✏️ Sửa
+            </button>
+            <button id="btnCadColorSelected" class="cad-btn" style="display: none;" onclick="appCadTool.changeSelectedColor()" title="Đổi màu sắc hiển thị của đối tượng đang chọn">
+              🎨 Đổi màu
+            </button>
+            <button id="btnCadDeleteSelected" class="cad-btn" style="display: none; color: #f87171; background: rgba(239, 68, 68, 0.2); border-color: #ef4444;" onclick="appCadTool.deleteSelectedItem()" title="Xóa đối tượng đang chọn (Phím tắt: Delete hoặc Backspace)">
+              🗑️ Xóa đối tượng [Del]
+            </button>
+            <button id="btnCadDeselect" class="cad-btn" style="display: none;" onclick="appCadTool.deselectCurrent()" title="Bỏ chọn đối tượng (Phím tắt: Esc)">
+              ✖ Bỏ chọn [Esc]
+            </button>
+            <span style="font-size: 10px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
+              💡 Click thửa đất / nhãn để chọn • Kéo chuột để dời vị trí • Nhấn Del để xóa
+            </span>
+          </div>
+
+          <!-- TAB 3: NHÃN & GHI CHÚ KỸ THUẬT (MARKUP) -->
+          <div id="cadPanelMarkup" class="cad-actions-row cad-collapsible-row" style="display: none;">
+            <button id="btnCadMarkupArrow" class="cad-btn" onclick="appCadTool.setMarkupMode('arrow')" title="Nét mũi tên ghi chú CAD: Click mốc ranh rồi click điểm đặt nhãn">
+              🏹 Mũi tên CAD
+            </button>
+            <button id="btnCadMarkupStamp" class="cad-btn" onclick="appCadTool.setMarkupMode('stamp')" title="Tem / Nhãn bản vẽ: Đóng khung thông tin thửa đất, nhãn công trình hoặc tiêu đề kỹ thuật">
+              🏷️ Tem / Nhãn bản vẽ
+            </button>
+            <button id="btnCadMarkupRect" class="cad-btn" onclick="appCadTool.setMarkupMode('rect')" title="Khối công trình / Nhà ở: Tùy biến Dài x Rộng, Góc xoay, loại công trình">
+              🏠 Khối nhà linh hoạt
+            </button>
+            <button id="btnCadMarkupCircle" class="cad-btn" onclick="appCadTool.setMarkupMode('circle')" title="Vùng đệm / Bán kính bảo vệ (Circle/Buffer): Giếng khoan, trụ điện, hành lang">
+              ⭕ Bán kính
+            </button>
+            <button id="btnCadMarkupText" class="cad-btn" onclick="appCadTool.setMarkupMode('text')" title="Văn bản ghi chú tùy biến (Text Annotation) trên bản đồ">
+              🔤 Chữ [Text]
+            </button>
+            <button id="btnCadMarkupToggle" class="cad-btn" style="background: rgba(100, 116, 139, 0.2); border-color: rgba(148, 163, 184, 0.3); color: #94a3b8;" onclick="appCadTool.toggleAnnotationsVisible()" title="Ẩn / Hiện tất cả chú thích & hình khối">
+              👁️ Ẩn/Hiện (<span id="cadMarkupCount">0</span>)
+            </button>
+            <button class="cad-btn" style="color: #f87171; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3);" onclick="appCadTool.clearAnnotations()" title="Xóa toàn bộ chú thích & hình khối">
+              🗑️ Xóa nhãn
+            </button>
+            <span id="cadMarkupStatus" style="font-size: 10px; color: #38bdf8; margin-left: 6px; font-style: italic; display: none; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);"></span>
+          </div>
+
+          <!-- TAB 4: XUẤT DỮ LIỆU & BẢNG KÊ (DATA & EXPORT) -->
+          <div id="cadPanelData" class="cad-actions-row cad-collapsible-row" style="display: none;">
             <button class="cad-btn" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;" onclick="appCadTool.openAreaTableModal()" title="Xem bảng kê tọa độ ranh góc và bảng tính diện tích (Phím tắt: E)">
               📋 Bảng kê [E]
             </button>
@@ -4928,51 +5064,10 @@
               📥 Nhập Excel / CSV
             </button>
             <input type="file" id="cadFileInputExcel" accept=".xls,.xlsx,.csv,.txt" style="display: none;" onchange="appCadTool.importExcel(event)">
-            <button class="cad-btn" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
-              ↔ Offset [O]
-            </button>
-            <span id="cadQcWarning" style="font-size: 10.5px; color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 4px; padding: 2px 6px; display: none; font-weight: 700; white-space: nowrap;">
-              ⚠️ Đa giác tự cắt chéo!
-            </span>
-            <div id="cadInstructionText" style="font-size: 10px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
-              💡 [P] Đa giác • [L] Tuyến • [S] Snap • Click cạnh để thêm đỉnh • Chuột phải đỉnh để xóa
-            </div>
           </div>
 
-          <!-- Dòng 3: Ghi Chú & Hình Khối Kỹ Thuật (Nâng Cao) -->
-          <div id="cadMarkupRow" class="cad-actions-row cad-collapsible-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 4px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
-            <span style="font-size: 10px; font-weight: 800; color: #f59e0b; padding: 2px 6px; background: rgba(245, 158, 11, 0.15); border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">🏷️ GHI CHÚ:</span>
-            <button id="btnCadMarkupArrow" class="cad-btn" onclick="appCadTool.setMarkupMode('arrow')" title="Nét mũi tên ghi chú (Leader Arrow): Click mốc ranh rồi click điểm ghi chú">
-              🏹 Mũi tên
-            </button>
-            <button id="btnCadMarkupNorth" class="cad-btn" onclick="appCadTool.setMarkupMode('north_arrow')" title="Mũi tên chỉ hướng Bắc (North Arrow / La bàn trắc địa)">
-              🧭 Hướng Bắc
-            </button>
-            <button id="btnCadMarkupRect" class="cad-btn" onclick="appCadTool.setMarkupMode('rect')" title="Khối công trình / Nhà ở (Rectangle Box): Click 2 góc đối diện hoặc kéo">
-              🏠 Khối nhà
-            </button>
-            <button id="btnCadMarkupCircle" class="cad-btn" onclick="appCadTool.setMarkupMode('circle')" title="Vùng đệm / Bán kính bảo vệ (Circle/Buffer): Giếng khoan, trụ điện, hành lang">
-              ⭕ Bán kính
-            </button>
-            <button id="btnCadMarkupStamp" class="cad-btn" onclick="appCadTool.setMarkupMode('stamp')" title="Tem nhãn thông tin thửa đất (Land Parcel Stamp): Số tờ, số thửa, diện tích, chủ sử dụng">
-              🏷️ Tem thửa
-            </button>
-            <button id="btnCadMarkupText" class="cad-btn" onclick="appCadTool.setMarkupMode('text')" title="Văn bản ghi chú tùy biến (Text Annotation) trên bản đồ">
-              🔤 Chữ [Text]
-            </button>
-            <button id="btnCadMarkupToggle" class="cad-btn" style="background: rgba(100, 116, 139, 0.2); border-color: rgba(148, 163, 184, 0.3); color: #94a3b8;" onclick="appCadTool.toggleAnnotationsVisible()" title="Ẩn / Hiện tất cả chú thích & hình khối">
-              👁️ Ẩn/Hiện (<span id="cadMarkupCount">0</span>)
-            </button>
-            <button class="cad-btn" style="color: #f87171; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3);" onclick="appCadTool.clearAnnotations()" title="Xóa toàn bộ chú thích & hình khối">
-              🗑️ Xóa chú thích
-            </button>
-            <span id="cadMarkupStatus" style="font-size: 10px; color: #38bdf8; margin-left: 6px; font-style: italic; display: none; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);"></span>
-          </div>
-          <!-- Dòng 4: Tùy Chọn Hiển Thị Các Thành Phần Trên Bản Vẽ (Ký hiệu đỉnh, khoảng cách, tâm khối...) -->
-          <div id="cadDisplayOptionsRow" class="cad-actions-row cad-display-options-row cad-collapsible-row" style="border-top: 1px dashed rgba(51, 65, 85, 0.4); padding-top: 5px; padding-bottom: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-            <span style="font-size: 10px; font-weight: 800; color: #38bdf8; padding: 2px 7px; background: rgba(56, 189, 248, 0.15); border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.35); display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-              👁️ HIỂN THỊ:
-            </span>
+          <!-- TAB 5: TÙY CHỌN HIỂN THỊ CÁC LỚP BẢN VẼ -->
+          <div id="cadPanelLayers" class="cad-actions-row cad-collapsible-row" style="display: none;">
             <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh (Đ1, Đ2, Đ3...) trên bản vẽ">
               <input type="checkbox" id="cadCheckShowVertices" onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
               <span>📍 Ký hiệu đỉnh</span>
@@ -4985,7 +5080,7 @@
               <input type="checkbox" id="cadCheckShowCenterLabels" checked onchange="appCadTool.toggleDisplayOption('showCenterLabels', this.checked)">
               <span>🏷️ Ký hiệu & Tâm khối</span>
             </label>
-            <label class="cad-check-label" title="Hiện hoặc ẩn các nét ghi chú: mũi tên, hướng Bắc, khối nhà, tem thửa, văn bản">
+            <label class="cad-check-label" title="Hiện hoặc ẩn các nét ghi chú: mũi tên, khối nhà, tem nhãn, văn bản">
               <input type="checkbox" id="cadCheckShowAnnotations" checked onchange="appCadTool.toggleDisplayOption('showAnnotations', this.checked)">
               <span>🏹 Ghi chú kỹ thuật</span>
             </label>
@@ -6952,41 +7047,79 @@
           <input type="text" id="txtCadEditAnnText" class="form-control" placeholder="Nhập ghi chú..." style="width: 100%; height: 36px;">
         </div>
 
-        <!-- Trường dành cho Tem thửa đất (Stamp) -->
+        <!-- Trường dành cho Tem / Nhãn bản vẽ kỹ thuật (Stamp) -->
         <div id="grpCadEditAnnStamp" style="display: none; flex-direction: column; gap: 8px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Số tờ bản đồ:</label>
-              <input type="text" id="txtCadEditAnnSheet" class="form-control" placeholder="Ví dụ: 12" style="width: 100%; height: 34px;">
-            </div>
-            <div>
-              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Số thửa đất:</label>
-              <input type="text" id="txtCadEditAnnParcel" class="form-control" placeholder="Ví dụ: 45" style="width: 100%; height: 34px;">
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Diện tích (m²):</label>
-              <input type="text" id="txtCadEditAnnArea" class="form-control" placeholder="Ví dụ: 150.8 m²" style="width: 100%; height: 34px;">
-            </div>
-            <div>
-              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Loại đất:</label>
-              <input type="text" id="txtCadEditAnnLandType" class="form-control" placeholder="Ví dụ: ONT, CLN, LUC" style="width: 100%; height: 34px;">
-            </div>
-          </div>
           <div>
-            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên chủ sử dụng / Chủ đất:</label>
-            <input type="text" id="txtCadEditAnnOwner" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" style="width: 100%; height: 34px;">
+            <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 3px;">Mẫu tem / Loại nhãn bản vẽ:</label>
+            <select id="selCadEditAnnStampType" class="app-select" style="height: 34px; font-size: 11.5px; width: 100%;" onchange="appCadTool.onStampTypeChange(this.value)">
+              <option value="parcel">🏷️ Tem Thửa Đất (Số tờ, thửa, diện tích, chủ sử dụng)</option>
+              <option value="drawing">📋 Khung Nhãn Bản Vẽ (Tên bản vẽ, tỷ lệ, ngày đo, người vẽ)</option>
+              <option value="custom">📝 Nhãn Ghi Chú Kỹ Thuật (Tiêu đề & mô tả nhiều dòng)</option>
+            </select>
+          </div>
+          
+          <div id="boxStampFieldsParcel">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Số tờ bản đồ:</label>
+                <input type="text" id="txtCadEditAnnSheet" class="form-control" placeholder="Ví dụ: 12" style="width: 100%; height: 34px;">
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Số thửa đất:</label>
+                <input type="text" id="txtCadEditAnnParcel" class="form-control" placeholder="Ví dụ: 45" style="width: 100%; height: 34px;">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Diện tích:</label>
+                <input type="text" id="txtCadEditAnnArea" class="form-control" placeholder="Ví dụ: 150.8 m²" style="width: 100%; height: 34px;">
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Loại đất:</label>
+                <input type="text" id="txtCadEditAnnLandType" class="form-control" placeholder="Ví dụ: ONT, CLN, LUC" style="width: 100%; height: 34px;">
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên chủ sử dụng / Đơn vị:</label>
+              <input type="text" id="txtCadEditAnnOwner" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" style="width: 100%; height: 34px;">
+            </div>
+          </div>
+
+          <div id="boxStampFieldsDrawing" style="display: none;">
+            <div style="margin-bottom: 8px;">
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tiêu đề nhãn / Tên công trình:</label>
+              <input type="text" id="txtCadEditAnnDrawTitle" class="form-control" placeholder="MẶT BẰNG HIỆN TRẠNG KHU ĐẤT" style="width: 100%; height: 34px;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tỷ lệ bản vẽ:</label>
+                <input type="text" id="txtCadEditAnnDrawScale" class="form-control" placeholder="1:500" style="width: 100%; height: 34px;">
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Người thực hiện:</label>
+                <input type="text" id="txtCadEditAnnDrawAuthor" class="form-control" placeholder="Kỹ sư trắc địa" style="width: 100%; height: 34px;">
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Trường dành cho Khối nhà (Rect) -->
+        <!-- Trường dành cho Khối nhà linh hoạt (Rect) -->
         <div id="grpCadEditAnnRect" style="display: none; flex-direction: column; gap: 8px;">
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên khối công trình / Nhà:</label>
-            <input type="text" id="txtCadEditAnnRectName" class="form-control" placeholder="Ví dụ: Nhà cấp 4, Nhà kho..." style="width: 100%; height: 34px;">
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên công trình / Khối nhà:</label>
+              <input type="text" id="txtCadEditAnnRectName" class="form-control" placeholder="Nhà cấp 4, Nhà kho..." style="width: 100%; height: 34px;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Kiểu hình khối:</label>
+              <select id="selCadEditAnnRectShape" class="app-select" style="height: 34px; font-size: 11px; width: 100%;">
+                <option value="rect">Hình chữ nhật</option>
+                <option value="l_shape">Khối nhà chữ L</option>
+                <option value="shed">Mái che / Sân nền</option>
+              </select>
+            </div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
             <div>
               <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Bề rộng (m):</label>
               <input type="number" step="0.1" id="txtCadEditAnnWidth" class="form-control" placeholder="5.0" style="width: 100%; height: 34px;">
@@ -6995,6 +7128,17 @@
               <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Chiều dài (m):</label>
               <input type="number" step="0.1" id="txtCadEditAnnLength" class="form-control" placeholder="10.0" style="width: 100%; height: 34px;">
             </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #f59e0b; display: block; margin-bottom: 3px;">Góc xoay (°):</label>
+              <input type="number" step="1" id="txtCadEditAnnRotation" class="form-control" placeholder="0" min="0" max="360" style="width: 100%; height: 34px;">
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 10px;" onclick="document.getElementById('txtCadEditAnnRotation').value=0">0°</button>
+            <button type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 10px;" onclick="document.getElementById('txtCadEditAnnRotation').value=45">45°</button>
+            <button type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 10px;" onclick="document.getElementById('txtCadEditAnnRotation').value=90">90°</button>
+            <button type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 10px;" onclick="document.getElementById('txtCadEditAnnRotation').value=180">180°</button>
+            <span style="font-size: 10px; color: #94a3b8; margin-left: 4px;">(Nhập góc để khối xoay đúng theo hướng ranh đất)</span>
           </div>
         </div>
 
