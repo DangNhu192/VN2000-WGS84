@@ -53,95 +53,110 @@ Khi bấm Triển khai lần đầu, Google sẽ yêu cầu bạn cấp quyền 
 2. Chọn tài khoản Google của bạn.
 3. **Màn hình cảnh báo xuất hiện:** Google sẽ hiện thông báo *"Google chưa xác minh ứng dụng này"* (*Google hasn't verified this app*) — Đây là cảnh báo tiêu chuẩn đối với mọi script do người dùng tự viết:
    - Hãy bấm vào dòng chữ nhỏ: **Nâng cao (*Advanced*)** ở góc dưới bên trái.
-   - Bấm ti## 🌟 3. Các Tối Ưu Tự Động Được Tích Hợp (Chuẩn 14 Cột v3.0)
-
-Đoạn mã kịch bản Apps Script được tối ưu hóa chuyên sâu cho nghiệp vụ trắc địa, phân hệ MiniCAD đa thửa đất và kết nối AppSheet:
-
-1. **Lưu Tập Trung Vào 1 Sheet Duy Nhất ("Sổ Đo Tọa Độ"):**  
-   Toàn bộ mốc đo của tất cả các dự án đều được ghi vào **duy nhất 1 Tab mang tên "Sổ Đo Tọa Độ"**, không tạo ra nhiều tab riêng lẻ gây phân tán số liệu. Mốc thuộc dự án nào được ghi rõ ràng vào cột **"Dự Án"** (cột 13).
-2. **Cấu trúc 14 Cột Chuẩn Hóa Phân Hệ MiniCAD & AppSheet:**  
-   Bổ sung 3 trường dữ liệu cốt lõi:
-   - **`Khối / Thửa Đất` (Cột 3):** Tên thửa đất hoặc khối phân lô (Shape Name). Giúp tách biệt ranh giới từng thửa độc lập, triệt tiêu hoàn toàn lỗi nối điểm chéo khi mở lại trên MiniCAD.
-   - **`Loại Hình` (Cột 4):** Kiểu hình học (`Đa giác` - Polygon hoặc `Tuyến` - Polyline).
-   - **`STT Đỉnh` (Cột 5):** Thứ tự đỉnh mốc trên đường bao thửa đất, phục vụ khép góc ranh thửa và sắp xếp thứ tự hiển thị.
-3. **Tự động kích hoạt bộ lọc dữ liệu (Data Filter):**  
-   Google Sheet tự động bật bộ lọc theo hàng 1. Bạn chỉ cần bấm vào mũi tên lọc ở cột **"Dự Án"** hoặc **"Khối / Thửa Đất"** để xem riêng từng dự án, từng thửa chỉ với 1 click chuột!
-4. **Cơ chế chống ghi trùng lặp tuyệt đối (Deduplication):**  
-   Định danh duy nhất từng mốc theo công thức `[Dự Án] + [Khối/Thửa Đất] + [Tên Mốc] + [Tọa Độ X] + [Tọa Độ Y]`. Dù bạn bấm *"Đồng bộ"* bao nhiêu lần, số lượng mốc và ranh thửa của từng dự án luôn bảo toàn 100%, không bị nhân đôi mốc hay mất đỉnh chung ranh giới!
-5. **Tự động gắn link Google Maps vệ tinh (`🗺️ Xem Vị Trí`):**  
-   Mỗi mốc được thêm vào bảng sẽ tự động có một liên kết siêu văn bản chuẩn tiếng Việt (dấu chấm phẩy `;`). Mở Google Sheet bấm vào link này sẽ lập tức mở đúng vị trí thực tế của mốc trên Google Maps vệ tinh.
-6. **Định dạng số chuẩn Trắc địa:**  
-   - Tọa độ phẳng VN-2000 (X, Y): Cột 6 và 7, định dạng 3 chữ số thập phân chuẩn mét (`#,##0.000`).
-   - Tọa độ WGS-84 (Vĩ độ, Kinh độ): Cột 8 và 9, định dạng 6 chữ số thập phân (`0.000000`).
-   - Dòng tiêu đề: Màu nền tối `#0f172a`, chữ xanh ngọc `#38bdf8`, in đậm và **đóng băng hàng 1** (*Freeze Row 1*) để cuộn trang thuận tiện.
-7. **Khóa chống xung đột dữ liệu (LockService):**  
-   Đảm bảo an toàn 100% khi có nhiều tổ đo cùng gửi số liệu về một bảng tính cùng lúc.
-8. **Hàng đợi ngoại tuyến thông minh (Offline Queue):**  
-   Khi đi đo ở vùng sâu vùng xa mất sóng, mốc được lưu vào hàng đợi trên điện thoại kèm đầy đủ thông tin Khối/Thửa. Ngay khi có mạng trở lại, ứng dụng tự động đẩy các mốc lên Sheet mà bạn không cần phải làm gì thêm!
-9. **Hàm cứu hộ & nâng cấp tự động (`gopVaLamSachSoDo`):**  
-   Tự động gom toàn bộ các tab cũ về tab "Sổ Đo Tọa Độ", nâng cấp cấu trúc lên 14 cột, khử trùng lặp và loại bỏ các sheet rác.
+   - Bấm tiếp vào dòng: **Đi tới [Tên dự án] (không an toàn)** (*Go to [Project Name] (unsafe)*).
+4. Bấm nút **Cho phép (*Allow*)** để hoàn tất cấp quyền.
+5. Google sẽ cấp cho bạn một đường link dạng:  
+   `https://script.google.com/macros/s/AKfycbx.../exec`  
+   $\rightarrow$ Hãy **sao chép đường link này** và dán vào mục cài đặt Google Sheet trên ứng dụng VN-2000 PWA.
 
 ---
 
-## 💻 4. Mã Nguồn Google Apps Script Tối Ưu v3.0 (Sao chép và sử dụng)
+## 🌟 3. Kiến Trúc Lưu Trữ Tập Trung 2 Tab (v4.0 - Tối Ưu Tuyệt Đối Cho Dữ Liệu Lớn)
+
+### ⚠️ Vì sao phân chia dữ liệu thành nhiều sheet không tối ưu khi dữ liệu lớn?
+- **Phân tán & Khó quản lý:** Khi một dự án đo đạc có 50, 100 hoặc hàng trăm thửa đất/khối quy hoạch, nếu mỗi thửa hoặc mỗi dự án sinh ra một sheet riêng biệt, bảng tính sẽ có hàng trăm tab con. Việc cuộn chuột tìm kiếm từng tab cực kỳ chậm, tốn tài nguyên máy và dễ nhầm lẫn.
+- **Không thể lọc, thống kê và báo cáo:** Dữ liệu bị xé nhỏ ra nhiều sheet khiến bạn không thể dùng Pivot Table, AutoFilter hay hàm tổng hợp (`SUMIFS`, `COUNTIFS`) trên toàn bộ dự án.
+- **Chạm ngưỡng giới hạn của Google Sheets:** Google Sheets có giới hạn tính toán theo số lượng sheet và công thức phân tán, gây giật lag khi mở trên điện thoại thực địa.
+
+### 🎯 Giải pháp Tối Ưu Tập Trung 2 Tab Chuẩn v4.0:
+Toàn bộ hệ thống quản lý dữ liệu được tổ chức khoa học, tinh gọn trên đúng **2 Tab duy nhất**:
+
+1. **Tab 1: "Sổ Đo Tọa Độ" (Lưu tập trung toàn bộ mốc & đỉnh ranh giới):**  
+   - Cấu trúc 14 cột chuẩn hóa: `Thời Gian Đo`, `Tên Điểm Mốc`, `Khối / Thửa Đất`, `Loại Hình`, `STT Đỉnh`, `Tọa Độ X (Bắc)`, `Tọa Độ Y (Đông)`, `Vĩ Độ (Lat)`, `Kinh Độ (Long)`, `Múi Chiếu`, `Kinh Tuyến Trục`, `Ghi Chú Hiện Trường`, `Dự Án`, `Vị Trí Google Maps`.
+   - Phân biệt dự án và thửa đất rõ ràng qua cột **"Dự Án"** và **"Khối / Thửa Đất"**.
+   - Tự động bật bộ lọc **Data Filter** trên hàng 1. Bạn chỉ cần bấm vào mũi tên lọc ở cột "Dự Án" hoặc "Khối / Thửa Đất" là xem riêng từng thửa chỉ với 1 click chuột!
+   - Chống trùng lặp mốc tuyệt đối theo khóa: `[Dự Án + Khối + Tên Mốc + X + Y]`.
+
+2. **Tab 2: "Tổng Hợp Diện Tích" (Lưu tập trung bảng tổng hợp diện tích, chu vi mọi thửa đất):**  
+   - Cấu trúc 11 cột chuẩn hóa: `Thời Gian Cập Nhật`, `Dự Án`, `STT`, `Tên Khối / Thửa Đất`, `Loại Hình`, `Số Đỉnh`, `Diện Tích (m²)`, `Diện Tích (ha)`, `Chu Vi / Chiều Dài (m)`, `Mã Màu`, `Ghi Chú`.
+   - Lưu trữ tập trung bảng kê diện tích của tất cả các thửa đất thuộc mọi dự án.
+   - Cơ chế cập nhật thông minh (`In-place Update`): Khi nắn ranh đỉnh hoặc cập nhật lại thửa đất, script tự động tìm dòng của thửa đó và cập nhật số liệu diện tích/chu vi mới nhất, không sinh thêm dòng rác trùng lặp!
+   - Tự động bật bộ lọc **Data Filter** để lọc tổng hợp diện tích theo dự án hoặc nhóm quy hoạch.
+
+3. **Tự động gắn link Google Maps vệ tinh (`🗺️ Xem Vị Trí`):**  
+   Mỗi đỉnh mốc tự động tạo liên kết vệ tinh chuẩn tiếng Việt (dấu phân cách `;`). Bấm vào link mở ngay vị trí mốc trên Google Maps.
+
+4. **Định dạng số chuẩn Trắc địa & CAD:**  
+   - Tọa độ phẳng VN-2000 (X, Y): 3 chữ số thập phân chuẩn mét (`#,##0.000`).
+   - Tọa độ WGS-84 (Lat, Lng): 6 chữ số thập phân (`0.000000`).
+   - Diện tích m²: 2 số thập phân (`#,##0.00`), Diện tích ha: 4 số thập phân (`#,##0.0000`).
+   - Hàng tiêu đề nền tối `#0f172a`, chữ màu ngọc nổi bật, đóng băng hàng 1 (`Freeze Row 1`).
+
+5. **Hàm cứu hộ & dọn dẹp tự động (`gopVaLamSachSoDo`):**  
+   Tự động gom toàn bộ các sheet cũ bị phân tán về đúng 2 Tab tập trung, khử trùng lặp và xóa sạch các sheet thừa!
+
+---
+
+## 💻 4. Mã Nguồn Google Apps Script Tối Ưu v4.0 (Sao chép và sử dụng)
 
 ```javascript
 /**
  * =========================================================================
- * GOOGLE APPS SCRIPT ĐỒNG BỘ SỔ ĐO TỌA ĐỘ TRẮC ĐỊA VN-2000 & WGS-84 PRO
- * Tác giả: Đặng Như (dnpn.ttqt@gmail.com) - Phiên bản Tối Ưu v3.0 (Hỗ trợ MiniCAD & AppSheet)
+ * GOOGLE APPS SCRIPT ĐỒNG BỘ SỔ ĐO TRẮC ĐỊA VN-2000 & MINICAD PRO (V4.0)
+ * Tác giả: Đặng Như (dnpn.ttqt@gmail.com) - Kiến Trúc Lưu Trữ Tập Trung 2 Tab
  * =========================================================================
- * Tính năng tự động hóa vượt trội:
- * 1. Lưu TẬP TRUNG tất cả dự án vào 1 Sheet (Tab) duy nhất "Sổ Đo Tọa Độ",
- *    phân biệt rõ ràng theo cột "Dự Án" (cột 13) và "Khối / Thửa Đất" (cột 3).
- * 2. Tương thích 100% với phân hệ vẽ CAD Mini và phần mềm AppSheet (gom nhóm thửa đất, tính diện tích).
- * 3. Tự động bật bộ lọc dữ liệu (Filter) giúp lọc xem từng dự án hoặc từng thửa chỉ với 1 click.
- * 4. Chống trùng lặp mốc tuyệt đối: Định danh mốc theo [Dự Án + Khối + Tên Mốc + X + Y].
- * 5. Tự động tạo công thức Google Maps vệ tinh chuẩn tiếng Việt dấu chấm phẩy (;).
- * 6. Định dạng trắc địa chuẩn (X, Y: 3 số lẻ; Lat, Lng: 6 số lẻ).
- * 7. Hàm tiện ích "gopVaLamSachSoDo()": Tự động gom các tab cũ, nâng cấp lên 14 cột và dọn sạch trùng lặp!
+ * TỐI ƯU HÓA ĐẶC BIỆT CHO DỮ LIỆU LỚN (BIG DATA):
+ * 1. KHÔNG PHÂN MẢNH THÀNH NHIỀU TAB/SHEET CON:
+ *    - Toàn bộ dữ liệu được quản lý tập trung và khoa học trên đúng 2 Tab chuẩn:
+ *      • Tab 1: "Sổ Đo Tọa Độ" -> Toàn bộ mốc & đỉnh ranh giới (chuẩn 14 cột, lọc theo cột Dự Án, Thửa).
+ *      • Tab 2: "Tổng Hợp Diện Tích" -> Bảng thống kê diện tích, chu vi, loại hình, số đỉnh của mọi thửa.
+ * 2. TỰ ĐỘNG BẬT BỘ LỌC DỮ LIỆU (DATA FILTER):
+ *    - Dễ dàng tra cứu, lọc xem từng dự án hoặc từng thửa đất chỉ với 1 click chuột.
+ * 3. CƠ CHẾ CHỐNG TRÙNG LẶP & CẬP NHẬT THÔNG MINH (DEDUPLICATION & IN-PLACE UPDATE):
+ *    - Đỉnh mốc: Khóa duy nhất theo [Dự Án + Khối + Tên Mốc + X + Y].
+ *    - Thửa đất: Khóa theo [Dự Án + Tên Khối/Thửa]. Tự động cập nhật số liệu mới nhất nếu thửa đã có.
+ * 4. TÍNH NĂNG CỨU HỘ & DỌN DẸP "gopVaLamSachSoDo()":
+ *    - Tự động gom các tab cũ phân tán về đúng 2 Tab tập trung, dọn sạch tab rác.
  */
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) {
+  if (!lock.tryLock(15000)) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
-      message: "Hệ thống đang bận ghi dữ liệu, vui lòng thử lại sau vài giây."
+      message: "Hệ thống đang bận xử lý, vui lòng thử lại sau vài giây."
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var data = JSON.parse(e.postData.contents);
-    var defaultProject = (data.project || "So_Do_Mac_Dinh").replace(/[:\\/?*\[\]]/g, "_").replace(/\.csv$/i, "");
+    var defaultProject = (data.project || "So_Do_Mac_Dinh").replace(/[:\/?*[]]/g, "_").replace(/\.csv$/i, "");
 
-    // 1. Lưu tập trung toàn bộ dự án vào 1 Sheet (Tab) duy nhất "Sổ Đo Tọa Độ"
-    var sheetName = "Sổ Đo Tọa Độ";
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
+    var pointSheetName = "Sổ Đo Tọa Độ";
+    var areaSheetName = "Tổng Hợp Diện Tích";
+
+    // 1. Quản lý Tab 1: "Sổ Đo Tọa Độ" (Lưu tập trung toàn bộ mốc & đỉnh ranh giới)
+    var pointSheet = ss.getSheetByName(pointSheetName);
+    if (!pointSheet) {
       var allSheets = ss.getSheets();
       if (allSheets.length > 0 && (allSheets[0].getName() === "Sheet1" || allSheets[0].getName() === "Trang tính1")) {
-        allSheets[0].setName(sheetName);
-        sheet = allSheets[0];
+        allSheets[0].setName(pointSheetName);
+        pointSheet = allSheets[0];
       } else {
-        sheet = ss.insertSheet(sheetName, 0);
+        pointSheet = ss.insertSheet(pointSheetName, 0);
       }
     }
-
-    // 2. Khởi tạo dòng tiêu đề chuẩn 14 cột nếu Tab còn trống
-    if (sheet.getLastRow() === 0) {
-      initSheetHeader(sheet);
+    if (pointSheet.getLastRow() === 0) {
+      initPointSheetHeader(pointSheet);
     }
 
-    var lastCol = sheet.getLastColumn();
-    var isNew14Col = (lastCol >= 14 || sheet.getLastRow() <= 1);
-    var addedCount = 0;
-    var existingKeys = getExistingKeys(sheet);
+    var addedPointsCount = 0;
+    var existingPointKeys = getExistingPointKeys(pointSheet);
 
-    // 3. Xử lý đồng bộ nhiều mốc cùng lúc (Bulk Sync)
+    // Xử lý ghi mốc tọa độ vào Tab 1
     if (Array.isArray(data.points) && data.points.length > 0) {
-      var rowsToAdd = [];
+      var pointRowsToAdd = [];
 
       data.points.forEach(function(p) {
         var pProj = String(p.project || defaultProject).replace(/\.csv$/i, "").trim();
@@ -151,22 +166,20 @@ function doPost(e) {
         var pY = parseFloat(p.y) || 0;
         var key = pProj.toLowerCase() + "_" + pShape.toLowerCase() + "_" + pName.toLowerCase() + "_" + pX.toFixed(3) + "_" + pY.toFixed(3);
 
-        if (!existingKeys[key]) {
-          rowsToAdd.push(formatPointRow(p, pProj, isNew14Col ? 14 : 11));
-          existingKeys[key] = true;
-          addedCount++;
+        if (!existingPointKeys[key]) {
+          pointRowsToAdd.push(formatPointRow(p, pProj));
+          existingPointKeys[key] = true;
+          addedPointsCount++;
         }
       });
 
-      if (rowsToAdd.length > 0) {
-        var startRow = sheet.getLastRow() + 1;
-        var range = sheet.getRange(startRow, 1, rowsToAdd.length, rowsToAdd[0].length);
-        range.setValues(rowsToAdd);
-        formatDataRange(sheet, startRow, rowsToAdd.length, isNew14Col ? 14 : 11);
+      if (pointRowsToAdd.length > 0) {
+        var startRow = pointSheet.getLastRow() + 1;
+        pointSheet.getRange(startRow, 1, pointRowsToAdd.length, pointRowsToAdd[0].length).setValues(pointRowsToAdd);
+        formatPointDataRange(pointSheet, startRow, pointRowsToAdd.length);
+        ensureFilterRange(pointSheet);
       }
-    } 
-    // 4. Xử lý lưu mốc lẻ theo thời gian thực (Real-time Single Point)
-    else if (data.point) {
+    } else if (data.point) {
       var p = data.point;
       var pProj = String(p.project || defaultProject).replace(/\.csv$/i, "").trim();
       var pName = String(p.name || "Mốc").trim();
@@ -175,25 +188,78 @@ function doPost(e) {
       var pY = parseFloat(p.y) || 0;
       var key = pProj.toLowerCase() + "_" + pShape.toLowerCase() + "_" + pName.toLowerCase() + "_" + pX.toFixed(3) + "_" + pY.toFixed(3);
 
-      if (!existingKeys[key]) {
-        var rowData = formatPointRow(p, pProj, isNew14Col ? 14 : 11);
-        sheet.appendRow(rowData);
-        var lastRow = sheet.getLastRow();
-        formatDataRange(sheet, lastRow, 1, isNew14Col ? 14 : 11);
-        addedCount = 1;
+      if (!existingPointKeys[key]) {
+        var rowData = formatPointRow(p, pProj);
+        pointSheet.appendRow(rowData);
+        var lastRow = pointSheet.getLastRow();
+        formatPointDataRange(pointSheet, lastRow, 1);
+        ensureFilterRange(pointSheet);
+        addedPointsCount = 1;
       }
     }
 
-    // Cập nhật bộ lọc bao quát tất cả dòng nếu có thêm mốc mới
-    if (addedCount > 0) {
-      ensureFilterRange(sheet);
+    // 2. Quản lý Tab 2: "Tổng Hợp Diện Tích" (Lưu tập trung toàn bộ thửa đất / khối của mọi dự án)
+    var addedShapesCount = 0;
+    if (Array.isArray(data.shapes) && data.shapes.length > 0) {
+      var areaSheet = ss.getSheetByName(areaSheetName);
+      if (!areaSheet) {
+        areaSheet = ss.insertSheet(areaSheetName, 1);
+      }
+      if (areaSheet.getLastRow() === 0) {
+        initAreaSheetHeader(areaSheet);
+      }
+
+      var areaKeys = getExistingAreaKeys(areaSheet);
+      var shapeRowsToAdd = [];
+      var shapeUpdates = [];
+      var nowStr = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd HH:mm:ss");
+
+      data.shapes.forEach(function(s) {
+        var sProj = String(s.project || defaultProject).replace(/\.csv$/i, "").trim();
+        var sName = String(s.name || "Thửa").trim();
+        var key = sProj.toLowerCase() + "_" + sName.toLowerCase();
+
+        var rowValues = [
+          nowStr,
+          sProj,
+          s.order || "--",
+          sName,
+          s.mode || "Đa giác",
+          s.vertexCount || 0,
+          parseFloat(s.area) || 0,
+          parseFloat(s.ha) || 0,
+          parseFloat(s.perimeter) || 0,
+          s.color || "#10b981",
+          s.note || ""
+        ];
+
+        if (areaKeys[key]) {
+          shapeUpdates.push({ row: areaKeys[key], values: rowValues });
+        } else {
+          shapeRowsToAdd.push(rowValues);
+          areaKeys[key] = true;
+          addedShapesCount++;
+        }
+      });
+
+      shapeUpdates.forEach(function(item) {
+        areaSheet.getRange(item.row, 1, 1, item.values.length).setValues([item.values]);
+      });
+
+      if (shapeRowsToAdd.length > 0) {
+        var aStartRow = areaSheet.getLastRow() + 1;
+        areaSheet.getRange(aStartRow, 1, shapeRowsToAdd.length, shapeRowsToAdd[0].length).setValues(shapeRowsToAdd);
+        formatAreaDataRange(areaSheet, aStartRow, shapeRowsToAdd.length);
+      }
+
+      ensureFilterRange(areaSheet);
     }
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      added: addedCount,
-      sheet: sheetName,
-      columns: isNew14Col ? 14 : 11
+      pointsAdded: addedPointsCount,
+      shapesAdded: addedShapesCount,
+      tabs: [pointSheetName, areaSheetName]
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -206,8 +272,8 @@ function doPost(e) {
   }
 }
 
-// Khởi tạo dòng tiêu đề chuẩn 14 cột tích hợp MiniCAD & AppSheet
-function initSheetHeader(sheet) {
+// Khởi tạo dòng tiêu đề Tab 1: "Sổ Đo Tọa Độ" (14 cột chuẩn hóa)
+function initPointSheetHeader(sheet) {
   var headers = [
     "Thời Gian Đo", "Tên Điểm Mốc", "Khối / Thửa Đất", "Loại Hình", "STT Đỉnh",
     "Tọa Độ X (Bắc - m)", "Tọa Độ Y (Đông - m)", "Vĩ Độ (Lat - °)", "Kinh Độ (Long - °)",
@@ -218,6 +284,24 @@ function initSheetHeader(sheet) {
   headerRange.setFontWeight("bold")
              .setBackground("#0f172a")
              .setFontColor("#38bdf8")
+             .setHorizontalAlignment("center")
+             .setVerticalAlignment("middle");
+  sheet.setRowHeight(1, 32);
+  sheet.setFrozenRows(1);
+  ensureFilterRange(sheet);
+}
+
+// Khởi tạo dòng tiêu đề Tab 2: "Tổng Hợp Diện Tích" (11 cột chuẩn hóa)
+function initAreaSheetHeader(sheet) {
+  var headers = [
+    "Thời Gian Cập Nhật", "Dự Án", "STT", "Tên Khối / Thửa Đất", "Loại Hình",
+    "Số Đỉnh", "Diện Tích (m²)", "Diện Tích (ha)", "Chu Vi / Chiều Dài (m)", "Mã Màu", "Ghi Chú"
+  ];
+  sheet.appendRow(headers);
+  var headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setFontWeight("bold")
+             .setBackground("#0f172a")
+             .setFontColor("#34d399")
              .setHorizontalAlignment("center")
              .setVerticalAlignment("middle");
   sheet.setRowHeight(1, 32);
@@ -237,8 +321,8 @@ function ensureFilterRange(sheet) {
   } catch(e) {}
 }
 
-// Định dạng dữ liệu một dòng (hỗ trợ cả chuẩn mới 14 cột và bảng cũ 11 cột)
-function formatPointRow(p, projectName, numCols) {
+// Định dạng dữ liệu một dòng mốc (Tab 1)
+function formatPointRow(p, projectName) {
   var lat = parseFloat(p.lat) || 0;
   var lng = parseFloat(p.lng) || 0;
   var proj = String(p.project || projectName || "Mặc định").replace(/\.csv$/i, "").trim();
@@ -250,26 +334,6 @@ function formatPointRow(p, projectName, numCols) {
   var sMode = String(p.shapeMode || (p.mode === 'polyline' ? 'Tuyến' : (p.mode === 'polygon' ? 'Đa giác' : '')) || "").trim();
   var sOrder = p.shapeOrder || p.vertexOrder || "";
 
-  // Trường hợp tương thích ngược bảng cũ 11 cột
-  if (numCols === 11) {
-    var noteCombined = (p.note || "");
-    if (sName) noteCombined = (noteCombined ? (noteCombined + " | ") : "") + "Khối: " + sName;
-    return [
-      p.time || new Date(),
-      p.name || "Mốc",
-      parseFloat(p.x) || p.x || 0,
-      parseFloat(p.y) || p.y || 0,
-      parseFloat(p.lat) || p.lat || 0,
-      parseFloat(p.lng) || p.lng || 0,
-      p.mui ? ("Múi " + p.mui + "°") : "Múi 3°",
-      p.ktt || "",
-      noteCombined,
-      proj,
-      mapFormula
-    ];
-  }
-
-  // Chuẩn mới 14 cột chuyên biệt cho MiniCAD & AppSheet
   return [
     p.time || new Date(),
     p.name || "Mốc",
@@ -288,69 +352,55 @@ function formatPointRow(p, projectName, numCols) {
   ];
 }
 
-// Định dạng số liệu trắc địa & áp dụng setFormulasLocal đảm bảo 100% không bị lỗi #ERROR!
-function formatDataRange(sheet, startRow, numRows, numCols) {
+// Định dạng vùng dữ liệu Tab 1: Sổ Đo Tọa Độ
+function formatPointDataRange(sheet, startRow, numRows) {
   try {
-    if (numCols === 14) {
-      // 14 Cột: X (cột 6), Y (cột 7), Lat (cột 8), Lng (cột 9), Dự Án (cột 13), Map (cột 14)
-      sheet.getRange(startRow, 6, numRows, 2).setNumberFormat("#,##0.000");
-      sheet.getRange(startRow, 8, numRows, 2).setNumberFormat("0.000000");
-      sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
-      sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#b45309");
-      sheet.getRange(startRow, 3, numRows, 1).setFontWeight("bold").setFontColor("#059669"); // Tên Khối/Thửa
-      sheet.getRange(startRow, 4, numRows, 2).setHorizontalAlignment("center"); // Loại hình & STT
-      sheet.getRange(startRow, 13, numRows, 1).setFontWeight("bold").setFontColor("#0284c7").setHorizontalAlignment("center");
-      sheet.getRange(startRow, 14, numRows, 1).setHorizontalAlignment("center");
+    sheet.getRange(startRow, 6, numRows, 2).setNumberFormat("#,##0.000");
+    sheet.getRange(startRow, 8, numRows, 2).setNumberFormat("0.000000");
+    sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
+    sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#b45309");
+    sheet.getRange(startRow, 3, numRows, 1).setFontWeight("bold").setFontColor("#059669");
+    sheet.getRange(startRow, 4, numRows, 2).setHorizontalAlignment("center");
+    sheet.getRange(startRow, 13, numRows, 1).setFontWeight("bold").setFontColor("#0284c7").setHorizontalAlignment("center");
+    sheet.getRange(startRow, 14, numRows, 1).setHorizontalAlignment("center");
 
-      var latLngValues = sheet.getRange(startRow, 8, numRows, 2).getValues();
-      var formulas = [];
-      for (var i = 0; i < latLngValues.length; i++) {
-        var lat = parseFloat(latLngValues[i][0]) || 0;
-        var lng = parseFloat(latLngValues[i][1]) || 0;
-        if (lat !== 0 && lng !== 0) {
-          formulas.push(['=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lng + '"; "🗺️ Xem Vị Trí")']);
-        } else {
-          formulas.push([""]);
-        }
+    var latLngValues = sheet.getRange(startRow, 8, numRows, 2).getValues();
+    var formulas = [];
+    for (var i = 0; i < latLngValues.length; i++) {
+      var lat = parseFloat(latLngValues[i][0]) || 0;
+      var lng = parseFloat(latLngValues[i][1]) || 0;
+      if (lat !== 0 && lng !== 0) {
+        formulas.push(['=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lng + '"; "🗺️ Xem Vị Trí")']);
+      } else {
+        formulas.push([""]);
       }
-      var mapRange = sheet.getRange(startRow, 14, numRows, 1);
-      try {
-        mapRange.setFormulasLocal(formulas);
-      } catch (e) {
-        mapRange.setValues(formulas);
-      }
-    } else {
-      // Bảng cũ 11 Cột
-      sheet.getRange(startRow, 3, numRows, 2).setNumberFormat("#,##0.000");
-      sheet.getRange(startRow, 5, numRows, 2).setNumberFormat("0.000000");
-      sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
-      sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#b45309");
-      sheet.getRange(startRow, 10, numRows, 1).setFontWeight("bold").setFontColor("#0284c7").setHorizontalAlignment("center");
-      sheet.getRange(startRow, 11, numRows, 1).setHorizontalAlignment("center");
-
-      var latLngValues11 = sheet.getRange(startRow, 5, numRows, 2).getValues();
-      var formulas11 = [];
-      for (var j = 0; j < latLngValues11.length; j++) {
-        var lat11 = parseFloat(latLngValues11[j][0]) || 0;
-        var lng11 = parseFloat(latLngValues11[j][1]) || 0;
-        if (lat11 !== 0 && lng11 !== 0) {
-          formulas11.push(['=HYPERLINK("https://www.google.com/maps?q=' + lat11 + ',' + lng11 + '"; "🗺️ Xem Vị Trí")']);
-        } else {
-          formulas11.push([""]);
-        }
-      }
-      var mapRange11 = sheet.getRange(startRow, 11, numRows, 1);
-      try {
-        mapRange11.setFormulasLocal(formulas11);
-      } catch (e) {
-        mapRange11.setValues(formulas11);
-      }
+    }
+    var mapRange = sheet.getRange(startRow, 14, numRows, 1);
+    try {
+      mapRange.setFormulasLocal(formulas);
+    } catch (e) {
+      mapRange.setValues(formulas);
     }
   } catch(e) {}
 }
 
-// Lấy danh sách khóa mốc đã có theo [Dự Án + Khối + Tên Mốc + X + Y] để chống trùng lặp tuyệt đối
-function getExistingKeys(sheet) {
+// Định dạng vùng dữ liệu Tab 2: Tổng Hợp Diện Tích
+function formatAreaDataRange(sheet, startRow, numRows) {
+  try {
+    sheet.getRange(startRow, 1, numRows, 1).setHorizontalAlignment("center");
+    sheet.getRange(startRow, 2, numRows, 1).setFontWeight("bold").setFontColor("#0284c7").setHorizontalAlignment("center");
+    sheet.getRange(startRow, 3, numRows, 1).setHorizontalAlignment("center");
+    sheet.getRange(startRow, 4, numRows, 1).setFontWeight("bold").setFontColor("#059669");
+    sheet.getRange(startRow, 5, numRows, 2).setHorizontalAlignment("center");
+    sheet.getRange(startRow, 7, numRows, 1).setNumberFormat("#,##0.00").setHorizontalAlignment("right");
+    sheet.getRange(startRow, 8, numRows, 1).setNumberFormat("#,##0.0000").setHorizontalAlignment("right");
+    sheet.getRange(startRow, 9, numRows, 1).setNumberFormat("#,##0.00").setHorizontalAlignment("right");
+    sheet.getRange(startRow, 10, numRows, 1).setHorizontalAlignment("center");
+  } catch(e) {}
+}
+
+// Lấy danh sách khóa mốc đã có (Tab 1)
+function getExistingPointKeys(sheet) {
   var keys = {};
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
@@ -375,24 +425,46 @@ function getExistingKeys(sheet) {
   return keys;
 }
 
-// HÀM TIỆN ÍCH DỌN DẸP & NÂNG CẤP: Gom các tab cũ, nâng cấp lên 14 cột chuẩn MiniCAD/AppSheet
+// Lấy danh sách khóa thửa đất đã có (Tab 2)
+function getExistingAreaKeys(sheet) {
+  var keys = {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var data = sheet.getRange(2, 1, lastRow - 1, Math.min(sheet.getLastColumn(), 5)).getValues();
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      var sProj = String(row[1] || "").trim().toLowerCase();
+      var sName = String(row[3] || "").trim().toLowerCase();
+      if (sProj || sName) {
+        keys[sProj + "_" + sName] = i + 2;
+      }
+    }
+  }
+  return keys;
+}
+
+// HÀM TIỆN ÍCH DỌN DẸP & NÂNG CẤP: Gom các tab phân tán về đúng 2 Tab chuẩn
 function gopVaLamSachSoDo() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var targetSheet = ss.getSheetByName("Sổ Đo Tọa Độ");
-  if (!targetSheet) {
-    targetSheet = ss.insertSheet("Sổ Đo Tọa Độ", 0);
-  }
-  if (targetSheet.getLastRow() === 0) {
-    initSheetHeader(targetSheet);
-  }
+  var pointSheetName = "Sổ Đo Tọa Độ";
+  var areaSheetName = "Tổng Hợp Diện Tích";
 
-  var existingKeys = getExistingKeys(targetSheet);
+  var pointSheet = ss.getSheetByName(pointSheetName);
+  if (!pointSheet) pointSheet = ss.insertSheet(pointSheetName, 0);
+  if (pointSheet.getLastRow() === 0) initPointSheetHeader(pointSheet);
+
+  var areaSheet = ss.getSheetByName(areaSheetName);
+  if (!areaSheet) areaSheet = ss.insertSheet(areaSheetName, 1);
+  if (areaSheet.getLastRow() === 0) initAreaSheetHeader(areaSheet);
+
+  var existingPointKeys = getExistingPointKeys(pointSheet);
   var sheets = ss.getSheets();
   var totalImported = 0;
   var sheetsToDelete = [];
 
   sheets.forEach(function(sh) {
-    if (sh.getName() === "Sổ Đo Tọa Độ") return;
+    var sName = sh.getName();
+    if (sName === pointSheetName || sName === areaSheetName) return;
 
     var lastRow = sh.getLastRow();
     if (lastRow > 1) {
@@ -418,7 +490,7 @@ function gopVaLamSachSoDo() {
         var rowProj = String((row.length >= 14 ? row[12] : row[9]) || sh.getName()).replace(/\.csv$/i, "").trim();
 
         var key = rowProj.toLowerCase() + "_" + rowShape.toLowerCase() + "_" + rowName.toLowerCase() + "_" + rowX.toFixed(3) + "_" + rowY.toFixed(3);
-        if (!existingKeys[key] && (rowX !== 0 || rowLat !== 0)) {
+        if (!existingPointKeys[key] && (rowX !== 0 || rowLat !== 0)) {
           var mapFormula = (rowLat !== 0 && rowLng !== 0) 
             ? '=HYPERLINK("https://www.google.com/maps?q=' + rowLat + ',' + rowLng + '"; "🗺️ Xem Vị Trí")'
             : "";
@@ -427,16 +499,15 @@ function gopVaLamSachSoDo() {
             rowTime, rowName, rowShape, rowMode, rowOrder,
             rowX, rowY, rowLat, rowLng, rowMui, rowKtt, rowNote, rowProj, mapFormula
           ]);
-          existingKeys[key] = true;
+          existingPointKeys[key] = true;
           totalImported++;
         }
       }
 
       if (rowsToAdd.length > 0) {
-        var startRow = targetSheet.getLastRow() + 1;
-        var range = targetSheet.getRange(startRow, 1, rowsToAdd.length, rowsToAdd[0].length);
-        range.setValues(rowsToAdd);
-        formatDataRange(targetSheet, startRow, rowsToAdd.length, 14);
+        var startRow = pointSheet.getLastRow() + 1;
+        pointSheet.getRange(startRow, 1, rowsToAdd.length, rowsToAdd[0].length).setValues(rowsToAdd);
+        formatPointDataRange(pointSheet, startRow, rowsToAdd.length);
       }
     }
 
@@ -445,21 +516,22 @@ function gopVaLamSachSoDo() {
 
   sheetsToDelete.forEach(function(sh) {
     try {
-      if (ss.getSheets().length > 1) {
+      if (ss.getSheets().length > 2) {
         ss.deleteSheet(sh);
       }
     } catch(e) {}
   });
 
-  ensureFilterRange(targetSheet);
-  return "✓ Đã gom và nâng cấp thành công " + totalImported + " mốc vào bảng 14 cột chuẩn 'Sổ Đo Tọa Độ'!";
+  ensureFilterRange(pointSheet);
+  ensureFilterRange(areaSheet);
+  return "✓ Đã gom và nâng cấp thành công " + totalImported + " mốc vào 2 Tab tập trung: 'Sổ Đo Tọa Độ' & 'Tổng Hợp Diện Tích'!";
 }
 
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",
-    version: "3.0",
-    message: "Google Apps Script VN-2000 Pro & MiniCAD đã sẵn sàng!"
+    version: "4.0",
+    message: "Google Apps Script VN-2000 Pro & MiniCAD v4.0 (2-Tab Architecture) đã sẵn sàng!"
   })).setMimeType(ContentService.MimeType.JSON);
 }
 ```
