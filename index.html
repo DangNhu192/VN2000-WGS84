@@ -4545,7 +4545,7 @@
       font-family: ui-monospace, monospace;
     }
     .cad-table-wrap {
-      overflow-x: auto;
+      overflow: auto;
       border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 8px;
       background: rgba(15, 23, 42, 0.6);
@@ -4665,6 +4665,57 @@
       }
       .screen-view {
         padding-bottom: calc(var(--sat-safe-bottom) + 72px) !important;
+      }
+
+      /* Nâng CAD Status HUD lên trên thanh Mobile Bottom Nav, chống đè nút SNAP/LINE/EXTENTS */
+      .cad-status-hud {
+        bottom: calc(var(--sat-safe-bottom) + 64px) !important;
+        left: 8px !important;
+        max-width: calc(100vw - 16px) !important;
+        z-index: 2450 !important;
+      }
+
+      /* Nâng Map Bottom Inspection Sheet lên trên thanh Mobile Bottom Nav */
+      .map-bottom-sheet {
+        bottom: calc(var(--sat-safe-bottom) + 66px) !important;
+        z-index: 2500 !important;
+      }
+
+      /* Nâng thanh tỷ lệ và chú dẫn Leaflet lên trên thanh Mobile Bottom Nav */
+      .leaflet-bottom {
+        bottom: calc(var(--sat-safe-bottom) + 60px) !important;
+      }
+
+      /* Đảm bảo thanh nút FAB bên phải bản đồ nằm dưới thanh công cụ MiniCAD khi mở */
+      .cad-active-map .map-right-controls {
+        top: calc(var(--sat-safe-top) + 155px) !important;
+      }
+
+      /* Tối ưu kích thước FAB trên màn hình nhỏ chống tràn khỏi cạnh dưới */
+      .btn-map-fab {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+      }
+      .drag-handle-right-controls {
+        width: 36px !important;
+        height: 18px !important;
+      }
+
+      /* Panel danh sách khối MiniCAD co giãn linh hoạt theo màn hình di động */
+      .cad-blocks-panel {
+        width: calc(100vw - 16px) !important;
+        max-width: 360px !important;
+        left: 8px !important;
+        max-height: calc(100dvh - var(--sat-safe-top) - 160px) !important;
+        z-index: 2460 !important;
+      }
+      .cad-blocks-panel-header {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+      }
+      .cad-blocks-panel-body {
+        max-height: calc(100dvh - var(--sat-safe-top) - 240px) !important;
       }
     }
 

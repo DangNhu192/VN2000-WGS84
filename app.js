@@ -2238,7 +2238,8 @@ const appMap = {
 
             let newTop = initTop + dy;
             const minTop = 60; // Dưới header
-            const maxTop = window.innerHeight - container.offsetHeight - 50; // Trên bottom bar
+            const bottomInset = (window.innerWidth <= 768) ? 72 : 50;
+            const maxTop = window.innerHeight - container.offsetHeight - bottomInset; // Trên bottom bar
 
             newTop = Math.max(minTop, Math.min(newTop, maxTop));
             container.style.top = `${newTop}px`;
@@ -8377,7 +8378,8 @@ const appCadTool = {
             let newTop = initTop + dy;
 
             const maxW = window.innerWidth - panel.offsetWidth;
-            const maxH = window.innerHeight - panel.offsetHeight;
+            const bottomInset = (window.innerWidth <= 768) ? 72 : 10;
+            const maxH = window.innerHeight - panel.offsetHeight - bottomInset;
             newLeft = Math.max(5, Math.min(newLeft, maxW - 5));
             newTop = Math.max(5, Math.min(newTop, maxH - 5));
 
@@ -10885,7 +10887,7 @@ const appCadTool = {
                                 isSnapped: true,
                                 snapSource: `Điểm chung cạnh với ${chosenName}`
                             });
-                            targetShape.stats = this.calculateAreaAndPerimeter(verts, targetShape.mode);
+                            targetShape.stats = this.getEffectiveStats(targetShape);
                         }
                     }
                 }
