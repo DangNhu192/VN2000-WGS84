@@ -8430,11 +8430,8 @@ const appCadTool = {
         }
         if (this.savedShapes && this.savedShapes[idx]) {
             const s = this.savedShapes[idx];
-            if (!s.stats) s.stats = {};
-            s.stats.area = val;
-            s.stats.ha = val / 10000.0;
-            s.stats.areaFormatted = val.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            s.customArea = true;
+            s.customArea = val;
+            s.stats = this.getEffectiveStats(s);
             this.pushHistoryState(`Sửa diện tích ${s.name}`);
             this.renderGeometry();
             this.renderBlocksPanel();
@@ -8446,6 +8443,76 @@ const appCadTool = {
                 this.openAreaTableModal();
             }
             showToast(`✓ Đã cập nhật diện tích ${s.name}: ${s.stats.areaFormatted} m²`);
+        }
+    },
+
+    editBlockPerimeter(idx, newPerimVal) {
+        const val = parseFloat(newPerimVal);
+        if (isNaN(val) || val <= 0) {
+            showToast("⚠️ Vui lòng nhập chiều dài / chu vi hợp lệ (> 0)!", true);
+            return;
+        }
+        if (this.savedShapes && this.savedShapes[idx]) {
+            const s = this.savedShapes[idx];
+            s.customPerimeter = val;
+            s.stats = this.getEffectiveStats(s);
+            this.pushHistoryState(`Sửa chiều dài ${s.name}`);
+            this.renderGeometry();
+            this.renderBlocksPanel();
+            this.renderExportBlockPicker();
+            this.checkScalePaperFit();
+            const allShapes = this._getAllExportShapes();
+            this.renderBlockList(allShapes);
+            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                this.openAreaTableModal();
+            }
+            showToast(`✓ Đã cập nhật chiều dài ${s.name}: ${s.stats.perimeterFormatted} m`);
+        }
+    },
+
+    editEdgeLength(shapeIdx, edgeIdx, newLenVal) {
+        const val = parseFloat(newLenVal);
+        if (isNaN(val) || val <= 0) {
+            showToast("⚠️ Vui lòng nhập cự ly cạnh hợp lệ (> 0)!", true);
+            return;
+        }
+        if (this.savedShapes && this.savedShapes[shapeIdx]) {
+            const s = this.savedShapes[shapeIdx];
+            if (!s.customEdges) s.customEdges = {};
+            s.customEdges[edgeIdx] = val;
+            s.stats = this.getEffectiveStats(s);
+            this.pushHistoryState(`Sửa cự ly cạnh ${s.name}`);
+            this.renderGeometry();
+            this.renderBlocksPanel();
+            this.renderExportBlockPicker();
+            const allShapes = this._getAllExportShapes();
+            this.renderBlockList(allShapes);
+            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                this.openAreaTableModal();
+            }
+            showToast(`✓ Đã cập nhật cự ly cạnh #${edgeIdx + 1} của ${s.name}: ${val.toFixed(2)} m`);
+        }
+    },
+
+    resetBlockCustomStats(idx) {
+        if (this.savedShapes && this.savedShapes[idx]) {
+            const s = this.savedShapes[idx];
+            delete s.customArea;
+            delete s.customPerimeter;
+            delete s.customEdges;
+            s.isCustomModified = false;
+            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode, true);
+            this.pushHistoryState(`Khôi phục số đo ${s.name}`);
+            this.renderGeometry();
+            this.renderBlocksPanel();
+            this.renderExportBlockPicker();
+            this.checkScalePaperFit();
+            const allShapes = this._getAllExportShapes();
+            this.renderBlockList(allShapes);
+            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                this.openAreaTableModal();
+            }
+            showToast(`✓ Đã khôi phục ${s.name} về số đo hình học thực tế!`);
         }
     },
 
@@ -9618,33 +9685,41 @@ const appCadTool = {
     },
 
     resetCustomProjectArea() {
+        this.pushHistoryState('Khôi phục tự động đo');
+        // Khôi phục 100% các khối trong savedShapes về số đo hình học thực tế
+        if (this.savedShapes && this.savedShapes.length > 0) {
+            this.savedShapes.forEach(s => {
+                delete s.customArea;
+                delete s.customPerimeter;
+                delete s.customEdges;
+                s.isCustomModified = false;
+                s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode, true);
+            });
+        }
+        this.customProjectArea = null;
+
         const allShapes = this._getAllExportShapes();
         let measuredTotalArea = 0;
         let polyCount = 0;
         allShapes.forEach(s => {
             if (s.selected !== false && s.mode === 'polygon') {
-                const stats = this.calculateAreaAndPerimeter(s.vertices, s.mode);
-                if (s.stats) {
-                    s.stats.area = stats.area;
-                    s.stats.areaFormatted = stats.areaFormatted;
-                    s.stats.ha = stats.ha;
-                    s.stats.haFormatted = stats.haFormatted;
-                    s.stats.perimeter = stats.perimeter;
-                    s.stats.perimeterFormatted = stats.perimeterFormatted;
-                }
-                measuredTotalArea += (stats?.area || 0);
+                measuredTotalArea += (s.stats?.area || 0);
                 polyCount++;
             }
         });
         measuredTotalArea = parseFloat(measuredTotalArea.toFixed(2));
-        this.customProjectArea = measuredTotalArea > 0 ? measuredTotalArea : null;
 
         const input = document.getElementById('cadCustomProjectArea');
         if (input) {
-            input.value = measuredTotalArea > 0 ? measuredTotalArea : '';
+            input.value = '';
+            input.placeholder = measuredTotalArea > 0 ? `Đo: ${measuredTotalArea.toFixed(2)} m²` : 'Đo thực tế';
         }
 
-        // Cập nhật lại giao diện bảng khối và tóm tắt
+        // Cập nhật lại giao diện bảng khối, tóm tắt và bản đồ
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        this.renderExportBlockPicker();
+        this.checkScalePaperFit();
         this.renderBlockList(allShapes);
 
         const elAreaM2 = document.getElementById('cadModalAreaM2');
@@ -9652,8 +9727,12 @@ const appCadTool = {
         if (elAreaM2) elAreaM2.innerText = `${measuredTotalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
         if (elAreaHa) elAreaHa.innerText = `≈ ${(measuredTotalArea / 10000).toFixed(4)} ha (${polyCount} đa giác)`;
 
+        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.openAreaTableModal();
+        }
+
         triggerHaptic('success');
-        showToast(`✓ Đã tự động lấy diện tích thực: ${measuredTotalArea.toLocaleString('vi-VN')} m² (${polyCount} thửa đa giác)`);
+        showToast(`✓ Đã khôi phục toàn bộ diện tích & chiều dài cự ly về số liệu đo thực tế!`);
     },
 
     _normalizeVertex(v, idx = 0, forceSyncVn2k = false) {
@@ -9764,6 +9843,7 @@ const appCadTool = {
         (this.savedShapes || []).forEach((s, idx) => {
             const rawVerts = s.vertices || [];
             const vertices = rawVerts.map((v, i) => this._normalizeVertex(v, i)).filter(Boolean);
+            const stats = this.getEffectiveStats(s);
             allShapes.push({
                 id: s.id,
                 name: s.name,
@@ -9771,7 +9851,10 @@ const appCadTool = {
                 symbol: s.symbol || String(idx + 1),
                 mode: s.mode,
                 vertices: vertices,
-                stats: s.stats || this.calculateAreaAndPerimeter(vertices, s.mode),
+                stats: stats,
+                customArea: s.customArea,
+                customPerimeter: s.customPerimeter,
+                customEdges: s.customEdges,
                 color: s.color || '#10b981',
                 selected: s.selected !== false
             });
@@ -11733,6 +11816,60 @@ const appCadTool = {
         this.toggleDisplayOption('showAnnotations', !this.displaySettings.showAnnotations);
     },
 
+    // Tính toán số liệu diện tích và chu vi hiệu dụng (hỗ trợ điều chỉnh số hiển thị mà không ảnh hưởng tọa độ hình học thực tế)
+    getEffectiveStats(shape) {
+        if (!shape || !shape.vertices || shape.vertices.length < 2) {
+            return {
+                area: 0,
+                areaFormatted: '0.00',
+                ha: 0,
+                haFormatted: '0.0000',
+                perimeter: 0,
+                perimeterFormatted: '0.00',
+                edges: []
+            };
+        }
+        const realStats = this.calculateAreaAndPerimeter(shape.vertices, shape.mode, true);
+        const stats = { ...realStats };
+        stats.realArea = realStats.area;
+        stats.realPerimeter = realStats.perimeter;
+
+        // 1. Áp dụng override diện tích thủ công (nếu có)
+        if (shape.customArea !== undefined && shape.customArea !== null && !isNaN(shape.customArea) && shape.customArea > 0) {
+            stats.area = parseFloat(shape.customArea);
+            stats.areaFormatted = stats.area.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            stats.ha = stats.area / 10000.0;
+            stats.haFormatted = (stats.area / 10000.0).toFixed(4);
+            stats.isCustomArea = true;
+        }
+
+        // 2. Áp dụng override cự ly cạnh thủ công (nếu có)
+        stats.edges = (realStats.edges || []).map((e, eIdx) => {
+            if (!e) return null;
+            const cloneE = { ...e };
+            if (shape.customEdges && shape.customEdges[eIdx] !== undefined && shape.customEdges[eIdx] !== null && !isNaN(shape.customEdges[eIdx])) {
+                cloneE.length = parseFloat(shape.customEdges[eIdx]);
+                cloneE.lengthFormatted = cloneE.length.toFixed(2);
+                cloneE.isCustom = true;
+            }
+            return cloneE;
+        });
+
+        // 3. Áp dụng override chu vi / chiều dài tuyến thủ công (nếu có)
+        if (shape.customPerimeter !== undefined && shape.customPerimeter !== null && !isNaN(shape.customPerimeter) && shape.customPerimeter > 0) {
+            stats.perimeter = parseFloat(shape.customPerimeter);
+            stats.perimeterFormatted = stats.perimeter.toFixed(2);
+            stats.isCustomPerimeter = true;
+        } else if (shape.customEdges && Object.keys(shape.customEdges).length > 0) {
+            // Tự động tính chu vi/chiều dài tuyến theo tổng các cạnh (bao gồm các cạnh đã sửa)
+            const sumLen = stats.edges.reduce((sum, e) => sum + (e && isFinite(e.length) ? e.length : 0), 0);
+            stats.perimeter = sumLen;
+            stats.perimeterFormatted = sumLen.toFixed(2);
+        }
+
+        return stats;
+    },
+
     calculateAreaAndPerimeter(customPts = null, customMode = null, forceSyncVn2k = false) {
         const rawPts = customPts || this.vertices;
         const mode = customMode || this.mode;
@@ -12012,7 +12149,7 @@ const appCadTool = {
                 if (data && data.savedShapes && data.savedShapes.length > 0) {
                     this.savedShapes = data.savedShapes.map(s => {
                         const vertices = (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
-                        const stats = s.customArea && s.stats ? s.stats : this.calculateAreaAndPerimeter(vertices, s.mode);
+                        const stats = this.getEffectiveStats({ ...s, vertices });
                         return { ...s, vertices, stats };
                     }).filter(s => s.vertices.length > 0);
                     if (data.mode) this.mode = data.mode;
@@ -12071,7 +12208,7 @@ const appCadTool = {
                     const data = JSON.parse(raw);
                     this.savedShapes = (data.savedShapes || []).map(s => {
                         const vertices = (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
-                        const stats = s.customArea && s.stats ? s.stats : this.calculateAreaAndPerimeter(vertices, s.mode);
+                        const stats = this.getEffectiveStats({ ...s, vertices });
                         return { ...s, vertices, stats };
                     }).filter(s => s.vertices.length > 0);
                     this.vertices = (data.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
@@ -12217,8 +12354,8 @@ const appCadTool = {
             const sVerts = shape.vertices;
             const sLen = sVerts.length;
             if (sLen === 0) return;
-            // Luôn đảm bảo shape.stats đồng bộ mới nhất 100% với các đỉnh thực tế
-            shape.stats = this.calculateAreaAndPerimeter(shape.vertices, shape.mode, true);
+            // Luôn đảm bảo shape.stats đồng bộ mới nhất 100% (bảo toàn điều chỉnh hiển thị nếu có)
+            shape.stats = this.getEffectiveStats(shape);
             const sLatLngs = sVerts.map(v => [v.lat, v.lng]);
             const sColor = shape.color || '#10b981';
 
@@ -13611,8 +13748,7 @@ const appCadTool = {
         setTimeout(() => this.checkScalePaperFit(), 50);
         const allShapes = [];
         this.savedShapes.forEach((s, idx) => {
-            // Luôn đảm bảo s.stats đồng bộ mới nhất 100% với các đỉnh thực tế
-            s.stats = this.calculateAreaAndPerimeter(s.vertices, s.mode, true);
+            s.stats = this.getEffectiveStats(s);
             allShapes.push({
                 id: s.id,
                 name: s.name,
@@ -13621,6 +13757,9 @@ const appCadTool = {
                 mode: s.mode,
                 vertices: s.vertices,
                 stats: s.stats,
+                customArea: s.customArea,
+                customPerimeter: s.customPerimeter,
+                customEdges: s.customEdges,
                 color: s.color || '#10b981'
             });
         });
@@ -13687,20 +13826,44 @@ const appCadTool = {
         const tbody = document.getElementById('cadTableBody');
         if (tbody) {
             let html = '';
-            allShapes.forEach((shape) => {
+            allShapes.forEach((shape, shapeIdx) => {
                 const isPoly = shape.mode === 'polygon' && shape.vertices.length >= 3;
+                const isShapeActive = shape.id === 'active_drawing';
+                const sIdx = this.savedShapes.findIndex(s => s.id === shape.id);
+                const hasCustomEdge = shape.customEdges && Object.keys(shape.customEdges).length > 0;
+
                 html += `
                     <tr style="background: rgba(15, 23, 42, 0.95); border-top: 2px solid ${shape.color};">
                         <td colspan="7" style="color: ${shape.color}; font-weight: 800; font-size: 11.5px; padding: 7px 10px;">
-                            📁 ${shape.name} [${isPoly ? 'Đa giác' : 'Tuyến'}] • S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                                <span>📁 ${shape.name} [${isPoly ? 'Đa giác' : 'Tuyến'}] • S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m</span>
+                                ${(shape.customArea !== undefined || shape.customPerimeter !== undefined || hasCustomEdge) ? `
+                                    <span style="font-size: 10px; color: #facc15; background: rgba(250,204,21,0.15); border: 1px solid rgba(250,204,21,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                                        ✏️ Số liệu đã tùy chỉnh (Bấm "Tự động đo" để khôi phục)
+                                    </span>
+                                ` : ''}
+                            </div>
                         </td>
                     </tr>
                 `;
                 shape.vertices.forEach((v, idx) => {
                     const edge = shape.stats?.edges ? shape.stats.edges[idx] : null;
-                    const edgeLenStr = edge ? edge.lengthFormatted : '--';
                     const azStr = edge ? edge.azFormatted : '--';
                     const noteStr = v.isSnapped ? `<span style="color:#fbbf24;">🧲 ${v.snapSource || 'Hít mốc'}</span>` : '<span style="color:#94a3b8;">Vẽ tự do</span>';
+
+                    let edgeCell = '<span style="color:#64748b;">--</span>';
+                    if (edge) {
+                        const isEdgeCustom = edge.isCustom;
+                        edgeCell = `
+                            <div style="display:inline-flex; align-items:center; justify-content:flex-end; gap:3px;">
+                                <input type="number" step="0.01" value="${edge.length !== undefined ? edge.length.toFixed(2) : ''}"
+                                    style="width:72px; height:22px; font-size:11px; font-weight:700; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; background:${isEdgeCustom ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${isEdgeCustom ? 'rgba(250,204,21,0.5)' : 'rgba(110,231,183,0.35)'}; border-radius:4px; padding:0 4px; text-align:right; font-family:ui-monospace, monospace;"
+                                    ${(isShapeActive || sIdx < 0) ? 'readonly' : `onchange="appCadTool.editEdgeLength(${sIdx}, ${idx}, this.value)"`}
+                                    title="${isShapeActive ? 'Khối đang vẽ dở' : 'Chỉnh sửa cự ly cạnh (làm đẹp số liệu báo cáo)'}">
+                                <span style="font-size:10px; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; font-weight:600;">m</span>
+                            </div>
+                        `;
+                    }
 
                     html += `
                         <tr>
@@ -13708,7 +13871,7 @@ const appCadTool = {
                             <td style="text-align: left; font-weight: 700; color: #38bdf8;">${v.name}</td>
                             <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.x || 0).toFixed(3)}</td>
                             <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.y || 0).toFixed(3)}</td>
-                            <td style="text-align: right; padding-right: 12px; color: #6ee7b7; font-weight: 600; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${edgeLenStr}</td>
+                            <td style="text-align: right; padding-right: 8px;">${edgeCell}</td>
                             <td style="text-align: right; padding-right: 12px; color: #cbd5e1; font-family: ui-monospace, monospace;">${azStr}</td>
                             <td style="text-align: center; font-size: 10px;">${noteStr}</td>
                         </tr>
@@ -13835,10 +13998,10 @@ const appCadTool = {
                 ${isPoly ? `
                     <div style="display:flex; align-items:center; gap:2px; flex:none;">
                         <input type="number" step="0.01" value="${area.toFixed(2)}"
-                            style="width:80px; height:24px; font-size:11px; font-weight:700; color:#4ade80; background:rgba(15,23,42,0.85); border:1px solid rgba(74,222,128,0.35); border-radius:4px; padding:0 4px; text-align:right;"
+                            style="width:80px; height:24px; font-size:11px; font-weight:700; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; background:${s.customArea !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customArea !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(74,222,128,0.35)'}; border-radius:4px; padding:0 4px; text-align:right;"
                             ${isActive ? 'readonly' : `onchange="appCadTool.editBlockArea(${idx}, this.value)"`}
-                            title="${isActive ? 'Khối đang vẽ dở' : 'Chỉnh sửa diện tích làm đẹp số liệu'}">
-                        <span style="font-size:10.5px; color:#4ade80; font-weight:700;">m²</span>
+                            title="${isActive ? 'Khối đang vẽ dở' : (s.customArea !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realArea?.toFixed(2) || '...'} m²)` : 'Chỉnh sửa diện tích làm đẹp số liệu')}">
+                        <span style="font-size:10.5px; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; font-weight:700;">m²</span>
                     </div>
                     <span style="font-size:10px; color:#a7f3d0; flex:none; min-width:55px; text-align:right;">${(area/10000).toFixed(4)} ha</span>
                     ${showPct ? `
@@ -13847,9 +14010,22 @@ const appCadTool = {
                         </span>
                     ` : ''}
                 ` : `
-                    <span style="font-size:11px; color:#38bdf8; font-weight:700; flex:none;">L = ${perim.toFixed(2)} m</span>
+                    <div style="display:flex; align-items:center; gap:2px; flex:none;">
+                        <input type="number" step="0.01" value="${perim.toFixed(2)}"
+                            style="width:80px; height:24px; font-size:11px; font-weight:700; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; background:${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(56,189,248,0.35)'}; border-radius:4px; padding:0 4px; text-align:right;"
+                            ${isActive ? 'readonly' : `onchange="appCadTool.editBlockPerimeter(${idx}, this.value)"`}
+                            title="${isActive ? 'Tuyến đang vẽ dở' : (s.customPerimeter !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realPerimeter?.toFixed(2) || '...'} m)` : 'Chỉnh sửa chiều dài tuyến làm đẹp số liệu')}">
+                        <span style="font-size:10.5px; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; font-weight:700;">m</span>
+                    </div>
                     ${showPct ? `<span style="font-size:10px; color:#64748b; min-width:52px; text-align:center;">Tuyến</span>` : ''}
                 `}
+                ${(s.customArea !== undefined || s.customPerimeter !== undefined || (s.customEdges && Object.keys(s.customEdges).length > 0)) ? `
+                    <button type="button" onclick="appCadTool.resetBlockCustomStats(${idx})" 
+                        style="background:rgba(250,204,21,0.2); border:1px solid rgba(250,204,21,0.4); color:#facc15; border-radius:4px; height:22px; padding:0 5px; font-size:10px; font-weight:700; cursor:pointer; flex:none;" 
+                        title="Khôi phục riêng khối này về số đo hình học thực tế">
+                        🔄 Đặt lại
+                    </button>
+                ` : ''}
             </div>`;
         });
 
@@ -13911,6 +14087,7 @@ const appCadTool = {
             <div style="display:flex; flex-direction:column; gap:4px;">`;
 
             shapes.forEach((s, idx) => {
+                s.stats = this.getEffectiveStats(s);
                 const isPoly = s.mode === 'polygon';
                 const isSelected = s.selected !== false;
                 const area = s.stats?.area || 0;
@@ -13938,12 +14115,16 @@ const appCadTool = {
                     <div style="display:flex; align-items:center; gap:2px; flex:none;">
                         ${isPoly ? `
                             <input type="number" step="0.01" value="${area.toFixed(2)}"
-                                style="width:62px; height:20px; font-size:10px; font-weight:700; color:#4ade80; background:rgba(15,23,42,0.85); border:1px solid rgba(74,222,128,0.3); border-radius:3px; padding:0 3px; text-align:right;"
+                                style="width:62px; height:20px; font-size:10px; font-weight:700; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; background:${s.customArea !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customArea !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(74,222,128,0.3)'}; border-radius:3px; padding:0 3px; text-align:right;"
                                 onchange="appCadTool.editBlockArea(${idx}, this.value)"
-                                title="Chỉnh sửa diện tích khối này để làm đẹp số liệu">
-                            <span style="font-size:9.5px; color:#4ade80; font-weight:600;">m²</span>
+                                title="${s.customArea !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realArea?.toFixed(2) || '...'} m²)` : 'Chỉnh sửa diện tích khối này để làm đẹp số liệu'}">
+                            <span style="font-size:9.5px; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; font-weight:600;">m²</span>
                         ` : `
-                            <span style="font-size:10px; font-weight:700; color:#38bdf8;">${perim.toFixed(1)}m</span>
+                            <input type="number" step="0.01" value="${perim.toFixed(2)}"
+                                style="width:62px; height:20px; font-size:10px; font-weight:700; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; background:${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(56,189,248,0.3)'}; border-radius:3px; padding:0 3px; text-align:right;"
+                                onchange="appCadTool.editBlockPerimeter(${idx}, this.value)"
+                                title="${s.customPerimeter !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realPerimeter?.toFixed(2) || '...'} m)` : 'Chỉnh sửa chiều dài đoạn tuyến'}">
+                            <span style="font-size:9.5px; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; font-weight:600;">m</span>
                         `}
                     </div>
                     <button onclick="appCadTool.zoomToShape(${idx})" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Thu phóng đến khối này">🔍</button>
