@@ -7754,11 +7754,11 @@
 
   <!-- ================= MODAL NẠP MỐC TỌA ĐỘ DỰ ÁN VÀO MINICAD ================= -->
   <div id="modalCadLoadProject" class="modal-overlay">
-    <div class="modal-box" style="max-width: 560px; max-height: 88vh; display: flex; flex-direction: column;">
+    <div class="modal-box" style="max-width: 580px; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56,189,248,0.25); padding-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 18px;">📁</span>
-          <span style="color: #38bdf8; font-weight: 800; font-size: 14px;">NẠP MỐC DỰ ÁN VÀO MINICAD</span>
+          <span style="color: #38bdf8; font-weight: 800; font-size: 14px;">NẠP DỮ LIỆU DỰ ÁN VÀO MINICAD</span>
         </div>
         <button class="btn-modal-close" onclick="appCadTool.closeLoadProjectModal()">✕</button>
       </div>
@@ -7766,55 +7766,102 @@
       <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
         <!-- Chọn dự án nguồn -->
         <div>
-          <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #facc15; font-weight: 700;">Chọn dự án đã lưu để nạp mốc:</label>
+          <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #facc15; font-weight: 700;">Chọn dự án đã lưu để nạp:</label>
           <select id="cadLoadProjectSelect" class="app-select" style="height: 34px; font-size: 12px; width: 100%;" onchange="appCadTool.onLoadProjectSelectChange(this.value)">
             <!-- Render danh sách dự án -->
           </select>
         </div>
 
-        <!-- Danh sách mốc có checkbox -->
-        <div style="background: rgba(15,23,42,0.7); border: 1px solid rgba(56,189,248,0.2); border-radius: 6px; padding: 8px 10px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span style="font-size: 11px; color: #94a3b8;">Chọn các mốc cần nạp vào MiniCAD:</span>
-            <div style="display: flex; gap: 6px;">
-              <button type="button" class="btn-sm btn-blue" style="height: 20px; padding: 0 6px; font-size: 10px;" onclick="appCadTool.toggleSelectAllLoadPoints(true)">✓ Chọn hết</button>
-              <button type="button" class="btn-sm" style="height: 20px; padding: 0 6px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.toggleSelectAllLoadPoints(false)">✕ Bỏ chọn</button>
+        <!-- Segmented Tab Switch: Theo Khối (Cũ) vs Theo Mốc (Điểm) -->
+        <div style="display: flex; background: rgba(15, 23, 42, 0.85); border-radius: 8px; padding: 3px; gap: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">
+          <button type="button" id="tabBtnCadLoadBlocks" class="btn-sm" style="flex: 1; height: 32px; font-weight: 700; font-size: 11.5px; border-radius: 6px; background: #0284c7; color: #fff; border: none; cursor: pointer; transition: all 0.2s;" onclick="appCadTool.switchLoadProjectTab('blocks')">
+            📦 Theo Khối đã vẽ (<span id="cadLoadProjectBlocksBadge">0</span>)
+          </button>
+          <button type="button" id="tabBtnCadLoadPoints" class="btn-sm" style="flex: 1; height: 32px; font-weight: 700; font-size: 11.5px; border-radius: 6px; background: transparent; color: #94a3b8; border: none; cursor: pointer; transition: all 0.2s;" onclick="appCadTool.switchLoadProjectTab('points')">
+            📌 Theo Mốc đơn lẻ (<span id="cadLoadProjectPointsBadge">0</span>)
+          </button>
+        </div>
+
+        <!-- TAB NỘI DUNG 1: NẠP THEO KHỐI (CŨ) ĐÃ VẼ -->
+        <div id="cadLoadBlocksTabContent" style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: rgba(15,23,42,0.7); border: 1px solid rgba(56,189,248,0.2); border-radius: 6px; padding: 8px 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 11px; color: #94a3b8;">Chọn các khối (đa giác / tuyến) cần nạp:</span>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn-sm btn-blue" style="height: 20px; padding: 0 6px; font-size: 10px;" onclick="appCadTool.toggleSelectAllLoadBlocks(true)">✓ Chọn hết</button>
+                <button type="button" class="btn-sm" style="height: 20px; padding: 0 6px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.toggleSelectAllLoadBlocks(false)">✕ Bỏ chọn</button>
+              </div>
             </div>
-          </div>
-          <div style="margin-bottom: 6px;">
-            <input type="text" id="txtFilterLoadPoints" class="app-input" style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;" placeholder="🔍 Lọc mốc theo tên hoặc ghi chú..." oninput="appCadTool.filterLoadPoints(this.value)">
-          </div>
-          <div id="cadLoadPointsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
-            <!-- Render mốc bằng JS -->
-          </div>
-          <div style="margin-top: 6px; font-size: 11px; color: #38bdf8; text-align: right;">
-            Đã chọn: <b id="cadLoadSelectedPointCount">0</b> mốc
+            <div style="margin-bottom: 6px;">
+              <input type="text" id="txtFilterLoadBlocks" class="app-input" style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;" placeholder="🔍 Lọc khối theo tên, loại..." oninput="appCadTool.filterLoadBlocks(this.value)">
+            </div>
+            <div id="cadLoadBlocksList" style="max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+              <!-- Render danh sách khối bằng JS -->
+            </div>
+            <div style="margin-top: 6px; font-size: 11px; color: #38bdf8; text-align: right;">
+              Đã chọn: <b id="cadLoadSelectedBlocksCount">0</b> khối
+            </div>
           </div>
         </div>
 
-        <!-- Tên khối CAD sẽ tạo -->
-        <div>
-          <label class="form-label" style="font-size: 11px; margin-bottom: 3px;">Tên khối CAD khi nạp:</label>
-          <input type="text" id="cadLoadTargetShapeName" class="app-input" style="height: 32px; font-size: 11.5px;" placeholder="VD: Thửa đất ranh dự án">
+        <!-- TAB NỘI DUNG 2: NẠP THEO MỐC (ĐIỂM) ĐƠN LẺ -->
+        <div id="cadLoadPointsTabContent" style="display: none; flex-direction: column; gap: 8px;">
+          <div style="background: rgba(15,23,42,0.7); border: 1px solid rgba(56,189,248,0.2); border-radius: 6px; padding: 8px 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 11px; color: #94a3b8;">Chọn các mốc cần nạp vào MiniCAD:</span>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn-sm btn-blue" style="height: 20px; padding: 0 6px; font-size: 10px;" onclick="appCadTool.toggleSelectAllLoadPoints(true)">✓ Chọn hết</button>
+                <button type="button" class="btn-sm" style="height: 20px; padding: 0 6px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.toggleSelectAllLoadPoints(false)">✕ Bỏ chọn</button>
+              </div>
+            </div>
+            <div style="margin-bottom: 6px;">
+              <input type="text" id="txtFilterLoadPoints" class="app-input" style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;" placeholder="🔍 Lọc mốc theo tên hoặc ghi chú..." oninput="appCadTool.filterLoadPoints(this.value)">
+            </div>
+            <div id="cadLoadPointsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+              <!-- Render mốc bằng JS -->
+            </div>
+            <div style="margin-top: 6px; font-size: 11px; color: #38bdf8; text-align: right;">
+              Đã chọn: <b id="cadLoadSelectedPointCount">0</b> mốc
+            </div>
+          </div>
+
+          <!-- Tên khối CAD sẽ tạo khi nạp mốc -->
+          <div>
+            <label class="form-label" style="font-size: 11px; margin-bottom: 3px;">Tên khối CAD khi nạp:</label>
+            <input type="text" id="cadLoadTargetShapeName" class="app-input" style="height: 32px; font-size: 11.5px;" placeholder="VD: Thửa đất ranh dự án">
+          </div>
         </div>
       </div>
 
-      <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; padding: 10px 14px; border-top: 1px solid rgba(56,189,248,0.2);">
-        <button class="btn-sm btn-red" onclick="appCadTool.closeLoadProjectModal()" style="height: 36px; padding: 0 12px;">
-          Hủy
-        </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập trực tiếp từ file Excel (.xlsx, .xls) hoặc CSV">
-          📥 Nhập từ Excel / CSV
-        </button>
-        <button class="btn-sm" style="height: 36px; padding: 0 12px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appCadTool.confirmLoadProjectAsSnap()" title="Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do">
-          🧲 Bật mốc để Snap
-        </button>
-        <button class="btn-sm btn-blue" style="height: 36px; padding: 0 12px; font-weight: 700;" onclick="appCadTool.confirmLoadProjectAsShape('polyline')" title="Nạp thành đường tim tuyến hở trong MiniCAD">
-          📏 Nạp thành Tuyến
-        </button>
-        <button class="btn-sm btn-green" style="height: 36px; padding: 0 14px; font-weight: 800;" onclick="appCadTool.confirmLoadProjectAsShape('polygon')" title="Nạp thành đa giác khép kín tính diện tích trong MiniCAD">
-          ✓ Nạp thành Đa Giác
-        </button>
+      <div class="modal-footer" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid rgba(56,189,248,0.2);">
+        <div>
+          <button class="btn-sm btn-red" onclick="appCadTool.closeLoadProjectModal()" style="height: 36px; padding: 0 12px;">
+            ✕ Đóng
+          </button>
+        </div>
+
+        <!-- Nhóm nút hành động theo Tab Khối -->
+        <div id="cadLoadBlocksFooterActions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn-sm btn-green" style="height: 36px; padding: 0 16px; font-weight: 800; font-size: 12px;" onclick="appCadTool.confirmLoadProjectAsBlocks()" title="Nạp nguyên vẹn các khối đã chọn vào bản vẽ MiniCAD hiện tại">
+            📥 NẠP CÁC KHỐI ĐÃ CHỌN VÀO BẢN VẼ
+          </button>
+        </div>
+
+        <!-- Nhóm nút hành động theo Tab Mốc -->
+        <div id="cadLoadPointsFooterActions" style="display: none; gap: 8px; flex-wrap: wrap;">
+          <button class="btn-sm" style="height: 36px; padding: 0 10px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981; font-weight: 700;" onclick="document.getElementById('cadFileInputExcel').click()" title="Nhập trực tiếp từ file Excel (.xlsx, .xls) hoặc CSV">
+            📥 Excel / CSV
+          </button>
+          <button class="btn-sm" style="height: 36px; padding: 0 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appCadTool.confirmLoadProjectAsSnap()" title="Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do">
+            🧲 Bật để Snap
+          </button>
+          <button class="btn-sm btn-blue" style="height: 36px; padding: 0 12px; font-weight: 700;" onclick="appCadTool.confirmLoadProjectAsShape('polyline')" title="Nạp thành đường tim tuyến hở trong MiniCAD">
+            📏 Nạp Tuyến
+          </button>
+          <button class="btn-sm btn-green" style="height: 36px; padding: 0 14px; font-weight: 800;" onclick="appCadTool.confirmLoadProjectAsShape('polygon')" title="Nạp thành đa giác khép kín tính diện tích trong MiniCAD">
+            ✓ Nạp Đa Giác
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -8201,13 +8248,58 @@
 
       <!-- Phân vùng 3: Nhập / Dán Tọa Độ Thủ Công -->
       <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 12px;">
-        <div style="font-weight: 800; color: #4ade80; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+        <div style="font-weight: 800; color: #4ade80; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
           <span>✏️ 3. DÁN TỌA ĐỘ NHANH (TỪ ZALO, EXCEL, GHI CHÚ)</span>
+          <span style="font-size: 10.5px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Chuẩn Trắc Địa VN</span>
         </div>
-        <div style="font-size: 11.5px; color: #94a3b8; margin: 4px 0 6px 0;">
-          Dán danh sách mốc (mỗi mốc 1 dòng, phân cách bằng dấu phẩy hoặc khoảng trắng):
+
+        <!-- Tùy chọn hệ tọa độ & quy chuẩn chuyển đổi chống lệch -->
+        <div style="background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+            <div>
+              <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Định dạng & Thứ tự tọa độ nguồn:</label>
+              <select id="selManualCoordFormat" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" onchange="appData.onManualInputFormatChange()">
+                <option value="auto">⚡ Tự động nhận diện (VN2000 hoặc WGS84)</option>
+                <option value="vn2k_xy">📐 VN-2000 chuẩn: X (Bắc) - Y (Đông)</option>
+                <option value="vn2k_yx">📐 VN-2000 đảo: Y (Đông) - X (Bắc)</option>
+                <option value="wgs_latlng">🌐 WGS-84 chuẩn: Vĩ độ (Lat) - Kinh độ (Lng)</option>
+                <option value="wgs_lnglat">🌐 WGS-84 đảo: Kinh độ (Lng) - Vĩ độ (Lat)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Kinh tuyến trục (KTT) & Múi chiếu:</label>
+              <div style="display: flex; gap: 4px;">
+                <select id="selManualKttProvince" class="app-select" style="height: 32px; font-size: 11.5px; flex: 1;" onchange="appData.onManualInputFormatChange()">
+                  <option value="current">🎯 Theo cài đặt App hiện tại</option>
+                  <!-- Render động các tỉnh phổ biến hoặc toàn bộ -->
+                </select>
+                <select id="selManualMui" class="app-select" style="height: 32px; font-size: 11.5px; width: 85px;" onchange="appData.onManualInputFormatChange()">
+                  <option value="3">Múi 3°</option>
+                  <option value="6">Múi 6°</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 10.5px; color: #94a3b8; display: flex; align-items: center; justify-content: space-between;">
+            <span>💡 <i>Hỗ trợ: Không cần cột tên, phân cách bằng tab Excel, phẩy hoặc khoảng trắng. Tự động chuyển đổi hiển thị đúng vị trí vệ tinh.</i></span>
+            <button type="button" class="btn-sm" style="height: 22px; padding: 0 8px; font-size: 10.5px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4);" onclick="appData.previewManualPastedPoints()">
+              👁️ Xem trước
+            </button>
+          </div>
         </div>
-        <textarea id="txtManualPointsInput" class="app-input" style="height: 100px; font-family: monospace; font-size: 11.5px; line-height: 1.4; resize: vertical;" placeholder="Ví dụ:&#10;M1, 1144058.623, 539624.574, Mốc gốc ranh&#10;M2, 1144120.350, 539680.120, Góc phía Đông&#10;M3, 1144185.700, 539620.450, Góc phía Bắc&#10;M4, 1144115.200, 539560.800, Góc phía Tây"></textarea>
+
+        <textarea id="txtManualPointsInput" class="app-input" style="height: 105px; font-family: monospace; font-size: 11.5px; line-height: 1.4; resize: vertical;" placeholder="Ví dụ dán tọa độ VN-2000:&#10;M1, 1144058.623, 539624.574, Ranh phía Tây&#10;M2, 1144120.350, 539680.120, Góc phía Bắc&#10;&#10;Hoặc dán không có tên (chỉ 2 cột số):&#10;1144058.623  539624.574&#10;1144120.350  539680.120&#10;&#10;Hoặc dán tọa độ GPS / WGS-84 (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200" oninput="appData.debounceManualPreview()"></textarea>
+
+        <!-- Khung xem trước thông minh -->
+        <div id="manualPastePreviewBox" style="display: none; margin-top: 6px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 6px; padding: 8px; font-size: 11px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="color: #4ade80; font-weight: 700;" id="manualPreviewSummary">Đã phân tích: 0 mốc</span>
+            <span style="color: #94a3b8; font-size: 10px;" id="manualPreviewKttInfo">KTT: 105°45' (Múi 3°)</span>
+          </div>
+          <div id="manualPreviewItems" style="max-height: 75px; overflow-y: auto; font-family: ui-monospace, monospace; color: #cbd5e1; font-size: 10.5px; line-height: 1.4;">
+            <!-- Render 3 dòng mẫu xem trước -->
+          </div>
+        </div>
 
         <button class="btn-convert btn-green" style="margin-top: 8px; height: 42px; font-size: 13px; font-weight: 800;" onclick="appData.importManualPastedPoints()">
           🚀 NẠP TỌA ĐỘ VÀO BẢN ĐỒ NGAY
