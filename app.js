@@ -8241,7 +8241,8 @@ const appCadTool = {
         rubberbandLine: null,
         dynamicInputMarker: null,
         osnapMarker: null,
-        snapEdgeLine: null
+        snapEdgeLine: null,
+        markupPreviewGroup: null
     },
 
     init() {
@@ -8405,7 +8406,10 @@ const appCadTool = {
                     vertices: (s.vertices || []).map(v => ({ ...v })),
                     stats: s.stats ? { ...s.stats } : null
                 })),
-                annotations: (this.annotations || []).map(a => ({ ...a })),
+                annotations: (this.annotations || []).map(a => ({
+                    ...a,
+                    corners: a.corners ? a.corners.map(c => [...c]) : undefined
+                })),
                 mode: this.mode,
                 desc: 'Khởi đầu'
             }];
@@ -8430,7 +8434,10 @@ const appCadTool = {
                 vertices: (s.vertices || []).map(v => ({ ...v })),
                 stats: s.stats ? { ...s.stats } : null
             })),
-            annotations: (this.annotations || []).map(a => ({ ...a })),
+            annotations: (this.annotations || []).map(a => ({
+                ...a,
+                corners: a.corners ? a.corners.map(c => [...c]) : undefined
+            })),
             mode: this.mode,
             desc: description
         };
@@ -8445,6 +8452,13 @@ const appCadTool = {
     },
 
     undo() {
+        if (this.markupStepData) {
+            this.markupStepData = null;
+            if (this.clearMarkupPreview) this.clearMarkupPreview();
+            showToast("↩ Đã hủy thao tác vẽ nhãn đang dở");
+            return;
+        }
+
         if (this.historyIndex > 0) {
             this.historyIndex--;
             const state = this.historyStack[this.historyIndex];
@@ -8480,10 +8494,15 @@ const appCadTool = {
                 vertices: (s.vertices || []).map(v => ({ ...v })),
                 stats: s.stats ? { ...s.stats } : null
             }));
-            this.annotations = (state.annotations || []).map(a => ({ ...a }));
+            this.annotations = (state.annotations || []).map(a => ({
+                ...a,
+                corners: a.corners ? a.corners.map(c => [...c]) : undefined
+            }));
             this.mode = state.mode || this.mode;
 
             this.renderGeometry();
+            this.renderAnnotations();
+            this.saveAnnotations();
             this.updateUi();
             this.renderBlocksPanel();
             if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
@@ -8888,6 +8907,9 @@ const appCadTool = {
         if (!this.layers.annotationsGroup) {
             this.layers.annotationsGroup = L.layerGroup().addTo(AppState.leafletMap);
         }
+        if (!this.layers.markupPreviewGroup) {
+            this.layers.markupPreviewGroup = L.layerGroup().addTo(AppState.leafletMap);
+        }
         // Gắn sự kiện chuột di chuyển, zoom và click trực tiếp trên bản đồ cho CAD Tool
         if (!this._mapEventsBound && AppState.leafletMap) {
             AppState.leafletMap.on('click', (e) => {
@@ -8977,6 +8999,9 @@ const appCadTool = {
         }
         if (this.clearSnapEdgeGuide) {
             this.clearSnapEdgeGuide();
+        }
+        if (this.clearMarkupPreview) {
+            this.clearMarkupPreview();
         }
     },
 

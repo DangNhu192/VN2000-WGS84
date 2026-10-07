@@ -7738,10 +7738,10 @@
 
       <!-- Nút thao tác -->
       <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center;">
-        <button class="btn-sm btn-red" style="height: 36px; padding: 0 12px; font-weight: 700;" onclick="appCadTool.deleteCurrentEditAnnotation()">🗑️ Xóa</button>
+        <button id="btnCadEditAnnDelete" class="btn-sm btn-red" style="height: 36px; padding: 0 12px; font-weight: 700;" onclick="appCadTool.deleteCurrentEditAnnotation()">🗑️ Xóa</button>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-sm" style="height: 36px; padding: 0 14px; background: rgba(148, 163, 184, 0.2); color: #cbd5e1;" onclick="appCadTool.closeAnnotationModal()">Hủy</button>
-          <button class="btn-sm btn-green" style="height: 36px; padding: 0 18px; font-weight: 700;" onclick="appCadTool.saveAnnotationEdit()">💾 Lưu thay đổi</button>
+          <button id="btnCadEditAnnCancel" class="btn-sm" style="height: 36px; padding: 0 14px; background: rgba(148, 163, 184, 0.2); color: #cbd5e1;" onclick="appCadTool.closeAnnotationModal()">Hủy</button>
+          <button id="btnCadEditAnnSave" class="btn-sm btn-green" style="height: 36px; padding: 0 18px; font-weight: 700;" onclick="appCadTool.saveAnnotationEdit()">💾 Lưu thay đổi</button>
         </div>
       </div>
     </div>
