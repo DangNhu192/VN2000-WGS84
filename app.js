@@ -307,6 +307,9 @@ const appNav = window.appNav = {
             } else if (screenName === 'transform') {
                 titleText = "1. CHUYỂN ĐỔI TỌA ĐỘ";
                 targetScreen = document.getElementById('screen-transform');
+                if (typeof appTransform !== 'undefined' && appTransform.onScreenOpen) {
+                    appTransform.onScreenOpen();
+                }
             } else if (screenName === 'stakeout') {
                 titleText = "3. CẮM MỐC THỰC ĐỊA";
                 targetScreen = document.getElementById('screen-stakeout');
@@ -1672,6 +1675,10 @@ const appCoordPicker = {
         if (badge) {
             badge.innerText = `${this.multiPoints.length} điểm`;
         }
+        const lblTransform = document.getElementById('lblCountPickedMap');
+        if (lblTransform) {
+            lblTransform.innerText = this.multiPoints.length;
+        }
     },
 
     clearMultiPoints() {
@@ -1717,11 +1724,14 @@ const appCoordPicker = {
 
         // Chuyển trực tiếp dữ liệu sang module Chuyển đổi đa điểm
         appTransform.multiPoints = this.multiPoints.map(p => ({
+            id: p.id || (Date.now() + Math.random()),
             name: p.name,
             x: p.x,
             y: p.y,
             lat: p.lat,
             lng: p.lng,
+            c1: p.x ? parseFloat(p.x).toFixed(3) : parseFloat(p.lat).toFixed(6),
+            c2: p.y ? parseFloat(p.y).toFixed(3) : parseFloat(p.lng).toFixed(6),
             selected: true
         }));
 
@@ -1729,7 +1739,7 @@ const appCoordPicker = {
         appNav.showScreen('transform');
         appTransform.switchTransformSubTab('multi');
 
-        showToast(`⚡ Đã nạp ${this.multiPoints.length} điểm vào bảng Chuyển đổi Đa điểm (Có tùy chọn Lưu / Không lưu dự án)!`);
+        showToast(`⚡ Đã nạp ${this.multiPoints.length} điểm vào bảng Chuyển đổi Đa điểm!`, true);
     },
 
     closePicker() {
@@ -2146,6 +2156,22 @@ const appTransform = {
         }
     },
 
+    multiConvertedResults: [],
+    _multiConvertedLayer: null,
+
+    onScreenOpen() {
+        this.updatePickedMapCountBadge();
+        this.populateMultiProjectSelect();
+    },
+
+    updatePickedMapCountBadge() {
+        const lbl = document.getElementById('lblCountPickedMap');
+        if (lbl) {
+            const count = (typeof appCoordPicker !== 'undefined' && appCoordPicker.multiPoints) ? appCoordPicker.multiPoints.length : 0;
+            lbl.innerText = count;
+        }
+    },
+
     switchTransformSubTab(tab) {
         const btnSingle = document.getElementById('tabTransSingle');
         const btnMulti = document.getElementById('tabTransMulti');
@@ -2157,8 +2183,9 @@ const appTransform = {
             if (btnMulti) btnMulti.classList.add('active');
             if (panelSingle) panelSingle.style.display = 'none';
             if (panelMulti) panelMulti.style.display = 'block';
-            appTransform.populateMultiProjectSelect();
-            appTransform.renderMultiTransPoints();
+            this.populateMultiProjectSelect();
+            this.updatePickedMapCountBadge();
+            this.renderMultiTransPoints();
         } else {
             if (btnSingle) btnSingle.classList.add('active');
             if (btnMulti) btnMulti.classList.remove('active');
@@ -2167,11 +2194,243 @@ const appTransform = {
         }
     },
 
+    openPickMultiOnMap() {
+        appNav.openCoordPickerMap({ mode: 'multi' });
+        showToast("📍 Chế độ Chấm đa điểm: Chạm liên tiếp các vị trí trên bản đồ để chọn điểm!", true);
+    },
+
+    loadMultiFromPickedMap() {
+        const pickedCount = (typeof appCoordPicker !== 'undefined' && appCoordPicker.multiPoints) ? appCoordPicker.multiPoints.length : 0;
+        if (pickedCount > 0) {
+            let added = 0;
+            appCoordPicker.multiPoints.forEach(p => {
+                const hasX = (p.x !== undefined && p.x !== null && p.x !== '');
+                const hasLat = (p.lat !== undefined && p.lat !== null && p.lat !== '');
+                const c1 = hasX ? parseFloat(p.x).toFixed(3) : (hasLat ? parseFloat(p.lat).toFixed(6) : '');
+                const c2 = hasX ? parseFloat(p.y).toFixed(3) : (hasLat ? parseFloat(p.lng).toFixed(6) : '');
+                this.multiPoints.push({
+                    id: p.id || (Date.now() + Math.random()),
+                    name: p.name || `P${this.multiPoints.length + 1}`,
+                    c1: c1,
+                    c2: c2,
+                    x: p.x || null,
+                    y: p.y || null,
+                    lat: p.lat || null,
+                    lng: p.lng || null,
+                    selected: true
+                });
+                added++;
+            });
+            this.renderMultiTransPoints();
+            showToast(`✓ Đã nạp ${added} điểm từ bản đồ vào danh sách!`, true);
+        } else {
+            showToast("🗺️ Chưa có điểm nào được chấm. Đang mở bản đồ để bạn chấm chọn...", true);
+            this.openPickMultiOnMap();
+        }
+    },
+
+    loadMultiFromCurrentProject() {
+        const proj = AppState.currentProject;
+        if (!proj) {
+            showToast("⚠️ Chưa chọn dự án nào!", true);
+            return;
+        }
+        const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(proj) : [];
+        if (!pts || pts.length === 0) {
+            showToast(`⚠️ Dự án "${proj}" hiện chưa có mốc nào!`, true);
+            return;
+        }
+        let added = 0;
+        pts.forEach(p => {
+            const hasX = (p.x !== undefined && p.x !== null && p.x !== '' && !isNaN(parseFloat(p.x)));
+            const hasLat = (p.lat !== undefined && p.lat !== null && p.lat !== '' && !isNaN(parseFloat(p.lat)));
+            const c1 = hasX ? parseFloat(p.x).toFixed(3) : (hasLat ? parseFloat(p.lat).toFixed(6) : null);
+            const c2 = hasX ? parseFloat(p.y).toFixed(3) : (hasLat ? parseFloat(p.lng).toFixed(6) : null);
+            if (c1 && c2) {
+                this.multiPoints.push({
+                    id: Date.now() + Math.random() + added,
+                    name: p.name || `P${this.multiPoints.length + 1}`,
+                    c1: c1,
+                    c2: c2,
+                    x: hasX ? parseFloat(p.x).toFixed(3) : null,
+                    y: hasX ? parseFloat(p.y).toFixed(3) : null,
+                    lat: hasLat ? parseFloat(p.lat).toFixed(6) : null,
+                    lng: hasLat ? parseFloat(p.lng).toFixed(6) : null,
+                    selected: true
+                });
+                added++;
+            }
+        });
+        this.renderMultiTransPoints();
+        showToast(`✓ Đã nạp ${added} mốc từ dự án "${proj}"!`, true);
+    },
+
+    togglePasteMultiModal(show) {
+        const box = document.getElementById('boxPasteMultiText');
+        if (!box) return;
+        if (show === undefined) {
+            box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+        } else {
+            box.style.display = show ? 'block' : 'none';
+        }
+        if (box.style.display === 'block') {
+            const ta = document.getElementById('txtMultiPasteArea');
+            if (ta) ta.focus();
+        }
+    },
+
+    parsePasteMultiText() {
+        const ta = document.getElementById('txtMultiPasteArea');
+        if (!ta || !ta.value.trim()) {
+            showToast("⚠️ Vui lòng dán văn bản tọa độ trước khi nạp!", true);
+            return;
+        }
+        const lines = ta.value.trim().split('\n');
+        let added = 0;
+        lines.forEach(line => {
+            const clean = line.trim();
+            if (!clean) return;
+            const lower = clean.toLowerCase();
+            if (lower.startsWith('stt') || lower.startsWith('tên') || lower.startsWith('name') || 
+                lower.startsWith('toạ độ') || lower.startsWith('tọa độ') || lower.startsWith('kinh độ') || 
+                lower.startsWith('vĩ độ') || lower.startsWith('lat') || lower.startsWith('lng')) {
+                return;
+            }
+
+            const parts = clean.split(/[\t,;|\s]+/);
+            if (parts.length >= 2) {
+                let name = `P${this.multiPoints.length + 1}`;
+                let c1 = parts[0];
+                let c2 = parts[1];
+                if (parts.length >= 3 && isNaN(parseFloat(parts[0]))) {
+                    name = parts[0];
+                    c1 = parts[1];
+                    c2 = parts[2];
+                }
+                const n1 = parseFloat(c1);
+                const n2 = parseFloat(c2);
+                if (!isNaN(n1) && !isNaN(n2)) {
+                    this.multiPoints.push({
+                        id: Date.now() + Math.random() + added,
+                        name: name,
+                        c1: c1,
+                        c2: c2,
+                        x: (n1 > 500000 || n2 > 500000) ? n1.toFixed(3) : null,
+                        y: (n1 > 500000 || n2 > 500000) ? n2.toFixed(3) : null,
+                        lat: (n1 <= 90 && n2 <= 180) ? n1.toFixed(6) : null,
+                        lng: (n1 <= 90 && n2 <= 180) ? n2.toFixed(6) : null,
+                        selected: true
+                    });
+                    added++;
+                }
+            }
+        });
+
+        if (added > 0) {
+            ta.value = '';
+            this.togglePasteMultiModal(false);
+            this.renderMultiTransPoints();
+            showToast(`✓ Đã nạp thành công ${added} điểm vào danh sách!`, true);
+        } else {
+            showToast("⚠️ Không tìm thấy tọa độ hợp lệ nào trong văn bản dán!", true);
+        }
+    },
+
+    renderMultiTransPoints() {
+        const tbody = document.getElementById('multiTransTableBody');
+        const countEl = document.getElementById('txtMultiPointCount');
+        const emptyNotice = document.getElementById('boxMultiEmptyNotice');
+        const tableWrap = document.getElementById('boxMultiPointsTableWrap');
+        const selectedCountEl = document.getElementById('lblMultiSelectedCount');
+        const selectAllChk = document.getElementById('chkMultiSelectAll');
+
+        const totalCount = this.multiPoints.length;
+        const selectedCount = this.multiPoints.filter(p => p.selected !== false).length;
+
+        if (countEl) countEl.innerText = `${totalCount} mốc`;
+        if (selectedCountEl) selectedCountEl.innerText = `Đã chọn ${selectedCount}/${totalCount} điểm`;
+        if (selectAllChk) selectAllChk.checked = (totalCount > 0 && selectedCount === totalCount);
+        this.updatePickedMapCountBadge();
+
+        if (!tbody) return;
+
+        if (totalCount === 0) {
+            if (emptyNotice) emptyNotice.style.display = 'block';
+            if (tableWrap) tableWrap.style.display = 'none';
+            tbody.innerHTML = '';
+            return;
+        }
+
+        if (emptyNotice) emptyNotice.style.display = 'none';
+        if (tableWrap) tableWrap.style.display = 'block';
+
+        tbody.innerHTML = this.multiPoints.map((pt, idx) => {
+            const isChecked = pt.selected !== false ? 'checked' : '';
+            const c1Val = pt.c1 !== undefined ? pt.c1 : (pt.x ? parseFloat(pt.x).toFixed(3) : (pt.lat ? parseFloat(pt.lat).toFixed(6) : '---'));
+            const c2Val = pt.c2 !== undefined ? pt.c2 : (pt.y ? parseFloat(pt.y).toFixed(3) : (pt.lng ? parseFloat(pt.lng).toFixed(6) : '---'));
+            return `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-family: ui-monospace, monospace;">
+                    <td style="text-align: center; padding: 6px 4px;">
+                        <input type="checkbox" ${isChecked} onchange="appTransform.toggleSelectPoint(${idx}, this.checked)">
+                    </td>
+                    <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
+                    <td style="font-weight: 700; color: #fbbf24;" class="selectable">${pt.name || `P${idx+1}`}</td>
+                    <td style="color: #4ade80; text-align: right;" class="selectable">${c1Val}</td>
+                    <td style="color: #38bdf8; text-align: right;" class="selectable">${c2Val}</td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn-sm btn-red" style="padding: 2px 6px; font-size: 11px;" onclick="appTransform.removeMultiPoint(${idx})">✕</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    toggleSelectAllMulti(checked) {
+        const isChecked = (typeof checked === 'boolean') ? checked : (checked && checked.checked !== undefined ? checked.checked : true);
+        this.multiPoints.forEach(p => p.selected = isChecked);
+        this.renderMultiTransPoints();
+    },
+
+    toggleSelectPoint(index, checked) {
+        if (this.multiPoints[index]) {
+            this.multiPoints[index].selected = checked;
+            const totalCount = this.multiPoints.length;
+            const selectedCount = this.multiPoints.filter(p => p.selected !== false).length;
+            const selectedCountEl = document.getElementById('lblMultiSelectedCount');
+            const selectAllChk = document.getElementById('chkMultiSelectAll');
+            if (selectedCountEl) selectedCountEl.innerText = `Đã chọn ${selectedCount}/${totalCount} điểm`;
+            if (selectAllChk) selectAllChk.checked = (totalCount > 0 && selectedCount === totalCount);
+        }
+    },
+
+    removeMultiPoint(index) {
+        if (index >= 0 && index < this.multiPoints.length) {
+            this.multiPoints.splice(index, 1);
+            this.renderMultiTransPoints();
+            showToast("Đã xóa 1 điểm khỏi danh sách.");
+        }
+    },
+
+    clearMultiInputPoints() {
+        if (this.multiPoints.length === 0) return;
+        if (!confirm("Bạn có chắc muốn xóa sạch toàn bộ danh sách điểm đã nạp không?")) return;
+        this.multiPoints = [];
+        this.multiConvertedResults = [];
+        const resBox = document.getElementById('boxMultiTransResult');
+        if (resBox) resBox.style.display = 'none';
+        this.renderMultiTransPoints();
+        showToast("🗑️ Đã xóa sạch danh sách điểm!");
+    },
+
+    clearMultiPoints() {
+        this.clearMultiInputPoints();
+    },
+
     populateMultiProjectSelect() {
         const sel = document.getElementById('selMultiTargetProject');
         if (!sel) return;
         sel.innerHTML = '';
-        const list = appData.getProjectList();
+        const list = (typeof appData !== 'undefined' && appData.getProjectList) ? appData.getProjectList() : (AppState.projectsList || []);
         list.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p;
@@ -2181,155 +2440,306 @@ const appTransform = {
         });
     },
 
-    onSaveMultiOptionChange() {
+    onToggleSaveMultiToProject() {
         const chk = document.getElementById('chkSaveMultiToProject');
-        const wrap = document.getElementById('wrapperTargetProjectSelect');
-        if (wrap) {
-            wrap.style.display = (chk && chk.checked) ? 'block' : 'none';
+        const box = document.getElementById('boxMultiTargetProject');
+        if (box) {
+            box.style.display = (chk && chk.checked) ? 'block' : 'none';
         }
+        this.populateMultiProjectSelect();
     },
 
-    renderMultiTransPoints() {
-        const tbody = document.getElementById('multiTransTableBody');
-        const countEl = document.getElementById('txtMultiPointCount');
-        if (countEl) countEl.innerText = `${appTransform.multiPoints.length} mốc`;
-        if (!tbody) return;
+    onSaveMultiOptionChange() {
+        this.onToggleSaveMultiToProject();
+    },
 
-        if (appTransform.multiPoints.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 22px;">Chưa có mốc nào. Nhấn <b>"📍 Chấm trên bản đồ"</b> hoặc chuyển từ chế độ Đa điểm để nạp vào đây.</td></tr>`;
-            return;
+    quickCreateProjectForMulti() {
+        const name = prompt("Nhập tên dự án mới (ví dụ: ChuyenDoi_KTT105):");
+        if (!name || !name.trim()) return;
+        let cleanName = name.trim();
+        if (!cleanName.toLowerCase().endsWith('.csv')) cleanName += '.csv';
+        if (!AppState.projectsList.includes(cleanName)) {
+            AppState.projectsList.push(cleanName);
+            localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+            if (typeof appData !== 'undefined' && appData.savePoints) {
+                appData.savePoints(cleanName, []);
+            }
         }
-
-        tbody.innerHTML = appTransform.multiPoints.map((pt, idx) => {
-            const isChecked = pt.selected !== false ? 'checked' : '';
-            const xVal = pt.x ? parseFloat(pt.x).toFixed(3) : '---';
-            const yVal = pt.y ? parseFloat(pt.y).toFixed(3) : '---';
-            const latVal = pt.lat ? parseFloat(pt.lat).toFixed(6) : '---';
-            const lngVal = pt.lng ? parseFloat(pt.lng).toFixed(6) : '---';
-            return `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-family: ui-monospace, monospace;">
-                    <td style="text-align: center; padding: 6px 4px;">
-                        <input type="checkbox" ${isChecked} onchange="appTransform.toggleSelectPoint(${idx}, this.checked)">
-                    </td>
-                    <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
-                    <td style="font-weight: 700; color: #f8fafc;" class="selectable">${pt.name || `P${idx+1}`}</td>
-                    <td style="color: #4ade80;" class="selectable">${xVal}</td>
-                    <td style="color: #4ade80;" class="selectable">${yVal}</td>
-                    <td style="color: #38bdf8;" class="selectable">${latVal}, ${lngVal}</td>
-                    <td style="text-align: center;">
-                        <button type="button" class="btn-sm btn-red" style="padding: 2px 6px; font-size: 11px;" onclick="appTransform.removeMultiPoint(${idx})">✕</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        AppState.currentProject = cleanName;
+        localStorage.setItem('vn2k_cur_project', cleanName);
+        this.populateMultiProjectSelect();
+        const sel = document.getElementById('selMultiTargetProject');
+        if (sel) sel.value = cleanName;
+        showToast(`✓ Đã tạo và chọn dự án: ${cleanName}`);
     },
 
-    toggleSelectAllMulti(masterCheckbox) {
-        const checked = masterCheckbox ? masterCheckbox.checked : true;
-        appTransform.multiPoints.forEach(p => p.selected = checked);
-        appTransform.renderMultiTransPoints();
-    },
-
-    toggleSelectPoint(index, checked) {
-        if (appTransform.multiPoints[index]) {
-            appTransform.multiPoints[index].selected = checked;
-        }
-    },
-
-    removeMultiPoint(index) {
-        appTransform.multiPoints.splice(index, 1);
-        appTransform.renderMultiTransPoints();
-        showToast("Đã xóa 1 mốc khỏi danh sách.");
-    },
-
-    clearMultiPoints() {
-        if (appTransform.multiPoints.length === 0) return;
-        if (!confirm("Bạn có chắc muốn xóa toàn bộ danh sách điểm chuyển đổi đa điểm này không?")) return;
-        appTransform.multiPoints = [];
-        appTransform.renderMultiTransPoints();
-        showToast("Đã xóa toàn bộ điểm!");
-    },
-
-    executeMultiTransform() {
-        const selected = appTransform.multiPoints.filter(p => p.selected !== false);
+    convertMultiBatch(mode = 'wgs2vn2k') {
+        const selected = this.multiPoints.filter(p => p.selected !== false);
         if (selected.length === 0) {
             showToast("⚠️ Vui lòng tick chọn ít nhất 1 điểm cần chuyển đổi!", true);
             return;
         }
 
+        this.multiConvertedResults = [];
         let convertedCount = 0;
+
         selected.forEach((pt, idx) => {
-            // Nếu có Lat, Lng nhưng chưa có X, Y -> chuyển sang VN-2000
-            if (pt.lat && pt.lng && (!pt.x || !pt.y)) {
-                const vn = convertWgsToVn2k(pt.lat, pt.lng, AppState.kttVal, AppState.scaleFactor);
-                pt.x = vn.X;
-                pt.y = vn.Y;
-                convertedCount++;
-            } else if (pt.x && pt.y && (!pt.lat || !pt.lng)) {
-                // Nếu có X, Y nhưng chưa có Lat, Lng -> chuyển sang WGS-84
-                const wgs = convertVn2kToWgs(pt.x, pt.y, AppState.kttVal, AppState.scaleFactor);
-                pt.lat = wgs.lat;
-                pt.lng = wgs.lng;
-                convertedCount++;
-            } else if (pt.lat && pt.lng) {
-                // Tính lại theo KTT hiện tại
-                const vn = convertWgsToVn2k(pt.lat, pt.lng, AppState.kttVal, AppState.scaleFactor);
-                pt.x = vn.X;
-                pt.y = vn.Y;
-                convertedCount++;
+            let v1 = pt.c1 !== undefined ? parseFloat(String(pt.c1).replace(',', '.')) : (pt.x ? parseFloat(pt.x) : parseFloat(pt.lat));
+            let v2 = pt.c2 !== undefined ? parseFloat(String(pt.c2).replace(',', '.')) : (pt.y ? parseFloat(pt.y) : parseFloat(pt.lng));
+
+            let x = 0, y = 0, lat = 0, lng = 0;
+
+            if (mode === 'wgs2vn2k') {
+                lat = v1;
+                lng = v2;
+                if (lat > 50 && lng < 50) {
+                    const tmp = lat; lat = lng; lng = tmp;
+                }
+                try {
+                    const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                    x = vn.X.toFixed(3);
+                    y = vn.Y.toFixed(3);
+                    lat = lat.toFixed(6);
+                    lng = lng.toFixed(6);
+                    convertedCount++;
+                } catch (e) {
+                    x = 'Lỗi'; y = 'Lỗi';
+                }
+            } else {
+                x = v1;
+                y = v2;
+                if (x < y && y > 1000000) {
+                    const tmp = x; x = y; y = tmp;
+                }
+                try {
+                    const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                    lat = wgs.lat.toFixed(6);
+                    lng = wgs.lng.toFixed(6);
+                    x = x.toFixed(3);
+                    y = y.toFixed(3);
+                    convertedCount++;
+                } catch (e) {
+                    lat = 'Lỗi'; lng = 'Lỗi';
+                }
             }
+
+            const kttStr = `${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
+            this.multiConvertedResults.push({
+                stt: idx + 1,
+                name: pt.name || `P${idx + 1}`,
+                x: String(x),
+                y: String(y),
+                lat: String(lat),
+                lng: String(lng),
+                ktt: kttStr
+            });
+
+            pt.x = x;
+            pt.y = y;
+            pt.lat = lat;
+            pt.lng = lng;
         });
 
-        // Kiểm tra tùy chọn lưu vào dự án
+        this.renderMultiTransResultTable();
+
         const chkSave = document.getElementById('chkSaveMultiToProject');
-        const shouldSave = chkSave ? chkSave.checked : false;
-
-        if (shouldSave) {
-            const targetProj = document.getElementById('selMultiTargetProject')?.value || AppState.currentProject;
-            const ptsToSave = selected.map((pt, i) => ({
-                id: Date.now() + i,
-                name: pt.name || `P${i+1}`,
-                x: pt.x ? parseFloat(pt.x).toFixed(3) : "0",
-                y: pt.y ? parseFloat(pt.y).toFixed(3) : "0",
-                lat: pt.lat ? parseFloat(pt.lat).toFixed(6) : "0",
-                lng: pt.lng ? parseFloat(pt.lng).toFixed(6) : "0",
-                mui: AppState.muiVal,
-                ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
-                note: "Chuyển đổi đa điểm",
-                project: targetProj,
-                time: new Date().toISOString()
-            }));
-
-            const currentPts = appData.getPoints(targetProj);
-            currentPts.push(...ptsToSave);
-            appData.savePoints(targetProj, currentPts);
-            showToast(`✓ Đã tính chuyển và LƯU ${ptsToSave.length} mốc vào dự án "${targetProj}"!`, true);
+        if (chkSave && chkSave.checked) {
+            this.saveMultiResultToChosenProject(false);
         } else {
-            showToast(`✓ Đã tính chuyển thành công ${selected.length} mốc (KHÔNG LƯU vào dự án)!`, true);
+            showToast(`✨ Đã chuyển đổi thành công ${convertedCount}/${selected.length} điểm!`, true);
         }
 
-        appTransform.renderMultiTransPoints();
         triggerHaptic('success');
     },
 
-    copyAllMultiResults() {
-        if (appTransform.multiPoints.length === 0) {
-            showToast("⚠️ Chưa có mốc nào để chép!", true);
+    executeMultiTransform() {
+        const first = this.multiPoints.find(p => p.selected !== false);
+        let mode = 'wgs2vn2k';
+        if (first) {
+            const v1 = parseFloat(first.c1 || first.x || first.lat);
+            const v2 = parseFloat(first.c2 || first.y || first.lng);
+            if (v1 > 500000 || v2 > 500000) {
+                mode = 'vn2k2wgs';
+            }
+        }
+        this.convertMultiBatch(mode);
+    },
+
+    renderMultiTransResultTable() {
+        const box = document.getElementById('boxMultiTransResult');
+        const tbody = document.getElementById('tbodyMultiTransResult');
+        const countEl = document.getElementById('lblMultiResultCount');
+        if (!box || !tbody) return;
+
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            box.style.display = 'none';
             return;
         }
-        let lines = ["STT\tTên mốc\tX (VN2000)\tY (VN2000)\tWGS-84 (Lat, Lng)"];
-        appTransform.multiPoints.forEach((p, i) => {
-            const x = p.x ? parseFloat(p.x).toFixed(3) : '---';
-            const y = p.y ? parseFloat(p.y).toFixed(3) : '---';
-            const latLng = (p.lat && p.lng) ? `${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}` : '---';
-            lines.push(`${i+1}\t${p.name || `P${i+1}`}\t${x}\t${y}\t${latLng}`);
+
+        if (countEl) countEl.innerText = this.multiConvertedResults.length;
+        tbody.innerHTML = this.multiConvertedResults.map(r => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-family: ui-monospace, monospace;">
+                <td style="padding: 6px; text-align: center; color: #94a3b8;">${r.stt}</td>
+                <td style="padding: 6px; font-weight: 700; color: #fbbf24;" class="selectable">${r.name}</td>
+                <td style="padding: 6px; text-align: right; color: #4ade80;" class="selectable">${r.x}</td>
+                <td style="padding: 6px; text-align: right; color: #4ade80;" class="selectable">${r.y}</td>
+                <td style="padding: 6px; text-align: right; color: #38bdf8;" class="selectable">${r.lat}</td>
+                <td style="padding: 6px; text-align: right; color: #38bdf8;" class="selectable">${r.lng}</td>
+                <td style="padding: 6px; color: #cbd5e1; font-size: 11px;">${r.ktt}</td>
+            </tr>
+        `).join('');
+
+        box.style.display = 'block';
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    },
+
+    copyMultiResultsAll() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả chuyển đổi để sao chép!", true);
+            return;
+        }
+        let lines = ["STT\tTên mốc\tVN-2000 X (Bắc)\tVN-2000 Y (Đông)\tWGS-84 Lat\tWGS-84 Lng\tKinh tuyến trục"];
+        this.multiConvertedResults.forEach(r => {
+            lines.push(`${r.stt}\t${r.name}\t${r.x}\t${r.y}\t${r.lat}\t${r.lng}\t${r.ktt}`);
         });
-        const text = lines.join("\n");
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => showToast(`📋 Đã chép toàn bộ ${appTransform.multiPoints.length} mốc vào Clipboard!`))
-                .catch(() => copyToClipboard(text));
+        const text = lines.join('\n');
+        copyToClipboard(text);
+        showToast(`📋 Đã sao chép toàn bộ ${this.multiConvertedResults.length} mốc kết quả!`);
+    },
+
+    copyAllMultiResults() {
+        this.copyMultiResultsAll();
+    },
+
+    copyMultiResultsVn2k() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả để sao chép!", true);
+            return;
+        }
+        let lines = ["Tên mốc\tVN-2000 X\tVN-2000 Y"];
+        this.multiConvertedResults.forEach(r => {
+            lines.push(`${r.name}\t${r.x}\t${r.y}`);
+        });
+        copyToClipboard(lines.join('\n'));
+        showToast("📋 Đã chép danh sách tọa độ VN-2000!");
+    },
+
+    copyMultiResultsWgs() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả để sao chép!", true);
+            return;
+        }
+        let lines = ["Tên mốc\tWGS-84 Lat\tWGS-84 Lng"];
+        this.multiConvertedResults.forEach(r => {
+            lines.push(`${r.name}\t${r.lat}\t${r.lng}`);
+        });
+        copyToClipboard(lines.join('\n'));
+        showToast("📋 Đã chép danh sách tọa độ WGS-84!");
+    },
+
+    exportMultiResultCsv() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả để xuất file!", true);
+            return;
+        }
+        let csv = "\uFEFFSTT,Ten_Moc,VN2000_X,VN2000_Y,WGS84_Lat,WGS84_Lng,Kinh_Tuyen_Truc\n";
+        this.multiConvertedResults.forEach(r => {
+            csv += `${r.stt},"${r.name}",${r.x},${r.y},${r.lat},${r.lng},"${r.ktt}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Chuyen_Doi_VN2000_${Date.now()}.csv`;
+        a.click();
+        showToast("📊 Đã xuất file CSV kết quả!");
+    },
+
+    saveMultiResultToChosenProject(showNotification = true) {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả chuyển đổi để lưu!", true);
+            return;
+        }
+        const targetProj = document.getElementById('selMultiTargetProject')?.value || AppState.currentProject;
+        if (!targetProj) {
+            showToast("⚠️ Vui lòng chọn dự án cần lưu!", true);
+            return;
+        }
+
+        const ptsToSave = this.multiConvertedResults.map((r, i) => ({
+            id: Date.now() + i,
+            name: r.name || `P${i + 1}`,
+            x: r.x !== 'Lỗi' ? r.x : "0",
+            y: r.y !== 'Lỗi' ? r.y : "0",
+            lat: r.lat !== 'Lỗi' ? r.lat : "0",
+            lng: r.lng !== 'Lỗi' ? r.lng : "0",
+            mui: AppState.muiVal,
+            ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
+            note: "Chuyển đổi đa điểm",
+            project: targetProj,
+            time: new Date().toISOString()
+        }));
+
+        if (typeof appData !== 'undefined' && appData.getPoints && appData.savePoints) {
+            const currentPts = appData.getPoints(targetProj) || [];
+            currentPts.push(...ptsToSave);
+            appData.savePoints(targetProj, currentPts);
+        }
+
+        if (showNotification) {
+            showToast(`✓ Đã lưu thành công ${ptsToSave.length} mốc vào dự án "${targetProj}"!`, true);
+        }
+    },
+
+    viewMultiConvertedOnMap() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có điểm chuyển đổi nào để xem trên bản đồ!", true);
+            return;
+        }
+
+        appNav.openConvertedMap(null);
+
+        const map = AppState.leafletMap;
+        if (!map) return;
+
+        if (!this._multiConvertedLayer) {
+            this._multiConvertedLayer = L.layerGroup().addTo(map);
         } else {
-            copyToClipboard(text);
+            this._multiConvertedLayer.clearLayers();
+            if (!map.hasLayer(this._multiConvertedLayer)) {
+                this._multiConvertedLayer.addTo(map);
+            }
+        }
+
+        const latlngs = [];
+        this.multiConvertedResults.forEach((r) => {
+            const fLat = parseFloat(r.lat);
+            const fLng = parseFloat(r.lng);
+            if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
+                latlngs.push([fLat, fLng]);
+                const icon = L.divIcon({
+                    className: 'multipoint-converted-pin',
+                    html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">${r.stt}</div>`,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+                const marker = L.marker([fLat, fLng], { icon }).addTo(this._multiConvertedLayer);
+                marker.bindPopup(`
+                    <div style="font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5;">
+                        <b style="color: #0d9488; font-size: 13px;">${r.name}</b><br>
+                        VN2000 X: <b>${r.x}</b><br>
+                        VN2000 Y: <b>${r.y}</b><br>
+                        WGS84: ${r.lat}°, ${r.lng}°<br>
+                        <span style="font-size: 11px; color: #64748b;">${r.ktt}</span>
+                    </div>
+                `);
+            }
+        });
+
+        if (latlngs.length > 0) {
+            map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40] });
+            showToast(`🗺️ Đang hiển thị ${latlngs.length} mốc chuyển đổi trên bản đồ!`);
+        } else {
+            showToast("⚠️ Không có tọa độ WGS-84 hợp lệ để hiển thị trên bản đồ!", true);
         }
     },
 
