@@ -4205,6 +4205,107 @@
       font-weight: 700;
     }
 
+    /* BẢNG KÊ THÔNG TIN DỰ ÁN & CÁC KHỐI CAD (CHỈ XEM - READ ONLY) */
+    .project-marks-blocks-panel {
+      position: absolute;
+      top: calc(var(--sat-safe-top) + 65px);
+      left: 12px;
+      width: 520px;
+      max-width: calc(100vw - 24px);
+      min-width: 320px;
+      min-height: 200px;
+      max-height: calc(100vh - 140px);
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      border-radius: 12px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7);
+      z-index: 1050;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      resize: both;
+      animation: slideDownCad 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .project-marks-blocks-panel.maximized {
+      top: calc(var(--sat-safe-top) + 45px) !important;
+      left: 10px !important;
+      width: calc(100vw - 20px) !important;
+      height: calc(100vh - 90px) !important;
+      max-height: calc(100vh - 90px) !important;
+      resize: none;
+    }
+    .project-marks-blocks-panel.scale-50 {
+      width: 380px !important;
+    }
+    .project-marks-blocks-panel.scale-75 {
+      width: 540px !important;
+    }
+    .project-marks-blocks-panel.scale-100 {
+      width: calc(100vw - 24px) !important;
+    }
+    .project-marks-blocks-panel.minimized {
+      height: 40px !important;
+      min-height: 40px !important;
+      overflow: hidden !important;
+      resize: none !important;
+    }
+    .pmb-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(30, 41, 59, 0.9);
+      border-bottom: 1.5px solid rgba(56, 189, 248, 0.25);
+      cursor: grab;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .pmb-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12px;
+      scrollbar-width: thin;
+    }
+    .pmb-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+      gap: 6px;
+    }
+    .pmb-summary-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+    }
+    .pmb-summary-label {
+      font-size: 10.5px;
+      color: #94a3b8;
+    }
+    .pmb-summary-value {
+      font-size: 13.5px;
+      font-weight: 800;
+      font-family: ui-monospace, monospace;
+    }
+    .pmb-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 8px 12px;
+      background: rgba(30, 41, 59, 0.85);
+      border-top: 1px solid rgba(56, 189, 248, 0.2);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
     .map-cad-toolbar {
       position: absolute;
       top: calc(var(--sat-safe-top) + 10px);
@@ -6386,7 +6487,7 @@
           <button class="btn-map-action" title="Nhập file dự án / Tải file mẫu" onclick="appModal.openImportProjectModal()">
             📥 Nhập File
           </button>
-          <button class="btn-map-action" title="Xem danh sách mốc của dự án" onclick="appModal.openPointsListModal()">
+          <button class="btn-map-action" title="Xem danh sách mốc & Bảng kê thông tin khối dự án (Chỉ xem)" onclick="appModal.openPointsListModal()">
             📋 Xem mốc
           </button>
           <button class="btn-map-action" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
@@ -6583,6 +6684,120 @@
               <input type="checkbox" id="cadCheckSnapLine" checked onchange="appCadTool.toggleSnapLine(this.checked)">
               <span>🔗 Bắt line liền kề</span>
             </label>
+          </div>
+        </div>
+
+        <!-- Bảng Kê Thông Tin Dự Án & Các Khối CAD Trên Bản Đồ (Chế độ CHỈ ĐỌC / Read-only - Hỗ trợ phóng to, thu nhỏ, điều chỉnh tỉ lệ khung) -->
+        <div id="projectMarksBlocksPanel" class="project-marks-blocks-panel" style="display: none;">
+          <div class="pmb-header" id="pmbHeader" title="Kéo giữ để di chuyển bảng">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="color: #38bdf8; font-size: 14px;">📋</span>
+              <div>
+                <div style="font-weight: 800; color: #38bdf8; font-size: 12px; letter-spacing: 0.3px;">BẢNG KÊ THÔNG TIN KHỐI & MỐC DỰ ÁN</div>
+                <div style="font-size: 10.5px; color: #fbbf24; font-weight: 700;" id="pmbProjectNameLabel">Dự án: --</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <!-- Nút điều chỉnh tỉ lệ khung -->
+              <div style="display: flex; background: rgba(15,23,42,0.8); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px; padding: 1px;">
+                <button type="button" class="btn-sm" style="height: 20px; padding: 0 4px; font-size: 9.5px; background: transparent; color: #94a3b8;" onclick="appMap.setProjectBlocksPanelScale('50')" title="Tỉ lệ 50% (Gọn)">50%</button>
+                <button type="button" class="btn-sm" style="height: 20px; padding: 0 4px; font-size: 9.5px; background: transparent; color: #94a3b8;" onclick="appMap.setProjectBlocksPanelScale('75')" title="Tỉ lệ 75% (Vừa)">75%</button>
+                <button type="button" class="btn-sm" style="height: 20px; padding: 0 4px; font-size: 9.5px; background: transparent; color: #94a3b8;" onclick="appMap.setProjectBlocksPanelScale('100')" title="Tỉ lệ 100% (Rộng)">100%</button>
+              </div>
+              <button id="btnPmbMaximize" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appMap.toggleMaximizeProjectBlocksPanel()" title="Phóng to toàn màn hình / Thu nhỏ">⤢</button>
+              <button id="btnPmbMinimize" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 11px; background: rgba(255,255,255,0.1); color: #94a3b8;" onclick="appMap.toggleMinimizeProjectBlocksPanel()" title="Thu gọn thành thanh dock">▾</button>
+              <button class="btn-sm btn-red" style="height: 22px; padding: 0 6px; font-size: 11px;" onclick="appMap.closeProjectBlocksPanel()" title="Đóng bảng kê">✕</button>
+            </div>
+          </div>
+
+          <div class="pmb-body" id="pmbBody">
+            <!-- Thẻ tóm tắt thông số -->
+            <div class="pmb-summary-grid">
+              <div class="pmb-summary-card">
+                <span class="pmb-summary-label">Tổng Diện Tích</span>
+                <span class="pmb-summary-value" id="pmbTotalArea" style="color: #4ade80;">0.00 m²</span>
+                <span style="font-size: 10px; color: #a7f3d0;" id="pmbTotalAreaHa">0.0000 ha</span>
+              </div>
+              <div class="pmb-summary-card">
+                <span class="pmb-summary-label">Chu Vi / Dài</span>
+                <span class="pmb-summary-value" id="pmbTotalPerimeter" style="color: #38bdf8;">0.00 m</span>
+              </div>
+              <div class="pmb-summary-card">
+                <span class="pmb-summary-label">Số Khối CAD</span>
+                <span class="pmb-summary-value" id="pmbShapesCount" style="color: #fbbf24;">0 khối</span>
+              </div>
+              <div class="pmb-summary-card">
+                <span class="pmb-summary-label">Số Mốc Tọa Độ</span>
+                <span class="pmb-summary-value" id="pmbPointsCount" style="color: #f472b6;">0 mốc</span>
+              </div>
+            </div>
+
+            <!-- Bảng 1: BẢNG TỔNG HỢP CÁC KHỐI ĐÃ VẼ (READ-ONLY) -->
+            <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; overflow: hidden;">
+              <div style="padding: 6px 10px; background: rgba(30,41,59,0.7); border-bottom: 1px solid rgba(56,189,248,0.2); font-weight: 700; color: #38bdf8; font-size: 11px; display: flex; justify-content: space-between;">
+                <span>📦 CÁC KHỐI / THỬA ĐẤT TRONG DỰ ÁN</span>
+                <span style="color: #94a3b8; font-size: 10px;">(Chỉ xem • Muốn sửa dùng MiniCAD)</span>
+              </div>
+              <div style="max-height: 140px; overflow-y: auto;">
+                <table class="cad-coord-table" style="width: 100%; font-size: 11px;">
+                  <thead>
+                    <tr>
+                      <th style="width: 28px;">STT</th>
+                      <th>Tên khối</th>
+                      <th>Loại</th>
+                      <th style="text-align: right;">Chu vi (m)</th>
+                      <th style="text-align: right;">Diện tích (m²)</th>
+                      <th style="text-align: right;">Tỉ lệ %</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pmbShapesTableBody">
+                    <!-- Render JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Bảng 2: BẢNG KÊ TỌA ĐỘ MỐC & ĐỈNH RANH (READ-ONLY) -->
+            <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; overflow: hidden;">
+              <div style="padding: 6px 10px; background: rgba(30,41,59,0.7); border-bottom: 1px solid rgba(56,189,248,0.2); font-weight: 700; color: #38bdf8; font-size: 11px; display: flex; justify-content: space-between;">
+                <span>📍 TỌA ĐỘ MỐC & RANH ĐẤT VN-2000</span>
+                <span id="pmbKttInfo" style="color: #a7f3d0; font-size: 10.5px;">KTT: --</span>
+              </div>
+              <div style="max-height: 160px; overflow-y: auto;">
+                <table class="cad-coord-table" style="width: 100%; font-size: 11px;">
+                  <thead>
+                    <tr>
+                      <th style="width: 28px;">STT</th>
+                      <th>Tên điểm</th>
+                      <th style="text-align: right;">X (Bắc) [m]</th>
+                      <th style="text-align: right;">Y (Đông) [m]</th>
+                      <th style="text-align: right;">Cạnh (m)</th>
+                      <th>Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pmbPointsTableBody">
+                    <!-- Render JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="pmb-footer">
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+              <button class="btn-sm btn-blue" style="height: 28px; padding: 0 8px; font-size: 11px;" onclick="appMap.copyProjectBlocksTable()" title="Sao chép toàn bộ bảng kê">
+                📋 Sao chép
+              </button>
+              <button class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px; background: rgba(16,185,129,0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.4);" onclick="appMap.exportProjectBlocksExcel()" title="Tải file Excel bảng kê">
+                📊 Xuất Excel
+              </button>
+              <button class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px; background: rgba(56,189,248,0.15); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.3);" onclick="appMap.fitProjectBounds()" title="Căn bản đồ vừa khớp toàn bộ mốc">
+                🔍 Về vị trí dự án
+              </button>
+            </div>
+            <button class="btn-sm" style="height: 28px; padding: 0 10px; font-weight: 700; font-size: 11px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8;" onclick="appMap.openInMiniCadToEdit()" title="Chuyển sang MiniCAD để thêm, vẽ hoặc chỉnh sửa mốc & thửa">
+              ✏️ Mở MiniCAD để sửa ➔
+            </button>
           </div>
         </div>
 

@@ -896,6 +896,10 @@ const appNav = window.appNav = {
         if (cadBlocks) cadBlocks.style.display = 'none';
         const distHud = document.getElementById('mapDistanceHud');
         if (distHud) distHud.style.display = 'none';
+        const bSheet = document.getElementById('mapBottomSheet');
+        if (bSheet) bSheet.style.display = 'none';
+        const pmbPanel = document.getElementById('projectMarksBlocksPanel');
+        if (pmbPanel) pmbPanel.style.display = 'none';
 
         // Xóa marker chấm điểm nếu có
         if (AppState.pickerMarker && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
@@ -3745,8 +3749,14 @@ const appMap = {
             return;
         }
 
-        // 3. Phân hệ Bản đồ dự án hoặc Xem điểm:
-        // Chỉ cập nhật hiển thị thông tin tọa độ mốc/vị trí trên Bottom Sheet, TUYỆT ĐỐI không thêm mốc/đỉnh ngoài ý muốn
+        // 3. RÀNG BUỘC CHẶT CHẼ TRÊN "2. BẢN ĐỒ DỰ ÁN & MỐC":
+        // Chế độ này là CHỈ XEM (View-only), KHÔNG hiển thị Bottom Sheet và KHÔNG THỂ thêm điểm.
+        // Muốn chỉnh sửa/thêm mốc/vẽ thửa, người dùng bắt buộc phải dùng MiniCAD.
+        if (AppState.mapMode === 'project') {
+            return;
+        }
+
+        // 4. Các chế độ xem điểm khác (nếu có): Chỉ hiển thị thông tin
         const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         const sheet = document.getElementById('mapBottomSheet');
         if (sheet) {
@@ -3759,6 +3769,215 @@ const appMap = {
         if (appMap.updateSurveyorLineAndDistance) {
             appMap.updateSurveyorLineAndDistance();
         }
+    },
+
+    viewProjectMarksAndBlocks() {
+        const curProj = AppState.currentProject;
+        if (!curProj) {
+            showToast("⚠️ Vui lòng chọn hoặc nạp một dự án để xem mốc!", true);
+            return;
+        }
+
+        // 1. Tải mốc và khối của dự án
+        this.loadProjectMarkers();
+        if (typeof appCadTool !== 'undefined') {
+            appCadTool.loadShapesForProject(curProj);
+            if (!appCadTool.savedShapes || appCadTool.savedShapes.length === 0) {
+                appCadTool.reconstructShapesFromPoints(curProj);
+            }
+        }
+
+        // 2. Tự động hiển thị bao quát về vị trí toàn bộ mốc dự án được mở (local)
+        this.fitProjectBounds();
+
+        // 3. Render và hiển thị Bảng kê thông tin các khối & mốc (Chế độ CHỈ XEM)
+        this.renderProjectMarksBlocksPanel(curProj);
+        showToast(`📋 Đã hiển thị vị trí và Bảng kê khối của dự án: ${curProj}`);
+    },
+
+    renderProjectMarksBlocksPanel(curProj) {
+        const panel = document.getElementById('projectMarksBlocksPanel');
+        if (!panel) return;
+
+        const nameLabel = document.getElementById('pmbProjectNameLabel');
+        if (nameLabel) nameLabel.innerText = `Dự án: ${curProj}`;
+
+        const kttInfo = document.getElementById('pmbKttInfo');
+        if (kttInfo) kttInfo.innerText = `KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (${AppState.provinceName})`;
+
+        // Lấy danh sách mốc
+        const pts = appData.getPoints(curProj) || [];
+        // Lấy danh sách khối CAD
+        const shapes = (typeof appCadTool !== 'undefined' && appCadTool.savedShapes) ? appCadTool.savedShapes : [];
+
+        // Tính toán thông số tổng quan
+        let totalArea = 0;
+        let totalPerimeter = 0;
+
+        shapes.forEach(s => {
+            const stats = (typeof appCadTool !== 'undefined' && appCadTool.getEffectiveStats) ? appCadTool.getEffectiveStats(s) : (s.stats || {});
+            totalArea += (stats.area || 0);
+            totalPerimeter += (stats.perimeter || 0);
+        });
+
+        const totalHa = totalArea / 10000.0;
+
+        // Cập nhật thẻ tóm tắt
+        const elArea = document.getElementById('pmbTotalArea');
+        const elHa = document.getElementById('pmbTotalAreaHa');
+        const elPerim = document.getElementById('pmbTotalPerimeter');
+        const elShapesCount = document.getElementById('pmbShapesCount');
+        const elPointsCount = document.getElementById('pmbPointsCount');
+
+        if (elArea) elArea.innerText = `${totalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
+        if (elHa) elHa.innerText = `${totalHa.toFixed(4)} ha`;
+        if (elPerim) elPerim.innerText = `${totalPerimeter.toFixed(2)} m`;
+        if (elShapesCount) elShapesCount.innerText = `${shapes.length} khối`;
+        if (elPointsCount) elPointsCount.innerText = `${pts.length} mốc`;
+
+        // Render Bảng 1: Bảng các khối CAD (Chế độ CHỈ XEM - READ-ONLY)
+        const shapesTbody = document.getElementById('pmbShapesTableBody');
+        if (shapesTbody) {
+            if (shapes.length === 0) {
+                shapesTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 12px;">Dự án chưa có khối CAD nào. Nhấn <b>"Mở MiniCAD để sửa"</b> bên dưới để vẽ mặt bằng thửa đất.</td></tr>`;
+            } else {
+                shapesTbody.innerHTML = shapes.map((s, idx) => {
+                    const stats = (typeof appCadTool !== 'undefined' && appCadTool.getEffectiveStats) ? appCadTool.getEffectiveStats(s) : (s.stats || {});
+                    const sArea = stats.area || 0;
+                    const sPerim = stats.perimeter || 0;
+                    const percent = totalArea > 0 ? ((sArea / totalArea) * 100).toFixed(2) : '0.00';
+                    const modeText = s.mode === 'polyline' ? '📏 Tuyến hở' : '📐 Đa giác';
+                    return `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                            <td style="text-align: center; font-weight: 700; color: #94a3b8;">${idx + 1}</td>
+                            <td style="font-weight: 700; color: #f8fafc;" class="selectable">${s.shortName || s.name || `Thửa ${idx+1}`}</td>
+                            <td style="color: #38bdf8;">${modeText}</td>
+                            <td style="text-align: right; color: #e2e8f0;" class="selectable">${sPerim.toFixed(2)}</td>
+                            <td style="text-align: right; font-weight: 700; color: #4ade80;" class="selectable">${sArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td style="text-align: right; font-weight: 700; color: #facc15;" class="selectable">${percent}%</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Render Bảng 2: Bảng kê mốc tọa độ & đỉnh ranh (Chế độ CHỈ XEM - READ-ONLY)
+        const pointsTbody = document.getElementById('pmbPointsTableBody');
+        if (pointsTbody) {
+            if (pts.length === 0) {
+                pointsTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 12px;">Dự án chưa có mốc tọa độ nào.</td></tr>`;
+            } else {
+                pointsTbody.innerHTML = pts.map((p, idx) => {
+                    const xVal = p.x ? parseFloat(p.x).toFixed(3) : '--';
+                    const yVal = p.y ? parseFloat(p.y).toFixed(3) : '--';
+                    let edgeDist = '--';
+                    if (idx < pts.length - 1) {
+                        const next = pts[idx + 1];
+                        if (p.lat && p.lng && next.lat && next.lng) {
+                            edgeDist = calcGeoDistanceAndAzimuth(parseFloat(p.lat), parseFloat(p.lng), parseFloat(next.lat), parseFloat(next.lng)).distance.toFixed(2);
+                        }
+                    }
+                    return `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-family: ui-monospace, monospace;">
+                            <td style="text-align: center; font-weight: 700; color: #94a3b8;">${idx + 1}</td>
+                            <td style="font-weight: 700; color: #f8fafc;" class="selectable">${p.name || `M${idx+1}`}</td>
+                            <td style="text-align: right; color: #4ade80;" class="selectable">${xVal}</td>
+                            <td style="text-align: right; color: #4ade80;" class="selectable">${yVal}</td>
+                            <td style="text-align: right; color: #38bdf8;" class="selectable">${edgeDist}</td>
+                            <td style="color: #94a3b8; font-family: sans-serif;">${p.note || ''}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        panel.style.display = 'flex';
+    },
+
+    closeProjectBlocksPanel() {
+        const panel = document.getElementById('projectMarksBlocksPanel');
+        if (panel) panel.style.display = 'none';
+    },
+
+    toggleMaximizeProjectBlocksPanel() {
+        const panel = document.getElementById('projectMarksBlocksPanel');
+        const btn = document.getElementById('btnPmbMaximize');
+        if (!panel) return;
+        panel.classList.toggle('maximized');
+        const isMax = panel.classList.contains('maximized');
+        if (btn) btn.innerText = isMax ? '⤡' : '⤢';
+    },
+
+    setProjectBlocksPanelScale(scale) {
+        const panel = document.getElementById('projectMarksBlocksPanel');
+        if (!panel) return;
+        panel.classList.remove('scale-50', 'scale-75', 'scale-100', 'maximized');
+        panel.classList.add(`scale-${scale}`);
+        showToast(`📐 Đã điều chỉnh tỉ lệ khung bảng kê: ${scale}%`);
+    },
+
+    toggleMinimizeProjectBlocksPanel() {
+        const panel = document.getElementById('projectMarksBlocksPanel');
+        const btn = document.getElementById('btnPmbMinimize');
+        if (!panel) return;
+        panel.classList.toggle('minimized');
+        const isMin = panel.classList.contains('minimized');
+        if (btn) btn.innerText = isMin ? '▴' : '▾';
+    },
+
+    copyProjectBlocksTable() {
+        const curProj = AppState.currentProject;
+        const pts = appData.getPoints(curProj) || [];
+        const shapes = (typeof appCadTool !== 'undefined' && appCadTool.savedShapes) ? appCadTool.savedShapes : [];
+
+        let lines = [`=== BẢNG KÊ DỰ ÁN: ${curProj} ===`];
+        lines.push(`Kinh tuyến trục: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (${AppState.provinceName})`);
+        lines.push("");
+        lines.push("[1. DANH SÁCH CÁC KHỐI CAD / THỬA ĐẤT]");
+        lines.push("STT\tTên khối\tLoại\tChu vi (m)\tDiện tích (m²)");
+        shapes.forEach((s, i) => {
+            const stats = (typeof appCadTool !== 'undefined' && appCadTool.getEffectiveStats) ? appCadTool.getEffectiveStats(s) : (s.stats || {});
+            lines.push(`${i+1}\t${s.shortName || s.name || `Thửa ${i+1}`}\t${s.mode === 'polyline' ? 'Tuyến' : 'Đa giác'}\t${(stats.perimeter || 0).toFixed(2)}\t${(stats.area || 0).toFixed(2)}`);
+        });
+        lines.push("");
+        lines.push("[2. DANH SÁCH MỐC TỌA ĐỘ VN-2000]");
+        lines.push("STT\tTên mốc\tX (Bắc)\tY (Đông)\tLat\tLng\tGhi chú");
+        pts.forEach((p, i) => {
+            lines.push(`${i+1}\t${p.name || `M${i+1}`}\t${p.x || '0'}\t${p.y || '0'}\t${p.lat || '0'}\t${p.lng || '0'}\t${p.note || ''}`);
+        });
+
+        const text = lines.join("\n");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => showToast(`📋 Đã sao chép toàn bộ bảng kê dự án ${curProj}!`))
+                .catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
+    },
+
+    exportProjectBlocksExcel() {
+        const curProj = AppState.currentProject;
+        const pts = appData.getPoints(curProj) || [];
+        let csvContent = "\uFEFFSTT,Ten_Diem,Toa_Do_X,Toa_Do_Y,Vi_Do_Lat,Kinh_Do_Lng,Ghi_Chu\n";
+        pts.forEach((p, i) => {
+            csvContent += `${i+1},"${p.name || `M${i+1}`}",${p.x || 0},${p.y || 0},${p.lat || 0},${p.lng || 0},"${p.note || ''}"\n`;
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Bang_Ke_${curProj.replace(/\.[^/.]+$/, "")}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("📊 Đã xuất file Bảng kê dự án!");
+    },
+
+    openInMiniCadToEdit() {
+        this.closeProjectBlocksPanel();
+        appNav.openCadMap({ loadProject: true });
+        showToast("✏️ Đã chuyển sang MiniCAD! Bạn có thể thêm mốc, vẽ hoặc sửa đổi các khối.", true);
     },
 
     onMarkerDrag(lat, lng) {
@@ -6415,6 +6634,12 @@ const appGeodesy = {
 // ================= 9. MODAL CÀI ĐẶT HỆ THỐNG (SETTINGS MODAL) =================
 const appModal = {
     currentSettingsTab: 'storage',
+
+    openPointsListModal() {
+        if (typeof appMap !== 'undefined' && appMap.viewProjectMarksAndBlocks) {
+            appMap.viewProjectMarksAndBlocks();
+        }
+    },
 
     openUnifiedSettings(defaultTab = 'storage') {
         const m = document.getElementById('modalSettings');
