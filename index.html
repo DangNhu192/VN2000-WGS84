@@ -61,9 +61,11 @@
       -webkit-user-select: none;
     }
 
-    input, textarea, select {
-      user-select: auto;
-      -webkit-user-select: auto;
+    input, textarea, select, .selectable, .res-val, .res-lbl, .converted-result-box, 
+    .result-row, .coord-val, .map-bottom-coord, .table-selectable td, .table-selectable th, 
+    .copyable-text, .multi-result-cell, .trans-res-text {
+      user-select: text !important;
+      -webkit-user-select: text !important;
     }
 
     body, html {
@@ -1754,6 +1756,82 @@
     .res-val {
       font-weight: 700;
       text-align: right;
+    }
+    .res-val-selectable {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+      cursor: text;
+    }
+    .btn-copy-chip {
+      background: rgba(45, 212, 191, 0.15);
+      border: 1px solid #0d9488;
+      color: #2dd4bf;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .btn-copy-chip:hover, .btn-copy-chip:active {
+      background: rgba(45, 212, 191, 0.3);
+      border-color: #2dd4bf;
+      color: #fff;
+    }
+    .transform-subtabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      background: #0b1329;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+    }
+    .btn-subtab {
+      flex: 1;
+      height: 38px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-subtab.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+    .table-selectable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .table-selectable th {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 8px 6px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid #334155;
+    }
+    .table-selectable td {
+      padding: 7px 6px;
+      border-bottom: 1px solid #1e293b;
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+    .table-selectable tr:hover td {
+      background: rgba(56, 189, 248, 0.05);
     }
 
     /* TOGGLE BUTTON GROUP (MÚI CHIẾU) */
@@ -5366,7 +5444,7 @@
               <!-- Thanh tìm kiếm lọc nhanh công cụ -->
               <div class="accordion-search-bar">
                 <span class="acc-search-icon">🔍</span>
-                <input type="text" id="txtDashToolFilter" class="acc-search-input" placeholder="Tìm nhanh (cad, rtk, geoid, đào đắp, camera...)" oninput="appDashboard.filterTools(this.value)">
+                <input type="text" id="txtDashToolFilter" class="acc-search-input" placeholder="Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)" oninput="appDashboard.filterTools(this.value)">
                 <button type="button" class="acc-search-clear" id="btnDashToolFilterClear" onclick="appDashboard.clearToolFilter()" title="Xóa tìm kiếm" style="display: none;">✕</button>
               </div>
               <div id="compactToolsContainer" class="compact-tools-list">
@@ -5558,31 +5636,27 @@
                 </div>
               </div>
 
-              <!-- THẺ 6: KHẢO SÁT TUYẾN & RANH THỬA ĐẤT -->
-              <div class="feature-card" onclick="appNav.navigateTo('measure_distance')">
+              <!-- THẺ 6: KHẢO SÁT TUYẾN & ĐỊA HÌNH -->
+              <div class="feature-card" onclick="appNav.navigateTo('profile_volume')">
                 <div class="feature-card-top">
-                  <div class="feature-card-icon-box icon-emerald">📐</div>
+                  <div class="feature-card-icon-box icon-emerald">📈</div>
                   <div class="feature-card-header-text">
-                    <div class="feature-card-title">6. Khảo Sát Tuyến & Ranh Thửa Đất (Trắc Dọc & Geoid)</div>
+                    <div class="feature-card-title">6. Khảo Sát Tuyến & Trắc Dọc Thực Địa</div>
                     <div class="feature-card-badges">
                       <span class="pill-badge pill-advanced">⚡ Nâng cao</span>
                       <span class="pill-badge">📈 Trắc dọc đào đắp</span>
-                      <span class="pill-badge">🏔️ Geoid VIGAC2017</span>
-                      <span class="pill-badge">Khép ranh m²</span>
+                      <span class="pill-badge">📐 Vẽ CAD Mini</span>
                     </div>
                   </div>
                 </div>
                 <div class="feature-card-desc">
-                  Vẽ biểu đồ trắc dọc địa hình và tính khối lượng đào đắp (m³); quy đổi cao độ Thủy chuẩn Quốc gia Hòn Dấu VIGAC2017/EGM2008; đo cự ly trắc địa và khép góc diện tích ranh thửa.
+                  Vẽ biểu đồ trắc dọc địa hình và tính khối lượng đào đắp (m³); vẽ mặt bằng ranh thửa công trình CAD Mini hỗ trợ bắt điểm Snap và xuất bản vẽ AutoCAD DXF.
                 </div>
                 <div class="feature-card-action-bar">
                   <span class="feature-card-hint">Nghiệp vụ xây dựng & địa hình tuyến</span>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('cad_tool');">📐 Vẽ CAD Mini</button>
                     <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('profile_volume');">📈 Trắc dọc & Đào đắp</button>
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('geoid_convert');">🏔️ Geoid Hòn Dấu</button>
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('measure_distance');">📏 Đo cự ly</button>
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('measure_polygon');">📐 Khép ranh (m²)</button>
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appNav.navigateTo('cad_tool');">📐 Vẽ CAD Mini</button>
                   </div>
                 </div>
               </div>
@@ -5714,52 +5788,25 @@
             </div>
           </div>
 
-          <!-- NHÓM 3: XÂY DỰNG, GIAO THÔNG & ĐỊA HÌNH TUYẾN -->
+          <!-- NHÓM 3: XÂY DỰNG & ĐỊA HÌNH TUYẾN -->
           <div class="tree-folder" id="treeFolder3">
             <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder3')">
               <div class="tree-folder-title">
                 <span class="tree-folder-icon">📂</span>
-                <span class="tree-folder-name">NHÓM 3: XÂY DỰNG, GIAO THÔNG & TUYẾN</span>
+                <span class="tree-folder-name">NHÓM 3: XÂY DỰNG & ĐỊA HÌNH TUYẾN</span>
               </div>
               <div class="tree-folder-meta">
-                <span class="tree-badge badge-purple">5 mục</span>
+                <span class="tree-badge badge-purple">2 mục</span>
                 <span class="tree-chevron">▼</span>
               </div>
             </div>
             <div class="tree-folder-body">
-              <div class="tree-leaf-item" onclick="appNav.navigateTo('measure_distance')">
-                <div class="tree-leaf-connector">├─</div>
-                <div class="tree-leaf-icon" style="color: #a78bfa;">📏</div>
-                <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">3.1 Đo cự ly & góc phương vị giữa các mốc</div>
-                  <div class="tree-leaf-desc">Khoảng cách trắc địa và hướng góc phương vị tuyến giữa 2 điểm</div>
-                </div>
-                <span class="tree-leaf-arrow">›</span>
-              </div>
-              <div class="tree-leaf-item" onclick="appNav.navigateTo('measure_polygon')">
-                <div class="tree-leaf-connector">├─</div>
-                <div class="tree-leaf-icon" style="color: #c084fc;">📐</div>
-                <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">3.2 Khép góc ranh thửa & tính chu vi diện tích</div>
-                  <div class="tree-leaf-desc">Đa giác khép góc chuỗi mốc ranh thửa, tự động tính m² và chu vi</div>
-                </div>
-                <span class="tree-leaf-arrow">›</span>
-              </div>
               <div class="tree-leaf-item" onclick="appElevationProfile.openModal()">
                 <div class="tree-leaf-connector">├─</div>
                 <div class="tree-leaf-icon" style="color: #e879f9;">📈</div>
                 <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">3.3 Trắc dọc địa hình & Đào đắp</div>
+                  <div class="tree-leaf-title">3.1 Trắc dọc địa hình & Đào đắp</div>
                   <div class="tree-leaf-desc">Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp theo tuyến hoặc diện tích</div>
-                </div>
-                <span class="tree-leaf-arrow">›</span>
-              </div>
-              <div class="tree-leaf-item" onclick="appGeoidVigac.openModal()">
-                <div class="tree-leaf-connector">├─</div>
-                <div class="tree-leaf-icon" style="color: #38bdf8;">🏔️</div>
-                <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">3.4 Cao độ Thủy chuẩn Quốc gia Hòn Dấu</div>
-                  <div class="tree-leaf-desc">Mô hình Geoid VIGAC2017 / EGM2008 chuyển đổi độ cao</div>
                 </div>
                 <span class="tree-leaf-arrow">›</span>
               </div>
@@ -5767,23 +5814,23 @@
                 <div class="tree-leaf-connector">└─</div>
                 <div class="tree-leaf-icon" style="color: #06b6d4;">📐</div>
                 <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">3.5 Vẽ mặt bằng công trình CAD Mini</div>
-                  <div class="tree-leaf-desc">Dựng ranh, bắt điểm Snap, offset song song, tính diện tích thửa</div>
+                  <div class="tree-leaf-title">3.2 Vẽ mặt bằng công trình CAD Mini</div>
+                  <div class="tree-leaf-desc">Dựng ranh, bắt điểm Snap, offset song song, tính diện tích & xuất DXF</div>
                 </div>
                 <span class="tree-leaf-arrow">›</span>
               </div>
             </div>
           </div>
 
-          <!-- NHÓM 4: TRAO ĐỔI DỮ LIỆU ĐA NỀN TẢNG (CAD / GIS INTEROPERABILITY) -->
+          <!-- NHÓM 4: TRAO ĐỔI DỮ LIỆU ĐA NỀN TẢNG (CAD / GIS) -->
           <div class="tree-folder" id="treeFolder4">
             <div class="tree-folder-head" onclick="appNav.toggleTreeFolder('treeFolder4')">
               <div class="tree-folder-title">
                 <span class="tree-folder-icon">📂</span>
-                <span class="tree-folder-name">NHÓM 4: TRAO ĐỔI DỮ LIỆU ĐA NỀN TẢNG (CAD / GIS)</span>
+                <span class="tree-folder-name">NHÓM 4: TRAO ĐỔI DỮ LIỆU (CAD / GIS)</span>
               </div>
               <div class="tree-folder-meta">
-                <span class="tree-badge badge-orange">5 mục</span>
+                <span class="tree-badge badge-orange">2 mục</span>
                 <span class="tree-chevron">▼</span>
               </div>
             </div>
@@ -5793,34 +5840,7 @@
                 <div class="tree-leaf-icon" style="color: #38bdf8;">📁</div>
                 <div class="tree-leaf-content">
                   <div class="tree-leaf-title">4.1 Sổ đo mốc & Quản lý danh sách dự án</div>
-                  <div class="tree-leaf-desc">Quản lý từng dự án độc lập, xem bảng mốc, chỉnh sửa, lọc</div>
-                </div>
-                <span class="tree-leaf-arrow">›</span>
-              </div>
-              <div class="tree-leaf-item" onclick="appData.exportDxfFile()">
-                <div class="tree-leaf-connector">├─</div>
-                <div class="tree-leaf-icon" style="color: #06b6d4;">💻</div>
-                <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">4.2 Xuất bản vẽ AutoCAD (.DXF R12)</div>
-                  <div class="tree-leaf-desc">3 layer CAD: MOC_TOADO, TEN_MOC, RANH_THUA</div>
-                </div>
-                <span class="tree-leaf-arrow">›</span>
-              </div>
-              <div class="tree-leaf-item" onclick="appData.exportKmlFile()">
-                <div class="tree-leaf-connector">├─</div>
-                <div class="tree-leaf-icon" style="color: #10b981;">🌍</div>
-                <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">4.3 Xuất Google Earth (.KML)</div>
-                  <div class="tree-leaf-desc">Placemarks WGS-84, popup bóng thông tin HTML và ranh thửa</div>
-                </div>
-                <span class="tree-leaf-arrow">›</span>
-              </div>
-              <div class="tree-leaf-item" onclick="appData.exportCsvFile()">
-                <div class="tree-leaf-connector">├─</div>
-                <div class="tree-leaf-icon" style="color: #34d399;">📊</div>
-                <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">4.4 Xuất bảng tính Excel (.CSV UTF-8)</div>
-                  <div class="tree-leaf-desc">Xuất file CSV chuẩn có dấu tiếng Việt tương thích Excel</div>
+                  <div class="tree-leaf-desc">Quản lý dự án độc lập, xem bảng mốc, chỉnh sửa và xuất file DXF, KML, CSV</div>
                 </div>
                 <span class="tree-leaf-arrow">›</span>
               </div>
@@ -5828,8 +5848,8 @@
                 <div class="tree-leaf-connector">└─</div>
                 <div class="tree-leaf-icon" style="color: #3b82f6;">☁️</div>
                 <div class="tree-leaf-content">
-                  <div class="tree-leaf-title">4.5 Cấu hình đồng bộ Google Sheets / AppSheet</div>
-                  <div class="tree-leaf-desc">Lưu mốc tự động lên trang tính cá nhân</div>
+                  <div class="tree-leaf-title">4.2 Cấu hình đồng bộ Google Sheets / AppSheet</div>
+                  <div class="tree-leaf-desc">Lưu mốc tự động lên trang tính cá nhân và Google Drive</div>
                 </div>
                 <span class="tree-leaf-arrow">›</span>
               </div>
@@ -5942,130 +5962,324 @@
 
       <!-- ================= SCREEN 1: CHUYỂN ĐỔI TỌA ĐỘ ================= -->
       <section id="screen-transform" class="screen-view">
-        <!-- Card 1: Cấu hình KTT -->
-        <div class="app-card">
-          <div class="card-header">
-            <span class="card-title">⚙️ 1. Cấu hình Kinh tuyến trục</span>
-            <button class="btn-sm btn-blue" onclick="appModal.openSettings()" style="flex: none; padding: 4px 10px; height: 30px;">
-              Đổi KTT
-            </button>
-          </div>
-          <div class="form-group">
-            <select id="tfSelectProvince" class="app-select" onchange="appTransform.onProvinceChange()">
-              <!-- Options nạp tự động từ geodesy.js -->
-            </select>
-          </div>
-          <div class="toggle-mui-group">
-            <button id="btnMui3" class="btn-mui-toggle active" onclick="appTransform.setMui(3)">
-              Múi 3° (k0 = 0.9999)
-            </button>
-            <button id="btnMui6" class="btn-mui-toggle" onclick="appTransform.setMui(6)">
-              Múi 6° (k0 = 0.9996)
-            </button>
-          </div>
+        <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm -->
+        <div class="transform-subtabs">
+          <button id="tabTransSingle" class="btn-subtab active" onclick="appTransform.switchTransformSubTab('single')">
+            📍 Chuyển Đổi Đơn Điểm
+          </button>
+          <button id="tabTransMulti" class="btn-subtab" onclick="appTransform.switchTransformSubTab('multi')">
+            📑 Chuyển Đổi Đa Điểm (<span id="txtMultiPointCount">0 mốc</span>)
+          </button>
         </div>
 
-        <!-- Card 2: Tọa độ WGS-84 -->
-        <div class="app-card">
-          <div class="card-header">
-            <span class="card-title">🌐 2. Tọa độ WGS-84 (Toàn cầu)</span>
-            <div class="card-tools">
-              <select id="selFormatWgs" class="app-select" style="height: 30px; font-size: 11px; padding: 0 6px;" onchange="appTransform.onFormatChange()">
-                <option value="0">dd.dddddd°</option>
-                <option value="1">dd° mm.mmmm'</option>
-                <option value="2">dd° mm' ss.ss"</option>
+        <!-- ================= PANEL 1: CHUYỂN ĐỔI ĐƠN ĐIỂM ================= -->
+        <div id="panelTransSingle">
+          <!-- Card 1: Cấu hình KTT -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">⚙️ 1. Cấu hình Kinh tuyến trục</span>
+              <button class="btn-sm btn-blue" onclick="appModal.openSettings()" style="flex: none; padding: 4px 10px; height: 30px;">
+                Đổi KTT
+              </button>
+            </div>
+            <div class="form-group">
+              <select id="tfSelectProvince" class="app-select" onchange="appTransform.onProvinceChange()">
+                <!-- Options nạp tự động từ geodesy.js -->
               </select>
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Vĩ độ (Lat / B):</label>
-            <input type="text" id="txtWgsLat" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 10.345211 hoặc 10° 20.7127'">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Kinh độ (Long / L):</label>
-            <input type="text" id="txtWgsLng" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 106.113617 hoặc 106° 06.8170'">
-          </div>
-          <div class="btn-group-row">
-            <button class="btn-sm btn-green" onclick="appTransform.getLiveGps()">📍 GPS</button>
-            <button class="btn-sm btn-blue" onclick="appTransform.openPickOnMap()" title="Chấm chọn tọa độ trên bản đồ (Đơn điểm / Đa điểm)">🎯 Chấm điểm bản đồ</button>
-            <button class="btn-sm" onclick="appTransform.pasteCoords()">📋 Dán</button>
-            <button class="btn-sm" onclick="appTransform.copyWgs()">📋 Chép</button>
-            <button class="btn-sm btn-red" onclick="appTransform.clearWgs()">🗑️</button>
-          </div>
-        </div>
-
-        <!-- Section 3: Nút Chuyển Đổi Chủ Động (Không tự động tính ngầm) -->
-        <div class="convert-actions-card">
-          <button class="btn-convert btn-wgs-to-vn2k" onclick="appTransform.wgsToVn2000()">
-            WGS-84 ➔ VN-2000 ▼
-          </button>
-          <button class="btn-convert btn-vn2k-to-wgs" onclick="appTransform.vn2000ToWgs()">
-            VN-2000 ➔ WGS-84 ▲
-          </button>
-        </div>
-
-        <!-- Khung Kết Quả Chuyển Đổi Nổi Bật (Hiện ra ngay sau khi chuyển đổi) -->
-        <div id="boxConvertedResult" class="converted-result-box" style="display: none;">
-          <div class="converted-result-header">
-            <span>✨ KẾT QUẢ CHUYỂN ĐỔI THÀNH CÔNG</span>
-            <button class="btn-sm btn-blue" style="height: 26px; padding: 2px 8px; font-size: 11px; flex: none;" onclick="appTransform.copyAllResults()">
-              📋 Chép
-            </button>
-          </div>
-          <div class="converted-result-body">
-            <div class="result-row"><span class="res-lbl">Tên điểm:</span> <b id="resPtName" class="res-val" style="color: #fbbf24;">Điểm Chuyển Đổi</b></div>
-            <div class="result-row"><span class="res-lbl">VN-2000:</span> <b class="res-val" style="color: #fde047;">X = <span id="resVn2kX">--</span> m | Y = <span id="resVn2kY">--</span> m</b></div>
-            <div class="result-row"><span class="res-lbl">WGS-84:</span> <b class="res-val" style="color: #38bdf8;">Lat = <span id="resWgsLat">--</span> | Lng = <span id="resWgsLng">--</span></b></div>
-            <div class="result-row"><span class="res-lbl">KTT:</span> <span id="resKttInfo" style="color: #a7f3d0; font-weight: 700;">--</span></div>
-          </div>
-          <button class="btn-convert btn-view-map-large" style="margin-top: 10px; height: 44px; font-size: 13.5px;" onclick="appTransform.viewConvertedOnMap()">
-            🗺️ XEM NGAY TRÊN BẢN ĐỒ
-          </button>
-        </div>
-
-        <!-- Card 4: Tọa độ VN-2000 -->
-        <div class="app-card">
-          <div class="card-header">
-            <span class="card-title">📍 3. Tọa độ phẳng VN-2000 (X - Y)</span>
-            <div class="card-tools">
-              <button class="btn-sm" onclick="appTransform.copyVn2k()" style="height: 30px; padding: 4px 8px;">📋 Chép</button>
-              <button class="btn-sm btn-red" onclick="appTransform.clearVn2k()" style="height: 30px; padding: 4px 8px;">🗑️</button>
+            <div class="toggle-mui-group">
+              <button id="btnMui3" class="btn-mui-toggle active" onclick="appTransform.setMui(3)">
+                Múi 3° (k0 = 0.9999)
+              </button>
+              <button id="btnMui6" class="btn-mui-toggle" onclick="appTransform.setMui(6)">
+                Múi 6° (k0 = 0.9996)
+              </button>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tọa độ ngang X (Trục Bắc ~ 7 chữ số):</label>
-            <input type="text" id="txtVn2kX" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 1144058.623">
+
+          <!-- Card 2: Tọa độ WGS-84 -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">🌐 2. Tọa độ WGS-84 (Toàn cầu)</span>
+              <div class="card-tools">
+                <select id="selFormatWgs" class="app-select" style="height: 30px; font-size: 11px; padding: 0 6px;" onchange="appTransform.onFormatChange()">
+                  <option value="0">dd.dddddd°</option>
+                  <option value="1">dd° mm.mmmm'</option>
+                  <option value="2">dd° mm' ss.ss"</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vĩ độ (Lat / B):</label>
+              <input type="text" id="txtWgsLat" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 10.345211 hoặc 10° 20.7127'">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kinh độ (Long / L):</label>
+              <input type="text" id="txtWgsLng" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 106.113617 hoặc 106° 06.8170'">
+            </div>
+            <div class="btn-group-row">
+              <button class="btn-sm btn-green" onclick="appTransform.getLiveGps()">📍 GPS</button>
+              <button class="btn-sm btn-blue" onclick="appTransform.openPickOnMap()" title="Chấm chọn tọa độ trên bản đồ (Đơn điểm / Đa điểm)">🎯 Chấm điểm bản đồ</button>
+              <button class="btn-sm" onclick="appTransform.pasteCoords()">📋 Dán</button>
+              <button class="btn-sm" onclick="appTransform.copyWgs()">📋 Chép</button>
+              <button class="btn-sm btn-red" onclick="appTransform.clearWgs()">🗑️</button>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tọa độ đứng Y (Trục Đông ~ 6 chữ số):</label>
-            <input type="text" id="txtVn2kY" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 539624.574">
+
+          <!-- Section 3: Nút Chuyển Đổi Chủ Động (Không tự động tính ngầm) -->
+          <div class="convert-actions-card">
+            <button class="btn-convert btn-wgs-to-vn2k" onclick="appTransform.wgsToVn2000()">
+              WGS-84 ➔ VN-2000 ▼
+            </button>
+            <button class="btn-convert btn-vn2k-to-wgs" onclick="appTransform.vn2000ToWgs()">
+              VN-2000 ➔ WGS-84 ▲
+            </button>
           </div>
-          <div class="btn-group-row" style="margin-top: 6px;">
-            <button class="btn-sm btn-blue" onclick="appTransform.copyVn2k()">📋 Sao chép</button>
-            <button class="btn-sm" onclick="appTransform.swapXY()">🔄 Đảo Trục X ⇄ Y</button>
-            <button class="btn-sm btn-red" onclick="appTransform.clearVn2k()">🗑️ Xóa</button>
+
+          <!-- Khung Kết Quả Chuyển Đổi Nổi Bật (Cho phép chọn bôi đen và copy linh hoạt) -->
+          <div id="boxConvertedResult" class="converted-result-box" style="display: none;">
+            <div class="converted-result-header">
+              <span>✨ KẾT QUẢ CHUYỂN ĐỔI THÀNH CÔNG</span>
+              <div style="display: flex; gap: 4px;">
+                <button class="btn-copy-chip" onclick="appTransform.copyVn2kResult()" title="Sao chép chỉ tọa độ VN2000">
+                  📋 Chép VN2K
+                </button>
+                <button class="btn-copy-chip" onclick="appTransform.copyWgsResult()" title="Sao chép chỉ tọa độ WGS84">
+                  📋 Chép WGS
+                </button>
+                <button class="btn-copy-chip" style="background: rgba(2, 132, 199, 0.25); border-color: #0284c7; color: #38bdf8;" onclick="appTransform.copyAllResults()" title="Sao chép toàn bộ">
+                  📋 Chép hết
+                </button>
+              </div>
+            </div>
+            <div class="converted-result-body">
+              <div class="result-row">
+                <span class="res-lbl">Tên điểm:</span> 
+                <b id="resPtName" class="res-val res-val-selectable" style="color: #fbbf24;">Điểm Chuyển Đổi</b>
+              </div>
+              <div class="result-row">
+                <span class="res-lbl">VN-2000 (X - Y):</span> 
+                <b class="res-val res-val-selectable" style="color: #fde047;">X = <span id="resVn2kX" class="trans-res-text">--</span> m | Y = <span id="resVn2kY" class="trans-res-text">--</span> m</b>
+              </div>
+              <div class="result-row">
+                <span class="res-lbl">WGS-84 (Lat - Lng):</span> 
+                <b class="res-val res-val-selectable" style="color: #38bdf8;">Lat = <span id="resWgsLat" class="trans-res-text">--</span> | Lng = <span id="resWgsLng" class="trans-res-text">--</span></b>
+              </div>
+              <div class="result-row">
+                <span class="res-lbl">Kinh tuyến trục:</span> 
+                <span id="resKttInfo" class="trans-res-text" style="color: #a7f3d0; font-weight: 700;">--</span>
+              </div>
+            </div>
+            <button class="btn-convert btn-view-map-large" style="margin-top: 10px; height: 44px; font-size: 13.5px;" onclick="appTransform.viewConvertedOnMap()">
+              🗺️ XEM NGAY TRÊN BẢN ĐỒ
+            </button>
           </div>
-          <button class="btn-convert btn-view-map-large" style="margin-top: 10px;" onclick="appTransform.viewConvertedOnMap()">
-            🗺️ XEM VỊ TRÍ TRÊN BẢN ĐỒ
-          </button>
+
+          <!-- Card 4: Tọa độ VN-2000 -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">📍 3. Tọa độ phẳng VN-2000 (X - Y)</span>
+              <div class="card-tools">
+                <button class="btn-sm" onclick="appTransform.copyVn2k()" style="height: 30px; padding: 4px 8px;">📋 Chép</button>
+                <button class="btn-sm btn-red" onclick="appTransform.clearVn2k()" style="height: 30px; padding: 4px 8px;">🗑️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tọa độ ngang X (Trục Bắc ~ 7 chữ số):</label>
+              <input type="text" id="txtVn2kX" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 1144058.623">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tọa độ đứng Y (Trục Đông ~ 6 chữ số):</label>
+              <input type="text" id="txtVn2kY" class="app-input" inputmode="decimal" autocomplete="off" placeholder="VD: 539624.574">
+            </div>
+            <div class="btn-group-row" style="margin-top: 6px;">
+              <button class="btn-sm btn-blue" onclick="appTransform.copyVn2k()">📋 Sao chép</button>
+              <button class="btn-sm" onclick="appTransform.swapXY()">🔄 Đảo Trục X ⇄ Y</button>
+              <button class="btn-sm btn-red" onclick="appTransform.clearVn2k()">🗑️ Xóa</button>
+            </div>
+            <button class="btn-convert btn-view-map-large" style="margin-top: 10px;" onclick="appTransform.viewConvertedOnMap()">
+              🗺️ XEM VỊ TRÍ TRÊN BẢN ĐỒ
+            </button>
+          </div>
+
+          <!-- Card 5: Lưu vào sổ đo -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">💾 4. Lưu Mốc Vào Sổ Đo (CSV)</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tên mốc đo:</label>
+              <input type="text" id="txtSavePointName" class="app-input" placeholder="VD: Mốc 1, Ranh thửa 02...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ghi chú hiện trường:</label>
+              <input type="text" id="txtSavePointNote" class="app-input" placeholder="VD: Cọc bê tông, góc hàng rào...">
+            </div>
+            <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 6px;" onclick="appTransform.savePointToCsv()">
+              💾 LƯU ĐIỂM VÀO SỔ ĐO
+            </button>
+          </div>
         </div>
 
-        <!-- Card 5: Lưu vào sổ đo -->
-        <div class="app-card">
-          <div class="card-header">
-            <span class="card-title">💾 4. Lưu Mốc Vào Sổ Đo (CSV)</span>
+        <!-- ================= PANEL 2: CHUYỂN ĐỔI ĐA ĐIỂM (HÀNG LOẠT) ================= -->
+        <div id="panelTransMulti" style="display: none;">
+          <!-- Card Nạp Điểm Đa Điểm -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">📥 1. Nạp Danh Sách Tọa Độ Đa Điểm</span>
+            </div>
+            <div class="btn-group-row" style="margin-bottom: 8px;">
+              <button class="btn-sm btn-blue" onclick="appTransform.loadMultiFromPickedMap()" title="Lấy các điểm đã chấm trên bản đồ">
+                🎯 Lấy từ Bản đồ (<span id="lblCountPickedMap">0</span>)
+              </button>
+              <button class="btn-sm btn-green" onclick="appTransform.loadMultiFromCurrentProject()" title="Nạp toàn bộ điểm từ dự án hiện tại">
+                📂 Lấy từ Dự án
+              </button>
+              <button class="btn-sm" onclick="appTransform.togglePasteMultiModal(true)" title="Dán tọa độ nhanh từ bảng Excel hoặc văn bản">
+                📋 Dán text nhanh
+              </button>
+              <button class="btn-sm btn-red" onclick="appTransform.clearMultiInputPoints()">
+                🗑️ Xóa hết
+              </button>
+            </div>
+
+            <!-- Khung Dán Nhanh nếu mở -->
+            <div id="boxPasteMultiText" style="display: none; background: #0f172a; border: 1px dashed #38bdf8; border-radius: 8px; padding: 10px; margin-top: 8px;">
+              <label class="form-label" style="color: #38bdf8; font-weight: 700;">Dán dữ liệu (Tên [Tab/Phẩy] X/Lat [Tab/Phẩy] Y/Lng):</label>
+              <textarea id="txtMultiPasteArea" class="app-input" rows="4" style="height: auto; font-family: monospace; font-size: 11.5px;" placeholder="Ví dụ:&#10;M1  1144058.62  539624.57&#10;M2  1144080.15  539650.22"></textarea>
+              <div style="display: flex; gap: 6px; margin-top: 6px;">
+                <button class="btn-sm btn-blue" onclick="appTransform.parsePasteMultiText()">✓ Nạp vào danh sách</button>
+                <button class="btn-sm" onclick="appTransform.togglePasteMultiModal(false)">Đóng</button>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tên mốc đo:</label>
-            <input type="text" id="txtSavePointName" class="app-input" placeholder="VD: Mốc 1, Ranh thửa 02...">
+
+          <!-- Card Danh Sách Điểm Đã Nạp Kèm Checkbox Lựa Chọn -->
+          <div class="app-card">
+            <div class="card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="chkMultiSelectAll" style="width: 16px; height: 16px; cursor: pointer;" onchange="appTransform.toggleSelectAllMulti(this.checked)" checked>
+                <span class="card-title">📋 2. Chọn Điểm Cần Chuyển Đổi</span>
+              </div>
+              <span id="lblMultiSelectedCount" style="font-size: 11.5px; color: #38bdf8; font-weight: 700;">Đã chọn 0/0 điểm</span>
+            </div>
+
+            <div id="boxMultiEmptyNotice" style="text-align: center; color: var(--text-muted); padding: 20px 10px; font-size: 12.5px;">
+              Chưa có điểm nào được nạp. Nhấn <b>"🎯 Lấy từ Bản đồ"</b>, <b>"📂 Lấy từ Dự án"</b> hoặc <b>"📋 Dán text nhanh"</b> để nạp điểm.
+            </div>
+
+            <div id="boxMultiPointsTableWrap" style="display: none; max-height: 220px; overflow-y: auto; border: 1px solid #1e293b; border-radius: 6px;">
+              <table class="table-selectable" id="tblMultiInputPoints">
+                <thead>
+                  <tr>
+                    <th style="width: 32px; text-align: center;">✓</th>
+                    <th style="width: 40px;">STT</th>
+                    <th>Tên điểm</th>
+                    <th>Tọa độ 1 (X / Lat)</th>
+                    <th>Tọa độ 2 (Y / Lng)</th>
+                    <th style="width: 36px; text-align: center;">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody id="multiTransTableBody">
+                  <!-- Render danh sách điểm nạp vào -->
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Ghi chú hiện trường:</label>
-            <input type="text" id="txtSavePointNote" class="app-input" placeholder="VD: Cọc bê tông, góc hàng rào...">
+
+          <!-- Card Tùy Chọn Chuyển Đổi & Lưu Dự Án -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">⚙️ 3. Tùy Chọn & Thực Hiện Chuyển Đổi</span>
+            </div>
+
+            <!-- Tùy chọn Lưu vào dự án -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+                <input type="checkbox" id="chkSaveMultiToProject" style="width: 17px; height: 17px; cursor: pointer;" onchange="appTransform.onToggleSaveMultiToProject()">
+                <b style="color: #fbbf24;">💾 Lưu các điểm đã chuyển đổi vào Dự án</b>
+              </label>
+
+              <!-- Vùng chọn dự án trước khi lưu (Chỉ hiện khi checkbox được chọn) -->
+              <div id="boxMultiTargetProject" style="display: none; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #334155;">
+                <label class="form-label">Chọn dự án đích để lưu kết quả:</label>
+                <div style="display: flex; gap: 6px;">
+                  <select id="selMultiTargetProject" class="app-select" style="flex: 1;">
+                    <!-- Nạp danh sách dự án -->
+                  </select>
+                  <button class="btn-sm btn-blue" onclick="appTransform.quickCreateProjectForMulti()" style="flex: none; padding: 4px 8px; height: 38px;">
+                    ➕ Mới
+                  </button>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                  ℹ️ Điểm chuyển đổi sẽ được thêm an toàn vào dự án đã chọn mà không ảnh hưởng đến các điểm khác.
+                </div>
+              </div>
+            </div>
+
+            <!-- Nút bấm thực hiện chuyển đổi -->
+            <div class="convert-actions-card" style="margin: 0;">
+              <button class="btn-convert btn-wgs-to-vn2k" onclick="appTransform.convertMultiBatch('wgs2vn2k')">
+                WGS-84 ➔ VN-2000 ĐÃ CHỌN ▼
+              </button>
+              <button class="btn-convert btn-vn2k-to-wgs" onclick="appTransform.convertMultiBatch('vn2k2wgs')">
+                VN-2000 ➔ WGS-84 ĐÃ CHỌN ▲
+              </button>
+            </div>
           </div>
-          <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 6px;" onclick="appTransform.savePointToCsv()">
-            💾 LƯU ĐIỂM VÀO SỔ ĐO
-          </button>
+
+          <!-- Card Bảng Kết Quả Chuyển Đổi Đa Điểm -->
+          <div id="boxMultiTransResult" class="app-card" style="display: none; border-color: #0d9488; box-shadow: 0 4px 16px rgba(13, 148, 136, 0.2);">
+            <div class="card-header" style="border-bottom: 1px solid rgba(13, 148, 136, 0.35); padding-bottom: 8px;">
+              <span class="card-title" style="color: #2dd4bf;">✨ KẾT QUẢ CHUYỂN ĐỔI ĐA ĐIỂM (<span id="lblMultiResultCount">0</span> điểm)</span>
+              <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                <button class="btn-copy-chip" onclick="appTransform.copyMultiResultsAll()" title="Sao chép toàn bộ bảng kết quả">
+                  📋 Chép tất cả
+                </button>
+                <button class="btn-copy-chip" onclick="appTransform.copyMultiResultsVn2k()" title="Sao chép danh sách tọa độ VN2000">
+                  📋 Chép VN2K
+                </button>
+                <button class="btn-copy-chip" onclick="appTransform.copyMultiResultsWgs()" title="Sao chép danh sách tọa độ WGS84">
+                  📋 Chép WGS
+                </button>
+                <button class="btn-copy-chip" style="background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #34d399;" onclick="appTransform.exportMultiResultCsv()" title="Tải file CSV">
+                  📊 Xuất CSV
+                </button>
+              </div>
+            </div>
+
+            <div style="font-size: 11px; color: var(--text-muted); margin: 6px 0;">
+              💡 <i>Bạn có thể bôi đen chuột/chạm giữ để chọn và sao chép bất kỳ ô hoặc dòng số liệu nào bên dưới.</i>
+            </div>
+
+            <div style="max-height: 260px; overflow-y: auto; overflow-x: auto; border: 1px solid #1e293b; border-radius: 6px;">
+              <table class="table-selectable" id="tblMultiTransResult">
+                <thead>
+                  <tr>
+                    <th style="width: 32px;">STT</th>
+                    <th>Tên mốc</th>
+                    <th>VN-2000 X (Bắc)</th>
+                    <th>VN-2000 Y (Đông)</th>
+                    <th>WGS-84 Lat</th>
+                    <th>WGS-84 Lng</th>
+                    <th>KTT</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyMultiTransResult">
+                  <!-- Render kết quả -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="btn-group-row" style="margin-top: 10px;">
+              <button class="btn-convert btn-view-map-large" style="flex: 1; height: 42px; font-size: 13px;" onclick="appTransform.viewMultiConvertedOnMap()">
+                🗺️ XEM TẤT CẢ TRÊN BẢN ĐỒ
+              </button>
+              <button id="btnManualSaveMultiProject" class="btn-convert" style="flex: 1; height: 42px; font-size: 13px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #10b981;" onclick="appTransform.saveMultiResultToChosenProject()">
+                💾 LƯU VÀO DỰ ÁN ĐÃ CHỌN
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -6538,6 +6752,30 @@
             <div>📍 <b>Mốc mục tiêu:</b> <span id="txtStakeoutTargetName" style="color: #fbbf24;">Chưa chọn mốc</span></div>
             <div>• VN-2000: X = <b id="txtStakeoutTargetX" style="color: #fde047;">--</b> m | Y = <b id="txtStakeoutTargetY" style="color: #fde047;">--</b> m</div>
             <div>• WGS-84: <span id="txtStakeoutTargetLatLng" style="color: #38bdf8;">Lat: -- | Lng: --</span></div>
+          </div>
+        </div>
+
+        <!-- Card 1.5: Khung Bản Đồ Theo Dõi Vị Trí & Cắm Mốc (Live Map) -->
+        <div class="app-card" style="padding: 10px;">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <span class="card-title">🗺️ Bản Đồ Theo Dõi Dẫn Đường & Cắm Mốc</span>
+            <div class="card-tools" style="display: flex; gap: 4px;">
+              <button class="btn-sm btn-blue" id="stakeoutMapToggleBtn" onclick="appStakeout.toggleMiniMap()" style="height: 26px; padding: 2px 8px; font-size: 11px;">
+                ⤢ Phóng to
+              </button>
+              <button class="btn-sm btn-blue" onclick="appStakeout.recenterMiniMap()" style="height: 26px; padding: 2px 8px; font-size: 11px;" title="Căn giữa cả vị trí người dùng và mốc">
+                🎯 Bao quát 2 điểm
+              </button>
+              <button class="btn-sm" id="btnToggleStakeoutMapLayer" onclick="appStakeout.toggleMapLayer()" style="height: 26px; padding: 2px 8px; font-size: 11px;">
+                🛰️ Vệ tinh
+              </button>
+            </div>
+          </div>
+          <div id="stakeoutLiveMap" style="width: 100%; height: 215px; border-radius: 8px; border: 1px solid #334155; position: relative; overflow: hidden; background: #0f172a; z-index: 1;"></div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+            <span>🔵 Vị trí của bạn (GPS)</span>
+            <span>🚩 Mốc mục tiêu</span>
+            <span>➖ Đường dẫn hướng</span>
           </div>
         </div>
 
@@ -7507,72 +7745,6 @@
               </button>
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- ================= SCREEN 9: QUY ĐỔI CAO ĐỘ GEOID HÒN DẤU (VIGAC2017) ================= -->
-      <section id="screen-geoid" class="screen-view">
-        <div class="app-card" style="padding: 14px; margin-bottom: 12px; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%); border: 1px solid rgba(56, 189, 248, 0.35);">
-          <div style="font-size: 12.5px; line-height: 1.5; color: #94a3b8; margin-bottom: 12px; background: rgba(56, 189, 248, 0.08); padding: 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
-            📜 <b>Quy chuẩn QĐ 41/2005/QĐ-TTg:</b> Chuyển đổi giữa <b>Cao độ Ellipsoid GPS (h)</b> và <b>Cao độ Thủy chuẩn Quốc gia Hải Phòng - Hòn Dấu (H)</b> qua mô hình Geoid VIGAC2017 (độ chính xác ±4cm).
-          </div>
-
-          <!-- Chọn Mô hình Geoid -->
-          <div class="form-group" style="margin-bottom: 12px;">
-            <label class="form-label" style="font-size: 11.5px; font-weight: 700;">Mô hình Geoid áp dụng:</label>
-            <select id="selGeoidModelScreen" class="app-select" style="height: 38px;" onchange="appGeoidVigac.onModelChange()">
-              <option value="vigac2017" selected>Mô hình Geoid Quốc gia VIGAC2017 (Việt Nam - Chuẩn nhất)</option>
-              <option value="egm2008">Mô hình Geoid Trái Đất toàn cầu EGM2008 (2.5' x 2.5')</option>
-            </select>
-          </div>
-
-          <!-- Tọa độ tính toán -->
-          <div class="form-group" style="margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">Tọa độ vị trí trắc địa:</label>
-              <button class="btn-sm btn-blue" style="height: 26px; padding: 2px 10px; font-size: 11px;" onclick="appGeoidVigac.useCurrentLocation()">
-                📍 Lấy tọa độ GPS / Dự án
-              </button>
-            </div>
-            <div class="input-row">
-              <input type="number" id="txtGeoidLatScreen" class="app-input" inputmode="decimal" placeholder="Vĩ độ Lat (°)" step="0.000001" style="height: 36px; font-size: 12px;">
-              <input type="number" id="txtGeoidLngScreen" class="app-input" inputmode="decimal" placeholder="Kinh độ Lng (°)" step="0.000001" style="height: 36px; font-size: 12px;">
-            </div>
-          </div>
-
-          <!-- Tính chuyển 2 chiều -->
-          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-            <!-- Chiều 1: Nhập h -> Tính H -->
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label class="form-label" style="font-size: 11px; color: #fbbf24; font-weight: 700;">1. Nhập Độ cao Ellipsoid GPS h (m):</label>
-              <div style="display: flex; gap: 6px;">
-                <input type="number" id="txtInputEllipsoidHScreen" class="app-input" inputmode="decimal" placeholder="VD: 24.580 m" step="0.001" style="height: 38px; font-size: 13px;" oninput="appGeoidVigac.convertFromEllipsoid(this.value)">
-                <button class="btn-sm btn-amber" style="flex: none; width: 85px; height: 38px; font-size: 12px; font-weight: 700;" onclick="appGeoidVigac.convertFromEllipsoid()">Tính H ➔</button>
-              </div>
-            </div>
-
-            <div style="text-align: center; color: #64748b; font-size: 12px; margin: 6px 0;">↕️ Công thức: H (Hòn Dấu) = h (GPS) - ζ (Geoid)</div>
-
-            <!-- Chiều 2: Nhập H -> Tính h -->
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 11px; color: #38bdf8; font-weight: 700;">2. Nhập Độ cao Thủy chuẩn Hòn Dấu H (m):</label>
-              <div style="display: flex; gap: 6px;">
-                <input type="number" id="txtInputOrthometricHScreen" class="app-input" inputmode="decimal" placeholder="VD: 21.850 m" step="0.001" style="height: 38px; font-size: 13px;" oninput="appGeoidVigac.convertFromOrthometric(this.value)">
-                <button class="btn-sm btn-blue" style="flex: none; width: 85px; height: 38px; font-size: 12px; font-weight: 700;" onclick="appGeoidVigac.convertFromOrthometric()">Tính h ➔</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Kết quả chi tiết Geoid -->
-          <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 12.5px; line-height: 1.8;">
-            <div>• Dị thường độ cao Geoid (ζ): <b id="resGeoidZetaScreen" style="color: #fbbf24;">--</b> m</div>
-            <div>• Cao độ Thủy chuẩn Hòn Dấu (H): <b id="resGeoidResultHScreen" style="color: #4ade80;">--</b> m</div>
-            <div>• Cao độ Ellipsoid GPS (h): <b id="resGeoidResultEllipScreen" style="color: #38bdf8;">--</b> m</div>
-          </div>
-
-          <button class="btn-convert btn-wgs-to-vn2k" style="height: 44px; font-size: 13px; font-weight: 700; width: 100%;" onclick="appGeoidVigac.applyToAllProjectPoints()">
-            💾 ÁP DỤNG CHUYỂN TOÀN BỘ MỐC DỰ ÁN SANG HÒN DẤU
-          </button>
         </div>
       </section>
 
@@ -9057,46 +9229,16 @@
             <span>Xây Dựng & Địa Hình Tuyến</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-purple">4 mục</span>
+            <span class="tree-badge badge-purple">2 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
         <div class="drawer-folder-body">
-          <div class="drawer-leaf-item" id="drawerItem_measure_distance" onclick="appNav.navigateTo('measure_distance')">
-            <div class="drawer-leaf-icon" style="color: #a78bfa;">📏</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">3.1 Đo cự ly & góc phương vị</div>
-              <div class="drawer-leaf-sub">Khoảng cách trắc địa và hướng tuyến giữa 2 mốc</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_measure_polygon" onclick="appNav.navigateTo('measure_polygon')">
-            <div class="drawer-leaf-icon" style="color: #c084fc;">📐</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">3.2 Khép góc ranh thửa & tính diện tích</div>
-              <div class="drawer-leaf-sub">Đa giác khép góc, tính m² và chu vi tuyến</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
           <div class="drawer-leaf-item" id="drawerItem_profile_volume" onclick="appNav.navigateTo('profile_volume')">
             <div class="drawer-leaf-icon" style="color: #e879f9;">📈</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">3.3 Trắc dọc địa hình & Đào đắp</div>
+              <div class="drawer-leaf-title">3.1 Trắc dọc địa hình & Đào đắp</div>
               <div class="drawer-leaf-sub">Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_geoid_convert" onclick="appNav.navigateTo('geoid_convert')">
-            <div class="drawer-leaf-icon" style="color: #38bdf8;">🏔️</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">3.4 Cao độ Thủy chuẩn Hòn Dấu</div>
-              <div class="drawer-leaf-sub">Mô hình Geoid Quốc gia VIGAC2017 / EGM2008</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -9105,7 +9247,7 @@
           <div class="drawer-leaf-item" id="drawerItem_cad_tool" onclick="appNav.navigateTo('cad_tool')">
             <div class="drawer-leaf-icon" style="color: #06b6d4;">📐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">3.5 Vẽ mặt bằng CAD Mini</div>
+              <div class="drawer-leaf-title">3.2 Vẽ mặt bằng CAD Mini</div>
               <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DXF</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -9123,7 +9265,7 @@
             <span>Trao Đổi Dữ Liệu (CAD / GIS)</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-orange">5 mục</span>
+            <span class="tree-badge badge-orange">2 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -9132,37 +9274,7 @@
             <div class="drawer-leaf-icon" style="color: #38bdf8;">📁</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">4.1 Sổ đo mốc & Quản lý dự án</div>
-              <div class="drawer-leaf-sub">Xem bảng mốc, chỉnh sửa, xóa, tìm kiếm</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_export_dxf" onclick="appData.exportDxfFile()">
-            <div class="drawer-leaf-icon" style="color: #06b6d4;">💻</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.2 Xuất bản vẽ AutoCAD (.DXF)</div>
-              <div class="drawer-leaf-sub">Chuẩn R12, 3 layer MOC, TEN, RANH</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_export_kml" onclick="appData.exportKmlFile()">
-            <div class="drawer-leaf-icon" style="color: #10b981;">🌍</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.3 Xuất Google Earth (.KML)</div>
-              <div class="drawer-leaf-sub">Placemarks WGS84, bóng thông tin HTML</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_export_csv" onclick="appData.exportCsvFile()">
-            <div class="drawer-leaf-icon" style="color: #34d399;">📊</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.4 Xuất bảng tính Excel (.CSV)</div>
-              <div class="drawer-leaf-sub">File CSV UTF-8 có dấu tiếng Việt</div>
+              <div class="drawer-leaf-sub">Xem bảng mốc, chỉnh sửa và xuất file DXF, KML, CSV</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -9171,7 +9283,7 @@
           <div class="drawer-leaf-item" id="drawerItem_settings_storage" onclick="appNav.navigateTo('settings_storage')">
             <div class="drawer-leaf-icon" style="color: #3b82f6;">☁️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.5 Cấu hình Google Sheets / AppSheet</div>
+              <div class="drawer-leaf-title">4.2 Cấu hình Google Sheets / AppSheet</div>
               <div class="drawer-leaf-sub">Đồng bộ tự động lên Google Drive</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">

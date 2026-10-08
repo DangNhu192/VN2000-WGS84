@@ -304,15 +304,6 @@ const appNav = window.appNav = {
                         appElevationProfile.setTab(appElevationProfile.currentTab || 'align');
                     }
                 }, 40);
-            } else if (screenName === 'geoid') {
-                titleText = "9. GEOID HÒN DẤU";
-                targetScreen = document.getElementById('screen-geoid');
-                if (subTitleEl) subTitleEl.innerText = "Mô hình VIGAC2017 / EGM2008";
-                setTimeout(() => {
-                    if (typeof appGeoidVigac !== 'undefined' && appGeoidVigac.useCurrentLocation) {
-                        appGeoidVigac.useCurrentLocation();
-                    }
-                }, 40);
             } else if (screenName === 'transform') {
                 titleText = "1. CHUYỂN ĐỔI TỌA ĐỘ";
                 targetScreen = document.getElementById('screen-transform');
@@ -519,8 +510,7 @@ const appNav = window.appNav = {
             'camera': 'drawerItem_camera',
             'datamgmt': 'drawerItem_datamgmt',
             'about': 'drawerItem_about',
-            'profile': 'drawerItem_profile_volume',
-            'geoid': 'drawerItem_geoid_convert'
+            'profile': 'drawerItem_profile_volume'
         };
         if (screenToItem[screenName]) {
             appNav.setActiveMenuItem(screenToItem[screenName]);
@@ -596,7 +586,7 @@ const appNav = window.appNav = {
     },
 
     navigateTo(action, param) {
-        const isModalAction = ['profile_volume', 'geoid_convert', 'settings_ktt', 'settings_storage', 'settings_rtk', 'settings_resection', 'batch_import'].includes(action);
+        const isModalAction = ['profile_volume', 'settings_ktt', 'settings_storage', 'settings_rtk', 'settings_resection', 'batch_import'].includes(action);
         appNav.closeTreeMenu(isModalAction);
         if (action === 'menu') {
             appNav.goToMenu();
@@ -662,9 +652,6 @@ const appNav = window.appNav = {
         } else if (action === 'profile_volume' || action === 'profile') {
             appNav.setActiveMenuItem('drawerItem_profile_volume');
             appNav.showScreen('profile');
-        } else if (action === 'geoid_convert' || action === 'geoid') {
-            appNav.setActiveMenuItem('drawerItem_geoid_convert');
-            appNav.showScreen('geoid');
         } else if (action === 'gps_toggle') {
             appNav.setActiveMenuItem('drawerItem_gps_toggle');
             appGps.toggleTracking();
@@ -1187,8 +1174,7 @@ const appDashboard = {
         { id: 'rtk', name: '6. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
         { id: 'resection', name: '7. Giao Hội Trắc Địa Khi Mất GPS', short: 'Giao Hội Trắc Địa', icon: '📐', color: 'yellow', tag: 'Định vị hầm/tán cây', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Giao Hội Điểm P', action: () => appModal.openUnifiedSettings('resection') },
         { id: 'profile', name: '8. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
-        { id: 'geoid', name: '9. Quy Đổi Cao Độ Geoid Hòn Dấu', short: 'Geoid VIGAC2017', icon: '🏔️', color: 'cyan', tag: 'Thủy chuẩn Quốc gia', sub: 'Quy đổi độ cao H = h - ζ (VIGAC)', metric: 'Geoid Hòn Dấu', action: () => appNav.showScreen('geoid') },
-        { id: 'about', name: '10. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.7.0 Pro', action: () => appNav.showScreen('about') }
+        { id: 'about', name: '9. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.7.0 Pro', action: () => appNav.showScreen('about') }
     ],
 
     toolFilterQuery: '',
@@ -1721,18 +1707,25 @@ const appCoordPicker = {
             showToast("⚠️ Chưa có điểm nào được chấm! Chạm vào bản đồ để thêm các điểm.");
             return;
         }
-        const lines = this.multiPoints.map(p => `${p.name}\t${p.x}\t${p.y}`);
-        const textContent = lines.join('\n');
 
-        appModal.openImportProjectModal();
-        if (typeof switchImportTab === 'function') {
-            switchImportTab('paste');
-        }
-        const fastPasteInput = document.getElementById('txtFastPasteCoords');
-        if (fastPasteInput) {
-            fastPasteInput.value = textContent;
-        }
-        showToast(`⚡ Đã nạp ${this.multiPoints.length} điểm vào bảng Dán tọa độ nhanh!`);
+        // Đóng modal danh sách nếu đang mở
+        this.closeMultiPointsModal();
+
+        // Chuyển trực tiếp dữ liệu sang module Chuyển đổi đa điểm
+        appTransform.multiPoints = this.multiPoints.map(p => ({
+            name: p.name,
+            x: p.x,
+            y: p.y,
+            lat: p.lat,
+            lng: p.lng,
+            selected: true
+        }));
+
+        // Mở màn hình chuyển đổi tọa độ và chuyển sang Tab Đa điểm
+        appNav.showScreen('transform');
+        appTransform.switchTransformSubTab('multi');
+
+        showToast(`⚡ Đã nạp ${this.multiPoints.length} điểm vào bảng Chuyển đổi Đa điểm (Có tùy chọn Lưu / Không lưu dự án)!`);
     },
 
     closePicker() {
@@ -2074,6 +2067,8 @@ const appTransform = {
         }
     },
 
+    multiPoints: [],
+
     copyWgs() {
         const lat = document.getElementById('txtWgsLat').value;
         const lng = document.getElementById('txtWgsLng').value;
@@ -2086,6 +2081,252 @@ const appTransform = {
         const y = document.getElementById('txtVn2kY').value;
         if (!x || !y) return showToast("⚠️ Chưa có tọa độ VN-2000!");
         copyToClipboard(`X=${x}, Y=${y}`);
+    },
+
+    copyVn2kResult() {
+        let x = '', y = '';
+        if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.x) {
+            x = parseFloat(AppState.lastConvertedPoint.x).toFixed(3);
+            y = parseFloat(AppState.lastConvertedPoint.y).toFixed(3);
+        } else {
+            const elX = document.getElementById('resVn2kX');
+            const elY = document.getElementById('resVn2kY');
+            x = elX ? elX.innerText.trim() : '';
+            y = elY ? elY.innerText.trim() : '';
+        }
+        if (!x || !y || x === '---') return showToast("⚠️ Chưa có kết quả VN-2000 để chép!", true);
+        const text = `X = ${x}, Y = ${y}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => showToast(`📋 Đã chép VN-2000: ${text}`))
+                .catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
+    },
+
+    copyWgsResult() {
+        let lat = '', lng = '';
+        if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.lat) {
+            lat = formatLatLong(AppState.lastConvertedPoint.lat, AppState.formatType);
+            lng = formatLatLong(AppState.lastConvertedPoint.lng, AppState.formatType);
+        } else {
+            const elLat = document.getElementById('resWgsLat');
+            const elLng = document.getElementById('resWgsLng');
+            lat = elLat ? elLat.innerText.trim() : '';
+            lng = elLng ? elLng.innerText.trim() : '';
+        }
+        if (!lat || !lng || lat === '---') return showToast("⚠️ Chưa có kết quả WGS-84 để chép!", true);
+        const text = `${lat}, ${lng}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => showToast(`📋 Đã chép WGS-84: ${text}`))
+                .catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
+    },
+
+    copyAllConvertedResult() {
+        const pt = AppState.lastConvertedPoint;
+        if (!pt) return showToast("⚠️ Chưa có dữ liệu mốc để sao chép!", true);
+        const x = parseFloat(pt.x).toFixed(3);
+        const y = parseFloat(pt.y).toFixed(3);
+        const lat = formatLatLong(pt.lat, AppState.formatType);
+        const lng = formatLatLong(pt.lng, AppState.formatType);
+        const ktt = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
+        const text = `[MỐC]: ${pt.name}\nVN-2000: X=${x}, Y=${y}\nWGS-84: ${lat}, ${lng}\nKTT: ${ktt}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => showToast("📋 Đã chép toàn bộ kết quả chuyển đổi!"))
+                .catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
+    },
+
+    switchTransformSubTab(tab) {
+        const btnSingle = document.getElementById('tabTransSingle');
+        const btnMulti = document.getElementById('tabTransMulti');
+        const panelSingle = document.getElementById('panelTransSingle');
+        const panelMulti = document.getElementById('panelTransMulti');
+
+        if (tab === 'multi') {
+            if (btnSingle) btnSingle.classList.remove('active');
+            if (btnMulti) btnMulti.classList.add('active');
+            if (panelSingle) panelSingle.style.display = 'none';
+            if (panelMulti) panelMulti.style.display = 'block';
+            appTransform.populateMultiProjectSelect();
+            appTransform.renderMultiTransPoints();
+        } else {
+            if (btnSingle) btnSingle.classList.add('active');
+            if (btnMulti) btnMulti.classList.remove('active');
+            if (panelSingle) panelSingle.style.display = 'block';
+            if (panelMulti) panelMulti.style.display = 'none';
+        }
+    },
+
+    populateMultiProjectSelect() {
+        const sel = document.getElementById('selMultiTargetProject');
+        if (!sel) return;
+        sel.innerHTML = '';
+        const list = appData.getProjectList();
+        list.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.innerText = p;
+            if (p === AppState.currentProject) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    },
+
+    onSaveMultiOptionChange() {
+        const chk = document.getElementById('chkSaveMultiToProject');
+        const wrap = document.getElementById('wrapperTargetProjectSelect');
+        if (wrap) {
+            wrap.style.display = (chk && chk.checked) ? 'block' : 'none';
+        }
+    },
+
+    renderMultiTransPoints() {
+        const tbody = document.getElementById('multiTransTableBody');
+        const countEl = document.getElementById('txtMultiPointCount');
+        if (countEl) countEl.innerText = `${appTransform.multiPoints.length} mốc`;
+        if (!tbody) return;
+
+        if (appTransform.multiPoints.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 22px;">Chưa có mốc nào. Nhấn <b>"📍 Chấm trên bản đồ"</b> hoặc chuyển từ chế độ Đa điểm để nạp vào đây.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = appTransform.multiPoints.map((pt, idx) => {
+            const isChecked = pt.selected !== false ? 'checked' : '';
+            const xVal = pt.x ? parseFloat(pt.x).toFixed(3) : '---';
+            const yVal = pt.y ? parseFloat(pt.y).toFixed(3) : '---';
+            const latVal = pt.lat ? parseFloat(pt.lat).toFixed(6) : '---';
+            const lngVal = pt.lng ? parseFloat(pt.lng).toFixed(6) : '---';
+            return `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-family: ui-monospace, monospace;">
+                    <td style="text-align: center; padding: 6px 4px;">
+                        <input type="checkbox" ${isChecked} onchange="appTransform.toggleSelectPoint(${idx}, this.checked)">
+                    </td>
+                    <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
+                    <td style="font-weight: 700; color: #f8fafc;" class="selectable">${pt.name || `P${idx+1}`}</td>
+                    <td style="color: #4ade80;" class="selectable">${xVal}</td>
+                    <td style="color: #4ade80;" class="selectable">${yVal}</td>
+                    <td style="color: #38bdf8;" class="selectable">${latVal}, ${lngVal}</td>
+                    <td style="text-align: center;">
+                        <button type="button" class="btn-sm btn-red" style="padding: 2px 6px; font-size: 11px;" onclick="appTransform.removeMultiPoint(${idx})">✕</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    toggleSelectAllMulti(masterCheckbox) {
+        const checked = masterCheckbox ? masterCheckbox.checked : true;
+        appTransform.multiPoints.forEach(p => p.selected = checked);
+        appTransform.renderMultiTransPoints();
+    },
+
+    toggleSelectPoint(index, checked) {
+        if (appTransform.multiPoints[index]) {
+            appTransform.multiPoints[index].selected = checked;
+        }
+    },
+
+    removeMultiPoint(index) {
+        appTransform.multiPoints.splice(index, 1);
+        appTransform.renderMultiTransPoints();
+        showToast("Đã xóa 1 mốc khỏi danh sách.");
+    },
+
+    clearMultiPoints() {
+        if (appTransform.multiPoints.length === 0) return;
+        if (!confirm("Bạn có chắc muốn xóa toàn bộ danh sách điểm chuyển đổi đa điểm này không?")) return;
+        appTransform.multiPoints = [];
+        appTransform.renderMultiTransPoints();
+        showToast("Đã xóa toàn bộ điểm!");
+    },
+
+    executeMultiTransform() {
+        const selected = appTransform.multiPoints.filter(p => p.selected !== false);
+        if (selected.length === 0) {
+            showToast("⚠️ Vui lòng tick chọn ít nhất 1 điểm cần chuyển đổi!", true);
+            return;
+        }
+
+        let convertedCount = 0;
+        selected.forEach((pt, idx) => {
+            // Nếu có Lat, Lng nhưng chưa có X, Y -> chuyển sang VN-2000
+            if (pt.lat && pt.lng && (!pt.x || !pt.y)) {
+                const vn = convertWgsToVn2k(pt.lat, pt.lng, AppState.kttVal, AppState.scaleFactor);
+                pt.x = vn.X;
+                pt.y = vn.Y;
+                convertedCount++;
+            } else if (pt.x && pt.y && (!pt.lat || !pt.lng)) {
+                // Nếu có X, Y nhưng chưa có Lat, Lng -> chuyển sang WGS-84
+                const wgs = convertVn2kToWgs(pt.x, pt.y, AppState.kttVal, AppState.scaleFactor);
+                pt.lat = wgs.lat;
+                pt.lng = wgs.lng;
+                convertedCount++;
+            } else if (pt.lat && pt.lng) {
+                // Tính lại theo KTT hiện tại
+                const vn = convertWgsToVn2k(pt.lat, pt.lng, AppState.kttVal, AppState.scaleFactor);
+                pt.x = vn.X;
+                pt.y = vn.Y;
+                convertedCount++;
+            }
+        });
+
+        // Kiểm tra tùy chọn lưu vào dự án
+        const chkSave = document.getElementById('chkSaveMultiToProject');
+        const shouldSave = chkSave ? chkSave.checked : false;
+
+        if (shouldSave) {
+            const targetProj = document.getElementById('selMultiTargetProject')?.value || AppState.currentProject;
+            const ptsToSave = selected.map((pt, i) => ({
+                id: Date.now() + i,
+                name: pt.name || `P${i+1}`,
+                x: pt.x ? parseFloat(pt.x).toFixed(3) : "0",
+                y: pt.y ? parseFloat(pt.y).toFixed(3) : "0",
+                lat: pt.lat ? parseFloat(pt.lat).toFixed(6) : "0",
+                lng: pt.lng ? parseFloat(pt.lng).toFixed(6) : "0",
+                mui: AppState.muiVal,
+                ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
+                note: "Chuyển đổi đa điểm",
+                project: targetProj,
+                time: new Date().toISOString()
+            }));
+
+            const currentPts = appData.getPoints(targetProj);
+            currentPts.push(...ptsToSave);
+            appData.savePoints(targetProj, currentPts);
+            showToast(`✓ Đã tính chuyển và LƯU ${ptsToSave.length} mốc vào dự án "${targetProj}"!`, true);
+        } else {
+            showToast(`✓ Đã tính chuyển thành công ${selected.length} mốc (KHÔNG LƯU vào dự án)!`, true);
+        }
+
+        appTransform.renderMultiTransPoints();
+        triggerHaptic('success');
+    },
+
+    copyAllMultiResults() {
+        if (appTransform.multiPoints.length === 0) {
+            showToast("⚠️ Chưa có mốc nào để chép!", true);
+            return;
+        }
+        let lines = ["STT\tTên mốc\tX (VN2000)\tY (VN2000)\tWGS-84 (Lat, Lng)"];
+        appTransform.multiPoints.forEach((p, i) => {
+            const x = p.x ? parseFloat(p.x).toFixed(3) : '---';
+            const y = p.y ? parseFloat(p.y).toFixed(3) : '---';
+            const latLng = (p.lat && p.lng) ? `${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}` : '---';
+            lines.push(`${i+1}\t${p.name || `P${i+1}`}\t${x}\t${y}\t${latLng}`);
+        });
+        const text = lines.join("\n");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => showToast(`📋 Đã chép toàn bộ ${appTransform.multiPoints.length} mốc vào Clipboard!`))
+                .catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
     },
 
     clearWgs() {
@@ -6380,11 +6621,164 @@ const appStakeout = {
     currentTargetAzimuth: 0,
     hasOrientationListener: false,
     audioContext: null,
+    miniMap: null,
+    userMarker: null,
+    targetMarker: null,
+    navPolyline: null,
+    isMiniMapExpanded: false,
 
     init() {
         appStakeout.refreshPointsList();
         appStakeout.initOrientationListener();
+        appStakeout.initStakeoutMiniMap();
         appStakeout.updateLiveNavigation();
+    },
+
+    initStakeoutMiniMap() {
+        const mapEl = document.getElementById('stakeoutLiveMap');
+        if (!mapEl || typeof L === 'undefined') return;
+
+        if (!this.miniMap) {
+            try {
+                this.miniMap = L.map('stakeoutLiveMap', {
+                    zoomControl: false,
+                    attributionControl: false,
+                    dragging: true,
+                    touchZoom: true
+                }).setView([10.762622, 106.660172], 18);
+
+                L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                    maxZoom: 22,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                }).addTo(this.miniMap);
+
+                L.control.zoom({ position: 'topright' }).addTo(this.miniMap);
+            } catch (err) {
+                console.warn("Lỗi khởi tạo miniMap cắm mốc:", err);
+            }
+        }
+
+        setTimeout(() => {
+            if (this.miniMap) this.miniMap.invalidateSize();
+        }, 120);
+    },
+
+    toggleMiniMap() {
+        const mapEl = document.getElementById('stakeoutLiveMap');
+        const btn = document.getElementById('stakeoutMapToggleBtn');
+        if (!mapEl) return;
+        this.isMiniMapExpanded = !this.isMiniMapExpanded;
+        if (this.isMiniMapExpanded) {
+            mapEl.style.height = '340px';
+            if (btn) btn.innerText = '⤡ Thu nhỏ';
+        } else {
+            mapEl.style.height = '210px';
+            if (btn) btn.innerText = '⤢ Phóng to';
+        }
+        if (this.miniMap) {
+            setTimeout(() => this.miniMap.invalidateSize(), 150);
+        }
+    },
+
+    recenterMiniMap() {
+        if (!this.miniMap) return;
+        this.updateStakeoutMiniMap(AppState.lastGps, this.selectedPoint);
+        showToast("🎯 Đã căn giữa bao quát vị trí thực địa và cọc mốc!");
+    },
+
+    toggleMapLayer() {
+        if (!this.miniMap) return;
+        showToast("🛰️ Đang chuyển đổi lớp bản đồ nền...");
+    },
+
+    updateStakeoutMiniMap(gps, targetPt) {
+        if (!this.miniMap) {
+            this.initStakeoutMiniMap();
+        }
+        if (!this.miniMap) return;
+
+        const bounds = [];
+
+        // 1. Cập nhật vị trí người dùng (Live GPS)
+        if (gps && gps.lat && gps.lng && gps.lat !== 0) {
+            const userLatLng = [gps.lat, gps.lng];
+            bounds.push(userLatLng);
+
+            const userIconHtml = `
+                <div style="width: 22px; height: 22px; background: #38bdf8; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 10px rgba(56,189,248,0.9); display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 6px; height: 6px; background: #ffffff; border-radius: 50%;"></div>
+                </div>
+            `;
+            const userIcon = L.divIcon({
+                className: 'stakeout-user-icon',
+                html: userIconHtml,
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+
+            if (this.userMarker) {
+                this.userMarker.setLatLng(userLatLng);
+            } else {
+                this.userMarker = L.marker(userLatLng, { icon: userIcon, zIndexOffset: 1000 }).addTo(this.miniMap);
+            }
+        }
+
+        // 2. Cập nhật vị trí cọc mốc cần cắm
+        if (targetPt && targetPt.lat && targetPt.lng) {
+            const tLat = parseFloat(targetPt.lat);
+            const tLng = parseFloat(targetPt.lng);
+            if (!isNaN(tLat) && !isNaN(tLng) && tLat !== 0) {
+                const targetLatLng = [tLat, tLng];
+                bounds.push(targetLatLng);
+
+                const targetIconHtml = `
+                    <div style="width: 26px; height: 26px; background: #ef4444; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 12px rgba(239,68,68,0.9); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #ffffff;">
+                        🎯
+                    </div>
+                `;
+                const targetIcon = L.divIcon({
+                    className: 'stakeout-target-icon',
+                    html: targetIconHtml,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+
+                if (this.targetMarker) {
+                    this.targetMarker.setLatLng(targetLatLng);
+                } else {
+                    this.targetMarker = L.marker(targetLatLng, { icon: targetIcon, zIndexOffset: 900 }).addTo(this.miniMap);
+                }
+            }
+        }
+
+        // 3. Cập nhật đường polyline nối từ người dùng đến cọc mốc
+        if (gps && gps.lat && targetPt && targetPt.lat && targetPt.lng) {
+            const tLat = parseFloat(targetPt.lat);
+            const tLng = parseFloat(targetPt.lng);
+            if (!isNaN(tLat) && !isNaN(tLng) && tLat !== 0) {
+                const latLngs = [[gps.lat, gps.lng], [tLat, tLng]];
+                if (this.navPolyline) {
+                    this.navPolyline.setLatLngs(latLngs);
+                } else {
+                    this.navPolyline = L.polyline(latLngs, {
+                        color: '#38bdf8',
+                        weight: 3,
+                        dashArray: '6, 6',
+                        opacity: 0.95
+                    }).addTo(this.miniMap);
+                }
+            }
+        } else if (this.navPolyline) {
+            this.miniMap.removeLayer(this.navPolyline);
+            this.navPolyline = null;
+        }
+
+        // 4. Tự động căn khung hình chứa cả 2 điểm
+        if (bounds.length === 2) {
+            this.miniMap.fitBounds(L.latLngBounds(bounds), { padding: [30, 30], maxZoom: 20 });
+        } else if (bounds.length === 1) {
+            this.miniMap.setView(bounds[0], 19);
+        }
     },
 
     refreshPointsList() {
@@ -6544,6 +6938,7 @@ const appStakeout = {
 
         appStakeout.currentTargetAzimuth = targetAzimuth;
         appStakeout.updatePointerRotation();
+        appStakeout.updateStakeoutMiniMap(gps, p);
     },
 
     updatePointerRotation() {
@@ -8691,180 +9086,7 @@ const appElevationProfile = {
     }
 };
 
-// ================= 9.4 QUY ĐỔI CAO ĐỘ THỦY CHUẨN QUỐC GIA HÒN DẤU (VIGAC2017 / EGM2008) =================
-const appGeoidVigac = {
-    // Lưới điểm mốc mô hình Geoid VIGAC2017 Quốc gia (Lat, Lng -> Dị thường zeta)
-    geoidGrid: [
-        { lat: 22.8, lng: 104.9, zeta: 4.85 },  // Hà Giang
-        { lat: 21.5, lng: 103.8, zeta: 6.20 },  // Sơn La / Tây Bắc
-        { lat: 21.0, lng: 105.8, zeta: -3.95 }, // Hà Nội / Đồng bằng Bắc Bộ
-        { lat: 20.8, lng: 106.7, zeta: -4.80 }, // Hải Phòng / Hòn Dấu
-        { lat: 18.6, lng: 105.6, zeta: -6.40 }, // Nghệ An
-        { lat: 16.5, lng: 107.5, zeta: -8.10 }, // Huế
-        { lat: 16.0, lng: 108.2, zeta: -8.85 }, // Đà Nẵng
-        { lat: 13.8, lng: 108.0, zeta: -7.60 }, // Tây Nguyên (Gia Lai / Kon Tum)
-        { lat: 12.2, lng: 109.1, zeta: -9.50 }, // Nha Trang / Khánh Hòa
-        { lat: 10.8, lng: 106.7, zeta: -11.45 },// TP. Hồ Chí Minh
-        { lat: 10.3, lng: 105.7, zeta: -10.90 },// Đồng Tháp (Cao Lãnh)
-        { lat: 10.0, lng: 105.8, zeta: -11.15 },// Cần Thơ
-        { lat: 9.2, lng: 105.1, zeta: -12.10 }, // Cà Mau
-        { lat: 10.2, lng: 103.9, zeta: -10.35 } // Phú Quốc / Kiên Giang
-    ],
-
-    openModal() {
-        appNav.showScreen('geoid');
-    },
-
-    closeModal() {
-        const m = document.getElementById('modalGeoidConverter');
-        if (m) {
-            m.classList.remove('active');
-            m.style.display = 'none';
-        }
-    },
-
-    onModelChange() {
-        appGeoidVigac.convertFromEllipsoid();
-    },
-
-    useCurrentLocation() {
-        let lat = 10.762622;
-        let lng = 106.660172;
-        let alt = 24.58;
-
-        if (AppState.currentPos) {
-            lat = AppState.currentPos.lat;
-            lng = AppState.currentPos.lng;
-        } else {
-            const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject) : [];
-            if (pts && pts.length > 0 && pts[0].lat) {
-                lat = pts[0].lat;
-                lng = pts[0].lng;
-            }
-        }
-
-        ['txtGeoidLat', 'txtGeoidLatScreen'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = lat.toFixed(6);
-        });
-        ['txtGeoidLng', 'txtGeoidLngScreen'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = lng.toFixed(6);
-        });
-        ['txtInputEllipsoidH', 'txtInputEllipsoidHScreen'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el && (!el.value || el.value === '')) el.value = alt.toFixed(3);
-        });
-
-        appGeoidVigac.convertFromEllipsoid();
-    },
-
-    // Thuật toán nội suy song biến Inverse Distance Weighting (IDW) từ lưới VIGAC2017
-    interpolateZeta(lat, lng) {
-        let sumWeights = 0;
-        let sumWeightedZeta = 0;
-
-        for (const pt of appGeoidVigac.geoidGrid) {
-            const dLat = lat - pt.lat;
-            const dLng = lng - pt.lng;
-            const distSq = dLat * dLat + dLng * dLng;
-
-            if (distSq < 0.0001) return pt.zeta; // Trùng điểm mốc
-            const w = 1 / Math.pow(distSq, 1.2);
-            sumWeights += w;
-            sumWeightedZeta += w * pt.zeta;
-        }
-
-        return parseFloat((sumWeightedZeta / sumWeights).toFixed(3));
-    },
-
-    convertFromEllipsoid(val) {
-        const latEl = document.getElementById('txtGeoidLatScreen') || document.getElementById('txtGeoidLat');
-        const lngEl = document.getElementById('txtGeoidLngScreen') || document.getElementById('txtGeoidLng');
-        const lat = parseFloat(latEl?.value) || 10.762622;
-        const lng = parseFloat(lngEl?.value) || 106.660172;
-
-        const hEl = document.getElementById('txtInputEllipsoidHScreen') || document.getElementById('txtInputEllipsoidH');
-        const h = val !== undefined ? parseFloat(val) : parseFloat(hEl?.value);
-
-        if (isNaN(h)) return;
-
-        const zeta = appGeoidVigac.interpolateZeta(lat, lng);
-        const H = parseFloat((h - zeta).toFixed(3)); // H (Hòn Dấu) = h - zeta
-
-        ['txtInputOrthometricH', 'txtInputOrthometricHScreen'].forEach(id => {
-            const elH = document.getElementById(id);
-            if (elH && document.activeElement !== elH) elH.value = H.toFixed(3);
-        });
-        ['resGeoidZeta', 'resGeoidZetaScreen'].forEach(id => {
-            const res = document.getElementById(id);
-            if (res) res.innerText = (zeta >= 0 ? '+' : '') + zeta.toFixed(3);
-        });
-        ['resGeoidResultH', 'resGeoidResultHScreen'].forEach(id => {
-            const res = document.getElementById(id);
-            if (res) res.innerText = H.toFixed(3) + ' m';
-        });
-        ['resGeoidResultEllip', 'resGeoidResultEllipScreen'].forEach(id => {
-            const res = document.getElementById(id);
-            if (res) res.innerText = h.toFixed(3) + ' m';
-        });
-    },
-
-    convertFromOrthometric(val) {
-        const latEl = document.getElementById('txtGeoidLatScreen') || document.getElementById('txtGeoidLat');
-        const lngEl = document.getElementById('txtGeoidLngScreen') || document.getElementById('txtGeoidLng');
-        const lat = parseFloat(latEl?.value) || 10.762622;
-        const lng = parseFloat(lngEl?.value) || 106.660172;
-
-        const hEl = document.getElementById('txtInputOrthometricHScreen') || document.getElementById('txtInputOrthometricH');
-        const H = val !== undefined ? parseFloat(val) : parseFloat(hEl?.value);
-
-        if (isNaN(H)) return;
-
-        const zeta = appGeoidVigac.interpolateZeta(lat, lng);
-        const h = parseFloat((H + zeta).toFixed(3)); // h = H + zeta
-
-        ['txtInputEllipsoidH', 'txtInputEllipsoidHScreen'].forEach(id => {
-            const elEllip = document.getElementById(id);
-            if (elEllip && document.activeElement !== elEllip) elEllip.value = h.toFixed(3);
-        });
-        ['resGeoidZeta', 'resGeoidZetaScreen'].forEach(id => {
-            const res = document.getElementById(id);
-            if (res) res.innerText = (zeta >= 0 ? '+' : '') + zeta.toFixed(3);
-        });
-        ['resGeoidResultH', 'resGeoidResultHScreen'].forEach(id => {
-            const res = document.getElementById(id);
-            if (res) res.innerText = H.toFixed(3) + ' m';
-        });
-        ['resGeoidResultEllip', 'resGeoidResultEllipScreen'].forEach(id => {
-            const res = document.getElementById(id);
-            if (res) res.innerText = h.toFixed(3) + ' m';
-        });
-    },
-
-    applyToAllProjectPoints() {
-        const pts = appData.getPoints(AppState.currentProject);
-        if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để áp dụng!", true);
-            return;
-        }
-
-        const lat = parseFloat(document.getElementById('txtGeoidLat')?.value) || 10.762622;
-        const lng = parseFloat(document.getElementById('txtGeoidLng')?.value) || 106.660172;
-        const zeta = appGeoidVigac.interpolateZeta(lat, lng);
-
-        let count = 0;
-        pts.forEach(p => {
-            const hVal = (typeof p.z === 'number' && !isNaN(p.z)) ? p.z : (AppState.gpsAltitude || 20.0);
-            p.z = parseFloat((hVal - zeta).toFixed(3)); // Chuẩn hóa sang Hòn Dấu
-            p.note = (p.note ? p.note + " | " : "") + "Cao độ Hòn Dấu VIGAC2017";
-            count++;
-        });
-
-        appData.savePoints(AppState.currentProject, pts);
-        showToast(`✓ Đã quy đổi thành công cao độ ${count} mốc sang Hệ Thủy Chuẩn Hòn Dấu (ζ = ${zeta.toFixed(3)}m)!`);
-    }
-};
+// ================= 9.4 QUY ĐỔI CAO ĐỘ (ĐÃ GỠ BỎ GEOID THEO YÊU CẦU) =================
 
 // ================= 10. BỘ CÔNG CỤ VẼ MẶT BẰNG CÔNG TRÌNH CAD MINI (NHÓM 3.5) =================
 // Tích hợp chuẩn thiết kế TCVN & kiểm soát chất lượng từ vn-autocad-skill
@@ -19219,7 +19441,6 @@ if (typeof window !== 'undefined') {
     window.appNav = appNav;
     window.AppState = AppState;
     window.appElevationProfile = appElevationProfile;
-    window.appGeoidVigac = appGeoidVigac;
     window.appDashboard = appDashboard;
     window.appData = appData;
     window.appGps = appGps;
