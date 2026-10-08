@@ -2343,6 +2343,153 @@
     .map-project-bar::-webkit-scrollbar {
       display: none;
     }
+
+    /* Coordinate Picker Bar (Chuyên biệt cho Chuyển đổi tọa độ - Chấm đơn / đa điểm) */
+    .bar-coord-picker {
+      position: absolute;
+      top: calc(var(--sat-safe-top) + 10px);
+      left: 10px;
+      right: 10px;
+      min-height: 42px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 12px;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      z-index: 1000;
+      flex-wrap: wrap;
+      transition: all 0.2s ease;
+    }
+    .picker-mode-switch {
+      display: flex;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .btn-picker-mode {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-picker-mode.active {
+      background: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+    }
+    .picker-status-box {
+      flex: 1 1 auto;
+      min-width: 140px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: ui-monospace, monospace;
+      font-size: 11.5px;
+      color: #e2e8f0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .picker-coord-text {
+      color: #38bdf8;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .picker-badge {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: #4ade80;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .picker-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .btn-picker-apply {
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+      white-space: nowrap;
+      transition: all 0.18s ease;
+    }
+    .btn-picker-apply:hover {
+      background: #059669;
+    }
+    .btn-picker-apply.btn-picker-batch {
+      background: #f59e0b;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    }
+    .btn-picker-apply.btn-picker-batch:hover {
+      background: #d97706;
+    }
+    .btn-picker-sub {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-picker-sub.btn-picker-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: #f87171;
+    }
+    .btn-picker-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 700;
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s ease;
+    }
+    .btn-picker-close:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: #ffffff;
+      border-color: #ef4444;
+    }
+    .multipoint-map-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .btn-map-new-proj {
       background: rgba(16, 185, 129, 0.22) !important;
       border-color: rgba(16, 185, 129, 0.5) !important;
@@ -3982,7 +4129,7 @@
 
     .map-cad-toolbar {
       position: absolute;
-      top: calc(var(--sat-safe-top) + 54px);
+      top: calc(var(--sat-safe-top) + 10px);
       left: 10px;
       right: 10px;
       background: rgba(15, 23, 42, 0.94);
@@ -5548,7 +5695,7 @@
           </div>
           <div class="btn-group-row">
             <button class="btn-sm btn-green" onclick="appTransform.getLiveGps()">📍 GPS</button>
-            <button class="btn-sm btn-blue" onclick="appTransform.openPickOnMap()">🗺️ Bản đồ</button>
+            <button class="btn-sm btn-blue" onclick="appTransform.openPickOnMap()" title="Chấm chọn tọa độ trên bản đồ (Đơn điểm / Đa điểm)">🎯 Chấm điểm bản đồ</button>
             <button class="btn-sm" onclick="appTransform.pasteCoords()">📋 Dán</button>
             <button class="btn-sm" onclick="appTransform.copyWgs()">📋 Chép</button>
             <button class="btn-sm btn-red" onclick="appTransform.clearWgs()">🗑️</button>
@@ -5678,8 +5825,49 @@
         <!-- Mode indicator giữ lại để tương thích JS nhưng ẩn đi để tiết kiệm không gian -->
         <span id="mapModeIndicator" style="display: none;">📍 BẢN ĐỒ DỰ ÁN</span>
 
-        <!-- Project Selector & Measurement Quick Bar on Map -->
-        <div class="map-project-bar">
+        <!-- THANH CÔNG CỤ CHẤM CHỌN TỌA ĐỘ (CHUYÊN BIỆT CHO CHUYỂN ĐỔI TỌA ĐỘ: ĐƠN ĐIỂM / ĐA ĐIỂM) -->
+        <div id="barCoordPicker" class="bar-coord-picker" style="display: none;">
+          <div class="picker-mode-switch">
+            <button type="button" id="btnPickModeSingle" class="btn-picker-mode active" onclick="appCoordPicker.setMode('single')">
+              🎯 Đơn điểm
+            </button>
+            <button type="button" id="btnPickModeMulti" class="btn-picker-mode" onclick="appCoordPicker.setMode('multi')">
+              📍 Đa điểm
+            </button>
+          </div>
+
+          <div id="pickerSingleStatus" class="picker-status-box">
+            <span id="pickerSingleCoordText" class="picker-coord-text">Chạm bản đồ để chấm điểm</span>
+          </div>
+
+          <div id="pickerMultiStatus" class="picker-status-box" style="display: none;">
+            <span class="picker-badge" id="pickerMultiCountBadge">0 điểm</span>
+            <button type="button" class="btn-picker-sub" onclick="appCoordPicker.openMultiPointsModal()" title="Xem danh sách điểm đã chấm">
+              📋 Danh sách
+            </button>
+            <button type="button" class="btn-picker-sub btn-picker-danger" onclick="appCoordPicker.clearMultiPoints()" title="Xóa danh sách điểm">
+              🗑️ Xóa
+            </button>
+          </div>
+
+          <div class="picker-actions">
+            <!-- Nút cho Đơn điểm -->
+            <button type="button" id="btnPickerApplySingle" class="btn-picker-apply" onclick="appCoordPicker.applySinglePoint()">
+              ✓ Lấy tọa độ
+            </button>
+            <!-- Nút cho Đa điểm -->
+            <button type="button" id="btnPickerApplyMulti" class="btn-picker-apply btn-picker-batch" style="display: none;" onclick="appCoordPicker.applyMultiToBatch()">
+              ⚡ Nạp chuyển đổi hàng loạt
+            </button>
+            <!-- Nút đóng/quay lại -->
+            <button type="button" class="btn-picker-close" onclick="appCoordPicker.closePicker()" title="Quay lại Chuyển đổi tọa độ">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Project Selector & View Bar on Map (Chỉ hiện nạp dữ liệu và xem mốc dự án) -->
+        <div id="mapProjectBar" class="map-project-bar">
           <div class="map-proj-select-box" title="Chọn dự án đang lưu để hiển thị mốc">
             <span class="map-proj-icon">📁</span>
             <select id="selMapProjectFiles" class="map-proj-select" onchange="appMap.onMapProjectChange(this.value)">
@@ -5692,11 +5880,11 @@
           <button class="btn-map-action" title="Nhập file dự án / Tải file mẫu" onclick="appModal.openImportProjectModal()">
             📥 Nhập File
           </button>
-          <button id="btnToggleDistance" class="btn-map-action" title="Bật/Tắt hiển thị khoảng cách giữa các điểm" onclick="appMap.toggleDistanceDisplay()">
-            📏 <span id="txtDistToggle">Khoảng cách</span>
+          <button class="btn-map-action" title="Xem danh sách mốc của dự án" onclick="appModal.openPointsListModal()">
+            📋 Xem mốc
           </button>
-          <button id="btnToggleCadTool" class="btn-map-action" title="Mở bộ công cụ vẽ mặt bằng CAD Mini trên bản đồ" onclick="appCadTool.toggleToolbar()">
-            📐 <span id="txtCadToggle">Vẽ CAD</span>
+          <button class="btn-map-action" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
+            🔍 Bao quát
           </button>
         </div>
 
@@ -5918,13 +6106,13 @@
           <div id="dragHandleRightControls" class="drag-handle-right-controls" title="Nhấp & kéo giữ để di chuyển thanh nút lên xuống">
             <span>⠿</span>
           </div>
-          <button class="btn-map-fab" title="Phóng to bản đồ (Tối đa mức 24 siêu chi tiết)" onclick="AppState.leafletMap && AppState.leafletMap.zoomIn()">
+          <button id="btnMapFabZoomIn" class="btn-map-fab" title="Phóng to bản đồ (Tối đa mức 24 siêu chi tiết)" onclick="AppState.leafletMap && AppState.leafletMap.zoomIn()">
             ➕
           </button>
-          <button class="btn-map-fab" title="Thu nhỏ bản đồ" onclick="AppState.leafletMap && AppState.leafletMap.zoomOut()">
+          <button id="btnMapFabZoomOut" class="btn-map-fab" title="Thu nhỏ bản đồ" onclick="AppState.leafletMap && AppState.leafletMap.zoomOut()">
             ➖
           </button>
-          <button class="btn-map-fab" title="Đổi lớp bản đồ (Vệ tinh / Đường phố)" onclick="appMap.toggleMapLayer()">
+          <button id="btnMapFabLayer" class="btn-map-fab" title="Đổi lớp bản đồ (Vệ tinh / Đường phố)" onclick="appMap.toggleMapLayer()">
             🛰️
           </button>
           <button id="btnMap34Prov" class="btn-map-fab" title="Bật/tắt ranh giới 34 tỉnh thành" onclick="appMap.toggle34Provinces()">
@@ -5933,13 +6121,13 @@
           <button id="btnMapDtCommunes" class="btn-map-fab" title="Bật/tắt ranh giới xã Đồng Tháp" onclick="appMap.toggleDongThapCommunes()">
             📍
           </button>
-          <button class="btn-map-fab" title="Định vị GPS vị trí hiện tại" onclick="appMap.locateCurrentGps()">
+          <button id="btnMapFabGps" class="btn-map-fab" title="Định vị GPS vị trí hiện tại" onclick="appMap.locateCurrentGps()">
             🎯
           </button>
           <button id="btnFitBothPoints" class="btn-map-fab" title="Thu phóng nhìn cả 2 điểm (Vị trí đứng & Điểm chọn/chuyển)" onclick="appMap.fitBothPoints()">
             👥
           </button>
-          <button class="btn-map-fab" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
+          <button id="btnFitProjectBounds" class="btn-map-fab" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
             🔍
           </button>
         </div>
@@ -8349,6 +8537,57 @@
         <button class="btn-sm" style="height: 36px; padding: 0 16px;" onclick="appData.closeProjectTrashModal()">
           ✕ Đóng
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL DANH SÁCH ĐA ĐIỂM ĐÃ CHẤM ================= -->
+  <div id="modalMultiPickList" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56,189,248,0.25); padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">📍</span>
+          <span style="color: #38bdf8; font-weight: 800; font-size: 14px;">DANH SÁCH ĐIỂM ĐÃ CHẤM (ĐA ĐIỂM)</span>
+        </div>
+        <button class="btn-modal-close" onclick="appCoordPicker.closeMultiPointsModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 12px 14px;">
+        <div style="background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #bae6fd; margin-bottom: 10px;">
+          💡 Bạn có thể xóa bớt điểm hoặc nhấn nút <b>"⚡ Nạp chuyển đổi hàng loạt"</b> bên dưới để tự động chuyển toàn bộ danh sách điểm này sang phân hệ chuyển đổi hàng loạt.
+        </div>
+
+        <div style="max-height: 340px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+          <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+              <tr style="background: rgba(15, 23, 42, 0.9); position: sticky; top: 0;">
+                <th style="padding: 6px 8px; width: 40px; text-align: center;">STT</th>
+                <th style="padding: 6px 8px;">Tên điểm</th>
+                <th style="padding: 6px 8px;">X (VN2000)</th>
+                <th style="padding: 6px 8px;">Y (VN2000)</th>
+                <th style="padding: 6px 8px;">WGS-84 (Lat, Lng)</th>
+                <th style="padding: 6px 8px; width: 45px; text-align: center;">Xóa</th>
+              </tr>
+            </thead>
+            <tbody id="multiPickListTbody">
+              <!-- Render JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button class="btn-sm btn-red" onclick="appCoordPicker.clearMultiPoints(); appCoordPicker.closeMultiPointsModal();">
+          🗑️ Xóa toàn bộ
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-sm" style="background: #f59e0b; color: #fff; font-weight: 700;" onclick="appCoordPicker.closeMultiPointsModal(); appCoordPicker.applyMultiToBatch();">
+            ⚡ Nạp chuyển đổi hàng loạt
+          </button>
+          <button class="btn-sm" onclick="appCoordPicker.closeMultiPointsModal()">
+            ✕ Đóng
+          </button>
+        </div>
       </div>
     </div>
   </div>
