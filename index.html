@@ -1811,6 +1811,184 @@
       color: #ffffff;
       box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
     }
+
+    /* BỐ CỤC CHIA ĐÔI MÀN HÌNH CHUYỂN ĐỔI TỌA ĐỘ KHI MÀN HÌNH LỚN (>= 1024px) */
+    .transform-split-layout {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      gap: 16px;
+    }
+    .transform-content-column {
+      width: 100%;
+      min-width: 0;
+    }
+    .transform-map-column {
+      display: none;
+      width: 100%;
+      min-width: 0;
+    }
+
+    @media (min-width: 1024px) {
+      #screen-transform {
+        max-width: 100% !important;
+        overflow-y: hidden !important;
+        padding-bottom: 14px !important;
+      }
+      .transform-split-layout {
+        flex-direction: row !important;
+        align-items: stretch !important;
+        height: calc(100vh - var(--sat-safe-top) - 85px) !important;
+        max-height: calc(100vh - var(--sat-safe-top) - 85px) !important;
+        overflow: hidden !important;
+      }
+      .transform-content-column {
+        flex: 1.15 !important;
+        max-width: 58% !important;
+        height: 100% !important;
+        overflow-y: auto !important;
+        padding-right: 8px !important;
+        scrollbar-width: thin;
+      }
+      .transform-map-column {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        max-width: 45% !important;
+        height: 100% !important;
+        background: #0b1329;
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        border-radius: 14px;
+        overflow: hidden !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      }
+      .transform-live-map-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: rgba(15, 23, 42, 0.95);
+        border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+        flex-shrink: 0;
+      }
+      .transform-live-map-body {
+        flex: 1;
+        width: 100%;
+        min-height: 250px;
+        position: relative;
+      }
+      #transformLiveMap {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+      }
+    }
+
+    /* ================= BỐ CỤC CHUYÊN NGHIỆP TRẮC DỌC & ĐÀO ĐẮP (SCREEN 8) ================= */
+    .profile-split-layout {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      gap: 14px;
+    }
+    .profile-config-column {
+      width: 100%;
+      min-width: 0;
+    }
+    .profile-visual-column {
+      width: 100%;
+      min-width: 0;
+    }
+    .profile-canvas-card {
+      background: #090d16;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 12px;
+      position: relative;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .profile-canvas-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .profile-canvas-scroll-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      border-radius: 6px;
+      background: #0b1120;
+    }
+    .profile-table-scroll {
+      width: 100%;
+      max-height: 260px;
+      overflow-x: auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      scrollbar-width: thin;
+    }
+    .profile-table-scroll table {
+      width: 100%;
+      min-width: 600px;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      text-align: center;
+    }
+    .profile-table-scroll th {
+      background: rgba(30, 41, 59, 0.95);
+      color: #cbd5e1;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 7px 5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      white-space: nowrap;
+    }
+    .profile-table-scroll td {
+      padding: 6px 5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      white-space: nowrap;
+    }
+
+    @media (min-width: 1024px) {
+      #screen-profile {
+        max-width: 100% !important;
+        overflow-y: auto !important;
+        padding-bottom: 24px !important;
+      }
+      .profile-split-layout {
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+      }
+      .profile-config-column {
+        flex: 0 0 380px !important;
+        max-width: 380px !important;
+        position: sticky !important;
+        top: 0 !important;
+      }
+      .profile-visual-column {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+      }
+    }
+
     .table-selectable {
       width: 100%;
       border-collapse: collapse;
@@ -1899,7 +2077,7 @@
 
     .settings-tab-bar {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
       background: #091322;
       border: 1px solid #334155;
       border-radius: 12px;
@@ -1909,6 +2087,24 @@
       gap: 6px;
       width: 100%;
       box-sizing: border-box;
+    }
+    .datetime-display-card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .datetime-digital-clock {
+      font-family: ui-monospace, monospace;
+      font-size: 20px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
     }
 
     .settings-tab-btn {
@@ -4166,34 +4362,51 @@
       font-weight: 700;
     }
 
-    /* Bảng thống kê các khối đã vẽ trên bản đồ MiniCAD */
+    /* Bảng thống kê các khối đã vẽ trên bản đồ MiniCAD (Hỗ trợ kéo thả thu phóng tự do resize: both) */
     .cad-blocks-panel {
       position: absolute;
       top: calc(var(--sat-safe-top) + 215px);
       left: 10px;
-      width: 320px;
+      width: 360px;
+      min-width: 320px;
+      min-height: 200px;
       max-width: calc(100vw - 20px);
-      background: rgba(15, 23, 42, 0.95);
+      max-height: calc(100vh - 120px);
+      resize: both;
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.96);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(56, 189, 248, 0.4);
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
       border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
       z-index: 1000;
       padding: 8px;
       animation: slideDownCad 0.2s ease;
+      display: flex;
+      flex-direction: column;
     }
     .cad-blocks-panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 6px;
       padding-bottom: 6px;
-      border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.25);
       margin-bottom: 6px;
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .cad-blocks-panel-header::-webkit-scrollbar {
+      display: none;
     }
     .cad-blocks-panel-body {
-      max-height: 190px;
+      flex: 1;
+      min-height: 120px;
+      max-height: 100%;
       overflow-y: auto;
+      overflow-x: auto;
       scrollbar-width: thin;
     }
     .cad-panel-pill {
@@ -4203,6 +4416,8 @@
       padding: 1px 6px;
       border-radius: 4px;
       font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* BẢNG KÊ THÔNG TIN DỰ ÁN & CÁC KHỐI CAD (CHỈ XEM - READ ONLY) */
@@ -6063,15 +6278,18 @@
 
       <!-- ================= SCREEN 1: CHUYỂN ĐỔI TỌA ĐỘ ================= -->
       <section id="screen-transform" class="screen-view">
-        <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm -->
-        <div class="transform-subtabs">
-          <button id="tabTransSingle" class="btn-subtab active" onclick="appTransform.switchTransformSubTab('single')">
-            📍 Chuyển Đổi Đơn Điểm
-          </button>
-          <button id="tabTransMulti" class="btn-subtab" onclick="appTransform.switchTransformSubTab('multi')">
-            📑 Chuyển Đổi Đa Điểm (<span id="txtMultiPointCount">0 mốc</span>)
-          </button>
-        </div>
+        <div class="transform-split-layout">
+          <!-- CỘT TRÁI: FORM ĐIỀU KHIỂN & CHUYỂN ĐỔI (ĐƠN ĐIỂM & ĐA ĐIỂM) -->
+          <div class="transform-content-column">
+            <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm -->
+            <div class="transform-subtabs">
+              <button id="tabTransSingle" class="btn-subtab active" onclick="appTransform.switchTransformSubTab('single')">
+                📍 Chuyển Đổi Đơn Điểm
+              </button>
+              <button id="tabTransMulti" class="btn-subtab" onclick="appTransform.switchTransformSubTab('multi')">
+                📑 Chuyển Đổi Đa Điểm (<span id="txtMultiPointCount">0 mốc</span>)
+              </button>
+            </div>
 
         <!-- ================= PANEL 1: CHUYỂN ĐỔI ĐƠN ĐIỂM ================= -->
         <div id="panelTransSingle">
@@ -6382,6 +6600,24 @@
               <button id="btnManualSaveMultiProject" class="btn-convert" style="flex: 1; height: 42px; font-size: 13px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #10b981;" onclick="appTransform.saveMultiResultToChosenProject()">
                 💾 LƯU VÀO DỰ ÁN ĐÃ CHỌN
               </button>
+            </div>
+            </div>
+          </div>
+
+          <!-- CỘT PHẢI: BẢN ĐỒ SỐ LIVE TRỰC TIẾP (TỰ ĐỘNG HIỆN TRÊN MÀN HÌNH LỚN >= 1024px) -->
+          <div class="transform-map-column" id="boxTransformLiveMapWrap">
+            <div class="transform-live-map-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 14px;">🗺️</span>
+                <span style="font-weight: 800; color: #38bdf8; font-size: 12px; letter-spacing: 0.3px;">BẢN ĐỒ TỌA ĐỘ TRỰC QUAN (LIVE MAP)</span>
+              </div>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <button type="button" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 10.5px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appTransform.toggleLiveMapLayer()" title="Đổi lớp bản đồ (Vệ tinh / Bản đồ đường)">🛰️ Lớp nền</button>
+                <button type="button" class="btn-sm btn-green" style="height: 22px; padding: 0 6px; font-size: 10.5px;" onclick="appTransform.fitLiveMapBounds()" title="Thu phóng nhìn rõ điểm chuyển đổi">🔍 Bao quát</button>
+              </div>
+            </div>
+            <div class="transform-live-map-body">
+              <div id="transformLiveMap"></div>
             </div>
           </div>
         </div>
@@ -6812,12 +7048,12 @@
               <span style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">📊 CÁC KHỐI ĐÃ VẼ</span>
               <span id="cadPanelShapeCountBadge" class="cad-panel-pill">0 khối</span>
             </div>
-            <div style="display: flex; gap: 5px; align-items: center;">
-              <span id="cadPanelTotalAreaBadge" style="font-size: 10.5px; color: #4ade80; font-weight: 700;">0 m²</span>
-              <button class="btn-sm" style="height: 20px; padding: 0 6px; font-size: 10px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 700;" onclick="appCadTool.openAreaTableModal()" title="Mở bảng kê chi tiết diện tích & tọa độ các đỉnh ranh">📋 Bảng Kê</button>
-              <button class="btn-sm" style="height: 20px; padding: 0 5px; font-size: 10px; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 700;" onclick="appCadTool.resetCustomProjectArea()" title="Khôi phục toàn bộ diện tích & cự ly chiều dài về số đo thực tế">🔄 Tự động đo</button>
-              <button id="btnCadPanelMinimize" class="btn-sm" style="height: 20px; padding: 0 5px; font-size: 10px; background: rgba(255,255,255,0.1); color: #94a3b8;" onclick="appCadTool.toggleMinimizeBlocksPanel()" title="Thu nhỏ / Mở rộng bảng">▾</button>
-              <button class="btn-sm btn-red" style="height: 20px; padding: 0 5px; font-size: 10px;" onclick="appCadTool.toggleBlocksPanel()" title="Đóng bảng">✕</button>
+            <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0; white-space: nowrap;">
+              <span id="cadPanelTotalAreaBadge" style="font-size: 10px; color: #4ade80; font-weight: 700; white-space: nowrap; flex-shrink: 0;">0 m²</span>
+              <button class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 10px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-weight: 700; flex-shrink: 0; white-space: nowrap;" onclick="appCadTool.openAreaTableModal()" title="Mở bảng kê chi tiết diện tích & tọa độ các đỉnh ranh">📋 Bảng Kê</button>
+              <button class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 700; flex-shrink: 0; white-space: nowrap;" onclick="appCadTool.resetCustomProjectArea()" title="Khôi phục toàn bộ diện tích & cự ly chiều dài về số đo thực tế">🔄 Tự đo</button>
+              <button id="btnCadPanelMinimize" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 10px; background: rgba(255,255,255,0.1); color: #94a3b8; flex-shrink: 0;" onclick="appCadTool.toggleMinimizeBlocksPanel()" title="Thu nhỏ / Mở rộng bảng">▾</button>
+              <button class="btn-sm btn-red" style="height: 22px; padding: 0 6px; font-size: 10px; flex-shrink: 0;" onclick="appCadTool.toggleBlocksPanel()" title="Đóng bảng">✕</button>
             </div>
           </div>
           <div id="cadPanelBlocksList" class="cad-blocks-panel-body">
@@ -7725,99 +7961,139 @@
           <!-- ================= PANEL 1: TUYẾN TRẮC DỌC ================= -->
           <div id="profilePanelAlignment" class="profile-panel active">
             <div style="font-size: 12px; color: #94a3b8; margin-bottom: 10px; line-height: 1.5;">
-              Vẽ mặt cắt trắc dọc tự nhiên và đường đỏ thiết kế từ các cọc mốc dự án hoặc chọn trên bản đồ, tính diện tích mặt cắt và khối lượng đào đắp (m³) theo phương pháp diện tích trung bình.
+              Vẽ mặt cắt trắc dọc tự nhiên và đường đỏ thiết kế từ các cọc mốc dự án hoặc chọn trên bản đồ, tính diện tích mặt cắt và khối lượng đào đắp (m³) theo phương pháp diện tích trung bình chuẩn TCVN.
             </div>
 
-            <!-- Thanh công cụ chọn nguồn cọc -->
-            <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
-              <button class="btn-sm" style="flex: 1; height: 34px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;" onclick="appElevationProfile.pickFromMap('alignment')">
-                🗺️ Chọn trên Bản đồ
-              </button>
-              <button class="btn-sm btn-blue" style="height: 34px; padding: 0 12px;" onclick="appElevationProfile.loadFromProject()">
-                📁 Nạp mốc Dự án
-              </button>
-            </div>
+            <div class="profile-split-layout">
+              <!-- CỘT TRÁI: CẤU HÌNH THÔNG SỐ & NGUỒN CỌC MỐC -->
+              <div class="profile-config-column">
+                <!-- Thanh công cụ chọn nguồn cọc -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; font-weight: 700; color: #38bdf8;">📍 Nguồn Cọc Tuyến Trắc Dọc:</span>
+                    <span id="badgeProfilePointCount" style="font-size: 10.5px; font-weight: 700; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 7px; border-radius: 6px;">0 cọc</span>
+                  </div>
+                  <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 34px; font-weight: 700;" onclick="appElevationProfile.loadFromProject()">
+                      📁 Nạp mốc Dự án
+                    </button>
+                    <button type="button" class="btn-sm" style="flex: 1; height: 34px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;" onclick="appElevationProfile.pickFromMap('alignment')">
+                      🗺️ Chọn trên B.Đồ
+                    </button>
+                  </div>
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn-sm" style="flex: 1; height: 28px; font-size: 11px; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 600;" onclick="appElevationProfile.loadSampleAlignment()" title="Nạp nhanh 5 cọc mẫu thử nghiệm">
+                      🛣️ Nạp Tuyến Mẫu (5 Cọc)
+                    </button>
+                    <button type="button" class="btn-sm btn-red" style="height: 28px; padding: 0 8px; font-size: 11px;" onclick="appElevationProfile.clearAlignmentPoints()" title="Xóa danh sách cọc hiện tại">
+                      ✕ Xóa
+                    </button>
+                  </div>
+                </div>
 
-            <!-- Cấu hình thông số đường đỏ & taluy -->
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-              <div style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">⚙️ Thông số Thiết Kế Tuyến (TCVN):</div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Cao độ TK cọc đầu Z₀ (m):</label>
-                  <input type="number" id="txtProfileDesignZ0" class="app-input" inputmode="decimal" value="12.00" step="0.01" style="height: 34px; font-size: 12px;">
+                <!-- Cấu hình thông số đường đỏ & taluy -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                  <div style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">⚙️ Thông số Thiết Kế Tuyến (TCVN):</div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Cao độ TK cọc đầu Z₀ (m):</label>
+                      <input type="number" id="txtProfileDesignZ0" class="app-input" inputmode="decimal" value="12.00" step="0.01" style="height: 34px; font-size: 12px;">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Độ dốc dọc tuyến i (%):</label>
+                      <input type="number" id="txtProfileSlope" class="app-input" inputmode="decimal" value="0.00" step="0.1" style="height: 34px; font-size: 12px;">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Bề rộng nền đường B (m):</label>
+                      <input type="number" id="txtProfileWidthB" class="app-input" inputmode="decimal" value="6.00" step="0.5" style="height: 34px; font-size: 12px;">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Mái dốc Taluy m (1:m):</label>
+                      <input type="number" id="txtProfileTaluyM" class="app-input" inputmode="decimal" value="1.00" step="0.1" style="height: 34px; font-size: 12px;">
+                    </div>
+                  </div>
+                  <button class="btn-sm btn-purple" style="width: 100%; height: 38px; margin-top: 10px; font-size: 12.5px; background: #9333ea; font-weight: 700; border-radius: 8px;" onclick="appElevationProfile.calculateAndRender()">
+                    ⚡ TÍNH TOÁN & CẬP NHẬT TRẮC DỌC
+                  </button>
                 </div>
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Độ dốc dọc tuyến i (%):</label>
-                  <input type="number" id="txtProfileSlope" class="app-input" inputmode="decimal" value="0.00" step="0.1" style="height: 34px; font-size: 12px;">
-                </div>
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Bề rộng nền đường B (m):</label>
-                  <input type="number" id="txtProfileWidthB" class="app-input" inputmode="decimal" value="6.00" step="0.5" style="height: 34px; font-size: 12px;">
-                </div>
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Mái dốc Taluy m (1:m):</label>
-                  <input type="number" id="txtProfileTaluyM" class="app-input" inputmode="decimal" value="1.00" step="0.1" style="height: 34px; font-size: 12px;">
+
+                <!-- Nút xuất file tuyến -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                  <button class="btn-sm btn-green" style="height: 38px; font-size: 11px; font-weight: 700;" onclick="appElevationProfile.exportCsv()">
+                    📊 Xuất CSV
+                  </button>
+                  <button class="btn-sm btn-blue" style="height: 38px; font-size: 11px; font-weight: 700;" onclick="appElevationProfile.exportImage()">
+                    🖼️ Tải PNG
+                  </button>
+                  <button class="btn-sm" style="height: 38px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; border: 1px solid #f59e0b;" onclick="appElevationProfile.exportDxfProfile()">
+                    💻 Xuất DXF
+                  </button>
                 </div>
               </div>
-              <button class="btn-sm btn-purple" style="width: 100%; height: 38px; margin-top: 10px; font-size: 12.5px; background: #9333ea; font-weight: 700;" onclick="appElevationProfile.calculateAndRender()">
-                ⚡ TÍNH TOÁN & CẬP NHẬT TRẮC DỌC
-              </button>
-            </div>
 
-            <!-- Khung Canvas Vẽ Trắc Dọc Kỹ Thuật (Bao gồm Bảng Trích Yếu Tiêu Chuẩn) -->
-            <div style="background: #090d16; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 6px; margin-bottom: 12px; overflow-x: auto;">
-              <canvas id="elevationProfileCanvas" width="800" height="380" style="display: block; width: 100%; height: auto; min-width: 650px; background: #0b1120; border-radius: 4px;"></canvas>
-            </div>
+              <!-- CỘT PHẢI: BẢN VẼ TRẮC DỌC, KPI TỔNG HỢP & BẢNG KÊ CHI TIẾT -->
+              <div class="profile-visual-column">
+                <!-- Khung Canvas Vẽ Trắc Dọc Kỹ Thuật (Bao gồm Bảng Trích Yếu Tiêu Chuẩn) -->
+                <div class="profile-canvas-card">
+                  <div class="profile-canvas-toolbar">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #38bdf8;">📈 Mặt Cắt Trắc Dọc Kỹ Thuật:</span>
+                      <span id="badgeProfileScale" style="font-size: 10px; color: #94a3b8; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px;">TCVN 9436</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appElevationProfile.toggleCutFillShading()" title="Bật/Tắt tô màu phân biệt Đào và Đắp">🎨 Tô Đào/Đắp</button>
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appElevationProfile.zoomCanvas(1.2)" title="Phóng to bề rộng trắc dọc">🔍+</button>
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appElevationProfile.zoomCanvas(0.833)" title="Thu nhỏ bề rộng trắc dọc">🔍-</button>
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appElevationProfile.zoomCanvas(1.0)" title="Khôi phục kích thước chuẩn">↺</button>
+                    </div>
+                  </div>
+                  <div id="profileCanvasScrollWrap" class="profile-canvas-scroll-wrap">
+                    <canvas id="elevationProfileCanvas" width="800" height="400" style="display: block; background: #0b1120; border-radius: 4px;"></canvas>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 10.5px; color: #64748b;">
+                    <span>💡 <i>Chữ trong bảng trích yếu tự xoay dọc chống đè chữ khi cọc gần nhau</i></span>
+                    <span>↔ Vuốt ngang xem trọn tuyến</span>
+                  </div>
+                </div>
 
-            <!-- Bảng kết quả tổng hợp đào đắp tuyến -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 12px;">
-              <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 8px; text-align: center;">
-                <div style="font-size: 11px; color: #fca5a5;">Tổng Đào (V_đào)</div>
-                <div id="resTotalCutVol" style="font-size: 15px; font-weight: 800; color: #ef4444;">0.0 m³</div>
+                <!-- Bảng kết quả tổng hợp đào đắp tuyến -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+                  <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #fca5a5;">Tổng Đào (V_đào)</div>
+                    <div id="resTotalCutVol" style="font-size: 15px; font-weight: 800; color: #ef4444;">0.0 m³</div>
+                  </div>
+                  <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #93c5fd;">Tổng Đắp (V_đắp)</div>
+                    <div id="resTotalFillVol" style="font-size: 15px; font-weight: 800; color: #38bdf8;">0.0 m³</div>
+                  </div>
+                  <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; padding: 8px; text-align: center;">
+                    <div style="font-size: 11px; color: #d8b4fe;">Chênh Lệch</div>
+                    <div id="resBalanceVol" style="font-size: 15px; font-weight: 800; color: #c084fc;">0.0 m³</div>
+                  </div>
+                </div>
+
+                <!-- Bảng kê chi tiết theo cọc -->
+                <div class="profile-table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Cọc</th>
+                        <th>Lý trình (m)</th>
+                        <th>Z_Tự nhiên</th>
+                        <th>Z_Thiết kế</th>
+                        <th>Độ cao TC (m)</th>
+                        <th>V_Đào (m³)</th>
+                        <th>V_Đắp (m³)</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tableVolumeBody" style="color: #e2e8f0;">
+                      <tr>
+                        <td colspan="7" style="padding: 14px; color: #94a3b8;">Chưa có dữ liệu trắc dọc. Bấm tính toán để hiển thị.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 8px; text-align: center;">
-                <div style="font-size: 11px; color: #93c5fd;">Tổng Đắp (V_đắp)</div>
-                <div id="resTotalFillVol" style="font-size: 15px; font-weight: 800; color: #38bdf8;">0.0 m³</div>
-              </div>
-              <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; padding: 8px; text-align: center;">
-                <div style="font-size: 11px; color: #d8b4fe;">Chênh Lệch</div>
-                <div id="resBalanceVol" style="font-size: 15px; font-weight: 800; color: #c084fc;">0.0 m³</div>
-              </div>
-            </div>
-
-            <!-- Bảng kê chi tiết theo cọc -->
-            <div style="max-height: 220px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 12px;">
-              <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; text-align: center;">
-                <thead style="background: rgba(30, 41, 59, 0.9); color: #cbd5e1; position: sticky; top: 0;">
-                  <tr>
-                    <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">Cọc</th>
-                    <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">Lý trình (m)</th>
-                    <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">Z_Tự nhiên</th>
-                    <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">Z_Thiết kế</th>
-                    <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">Độ cao TC (m)</th>
-                    <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">V_Đào (m³)</th>
-                    <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">V_Đắp (m³)</th>
-                  </tr>
-                </thead>
-                <tbody id="tableVolumeBody" style="color: #e2e8f0;">
-                  <tr>
-                    <td colspan="7" style="padding: 14px; color: #94a3b8;">Chưa có dữ liệu trắc dọc. Bấm tính toán để hiển thị.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Nút xuất file tuyến -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
-              <button class="btn-sm btn-green" style="height: 38px; font-size: 11.5px; font-weight: 700;" onclick="appElevationProfile.exportCsv()">
-                📊 Xuất CSV
-              </button>
-              <button class="btn-sm btn-blue" style="height: 38px; font-size: 11.5px; font-weight: 700;" onclick="appElevationProfile.exportImage()">
-                🖼️ Tải Ảnh PNG
-              </button>
-              <button class="btn-sm" style="height: 38px; font-size: 11.5px; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; border: 1px solid #f59e0b;" onclick="appElevationProfile.exportDxfProfile()">
-                💻 Xuất AutoCAD DXF
-              </button>
             </div>
           </div>
 
@@ -7827,140 +8103,168 @@
               📐 <b>Tiêu chuẩn TCVN 4447:2012:</b> Tính khối lượng đào đất hố móng / khu vực san nền từ chu vi đáy, chiều sâu đào, góc nghiêng chân hố đào $\alpha$ (mái dốc taluy $1:m$), hệ số nở rời đất $k_{tx}$ và cung cấp <b>Bản vẽ AutoCAD DXF</b> chi tiết mặt bằng hố đào.
             </div>
 
-            <!-- Nguồn điểm mốc đáy hố đào -->
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 12px; font-weight: 700; color: #6ee7b7;">📍 Chọn mốc đáy hố đào dự kiến:</span>
-                <span id="txtPitPointCountBadge" style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 10px;">0 mốc</span>
-              </div>
-              <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
-                <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 34px; font-weight: 700;" onclick="appElevationProfile.openProjectPointPicker()">
-                  📁 Chọn mốc Dự án
-                </button>
-                <button type="button" class="btn-sm" style="flex: 1; height: 34px; background: rgba(6, 182, 212, 0.2); border: 1px solid #06b6d4; color: #67e8f9; font-weight: 700;" onclick="appElevationProfile.loadPitFromCad()">
-                  📐 Nạp từ CAD Mini
-                </button>
-                <button type="button" class="btn-sm" style="flex: 1; height: 34px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700;" onclick="appElevationProfile.pickFromMap('pit')">
-                  🗺️ Chấm trên Bản đồ
-                </button>
+            <div class="profile-split-layout">
+              <!-- CỘT TRÁI: ĐỈNH MỐC ĐÁY & CẤU HÌNH THÔNG SỐ HỐ ĐÀO -->
+              <div class="profile-config-column">
+                <!-- Nguồn điểm mốc đáy hố đào -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; font-weight: 700; color: #6ee7b7;">📍 Chọn mốc đáy hố đào dự kiến:</span>
+                    <span id="txtPitPointCountBadge" style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 10px;">0 mốc</span>
+                  </div>
+                  <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 34px; font-weight: 700;" onclick="appElevationProfile.openProjectPointPicker()">
+                      📁 Chọn mốc Dự án
+                    </button>
+                    <button type="button" class="btn-sm" style="flex: 1; height: 34px; background: rgba(6, 182, 212, 0.2); border: 1px solid #06b6d4; color: #67e8f9; font-weight: 700;" onclick="appElevationProfile.loadPitFromCad()">
+                      📐 Nạp từ CAD Mini
+                    </button>
+                  </div>
+                  <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <button type="button" class="btn-sm" style="flex: 1; height: 32px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700;" onclick="appElevationProfile.pickFromMap('pit')">
+                      🗺️ Chấm trên Bản đồ
+                    </button>
+                    <button type="button" class="btn-sm" style="flex: 1; height: 32px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; font-weight: 700;" onclick="appElevationProfile.loadSamplePit()" title="Nạp nhanh móng mẫu 6x8m sâu 2.5m">
+                      🚜 Móng Mẫu (4 Đỉnh)
+                    </button>
+                  </div>
+
+                  <!-- Bảng danh sách các đỉnh mốc đáy hố đào đã nạp -->
+                  <div class="profile-table-scroll" style="max-height: 160px; margin-bottom: 0;">
+                    <table style="min-width: 320px;">
+                      <thead>
+                        <tr>
+                          <th>Mốc</th>
+                          <th>X (Bắc - m)</th>
+                          <th>Y (Đông - m)</th>
+                          <th>H_Tự nhiên</th>
+                          <th>Xóa</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tablePitBody" style="color: #e2e8f0;">
+                        <tr><td colspan="5" style="padding: 10px; color: #94a3b8;">Chưa có mốc. Bấm [Chọn mốc Dự án] để bắt đầu.</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Thông số kỹ thuật hố móng TCVN 4447 -->
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                  <div style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">⚙️ Thông số Kỹ thuật Hố Đào (TCVN 4447:2012):</div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Cao độ TK đáy H_đáy (m):</label>
+                      <input type="number" id="txtPitDesignH" class="app-input" inputmode="decimal" value="8.50" step="0.01" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitDesignHChange()">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Chiều sâu đào trung bình h (m):</label>
+                      <input type="number" id="txtPitAvgDepthInput" class="app-input" inputmode="decimal" value="2.50" step="0.01" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitAvgDepthChange()">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Góc nghiêng mái taluy α (°):</label>
+                      <input type="number" id="txtPitSlopeAngleAlpha" class="app-input" inputmode="decimal" value="60.0" step="0.5" min="15" max="85" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitSlopeAngleChange()">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Hệ số mái dốc taluy m (1:m):</label>
+                      <input type="number" id="txtPitTalusM" class="app-input" inputmode="decimal" value="0.58" step="0.05" min="0.1" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitTalusChange()">
+                    </div>
+                  </div>
+
+                  <!-- Gợi ý chọn loại đất TCVN 4447 -->
+                  <div style="margin-bottom: 8px;">
+                    <label class="form-label" style="font-size: 10.5px; color: #94a3b8;">Chọn nhanh loại đất theo TCVN 4447 (Bảng 5):</label>
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                      <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('rock')">Đá phong hóa / Sét chắc (m=0.5, 63°)</button>
+                      <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('clay')">Sét pha, sét dẻo (m=0.67, 56°)</button>
+                      <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('loam')">Cát pha, thịt (m=1.0, 45°)</button>
+                      <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('sand')">Cát rời rạc (m=1.25, 38.6°)</button>
+                    </div>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Hệ số nở rời đất k_tx:</label>
+                      <input type="number" id="txtPitBulkingK" class="app-input" inputmode="decimal" value="1.25" step="0.05" min="1.0" style="height: 34px; font-size: 12px;">
+                    </div>
+                    <div>
+                      <label class="form-label" style="font-size: 11px;">Dung tích xe ben vận chuyển (m³):</label>
+                      <input type="number" id="txtPitTruckV" class="app-input" inputmode="decimal" value="10" step="1" min="1" style="height: 34px; font-size: 12px;">
+                    </div>
+                  </div>
+
+                  <button class="btn-sm" style="width: 100%; height: 40px; margin-top: 10px; font-size: 13px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; font-weight: 700; border: 1px solid #10b981; border-radius: 8px;" onclick="appElevationProfile.calculateAndRenderPit()">
+                    ⚡ TÍNH TOÁN KHỐI LƯỢNG ĐÀO ĐẮP (TCVN 4447)
+                  </button>
+                </div>
+
+                <!-- Nút Hành Động Xuất File CAD & Báo Cáo Khối Lượng -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                  <button class="btn-sm" style="height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 8px;" onclick="appElevationProfile.exportPitDxf()">
+                    💻 Xuất CAD DXF
+                  </button>
+                  <button class="btn-sm" style="height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: #fff; border: 1px solid #06b6d4; border-radius: 8px;" onclick="appElevationProfile.sendPitToCadMini()">
+                    📐 Xem CAD Mini
+                  </button>
+                  <button class="btn-sm btn-green" style="height: 40px; font-size: 11px; font-weight: 700; border-radius: 8px;" onclick="appElevationProfile.exportPitCsv()">
+                    📊 Xuất Excel CSV
+                  </button>
+                </div>
               </div>
 
-              <!-- Bảng danh sách các đỉnh mốc đáy hố đào đã nạp -->
-              <div style="max-height: 180px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
-                  <thead style="background: rgba(30, 41, 59, 0.85); color: #cbd5e1; position: sticky; top: 0;">
-                    <tr>
-                      <th style="padding: 5px;">Mốc</th>
-                      <th style="padding: 5px;">X (Bắc - m)</th>
-                      <th style="padding: 5px;">Y (Đông - m)</th>
-                      <th style="padding: 5px;">H_Tự nhiên (m)</th>
-                      <th style="padding: 5px;">Xóa</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tablePitBody" style="color: #e2e8f0;">
-                    <tr><td colspan="5" style="padding: 10px; color: #94a3b8;">Chưa có mốc. Bấm [Chọn mốc Dự án] để bắt đầu.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              <!-- CỘT PHẢI: BÁO CÁO KHỐI LƯỢNG TCVN & BẢN VẼ MẶT BẰNG CAD HỐ ĐÀO -->
+              <div class="profile-visual-column">
+                <!-- Thẻ Kết Quả Tính Toán Hố Móng -->
+                <div id="cardPitResults" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12.5px; font-weight: 700; color: #34d399;">📊 Báo Cáo Khối Lượng Đào Đắp TCVN 4447:</span>
+                    <span style="font-size: 10.5px; color: #94a3b8; background: rgba(16, 185, 129, 0.15); padding: 1px 6px; border-radius: 4px;">Công thức Chóp cụt</span>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11.5px; line-height: 1.6;">
+                    <div>• Diện tích đáy móng (F₁): <b id="resPitBottomArea" style="color: #fbbf24;">0.00</b> m² (<span id="resPitBottomHa">0.00 ha</span>)</div>
+                    <div>• Chiều sâu đào bình quân (h̄): <b id="resPitAvgDepth" style="color: #f87171;">0.00</b> m</div>
+                    <div>• Chu vi đáy móng (P₁): <b id="resPitBottomPerim" style="color: #cbd5e1;">0.00</b> m</div>
+                    <div>• Độ mở rộng taluy (Δd): <b id="resPitDeltaD" style="color: #38bdf8;">0.00</b> m</div>
+                    <div>• Diện tích miệng hố (F₂): <b id="resPitTopArea" style="color: #6ee7b7;">0.00</b> m² (<span id="resPitTopHa">0.00 ha</span>)</div>
+                    <div>• Góc mái dốc: <b id="resPitSlopeInfo" style="color: #fb923c;">60° (1:0.58)</b></div>
+                  </div>
+                  <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 8px; text-align: center;">
+                      <div style="font-size: 11px; color: #fca5a5;">Khối lượng đào nguyên thổ (V_đào)</div>
+                      <div id="resPitInSituVol" style="font-size: 16px; font-weight: 800; color: #ef4444;">0.0 m³</div>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 8px; text-align: center;">
+                      <div style="font-size: 11px; color: #a7f3d0;">Khối lượng đất tơi xốp (V_nở)</div>
+                      <div id="resPitLooseVol" style="font-size: 16px; font-weight: 800; color: #10b981;">0.0 m³</div>
+                    </div>
+                  </div>
+                  <div style="margin-top: 6px; text-align: center; font-size: 11.5px; color: #cbd5e1;">
+                    🚚 Cần ước tính: <b id="resPitTruckCount" style="color: #38bdf8; font-size: 13px;">0</b> chuyến xe ben (thùng 10 m³)
+                  </div>
+                </div>
 
-            <!-- Thông số kỹ thuật hố móng TCVN 4447 -->
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px; margin-bottom: 12px;">
-              <div style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">⚙️ Thông số Kỹ thuật Hố Đào (TCVN 4447:2012):</div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Cao độ thiết kế đáy H_đáy (m):</label>
-                  <input type="number" id="txtPitDesignH" class="app-input" inputmode="decimal" value="8.50" step="0.01" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitDesignHChange()">
-                </div>
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Chiều sâu đào trung bình h (m):</label>
-                  <input type="number" id="txtPitAvgDepthInput" class="app-input" inputmode="decimal" value="2.50" step="0.01" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitAvgDepthChange()">
-                </div>
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Góc nghiêng mái taluy α (°):</label>
-                  <input type="number" id="txtPitSlopeAngleAlpha" class="app-input" inputmode="decimal" value="60.0" step="0.5" min="15" max="85" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitSlopeAngleChange()">
-                </div>
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Hệ số mái dốc taluy m (1:m):</label>
-                  <input type="number" id="txtPitTalusM" class="app-input" inputmode="decimal" value="0.58" step="0.05" min="0.1" style="height: 34px; font-size: 12px;" oninput="appElevationProfile.onPitTalusChange()">
-                </div>
-              </div>
-
-              <!-- Gợi ý chọn loại đất TCVN 4447 -->
-              <div style="margin-bottom: 8px;">
-                <label class="form-label" style="font-size: 10.5px; color: #94a3b8;">Chọn nhanh loại đất theo TCVN 4447 (Bảng 5):</label>
-                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                  <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('rock')">Đá phong hóa / Sét chắc (m=0.5, 63°)</button>
-                  <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('clay')">Sét pha, sét dẻo (m=0.67, 56°)</button>
-                  <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('loam')">Cát pha, thịt (m=1.0, 45°)</button>
-                  <button type="button" class="btn-quick-tag" onclick="appElevationProfile.applySoilPreset('sand')">Cát rời rạc (m=1.25, 38.6°)</button>
+                <!-- BẢN VẼ MẶT BẰNG CAD HỐ ĐÀO (2D PREVIEW TRỰC QUAN CÓ TALUY TICKS) -->
+                <div class="profile-canvas-card">
+                  <div class="profile-canvas-toolbar">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #38bdf8;">📐 Bản Vẽ Mặt Bằng Hố Đào (Preview CAD 2D):</span>
+                      <span style="font-size: 10px; color: #94a3b8;">Đáy (Vàng) • Miệng (Cyan) • Nét Taluy</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appElevationProfile.togglePitTitleBlock()" title="Bật/Tắt Khung tên bản vẽ">📋 Khung tên</button>
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appElevationProfile.zoomPitCanvas(1.2)" title="Phóng to">🔍+</button>
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appElevationProfile.zoomPitCanvas(0.833)" title="Thu nhỏ">🔍-</button>
+                      <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appElevationProfile.zoomPitCanvas(1.0)" title="Khôi phục">↺</button>
+                    </div>
+                  </div>
+                  <div id="pitCanvasScrollWrap" class="profile-canvas-scroll-wrap">
+                    <canvas id="pitCadCanvas" width="800" height="420" style="display: block; width: 100%; height: auto; min-width: 600px; background: #0b1120; border-radius: 4px;"></canvas>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; font-size: 10.5px; color: #64748b;">
+                    <span>💡 <i>Khung tên tự điều chỉnh vị trí để không che khuất đa giác hố đào</i></span>
+                    <span>↔ Vuốt ngang xem trọn bản vẽ</span>
+                  </div>
                 </div>
               </div>
-
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Hệ số nở rời đất k_tx:</label>
-                  <input type="number" id="txtPitBulkingK" class="app-input" inputmode="decimal" value="1.25" step="0.05" min="1.0" style="height: 34px; font-size: 12px;">
-                </div>
-                <div>
-                  <label class="form-label" style="font-size: 11px;">Dung tích xe ben vận chuyển (m³):</label>
-                  <input type="number" id="txtPitTruckV" class="app-input" inputmode="decimal" value="10" step="1" min="1" style="height: 34px; font-size: 12px;">
-                </div>
-              </div>
-
-              <button class="btn-sm" style="width: 100%; height: 40px; margin-top: 10px; font-size: 13px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; font-weight: 700; border: 1px solid #10b981; border-radius: 8px;" onclick="appElevationProfile.calculateAndRenderPit()">
-                ⚡ TÍNH TOÁN KHỐI LƯỢNG ĐÀO ĐẮP (TCVN 4447)
-              </button>
-            </div>
-
-            <!-- Thẻ Kết Quả Tính Toán Hố Móng -->
-            <div id="cardPitResults" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-              <div style="font-size: 12.5px; font-weight: 700; color: #34d399; margin-bottom: 8px;">📊 Báo Cáo Khối Lượng Đào Đắp TCVN 4447:</div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11.5px; line-height: 1.6;">
-                <div>• Diện tích đáy móng (F₁): <b id="resPitBottomArea" style="color: #fbbf24;">0.00</b> m² (<span id="resPitBottomHa">0.00 ha</span>)</div>
-                <div>• Chiều sâu đào bình quân (h̄): <b id="resPitAvgDepth" style="color: #f87171;">0.00</b> m</div>
-                <div>• Chu vi đáy móng (P₁): <b id="resPitBottomPerim" style="color: #cbd5e1;">0.00</b> m</div>
-                <div>• Độ mở rộng taluy (Δd): <b id="resPitDeltaD" style="color: #38bdf8;">0.00</b> m</div>
-                <div>• Diện tích miệng hố (F₂): <b id="resPitTopArea" style="color: #6ee7b7;">0.00</b> m² (<span id="resPitTopHa">0.00 ha</span>)</div>
-                <div>• Góc mái dốc: <b id="resPitSlopeInfo" style="color: #fb923c;">60° (1:0.58)</b></div>
-              </div>
-              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 8px; text-align: center;">
-                  <div style="font-size: 11px; color: #fca5a5;">Khối lượng đào nguyên thổ (V_đào)</div>
-                  <div id="resPitInSituVol" style="font-size: 16px; font-weight: 800; color: #ef4444;">0.0 m³</div>
-                </div>
-                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 8px; text-align: center;">
-                  <div style="font-size: 11px; color: #a7f3d0;">Khối lượng đất tơi xốp (V_nở)</div>
-                  <div id="resPitLooseVol" style="font-size: 16px; font-weight: 800; color: #10b981;">0.0 m³</div>
-                </div>
-              </div>
-              <div style="margin-top: 6px; text-align: center; font-size: 11.5px; color: #cbd5e1;">
-                🚚 Cần ước tính: <b id="resPitTruckCount" style="color: #38bdf8; font-size: 13px;">0</b> chuyến xe ben (thùng 10 m³)
-              </div>
-            </div>
-
-            <!-- BẢN VẼ MẶT BẰNG CAD HỐ ĐÀO (2D PREVIEW TRỰC QUAN CÓ TALUY TICKS) -->
-            <div style="background: #090d16; border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 8px; padding: 8px; margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 12px; font-weight: 700; color: #38bdf8;">📐 Bản Vẽ Mặt Bằng Hố Đào (Preview CAD 2D):</span>
-                <span style="font-size: 10.5px; color: #94a3b8;">Đáy (Đỏ) • Miệng (Cyan) • Nét Taluy (Vàng)</span>
-              </div>
-              <div style="overflow-x: auto;">
-                <canvas id="pitCadCanvas" width="800" height="420" style="display: block; width: 100%; height: auto; min-width: 600px; background: #0b1120; border-radius: 4px;"></canvas>
-              </div>
-            </div>
-
-            <!-- Nút Hành Động Xuất File CAD & Báo Cáo Khối Lượng -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
-              <button class="btn-sm" style="height: 42px; font-size: 11.5px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 8px;" onclick="appElevationProfile.exportPitDxf()">
-                💻 Xuất Bản Vẽ CAD (DXF)
-              </button>
-              <button class="btn-sm" style="height: 42px; font-size: 11.5px; font-weight: 700; background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: #fff; border: 1px solid #06b6d4; border-radius: 8px;" onclick="appElevationProfile.sendPitToCadMini()">
-                📐 Xem Trên CAD Mini
-              </button>
-              <button class="btn-sm btn-green" style="height: 42px; font-size: 11.5px; font-weight: 700; border-radius: 8px;" onclick="appElevationProfile.exportPitCsv()">
-                📊 Xuất Báo Cáo Excel (CSV)
-              </button>
             </div>
           </div>
         </div>
@@ -8008,19 +8312,22 @@
           <button class="btn-modal-close" onclick="appModal.closeSettings()">✕</button>
         </div>
 
-        <!-- Thanh chuyển Tab: 4 Tab bố trí lưới 2x2 không bao giờ bị tràn hay che khuất -->
+        <!-- Thanh chuyển Tab: 5 Tab chức năng thống nhất ứng dụng -->
         <div class="settings-tab-bar">
           <button id="btnTabStorage" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('storage')">
             ☁️ Lưu dữ liệu
           </button>
           <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')">
-            ⚙️ KTT & Múi chiếu
+            ⚙️ KTT & Múi
+          </button>
+          <button id="btnTabDatetime" class="settings-tab-btn" onclick="appModal.switchSettingsTab('datetime')">
+            ⏰ Ngày & Giờ
           </button>
           <button id="btnTabRtk" class="settings-tab-btn" onclick="appModal.switchSettingsTab('rtk')">
             🛰️ RTK Bluetooth
           </button>
           <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')">
-            📐 Giao hội mất GPS
+            📐 Giao hội GPS
           </button>
         </div>
       </div>
@@ -8139,6 +8446,64 @@
         </div>
         <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 14px; height: 42px; font-size: 13.5px;" onclick="appModal.saveSettings()">
           💾 LƯU CẤU HÌNH KTT
+        </button>
+      </div>
+
+      <!-- THẺ 5.6: CÀI ĐẶT NGÀY GIỜ HỆ THỐNG (ĐỒNG BỘ TỰ ĐỘNG / ĐIỀU CHỈNH THỦ CÔNG) -->
+      <div id="settingsTabContentDatetime" class="settings-tab-content" style="display: none;">
+        <!-- Thẻ hiển thị đồng hồ thời gian hiệu dụng -->
+        <div class="datetime-display-card">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">⏰ Thời gian hệ thống hiệu dụng:</span>
+            <span id="badgeDatetimeMode" style="font-size: 10px; font-weight: 700; background: rgba(16,185,129,0.2); color: #4ade80; border: 1px solid rgba(16,185,129,0.4); padding: 1px 6px; border-radius: 4px;">Tự động (Thiết bị)</span>
+          </div>
+          <div id="clockDatetimeDisplay" class="datetime-digital-clock">--:--:--</div>
+          <div id="lblDatetimeFullDate" style="font-size: 11.5px; color: #cbd5e1; font-weight: 600;">--</div>
+          <div id="lblDatetimeTzInfo" style="font-size: 11px; color: #94a3b8;">Múi giờ: GMT+7:00 (Giờ Đông Dương - ICT)</div>
+        </div>
+
+        <!-- Chế độ Đồng bộ Tự động vs Chỉnh Thủ công -->
+        <div class="form-group">
+          <label class="form-label">Chế độ đồng bộ ngày giờ:</label>
+          <div class="toggle-mui-group">
+            <button type="button" id="btnDatetimeModeAuto" class="btn-mui-toggle active" onclick="appDateTime.setMode('auto')">
+              🔄 Tự động (Hệ thống)
+            </button>
+            <button type="button" id="btnDatetimeModeManual" class="btn-mui-toggle" onclick="appDateTime.setMode('manual')">
+              ✏️ Điều chỉnh thủ công
+            </button>
+          </div>
+        </div>
+
+        <!-- Khung chỉnh thủ công khi được kích hoạt -->
+        <div id="boxManualDatetimeControls" style="display: none; background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label class="form-label" style="font-size: 11px;">Thiết lập ngày và giờ thủ công:</label>
+            <input type="datetime-local" id="inputManualDatetimeLocal" class="app-input" style="font-size: 12.5px; color: #f8fafc;" onchange="appDateTime.onManualInputChange()">
+          </div>
+          <div class="form-group" style="margin-bottom: 6px;">
+            <label class="form-label" style="font-size: 11px;">Múi giờ chuẩn (Timezone):</label>
+            <select id="selManualTimezoneOffset" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appDateTime.onTimezoneChange()">
+              <option value="7" selected>GMT+07:00 (Việt Nam, Thái Lan, Jakarta)</option>
+              <option value="8">GMT+08:00 (Singapore, Bắc Kinh, Manila)</option>
+              <option value="9">GMT+09:00 (Tokyo, Seoul)</option>
+              <option value="0">GMT+00:00 (UTC / Giờ Quốc tế chuẩn)</option>
+              <option value="1">GMT+01:00 (Trung Âu / CET)</option>
+            </select>
+          </div>
+          <div class="btn-group-row">
+            <button type="button" class="btn-sm btn-blue" style="height: 32px; font-size: 11px;" onclick="appDateTime.adjustMinutes(-15)">-15 phút</button>
+            <button type="button" class="btn-sm btn-blue" style="height: 32px; font-size: 11px;" onclick="appDateTime.adjustMinutes(+15)">+15 phút</button>
+            <button type="button" class="btn-sm btn-green" style="height: 32px; font-size: 11px;" onclick="appDateTime.syncToDeviceNow()">⏱️ Lấy giờ máy</button>
+          </div>
+        </div>
+
+        <div style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;">
+          💡 <i>Dấu ngày giờ hệ thống sẽ được tự động gắn kèm khi lưu sổ đo mốc, xuất nhật ký công trình, xuất file CAD/DXF và in tem thủy ấn Camera.</i>
+        </div>
+
+        <button type="button" class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px;" onclick="appDateTime.saveSettings()">
+          💾 LƯU CẤU HÌNH NGÀY GIỜ
         </button>
       </div>
 
