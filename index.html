@@ -6168,10 +6168,13 @@
               </button>
             </div>
           </div>
-          <div class="btn-group-row">
+          <div class="btn-group-row" style="flex-wrap: wrap; gap: 8px;">
             <button class="btn-sm" onclick="appData.renameCurrentProject()">✏️ Đổi tên</button>
-            <button class="btn-sm btn-red" onclick="appData.deleteCurrentProject()">🗑️ Xóa file</button>
+            <button class="btn-sm btn-red" onclick="appData.deleteCurrentProject()" title="Chuyển dự án hiện tại vào thùng rác (lưu 30 ngày)">🗑️ Xóa file</button>
             <button class="btn-sm btn-green" onclick="appModal.openImportProjectModal()">📥 Nhập File / Mẫu</button>
+            <button class="btn-sm" style="background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.45); color: #fca5a5; font-weight: 700;" onclick="appData.openProjectTrashModal()" id="btnOpenTrashModal" title="Xem danh sách các dự án đã xóa trong vòng 30 ngày">
+              🗑️ Thùng rác (<span id="txtTrashNavBadge">0</span>)
+            </button>
           </div>
         </div>
 
@@ -8313,6 +8316,43 @@
       </div>
     </div>
   </div>
+
+  <!-- ================= MODAL THÙNG RÁC DỰ ÁN (LƯU TRỮ 30 NGÀY) ================= -->
+  <div id="modalProjectTrash" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px; max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="modal-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(239,68,68,0.25); padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">🗑️</span>
+          <span style="color: #f87171; font-weight: 800; font-size: 14px;">THÙNG RÁC DỰ ÁN (LƯU TRỮ 30 NGÀY)</span>
+        </div>
+        <button class="btn-modal-close" onclick="appData.closeProjectTrashModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 8px 12px; font-size: 11px; color: #fca5a5; line-height: 1.5;">
+          💡 <b>Quy chế tự động dọn dẹp:</b> Các dự án bị xóa sẽ được bảo lưu an toàn tại đây trong <b>30 ngày</b> để bạn có thể khôi phục lại bất cứ lúc nào. Sau 30 ngày, hệ thống sẽ tự động xóa vĩnh viễn khỏi thiết bị để giải phóng bộ nhớ.
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #94a3b8;">
+          <span>Danh sách dự án trong thùng rác (<b id="txtTrashTotalCount" style="color: #f87171;">0</b>):</span>
+          <button type="button" class="btn-sm btn-red" style="height: 26px; padding: 0 10px; font-size: 11px;" onclick="appData.emptyTrash()" id="btnEmptyTrashAll">
+            🗑️ Dọn sạch thùng rác
+          </button>
+        </div>
+
+        <div id="projectTrashListContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 120px; max-height: 380px; overflow-y: auto; padding-right: 2px;">
+          <!-- Render danh sách dự án trong thùng rác bằng JS -->
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button class="btn-sm" style="height: 36px; padding: 0 16px;" onclick="appData.closeProjectTrashModal()">
+          ✕ Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- NAVIGATION TREE DRAWER (CÂY THƯ MỤC CHỨC NĂNG - CHUYỂN NHANH) -->
   <div id="navTreeBackdrop" class="nav-tree-backdrop" onclick="appNav.closeTreeMenu()"></div>
   <aside id="navTreeDrawer" class="nav-tree-drawer">

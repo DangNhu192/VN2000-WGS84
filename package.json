@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/geodesy.test.js && node tests/minicad_overrides.test.js && node tests/layout_anti_collision.test.js && node tests/smart_import_and_blocks.test.js"
+    "test": "node tests/geodesy.test.js && node tests/minicad_overrides.test.js && node tests/layout_anti_collision.test.js && node tests/smart_import_and_blocks.test.js && node tests/project_trash.test.js"
   },
   "keywords": [
     "vn2000",

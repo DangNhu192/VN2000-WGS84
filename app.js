@@ -3274,6 +3274,8 @@ const appData = {
 
         appData.populateProjectSelect();
         appData.updateSyncUI();
+        appData.purgeExpiredTrash();
+        appData.updateTrashBadge();
     },
 
     populateProjectSelect() {
@@ -4165,12 +4167,357 @@ function doGet(e) {
         showToast("📋 Đã sao chép mã Apps Script Pro v4.0! Mở Tiện ích mở rộng > Apps Script trên Google Sheet để dán.", true);
     },
 
+    // ================= HỆ THỐNG THÙNG RÁC DỰ ÁN (LƯU TRỮ 30 NGÀY & TỰ ĐỘNG DỌN DẸP) =================
+    TRASH_KEY: 'vn2k_trash_projects',
+    TRASH_DAYS: 30,
+
+    getTrashProjects() {
+        try {
+            const raw = localStorage.getItem(this.TRASH_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    saveTrashProjects(list) {
+        try {
+            localStorage.setItem(this.TRASH_KEY, JSON.stringify(list || []));
+            this.updateTrashBadge();
+        } catch (e) {
+            console.warn('Lưu thùng rác thất bại:', e);
+        }
+    },
+
+    isProjectInTrash(projName) {
+        if (!projName) return false;
+        const list = this.getTrashProjects();
+        return list.some(item => item.name === projName);
+    },
+
+    purgeExpiredTrash() {
+        const list = this.getTrashProjects();
+        if (!list || list.length === 0) return;
+        const now = Date.now();
+        const remaining = list.filter(item => {
+            const expiresAt = item.expiresAt || (item.deletedAt + this.TRASH_DAYS * 24 * 60 * 60 * 1000);
+            return now < expiresAt;
+        });
+        if (remaining.length !== list.length) {
+            this.saveTrashProjects(remaining);
+            console.log(`Đã tự động xóa vĩnh viễn ${list.length - remaining.length} dự án quá hạn 30 ngày trong thùng rác.`);
+        }
+    },
+
+    updateTrashBadge() {
+        const list = this.getTrashProjects();
+        const count = (list && Array.isArray(list)) ? list.length : 0;
+        const navBadge = document.getElementById('txtTrashNavBadge');
+        if (navBadge) navBadge.innerText = count;
+        const totalCountEl = document.getElementById('txtTrashTotalCount');
+        if (totalCountEl) totalCountEl.innerText = count;
+        const btnEmpty = document.getElementById('btnEmptyTrashAll');
+        if (btnEmpty) btnEmpty.style.display = count > 0 ? 'inline-block' : 'none';
+    },
+
+    moveToTrash(projectName) {
+        const cur = projectName || AppState.currentProject;
+        if (!cur) return;
+
+        // 1. Quét dọn các dự án cũ đã quá 30 ngày trước
+        this.purgeExpiredTrash();
+
+        // 2. Thu thập dữ liệu mốc và CAD của dự án cần xóa
+        const pts = this.getPoints(cur);
+        const cleanKey = (typeof appCadTool !== 'undefined') ? appCadTool.getProjectStorageKey(cur) : cur.replace(/(\.(csv|xlsx|xls|txt))+$/i, "").trim();
+        let cadShapes = [];
+        try {
+            const rawShapes = localStorage.getItem('vn2k_cad_shapes_' + cleanKey) || localStorage.getItem('vn2k_cad_shapes_' + cur);
+            if (rawShapes) {
+                const parsed = JSON.parse(rawShapes);
+                cadShapes = parsed.savedShapes || [];
+            } else if (typeof appCadTool !== 'undefined' && (cur === AppState.currentProject) && appCadTool.savedShapes) {
+                cadShapes = JSON.parse(JSON.stringify(appCadTool.savedShapes));
+            }
+        } catch(e) {}
+
+        // 3. Đưa vào thùng rác với thời hạn lưu 30 ngày
+        const trashList = this.getTrashProjects();
+        const trashItem = {
+            id: 'trash_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            name: cur,
+            deletedAt: Date.now(),
+            expiresAt: Date.now() + (this.TRASH_DAYS * 24 * 60 * 60 * 1000),
+            points: pts,
+            cadShapes: cadShapes,
+            pointCount: pts.length,
+            shapeCount: cadShapes.length
+        };
+        trashList.push(trashItem);
+        this.saveTrashProjects(trashList);
+
+        // 4. TRIỆT TIÊU TOÀN BỘ DỮ LIỆU CŨ TRONG STORAGE ĐỂ KHÔNG TỰ ĐỘNG KHÔI PHỤC
+        localStorage.removeItem(`vn2k_pts_${cur}`);
+        localStorage.removeItem(`vn2k_cad_shapes_${cleanKey}`);
+        localStorage.removeItem(`vn2k_cad_shapes_${cur}`);
+
+        // 5. Loại bỏ khỏi danh sách dự án hoạt động
+        AppState.projectsList = AppState.projectsList.filter(p => p !== cur);
+
+        // 6. TRIỆT TIÊU BỘ NHỚ RAM CỦA MINICAD (CHỐNG LỖI TỰ ĐỘNG THÊM VÀO DỰ ÁN MỚI)
+        if (typeof appCadTool !== 'undefined') {
+            clearTimeout(appCadTool._persistTimer);
+            localStorage.removeItem(appCadTool.SESSION_KEY);
+            appCadTool.savedShapes = [];
+            appCadTool.vertices = [];
+            if (appCadTool.clearAllGeometry) {
+                appCadTool.clearAllGeometry();
+            }
+            if (appCadTool.layers && appCadTool.layers.group) {
+                appCadTool.layers.group.clearLayers();
+            }
+        }
+
+        // 7. Làm sạch các mốc của dự án cũ trên bản đồ
+        if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
+        if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
+        if (AppState.projectPolygonLayer && AppState.leafletMap) {
+            AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
+            AppState.projectPolygonLayer = null;
+        }
+
+        // 8. Xác định dự án tiếp theo
+        if (AppState.projectsList.length === 0) {
+            const newBlank = "DuAn_Moi.csv";
+            AppState.projectsList.push(newBlank);
+            AppState.currentProject = newBlank;
+            this.savePoints(newBlank, []);
+        } else {
+            AppState.currentProject = AppState.projectsList[0];
+        }
+        localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+        localStorage.setItem('vn2k_cur_project', AppState.currentProject);
+
+        // 9. Nạp dữ liệu của dự án mới cho MiniCAD (nếu có)
+        if (typeof appCadTool !== 'undefined') {
+            appCadTool.loadShapesForProject(AppState.currentProject);
+            if (appCadTool.renderGeometry) appCadTool.renderGeometry();
+            if (appCadTool.renderBlocksPanel) appCadTool.renderBlocksPanel();
+            if (appCadTool.updateUi) appCadTool.updateUi();
+        }
+
+        // 10. Cập nhật giao diện
+        this.populateProjectSelect();
+        appNav.updateBanner();
+        this.refreshTable();
+        if (window.appMap && appMap.populateMapProjectSelect) {
+            appMap.populateMapProjectSelect(AppState.currentProject);
+        }
+        if (window.appMap && appMap.loadProjectMarkers) {
+            appMap.loadProjectMarkers();
+        }
+
+        showToast(`🗑️ Đã chuyển "${cur}" vào Thùng rác (Lưu 30 ngày)!`, true);
+    },
+
+    restoreProjectFromTrash(trashId) {
+        const list = this.getTrashProjects();
+        const idx = list.findIndex(item => item.id === trashId);
+        if (idx === -1) {
+            showToast("⚠️ Không tìm thấy dự án trong thùng rác!", true);
+            return;
+        }
+
+        const item = list[idx];
+        let restoreName = item.name;
+
+        // Nếu tên dự án đã tồn tại ở danh sách ngoài, tự động đổi tên chống ghi đè
+        if (AppState.projectsList.includes(restoreName)) {
+            const base = restoreName.replace(/(\.(csv|xlsx|xls|txt))+$/i, "");
+            restoreName = `${base}_KhoiPhuc_${Date.now().toString().slice(-4)}.csv`;
+        }
+
+        // Khôi phục mốc
+        this.savePoints(restoreName, item.points || []);
+
+        // Khôi phục CAD shapes nếu có
+        if (item.cadShapes && item.cadShapes.length > 0 && typeof appCadTool !== 'undefined') {
+            const cleanKey = appCadTool.getProjectStorageKey(restoreName);
+            const data = { savedShapes: item.cadShapes, mode: 'polygon', updated: Date.now() };
+            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(data));
+            if (restoreName !== cleanKey) {
+                localStorage.setItem('vn2k_cad_shapes_' + restoreName, JSON.stringify(data));
+            }
+        }
+
+        // Xóa khỏi thùng rác
+        list.splice(idx, 1);
+        this.saveTrashProjects(list);
+
+        // Thêm lại vào danh sách dự án hoạt động
+        AppState.projectsList.push(restoreName);
+        localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+        AppState.currentProject = restoreName;
+        localStorage.setItem('vn2k_cur_project', restoreName);
+
+        // Nạp lại MiniCAD
+        if (typeof appCadTool !== 'undefined') {
+            appCadTool.loadShapesForProject(restoreName);
+            if (appCadTool.renderGeometry) appCadTool.renderGeometry();
+            if (appCadTool.renderBlocksPanel) appCadTool.renderBlocksPanel();
+        }
+
+        // Cập nhật giao diện
+        this.populateProjectSelect();
+        appNav.updateBanner();
+        this.refreshTable();
+        this.renderTrashList();
+        if (window.appMap && appMap.populateMapProjectSelect) {
+            appMap.populateMapProjectSelect(restoreName);
+        }
+        if (window.appMap && appMap.loadProjectMarkers) {
+            appMap.loadProjectMarkers();
+        }
+
+        showToast(`✓ Đã khôi phục dự án "${restoreName}" thành công!`, true);
+    },
+
+    deleteProjectPermanently(trashId) {
+        const list = this.getTrashProjects();
+        const item = list.find(i => i.id === trashId);
+        if (!item) return;
+
+        if (!confirm(`Xác nhận xóa vĩnh viễn dự án "${item.name}"? Dữ liệu sẽ không thể khôi phục!`)) {
+            return;
+        }
+
+        const remaining = list.filter(i => i.id !== trashId);
+        this.saveTrashProjects(remaining);
+        this.renderTrashList();
+        showToast(`✓ Đã xóa vĩnh viễn dự án "${item.name}" khỏi thiết bị!`);
+    },
+
+    emptyTrash() {
+        const list = this.getTrashProjects();
+        if (list.length === 0) {
+            showToast("Thùng rác hiện đang trống!");
+            return;
+        }
+        if (!confirm(`Bạn có chắc muốn dọn sạch tất cả ${list.length} dự án trong thùng rác? Toàn bộ dữ liệu sẽ bị xóa vĩnh viễn!`)) {
+            return;
+        }
+        this.saveTrashProjects([]);
+        this.renderTrashList();
+        showToast("✓ Đã dọn sạch toàn bộ thùng rác!");
+    },
+
+    openProjectTrashModal() {
+        this.purgeExpiredTrash();
+        const modal = document.getElementById('modalProjectTrash');
+        if (modal) modal.classList.add('active');
+        this.renderTrashList();
+    },
+
+    closeProjectTrashModal() {
+        const modal = document.getElementById('modalProjectTrash');
+        if (modal) modal.classList.remove('active');
+    },
+
+    renderTrashList() {
+        const container = document.getElementById('projectTrashListContainer');
+        if (!container) return;
+
+        const list = this.getTrashProjects();
+        this.updateTrashBadge();
+
+        if (list.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 12px; line-height: 1.6;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🗑️</div>
+                    <b style="color: #cbd5e1; font-size: 13px;">Thùng rác đang trống</b><br>
+                    Các dự án bị xóa sẽ được lưu trữ an toàn tại đây trong 30 ngày trước khi tự động dọn dẹp.
+                </div>
+            `;
+            return;
+        }
+
+        const now = Date.now();
+        let html = '';
+
+        list.slice().reverse().forEach(item => {
+            const expiresAt = item.expiresAt || (item.deletedAt + this.TRASH_DAYS * 24 * 60 * 60 * 1000);
+            const daysLeft = Math.max(1, Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000)));
+            const delDateStr = new Date(item.deletedAt).toLocaleDateString('vi-VN', {
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            const ptsCount = item.pointCount || (item.points ? item.points.length : 0);
+            const shapesCount = item.shapeCount || (item.cadShapes ? item.cadShapes.length : 0);
+
+            html += `
+                <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                        <div>
+                            <div style="font-weight: 700; color: #f8fafc; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                                <span>📁</span>
+                                <span>${item.name}</span>
+                            </div>
+                            <div style="font-size: 10.5px; color: #94a3b8; margin-top: 2px;">
+                                Đã xóa lúc: ${delDateStr} • Chứa: <b style="color: #38bdf8;">${ptsCount}</b> mốc, <b style="color: #4ade80;">${shapesCount}</b> khối CAD
+                            </div>
+                        </div>
+                        <span style="font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(239, 68, 68, 0.2); color: #fca5a5; font-weight: 700; white-space: nowrap;">
+                            ⏳ Còn ${daysLeft} ngày
+                        </span>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
+                        <button type="button" class="btn-sm btn-blue" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="appData.restoreProjectFromTrash('${item.id}')" title="Khôi phục lại dự án và dữ liệu mốc">
+                            ♻️ Khôi phục
+                        </button>
+                        <button type="button" class="btn-sm btn-red" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="appData.deleteProjectPermanently('${item.id}')" title="Xóa vĩnh viễn khỏi thiết bị ngay bây giờ">
+                            ❌ Xóa vĩnh viễn
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    },
+
     onProjectSelectChange() {
         const sel = document.getElementById('selProjectFiles');
-        AppState.currentProject = sel.value;
+        if (!sel || !sel.value) return;
+        const oldProj = AppState.currentProject;
+        const newProj = sel.value;
+
+        if (oldProj !== newProj) {
+            // Lưu CAD của dự án cũ nếu hợp lệ
+            if (typeof appCadTool !== 'undefined' && AppState.projectsList.includes(oldProj) && !this.isProjectInTrash(oldProj)) {
+                appCadTool.saveShapesForProject(oldProj);
+            }
+            // Dọn RAM và nạp CAD của dự án mới
+            if (typeof appCadTool !== 'undefined') {
+                appCadTool.savedShapes = [];
+                appCadTool.vertices = [];
+                if (!appCadTool.loadShapesForProject(newProj)) {
+                    appCadTool.reconstructShapesFromPoints(newProj);
+                }
+                if (appCadTool.renderGeometry) appCadTool.renderGeometry();
+                if (appCadTool.renderBlocksPanel) appCadTool.renderBlocksPanel();
+            }
+        }
+
+        AppState.currentProject = newProj;
         localStorage.setItem('vn2k_cur_project', AppState.currentProject);
         appNav.updateBanner();
         appData.refreshTable();
+        if (window.appMap && appMap.populateMapProjectSelect) {
+            appMap.populateMapProjectSelect(newProj);
+        }
+        if (window.appMap && appMap.loadProjectMarkers) {
+            appMap.loadProjectMarkers();
+        }
         showToast(`Đã chuyển sang dự án: ${AppState.currentProject}`);
     },
 
@@ -4214,24 +4561,12 @@ function doGet(e) {
     },
 
     deleteCurrentProject() {
-        if (AppState.projectsList.length <= 1) {
-            showToast("⚠️ Không thể xóa file dự án duy nhất còn lại!", true);
+        const cur = AppState.currentProject;
+        if (!cur) return;
+        if (!confirm(`Bạn có chắc chắn muốn chuyển file "${cur}" vào Thùng rác (Lưu trữ an toàn 30 ngày)?`)) {
             return;
         }
-        if (!confirm(`Bạn có chắc chắn muốn xóa toàn bộ file "${AppState.currentProject}" không?`)) return;
-
-        const cur = AppState.currentProject;
-        localStorage.removeItem(`vn2k_pts_${cur}`);
-        AppState.projectsList = AppState.projectsList.filter(p => p !== cur);
-        localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
-
-        AppState.currentProject = AppState.projectsList[0];
-        localStorage.setItem('vn2k_cur_project', AppState.currentProject);
-
-        appData.populateProjectSelect();
-        appNav.updateBanner();
-        appData.refreshTable();
-        showToast("✓ Đã xóa file dự án!");
+        this.moveToTrash(cur);
     },
 
     refreshTable() {
@@ -12248,6 +12583,13 @@ const appCadTool = {
     saveShapesForProject(projName) {
         const curProj = projName || AppState.currentProject;
         if (!curProj) return;
+
+        // BẢO VỆ CHỐNG TỰ ĐỘNG THÊM VÀO DỰ ÁN ĐÃ XÓA HOẶC TRONG THÙNG RÁC
+        if (typeof appData !== 'undefined') {
+            if (appData.isProjectInTrash && appData.isProjectInTrash(curProj)) return;
+            if (!AppState.projectsList.includes(curProj)) return;
+        }
+
         try {
             const cleanKey = this.getProjectStorageKey(curProj);
             const data = { savedShapes: this.savedShapes || [], mode: this.mode, updated: Date.now() };
@@ -12269,6 +12611,12 @@ const appCadTool = {
     syncShapesToProjectPoints(projName) {
         const curProj = projName || AppState.currentProject;
         if (!curProj || !this.savedShapes || this.savedShapes.length === 0) return;
+
+        // BẢO VỆ CHỐNG TỰ ĐỘNG THÊM VÀO DỰ ÁN ĐÃ XÓA HOẶC TRONG THÙNG RÁC
+        if (typeof appData !== 'undefined') {
+            if (appData.isProjectInTrash && appData.isProjectInTrash(curProj)) return;
+            if (!AppState.projectsList.includes(curProj)) return;
+        }
 
         try {
             const allPoints = [];
@@ -12448,8 +12796,14 @@ const appCadTool = {
     restoreSession() {
         try {
             const curProj = AppState.currentProject || localStorage.getItem('vn2k_cur_project');
+            if (typeof appData !== 'undefined' && appData.isProjectInTrash && appData.isProjectInTrash(curProj)) {
+                this.savedShapes = [];
+                this.vertices = [];
+                localStorage.removeItem(this.SESSION_KEY);
+                return;
+            }
             let loaded = false;
-            if (curProj) {
+            if (curProj && AppState.projectsList.includes(curProj)) {
                 loaded = this.loadShapesForProject(curProj);
             }
             if (!loaded) {
