@@ -4643,6 +4643,36 @@
       color: #38bdf8;
       box-shadow: 0 0 6px rgba(56, 189, 248, 0.35);
     }
+    .cad-status-hud .cad-hud-btn-sunlight.active {
+      background: rgba(234, 179, 8, 0.35);
+      border-color: #facc15;
+      color: #fde047;
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+    }
+    .cad-status-hud .cad-hud-measure {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      background: rgba(8, 47, 73, 0.45);
+      padding: 1px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+    }
+    .cad-status-hud .cad-hud-area-val {
+      color: #38bdf8;
+      font-weight: 700;
+    }
+    .cad-status-hud .cad-hud-perimeter-val {
+      color: #4ade80;
+      font-weight: 700;
+    }
+    .cad-status-hud .cad-hud-divider-sub {
+      width: 1px;
+      height: 10px;
+      background: rgba(148, 163, 184, 0.3);
+      margin: 0 1px;
+    }
     .cad-status-hud .cad-hud-tips {
       font-size: 10.5px;
       color: #94a3b8;
@@ -4661,6 +4691,268 @@
         padding: 3px 8px;
         font-size: 10px;
       }
+    }
+
+    /* Floating One-Hand Thumb Action Bar cho MiniCAD Thực Địa */
+    .cad-thumb-action-bar {
+      position: absolute;
+      bottom: 54px;
+      right: 12px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      z-index: 2470;
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 4px 6px;
+      border-radius: 28px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    }
+    .cad-thumb-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 38px;
+      min-width: 44px;
+      padding: 0 10px;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #f8fafc;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s ease;
+    }
+    .cad-thumb-btn:active {
+      transform: scale(0.94);
+    }
+    .cad-thumb-btn .thumb-icon {
+      font-size: 14px;
+    }
+    .cad-thumb-btn-primary {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      border-color: #34d399;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+    }
+    .cad-thumb-btn-danger {
+      background: rgba(239, 68, 68, 0.18);
+      border-color: rgba(239, 68, 68, 0.45);
+      color: #f87171;
+    }
+    @media (max-width: 640px) {
+      .cad-thumb-action-bar {
+        bottom: calc(var(--sat-safe-bottom) + 104px);
+        right: 8px;
+        gap: 5px;
+        padding: 3px 5px;
+      }
+      .cad-thumb-btn {
+        height: 36px;
+        min-width: 40px;
+        padding: 0 8px;
+        font-size: 11px;
+      }
+      .cad-thumb-btn .thumb-txt {
+        display: inline;
+      }
+    }
+
+    /* Touch Magnifier Loupe (Kính Lúp Phóng To Bắt Điểm Osnap Chống Ngón Tay Che) */
+    .cad-touch-loupe {
+      position: absolute;
+      width: 140px;
+      height: 180px;
+      pointer-events: none;
+      z-index: 3500;
+      transform: translate(-50%, -100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: opacity 0.15s ease;
+      filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.85));
+    }
+    .cad-loupe-header {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 6px;
+      padding: 2px 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9.5px;
+      font-family: var(--font-mono);
+      color: #f8fafc;
+      margin-bottom: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .cad-loupe-badge {
+      color: #38bdf8;
+      font-weight: 800;
+    }
+    .cad-loupe-coords {
+      color: #fef08a;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    .cad-loupe-circle {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid #38bdf8;
+      background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+      box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.9), inset 0 0 16px rgba(0, 0, 0, 0.7);
+    }
+    .cad-loupe-circle.snapped {
+      border-color: #fbbf24;
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.4), 0 0 20px rgba(251, 191, 36, 0.7);
+    }
+    .cad-loupe-map {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .cad-loupe-reticle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .reticle-hair-h {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 2px #000;
+      transform: translateY(-0.5px);
+    }
+    .reticle-hair-v {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 2px #000;
+      transform: translateX(-0.5px);
+    }
+    .reticle-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.5px dashed #38bdf8;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+      transition: all 0.15s ease;
+    }
+    .cad-loupe-circle.snapped .reticle-hair-h,
+    .cad-loupe-circle.snapped .reticle-hair-v {
+      background: #fbbf24;
+    }
+    .cad-loupe-circle.snapped .reticle-ring {
+      border-color: #fbbf24;
+      border-style: solid;
+      width: 22px;
+      height: 22px;
+      box-shadow: 0 0 10px #fbbf24;
+    }
+    .cad-loupe-snap-tag {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(245, 158, 11, 0.95);
+      color: #000;
+      font-weight: 800;
+      font-size: 9px;
+      padding: 1px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+      z-index: 20;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    }
+    .cad-loupe-footer {
+      margin-top: 3px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 9.5px;
+      font-family: var(--font-mono);
+      color: #38bdf8;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    /* CHẾ ĐỘ TƯƠNG PHẢN CAO NGOÀI TRỜI NẮNG (SUNLIGHT FIELD MODE) */
+    body.sunlight-mode .cad-status-hud {
+      background: #000000 !important;
+      border: 2px solid #facc15 !important;
+      box-shadow: 0 0 16px rgba(250, 204, 21, 0.5) !important;
+    }
+    body.sunlight-mode .cad-hud-label {
+      color: #ffffff !important;
+      font-weight: 900 !important;
+      font-size: 11px !important;
+    }
+    body.sunlight-mode .cad-hud-val,
+    body.sunlight-mode .cad-hud-area-val,
+    body.sunlight-mode .cad-hud-perimeter-val {
+      color: #facc15 !important;
+      font-weight: 800 !important;
+      font-size: 12.5px !important;
+      text-shadow: 0 0 2px #000 !important;
+    }
+    body.sunlight-mode .cad-hud-btn {
+      background: #18181b !important;
+      border: 1.5px solid #facc15 !important;
+      color: #facc15 !important;
+      font-weight: 800 !important;
+      font-size: 11px !important;
+    }
+    body.sunlight-mode .cad-hud-btn.active {
+      background: #facc15 !important;
+      color: #000000 !important;
+      border-color: #ffffff !important;
+    }
+    body.sunlight-mode .cad-thumb-btn {
+      background: #000000 !important;
+      border: 2px solid #facc15 !important;
+      color: #facc15 !important;
+      font-weight: 800 !important;
+    }
+    body.sunlight-mode .cad-thumb-btn-primary {
+      background: #15803d !important;
+      border-color: #facc15 !important;
+      color: #ffffff !important;
+    }
+    body.sunlight-mode .cad-vertex-badge {
+      outline: 2px solid #000000 !important;
+      box-shadow: 0 0 8px #facc15 !important;
+      font-weight: 800 !important;
+    }
+    body.sunlight-mode .cad-touch-loupe .cad-loupe-circle {
+      border: 3.5px solid #facc15 !important;
+      box-shadow: 0 0 0 2px #000, 0 0 25px rgba(250, 204, 21, 0.8) !important;
     }
 
     /* Modal Bảng Diện Tích & Bảng Kê Tọa Độ */
@@ -6142,16 +6434,63 @@
             <span id="cadHudCoordX" class="cad-hud-val">X: --</span>
             <span id="cadHudCoordY" class="cad-hud-val">Y: --</span>
           </div>
+          <div class="cad-hud-divider" id="cadHudMeasureDivider"></div>
+          <div class="cad-hud-measure" id="cadHudMeasure">
+            <span class="cad-hud-label" title="Diện tích tức thời">S:</span>
+            <span id="cadHudArea" class="cad-hud-val cad-hud-area-val">0.00 m²</span>
+            <span class="cad-hud-divider-sub"></span>
+            <span class="cad-hud-label" title="Chu vi / Chiều dài cạnh">P:</span>
+            <span id="cadHudPerimeter" class="cad-hud-val cad-hud-perimeter-val">0.00 m</span>
+          </div>
           <div class="cad-hud-divider"></div>
           <div class="cad-hud-toggles">
             <button type="button" id="btnCadHudSnap" class="cad-hud-btn active" onclick="appCadTool.toggleSnap()" title="Bật/Tắt Bắt điểm Osnap [F3/S]">🧲 SNAP</button>
             <button type="button" id="btnCadHudSnapLine" class="cad-hud-btn active" onclick="appCadTool.toggleSnapLine()" title="Bắt line liền kề [B]">🔗 LINE</button>
             <button type="button" id="btnCadHudZoomExtents" class="cad-hud-btn" onclick="appCadTool.zoomExtents()" title="Zoom toàn cảnh [Z / Chuột giữa x2]">🔍 EXTENTS</button>
+            <button type="button" id="btnCadHudSunlight" class="cad-hud-btn cad-hud-btn-sunlight" onclick="appCadTool.toggleSunlightMode()" title="Bật/Tắt chế độ tương phản cao ngoài nắng">☀️ NẮNG</button>
           </div>
           <div class="cad-hud-divider"></div>
           <div class="cad-hud-tips" id="cadHudQuickTips">
             <span class="cad-hud-tip-text">💡 <b>Esc</b>: Hủy | <b>Space/Chuột phải</b>: Khép góc/Lưu | <b>Chuột giữa kéo</b>: Pan</span>
           </div>
+        </div>
+
+        <!-- Floating One-Hand Thumb Action Bar cho MiniCAD Thực Địa -->
+        <div id="cadThumbActionBar" class="cad-thumb-action-bar" style="display: none;">
+          <button type="button" id="btnCadThumbUndo" class="cad-thumb-btn" onclick="appCadTool.undoLastVertex()" title="Hoàn tác đỉnh vừa vẽ [Ctrl+Z / U]">
+            <span class="thumb-icon">↩</span>
+            <span class="thumb-txt">Lùi đỉnh</span>
+          </button>
+          <button type="button" id="btnCadThumbGps" class="cad-thumb-btn" onclick="appCadTool.addCurrentGpsVertex()" title="Lấy vị trí GPS hiện tại làm đỉnh mốc">
+            <span class="thumb-icon">📍</span>
+            <span class="thumb-txt">Lấy GPS</span>
+          </button>
+          <button type="button" id="btnCadThumbClose" class="cad-thumb-btn cad-thumb-btn-primary" onclick="appCadTool.finishCurrentShape()" title="Khép góc & Lưu khối [Space / Enter]">
+            <span class="thumb-icon">✓</span>
+            <span class="thumb-txt">Khép & Lưu</span>
+          </button>
+          <button type="button" id="btnCadThumbCancel" class="cad-thumb-btn cad-thumb-btn-danger" onclick="appCadTool.cancelCurrentDrawing()" title="Hủy nét vẽ dở dang [Esc]">
+            <span class="thumb-icon">✕</span>
+            <span class="thumb-txt">Hủy</span>
+          </button>
+        </div>
+
+        <!-- Touch Magnifier Loupe (Kính Lúp Phóng To Bắt Điểm Osnap Chống Ngón Tay Che) -->
+        <div id="cadTouchLoupe" class="cad-touch-loupe" style="display: none;">
+          <div class="cad-loupe-header">
+            <span class="cad-loupe-badge" id="cadLoupeBadge">🔍 BẮT ĐIỂM</span>
+            <span class="cad-loupe-coords" id="cadLoupeCoords">X: -- | Y: --</span>
+          </div>
+          <div class="cad-loupe-circle" id="cadLoupeCircle">
+            <div id="cadLoupeMap" class="cad-loupe-map"></div>
+            <div class="cad-loupe-reticle">
+              <div class="reticle-hair-h"></div>
+              <div class="reticle-hair-v"></div>
+              <div class="reticle-ring"></div>
+            </div>
+            <div class="cad-loupe-snap-tag" id="cadLoupeSnapTag" style="display: none;">🧲 ĐỈNH</div>
+          </div>
+          <div class="cad-loupe-footer" id="cadLoupeFooter">📏 S: 0.00m • Az: 0°</div>
         </div>
 
         <!-- Bottom Sheet Popup -->

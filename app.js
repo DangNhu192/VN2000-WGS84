@@ -10222,6 +10222,8 @@ const appCadTool = {
         const hud = document.getElementById('cadStatusHud');
         if (hud) hud.style.display = 'flex';
         if (this.updateHudQuickTips) this.updateHudQuickTips();
+        this.initSunlightMode();
+        this.bindTouchLoupeEvents();
 
         // Bật con trỏ chữ thập CAD trên bản đồ
         const mapContainer = document.getElementById('map-view-container');
@@ -10250,6 +10252,12 @@ const appCadTool = {
         // Ẩn CAD Status HUD
         const hud = document.getElementById('cadStatusHud');
         if (hud) hud.style.display = 'none';
+
+        // Ẩn thanh công cụ ngón cái 1 tay và kính lúp
+        const thumbBar = document.getElementById('cadThumbActionBar');
+        if (thumbBar) thumbBar.style.display = 'none';
+        const loupe = document.getElementById('cadTouchLoupe');
+        if (loupe) loupe.style.display = 'none';
 
         // Khôi phục con trỏ bình thường
         const mapContainer = document.getElementById('map-view-container');
@@ -11739,6 +11747,9 @@ const appCadTool = {
             this.layers.dynamicInputMarker.setLatLng([targetLat, targetLng]);
             this.layers.dynamicInputMarker.setIcon(tipIcon);
         }
+
+        // Cập nhật diện tích & chu vi tức thời lên CAD Status HUD Bar
+        this.updateLiveStatsHud(targetLat, targetLng, curX, curY);
     },
 
     handleMapClick(lat, lng) {
@@ -14170,6 +14181,340 @@ const appCadTool = {
                 pill.innerText = `${this.vertices.length} đỉnh • L = ${stats.perimeterFormatted} m`;
             }
         }
+
+        // Cập nhật thanh thao tác ngón cái 1 tay cho thực địa
+        const thumbBar = document.getElementById('cadThumbActionBar');
+        if (thumbBar) {
+            if (this.isActive && this.vertices.length > 0) {
+                thumbBar.style.display = 'inline-flex';
+            } else {
+                thumbBar.style.display = 'none';
+            }
+        }
+
+        // Cập nhật số liệu đo diện tích và chu vi tức thời trên CAD Status HUD
+        this.updateLiveStatsHud();
+    },
+
+    updateLiveStatsHud(candLat = null, candLng = null, candX = null, candY = null) {
+        const areaEl = document.getElementById('cadHudArea');
+        const periEl = document.getElementById('cadHudPerimeter');
+        const measureDiv = document.getElementById('cadHudMeasure');
+        if (!areaEl || !periEl) return;
+
+        if (!this.isActive) {
+            if (measureDiv) measureDiv.style.display = 'none';
+            return;
+        }
+        if (measureDiv) measureDiv.style.display = 'inline-flex';
+
+        let testPts = [...this.vertices];
+        if (candLat !== null && candLng !== null) {
+            let x = candX, y = candY;
+            if (x === null || y === null || isNaN(x) || isNaN(y)) {
+                const vn2k = convertWgsToVn2k(candLat, candLng, AppState.kttVal, AppState.scaleFactor);
+                x = vn2k.X;
+                y = vn2k.Y;
+            }
+            testPts.push({ lat: candLat, lng: candLng, x, y });
+        }
+
+        if (testPts.length >= 2) {
+            const stats = this.calculateAreaAndPerimeter(testPts, this.mode);
+            if (this.mode === 'polygon' && testPts.length >= 3) {
+                const haText = stats.area >= 10000 ? ` (${stats.haFormatted} ha)` : '';
+                areaEl.innerText = `${stats.areaFormatted} m²${haText}`;
+                periEl.innerText = `${stats.perimeterFormatted} m`;
+            } else {
+                areaEl.innerText = `${testPts.length} đỉnh (Đang vẽ)`;
+                periEl.innerText = `L = ${stats.perimeterFormatted} m`;
+            }
+        } else if (this.selectedItem && this.selectedItem.type === 'shape' && this.savedShapes[this.selectedItem.index]) {
+            const shape = this.savedShapes[this.selectedItem.index];
+            const stats = this.getEffectiveStats(shape);
+            const haText = stats.area >= 10000 ? ` (${stats.haFormatted} ha)` : '';
+            areaEl.innerText = `${stats.areaFormatted} m²${haText}`;
+            periEl.innerText = `${stats.perimeterFormatted} m`;
+        } else if (this.savedShapes && this.savedShapes.length > 0) {
+            const totalArea = this.savedShapes.reduce((sum, s) => sum + (s.stats?.area || 0), 0);
+            const totalPerimeter = this.savedShapes.reduce((sum, s) => sum + (s.stats?.perimeter || 0), 0);
+            const haText = totalArea >= 10000 ? ` (${(totalArea / 10000).toFixed(4)} ha)` : '';
+            areaEl.innerText = `${totalArea.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m²${haText}`;
+            periEl.innerText = `${totalPerimeter.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m`;
+        } else {
+            areaEl.innerText = '0.00 m²';
+            periEl.innerText = '0.00 m';
+        }
+    },
+
+    toggleSunlightMode() {
+        const isSunlight = document.body.classList.toggle('sunlight-mode');
+        const btn = document.getElementById('btnCadHudSunlight');
+        if (btn) btn.classList.toggle('active', isSunlight);
+        localStorage.setItem('vn2k_sunlight_mode', isSunlight ? '1' : '0');
+        triggerHaptic('light');
+        if (isSunlight) {
+            showToast("☀️ Đã bật Chế độ Nắng gắt (Tương phản cao ngoài thực địa)");
+        } else {
+            showToast("🌤️ Đã tắt Chế độ Nắng gắt");
+        }
+    },
+
+    initSunlightMode() {
+        const saved = localStorage.getItem('vn2k_sunlight_mode');
+        const isSunlight = (saved === '1');
+        document.body.classList.toggle('sunlight-mode', isSunlight);
+        const btn = document.getElementById('btnCadHudSunlight');
+        if (btn) btn.classList.toggle('active', isSunlight);
+    },
+
+    undoLastVertex() {
+        this.undoVertex();
+    },
+
+    finishCurrentShape() {
+        if (this.mode === 'polygon') {
+            if (this.vertices.length < 3) {
+                showToast("⚠️ Cần tối thiểu 3 đỉnh để khép góc đa giác!", true);
+                return;
+            }
+            this.closeLoop();
+            this.saveAndStartNewShape();
+        } else {
+            if (this.vertices.length < 2) {
+                showToast("⚠️ Cần tối thiểu 2 đỉnh để lưu đoạn tuyến!", true);
+                return;
+            }
+            this.saveAndStartNewShape();
+        }
+    },
+
+    cancelCurrentDrawing() {
+        if (this.vertices.length === 0) {
+            showToast("Không có nét vẽ dở dang");
+            return;
+        }
+        if (confirm("Bạn có chắc chắn muốn hủy nét vẽ đang dở?")) {
+            this.vertices = [];
+            this.renderGeometry();
+            this.updateUi();
+            this.clearDynamicHelpers();
+            showToast("Đã hủy nét vẽ hiện tại [Esc]");
+        }
+    },
+
+    addCurrentGpsVertex() {
+        if (AppState.lastGps && AppState.lastGps.lat) {
+            const lat = AppState.lastGps.lat;
+            const lng = AppState.lastGps.lng;
+            const acc = AppState.lastGps.accuracy || 5;
+            this.handleMapClick(lat, lng);
+            triggerHaptic('success');
+            showToast(`📍 Đã chốt đỉnh từ GPS thực địa (±${acc.toFixed(1)}m)!`);
+        } else {
+            showToast("Đang tìm tín hiệu GPS vệ tinh...");
+            if (typeof appTransform !== 'undefined' && appTransform.getLiveGps) {
+                appTransform.getLiveGps();
+            }
+        }
+    },
+
+    initTouchLoupe() {
+        if (this._loupeMapInitialized || typeof L === 'undefined') return;
+        const container = document.getElementById('cadLoupeMap');
+        if (!container) return;
+        try {
+            const loupe = L.map('cadLoupeMap', {
+                zoomControl: false,
+                attributionControl: false,
+                dragging: false,
+                touchZoom: false,
+                doubleClickZoom: false,
+                scrollWheelZoom: false,
+                keyboard: false,
+                boxZoom: false
+            }).setView([10.5, 106.0], 18);
+
+            L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 24,
+                maxNativeZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            }).addTo(loupe);
+
+            this._loupeMap = loupe;
+            this._loupeMapInitialized = true;
+        } catch(e) {
+            console.warn('MiniCAD loupe init error:', e);
+        }
+    },
+
+    bindTouchLoupeEvents() {
+        if (this._touchLoupeBound || !AppState.leafletMap) return;
+        this._touchLoupeBound = true;
+        const mapContainer = AppState.leafletMap.getContainer();
+        if (!mapContainer) return;
+
+        let touchTimer = null;
+        let isTouching = false;
+        let currentTouch = null;
+        let activeLoupeTarget = null;
+
+        const updateLoupePos = (clientX, clientY) => {
+            const loupe = document.getElementById('cadTouchLoupe');
+            if (!loupe) return;
+            let posX = clientX;
+            let posY = clientY - 100;
+            if (posY < 90) posY = clientY + 110;
+            posX = Math.max(75, Math.min(window.innerWidth - 75, posX));
+            loupe.style.left = `${posX}px`;
+            loupe.style.top = `${posY}px`;
+        };
+
+        const showLoupe = (clientX, clientY, lat, lng) => {
+            const loupe = document.getElementById('cadTouchLoupe');
+            if (!loupe) return;
+            this.initTouchLoupe();
+            loupe.style.display = 'flex';
+            updateLoupePos(clientX, clientY);
+
+            let cand = null;
+            if (this.snapEnabled) {
+                cand = this.findSnapCandidate(lat, lng);
+            }
+
+            let targetLat = lat;
+            let targetLng = lng;
+            let targetX = null;
+            let targetY = null;
+            let isSnap = false;
+            let snapName = '';
+
+            if (cand && cand.isSnapped) {
+                targetLat = cand.lat;
+                targetLng = cand.lng;
+                targetX = cand.x;
+                targetY = cand.y;
+                isSnap = true;
+                snapName = cand.source || cand.name || 'Mốc';
+            }
+
+            activeLoupeTarget = { lat: targetLat, lng: targetLng, isSnap, snapName, cand };
+
+            const circle = document.getElementById('cadLoupeCircle');
+            const snapTag = document.getElementById('cadLoupeSnapTag');
+            const coordsEl = document.getElementById('cadLoupeCoords');
+            const footerEl = document.getElementById('cadLoupeFooter');
+
+            if (circle) circle.classList.toggle('snapped', isSnap);
+            if (snapTag) {
+                if (isSnap) {
+                    snapTag.innerText = `🧲 ${snapName}`;
+                    snapTag.style.display = 'block';
+                    triggerHaptic('light');
+                } else {
+                    snapTag.style.display = 'none';
+                }
+            }
+
+            const curVn2k = (targetX !== null && targetY !== null) 
+                ? { X: targetX, Y: targetY } 
+                : convertWgsToVn2k(targetLat, targetLng, AppState.kttVal, AppState.scaleFactor);
+
+            if (coordsEl) {
+                coordsEl.innerText = `X: ${curVn2k.X.toFixed(2)} | Y: ${curVn2k.Y.toFixed(2)}`;
+            }
+
+            if (this._loupeMap) {
+                const targetZoom = Math.min(23, (AppState.leafletMap.getZoom() || 16) + 2);
+                this._loupeMap.setView([targetLat, targetLng], targetZoom, { animate: false });
+            }
+
+            if (this.vertices.length > 0) {
+                const last = this.vertices[this.vertices.length - 1];
+                const dist = Math.hypot(curVn2k.X - last.x, curVn2k.Y - last.y);
+                const az = calculateDistanceAndAzimuth(last.x, last.y, curVn2k.X, curVn2k.Y);
+                if (footerEl) {
+                    footerEl.innerText = `📏 S: ${dist.toFixed(2)}m • Az: ${az.dDeg}°${String(az.dMin).padStart(2,'0')}'`;
+                }
+            } else if (footerEl) {
+                footerEl.innerText = `Chạm để đặt đỉnh đầu tiên`;
+            }
+
+            const hudX = document.getElementById('cadHudCoordX');
+            const hudY = document.getElementById('cadHudCoordY');
+            if (hudX && hudY) {
+                hudX.innerText = `X: ${curVn2k.X.toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
+                hudY.innerText = `Y: ${curVn2k.Y.toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
+            }
+            this.updateLiveStatsHud(targetLat, targetLng, curVn2k.X, curVn2k.Y);
+        };
+
+        const hideLoupe = () => {
+            const loupe = document.getElementById('cadTouchLoupe');
+            if (loupe) loupe.style.display = 'none';
+            activeLoupeTarget = null;
+        };
+
+        mapContainer.addEventListener('touchstart', (e) => {
+            if (!this.isActive || e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            currentTouch = { startX: touch.clientX, startY: touch.clientY, x: touch.clientX, y: touch.clientY };
+            isTouching = true;
+
+            clearTimeout(touchTimer);
+            touchTimer = setTimeout(() => {
+                if (isTouching && currentTouch) {
+                    const rect = mapContainer.getBoundingClientRect();
+                    const pt = L.point(currentTouch.x - rect.left, currentTouch.y - rect.top);
+                    const latlng = AppState.leafletMap.containerPointToLatLng(pt);
+                    showLoupe(currentTouch.x, currentTouch.y, latlng.lat, latlng.lng);
+                }
+            }, 120);
+        }, { passive: true });
+
+        mapContainer.addEventListener('touchmove', (e) => {
+            if (!this.isActive || !isTouching || e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            currentTouch.x = touch.clientX;
+            currentTouch.y = touch.clientY;
+
+            const dMove = Math.hypot(touch.clientX - currentTouch.startX, touch.clientY - currentTouch.startY);
+            const loupe = document.getElementById('cadTouchLoupe');
+            const isLoupeVisible = loupe && loupe.style.display !== 'none';
+
+            if (dMove > 8 || isLoupeVisible) {
+                if (e.cancelable) e.preventDefault();
+                const rect = mapContainer.getBoundingClientRect();
+                const pt = L.point(touch.clientX - rect.left, touch.clientY - rect.top);
+                const latlng = AppState.leafletMap.containerPointToLatLng(pt);
+                showLoupe(touch.clientX, touch.clientY, latlng.lat, latlng.lng);
+            }
+        }, { passive: false });
+
+        const onTouchEndHandler = (e) => {
+            if (!this.isActive || !isTouching) return;
+            clearTimeout(touchTimer);
+            isTouching = false;
+
+            const loupe = document.getElementById('cadTouchLoupe');
+            const wasLoupeVisible = loupe && loupe.style.display !== 'none';
+
+            if (wasLoupeVisible && activeLoupeTarget) {
+                const target = activeLoupeTarget;
+                hideLoupe();
+                this.handleMapClick(target.lat, target.lng);
+                triggerHaptic('success');
+            } else {
+                hideLoupe();
+            }
+        };
+
+        mapContainer.addEventListener('touchend', onTouchEndHandler, { passive: true });
+        mapContainer.addEventListener('touchcancel', () => {
+            clearTimeout(touchTimer);
+            isTouching = false;
+            hideLoupe();
+        }, { passive: true });
     },
 
     promptOffset() {
