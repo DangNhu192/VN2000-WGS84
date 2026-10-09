@@ -114,3 +114,21 @@ test('=== 5. KIỂM THỬ KHỬ RÁC CHỮ (DE-CLUTTERED BENTO TILES LOVABLE 202
   assert.ok(renderDashCode.includes('tile-metric-pill'), 'Có badge/pill trạng thái gọn gàng');
 });
 
+test('=== 6. KIỂM THỬ CINEMATIC INDUSTRIAL BAUHAUS (IMOL2o 2026 FIELD SPEC) ===', () => {
+  const indexHtml = fs.readFileSync('index.html', 'utf8');
+
+  // Kiểm tra bộ token Industrial Bauhaus
+  assert.ok(indexHtml.includes('--bauhaus-amber: #f59e0b;'), 'Có token Laser Amber đặc trưng máy đo đạc');
+  assert.ok(indexHtml.includes('--bauhaus-titan-card: #131c2e;'), 'Có token nền titan sâu cho thẻ khí tài dã chiến');
+  assert.ok(indexHtml.includes('--bauhaus-ease-spring:'), 'Có gia tốc chuyển động đàn hồi vật lý 60fps');
+
+  // Kiểm tra hiệu ứng Signature Moment: Radar Beam Sweep
+  assert.ok(indexHtml.includes('radarBeamSweep'), 'Có hiệu ứng quét tia laser Amber 360 độ cơ học');
+  assert.ok(indexHtml.includes('conic-gradient'), 'Tia quét dùng conic-gradient quét quanh tâm ngắm');
+
+  // Kiểm tra công tắc kích hoạt xúc giác Tactile Trigger
+  assert.ok(indexHtml.includes('.btn-convert'), 'Phím chuyển đổi tọa độ dã chiến tồn tại');
+  assert.ok(indexHtml.includes('linear-gradient(135deg, #f59e0b'), 'Nút chuyển đổi mang gradient Laser Amber nổi bật');
+});
+
+
