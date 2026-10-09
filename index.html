@@ -2559,6 +2559,472 @@
       display: flex !important;
     }
 
+    /* ================= GIAO DIỆN FORM + BẢN ĐỒ CHUYỂN ĐỔI TỌA ĐỘ (BOTTOM SHEET / FLOATING PANEL) ================= */
+    .transform-bottom-sheet {
+      position: absolute;
+      z-index: 1000;
+      background: var(--bg-card, #1e293b);
+      border: 1px solid var(--border-color, #334155);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(12px);
+    }
+
+    @media (max-width: 768px) {
+      .transform-bottom-sheet {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 20px 20px 0 0;
+        max-height: 80vh;
+        min-height: 60px;
+      }
+      .transform-bottom-sheet.sheet-peek {
+        max-height: 64px !important;
+        overflow: hidden !important;
+      }
+      .transform-bottom-sheet.sheet-peek .transform-sheet-body,
+      .transform-bottom-sheet.sheet-peek .transform-sheet-tabs {
+        display: none !important;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .transform-bottom-sheet {
+        top: 60px;
+        left: 14px;
+        bottom: 14px;
+        width: 440px;
+        max-width: calc(100vw - 28px);
+        border-radius: 16px;
+      }
+      .transform-bottom-sheet.sheet-peek {
+        width: 320px;
+        bottom: auto;
+        max-height: 72px !important;
+        overflow: hidden !important;
+      }
+      .transform-bottom-sheet.sheet-peek .transform-sheet-body,
+      .transform-bottom-sheet.sheet-peek .transform-sheet-tabs {
+        display: none !important;
+      }
+    }
+
+    .transform-sheet-drag-handle {
+      width: 100%;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      user-select: none;
+    }
+    .sheet-drag-pill {
+      width: 44px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .transform-sheet-header {
+      padding: 0 14px 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color, #334155);
+    }
+    .sheet-title-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      overflow: hidden;
+    }
+    .sheet-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .sheet-main-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-main, #f8fafc);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sheet-sub-title {
+      font-size: 11px;
+      color: var(--text-muted, #94a3b8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sheet-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-sheet-pick-mode {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #fff;
+      border: 1px solid #38bdf8;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-sheet-toggle, .btn-sheet-close {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color, #334155);
+      color: var(--text-main, #f8fafc);
+      border-radius: 8px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .transform-sheet-tabs {
+      display: flex;
+      padding: 6px 14px;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border-color, #334155);
+    }
+    .sheet-tab-btn {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted, #94a3b8);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sheet-tab-btn.active {
+      background: var(--bg-hover, #334155);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .transform-sheet-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      overscroll-behavior: contain;
+    }
+    .sheet-config-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .sheet-config-select-group {
+      flex: 1;
+      min-width: 180px;
+    }
+    .sheet-field-label {
+      font-size: 11px;
+      color: var(--text-muted, #94a3b8);
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .sheet-select {
+      width: 100%;
+      height: 34px;
+      background: var(--bg-input, #0f172a);
+      border: 1px solid var(--border-color, #334155);
+      color: var(--text-main, #f8fafc);
+      border-radius: 8px;
+      padding: 0 8px;
+      font-size: 12px;
+    }
+    .sheet-mui-toggles {
+      display: flex;
+      gap: 4px;
+      align-self: flex-end;
+    }
+    .btn-sheet-mui {
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color, #334155);
+      background: var(--bg-input, #0f172a);
+      color: var(--text-muted, #94a3b8);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-sheet-mui.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+    .sheet-inputs-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .sheet-coord-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color, #334155);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .sheet-coord-card.card-wgs {
+      border-left: 3px solid #38bdf8;
+    }
+    .sheet-coord-card.card-vn2k {
+      border-left: 3px solid #f59e0b;
+    }
+    .coord-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .coord-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main, #f8fafc);
+    }
+    .btn-card-mini {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main, #f8fafc);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .coord-inputs-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input-col {
+      flex: 1;
+    }
+    .input-col label {
+      font-size: 10px;
+      color: var(--text-muted, #94a3b8);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .sheet-input {
+      width: 100%;
+      height: 32px;
+      background: var(--bg-input, #0f172a);
+      border: 1px solid var(--border-color, #334155);
+      color: #fff;
+      border-radius: 6px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+    }
+    .sheet-action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .btn-sheet-convert {
+      flex: 1;
+      height: 38px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #fff;
+      border: 1px solid #60a5fa;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+    .btn-sheet-clear {
+      width: 44px;
+      height: 38px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sheet-result-box {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .result-box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .result-badge-status {
+      font-size: 11px;
+      font-weight: 800;
+      color: #34d399;
+    }
+    .result-timestamp {
+      font-size: 10px;
+      color: #64748b;
+    }
+    .result-box-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .result-item-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .result-item-row .res-lbl {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .result-item-row .res-val {
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      user-select: text !important;
+    }
+    .result-box-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .smart-copy-btn-group {
+      position: relative;
+      display: inline-flex;
+      flex: 1;
+    }
+    .btn-smart-copy {
+      flex: 1;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 8px 10px;
+      border: 1px solid #38bdf8;
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-smart-copy-arrow {
+      background: #0369a1;
+      color: #fff;
+      border: 1px solid #38bdf8;
+      border-radius: 0 8px 8px 0;
+      padding: 8px 8px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .menu-copy-dropdown {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 0;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      width: 250px;
+      z-index: 1500;
+      padding: 4px;
+    }
+    .copy-menu-item {
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #f1f5f9;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .copy-menu-item:hover {
+      background: #1e293b;
+      color: #38bdf8;
+    }
+    .btn-sheet-save-project {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 8px 12px;
+      border: 1px solid #34d399;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sheet-multi-toolbar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .sheet-multi-proj-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 11px;
+    }
+    .sheet-multi-table-wrap {
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color, #334155);
+      border-radius: 8px;
+    }
+    .sheet-multi-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+    }
+    .sheet-multi-table th, .sheet-multi-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+    }
+    .sheet-multi-table th {
+      background: rgba(0, 0, 0, 0.3);
+      color: #94a3b8;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
     /* ================= BỐ CỤC CHUYÊN NGHIỆP TRẮC DỌC & ĐÀO ĐẮP (SCREEN 8) ================= */
     .profile-split-layout {
       display: flex;
@@ -8817,6 +9283,206 @@
         <!-- Thanh HUD hiển thị tọa độ thời gian thực ở đáy bản đồ -->
         <div id="transformMapCoordHud" style="position: absolute; bottom: 12px; left: 12px; right: 12px; z-index: 500; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 8px 14px; font-family: ui-monospace, monospace; font-size: 12px; color: #f8fafc; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
           📍 Di chuột hoặc nhấp trên bản đồ để lấy tọa độ tức thời
+        </div>
+
+        <!-- ================= FLOATING PANEL & BOTTOM SHEET CHUYỂN ĐỔI TỌA ĐỘ ================= -->
+        <div id="transformBottomSheet" class="transform-bottom-sheet">
+          <!-- Thanh điều khiển trượt / Header -->
+          <div class="transform-sheet-drag-handle" onclick="appTransformMap.toggleBottomSheet()" title="Vuốt hoặc nhấp để thu gọn / mở rộng">
+            <div class="sheet-drag-pill"></div>
+          </div>
+          
+          <div class="transform-sheet-header">
+            <div class="sheet-title-box">
+              <span class="sheet-icon">🔄</span>
+              <div class="sheet-title-text">
+                <div class="sheet-main-title">Chuyển Đổi Tọa Độ WGS-84 ⇄ VN-2000</div>
+                <div class="sheet-sub-title">Chạm bản đồ để lấy tọa độ tức thời hoặc nhập tay</div>
+              </div>
+            </div>
+            
+            <div class="sheet-header-actions">
+              <button type="button" class="btn-sheet-pick-mode" id="btnSheetPickToggle" onclick="appTransformMap.triggerPickMode()" title="Thu gọn bảng để thoải mái chấm điểm trên bản đồ">
+                🎯 Chấm bản đồ
+              </button>
+              <button type="button" class="btn-sheet-toggle" id="btnSheetToggleCollapse" onclick="appTransformMap.toggleBottomSheet()" title="Thu nhỏ / Mở rộng">
+                ▾
+              </button>
+              <button type="button" class="btn-sheet-close" onclick="appNav.goToMenu()" title="Đóng về trang chủ">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab Switcher: Đơn điểm vs Đa điểm -->
+          <div class="transform-sheet-tabs">
+            <button type="button" id="sheetTabSingle" class="sheet-tab-btn active" onclick="appTransformMap.switchSheetTab('single')">
+              📍 Đơn Điểm
+            </button>
+            <button type="button" id="sheetTabMulti" class="sheet-tab-btn" onclick="appTransformMap.switchSheetTab('multi')">
+              📑 Đa Điểm (<span id="sheetMultiCount">0 mốc</span>)
+            </button>
+          </div>
+
+          <!-- Thân Bottom Sheet có thanh cuộn mượt mà -->
+          <div class="transform-sheet-body" id="transformSheetBody">
+            <!-- NỘI DUNG PANEL ĐƠN ĐIỂM -->
+            <div id="sheetPanelSingle" class="sheet-tab-panel active">
+              <!-- Cấu hình KTT -->
+              <div class="sheet-config-row">
+                <div class="sheet-config-select-group">
+                  <label class="sheet-field-label">📍 Tỉnh / Thành phố & KTT:</label>
+                  <select id="sheetTfSelectProvince" class="sheet-select" onchange="appTransformMap.onProvinceChange()">
+                    <!-- Options nạp tự động -->
+                  </select>
+                </div>
+                <div class="sheet-mui-toggles">
+                  <button type="button" id="btnSheetMui3" class="btn-sheet-mui active" onclick="appTransformMap.setMui(3)">Múi 3°</button>
+                  <button type="button" id="btnSheetMui6" class="btn-sheet-mui" onclick="appTransformMap.setMui(6)">Múi 6°</button>
+                </div>
+              </div>
+
+              <!-- Hai khối nhập liệu tọa độ -->
+              <div class="sheet-inputs-grid">
+                <!-- Box WGS-84 -->
+                <div class="sheet-coord-card card-wgs">
+                  <div class="coord-card-head">
+                    <span class="coord-card-title">🌐 Tọa độ GPS (WGS-84)</span>
+                    <button type="button" class="btn-card-mini" onclick="appTransformMap.pasteWgsFromClipboard()" title="Dán tọa độ">📋 Dán</button>
+                  </div>
+                  <div class="coord-inputs-row">
+                    <div class="input-col">
+                      <label>Vĩ độ (Lat B):</label>
+                      <input type="text" id="txtSheetWgsLat" class="sheet-input" placeholder="10.776889" oninput="appTransformMap.onInputChanged('wgs')">
+                    </div>
+                    <div class="input-col">
+                      <label>Kinh độ (Lng L):</label>
+                      <input type="text" id="txtSheetWgsLng" class="sheet-input" placeholder="106.700806" oninput="appTransformMap.onInputChanged('wgs')">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Box VN-2000 -->
+                <div class="sheet-coord-card card-vn2k">
+                  <div class="coord-card-head">
+                    <span class="coord-card-title">📐 Tọa độ Quốc gia (VN-2000)</span>
+                    <button type="button" class="btn-card-mini" onclick="appTransformMap.pasteVn2kFromClipboard()" title="Dán tọa độ">📋 Dán</button>
+                  </div>
+                  <div class="coord-inputs-row">
+                    <div class="input-col">
+                      <label>Tọa độ X (Bắc - m):</label>
+                      <input type="text" id="txtSheetVn2kX" class="sheet-input" placeholder="1192534.120" oninput="appTransformMap.onInputChanged('vn2k')">
+                    </div>
+                    <div class="input-col">
+                      <label>Tọa độ Y (Đông - m):</label>
+                      <input type="text" id="txtSheetVn2kY" class="sheet-input" placeholder="602345.670" oninput="appTransformMap.onInputChanged('vn2k')">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hàng nút Chuyển đổi chính -->
+              <div class="sheet-action-buttons">
+                <button type="button" class="btn-sheet-convert" onclick="appTransformMap.executeSingleConvert()">
+                  ⚡ Chuyển Đổi Tọa Độ
+                </button>
+                <button type="button" class="btn-sheet-clear" onclick="appTransformMap.clearInputs()" title="Xóa trắng ô nhập">
+                  🗑️ Xóa
+                </button>
+              </div>
+
+              <!-- HỘP KẾT QUẢ CHUYỂN ĐỔI NỔI BẬT -->
+              <div id="sheetResultBox" class="sheet-result-box converted-result-box" style="display: none;">
+                <div class="result-box-header">
+                  <span class="result-badge-status">✓ KẾT QUẢ CHUYỂN ĐỔI THÀNH CÔNG</span>
+                  <span id="sheetResultTimestamp" class="result-timestamp">Vừa xong</span>
+                </div>
+                
+                <div class="result-box-content">
+                  <div class="result-item-row">
+                    <span class="res-lbl">Tọa độ VN-2000:</span>
+                    <span class="res-val selectable" id="sheetResultVn2k">X: 0.000 m | Y: 0.000 m</span>
+                  </div>
+                  <div class="result-item-row">
+                    <span class="res-lbl">Tọa độ WGS-84:</span>
+                    <span class="res-val selectable" id="sheetResultWgs">Lat: 0.000000° | Lng: 0.000000°</span>
+                  </div>
+                  <div class="result-item-row">
+                    <span class="res-lbl">KTT & Múi chiếu:</span>
+                    <span class="res-val" id="sheetResultKtt">KTT: 105°45' (Múi 3°)</span>
+                  </div>
+                </div>
+
+                <!-- BỘ NÚT SAO CHÉP THÔNG MINH 1 CHẠM & LƯU SỔ ĐO -->
+                <div class="result-box-actions">
+                  <div class="smart-copy-btn-group">
+                    <button type="button" class="btn-smart-copy" id="btnSmartCopy" onclick="appTransformMap.smartCopyResult()" title="Nhấn để sao chép toàn bộ tọa độ đầy đủ">
+                      📋 Sao Chép Thông Minh
+                    </button>
+                    <button type="button" class="btn-smart-copy-arrow" onclick="appTransformMap.toggleCopyMenu(event)" title="Tùy chọn sao chép">
+                      ▾
+                    </button>
+                    <div id="menuCopyOptions" class="menu-copy-dropdown" style="display: none;">
+                      <div class="copy-menu-item" onclick="appTransformMap.copyVn2kResult()">📋 Chỉ sao chép VN-2000 (X, Y)</div>
+                      <div class="copy-menu-item" onclick="appTransformMap.copyWgsResult()">📋 Chỉ sao chép WGS-84 (Lat, Lng)</div>
+                      <div class="copy-menu-item" onclick="appTransformMap.copyFullFormattedResult()">📋 Sao chép văn bản đầy đủ kèm KTT</div>
+                      <div class="copy-menu-item" onclick="appTransformMap.copyExcelFormatResult()">📊 Sao chép dạng Tab Excel</div>
+                    </div>
+                  </div>
+
+                  <button type="button" class="btn-sheet-save-project" onclick="appTransformMap.saveConvertedToProject()" title="Lưu điểm này vào Sổ đo dự án">
+                    💾 Lưu Vào Sổ Đo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- NỘI DUNG PANEL ĐA ĐIỂM -->
+            <div id="sheetPanelMulti" class="sheet-tab-panel" style="display: none;">
+              <div class="sheet-multi-toolbar">
+                <button type="button" class="btn-sm btn-blue" onclick="appTransformMap.pasteMultiFromClipboard()">
+                  📋 Dán Excel/Clipboard
+                </button>
+                <button type="button" class="btn-sm btn-slate" onclick="appTransformMap.addManualMultiPoint()">
+                  ➕ Thêm mốc
+                </button>
+                <button type="button" class="btn-sm btn-green" onclick="appTransformMap.executeMultiConvert()">
+                  ⚡ Chuyển đổi hàng loạt
+                </button>
+                <button type="button" class="btn-sm btn-red" onclick="appTransformMap.clearMultiPoints()">
+                  🗑️ Xóa hết
+                </button>
+              </div>
+
+              <div class="sheet-multi-proj-row">
+                <label class="sheet-check-label">
+                  <input type="checkbox" id="chkSheetSaveMultiToProject" checked>
+                  <span>Lưu kết quả vào dự án:</span>
+                </label>
+                <select id="selSheetMultiTargetProject" class="sheet-select" style="max-width: 180px;">
+                  <!-- Nạp danh sách dự án -->
+                </select>
+              </div>
+
+              <div class="sheet-multi-table-wrap">
+                <table class="sheet-multi-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 30px;"><input type="checkbox" id="chkSheetSelectAll" onchange="appTransformMap.toggleSelectAllMulti(this.checked)" checked></th>
+                      <th style="width: 35px;">STT</th>
+                      <th>Tên mốc</th>
+                      <th>Tọa độ 1 (X/Lat)</th>
+                      <th>Tọa độ 2 (Y/Lng)</th>
+                      <th style="width: 35px;">Xóa</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sheetMultiTransTableBody">
+                    <!-- Dynamic rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

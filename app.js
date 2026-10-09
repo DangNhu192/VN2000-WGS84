@@ -310,11 +310,8 @@ const appNav = window.appNav = {
                     }
                 }, 40);
             } else if (screenName === 'transform') {
-                titleText = "1. CHUYỂN ĐỔI TỌA ĐỘ";
-                targetScreen = document.getElementById('screen-transform');
-                if (typeof appTransform !== 'undefined' && appTransform.onScreenOpen) {
-                    appTransform.onScreenOpen();
-                }
+                appNav.openTransformMap();
+                return;
             } else if (screenName === 'stakeout') {
                 titleText = "3. CẮM MỐC THỰC ĐỊA";
                 targetScreen = document.getElementById('screen-stakeout');
@@ -606,7 +603,7 @@ const appNav = window.appNav = {
         if (action === 'menu') {
             appNav.goToMenu();
         } else if (action === 'transform') {
-            appNav.showScreen('transform');
+            appNav.openTransformMap();
             appNav.setActiveMenuItem('drawerItem_transform');
         } else if (action === 'transform_map') {
             appNav.openTransformMap();
@@ -828,10 +825,10 @@ const appNav = window.appNav = {
         if (btnBack) btnBack.style.display = 'inline-flex';
         const titleEl = document.getElementById('headerTitle');
         const subTitleEl = document.getElementById('headerSubtitle');
-        if (titleEl) titleEl.innerHTML = `<span>🗺️ 1.3 BẢN ĐỒ CHUYỂN ĐỔI TỌA ĐỘ</span>`;
+        if (titleEl) titleEl.innerHTML = `<span>🗺️ 1. CHUYỂN ĐỔI TỌA ĐỘ</span>`;
         if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
 
-        appNav.setActiveMenuItem('drawerItem_transform_map');
+        appNav.setActiveMenuItem('drawerItem_transform');
         this.syncBottomNav('transform');
 
         if (typeof appTransformMap !== 'undefined') {
@@ -3496,10 +3493,12 @@ const appTransformMap = {
     activeBaseLayer: 'google_hybrid',
     mode: 'pick', // 'pick' | 'view'
     pickSubMode: 'single', // 'single' | 'multi'
+    currentSheetTab: 'single', // 'single' | 'multi'
     pickedSinglePoint: null,
     pickedMultiPoints: [],
     markersLayer: null,
     convertedLayer: null,
+    sheetInitialized: false,
 
     init(options = {}) {
         const mode = options.mode || 'pick';
@@ -3508,6 +3507,7 @@ const appTransformMap = {
         this.pickSubMode = subMode;
 
         this.ensureMap();
+        this.initSheet();
         this.setMode(mode);
         if (mode === 'pick') {
             this.setPickSubMode(subMode);
@@ -3555,9 +3555,7 @@ const appTransformMap = {
         this.convertedLayer = L.layerGroup().addTo(this.map);
 
         this.map.on('click', (e) => {
-            if (this.mode === 'pick') {
-                this.handleMapClick(e.latlng.lat, e.latlng.lng);
-            }
+            this.handleMapClick(e.latlng.lat, e.latlng.lng);
         });
 
         this.map.on('mousemove', (e) => {
@@ -3565,6 +3563,285 @@ const appTransformMap = {
         });
 
         setTimeout(() => this.map.invalidateSize(), 250);
+    },
+
+    initSheet() {
+        if (this.sheetInitialized) return;
+        this.sheetInitialized = true;
+        this.populateSheetProvinces();
+        this.populateSheetProjects();
+    },
+
+    populateSheetProvinces() {
+        const sel = document.getElementById('sheetTfSelectProvince');
+        if (!sel || typeof PROVINCE_PRESETS === 'undefined') return;
+        sel.innerHTML = '';
+        Object.keys(PROVINCE_PRESETS).forEach(pName => {
+            const opt = document.createElement('option');
+            opt.value = pName;
+            opt.innerText = `${pName} (${PROVINCE_PRESETS[pName].deg}°${String(PROVINCE_PRESETS[pName].min).padStart(2, '0')}')`;
+            if (pName === AppState.provinceName) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    },
+
+    populateSheetProjects() {
+        const sel = document.getElementById('selSheetMultiTargetProject');
+        if (!sel) return;
+        sel.innerHTML = '';
+        const cur = AppState.currentProject || 'Dự án mặc định';
+        const opt = document.createElement('option');
+        opt.value = cur;
+        opt.innerText = cur;
+        opt.selected = true;
+        sel.appendChild(opt);
+    },
+
+    onProvinceChange() {
+        const sel = document.getElementById('sheetTfSelectProvince');
+        if (!sel || !PROVINCE_PRESETS[sel.value]) return;
+        const p = PROVINCE_PRESETS[sel.value];
+        AppState.provinceName = sel.value;
+        AppState.kttDeg = p.deg;
+        AppState.kttMin = p.min;
+        AppState.kttVal = p.deg + p.min / 60.0;
+        showToast(`📍 Đã đổi KTT sang ${sel.value} (${AppState.kttVal.toFixed(4)}°)`);
+        if (this.pickedSinglePoint) {
+            this.executeSingleConvert();
+        }
+    },
+
+    setMui(mui) {
+        AppState.scaleFactor = (mui === 6) ? 0.9996 : 0.9999;
+        const btn3 = document.getElementById('btnSheetMui3');
+        const btn6 = document.getElementById('btnSheetMui6');
+        if (btn3) btn3.classList.toggle('active', mui === 3);
+        if (btn6) btn6.classList.toggle('active', mui === 6);
+        showToast(`⚙️ Đã chuyển sang Múi ${mui}° (k0 = ${AppState.scaleFactor})`);
+        if (this.pickedSinglePoint) {
+            this.executeSingleConvert();
+        }
+    },
+
+    toggleBottomSheet() {
+        const sheet = document.getElementById('transformBottomSheet');
+        if (!sheet) return;
+        sheet.classList.toggle('sheet-peek');
+    },
+
+    triggerPickMode() {
+        const sheet = document.getElementById('transformBottomSheet');
+        if (sheet) sheet.classList.add('sheet-peek');
+        showToast("🎯 Chạm vào bất kỳ vị trí nào trên bản đồ để lấy tọa độ tức thời!");
+    },
+
+    switchSheetTab(tab) {
+        this.currentSheetTab = tab;
+        const btnS = document.getElementById('sheetTabSingle');
+        const btnM = document.getElementById('sheetTabMulti');
+        const pS = document.getElementById('sheetPanelSingle');
+        const pM = document.getElementById('sheetPanelMulti');
+
+        if (tab === 'single') {
+            if (btnS) btnS.classList.add('active');
+            if (btnM) btnM.classList.remove('active');
+            if (pS) pS.style.display = 'block';
+            if (pM) pM.style.display = 'none';
+        } else {
+            if (btnS) btnS.classList.remove('active');
+            if (btnM) btnM.classList.add('active');
+            if (pS) pS.style.display = 'none';
+            if (pM) pM.style.display = 'block';
+        }
+    },
+
+    handleMapClick(lat, lng) {
+        if (!this.map) return;
+        triggerHaptic('light');
+        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        if (this.currentSheetTab === 'multi' || this.pickSubMode === 'multi') {
+            this.addMultiPoint(lat, lng, vn);
+        } else {
+            this.setSinglePoint(lat, lng, vn);
+        }
+    },
+
+    setSinglePoint(lat, lng, vn) {
+        if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        this.pickedSinglePoint = { lat, lng, x: vn.X, y: vn.Y, name: 'Điểm Chuyển Đổi' };
+        AppState.lastConvertedPoint = this.pickedSinglePoint;
+
+        // Cập nhật marker
+        if (this.markersLayer) {
+            this.markersLayer.clearLayers();
+            const icon = L.divIcon({
+                className: 'single-point-pin',
+                html: `<div style="background: #2563eb; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">🎯</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            const marker = L.marker([lat, lng], { icon }).addTo(this.markersLayer);
+            marker.bindPopup(`<b>Điểm Đã Chọn</b><br>VN-2000 X: <b>${vn.X.toFixed(3)}</b> m<br>VN-2000 Y: <b>${vn.Y.toFixed(3)}</b> m<br>WGS-84: ${lat.toFixed(6)}°, ${lng.toFixed(6)}°`).openPopup();
+            this.map.panTo([lat, lng]);
+        }
+
+        // Cập nhật ô nhập liệu
+        const inLat = document.getElementById('txtSheetWgsLat');
+        const inLng = document.getElementById('txtSheetWgsLng');
+        const inX = document.getElementById('txtSheetVn2kX');
+        const inY = document.getElementById('txtSheetVn2kY');
+        if (inLat) inLat.value = lat.toFixed(6);
+        if (inLng) inLng.value = lng.toFixed(6);
+        if (inX) inX.value = vn.X.toFixed(3);
+        if (inY) inY.value = vn.Y.toFixed(3);
+
+        // Hiển thị kết quả trong Hộp kết quả
+        this.renderResultBox(lat, lng, vn.X, vn.Y);
+
+        // Tự động mở rộng sheet nếu đang ở peek
+        const sheet = document.getElementById('transformBottomSheet');
+        if (sheet) sheet.classList.remove('sheet-peek');
+
+        this.updateHud(lat, lng, vn, true);
+        showToast(`✓ Đã nạp và chuyển đổi tức thời: X=${vn.X.toFixed(2)}, Y=${vn.Y.toFixed(2)}`);
+    },
+
+    renderResultBox(lat, lng, x, y) {
+        const box = document.getElementById('sheetResultBox');
+        const rVn2k = document.getElementById('sheetResultVn2k');
+        const rWgs = document.getElementById('sheetResultWgs');
+        const rKtt = document.getElementById('sheetResultKtt');
+        const rTime = document.getElementById('sheetResultTimestamp');
+
+        if (rVn2k) rVn2k.innerText = `X: ${x.toFixed(3)} m | Y: ${y.toFixed(3)} m`;
+        if (rWgs) rWgs.innerText = `Lat: ${lat.toFixed(6)}° | Lng: ${lng.toFixed(6)}°`;
+        if (rKtt) rKtt.innerText = `KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (${AppState.provinceName || 'Mặc định'}) • Múi ${AppState.scaleFactor === 0.9999 ? '3°' : '6°'}`;
+        if (rTime) rTime.innerText = new Date().toLocaleTimeString('vi-VN');
+        if (box) box.style.display = 'block';
+    },
+
+    executeSingleConvert() {
+        const inLat = document.getElementById('txtSheetWgsLat');
+        const inLng = document.getElementById('txtSheetWgsLng');
+        const inX = document.getElementById('txtSheetVn2kX');
+        const inY = document.getElementById('txtSheetVn2kY');
+
+        let strLat = inLat ? inLat.value.trim() : '';
+        let strLng = inLng ? inLng.value.trim() : '';
+        let strX = inX ? inX.value.trim() : '';
+        let strY = inY ? inY.value.trim() : '';
+
+        let lat = parseCoordinateNumber(strLat);
+        let lng = parseCoordinateNumber(strLng);
+        let x = parseCoordinateNumber(strX);
+        let y = parseCoordinateNumber(strY);
+
+        if (lat !== 0 && lng !== 0) {
+            const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+            if (inX) inX.value = vn.X.toFixed(3);
+            if (inY) inY.value = vn.Y.toFixed(3);
+            this.setSinglePoint(lat, lng, vn);
+        } else if (x !== 0 && y !== 0) {
+            const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+            if (inLat) inLat.value = wgs.lat.toFixed(6);
+            if (inLng) inLng.value = wgs.lng.toFixed(6);
+            this.setSinglePoint(wgs.lat, wgs.lng, { X: x, Y: y });
+        } else {
+            showToast("⚠️ Vui lòng nhập tọa độ WGS-84 hoặc VN-2000!", true);
+        }
+    },
+
+    clearInputs() {
+        ['txtSheetWgsLat', 'txtSheetWgsLng', 'txtSheetVn2kX', 'txtSheetVn2kY'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const box = document.getElementById('sheetResultBox');
+        if (box) box.style.display = 'none';
+        if (this.markersLayer) this.markersLayer.clearLayers();
+        this.pickedSinglePoint = null;
+        showToast("🗑️ Đã xóa trắng dữ liệu nhập");
+    },
+
+    // SAO CHÉP THÔNG MINH 1 CHẠM
+    smartCopyResult() {
+        const p = AppState.lastConvertedPoint;
+        if (!p) {
+            showToast("⚠️ Chưa có kết quả để sao chép!", true);
+            return;
+        }
+        const text = `Điểm: ${p.name || 'M-CHUYENDO'} | VN2000 X: ${parseFloat(p.x).toFixed(3)} m, Y: ${parseFloat(p.y).toFixed(3)} m | WGS84: ${parseFloat(p.lat).toFixed(6)}°, ${parseFloat(p.lng).toFixed(6)}° | KTT: ${AppState.kttVal}°`;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("✓ Đã sao chép toàn bộ kết quả đầy đủ vào bộ nhớ tạm!");
+        }).catch(() => {
+            showToast("⚠️ Không thể ghi vào Clipboard!", true);
+        });
+    },
+
+    toggleCopyMenu(e) {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById('menuCopyOptions');
+        if (!menu) return;
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    },
+
+    copyVn2kResult() {
+        const p = AppState.lastConvertedPoint;
+        if (!p) return;
+        const text = `X: ${parseFloat(p.x).toFixed(3)}, Y: ${parseFloat(p.y).toFixed(3)}`;
+        navigator.clipboard.writeText(text);
+        showToast(`✓ Đã sao chép VN-2000: ${text}`);
+        this.toggleCopyMenu();
+    },
+
+    copyWgsResult() {
+        const p = AppState.lastConvertedPoint;
+        if (!p) return;
+        const text = `${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}`;
+        navigator.clipboard.writeText(text);
+        showToast(`✓ Đã sao chép WGS-84: ${text}`);
+        this.toggleCopyMenu();
+    },
+
+    copyFullFormattedResult() {
+        this.smartCopyResult();
+        this.toggleCopyMenu();
+    },
+
+    copyExcelFormatResult() {
+        const p = AppState.lastConvertedPoint;
+        if (!p) return;
+        const text = `${p.name || 'M1'}\t${parseFloat(p.x).toFixed(3)}\t${parseFloat(p.y).toFixed(3)}\t${parseFloat(p.lat).toFixed(6)}\t${parseFloat(p.lng).toFixed(6)}`;
+        navigator.clipboard.writeText(text);
+        showToast(`✓ Đã sao chép dạng Tab Excel: ${text}`);
+        this.toggleCopyMenu();
+    },
+
+    saveConvertedToProject() {
+        const p = AppState.lastConvertedPoint;
+        if (!p) {
+            showToast("⚠️ Chưa có mốc chuyển đổi để lưu!", true);
+            return;
+        }
+        const curProj = AppState.currentProject || 'Dự án mặc định';
+        const raw = localStorage.getItem(`vn2k_proj_${curProj}`);
+        let pts = [];
+        try {
+            if (raw) pts = JSON.parse(raw);
+        } catch(e) {}
+        const newPt = {
+            id: Date.now(),
+            name: p.name || `M${pts.length + 1}`,
+            x: parseFloat(p.x) || 0,
+            y: parseFloat(p.y) || 0,
+            h: 0,
+            lat: parseFloat(p.lat) || 0,
+            lng: parseFloat(p.lng) || 0,
+            note: 'Chuyển đổi tọa độ'
+        };
+        pts.push(newPt);
+        localStorage.setItem(`vn2k_proj_${curProj}`, JSON.stringify(pts));
+        showToast(`💾 Đã lưu mốc ${newPt.name} vào dự án "${curProj}" thành công!`);
     },
 
     setMode(mode) {
@@ -3601,53 +3878,6 @@ const appTransformMap = {
             if (btnMulti) btnMulti.classList.add('active');
             showToast("📑 Chế độ Chấm đa điểm: Nhấp liên tiếp các vị trí để lập danh sách mốc!");
         }
-    },
-
-    handleMapClick(lat, lng) {
-        if (!this.map) return;
-        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
-        if (this.pickSubMode === 'single') {
-            this.setSinglePoint(lat, lng, vn);
-        } else {
-            this.addMultiPoint(lat, lng, vn);
-        }
-    },
-
-    setSinglePoint(lat, lng, vn) {
-        if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
-        this.pickedSinglePoint = { lat, lng, x: vn.X, y: vn.Y };
-        if (this.markersLayer) {
-            this.markersLayer.clearLayers();
-            const icon = L.divIcon({
-                className: 'single-point-pin',
-                html: `<div style="background: #2563eb; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">🎯</div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
-            });
-            const marker = L.marker([lat, lng], { icon }).addTo(this.markersLayer);
-            marker.bindPopup(`<b>Điểm đã chọn</b><br>VN-2000 X: ${vn.X.toFixed(3)} m<br>VN-2000 Y: ${vn.Y.toFixed(3)} m<br>WGS-84: ${lat.toFixed(6)}, ${lng.toFixed(6)}`).openPopup();
-            this.map.panTo([lat, lng]);
-        }
-        this.updateHud(lat, lng, vn, true);
-    },
-
-    addMultiPoint(lat, lng, vn) {
-        if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
-        const idx = this.pickedMultiPoints.length + 1;
-        const pt = { stt: idx, name: `P${idx}`, lat, lng, x: vn.X, y: vn.Y };
-        this.pickedMultiPoints.push(pt);
-
-        if (this.markersLayer) {
-            const icon = L.divIcon({
-                className: 'multipoint-pin',
-                html: `<div style="background: #f59e0b; color: #000; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${idx}</div>`,
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
-            });
-            L.marker([lat, lng], { icon }).addTo(this.markersLayer).bindPopup(`<b>Điểm P${idx}</b><br>X: ${vn.X.toFixed(3)} m | Y: ${vn.Y.toFixed(3)} m`);
-        }
-        showToast(`✓ Đã thêm điểm P${idx} (${vn.X.toFixed(2)}, ${vn.Y.toFixed(2)})`);
-        this.updateHud(lat, lng, vn, true);
     },
 
     updateHud(lat, lng, vn, isPinned = false) {
@@ -3765,6 +3995,165 @@ const appTransformMap = {
             this.activeBaseLayer = 'google_hybrid';
             showToast("🛰️ Đã chuyển sang Lớp Vệ tinh Google Hybrid");
         }
+    },
+
+    addMultiPoint(lat, lng, vn) {
+        if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        const idx = this.pickedMultiPoints.length + 1;
+        const pt = { stt: idx, name: `P${idx}`, lat, lng, x: vn.X, y: vn.Y, selected: true };
+        this.pickedMultiPoints.push(pt);
+
+        if (this.markersLayer) {
+            const icon = L.divIcon({
+                className: 'multipoint-pin',
+                html: `<div style="background: #f59e0b; color: #000; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${idx}</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+            L.marker([lat, lng], { icon }).addTo(this.markersLayer).bindPopup(`<b>Điểm P${idx}</b><br>X: ${vn.X.toFixed(3)} m | Y: ${vn.Y.toFixed(3)} m`);
+        }
+        this.renderSheetMultiTable();
+        showToast(`✓ Đã thêm điểm P${idx} (${vn.X.toFixed(2)}, ${vn.Y.toFixed(2)})`);
+        this.updateHud(lat, lng, vn, true);
+    },
+
+    renderSheetMultiTable() {
+        const tbody = document.getElementById('sheetMultiTransTableBody');
+        const badge = document.getElementById('sheetMultiCount');
+        if (badge) badge.innerText = `${this.pickedMultiPoints.length} mốc`;
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        this.pickedMultiPoints.forEach((p, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" ${p.selected ? 'checked' : ''} onchange="appTransformMap.toggleMultiPointSelect(${i}, this.checked)"></td>
+                <td>${p.stt}</td>
+                <td><input type="text" class="sheet-input" style="height: 24px; padding: 0 4px; font-size: 11px;" value="${p.name}" onchange="appTransformMap.updateMultiPointName(${i}, this.value)"></td>
+                <td>${p.x.toFixed(3)}</td>
+                <td>${p.y.toFixed(3)}</td>
+                <td><button type="button" class="btn-card-mini" style="color: #f87171;" onclick="appTransformMap.deleteMultiPoint(${i})">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    },
+
+    toggleMultiPointSelect(i, checked) {
+        if (this.pickedMultiPoints[i]) this.pickedMultiPoints[i].selected = checked;
+    },
+
+    updateMultiPointName(i, name) {
+        if (this.pickedMultiPoints[i]) this.pickedMultiPoints[i].name = name;
+    },
+
+    deleteMultiPoint(i) {
+        this.pickedMultiPoints.splice(i, 1);
+        this.pickedMultiPoints.forEach((p, idx) => p.stt = idx + 1);
+        this.renderSheetMultiTable();
+        showToast("🗑️ Đã xóa mốc khỏi danh sách");
+    },
+
+    clearMultiPoints() {
+        this.pickedMultiPoints = [];
+        this.renderSheetMultiTable();
+        if (this.markersLayer) this.markersLayer.clearLayers();
+        showToast("🗑️ Đã xóa toàn bộ danh sách đa điểm");
+    },
+
+    toggleSelectAllMulti(checked) {
+        this.pickedMultiPoints.forEach(p => p.selected = checked);
+        this.renderSheetMultiTable();
+    },
+
+    addManualMultiPoint() {
+        const idx = this.pickedMultiPoints.length + 1;
+        this.pickedMultiPoints.push({
+            stt: idx,
+            name: `P${idx}`,
+            lat: 10.5,
+            lng: 106.0,
+            x: 1160000.0,
+            y: 500000.0,
+            selected: true
+        });
+        this.renderSheetMultiTable();
+    },
+
+    pasteMultiFromClipboard() {
+        navigator.clipboard.readText().then(text => {
+            if (!text || !text.trim()) {
+                showToast("⚠️ Clipboard trống!", true);
+                return;
+            }
+            const lines = text.trim().split(/\r?\n/);
+            let added = 0;
+            lines.forEach(line => {
+                const parts = line.trim().split(/[\t,; ]+/);
+                if (parts.length >= 2) {
+                    let name = `P${this.pickedMultiPoints.length + 1}`;
+                    let c1 = 0, c2 = 0;
+                    if (parts.length >= 3 && isNaN(parseFloat(parts[0]))) {
+                        name = parts[0];
+                        c1 = parseFloat(parts[1]) || 0;
+                        c2 = parseFloat(parts[2]) || 0;
+                    } else {
+                        c1 = parseFloat(parts[0]) || 0;
+                        c2 = parseFloat(parts[1]) || 0;
+                    }
+                    if (c1 !== 0 && c2 !== 0) {
+                        let lat = 0, lng = 0, x = 0, y = 0;
+                        if (c1 < 100 && c2 < 200) {
+                            lat = c1; lng = c2;
+                            const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                            x = vn.X; y = vn.Y;
+                        } else {
+                            x = c1; y = c2;
+                            const w = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                            lat = w.lat; lng = w.lng;
+                        }
+                        this.pickedMultiPoints.push({
+                            stt: this.pickedMultiPoints.length + 1,
+                            name,
+                            lat,
+                            lng,
+                            x,
+                            y,
+                            selected: true
+                        });
+                        added++;
+                    }
+                }
+            });
+            this.renderSheetMultiTable();
+            showToast(`✓ Đã nạp ${added} mốc từ clipboard!`);
+        }).catch(() => {
+            showToast("⚠️ Vui lòng cấp quyền truy cập Clipboard!", true);
+        });
+    },
+
+    executeMultiConvert() {
+        if (this.pickedMultiPoints.length === 0) {
+            showToast("⚠️ Chưa có điểm nào trong danh sách!", true);
+            return;
+        }
+        if (!this.map) return;
+        if (this.markersLayer) this.markersLayer.clearLayers();
+        const bounds = [];
+        this.pickedMultiPoints.forEach(p => {
+            if (p.selected && p.lat && p.lng) {
+                bounds.push([p.lat, p.lng]);
+                const icon = L.divIcon({
+                    className: 'multipoint-pin',
+                    html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${p.stt}</div>`,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+                L.marker([p.lat, p.lng], { icon }).addTo(this.markersLayer).bindPopup(`<b>${p.name}</b><br>X: ${p.x.toFixed(3)} m | Y: ${p.y.toFixed(3)} m<br>WGS: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`);
+            }
+        });
+        if (bounds.length > 0) {
+            this.map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+        }
+        showToast(`✓ Đã chuyển đổi và hiển thị ${bounds.length} mốc trên bản đồ!`);
     }
 };
 
