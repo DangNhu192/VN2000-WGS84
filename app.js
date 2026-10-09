@@ -2026,11 +2026,13 @@ const appTransform = {
                 k0: AppState.scaleFactor
             };
 
-            // Cập nhật khung kết quả chuyển đổi
+            // Cập nhật khung kết quả chuyển đổi và cuộn mượt đến kết quả
             appTransform.updateConvertedResultBox(AppState.lastConvertedPoint);
-
-            // Hiển thị dialog hỏi mở bản đồ như Android B4A
-            appTransform.promptOpenConvertedMap(AppState.lastConvertedPoint);
+            const resBox = document.getElementById('boxConvertedResult');
+            if (resBox) {
+                resBox.style.display = 'block';
+                resBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
 
             triggerHaptic('success');
             showToast("✓ Đã tính chuyển thành công sang VN-2000!");
@@ -2085,11 +2087,13 @@ const appTransform = {
                 k0: AppState.scaleFactor
             };
 
-            // Cập nhật khung kết quả chuyển đổi
+            // Cập nhật khung kết quả chuyển đổi và cuộn mượt đến kết quả
             appTransform.updateConvertedResultBox(AppState.lastConvertedPoint);
-
-            // Hiển thị dialog hỏi mở bản đồ như Android B4A
-            appTransform.promptOpenConvertedMap(AppState.lastConvertedPoint);
+            const resBox = document.getElementById('boxConvertedResult');
+            if (resBox) {
+                resBox.style.display = 'block';
+                resBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
 
             triggerHaptic('success');
             showToast("✓ Đã tính chuyển thành công sang WGS-84!");
@@ -2974,7 +2978,7 @@ const appTransform = {
             return;
         }
 
-        appNav.openTransformMap({ mode: 'view' });
+        appNav.openTransformMap({ mode: 'view', singlePoint: pt });
     },
 
     clearWgs() {
@@ -3505,9 +3509,11 @@ const appTransformMap = {
         const subMode = options.subMode || 'single';
         this.mode = mode;
         this.pickSubMode = subMode;
+        this.viewSinglePoint = options.singlePoint || (mode === 'view' ? AppState.lastConvertedPoint : null);
 
         this.ensureMap();
         this.initSheet();
+        this.initSheetDrag();
         this.setMode(mode);
         if (mode === 'pick') {
             this.setPickSubMode(subMode);
@@ -3515,8 +3521,90 @@ const appTransformMap = {
                 this.setSinglePoint(options.initialPoint.lat, options.initialPoint.lng);
             }
         } else if (mode === 'view') {
+            if (this.viewSinglePoint && this.viewSinglePoint.lat && this.viewSinglePoint.lng) {
+                this.syncSinglePointToSheet(this.viewSinglePoint);
+            }
             this.renderConvertedPoints();
         }
+    },
+
+    syncSinglePointToSheet(pt) {
+        if (!pt) return;
+        const inLat = document.getElementById('txtSheetWgsLat');
+        const inLng = document.getElementById('txtSheetWgsLng');
+        const inX = document.getElementById('txtSheetVn2kX');
+        const inY = document.getElementById('txtSheetVn2kY');
+        if (inLat && pt.lat) inLat.value = parseFloat(pt.lat).toFixed(6);
+        if (inLng && pt.lng) inLng.value = parseFloat(pt.lng).toFixed(6);
+        if (inX && pt.x) inX.value = parseFloat(pt.x).toFixed(3);
+        if (inY && pt.y) inY.value = parseFloat(pt.y).toFixed(3);
+        this.renderResultBox(parseFloat(pt.lat), parseFloat(pt.lng), parseFloat(pt.x), parseFloat(pt.y));
+    },
+
+    initSheetDrag() {
+        const sheet = document.getElementById('transformBottomSheet');
+        if (!sheet || sheet._hasDragInit) return;
+        sheet._hasDragInit = true;
+
+        const handle = sheet.querySelector('.transform-sheet-drag-handle');
+        if (!handle) return;
+
+        let startY = 0;
+        let isDragging = false;
+        let currentTranslate = 0;
+
+        const onTouchStart = (e) => {
+            const touch = e.touches ? e.touches[0] : e;
+            startY = touch.clientY;
+            isDragging = true;
+            sheet.classList.add('is-dragging');
+        };
+
+        const onTouchMove = (e) => {
+            if (!isDragging) return;
+            const touch = e.touches ? e.touches[0] : e;
+            const deltaY = touch.clientY - startY;
+            if (sheet.classList.contains('sheet-peek')) {
+                if (deltaY < 0) {
+                    currentTranslate = deltaY;
+                    sheet.style.transform = `translateY(${Math.max(deltaY, -300)}px)`;
+                }
+            } else {
+                if (deltaY > 0) {
+                    currentTranslate = deltaY;
+                    sheet.style.transform = `translateY(${Math.min(deltaY, 400)}px)`;
+                }
+            }
+        };
+
+        const onTouchEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            sheet.classList.remove('is-dragging');
+            sheet.style.transform = '';
+
+            if (sheet.classList.contains('sheet-peek')) {
+                if (currentTranslate < -35) {
+                    sheet.classList.remove('sheet-peek');
+                    triggerHaptic('selection');
+                }
+            } else {
+                if (currentTranslate > 35) {
+                    sheet.classList.add('sheet-peek');
+                    triggerHaptic('selection');
+                }
+            }
+            currentTranslate = 0;
+        };
+
+        handle.addEventListener('touchstart', onTouchStart, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchend', onTouchEnd);
+        window.addEventListener('touchcancel', onTouchEnd);
+
+        handle.addEventListener('mousedown', onTouchStart);
+        window.addEventListener('mousemove', onTouchMove);
+        window.addEventListener('mouseup', onTouchEnd);
     },
 
     ensureMap() {
@@ -4034,6 +4122,29 @@ const appTransformMap = {
         if (!this.map || !this.convertedLayer) return;
         this.convertedLayer.clearLayers();
         const bounds = [];
+
+        // Ưu tiên hiển thị mốc đơn vừa chuyển đổi nếu có
+        if (this.viewSinglePoint && this.viewSinglePoint.lat && this.viewSinglePoint.lng) {
+            const p = this.viewSinglePoint;
+            const fLat = parseFloat(p.lat);
+            const fLng = parseFloat(p.lng);
+            const fX = parseFloat(p.x);
+            const fY = parseFloat(p.y);
+            bounds.push([fLat, fLng]);
+            const icon = L.divIcon({
+                className: 'single-converted-pin',
+                html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">📍</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            const marker = L.marker([fLat, fLng], { icon })
+                .addTo(this.convertedLayer)
+                .bindPopup(`<b>${p.name || 'Điểm Chuyển Đổi'}</b><br>VN-2000 X: <b>${fX.toFixed(3)}</b> m<br>VN-2000 Y: <b>${fY.toFixed(3)}</b> m<br>WGS-84: ${fLat.toFixed(6)}°, ${fLng.toFixed(6)}°<br>KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`)
+                .openPopup();
+            this.map.setView([fLat, fLng], 17);
+            setTimeout(() => this.map.invalidateSize(), 200);
+            return;
+        }
 
         // Kiểm tra đa điểm chuyển đổi trước
         if (typeof appTransform !== 'undefined' && appTransform.multiConvertedResults && appTransform.multiConvertedResults.length > 0) {
