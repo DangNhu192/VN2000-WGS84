@@ -1230,7 +1230,7 @@ const appDashboard = {
         { id: 'resection', name: '6. Tính Toán Geodesy & Giao Hội', short: 'Tính Toán Geodesy', icon: '📐', color: 'yellow', tag: 'Định vị hầm/tán cây', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Geodesy Pro', action: () => appModal.openUnifiedSettings('resection') },
         { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
         { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
-        { id: 'about', name: '9. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.7.0 Pro', action: () => appNav.showScreen('about') },
+        { id: 'about', name: '9. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
         { id: 'cad_tool', name: 'Tiện Ích: Vẽ Mặt Bằng CAD Mini', short: 'MiniCAD Độc Lập', icon: '📐', color: 'cyan', tag: 'Tiện ích phụ trợ', sub: 'Đa giác • Tuyến • Bảng diện tích & DXF', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
     ],
 
@@ -21846,6 +21846,21 @@ window.addEventListener('DOMContentLoaded', () => {
             appNav.closeTreeMenu();
         }
     });
+
+    // Hỗ trợ PWA Quick Action Shortcuts & Deep Linking (?screen=transform/map/stakeout/datamgmt/cad_tool)
+    try {
+        if (typeof window !== 'undefined' && window.location && window.location.search) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetScreen = urlParams.get('screen');
+            if (targetScreen) {
+                setTimeout(() => {
+                    if (typeof appNav !== 'undefined' && typeof appNav.navigateTo === 'function') {
+                        appNav.navigateTo(targetScreen);
+                    }
+                }, 120);
+            }
+        }
+    } catch (_) { }
 });
 
 // ================= GLOBAL WINDOW EXPORTS FOR RELIABLE BROWSER / WEBVIEW COMPATIBILITY =================

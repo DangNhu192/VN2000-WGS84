@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.7.16';
+const CACHE_NAME = 'vn2000-pro-v2.8.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -22,7 +22,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Đang nạp bộ nhớ đệm offline tài nguyên trắc địa v2.5.7...');
+      console.log('[Service Worker] Đang nạp bộ nhớ đệm offline tài nguyên trắc địa v2.8.0...');
       return cache.addAll(ASSETS_TO_CACHE);
     }).then(() => self.skipWaiting())
   );
@@ -48,8 +48,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // Chỉ can thiệp các request GET
-  if (req.method !== 'GET') return;
+  // Chỉ can thiệp các request GET thuộc giao thức HTTP/HTTPS
+  if (req.method !== 'GET' || !req.url.startsWith('http')) return;
 
   const url = new URL(req.url);
 
