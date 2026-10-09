@@ -1998,6 +1998,51 @@
       min-width: 0;
     }
 
+    /* Chế độ Bản đồ lớn trực quan chiếm đa số màn hình hoặc Toàn màn hình */
+    .transform-map-column.mobile-active,
+    .transform-map-column.large-focus {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      height: calc(100vh - var(--sat-safe-top) - 130px) !important;
+      min-height: 480px !important;
+      background: #0b1329;
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      border-radius: 16px;
+      overflow: hidden !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+      margin-top: 6px;
+    }
+    .transform-map-column.large-focus .transform-live-map-body,
+    .transform-map-column.mobile-active .transform-live-map-body {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 420px;
+      position: relative;
+    }
+    .transform-map-column.large-focus #transformLiveMap,
+    .transform-map-column.mobile-active #transformLiveMap {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1;
+    }
+    .transform-map-column.fullscreen-mode {
+      position: fixed !important;
+      top: calc(var(--sat-safe-top) + 6px) !important;
+      left: 8px !important;
+      right: 8px !important;
+      bottom: calc(var(--sat-safe-bottom) + 8px) !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: none !important;
+      z-index: 2950 !important;
+      border: 2px solid #38bdf8 !important;
+      box-shadow: 0 0 35px rgba(2, 132, 199, 0.75) !important;
+    }
+
     @media (min-width: 1024px) {
       #screen-transform {
         max-width: 100% !important;
@@ -2012,8 +2057,8 @@
         overflow: hidden !important;
       }
       .transform-content-column {
-        flex: 1.15 !important;
-        max-width: 58% !important;
+        flex: 1 !important;
+        max-width: 50% !important;
         height: 100% !important;
         overflow-y: auto !important;
         padding-right: 8px !important;
@@ -2022,8 +2067,8 @@
       .transform-map-column {
         display: flex !important;
         flex-direction: column !important;
-        flex: 1 !important;
-        max-width: 45% !important;
+        flex: 1.2 !important;
+        max-width: 55% !important;
         height: 100% !important;
         background: #0b1329;
         border: 1px solid rgba(56, 189, 248, 0.35);
@@ -7222,13 +7267,16 @@
         <div class="transform-split-layout">
           <!-- CỘT TRÁI: FORM ĐIỀU KHIỂN & CHUYỂN ĐỔI (ĐƠN ĐIỂM & ĐA ĐIỂM) -->
           <div class="transform-content-column">
-            <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm -->
+            <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm vs Bản đồ lớn trực quan -->
             <div class="transform-subtabs">
               <button id="tabTransSingle" class="btn-subtab active" onclick="appTransform.switchTransformSubTab('single')">
                 📍 Chuyển Đổi Đơn Điểm
               </button>
               <button id="tabTransMulti" class="btn-subtab" onclick="appTransform.switchTransformSubTab('multi')">
                 📑 Chuyển Đổi Đa Điểm (<span id="txtMultiPointCount">0 mốc</span>)
+              </button>
+              <button id="tabTransLiveMap" class="btn-subtab" onclick="appTransform.switchTransformSubTab('livemap')" title="Xem bản đồ lớn trực quan chiếm đa số màn hình">
+                🗺️ Bản Đồ Lớn Trực Quan
               </button>
             </div>
 
@@ -7485,13 +7533,18 @@
             </div>
 
             <!-- Nút bấm thực hiện chuyển đổi -->
-            <div class="convert-actions-card" style="margin: 0;">
-              <button class="btn-convert btn-wgs-to-vn2k" onclick="appTransform.convertMultiBatch('wgs2vn2k')">
-                WGS-84 ➔ VN-2000 ĐÃ CHỌN ▼
+            <div class="convert-actions-card" style="margin: 0; gap: 8px;">
+              <button class="btn-convert" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #b45309 100%); border: 1.5px solid #fbbf24; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.45); font-size: 14.5px; font-weight: 800;" onclick="appTransform.executeMultiTransform()">
+                ⚡ TỰ ĐỘNG CHUYỂN ĐỔI TẤT CẢ ĐIỂM ĐÃ CHỌN
               </button>
-              <button class="btn-convert btn-vn2k-to-wgs" onclick="appTransform.convertMultiBatch('vn2k2wgs')">
-                VN-2000 ➔ WGS-84 ĐÃ CHỌN ▲
-              </button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-convert btn-wgs-to-vn2k" style="flex: 1; min-height: 44px; font-size: 13px;" onclick="appTransform.convertMultiBatch('wgs2vn2k')">
+                  WGS-84 ➔ VN-2000 ▼
+                </button>
+                <button class="btn-convert btn-vn2k-to-wgs" style="flex: 1; min-height: 44px; font-size: 13px;" onclick="appTransform.convertMultiBatch('vn2k2wgs')">
+                  VN-2000 ➔ WGS-84 ▲
+                </button>
+              </div>
             </div>
           </div>
 
@@ -7549,16 +7602,18 @@
             </div>
           </div>
 
-          <!-- CỘT PHẢI: BẢN ĐỒ SỐ LIVE TRỰC TIẾP (TỰ ĐỘNG HIỆN TRÊN MÀN HÌNH LỚN >= 1024px) -->
+          <!-- CỘT PHẢI: BẢN ĐỒ SỐ LIVE TRỰC TIẾP (TỰ ĐỘNG HIỆN TRÊN MÀN HÌNH LỚN >= 1024px HOẶC KHI CHỌN TAB BẢN ĐỒ) -->
           <div class="transform-map-column" id="boxTransformLiveMapWrap">
             <div class="transform-live-map-header">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span style="font-size: 14px;">🗺️</span>
                 <span style="font-weight: 800; color: #38bdf8; font-size: 12px; letter-spacing: 0.3px;">BẢN ĐỒ TỌA ĐỘ TRỰC QUAN (LIVE MAP)</span>
               </div>
-              <div style="display: flex; gap: 4px; align-items: center;">
-                <button type="button" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 10.5px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appTransform.toggleLiveMapLayer()" title="Đổi lớp bản đồ (Vệ tinh / Bản đồ đường)">🛰️ Lớp nền</button>
-                <button type="button" class="btn-sm btn-green" style="height: 22px; padding: 0 6px; font-size: 10.5px;" onclick="appTransform.fitLiveMapBounds()" title="Thu phóng nhìn rõ điểm chuyển đổi">🔍 Bao quát</button>
+              <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn-sm" style="height: 26px; padding: 0 8px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);" onclick="appTransform.toggleLiveMapLayer()" title="Đổi lớp bản đồ (Vệ tinh / Bản đồ đường)">🛰️ Lớp nền</button>
+                <button type="button" class="btn-sm btn-green" style="height: 26px; padding: 0 8px; font-size: 11px;" onclick="appTransform.fitLiveMapBounds()" title="Thu phóng nhìn rõ điểm chuyển đổi">🔍 Bao quát</button>
+                <button type="button" id="btnLiveMapExpand" class="btn-sm btn-blue" style="height: 26px; padding: 0 8px; font-size: 11px;" onclick="appTransform.toggleLiveMapExpand()" title="Phóng to bản đồ chiếm đa số màn hình">⛶ Phóng to</button>
+                <button type="button" class="btn-sm" style="height: 26px; padding: 0 8px; font-size: 11px; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #fff; border: 1px solid #2dd4bf;" onclick="appTransform.openFullConvertedMap()" title="Mở bản đồ lớn toàn màn hình">🗺️ Bản đồ lớn</button>
               </div>
             </div>
             <div class="transform-live-map-body">

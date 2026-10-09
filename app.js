@@ -2253,22 +2253,59 @@ const appTransform = {
     switchTransformSubTab(tab) {
         const btnSingle = document.getElementById('tabTransSingle');
         const btnMulti = document.getElementById('tabTransMulti');
+        const btnLiveMap = document.getElementById('tabTransLiveMap');
         const panelSingle = document.getElementById('panelTransSingle');
         const panelMulti = document.getElementById('panelTransMulti');
+        const mapWrap = document.getElementById('boxTransformLiveMapWrap');
 
-        if (tab === 'multi') {
-            if (btnSingle) btnSingle.classList.remove('active');
-            if (btnMulti) btnMulti.classList.add('active');
+        if (btnSingle) btnSingle.classList.toggle('active', tab === 'single');
+        if (btnMulti) btnMulti.classList.toggle('active', tab === 'multi');
+        if (btnLiveMap) btnLiveMap.classList.toggle('active', tab === 'livemap');
+
+        if (tab === 'livemap') {
+            // Chế độ Bản đồ lớn trực quan chiếm đa số màn hình
+            if (panelSingle) panelSingle.style.display = 'none';
+            if (panelMulti) panelMulti.style.display = 'none';
+            if (mapWrap) {
+                mapWrap.classList.add('large-focus');
+                mapWrap.classList.add('mobile-active');
+                mapWrap.style.display = 'flex';
+            }
+            this.initDesktopLiveMap();
+            setTimeout(() => {
+                if (this._liveMap) {
+                    this._liveMap.invalidateSize();
+                    this.fitLiveMapBounds();
+                }
+            }, 100);
+            showToast("🗺️ Bản đồ lớn trực quan (Chiếm đa số màn hình)!");
+        } else if (tab === 'multi') {
             if (panelSingle) panelSingle.style.display = 'none';
             if (panelMulti) panelMulti.style.display = 'block';
+            if (mapWrap) {
+                mapWrap.classList.remove('large-focus');
+                if (window.innerWidth < 1024) {
+                    mapWrap.classList.remove('mobile-active');
+                    mapWrap.style.display = 'none';
+                } else {
+                    mapWrap.style.display = 'flex';
+                }
+            }
             this.populateMultiProjectSelect();
             this.updatePickedMapCountBadge();
             this.renderMultiTransPoints();
         } else {
-            if (btnSingle) btnSingle.classList.add('active');
-            if (btnMulti) btnMulti.classList.remove('active');
             if (panelSingle) panelSingle.style.display = 'block';
             if (panelMulti) panelMulti.style.display = 'none';
+            if (mapWrap) {
+                mapWrap.classList.remove('large-focus');
+                if (window.innerWidth < 1024) {
+                    mapWrap.classList.remove('mobile-active');
+                    mapWrap.style.display = 'none';
+                } else {
+                    mapWrap.style.display = 'flex';
+                }
+            }
         }
     },
 
@@ -2287,7 +2324,7 @@ const appTransform = {
                 const c1 = hasX ? parseFloat(p.x).toFixed(3) : (hasLat ? parseFloat(p.lat).toFixed(6) : '');
                 const c2 = hasX ? parseFloat(p.y).toFixed(3) : (hasLat ? parseFloat(p.lng).toFixed(6) : '');
                 this.multiPoints.push({
-                    id: p.id || (Date.now() + Math.random()),
+                    id: p.id || (Date.now() + Math.random() + added),
                     name: p.name || `P${this.multiPoints.length + 1}`,
                     c1: c1,
                     c2: c2,
@@ -2363,36 +2400,88 @@ const appTransform = {
             showToast("⚠️ Vui lòng dán văn bản tọa độ trước khi nạp!", true);
             return;
         }
-        const lines = ta.value.trim().split('\n');
+        const lines = ta.value.trim().split(/\r?\n/);
         let added = 0;
+
+        const cleanNumStr = (s) => {
+            if (s === undefined || s === null) return '';
+            let str = String(s).trim().replace(/^"|"$/g, '');
+            if (str.includes('.') && str.includes(',')) {
+                if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                    str = str.replace(/\./g, '').replace(',', '.');
+                } else {
+                    str = str.replace(/,/g, '');
+                }
+            } else if (str.includes(',')) {
+                str = str.replace(',', '.');
+            }
+            return str;
+        };
+
         lines.forEach(line => {
             const clean = line.trim();
             if (!clean) return;
             const lower = clean.toLowerCase();
             if (lower.startsWith('stt') || lower.startsWith('tên') || lower.startsWith('name') || 
                 lower.startsWith('toạ độ') || lower.startsWith('tọa độ') || lower.startsWith('kinh độ') || 
-                lower.startsWith('vĩ độ') || lower.startsWith('lat') || lower.startsWith('lng')) {
+                lower.startsWith('vĩ độ') || lower.startsWith('lat') || lower.startsWith('lng') ||
+                lower.startsWith('point') || lower.startsWith('thời gian') || lower.startsWith('time')) {
                 return;
             }
 
-            const parts = clean.split(/[\t,;|\s]+/);
-            if (parts.length >= 2) {
-                let name = `P${this.multiPoints.length + 1}`;
-                let c1 = parts[0];
-                let c2 = parts[1];
-                if (parts.length >= 3 && isNaN(parseFloat(parts[0]))) {
-                    name = parts[0];
-                    c1 = parts[1];
-                    c2 = parts[2];
+            let tokens = [];
+            if (clean.includes('\t')) {
+                tokens = clean.split('\t').map(t => t.trim()).filter(Boolean);
+            } else if (clean.includes(';')) {
+                tokens = clean.split(';').map(t => t.trim()).filter(Boolean);
+            } else if (clean.includes(',') && !clean.includes('  ')) {
+                const commaParts = clean.split(',').map(t => t.trim()).filter(Boolean);
+                if (commaParts.length >= 2 && commaParts.every(p => !isNaN(parseFloat(cleanNumStr(p))))) {
+                    tokens = commaParts;
+                } else {
+                    tokens = clean.split(/\s+/).map(t => t.trim()).filter(Boolean);
                 }
-                const n1 = parseFloat(c1);
-                const n2 = parseFloat(c2);
+            } else {
+                tokens = clean.split(/\s+/).map(t => t.trim()).filter(Boolean);
+            }
+
+            if (tokens.length >= 2) {
+                let name = `P${this.multiPoints.length + 1}`;
+                let c1Str = '', c2Str = '';
+                const num0 = parseFloat(cleanNumStr(tokens[0]));
+
+                if (tokens.length >= 4 && !isNaN(parseFloat(cleanNumStr(tokens[2]))) && !isNaN(parseFloat(cleanNumStr(tokens[3])))) {
+                    // STT Tên X Y
+                    name = isNaN(parseFloat(cleanNumStr(tokens[1]))) ? tokens[1] : (isNaN(parseFloat(cleanNumStr(tokens[0]))) ? tokens[0] : `P${tokens[0]}`);
+                    c1Str = cleanNumStr(tokens[2]);
+                    c2Str = cleanNumStr(tokens[3]);
+                } else if (tokens.length >= 3) {
+                    if (isNaN(num0)) {
+                        name = tokens[0];
+                        c1Str = cleanNumStr(tokens[1]);
+                        c2Str = cleanNumStr(tokens[2]);
+                    } else if (!isNaN(parseFloat(cleanNumStr(tokens[1]))) && !isNaN(parseFloat(cleanNumStr(tokens[2])))) {
+                        name = `P${tokens[0]}`;
+                        c1Str = cleanNumStr(tokens[1]);
+                        c2Str = cleanNumStr(tokens[2]);
+                    } else {
+                        name = tokens[0];
+                        c1Str = cleanNumStr(tokens[1]);
+                        c2Str = cleanNumStr(tokens[2]);
+                    }
+                } else {
+                    c1Str = cleanNumStr(tokens[0]);
+                    c2Str = cleanNumStr(tokens[1]);
+                }
+
+                const n1 = parseFloat(c1Str);
+                const n2 = parseFloat(c2Str);
                 if (!isNaN(n1) && !isNaN(n2)) {
                     this.multiPoints.push({
                         id: Date.now() + Math.random() + added,
                         name: name,
-                        c1: c1,
-                        c2: c2,
+                        c1: c1Str,
+                        c2: c2Str,
                         x: (n1 > 500000 || n2 > 500000) ? n1.toFixed(3) : null,
                         y: (n1 > 500000 || n2 > 500000) ? n2.toFixed(3) : null,
                         lat: (n1 <= 90 && n2 <= 180) ? n1.toFixed(6) : null,
@@ -2561,18 +2650,69 @@ const appTransform = {
         this.multiConvertedResults = [];
         let convertedCount = 0;
 
+        // Chuẩn hóa chuỗi số: chuyển dấu phẩy thập phân sang dấu chấm
+        const cleanNumStr = (s) => {
+            if (s === undefined || s === null) return '';
+            let str = String(s).trim().replace(/^"|"$/g, '');
+            if (str.includes('.') && str.includes(',')) {
+                if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                    str = str.replace(/\./g, '').replace(',', '.');
+                } else {
+                    str = str.replace(/,/g, '');
+                }
+            } else if (str.includes(',')) {
+                str = str.replace(',', '.');
+            }
+            return str;
+        };
+
         selected.forEach((pt, idx) => {
-            let v1 = pt.c1 !== undefined ? parseFloat(String(pt.c1).replace(',', '.')) : (pt.x ? parseFloat(pt.x) : parseFloat(pt.lat));
-            let v2 = pt.c2 !== undefined ? parseFloat(String(pt.c2).replace(',', '.')) : (pt.y ? parseFloat(pt.y) : parseFloat(pt.lng));
+            let s1 = cleanNumStr(pt.c1 !== undefined ? pt.c1 : (pt.x !== null ? pt.x : pt.lat));
+            let s2 = cleanNumStr(pt.c2 !== undefined ? pt.c2 : (pt.y !== null ? pt.y : pt.lng));
+            let v1 = parseFloat(s1);
+            let v2 = parseFloat(s2);
+
+            if (isNaN(v1) || isNaN(v2)) {
+                this.multiConvertedResults.push({
+                    stt: idx + 1,
+                    name: pt.name || `P${idx + 1}`,
+                    x: 'Lỗi',
+                    y: 'Lỗi',
+                    lat: 'Lỗi',
+                    lng: 'Lỗi',
+                    ktt: `${AppState.provinceName} (Lỗi tọa độ)`
+                });
+                return;
+            }
 
             let x = 0, y = 0, lat = 0, lng = 0;
+            let actualMode = mode;
 
-            if (mode === 'wgs2vn2k') {
-                lat = v1;
-                lng = v2;
-                if (lat > 50 && lng < 50) {
-                    const tmp = lat; lat = lng; lng = tmp;
+            // Tự động nhận diện thông minh chiều chuyển đổi:
+            const isVn2kCoords = (v1 > 1000 || v2 > 1000);
+            const isWgsCoords = (Math.abs(v1) <= 180 && Math.abs(v2) <= 180 && (Math.abs(v1) <= 90 || Math.abs(v2) <= 90));
+
+            if (mode === 'auto') {
+                actualMode = isVn2kCoords ? 'vn2k2wgs' : 'wgs2vn2k';
+            } else if (mode === 'wgs2vn2k' && isVn2kCoords) {
+                // Người dùng bấm WGS->VN2K nhưng dữ liệu nạp vào là VN2000 -> Tự động chuyển VN2K->WGS chống lỗi!
+                actualMode = 'vn2k2wgs';
+            } else if (mode === 'vn2k2wgs' && isWgsCoords && !isVn2kCoords) {
+                // Người dùng bấm VN2K->WGS nhưng dữ liệu nạp vào là WGS84 -> Tự động chuyển WGS->VN2K chống lỗi!
+                actualMode = 'wgs2vn2k';
+            }
+
+            if (actualMode === 'wgs2vn2k') {
+                // WGS-84 ➔ VN-2000
+                // Tại Việt Nam: Vĩ độ Lat ~8.5° - 23.5°, Kinh độ Lng ~102° - 110°
+                if (v1 >= 100 && v1 <= 112 && v2 >= 8 && v2 <= 25) {
+                    lng = v1; lat = v2;
+                } else if (v1 > 50 && v2 < 50) {
+                    lat = v2; lng = v1;
+                } else {
+                    lat = v1; lng = v2;
                 }
+
                 try {
                     const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
                     x = vn.X.toFixed(3);
@@ -2582,13 +2722,19 @@ const appTransform = {
                     convertedCount++;
                 } catch (e) {
                     x = 'Lỗi'; y = 'Lỗi';
+                    lat = lat.toFixed(6); lng = lng.toFixed(6);
                 }
             } else {
-                x = v1;
-                y = v2;
-                if (x < y && y > 1000000) {
-                    const tmp = x; x = y; y = tmp;
+                // VN-2000 ➔ WGS-84
+                // Tại Việt Nam: Trục Bắc (X) ~850.000m - 2.600.000m. Trục Đông (Y) ~200.000m - 850.000m
+                if (v1 < 850000 && v2 >= 850000) {
+                    y = v1; x = v2;
+                } else if (v1 < v2 && v2 > 1000000) {
+                    x = v2; y = v1;
+                } else {
+                    x = v1; y = v2;
                 }
+
                 try {
                     const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
                     lat = wgs.lat.toFixed(6);
@@ -2598,6 +2744,7 @@ const appTransform = {
                     convertedCount++;
                 } catch (e) {
                     lat = 'Lỗi'; lng = 'Lỗi';
+                    x = x.toFixed(3); y = y.toFixed(3);
                 }
             }
 
@@ -2620,7 +2767,7 @@ const appTransform = {
 
         this.renderMultiTransResultTable();
 
-        // Tự động đồng bộ các điểm vừa chuyển đổi đa điểm lên bản đồ Live Map (màn hình lớn)
+        // Tự động đồng bộ các điểm vừa chuyển đổi đa điểm lên bản đồ Live Map
         if (typeof this.syncMultiToLiveMap === 'function') {
             this.syncMultiToLiveMap(this.multiConvertedResults);
         }
@@ -2628,24 +2775,14 @@ const appTransform = {
         const chkSave = document.getElementById('chkSaveMultiToProject');
         if (chkSave && chkSave.checked) {
             this.saveMultiResultToChosenProject(false);
-        } else {
-            showToast(`✨ Đã chuyển đổi thành công ${convertedCount}/${selected.length} điểm!`, true);
         }
 
+        showToast(`✨ Đã chuyển đổi thành công ${convertedCount}/${selected.length} điểm!`, true);
         triggerHaptic('success');
     },
 
     executeMultiTransform() {
-        const first = this.multiPoints.find(p => p.selected !== false);
-        let mode = 'wgs2vn2k';
-        if (first) {
-            const v1 = parseFloat(first.c1 || first.x || first.lat);
-            const v2 = parseFloat(first.c2 || first.y || first.lng);
-            if (v1 > 500000 || v2 > 500000) {
-                mode = 'vn2k2wgs';
-            }
-        }
-        this.convertMultiBatch(mode);
+        this.convertMultiBatch('auto');
     },
 
     renderMultiTransResultTable() {
@@ -3209,6 +3346,42 @@ const appTransform = {
         } else {
             const bounds = L.latLngBounds(layers.map(l => l.getLatLng()));
             this._liveMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+        }
+    },
+
+    toggleLiveMapExpand() {
+        const wrap = document.getElementById('boxTransformLiveMapWrap');
+        const btn = document.getElementById('btnLiveMapExpand');
+        const layout = document.querySelector('.transform-split-layout');
+        if (!wrap) return;
+
+        const isFullscreen = wrap.classList.contains('fullscreen-mode');
+        if (isFullscreen) {
+            wrap.classList.remove('fullscreen-mode');
+            if (layout) layout.classList.remove('map-dominant');
+            if (btn) btn.innerHTML = "⛶ Phóng to";
+            showToast("🔍 Thu nhỏ bản đồ về chế độ chia đôi");
+        } else {
+            wrap.classList.add('fullscreen-mode');
+            if (btn) btn.innerHTML = "✖ Thu nhỏ";
+            showToast("⛶ Bản đồ lớn trực quan chiếm toàn màn hình!");
+        }
+
+        setTimeout(() => {
+            if (this._liveMap) {
+                this._liveMap.invalidateSize();
+                this.fitLiveMapBounds();
+            }
+        }, 150);
+    },
+
+    openFullConvertedMap() {
+        if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
+            this.viewMultiConvertedOnMap();
+        } else if (AppState.lastConvertedPoint) {
+            this.viewConvertedOnMap();
+        } else {
+            appNav.openCoordPickerMap();
         }
     }
 };
