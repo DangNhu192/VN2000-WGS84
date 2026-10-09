@@ -2271,6 +2271,9 @@ const appTransform = {
                 mapWrap.classList.add('mobile-active');
                 mapWrap.style.display = 'flex';
             }
+            if (typeof this.setTransformViewMode === 'function') {
+                this.setTransformViewMode('map-dominant');
+            }
             this.initDesktopLiveMap();
             setTimeout(() => {
                 if (this._liveMap) {
@@ -2284,9 +2287,20 @@ const appTransform = {
             if (panelMulti) panelMulti.style.display = 'block';
             if (mapWrap) {
                 mapWrap.classList.remove('large-focus');
-                if (window.innerWidth < 1024) {
-                    mapWrap.classList.remove('mobile-active');
+                const layout = document.getElementById('transformSplitLayout');
+                const isFormOnly = layout && layout.classList.contains('mode-form-only');
+                if (isFormOnly) {
                     mapWrap.style.display = 'none';
+                } else if (window.innerWidth < 1024) {
+                    // Nếu đang ở map-dominant hoặc split
+                    const isMapActive = layout && (layout.classList.contains('mode-map-dominant') || layout.classList.contains('mode-split'));
+                    if (isMapActive) {
+                        mapWrap.classList.add('mobile-active');
+                        mapWrap.style.display = 'flex';
+                    } else {
+                        mapWrap.classList.remove('mobile-active');
+                        mapWrap.style.display = 'none';
+                    }
                 } else {
                     mapWrap.style.display = 'flex';
                 }
@@ -2299,9 +2313,19 @@ const appTransform = {
             if (panelMulti) panelMulti.style.display = 'none';
             if (mapWrap) {
                 mapWrap.classList.remove('large-focus');
-                if (window.innerWidth < 1024) {
-                    mapWrap.classList.remove('mobile-active');
+                const layout = document.getElementById('transformSplitLayout');
+                const isFormOnly = layout && layout.classList.contains('mode-form-only');
+                if (isFormOnly) {
                     mapWrap.style.display = 'none';
+                } else if (window.innerWidth < 1024) {
+                    const isMapActive = layout && (layout.classList.contains('mode-map-dominant') || layout.classList.contains('mode-split'));
+                    if (isMapActive) {
+                        mapWrap.classList.add('mobile-active');
+                        mapWrap.style.display = 'flex';
+                    } else {
+                        mapWrap.classList.remove('mobile-active');
+                        mapWrap.style.display = 'none';
+                    }
                 } else {
                     mapWrap.style.display = 'flex';
                 }
@@ -3237,6 +3261,40 @@ const appTransform = {
             googleHybrid.addTo(this._liveMap);
 
             this._liveMapLayer = L.layerGroup().addTo(this._liveMap);
+
+            // Bắt sự kiện rê chuột & click hiển thị tọa độ tức thời trên liveMapCoordHud
+            this._liveMap.on('mousemove', (e) => {
+                const hud = document.getElementById('liveMapCoordHud');
+                if (!hud) return;
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                let vn2k = null;
+                try {
+                    if (typeof geodesy !== 'undefined' && geodesy.wgs84ToVn2000) {
+                        vn2k = geodesy.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                    }
+                } catch(err) {}
+                if (vn2k) {
+                    hud.innerHTML = `📍 Lat: <b>${lat.toFixed(6)}°</b>, Lng: <b>${lng.toFixed(6)}°</b> | VN2000 X: <b>${vn2k.x.toFixed(2)}</b>, Y: <b>${vn2k.y.toFixed(2)}</b>`;
+                } else {
+                    hud.innerHTML = `📍 Lat: <b>${lat.toFixed(6)}°</b>, Lng: <b>${lng.toFixed(6)}°</b>`;
+                }
+            });
+
+            this._liveMap.on('click', (e) => {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                let vn2k = null;
+                try {
+                    if (typeof geodesy !== 'undefined' && geodesy.wgs84ToVn2000) {
+                        vn2k = geodesy.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                    }
+                } catch(err) {}
+                const hud = document.getElementById('liveMapCoordHud');
+                if (hud) {
+                    hud.innerHTML = `🎯 Đã chọn: Lat <b>${lat.toFixed(6)}°</b>, Lng <b>${lng.toFixed(6)}°</b>${vn2k ? ` | VN2000 X: <b>${vn2k.x.toFixed(2)}</b>, Y: <b>${vn2k.y.toFixed(2)}</b>` : ''}`;
+                }
+            });
         }
 
         setTimeout(() => {
@@ -3293,6 +3351,11 @@ const appTransform = {
             </div>
         `).openPopup();
 
+        const hud = document.getElementById('liveMapCoordHud');
+        if (hud) {
+            hud.innerHTML = `📍 <b>${pt.name || 'Điểm Chuyển Đổi'}</b>: VN2000 X: <b>${xStr}</b>, Y: <b>${yStr}</b> | WGS-84: <b>${latStr}, ${lngStr}</b>`;
+        }
+
         this._liveMap.setView([fLat, fLng], 17);
     },
 
@@ -3328,6 +3391,11 @@ const appTransform = {
             }
         });
 
+        const hud = document.getElementById('liveMapCoordHud');
+        if (hud) {
+            hud.innerHTML = `📑 Đã hiển thị <b>${results.length}</b> mốc chuyển đổi đa điểm trên Live Map`;
+        }
+
         if (latlngs.length > 0) {
             const bounds = L.latLngBounds(latlngs);
             this._liveMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
@@ -3357,12 +3425,12 @@ const appTransform = {
 
         const isFullscreen = wrap.classList.contains('fullscreen-mode');
         if (isFullscreen) {
-            wrap.classList.remove('fullscreen-mode');
+            wrap.classList.remove('fullscreen-mode', 'is-fullscreen');
             if (layout) layout.classList.remove('map-dominant');
             if (btn) btn.innerHTML = "⛶ Phóng to";
             showToast("🔍 Thu nhỏ bản đồ về chế độ chia đôi");
         } else {
-            wrap.classList.add('fullscreen-mode');
+            wrap.classList.add('fullscreen-mode', 'is-fullscreen');
             if (btn) btn.innerHTML = "✖ Thu nhỏ";
             showToast("⛶ Bản đồ lớn trực quan chiếm toàn màn hình!");
         }
@@ -3373,6 +3441,54 @@ const appTransform = {
                 this.fitLiveMapBounds();
             }
         }, 150);
+    },
+
+    setTransformViewMode(mode) {
+        const layout = document.getElementById('transformSplitLayout') || document.querySelector('.transform-split-layout');
+        const btnMapDom = document.getElementById('btnTfModeMapDominant');
+        const btnSplit = document.getElementById('btnTfModeSplit');
+        const btnFormOnly = document.getElementById('btnTfModeFormOnly');
+        const mapWrap = document.getElementById('boxTransformLiveMapWrap');
+
+        if (btnMapDom) btnMapDom.classList.toggle('active', mode === 'map-dominant');
+        if (btnSplit) btnSplit.classList.toggle('active', mode === 'split');
+        if (btnFormOnly) btnFormOnly.classList.toggle('active', mode === 'form-only');
+
+        if (layout) {
+            layout.classList.remove('mode-map-dominant', 'mode-split', 'mode-form-only');
+            layout.classList.add(`mode-${mode}`);
+        }
+
+        if (mapWrap) {
+            if (mode === 'form-only') {
+                mapWrap.classList.remove('mobile-active', 'large-focus');
+                mapWrap.style.display = 'none';
+            } else if (mode === 'map-dominant') {
+                mapWrap.classList.add('mobile-active', 'large-focus');
+                mapWrap.style.display = 'flex';
+                this.initDesktopLiveMap();
+            } else if (mode === 'split') {
+                mapWrap.classList.add('mobile-active');
+                mapWrap.classList.remove('large-focus');
+                mapWrap.style.display = 'flex';
+                this.initDesktopLiveMap();
+            }
+        }
+
+        setTimeout(() => {
+            if (this._liveMap) {
+                this._liveMap.invalidateSize();
+                this.fitLiveMapBounds();
+            }
+        }, 150);
+
+        if (mode === 'map-dominant') {
+            showToast("🗺️ Bản đồ lớn trực quan chiếm đa số màn hình (65%)!");
+        } else if (mode === 'split') {
+            showToast("⚖️ Chế độ chia đôi Form & Bản đồ (50/50)!");
+        } else if (mode === 'form-only') {
+            showToast("📝 Chế độ chỉ hiển thị Form nhập liệu!");
+        }
     },
 
     openFullConvertedMap() {

@@ -1998,6 +1998,100 @@
       min-width: 0;
     }
 
+    /* ================= 2026 HERO LIVE MAP & SPLIT CONTROLS ================= */
+    .transform-view-mode-bar {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      flex-shrink: 0;
+    }
+    .btn-tf-view-mode {
+      flex: 1;
+      padding: 7px 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+    }
+    .btn-tf-view-mode.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.4) 0%, rgba(14, 165, 233, 0.25) 100%);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+    }
+    .btn-tf-view-mode:hover:not(.active) {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* MAP DOMINANT (Bản đồ lớn chiếm đa số màn hình) */
+    .transform-split-layout.mode-map-dominant {
+      flex-direction: column !important;
+    }
+    .transform-split-layout.mode-map-dominant .transform-map-column {
+      order: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      flex: 1.8 !important;
+      height: 60vh !important;
+      min-height: 320px;
+    }
+    .transform-split-layout.mode-map-dominant .transform-content-column {
+      order: 2 !important;
+      flex: 1 !important;
+      height: 40vh !important;
+      overflow-y: auto !important;
+      scrollbar-width: thin;
+    }
+
+    /* SPLIT 50/50 */
+    .transform-split-layout.mode-split {
+      flex-direction: column !important;
+    }
+    .transform-split-layout.mode-split .transform-map-column {
+      order: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      flex: 1 !important;
+      height: 45vh !important;
+      min-height: 260px;
+    }
+    .transform-split-layout.mode-split .transform-content-column {
+      order: 2 !important;
+      flex: 1.2 !important;
+      height: 55vh !important;
+      overflow-y: auto !important;
+      scrollbar-width: thin;
+    }
+
+    /* FORM ONLY */
+    .transform-split-layout.mode-form-only .transform-map-column {
+      display: none !important;
+    }
+    .transform-split-layout.mode-form-only .transform-content-column {
+      flex: 1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100% !important;
+      overflow-y: auto !important;
+    }
+
     /* Chế độ Bản đồ lớn trực quan chiếm đa số màn hình hoặc Toàn màn hình */
     .transform-map-column.mobile-active,
     .transform-map-column.large-focus {
@@ -2029,7 +2123,8 @@
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: 1;
     }
-    .transform-map-column.fullscreen-mode {
+    .transform-map-column.fullscreen-mode,
+    .transform-map-column.is-fullscreen {
       position: fixed !important;
       top: calc(var(--sat-safe-top) + 6px) !important;
       left: 8px !important;
@@ -2041,6 +2136,30 @@
       z-index: 2950 !important;
       border: 2px solid #38bdf8 !important;
       box-shadow: 0 0 35px rgba(2, 132, 199, 0.75) !important;
+    }
+
+    /* Floating Coordinate HUD on Live Map */
+    .live-map-coord-hud {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #38bdf8;
+      z-index: 20;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+      white-space: nowrap;
+      max-width: 92%;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
 
     @media (min-width: 1024px) {
@@ -2055,6 +2174,38 @@
         height: calc(100vh - var(--sat-safe-top) - 85px) !important;
         max-height: calc(100vh - var(--sat-safe-top) - 85px) !important;
         overflow: hidden !important;
+      }
+      .transform-split-layout.mode-map-dominant {
+        flex-direction: row !important;
+      }
+      .transform-split-layout.mode-map-dominant .transform-map-column {
+        order: 2 !important;
+        flex: 2 !important;
+        max-width: 66% !important;
+        height: 100% !important;
+        display: flex !important;
+      }
+      .transform-split-layout.mode-map-dominant .transform-content-column {
+        order: 1 !important;
+        flex: 1 !important;
+        max-width: 34% !important;
+        height: 100% !important;
+      }
+      .transform-split-layout.mode-split {
+        flex-direction: row !important;
+      }
+      .transform-split-layout.mode-split .transform-map-column {
+        order: 2 !important;
+        flex: 1.2 !important;
+        max-width: 55% !important;
+        height: 100% !important;
+        display: flex !important;
+      }
+      .transform-split-layout.mode-split .transform-content-column {
+        order: 1 !important;
+        flex: 1 !important;
+        max-width: 45% !important;
+        height: 100% !important;
       }
       .transform-content-column {
         flex: 1 !important;
@@ -2101,6 +2252,19 @@
         bottom: 0;
         z-index: 1;
       }
+    }
+
+    /* ================= CHẶN HOÀN TOÀN MINICAD KHỎI BẢN ĐỒ DỰ ÁN & MỐC ================= */
+    #map-view-container:not(.cad-active-map) #mapCadToolbar,
+    #map-view-container:not(.cad-active-map) #cadBlocksStatsPanel,
+    #map-view-container:not(.cad-active-map) #cadStatusHud,
+    #map-view-container:not(.cad-active-map) #cadThumbActionBar,
+    #map-view-container:not(.cad-active-map) #cadTouchLoupe,
+    #map-view-container:not(.cad-active-map) .cad-blocks-panel,
+    #map-view-container:not(.cad-active-map) .cad-hud-btn,
+    #map-view-container:not(.cad-active-map) .cad-thumb-action-bar,
+    #map-view-container:not(.cad-active-map) .cad-touch-loupe {
+      display: none !important;
     }
 
     /* ================= BỐ CỤC CHUYÊN NGHIỆP TRẮC DỌC & ĐÀO ĐẮP (SCREEN 8) ================= */
@@ -7264,7 +7428,20 @@
 
       <!-- ================= SCREEN 1: CHUYỂN ĐỔI TỌA ĐỘ ================= -->
       <section id="screen-transform" class="screen-view">
-        <div class="transform-split-layout">
+        <!-- 2026 HERO LIVE MAP & SPLIT CONTROLS -->
+        <div class="transform-view-mode-bar" id="transformViewModeBar">
+          <button type="button" id="btnTfModeMapDominant" class="btn-tf-view-mode active" onclick="appTransform.setTransformViewMode('map-dominant')" title="Bản đồ lớn chiếm đa số màn hình (65%)">
+            🗺️ Bản đồ lớn (65%)
+          </button>
+          <button type="button" id="btnTfModeSplit" class="btn-tf-view-mode" onclick="appTransform.setTransformViewMode('split')" title="Chia đôi Form và Bản đồ (50/50)">
+            ⚖️ Chia đôi (50/50)
+          </button>
+          <button type="button" id="btnTfModeFormOnly" class="btn-tf-view-mode" onclick="appTransform.setTransformViewMode('form-only')" title="Chỉ hiển thị Form nhập liệu">
+            📝 Chỉ Form
+          </button>
+        </div>
+
+        <div class="transform-split-layout mode-map-dominant" id="transformSplitLayout">
           <!-- CỘT TRÁI: FORM ĐIỀU KHIỂN & CHUYỂN ĐỔI (ĐƠN ĐIỂM & ĐA ĐIỂM) -->
           <div class="transform-content-column">
             <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm vs Bản đồ lớn trực quan -->
@@ -7603,7 +7780,7 @@
           </div>
 
           <!-- CỘT PHẢI: BẢN ĐỒ SỐ LIVE TRỰC TIẾP (TỰ ĐỘNG HIỆN TRÊN MÀN HÌNH LỚN >= 1024px HOẶC KHI CHỌN TAB BẢN ĐỒ) -->
-          <div class="transform-map-column" id="boxTransformLiveMapWrap">
+          <div class="transform-map-column mobile-active large-focus" id="boxTransformLiveMapWrap">
             <div class="transform-live-map-header">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <span style="font-size: 14px;">🗺️</span>
@@ -7618,6 +7795,9 @@
             </div>
             <div class="transform-live-map-body">
               <div id="transformLiveMap"></div>
+              <div id="liveMapCoordHud" class="live-map-coord-hud">
+                📍 Di chuột hoặc nhấp trên Live Map để tra cứu tọa độ tức thời
+              </div>
             </div>
           </div>
         </div>
