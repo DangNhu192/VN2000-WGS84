@@ -6433,6 +6433,92 @@
                   border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
                   box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
+
+    /* ================= 2026 UNIFIED BENTO SURVEY HUD & FLUID TRANSITIONS ================= */
+    :root {
+      --hud-glass: rgba(15, 23, 42, 0.88);
+      --hud-glass-card: rgba(19, 29, 49, 0.82);
+      --hud-border-cyan: rgba(56, 189, 248, 0.28);
+      --hud-border-glow: #38bdf8;
+      --hud-glow-shadow: 0 0 20px rgba(56, 189, 248, 0.22);
+      --hud-spring-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Hardware-Accelerated 60FPS Screen Transitions */
+    .screen-view {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+      transition: opacity 0.24s var(--hud-spring-ease), 
+                  transform 0.24s var(--hud-spring-ease) !important;
+      display: none;
+    }
+    .screen-view.active {
+      display: block !important;
+      opacity: 1 !important;
+      transform: translateY(0) scale(1) !important;
+    }
+
+    /* Modern Bento Tiles Micro-interactions */
+    .big-action-tile {
+      background: linear-gradient(145deg, rgba(19, 29, 49, 0.95) 0%, rgba(11, 17, 32, 0.92) 100%) !important;
+      border: 1.5px solid var(--hud-border-cyan) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
+      transition: transform 0.16s var(--hud-spring-ease), 
+                  border-color 0.16s ease, 
+                  box-shadow 0.16s ease !important;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .big-action-tile:active {
+      transform: scale(0.96) !important;
+      border-color: var(--hud-border-glow) !important;
+      box-shadow: var(--hud-glow-shadow) !important;
+    }
+
+    /* Live GPS Breathing Radar Pulse */
+    @keyframes hudPulseRadar {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .gps-pulse-dot, #dashGpsPulseDot {
+      animation: hudPulseRadar 1.8s infinite var(--hud-spring-ease) !important;
+    }
+
+    /* Unified Bottom Navigation Active Pill Indicator */
+    .mobile-bottom-nav {
+      background: rgba(11, 17, 32, 0.94) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border-top: 1px solid rgba(56, 189, 248, 0.22) !important;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45) !important;
+    }
+    .bottom-nav-item {
+      position: relative;
+      transition: color 0.18s ease, transform 0.16s var(--hud-spring-ease) !important;
+    }
+    .bottom-nav-item.active {
+      color: #38bdf8 !important;
+      font-weight: 700 !important;
+    }
+    .bottom-nav-item.active .bottom-nav-icon {
+      transform: translateY(-2px) scale(1.12);
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+    }
+
+    /* Unified Cards for Geodesy, Camera, Stakeout & Datamgmt */
+    .dash-info-card, .compact-tool-card, .calc-card {
+      border: 1px solid var(--hud-border-cyan) !important;
+      border-radius: 14px !important;
+      transition: transform 0.16s var(--hud-spring-ease), border-color 0.16s ease !important;
+    }
+    .dash-info-card:active, .compact-tool-card:active {
+      transform: scale(0.97) !important;
+      border-color: var(--hud-border-glow) !important;
+    }
   </style>
 </head>
 <body>
