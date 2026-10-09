@@ -364,7 +364,7 @@ const appNav = window.appNav = {
         if (tfMapView && (tfMapView.classList.contains('active') || tfMapView.style.display === 'flex')) {
             tfMapView.classList.remove('active');
             tfMapView.style.display = 'none';
-            appNav.showScreen('transform');
+            appNav.goToMenu();
             return;
         }
         const mapView = document.getElementById('map-view-container');
@@ -380,6 +380,11 @@ const appNav = window.appNav = {
         if (mapView) {
             mapView.classList.remove('active');
             mapView.style.display = 'none';
+        }
+        const tfMapView = document.getElementById('screen-transform-map');
+        if (tfMapView) {
+            tfMapView.classList.remove('active');
+            tfMapView.style.display = 'none';
         }
         appNav.showScreen('menu');
     },
@@ -4304,39 +4309,19 @@ const appTransformMap = {
                 return;
             }
             const p = this.pickedSinglePoint;
-            const inLat = document.getElementById('txtWgsLat');
-            const inLng = document.getElementById('txtWgsLng');
-            if (inLat) inLat.value = formatLatLong(p.lat, AppState.formatType);
-            if (inLng) inLng.value = formatLatLong(p.lng, AppState.formatType);
-            showToast("✓ Đã áp dụng tọa độ về Form chuyển đổi!");
-            appNav.showScreen('transform');
-            if (typeof appTransform !== 'undefined' && appTransform.switchTransformSubTab) {
-                appTransform.switchTransformSubTab('single');
-            }
+            this.syncSinglePointToSheet(p);
+            const sheet = document.getElementById('transformBottomSheet');
+            if (sheet) sheet.classList.remove('sheet-peek');
+            showToast("✓ Đã nạp tọa độ vào bảng tính chuyển đổi!");
         } else {
             if (this.pickedMultiPoints.length === 0) {
                 showToast("⚠️ Chưa có điểm đa điểm nào được chấm!", true);
                 return;
             }
-            if (typeof appTransform !== 'undefined') {
-                let added = 0;
-                this.pickedMultiPoints.forEach(p => {
-                    appTransform.multiPoints.push({
-                        stt: appTransform.multiPoints.length + 1,
-                        name: p.name,
-                        c1: p.x.toFixed(3),
-                        c2: p.y.toFixed(3),
-                        lat: p.lat,
-                        lng: p.lng,
-                        selected: true
-                    });
-                    added++;
-                });
-                appTransform.renderMultiTransPoints();
-                showToast(`✓ Đã nạp ${added} điểm đã chấm vào chuyển đổi hàng loạt!`);
-                appNav.showScreen('transform');
-                appTransform.switchTransformSubTab('multi');
-            }
+            this.switchSheetTab('multi');
+            const sheet = document.getElementById('transformBottomSheet');
+            if (sheet) sheet.classList.remove('sheet-peek');
+            showToast(`✓ Đang mở danh sách ${this.pickedMultiPoints.length} điểm trên bảng!`);
         }
     },
 

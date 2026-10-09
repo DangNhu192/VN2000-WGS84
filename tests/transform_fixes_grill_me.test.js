@@ -60,3 +60,17 @@ test('=== 3. KIỂM THỬ FIX LỖI 3: GIẢI PHÓNG BẢNG TỌA ĐỘ VÀ HI�
     assert.ok(appJsContent.includes('this.viewSinglePoint'), 'renderConvertedPoints ưu tiên mốc vừa chuyển đổi viewSinglePoint');
     assert.ok(appJsContent.includes('this.map.setView([fLat, fLng], 17);'), 'Zoom trực tiếp mức 17 vào đúng mốc vừa chuyển đổi');
 });
+
+test('=== 4. KIỂM THỬ FIX LỖI 4: NÚT QUAY LẠI TỪ BẢN ĐỒ CHUYỂN ĐỔI THOÁT RA MENU TRANG CHỦ HOÀN TOÀN ===', () => {
+    // 4.1 handleHeaderBack() phải gọi appNav.goToMenu() thay vì gọi lại showScreen('transform') gây vòng lặp kẹt
+    assert.match(appJsContent, /handleHeaderBack\(\)\s*\{[\s\S]*?getElementById\('screen-transform-map'\)[\s\S]*?appNav\.goToMenu\(\);/,
+        'handleHeaderBack() khi ở screen-transform-map phải gọi appNav.goToMenu() để quay về trang chủ');
+
+    // 4.2 Nút ✕ Đóng trên thanh công cụ bản đồ phải gọi appNav.goToMenu()
+    assert.ok(htmlContent.includes('onclick="appNav.goToMenu()" title="Đóng bản đồ, quay lại màn hình chính"'),
+        'Nút ✕ Đóng trên thanh toolbar bản đồ chuyển đổi phải quay về menu chính');
+
+    // 4.3 goToMenu() phải dọn dẹp ẩn sạch sẽ cả map-view-container và screen-transform-map
+    assert.match(appJsContent, /goToMenu\(\)\s*\{[\s\S]*?getElementById\('screen-transform-map'\)[\s\S]*?appNav\.showScreen\('menu'\);/,
+        'goToMenu() phải ẩn dứt điểm screen-transform-map và chuyển sang screen-menu');
+});
