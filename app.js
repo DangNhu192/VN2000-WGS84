@@ -3636,6 +3636,7 @@ const appTransformMap = {
     },
 
     switchSheetTab(tab) {
+        triggerHaptic('selection');
         this.currentSheetTab = tab;
         const btnS = document.getElementById('sheetTabSingle');
         const btnM = document.getElementById('sheetTabMulti');
@@ -3864,6 +3865,7 @@ const appTransformMap = {
         }
         const text = `Điểm: ${p.name || 'M-CHUYENDO'} | VN2000 X: ${parseFloat(p.x).toFixed(3)} m, Y: ${parseFloat(p.y).toFixed(3)} m | WGS84: ${parseFloat(p.lat).toFixed(6)}°, ${parseFloat(p.lng).toFixed(6)}° | KTT: ${AppState.kttVal}°`;
         navigator.clipboard.writeText(text).then(() => {
+            triggerHaptic('success');
             showToast("✓ Đã sao chép toàn bộ kết quả đầy đủ vào bộ nhớ tạm!");
         }).catch(() => {
             showToast("⚠️ Không thể ghi vào Clipboard!", true);
@@ -3882,6 +3884,7 @@ const appTransformMap = {
         if (!p) return;
         const text = `X: ${parseFloat(p.x).toFixed(3)}, Y: ${parseFloat(p.y).toFixed(3)}`;
         navigator.clipboard.writeText(text);
+        triggerHaptic('success');
         showToast(`✓ Đã sao chép VN-2000: ${text}`);
         this.toggleCopyMenu();
     },
@@ -3891,6 +3894,7 @@ const appTransformMap = {
         if (!p) return;
         const text = `${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}`;
         navigator.clipboard.writeText(text);
+        triggerHaptic('success');
         showToast(`✓ Đã sao chép WGS-84: ${text}`);
         this.toggleCopyMenu();
     },
@@ -3905,6 +3909,7 @@ const appTransformMap = {
         if (!p) return;
         const text = `${p.name || 'M1'}\t${parseFloat(p.x).toFixed(3)}\t${parseFloat(p.y).toFixed(3)}\t${parseFloat(p.lat).toFixed(6)}\t${parseFloat(p.lng).toFixed(6)}`;
         navigator.clipboard.writeText(text);
+        triggerHaptic('success');
         showToast(`✓ Đã sao chép dạng Tab Excel: ${text}`);
         this.toggleCopyMenu();
     },
@@ -3915,6 +3920,7 @@ const appTransformMap = {
             showToast("⚠️ Chưa có mốc chuyển đổi để lưu!", true);
             return;
         }
+        triggerHaptic('success');
         const curProj = AppState.currentProject || 'Dự án mặc định';
         const raw = localStorage.getItem(`vn2k_proj_${curProj}`);
         let pts = [];

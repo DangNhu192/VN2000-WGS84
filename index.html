@@ -2574,15 +2574,16 @@
 
     @media (max-width: 768px) {
       .transform-bottom-sheet {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        border-radius: 20px 20px 0 0;
-        max-height: 80vh;
-        min-height: 60px;
+        left: 10px;
+        right: 10px;
+        bottom: calc(var(--sat-safe-bottom) + 72px);
+        border-radius: 20px;
+        max-height: calc(85vh - 72px);
+        min-height: 56px;
+        z-index: 2350;
       }
       .transform-bottom-sheet.sheet-peek {
-        max-height: 64px !important;
+        max-height: 56px !important;
         overflow: hidden !important;
       }
       .transform-bottom-sheet.sheet-peek .transform-sheet-body,
@@ -2598,12 +2599,13 @@
         bottom: 14px;
         width: 440px;
         max-width: calc(100vw - 28px);
-        border-radius: 16px;
+        border-radius: 20px;
+        z-index: 2350;
       }
       .transform-bottom-sheet.sheet-peek {
-        width: 320px;
+        width: 340px;
         bottom: auto;
-        max-height: 72px !important;
+        max-height: 68px !important;
         overflow: hidden !important;
       }
       .transform-bottom-sheet.sheet-peek .transform-sheet-body,
@@ -2984,6 +2986,19 @@
       display: flex;
       align-items: center;
       gap: 4px;
+    }
+    .btn-sheet-save-project:active,
+    .btn-sheet-convert:active,
+    .btn-smart-copy:active,
+    .btn-smart-copy-arrow:active,
+    .btn-sheet-pick-mode:active,
+    .btn-sheet-toggle:active,
+    .btn-sheet-close:active,
+    .btn-card-mini:active,
+    .sheet-tab-btn:active,
+    .btn-sheet-mui:active {
+      transform: scale(0.95) !important;
+      transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     .sheet-multi-toolbar {
       display: flex;
