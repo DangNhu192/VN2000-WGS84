@@ -5606,8 +5606,319 @@
     }
 
     .bottom-nav-item.active .nav-indicator {
-      background: #38bdf8;
-      box-shadow: 0 0 8px #38bdf8;
+      background: #6366f1;
+      box-shadow: 0 0 8px #6366f1;
+    }
+
+    /* ==========================================================================
+       LOVABLE DESIGN SYSTEM V2.0 (BY FIRECRAWL/OPEN-LOVABLE ARCHITECTURE)
+       ĐỒNG BỘ TOÀN DIỆN 8 PHÂN HỆ & ĐA CHỦ ĐỀ SÁNG / TỐI (DARK / LIGHT PRO)
+       ========================================================================== */
+    :root, [data-theme="dark"] {
+      --lv-bg-base: #090d16;
+      --lv-bg-surface: #0f172a;
+      --lv-bg-card: #131d31;
+      --lv-bg-card-hover: #1e293b;
+      --lv-bg-elevated: #1e293b;
+      --lv-border: rgba(255, 255, 255, 0.08);
+      --lv-border-hover: rgba(99, 102, 241, 0.45);
+      --lv-border-glass: rgba(255, 255, 255, 0.12);
+      --lv-text-primary: #f8fafc;
+      --lv-text-secondary: #94a3b8;
+      --lv-text-muted: #64748b;
+      --lv-accent: #6366f1;
+      --lv-accent-glow: rgba(99, 102, 241, 0.28);
+      --lv-shadow-sm: 0 2px 8px 0 rgba(0, 0, 0, 0.35);
+      --lv-shadow-md: 0 6px 20px -2px rgba(0, 0, 0, 0.5);
+      --lv-shadow-lg: 0 12px 36px -4px rgba(0, 0, 0, 0.65);
+      --lv-shadow-glow: 0 0 25px -2px rgba(99, 102, 241, 0.3);
+      --lv-glass-bg: rgba(15, 23, 42, 0.85);
+      --lv-glass-blur: blur(16px);
+      --lv-nav-bg: rgba(15, 23, 42, 0.88);
+      --lv-radius-sm: 8px;
+      --lv-radius-md: 12px;
+      --lv-radius-lg: 16px;
+      --lv-radius-full: 9999px;
+    }
+
+    [data-theme="light"] {
+      --bg-dark: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-card-light: #f1f5f9;
+      --border-color: rgba(15, 23, 42, 0.12);
+      --border-focus: #4f46e5;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-accent: #4f46e5;
+      --text-gold: #d97706;
+
+      --lv-bg-base: #f8fafc;
+      --lv-bg-surface: #ffffff;
+      --lv-bg-card: #ffffff;
+      --lv-bg-card-hover: #f1f5f9;
+      --lv-bg-elevated: #f8fafc;
+      --lv-border: rgba(15, 23, 42, 0.1);
+      --lv-border-hover: rgba(79, 70, 229, 0.45);
+      --lv-border-glass: rgba(15, 23, 42, 0.14);
+      --lv-text-primary: #0f172a;
+      --lv-text-secondary: #475569;
+      --lv-text-muted: #94a3b8;
+      --lv-accent: #4f46e5;
+      --lv-accent-glow: rgba(79, 70, 229, 0.18);
+      --lv-shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.08);
+      --lv-shadow-md: 0 4px 16px -1px rgba(0, 0, 0, 0.12);
+      --lv-shadow-lg: 0 10px 28px -3px rgba(0, 0, 0, 0.15);
+      --lv-shadow-glow: 0 0 20px -2px rgba(79, 70, 229, 0.2);
+      --lv-glass-bg: rgba(255, 255, 255, 0.9);
+      --lv-glass-blur: blur(16px);
+      --lv-nav-bg: rgba(255, 255, 255, 0.94);
+    }
+
+    /* 1. APP HEADER LOVABLE GLASS */
+    header.app-header {
+      background: var(--lv-glass-bg) !important;
+      backdrop-filter: var(--lv-glass-blur) !important;
+      -webkit-backdrop-filter: var(--lv-glass-blur) !important;
+      border-bottom: 1px solid var(--lv-border) !important;
+      box-shadow: var(--lv-shadow-md) !important;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .btn-header-theme {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--lv-border);
+      color: var(--text-main);
+      border-radius: var(--lv-radius-md);
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      touch-action: manipulation;
+    }
+    [data-theme="light"] .btn-header-theme {
+      background: rgba(15, 23, 42, 0.06);
+      border-color: rgba(15, 23, 42, 0.15);
+    }
+    .btn-header-theme:hover {
+      background: rgba(255, 255, 255, 0.16);
+      transform: scale(1.06);
+      border-color: var(--lv-border-hover);
+    }
+    .btn-header-theme:active {
+      transform: scale(0.92);
+    }
+
+    /* 2. FLOATING ISLAND BOTTOM NAVIGATION */
+    nav#mobileBottomNav.mobile-bottom-nav {
+      position: fixed !important;
+      bottom: calc(var(--sat-safe-bottom) + 8px) !important;
+      left: 12px !important;
+      right: 12px !important;
+      max-width: 600px !important;
+      margin: 0 auto !important;
+      border-radius: 20px !important;
+      background: var(--lv-glass-bg) !important;
+      backdrop-filter: var(--lv-glass-blur) !important;
+      -webkit-backdrop-filter: var(--lv-glass-blur) !important;
+      border: 1px solid var(--lv-border) !important;
+      box-shadow: var(--lv-shadow-lg) !important;
+      z-index: 2400 !important;
+      padding: 5px 8px !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .bottom-nav-item {
+      border-radius: 14px !important;
+      padding: 6px 4px !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .bottom-nav-item.active {
+      background: var(--lv-accent-glow) !important;
+      color: var(--lv-accent) !important;
+    }
+    .bottom-nav-item.active .bottom-nav-icon {
+      transform: translateY(-2px) scale(1.12) !important;
+      filter: drop-shadow(0 0 8px var(--lv-accent)) !important;
+    }
+    .bottom-nav-item.active .nav-indicator {
+      background: var(--lv-accent) !important;
+      box-shadow: 0 0 10px var(--lv-accent) !important;
+    }
+
+    /* 3. BENTO GRID DASHBOARD CARDS */
+    .big-action-tile {
+      background: var(--lv-bg-card) !important;
+      border: 1px solid var(--lv-border) !important;
+      border-radius: var(--lv-radius-lg) !important;
+      box-shadow: var(--lv-shadow-sm) !important;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      position: relative !important;
+      overflow: hidden !important;
+    }
+    .big-action-tile::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, var(--lv-accent-glow), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .big-action-tile:hover {
+      transform: translateY(-3px) !important;
+      border-color: var(--lv-border-hover) !important;
+      box-shadow: var(--lv-shadow-md), var(--lv-shadow-glow) !important;
+    }
+    .big-action-tile:hover::before {
+      opacity: 1;
+    }
+    .big-action-tile:active {
+      transform: scale(0.98) !important;
+    }
+
+    .dash-info-card {
+      background: var(--lv-bg-card) !important;
+      border: 1px solid var(--lv-border) !important;
+      border-radius: var(--lv-radius-md) !important;
+      transition: all 0.2s ease !important;
+    }
+    .dash-info-card:hover {
+      border-color: var(--lv-border-hover) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    /* 4. CHUYỂN ĐỔI TỌA ĐỘ (PHÂN HỆ 1) */
+    .converted-result-box {
+      border-radius: var(--lv-radius-md) !important;
+      box-shadow: var(--lv-shadow-sm) !important;
+      transition: all 0.2s ease !important;
+    }
+    .converted-result-box:hover {
+      border-color: var(--lv-border-hover) !important;
+    }
+    .btn-convert {
+      background: linear-gradient(135deg, var(--lv-accent) 0%, #4338ca 100%) !important;
+      border-radius: var(--lv-radius-md) !important;
+      box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39) !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .btn-convert:hover {
+      transform: translateY(-1px) scale(1.01) !important;
+      box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.5) !important;
+    }
+    .btn-convert:active {
+      transform: scale(0.98) !important;
+    }
+
+    /* 5. BẢN ĐỒ & CAD MINICAD (PHÂN HỆ 2 & 3.5) */
+    .cad-blocks-panel, #projectMarksBlocksPanel {
+      backdrop-filter: var(--lv-glass-blur) !important;
+      -webkit-backdrop-filter: var(--lv-glass-blur) !important;
+      border-radius: var(--lv-radius-md) !important;
+      box-shadow: var(--lv-shadow-lg) !important;
+    }
+
+    /* 6. CẮM MỐC THỰC ĐỊA & LA BÀN (PHÂN HỆ 3) */
+    .stakeout-cockpit {
+      border-radius: var(--lv-radius-lg) !important;
+      box-shadow: var(--lv-shadow-md) !important;
+    }
+    .radar-circle {
+      transition: all 0.3s ease !important;
+    }
+
+    /* 7. SỔ ĐO & DỰ ÁN (PHÂN HỆ 4/5) */
+    .project-card, .file-card {
+      border-radius: var(--lv-radius-md) !important;
+      transition: all 0.2s ease !important;
+    }
+    .project-card:hover, .file-card:hover {
+      transform: translateY(-2px) !important;
+      border-color: var(--lv-border-hover) !important;
+      box-shadow: var(--lv-shadow-md) !important;
+    }
+
+    /* 8. TRẮC DỌC & ĐÀO ĐẮP (PHÂN HỆ 8) */
+    .profile-table-wrapper {
+      border-radius: var(--lv-radius-md) !important;
+      box-shadow: var(--lv-shadow-sm) !important;
+    }
+
+    /* 9. LIGHT THEME OVERRIDES TOÀN DIỆN */
+    [data-theme="light"] .screen-view,
+    [data-theme="light"] #app-container,
+    [data-theme="light"] body {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .app-header {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .app-title span {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .header-geodetic-pill {
+      background: rgba(15, 23, 42, 0.06) !important;
+      border-color: rgba(15, 23, 42, 0.15) !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .btn-header-action {
+      background: rgba(15, 23, 42, 0.06) !important;
+      border-color: rgba(15, 23, 42, 0.15) !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .converted-result-box {
+      background: #ffffff !important;
+      border-color: rgba(15, 23, 42, 0.12) !important;
+      box-shadow: var(--lv-shadow-md) !important;
+    }
+    [data-theme="light"] .res-lbl {
+      color: #64748b !important;
+    }
+    [data-theme="light"] .res-val {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] input,
+    [data-theme="light"] select,
+    [data-theme="light"] textarea {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: rgba(15, 23, 42, 0.18) !important;
+    }
+    [data-theme="light"] .cad-blocks-panel,
+    [data-theme="light"] #projectMarksBlocksPanel {
+      background: rgba(255, 255, 255, 0.94) !important;
+      border-color: rgba(15, 23, 42, 0.15) !important;
+      color: #0f172a !important;
+      box-shadow: var(--lv-shadow-lg) !important;
+    }
+    [data-theme="light"] .cad-blocks-panel-header,
+    [data-theme="light"] #pmbHeader {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+    }
+    [data-theme="light"] .modal-content,
+    [data-theme="light"] .modal-box {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: rgba(15, 23, 42, 0.15) !important;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+    }
+    [data-theme="light"] .quick-chip-pill {
+      background: #ffffff !important;
+      border-color: rgba(15, 23, 42, 0.12) !important;
+      color: #0f172a !important;
+    }
+
+    /* 10. SMOOTH TRANSITIONS ON THEME SWITCHING */
+    body, #app-container, .screen-view, .app-header, nav#mobileBottomNav, 
+    .big-action-tile, .dash-info-card, .converted-result-box, .modal-content {
+      transition: background 0.25s ease, background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
   </style>
 </head>
@@ -5632,6 +5943,9 @@
         </div>
       </div>
       <div class="header-right">
+        <button id="btnHeaderThemeToggle" class="btn-header-action btn-header-theme" onclick="appTheme.toggleTheme()" title="Chuyển đổi giao diện Sáng / Tối (Dark / Light Theme)">
+          <span id="headerThemeIcon">☀️</span>
+        </button>
         <button id="btnHeaderGpsToggle" class="btn-header-action btn-header-gps gps-searching" onclick="appGps.toggleTracking()" title="Bật/Tắt định vị GPS & Hiển thị sai số">
           <span id="headerGpsDot" class="gps-dot searching"></span>
           <span id="headerGpsText">🛰️ Tìm...</span>

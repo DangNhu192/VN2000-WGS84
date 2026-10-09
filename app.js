@@ -20621,10 +20621,40 @@ const appCadTool = {
     }
 };
 
+// ================= 10.9 HỆ THỐNG GIAO DIỆN CHUẨN LOVABLE (THEME CONTROLLER) =================
+const appTheme = {
+    current: 'dark',
+    init() {
+        const saved = (typeof localStorage !== 'undefined' && localStorage.getItem('app_theme')) || 'dark';
+        this.setTheme(saved);
+    },
+    setTheme(theme) {
+        this.current = (theme === 'light') ? 'light' : 'dark';
+        if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-theme', this.current);
+            if (document.body) document.body.setAttribute('data-theme', this.current);
+            const icon = document.getElementById('headerThemeIcon');
+            if (icon) icon.textContent = this.current === 'light' ? '🌙' : '☀️';
+            const btn = document.getElementById('btnHeaderThemeToggle');
+            if (btn) btn.title = this.current === 'light' ? 'Chuyển sang giao diện Tối (Engineering Dark Pro)' : 'Chuyển sang giao diện Sáng (Clean Light Minimalist)';
+        }
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('app_theme', this.current);
+        }
+    },
+    toggleTheme() {
+        this.setTheme(this.current === 'dark' ? 'light' : 'dark');
+        if (typeof showToast === 'function') {
+            showToast(this.current === 'light' ? '☀️ Đã bật giao diện Sáng (Chống chói nắng thực địa)' : '🌙 Đã bật giao diện Tối (Engineering Dark Pro)');
+        }
+    }
+};
+
 // ================= 11. KHỞI TẠO ỨNG DỤNG (APP BOOTSTRAP) =================
 window.addEventListener('DOMContentLoaded', () => {
 // Menu button handled via debounced appNav.toggleTreeMenu
 
+    appTheme.init();
     appTransform.init();
     appData.init();
     appGps.init();
@@ -20665,8 +20695,10 @@ if (typeof window !== 'undefined') {
     window.appCamera = appCamera;
     window.appGeodesy = appGeodesy;
     window.appDateTime = appDateTime;
+    window.appTheme = appTheme;
     window.getAppEffectiveDate = getAppEffectiveDate;
     window.triggerHaptic = triggerHaptic;
     window.showToast = showToast;
     window.appSettings = appSettings;
 }
+
