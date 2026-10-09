@@ -77,3 +77,24 @@ test('=== 4. BẢO VỆ CÁC PHÂN HỆ KHÁC (MINICAD & DỰ ÁN) KHÔNG XUNG �
     // 2. Dự án 2.1 mở độc lập
     assert.ok(appJs.includes("action === 'map'") && appJs.includes("appNav.openProjectMap()"), 'Bản đồ dự án 2.1 mở độc lập');
 });
+
+test('=== 5. KIỂM THỬ XỬ LÝ NHẬP LIỆU & DÁN TỌA ĐỘ CLIPBOARD ĐƠN ĐIỂM ===', () => {
+    // 1. Phương thức onInputChanged
+    assert.ok(appJs.includes('onInputChanged(type)'), 'Có hàm onInputChanged() đồng bộ nhập liệu 2 chiều');
+    
+    // 2. Phương thức dán clipboard cho từng hệ tọa độ
+    assert.ok(appJs.includes('pasteWgsFromClipboard()'), 'Có hàm pasteWgsFromClipboard()');
+    assert.ok(appJs.includes('pasteVn2kFromClipboard()'), 'Có hàm pasteVn2kFromClipboard()');
+    
+    // 3. Export toàn cục an toàn
+    assert.ok(appJs.includes('window.appTransformMap = appTransformMap;'), 'Export an toàn window.appTransformMap');
+});
+
+test('=== 6. KIỂM THỬ THẨM MỸ LOVABLE PRO: TƯƠNG PHẢN LIGHT & DARK THEME CHO BOTTOM SHEET ===', () => {
+    // 1. Tương thích Light theme không bị mờ/chìm
+    assert.ok(indexHtml.includes('[data-theme="light"] .transform-bottom-sheet'), 'Có style Light mode cho .transform-bottom-sheet');
+    assert.ok(indexHtml.includes('[data-theme="light"] .sheet-main-title'), 'Có màu chữ đậm cho .sheet-main-title');
+    assert.ok(indexHtml.includes('[data-theme="light"] .sheet-coord-card'), 'Có màu nền card sáng rõ cho .sheet-coord-card');
+    assert.ok(indexHtml.includes('[data-theme="light"] .sheet-result-box'), 'Có hộp kết quả nền sáng viền xanh lá');
+});
+

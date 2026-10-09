@@ -3720,6 +3720,98 @@ const appTransformMap = {
         if (box) box.style.display = 'block';
     },
 
+    onInputChanged(type) {
+        if (type === 'wgs') {
+            const inLat = document.getElementById('txtSheetWgsLat');
+            const inLng = document.getElementById('txtSheetWgsLng');
+            if (inLat && inLng) {
+                const lat = parseCoordinateNumber(inLat.value);
+                const lng = parseCoordinateNumber(inLng.value);
+                if (lat !== 0 && lng !== 0) {
+                    const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                    const inX = document.getElementById('txtSheetVn2kX');
+                    const inY = document.getElementById('txtSheetVn2kY');
+                    if (inX) inX.value = vn.X.toFixed(3);
+                    if (inY) inY.value = vn.Y.toFixed(3);
+                }
+            }
+        } else if (type === 'vn2k') {
+            const inX = document.getElementById('txtSheetVn2kX');
+            const inY = document.getElementById('txtSheetVn2kY');
+            if (inX && inY) {
+                const x = parseCoordinateNumber(inX.value);
+                const y = parseCoordinateNumber(inY.value);
+                if (x !== 0 && y !== 0) {
+                    const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                    const inLat = document.getElementById('txtSheetWgsLat');
+                    const inLng = document.getElementById('txtSheetWgsLng');
+                    if (inLat) inLat.value = wgs.lat.toFixed(6);
+                    if (inLng) inLng.value = wgs.lng.toFixed(6);
+                }
+            }
+        }
+    },
+
+    pasteWgsFromClipboard() {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+            showToast("⚠️ Trình duyệt chưa cấp quyền truy cập Clipboard!", true);
+            return;
+        }
+        navigator.clipboard.readText().then(text => {
+            if (!text || !text.trim()) {
+                showToast("⚠️ Clipboard trống!", true);
+                return;
+            }
+            const parts = text.trim().split(/[\s,;\t]+/);
+            if (parts.length >= 2) {
+                const lat = parseCoordinateNumber(parts[0]);
+                const lng = parseCoordinateNumber(parts[1]);
+                if (lat !== 0 && lng !== 0) {
+                    const inLat = document.getElementById('txtSheetWgsLat');
+                    const inLng = document.getElementById('txtSheetWgsLng');
+                    if (inLat) inLat.value = lat.toFixed(6);
+                    if (inLng) inLng.value = lng.toFixed(6);
+                    this.executeSingleConvert();
+                    showToast("📋 Đã dán và chuyển đổi tọa độ WGS-84!");
+                } else {
+                    showToast("⚠️ Định dạng tọa độ không hợp lệ!", true);
+                }
+            }
+        }).catch(() => {
+            showToast("⚠️ Vui lòng cấp quyền truy cập Clipboard!", true);
+        });
+    },
+
+    pasteVn2kFromClipboard() {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+            showToast("⚠️ Trình duyệt chưa cấp quyền truy cập Clipboard!", true);
+            return;
+        }
+        navigator.clipboard.readText().then(text => {
+            if (!text || !text.trim()) {
+                showToast("⚠️ Clipboard trống!", true);
+                return;
+            }
+            const parts = text.trim().split(/[\s,;\t]+/);
+            if (parts.length >= 2) {
+                const x = parseCoordinateNumber(parts[0]);
+                const y = parseCoordinateNumber(parts[1]);
+                if (x !== 0 && y !== 0) {
+                    const inX = document.getElementById('txtSheetVn2kX');
+                    const inY = document.getElementById('txtSheetVn2kY');
+                    if (inX) inX.value = x.toFixed(3);
+                    if (inY) inY.value = y.toFixed(3);
+                    this.executeSingleConvert();
+                    showToast("📋 Đã dán và chuyển đổi tọa độ VN-2000!");
+                } else {
+                    showToast("⚠️ Định dạng tọa độ không hợp lệ!", true);
+                }
+            }
+        }).catch(() => {
+            showToast("⚠️ Vui lòng cấp quyền truy cập Clipboard!", true);
+        });
+    },
+
     executeSingleConvert() {
         const inLat = document.getElementById('txtSheetWgsLat');
         const inLng = document.getElementById('txtSheetWgsLng');
@@ -21759,6 +21851,7 @@ if (typeof window !== 'undefined') {
     window.appData = appData;
     window.appGps = appGps;
     window.appTransform = appTransform;
+    window.appTransformMap = appTransformMap;
     window.appModal = appModal;
     window.appCadTool = appCadTool;
     window.appMap = appMap;
