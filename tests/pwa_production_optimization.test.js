@@ -42,6 +42,7 @@ test('=== 2. KIỂM THỬ CHIẾN LƯỢC SERVICE WORKER (SW.JS) VÀ CACHE OFFLI
     // Kiểm tra các tệp lõi offline
     const requiredOfflineAssets = [
         './index.html',
+        './style.css',
         './app.js',
         './geodesy.js',
         './leaflet.js',
@@ -89,7 +90,9 @@ test('=== 4. KIỂM THỬ ĐỒNG BỘ PHIÊN BẢN VÀ META TAGS TRONG INDEX.HT
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     assert.ok(html.includes('<meta name="theme-color" content="#0f172a">'), 'Theme-color trong index.html phải là #0f172a');
+    assert.ok(html.includes('style.css?v=2.8.0'), 'index.html phải nạp stylesheet style.css?v=2.8.0');
     assert.ok(html.includes('app.js?v=2.8.0'), 'index.html phải nạp script app.js?v=2.8.0');
+    assert.ok(fs.existsSync(path.join(ROOT_DIR, 'style.css')), 'Tệp style.css phải tồn tại trong thư mục gốc');
 
     const appPath = path.join(ROOT_DIR, 'app.js');
     const appJs = fs.readFileSync(appPath, 'utf8');

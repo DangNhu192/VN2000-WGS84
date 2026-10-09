@@ -2,8 +2,14 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 
+const getMergedMarkupAndStyles = () => {
+  const html = fs.readFileSync('index.html', 'utf8');
+  const css = fs.existsSync('style.css') ? fs.readFileSync('style.css', 'utf8') : '';
+  return html + '\n' + css;
+};
+
 test('=== 1. KIỂM THỬ GIAO DIỆN CHUẨN LOVABLE: THEME CONTROLLER & DOM ===', () => {
-  const indexHtml = fs.readFileSync('index.html', 'utf8');
+  const indexHtml = getMergedMarkupAndStyles();
   const appJs = fs.readFileSync('app.js', 'utf8');
 
   // Kiểm tra nút chuyển Theme trên Header
@@ -18,7 +24,7 @@ test('=== 1. KIỂM THỬ GIAO DIỆN CHUẨN LOVABLE: THEME CONTROLLER & DOM ==
 });
 
 test('=== 2. KIỂM THỬ BỘ BIẾN CSS LOVABLE TOÀN DIỆN (DARK & LIGHT MODE) ===', () => {
-  const indexHtml = fs.readFileSync('index.html', 'utf8');
+  const indexHtml = getMergedMarkupAndStyles();
 
   // Kiểm tra bộ token Lovable
   assert.ok(indexHtml.includes('--lv-bg-base: #090d16;'), 'Có token nền tối kỹ thuật sâu');
@@ -93,7 +99,7 @@ test('=== 3. KIỂM THỬ LOGIC HOẠT ĐỘNG CỦA APPTHEME ===', () => {
 });
 
 test('=== 4. KIỂM THỬ TƯƠNG PHẢN CAO & CHỐNG CHỮ TRẮNG TRÊN NỀN TRẮNG (LIGHT THEME) ===', () => {
-  const indexHtml = fs.readFileSync('index.html', 'utf8');
+  const indexHtml = getMergedMarkupAndStyles();
 
   // Kiểm tra các selector ghi đè chữ đậm màu #090d16 trên nền sáng
   assert.ok(indexHtml.includes('[data-theme="light"] .big-tile-title'), 'Phải có override cho .big-tile-title ở Light mode');
@@ -115,7 +121,7 @@ test('=== 5. KIỂM THỬ KHỬ RÁC CHỮ (DE-CLUTTERED BENTO TILES LOVABLE 202
 });
 
 test('=== 6. KIỂM THỬ CINEMATIC INDUSTRIAL BAUHAUS (IMOL2o 2026 FIELD SPEC) ===', () => {
-  const indexHtml = fs.readFileSync('index.html', 'utf8');
+  const indexHtml = getMergedMarkupAndStyles();
 
   // Kiểm tra bộ token Industrial Bauhaus
   assert.ok(indexHtml.includes('--bauhaus-amber: #f59e0b;'), 'Có token Laser Amber đặc trưng máy đo đạc');

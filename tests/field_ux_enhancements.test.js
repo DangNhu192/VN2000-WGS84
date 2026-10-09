@@ -19,7 +19,8 @@ function runFieldUxEnhancementsTests() {
     const indexPath = path.join(__dirname, '..', 'index.html');
     const appPath = path.join(__dirname, '..', 'app.js');
 
-    const indexHtml = fs.readFileSync(indexPath, 'utf8');
+    const stylePath = path.join(__dirname, '..', 'style.css');
+    const indexHtml = fs.readFileSync(indexPath, 'utf8') + (fs.existsSync(stylePath) ? fs.readFileSync(stylePath, 'utf8') : '');
     const appJs = fs.readFileSync(appPath, 'utf8');
 
     let passedCount = 0;

@@ -11,7 +11,8 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const indexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf-8');
+const stylePath = path.join(__dirname, '../style.css');
+const indexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf-8') + (fs.existsSync(stylePath) ? fs.readFileSync(stylePath, 'utf-8') : '');
 const appJs = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf-8');
 
 test('=== 1. BỐ CỤC RESPONSIVE DUAL-PANE & CHỐNG CHE KHUẤT NỘI DUNG ===', () => {

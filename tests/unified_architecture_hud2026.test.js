@@ -4,9 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const htmlPath = path.resolve(__dirname, '../index.html');
+const stylePath = path.resolve(__dirname, '../style.css');
 const appJsPath = path.resolve(__dirname, '../app.js');
 
-const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+const htmlContent = fs.readFileSync(htmlPath, 'utf8') + (fs.existsSync(stylePath) ? fs.readFileSync(stylePath, 'utf8') : '');
 const appJsContent = fs.readFileSync(appJsPath, 'utf8');
 
 test('=== 1. ĐỒNG BỘ CẤU TRÚC: SIDE DRAWER & BOTTOM NAV (5 PHÂN HỆ CỐT LÕI) ===', () => {

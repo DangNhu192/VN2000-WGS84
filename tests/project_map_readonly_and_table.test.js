@@ -17,7 +17,8 @@ function runProjectMapReadOnlyTests() {
     console.log("🧪 BẮT ĐẦU KIỂM THỬ: RÀNG BUỘC CHỈ XEM BẢN ĐỒ DỰ ÁN & BẢNG KÊ KHỐI CAD");
     console.log("========================================================================");
 
-    const indexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    const stylePath = path.join(__dirname, '../style.css');
+    const indexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8') + (fs.existsSync(stylePath) ? fs.readFileSync(stylePath, 'utf8') : '');
     const appJs = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
 
     // --- NHÓM 1: RÀNG BUỘC KHÔNG THỂ THÊM ĐIỂM Ở CHỨC NĂNG BẢN ĐỒ DỰ ÁN ---

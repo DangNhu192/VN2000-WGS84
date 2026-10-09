@@ -43,6 +43,19 @@
       ]
     },
     {
+      "source": "/style.css",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/css; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/(leaflet.(js|css)|jspdf.umd.min.js|xlsx.full.min.js|vietnam_34_tinh.js|dong_thap_communes.js|offline_regions.js|geodesy.js)",
       "headers": [
         {
