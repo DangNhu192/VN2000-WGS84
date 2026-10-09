@@ -1452,6 +1452,42 @@ const appDashboard = {
         }
     },
 
+    copyLiveGpsCoords() {
+        triggerHaptic('light');
+        if (!AppState.lastGps || !AppState.lastGps.lat) {
+            showToast("⚠️ Chưa có tọa độ GPS. Hãy chạm để bật định vị!", true);
+            return;
+        }
+        const lat = AppState.lastGps.lat;
+        const lng = AppState.lastGps.lng;
+        const acc = AppState.lastGps.accuracy ? `±${AppState.lastGps.accuracy.toFixed(2)}m` : 'N/A';
+        const alt = AppState.lastGps.altitude ? `${AppState.lastGps.altitude.toFixed(2)}m` : 'N/A';
+
+        let vnStr = '';
+        try {
+            if (typeof convertWgsToVn2k === 'function') {
+                const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                if (vn && (vn.x || vn.X)) {
+                    const vx = vn.x || vn.X;
+                    const vy = vn.y || vn.Y;
+                    vnStr = `VN-2000 (X): ${vx.toFixed(3)} m\nVN-2000 (Y): ${vy.toFixed(3)} m\nKTT: ${AppState.provinceName || 'Tỉnh'} ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'\n`;
+                }
+            }
+        } catch (e) {}
+
+        const textToCopy = `[TỌA ĐỘ HIỆN TRƯỜNG VN2000 PRO]\n${vnStr}WGS-84 (Lat, Lng): ${lat.toFixed(6)}, ${lng.toFixed(6)}\nCao độ (H): ${alt}\nSai số: ${acc}\nThời gian: ${new Date().toLocaleString('vi-VN')}`;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showToast("⚡ Đã sao chép tọa độ hiện trường vào bộ nhớ tạm!");
+            }).catch(() => {
+                copyToClipboard(textToCopy);
+            });
+        } else {
+            copyToClipboard(textToCopy);
+        }
+    },
+
     updateGpsMiniCard(lat, lng, acc, statusText) {
         const coord = document.getElementById('dashGpsMiniCoord');
         const accuracy = document.getElementById('dashGpsMiniAccuracy');
@@ -1487,12 +1523,43 @@ const appDashboard = {
             }
         }
         if (pulseDot) {
-            pulseDot.classList.remove('pulse-active', 'pulse-searching');
+            pulseDot.classList.remove('pulse-active', 'pulse-searching', 'searching', 'off');
             if (statusText === 'fix') {
                 pulseDot.classList.add('pulse-active');
             } else if (statusText === 'searching') {
-                pulseDot.classList.add('pulse-searching');
+                pulseDot.classList.add('pulse-searching', 'searching');
+            } else if (statusText === 'off') {
+                pulseDot.classList.add('off');
             }
+        }
+
+        // Cập nhật các trường hiển thị Hero Live HUD Card
+        const heroX = document.getElementById('heroHudCoordX');
+        const heroY = document.getElementById('heroHudCoordY');
+        const heroH = document.getElementById('heroHudCoordH');
+        if (heroX && heroY) {
+            if (lat && lng) {
+                try {
+                    if (typeof convertWgsToVn2k === 'function') {
+                        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        if (vn && (vn.x || vn.X)) {
+                            const vx = vn.x || vn.X;
+                            const vy = vn.y || vn.Y;
+                            heroX.textContent = vx.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' m';
+                            heroY.textContent = vy.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' m';
+                        }
+                    }
+                } catch (e) {
+                    heroX.textContent = '-- --- ---.--- m';
+                    heroY.textContent = '-- --- ---.--- m';
+                }
+            } else {
+                heroX.textContent = '-- --- ---.--- m';
+                heroY.textContent = '-- --- ---.--- m';
+            }
+        }
+        if (heroH) {
+            heroH.textContent = AppState.lastGps?.altitude ? (AppState.lastGps.altitude.toFixed(2) + ' m') : '--.-- m';
         }
     },
 
@@ -2921,6 +2988,62 @@ const appTransform = {
         }
 
         appNav.openConvertedMap(pt);
+    },
+
+    saveConvertedToProject() {
+        let pt = AppState.lastConvertedPoint;
+        let ptName = 'M-CHUYENDO';
+        let x = 0, y = 0, h = 0, lat = 0, lng = 0;
+
+        if (pt) {
+            ptName = pt.name || 'M-CHUYENDO';
+            x = parseFloat(pt.x) || 0;
+            y = parseFloat(pt.y) || 0;
+            lat = parseFloat(pt.lat) || 0;
+            lng = parseFloat(pt.lng) || 0;
+        } else {
+            const strLat = document.getElementById('txtWgsLat').value.trim();
+            const strLng = document.getElementById('txtWgsLng').value.trim();
+            const strX = document.getElementById('txtVn2kX').value.trim();
+            const strY = document.getElementById('txtVn2kY').value.trim();
+            lat = parseCoordinateNumber(strLat);
+            lng = parseCoordinateNumber(strLng);
+            x = parseCoordinateNumber(strX);
+            y = parseCoordinateNumber(strY);
+
+            if ((lat === 0 || lng === 0) && (x !== 0 && y !== 0)) {
+                const coord = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                lat = coord.lat;
+                lng = coord.lng;
+            } else if ((x === 0 || y === 0) && (lat !== 0 && lng !== 0)) {
+                const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                x = vn.X || vn.x;
+                y = vn.Y || vn.y;
+            }
+        }
+
+        if (x === 0 && y === 0 && lat === 0 && lng === 0) {
+            showToast("⚠️ Chưa có tọa độ hợp lệ để lưu vào dự án!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject || 'VN2000_SoLieu_DoDac.csv';
+        if (typeof appData !== 'undefined' && appData.addPoint) {
+            const pointObj = {
+                name: ptName,
+                x: x,
+                y: y,
+                h: h,
+                lat: lat,
+                lng: lng,
+                note: `Chuyển đổi KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`
+            };
+            appData.addPoint(projName, pointObj);
+            triggerHaptic('success');
+            showToast(`💾 Đã lưu mốc "${ptName}" vào sổ đo dự án ${projName}!`);
+        } else {
+            showToast("⚠️ Không tìm thấy phân hệ quản lý dữ liệu appData!", true);
+        }
     },
 
     swapXY() {

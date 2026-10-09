@@ -50,6 +50,14 @@
       --text-gold: #fbbf24;
       --sat-safe-top: env(safe-area-inset-top, 0px);
       --sat-safe-bottom: env(safe-area-inset-bottom, 0px);
+      
+      /* HUD 2026 BENTO SURVEY DESIGN SYSTEM TOKENS */
+      --hud-bg-glass: rgba(15, 23, 42, 0.82);
+      --hud-border: rgba(56, 189, 248, 0.22);
+      --hud-border-active: #38bdf8;
+      --hud-glow: 0 0 18px rgba(56, 189, 248, 0.25);
+      --hud-radius: 16px;
+      --spring-easing: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     * {
@@ -338,11 +346,171 @@
       -webkit-overflow-scrolling: touch;
       padding: 12px 14px calc(var(--sat-safe-bottom) + 20px) 14px;
       display: none;
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+      transition: opacity 0.28s var(--spring-easing), transform 0.28s var(--spring-easing);
+      pointer-events: none;
     }
 
     .screen-view.active {
       display: block !important;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
       z-index: 10;
+    }
+
+    /* BENTO HUD 2026 CARD PRESS & MICRO-INTERACTIONS */
+    .bento-card, .big-action-tile, .dash-info-card, .hero-live-hud-card {
+      transition: transform 0.18s var(--spring-easing), border-color 0.18s ease, box-shadow 0.18s ease !important;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .bento-card:active, .big-action-tile:active, .dash-info-card:active, .hero-live-hud-card:active {
+      transform: scale(0.965) !important;
+      border-color: var(--hud-border-active) !important;
+      box-shadow: var(--hud-glow) !important;
+    }
+
+    /* RADAR SATELLITE BREATHING GLOW (1.8s Cycle) */
+    .pulse-indicator, .hud-satellite-pulse {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 rgba(16, 185, 129, 0.6);
+      animation: hudPulse 1.8s infinite;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .hud-satellite-pulse.searching {
+      background: #f59e0b;
+      box-shadow: 0 0 0 rgba(245, 158, 11, 0.6);
+      animation: hudPulseSearching 1.8s infinite;
+    }
+    .hud-satellite-pulse.off {
+      background: #64748b;
+      box-shadow: none;
+      animation: none;
+    }
+    @keyframes hudPulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    @keyframes hudPulseSearching {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+
+    /* HERO LIVE HUD CARD (SURVEY REAL-TIME TELEMETRY) */
+    .hero-live-hud-card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.92) 0%, rgba(9, 14, 26, 0.96) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--hud-border);
+      border-radius: var(--hud-radius);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .hero-hud-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.12);
+      padding-bottom: 8px;
+    }
+    .hero-hud-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero-hud-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #38bdf8;
+    }
+    .hero-hud-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hero-hud-coords-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+    }
+    .hero-coord-cell {
+      background: rgba(3, 7, 18, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .hero-coord-lbl {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    .hero-coord-val {
+      font-size: clamp(14px, 3.6vw, 17px);
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+    }
+    .hero-coord-val.amber { color: #fbbf24; }
+    .hero-coord-val.cyan { color: #38bdf8; }
+    .hero-coord-val.green { color: #4ade80; }
+    .hero-hud-subrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #94a3b8;
+      padding-top: 2px;
+    }
+    .hero-hud-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .btn-hud-action {
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.18s var(--spring-easing);
+    }
+    .btn-hud-action:active {
+      transform: scale(0.97);
+      background: rgba(56, 189, 248, 0.25);
+    }
+    .btn-hud-action.btn-view-map {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.28);
+      color: #4ade80;
+    }
+    .btn-hud-action.btn-view-map:active {
+      background: rgba(16, 185, 129, 0.25);
     }
 
     /* STATUS BANNER */
@@ -6360,42 +6528,70 @@
             </div>
           </div>
 
-          <!-- Lưới 4 Khối lớn 2x2 -->
+          <!-- HERO LIVE HUD CARD (QUAN TRẮC THỜI GIAN THỰC BENTO SURVEY HUD 2026) -->
+          <div class="hero-live-hud-card" id="heroLiveHudCard">
+            <div class="hero-hud-head">
+              <div class="hero-hud-title-wrap">
+                <span class="hud-satellite-pulse" id="dashGpsPulseDot"></span>
+                <span class="hero-hud-label">VỊ TRÍ GPS THỰC ĐỊA (LIVE HUD)</span>
+              </div>
+              <div class="hero-hud-meta">
+                <span class="dash-chip-badge amber" id="dashGpsMiniAccuracy">Sai số: ± --</span>
+                <span class="dash-chip-badge status-pill" id="dashGpsMiniStatus">Chạm để bật</span>
+              </div>
+            </div>
+            
+            <div class="hero-hud-coords-grid" onclick="appGps.toggleTracking()" title="Chạm để bật/tắt GPS vệ tinh" style="cursor: pointer;">
+              <div class="hero-coord-cell">
+                <span class="hero-coord-lbl">X (Bắc) VN-2000</span>
+                <span class="hero-coord-val font-mono cyan" id="heroHudCoordX">-- --- ---.--- m</span>
+              </div>
+              <div class="hero-coord-cell">
+                <span class="hero-coord-lbl">Y (Đông) VN-2000</span>
+                <span class="hero-coord-val font-mono amber" id="heroHudCoordY">-- --- ---.--- m</span>
+              </div>
+            </div>
+
+            <div class="hero-hud-subrow">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span style="color: #94a3b8;">H (Cao độ):</span>
+                <span class="font-mono" id="heroHudCoordH" style="color: #4ade80; font-weight: 700;">--.-- m</span>
+              </div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span style="color: #94a3b8;">WGS-84:</span>
+                <span class="font-mono" id="dashGpsMiniCoord" style="color: #cbd5e1;">Chạm để bật GPS</span>
+              </div>
+            </div>
+
+            <div class="hero-hud-actions">
+              <button type="button" class="btn-hud-action btn-copy-coord" onclick="appDashboard.copyLiveGpsCoords()" title="Sao chép nhanh tọa độ thực địa">
+                ⚡ Sao chép nhanh
+              </button>
+              <button type="button" class="btn-hud-action btn-view-map" onclick="appNav.openProjectMap({ focusGps: true })" title="Xem vị trí trực tiếp trên bản đồ vệ tinh">
+                🗺️ Hiện vị trí trên Map
+              </button>
+            </div>
+          </div>
+
+          <!-- Lưới 4 Khối lớn 2x2 (Bento 4 Trụ Cột Tác Vụ Thực Địa) -->
           <div id="bigActionTilesGrid" class="big-action-tiles-grid">
             <!-- Rendered dynamically by appDashboard.renderDashboard() -->
           </div>
 
-          <!-- THÔNG TIN DỰ ÁN + GPS MINI STATUS -->
-          <div id="dashboardInfoRow" class="dashboard-info-row">
+          <!-- THÔNG TIN DỰ ÁN ĐANG MỞ -->
+          <div id="dashboardInfoRow" class="dashboard-info-row" style="grid-template-columns: 1fr;">
             <div class="dash-info-card card-project" onclick="appNav.showScreen('datamgmt')" title="Mở Sổ đo & Quản lý dự án">
               <div class="dash-card-header">
                 <div class="dash-card-head-left">
                   <span class="dash-card-icon">📁</span>
-                  <span class="dash-card-heading">DỰ ÁN ĐANG MỞ</span>
+                  <span class="dash-card-heading">DỰ ÁN HIỆN HÀNH</span>
                 </div>
-                <span class="dash-card-action-link">Sổ đo ›</span>
+                <span class="dash-card-action-link">Sổ đo & Mốc ›</span>
               </div>
               <div id="dashInfoProjName" class="dash-card-main-val">VN2000_SoLieu_DoDac.csv</div>
               <div class="dash-card-footer">
                 <span id="dashInfoProjPoints" class="dash-chip-badge cyan">0 mốc</span>
                 <span id="dashInfoKttShort" class="dash-chip-badge slate">KTT</span>
-              </div>
-            </div>
-
-            <div class="dash-info-card card-gps" onclick="appGps.toggleTracking()" title="Chạm để bật / tắt định vị GPS thực địa">
-              <div class="dash-card-header">
-                <div class="dash-card-head-left">
-                  <span class="dash-card-icon">🛰️</span>
-                  <span class="dash-card-heading">VỊ TRÍ GPS</span>
-                </div>
-                <span class="dash-gps-live-indicator" id="dashGpsLiveIndicator">
-                  <span class="gps-pulse-dot" id="dashGpsPulseDot"></span>
-                </span>
-              </div>
-              <div id="dashGpsMiniCoord" class="dash-card-main-val font-mono">Chạm để bật GPS</div>
-              <div class="dash-card-footer">
-                <span id="dashGpsMiniAccuracy" class="dash-chip-badge amber">± --</span>
-                <span id="dashGpsMiniStatus" class="dash-chip-badge status-pill">Chạm bật</span>
               </div>
             </div>
           </div>
@@ -7047,10 +7243,14 @@
                 <span class="res-lbl">Kinh tuyến trục:</span> 
                 <span id="resKttInfo" class="trans-res-text" style="color: #a7f3d0; font-weight: 700;">--</span>
               </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+              <button type="button" class="btn-convert btn-save-converted" style="height: 44px; font-size: 13px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #4ade80;" onclick="appTransform.saveConvertedToProject()" title="Lưu điểm này trực tiếp vào Sổ đo dự án hiện hành">
+                💾 LƯU VÀO SỔ ĐO
+              </button>
+              <button type="button" class="btn-convert btn-view-map-large" style="height: 44px; font-size: 13px;" onclick="appTransform.viewConvertedOnMap()" title="Xem vị trí điểm này trực tiếp trên Bản đồ">
+                🗺️ XEM TRÊN BẢN ĐỒ
+              </button>
             </div>
-            <button class="btn-convert btn-view-map-large" style="margin-top: 10px; height: 44px; font-size: 13.5px;" onclick="appTransform.viewConvertedOnMap()">
-              🗺️ XEM NGAY TRÊN BẢN ĐỒ
-            </button>
           </div>
 
           <!-- Card 4: Tọa độ VN-2000 -->
@@ -10417,15 +10617,15 @@
         </div>
       </div>
 
-      <!-- Nhóm 2 -->
+      <!-- Nhóm 2: Bản đồ & Cắm mốc thực địa -->
       <div class="drawer-folder" id="drawerFolder2">
         <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder2')">
           <div class="drawer-folder-title">
-            <span class="drawer-folder-icon" style="background:rgba(52,211,153,0.18);border-radius:6px;padding:2px 4px;font-size:13px">📍</span>
-            <span>Khảo Sát & Đo Đạc Thực Địa</span>
+            <span class="drawer-folder-icon" style="background:rgba(52,211,153,0.18);border-radius:6px;padding:2px 4px;font-size:13px">🗺️</span>
+            <span>Bản Đồ & Cắm Mốc Thực Địa</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-green">3 mục</span>
+            <span class="tree-badge badge-green">2 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -10433,78 +10633,32 @@
           <div class="drawer-leaf-item" id="drawerItem_map" onclick="appNav.navigateTo('map')">
             <div class="drawer-leaf-icon" style="color: #fbbf24;">🗺️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">2.1 Bản đồ dự án & Chấm điểm vệ tinh</div>
-              <div class="drawer-leaf-sub">Xem mốc vệ tinh, GPS, ranh 34 tỉnh/xã</div>
+              <div class="drawer-leaf-title">2.1 Bản đồ trắc địa & Mốc vệ tinh</div>
+              <div class="drawer-leaf-sub">Vệ tinh Google/Esri, GPS, đo cự ly & góc</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
           <div class="drawer-leaf-item" id="drawerItem_stakeout" onclick="appNav.navigateTo('stakeout')">
-            <div class="drawer-leaf-icon" style="color: #f59e0b;">🧭</div>
+            <div class="drawer-leaf-icon" style="color: #f59e0b;">🎯</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">2.2 Dẫn đường cắm mốc (Stakeout)</div>
+              <div class="drawer-leaf-title">2.2 Cắm mốc thực địa (Radar Stakeout)</div>
               <div class="drawer-leaf-sub">La bàn số 360°, radar dẫn hướng, bíp đích</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.navigateTo('camera')">
-            <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">2.3 Camera đóng dấu thủy ấn</div>
-              <div class="drawer-leaf-sub">In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      <!-- Nhóm 3 -->
+      <!-- Nhóm 3: Sổ đo & Quản lý dự án -->
       <div class="drawer-folder" id="drawerFolder3">
         <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder3')">
           <div class="drawer-folder-title">
-            <span class="drawer-folder-icon" style="background:rgba(45,212,191,0.18);border-radius:6px;padding:2px 4px;font-size:13px">🏗️</span>
-            <span>Xây Dựng & Địa Hình Tuyến</span>
-          </div>
-          <div class="drawer-folder-meta">
-            <span class="tree-badge badge-purple">2 mục</span>
-            <span class="drawer-chevron">▼</span>
-          </div>
-        </div>
-        <div class="drawer-folder-body">
-          <div class="drawer-leaf-item" id="drawerItem_profile_volume" onclick="appNav.navigateTo('profile_volume')">
-            <div class="drawer-leaf-icon" style="color: #e879f9;">📈</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">3.1 Trắc dọc địa hình & Đào đắp</div>
-              <div class="drawer-leaf-sub">Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_cad_tool" onclick="appNav.navigateTo('cad_tool')">
-            <div class="drawer-leaf-icon" style="color: #06b6d4;">📐</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">3.2 Vẽ mặt bằng CAD Mini</div>
-              <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DXF</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Nhóm 4 -->
-      <div class="drawer-folder" id="drawerFolder4">
-        <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder4')">
-          <div class="drawer-folder-title">
-            <span class="drawer-folder-icon" style="background:rgba(192,132,252,0.18);border-radius:6px;padding:2px 4px;font-size:13px">💾</span>
-            <span>Trao Đổi Dữ Liệu (CAD / GIS)</span>
+            <span class="drawer-folder-icon" style="background:rgba(192,132,252,0.18);border-radius:6px;padding:2px 4px;font-size:13px">📁</span>
+            <span>Sổ Đo & Quản Lý Dự Án</span>
           </div>
           <div class="drawer-folder-meta">
             <span class="tree-badge badge-orange">2 mục</span>
@@ -10515,7 +10669,7 @@
           <div class="drawer-leaf-item" id="drawerItem_datamgmt" onclick="appNav.navigateTo('datamgmt')">
             <div class="drawer-leaf-icon" style="color: #38bdf8;">📁</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.1 Sổ đo mốc & Quản lý dự án</div>
+              <div class="drawer-leaf-title">3.1 Sổ đo mốc & Quản lý dự án</div>
               <div class="drawer-leaf-sub">Xem bảng mốc, chỉnh sửa và xuất file DXF, KML, CSV</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -10525,8 +10679,64 @@
           <div class="drawer-leaf-item" id="drawerItem_settings_storage" onclick="appNav.navigateTo('settings_storage')">
             <div class="drawer-leaf-icon" style="color: #3b82f6;">☁️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.2 Cấu hình Google Sheets / AppSheet</div>
+              <div class="drawer-leaf-title">3.2 Cấu hình Google Sheets / Cloud</div>
               <div class="drawer-leaf-sub">Đồng bộ tự động lên Google Drive</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nhóm 4: Tiện ích nghiệp vụ mở rộng -->
+      <div class="drawer-folder" id="drawerFolder4">
+        <div class="drawer-folder-head" onclick="appNav.toggleDrawerFolder('drawerFolder4')">
+          <div class="drawer-folder-title">
+            <span class="drawer-folder-icon" style="background:rgba(45,212,191,0.18);border-radius:6px;padding:2px 4px;font-size:13px">🛠️</span>
+            <span>Tiện Ích Nghiệp Vụ Mở Rộng</span>
+          </div>
+          <div class="drawer-folder-meta">
+            <span class="tree-badge badge-purple">4 mục</span>
+            <span class="drawer-chevron">▼</span>
+          </div>
+        </div>
+        <div class="drawer-folder-body">
+          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.navigateTo('camera')">
+            <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.1 Camera khảo sát đóng dấu thủy ấn</div>
+              <div class="drawer-leaf-sub">In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_geodesy" onclick="appNav.showScreen('geodesy')">
+            <div class="drawer-leaf-icon" style="color: #fbbf24;">📐</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.2 Tính toán Geodesy & Giao hội</div>
+              <div class="drawer-leaf-sub">Thuận/nghịch tọa độ, diện tích Gauss & chu vi</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_profile_volume" onclick="appNav.navigateTo('profile_volume')">
+            <div class="drawer-leaf-icon" style="color: #e879f9;">📈</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.3 Trắc dọc địa hình & Đào đắp</div>
+              <div class="drawer-leaf-sub">Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_cad_tool" onclick="appNav.navigateTo('cad_tool')">
+            <div class="drawer-leaf-icon" style="color: #06b6d4;">📐</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">4.4 Tiện ích phụ trợ: Vẽ CAD Mini</div>
+              <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DXF</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
