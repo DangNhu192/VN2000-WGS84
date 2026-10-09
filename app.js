@@ -808,6 +808,7 @@ const appNav = window.appNav = {
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
             mapView.classList.add('active');
+            mapView.classList.remove('cad-active-map');
             mapView.style.display = 'block';
             void mapView.offsetHeight;
         }
@@ -874,6 +875,7 @@ const appNav = window.appNav = {
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
             mapView.classList.add('active');
+            mapView.classList.remove('cad-active-map');
             mapView.style.display = 'block';
             void mapView.offsetHeight;
         }
@@ -950,7 +952,7 @@ const appNav = window.appNav = {
         }
     },
 
-    openCadMap() {
+    openCadMap(options = {}) { // openCadMap()
         AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'menu';
         AppState.currentScreen = 'map';
         AppState.mapMode = 'cad';
@@ -960,7 +962,7 @@ const appNav = window.appNav = {
         });
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
-            mapView.classList.add('active');
+            mapView.classList.add('active', 'cad-active-map');
             mapView.style.display = 'block';
             void mapView.offsetHeight;
         }
@@ -994,6 +996,9 @@ const appNav = window.appNav = {
 
         // Mở toàn bộ công cụ MiniCAD
         if (typeof appCadTool !== 'undefined') {
+            if (options && options.loadProject && AppState.currentProject) {
+                appCadTool.loadShapesForProject(AppState.currentProject);
+            }
             appCadTool.openToolbar();
         }
     },
@@ -1009,6 +1014,7 @@ const appNav = window.appNav = {
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
             mapView.classList.add('active');
+            mapView.classList.remove('cad-active-map');
             mapView.style.display = 'block';
             void mapView.offsetHeight;
         }
@@ -3868,11 +3874,63 @@ function calcGaussPolygonArea(pts) {
 // ================= 7. PHÂN HỆ BẢN ĐỒ LEAFLET (MAP VIEWER & PICKER) =================
 const appMap = {
     initMap() {
-        this.initRightControlsDrag();
+        if (this.initRightControlsDrag) this.initRightControlsDrag();
         if (AppState.leafletMap) {
             setTimeout(() => AppState.leafletMap.invalidateSize(), 200);
             return;
         }
+        if (typeof L === 'undefined') return;
+        const mapContainer = document.getElementById('leaflet-map');
+        if (!mapContainer) return;
+
+        // Khởi tạo bản đồ Leaflet - Hỗ trợ siêu phóng to mức 24 phục vụ vẽ CAD chi tiết từng centimet
+        const map = L.map('leaflet-map', {
+            zoomControl: false,
+            attributionControl: false,
+            maxZoom: 24,
+            minZoom: 4
+        }).setView([10.5, 106.0], 12);
+
+        // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa, nội suy siêu nét lên mức 24)
+        const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 24,
+            maxNativeZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        // Lớp OpenStreetMap đường phố (nội suy lên mức 24)
+        const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 24,
+            maxNativeZoom: 19
+        });
+
+        googleHybrid.addTo(map);
+        AppState.baseLayers['google_hybrid'] = googleHybrid;
+        AppState.baseLayers['osm_streets'] = osmStreets;
+
+        AppState.projectMarkersGroup = L.layerGroup().addTo(map);
+        AppState.projectDistanceLabelsGroup = L.layerGroup().addTo(map);
+
+        // Sự kiện chạm chọn điểm trên bản đồ
+        map.on('click', (e) => {
+            appMap.onMapClick(e.latlng.lat, e.latlng.lng);
+        });
+
+        AppState.leafletMap = map;
+
+        // Tự động nạp ranh giới 34 tỉnh thành nếu file js đã tải
+        if (window.VIETNAM_34_PROVINCES) {
+            appMap.init34ProvincesLayer();
+        }
+
+        // Tự động nạp ranh giới Đồng Tháp
+        if (window.DONG_THAP_COMMUNES) {
+            appMap.initDongThapCommunesLayer();
+        }
+
+        appSettings.applyToMap(map);
+
+        setTimeout(() => map.invalidateSize(), 250);
     },
 
     initRightControlsDrag() {
@@ -3952,55 +4010,6 @@ const appMap = {
         target.addEventListener('touchstart', onStart, { passive: true });
         container.addEventListener('mousedown', onStart);
         container.addEventListener('touchstart', onStart, { passive: true });
-
-        // Khởi tạo bản đồ Leaflet - Hỗ trợ siêu phóng to mức 24 phục vụ vẽ CAD chi tiết từng centimet
-        const map = L.map('leaflet-map', {
-            zoomControl: false,
-            attributionControl: false,
-            maxZoom: 24,
-            minZoom: 4
-        }).setView([10.5, 106.0], 12);
-
-        // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa, nội suy siêu nét lên mức 24)
-        const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 24,
-            maxNativeZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-        });
-
-        // Lớp OpenStreetMap đường phố (nội suy lên mức 24)
-        const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 24,
-            maxNativeZoom: 19
-        });
-
-        googleHybrid.addTo(map);
-        AppState.baseLayers['google_hybrid'] = googleHybrid;
-        AppState.baseLayers['osm_streets'] = osmStreets;
-
-        AppState.projectMarkersGroup = L.layerGroup().addTo(map);
-        AppState.projectDistanceLabelsGroup = L.layerGroup().addTo(map);
-
-        // Sự kiện chạm chọn điểm trên bản đồ
-        map.on('click', (e) => {
-            appMap.onMapClick(e.latlng.lat, e.latlng.lng);
-        });
-
-        AppState.leafletMap = map;
-
-        // Tự động nạp ranh giới 34 tỉnh thành nếu file js đã tải
-        if (window.VIETNAM_34_PROVINCES) {
-            appMap.init34ProvincesLayer();
-        }
-
-        // Tự động nạp ranh giới Đồng Tháp
-        if (window.DONG_THAP_COMMUNES) {
-            appMap.initDongThapCommunesLayer();
-        }
-
-        appSettings.applyToMap(map);
-
-        setTimeout(() => map.invalidateSize(), 250);
     },
 
     toggleMapLayer() {
@@ -12044,15 +12053,24 @@ const appCadTool = {
 
     openToolbar() {
         this.isActive = true;
+
+        // Kích hoạt ngay lập tức class cad-active-map trên map container để gỡ bỏ triệt để rào chắn CSS
+        const mapContainer = document.getElementById('map-view-container');
+        if (mapContainer) mapContainer.classList.add('cad-active-map');
+
         this.ensureLayers();
         if (!this.displaySettings) this.initDisplaySettings();
 
         // Tự động nạp hoặc tái tạo các khối của dự án nếu danh sách khối hiện đang rỗng
-        const curProj = AppState.currentProject;
-        if (curProj && (!this.savedShapes || this.savedShapes.length === 0)) {
-            if (!this.loadShapesForProject(curProj)) {
-                this.reconstructShapesFromPoints(curProj);
+        try {
+            const curProj = AppState.currentProject;
+            if (curProj && (!this.savedShapes || this.savedShapes.length === 0)) {
+                if (!this.loadShapesForProject(curProj)) {
+                    this.reconstructShapesFromPoints(curProj);
+                }
             }
+        } catch (e) {
+            console.warn('[MiniCAD] Error loading shapes for project:', e);
         }
 
         const bar = document.getElementById('mapCadToolbar');
@@ -12066,10 +12084,6 @@ const appCadTool = {
         if (this.updateHudQuickTips) this.updateHudQuickTips();
         this.initSunlightMode();
         this.bindTouchLoupeEvents();
-
-        // Bật con trỏ chữ thập CAD trên bản đồ
-        const mapContainer = document.getElementById('map-view-container');
-        if (mapContainer) mapContainer.classList.add('cad-active-map');
 
         this.syncDisplayCheckboxes();
         this.renderGeometry();
