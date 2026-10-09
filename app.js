@@ -1316,21 +1316,17 @@ const appDashboard = {
             }
         });
 
-        // 1. Render 4 Big Action Tiles
+        // 1. Render 4 Big Action Tiles (Bento Grid Lovable 2026 - De-cluttered)
         grid.innerHTML = pinnedFeatures.map(f => {
             const metricVal = typeof f.metric === 'function' ? f.metric() : f.metric;
             return `
-              <div class="big-action-tile tile-${f.color}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
+              <div class="big-action-tile tile-${f.color}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}: ${f.sub}">
                 <div class="big-tile-top">
                   <div class="big-tile-icon-box icon-box-${f.color}">${f.icon}</div>
-                  <span class="big-tile-launch-arrow">➔</span>
+                  <span class="tile-metric-pill metric-${f.color}">${metricVal || f.tag || 'Mở ➔'}</span>
                 </div>
                 <div class="big-tile-bottom">
                   <div class="big-tile-title">${f.short}</div>
-                  <div class="big-tile-subtitle">${f.sub}</div>
-                  <div class="big-tile-metric">
-                    <span class="tile-metric-pill metric-${f.color}">${metricVal}</span>
-                  </div>
                 </div>
               </div>
             `;

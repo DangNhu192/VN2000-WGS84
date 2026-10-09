@@ -91,3 +91,26 @@ test('=== 3. KIỂM THỬ LOGIC HOẠT ĐỘNG CỦA APPTHEME ===', () => {
   assert.strictEqual(iconText, '☀️');
   assert.strictEqual(storedTheme, 'dark');
 });
+
+test('=== 4. KIỂM THỬ TƯƠNG PHẢN CAO & CHỐNG CHỮ TRẮNG TRÊN NỀN TRẮNG (LIGHT THEME) ===', () => {
+  const indexHtml = fs.readFileSync('index.html', 'utf8');
+
+  // Kiểm tra các selector ghi đè chữ đậm màu #090d16 trên nền sáng
+  assert.ok(indexHtml.includes('[data-theme="light"] .big-tile-title'), 'Phải có override cho .big-tile-title ở Light mode');
+  assert.ok(indexHtml.includes('[data-theme="light"] .menu-card-title'), 'Phải có override cho .menu-card-title ở Light mode');
+  assert.ok(indexHtml.includes('[data-theme="light"] .compact-tool-title'), 'Phải có override cho .compact-tool-title ở Light mode');
+  assert.ok(indexHtml.includes('[data-theme="light"] .table-selectable th'), 'Phải có override cho header bảng biểu ở Light mode');
+  assert.ok(indexHtml.includes('color: #090d16 !important;'), 'Phải dùng màu chữ tối tương phản cao #090d16');
+  assert.ok(indexHtml.includes('--bg-dark: #f1f5f9;'), 'Nền tổng thể Light mode phải là xám sáng #f1f5f9 chống chói');
+});
+
+test('=== 5. KIỂM THỬ KHỬ RÁC CHỮ (DE-CLUTTERED BENTO TILES LOVABLE 2026) ===', () => {
+  const appJs = fs.readFileSync('app.js', 'utf8');
+
+  // Đảm bảo không còn dòng big-tile-subtitle rườm rà trong renderDashboard
+  const renderDashCode = appJs.substring(appJs.indexOf('renderDashboard()'), appJs.indexOf('launchFeature(id)'));
+  assert.strictEqual(renderDashCode.includes('<div class="big-tile-subtitle">'), false, 'Đã khử bỏ hoàn toàn dòng subtitle rườm rà trên Bento Action Tile');
+  assert.ok(renderDashCode.includes('big-tile-title'), 'Vẫn giữ nguyên tiêu đề chính sắc nét');
+  assert.ok(renderDashCode.includes('tile-metric-pill'), 'Có badge/pill trạng thái gọn gàng');
+});
+

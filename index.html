@@ -5642,36 +5642,36 @@
     }
 
     [data-theme="light"] {
-      --bg-dark: #f8fafc;
+      --bg-dark: #f1f5f9;
       --bg-card: #ffffff;
-      --bg-card-light: #f1f5f9;
-      --border-color: rgba(15, 23, 42, 0.12);
-      --border-focus: #4f46e5;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --text-accent: #4f46e5;
-      --text-gold: #d97706;
+      --bg-card-light: #e2e8f0;
+      --border-color: #cbd5e1;
+      --border-focus: #0284c7;
+      --text-main: #090d16;
+      --text-muted: #334155;
+      --text-accent: #0284c7;
+      --text-gold: #b45309;
 
-      --lv-bg-base: #f8fafc;
+      --lv-bg-base: #f1f5f9;
       --lv-bg-surface: #ffffff;
       --lv-bg-card: #ffffff;
-      --lv-bg-card-hover: #f1f5f9;
-      --lv-bg-elevated: #f8fafc;
-      --lv-border: rgba(15, 23, 42, 0.1);
-      --lv-border-hover: rgba(79, 70, 229, 0.45);
-      --lv-border-glass: rgba(15, 23, 42, 0.14);
-      --lv-text-primary: #0f172a;
-      --lv-text-secondary: #475569;
-      --lv-text-muted: #94a3b8;
-      --lv-accent: #4f46e5;
-      --lv-accent-glow: rgba(79, 70, 229, 0.18);
-      --lv-shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.08);
-      --lv-shadow-md: 0 4px 16px -1px rgba(0, 0, 0, 0.12);
-      --lv-shadow-lg: 0 10px 28px -3px rgba(0, 0, 0, 0.15);
-      --lv-shadow-glow: 0 0 20px -2px rgba(79, 70, 229, 0.2);
-      --lv-glass-bg: rgba(255, 255, 255, 0.9);
+      --lv-bg-card-hover: #f8fafc;
+      --lv-bg-elevated: #f1f5f9;
+      --lv-border: #cbd5e1;
+      --lv-border-hover: #0284c7;
+      --lv-border-glass: rgba(15, 23, 42, 0.12);
+      --lv-text-primary: #090d16;
+      --lv-text-secondary: #334155;
+      --lv-text-muted: #475569;
+      --lv-accent: #0284c7;
+      --lv-accent-glow: rgba(2, 132, 199, 0.16);
+      --lv-shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.06);
+      --lv-shadow-md: 0 4px 16px -1px rgba(0, 0, 0, 0.1);
+      --lv-shadow-lg: 0 10px 28px -3px rgba(0, 0, 0, 0.12);
+      --lv-shadow-glow: 0 0 20px -2px rgba(2, 132, 199, 0.18);
+      --lv-glass-bg: rgba(255, 255, 255, 0.94);
       --lv-glass-blur: blur(16px);
-      --lv-nav-bg: rgba(255, 255, 255, 0.94);
+      --lv-nav-bg: rgba(255, 255, 255, 0.96);
     }
 
     /* 1. APP HEADER LOVABLE GLASS */
@@ -5848,77 +5848,325 @@
       box-shadow: var(--lv-shadow-sm) !important;
     }
 
-    /* 9. LIGHT THEME OVERRIDES TOÀN DIỆN */
+    /* ==========================================================================
+       9. COMPREHENSIVE SEMANTIC THEME ENGINE V3.0 (LOVABLE & IMOL2o 2026)
+       Đảm bảo độ tương phản cao WCAG AAA ngoài thực địa nắng gắt & chống chói ban đêm.
+       Triệt tiêu 100% lỗi chữ trắng trên nền trắng khi chuyển đổi Sáng / Tối.
+       ========================================================================== */
+
+    /* 9.1 GIAO DIỆN SÁNG (SUNLIGHT FIELD HIGH-CONTRAST MODE) */
     [data-theme="light"] .screen-view,
     [data-theme="light"] #app-container,
     [data-theme="light"] body {
-      background-color: #f8fafc !important;
-      color: #0f172a !important;
+      background-color: #f1f5f9 !important;
+      color: #090d16 !important;
     }
+
     [data-theme="light"] .app-header {
-      color: #0f172a !important;
+      background: rgba(255, 255, 255, 0.94) !important;
+      border-bottom-color: #cbd5e1 !important;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+      color: #090d16 !important;
     }
+
     [data-theme="light"] .app-title span {
-      color: #0f172a !important;
+      color: #090d16 !important;
     }
+
     [data-theme="light"] .header-geodetic-pill {
-      background: rgba(15, 23, 42, 0.06) !important;
-      border-color: rgba(15, 23, 42, 0.15) !important;
-      color: #0f172a !important;
+      background: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #090d16 !important;
     }
+
     [data-theme="light"] .btn-header-action {
-      background: rgba(15, 23, 42, 0.06) !important;
-      border-color: rgba(15, 23, 42, 0.15) !important;
-      color: #0f172a !important;
+      background: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #090d16 !important;
     }
+
+    [data-theme="light"] .btn-header-action:hover {
+      background: #e2e8f0 !important;
+      border-color: #94a3b8 !important;
+    }
+
+    /* 9.2 TRIỆT TIÊU TOÀN BỘ CHỮ TRẮNG Ở LIGHT MODE (HIGH CONTRAST TEXT) */
+    [data-theme="light"] .big-tile-title,
+    [data-theme="light"] .menu-card-title,
+    [data-theme="light"] .feature-card-title,
+    [data-theme="light"] .accordion-title-main,
+    [data-theme="light"] .compact-tool-title,
+    [data-theme="light"] .tree-folder-title,
+    [data-theme="light"] .tree-leaf-title,
+    [data-theme="light"] .drawer-title,
+    [data-theme="light"] .drawer-leaf-title,
+    [data-theme="light"] .dash-card-main-val,
+    [data-theme="light"] .status-val,
+    [data-theme="light"] .app-input,
+    [data-theme="light"] .app-select,
+    [data-theme="light"] .main-tree-search-bar input,
+    [data-theme="light"] .drawer-search-input,
+    [data-theme="light"] .acc-search-input,
+    [data-theme="light"] .hud-content,
+    [data-theme="light"] .cad-loupe-header,
+    [data-theme="light"] .btn-drawer-close,
+    [data-theme="light"] .modal-title,
+    [data-theme="light"] .settings-header-title,
+    [data-theme="light"] .section-title,
+    [data-theme="light"] .tool-title,
+    [data-theme="light"] .group-title,
+    [data-theme="light"] .stat-card-val,
+    [data-theme="light"] .res-val,
+    [data-theme="light"] .coord-val,
+    [data-theme="light"] .copyable-text,
+    [data-theme="light"] .trans-res-text {
+      color: #090d16 !important;
+    }
+
+    /* 9.3 NHÃN PHỤ & CHỮ BỔ TRỢ (WCAG AAA MUTED TEXT) */
+    [data-theme="light"] .big-tile-subtitle,
+    [data-theme="light"] .menu-card-desc,
+    [data-theme="light"] .compact-tool-desc,
+    [data-theme="light"] .accordion-title-sub,
+    [data-theme="light"] .dash-card-heading,
+    [data-theme="light"] .tree-folder-sub,
+    [data-theme="light"] .tree-leaf-desc,
+    [data-theme="light"] .res-lbl,
+    [data-theme="light"] .status-label,
+    [data-theme="light"] .app-field-hint,
+    [data-theme="light"] .text-muted,
+    [data-theme="light"] .input-hint,
+    [data-theme="light"] .acc-search-icon,
+    [data-theme="light"] .accordion-chevron {
+      color: #334155 !important;
+    }
+
+    /* 9.4 CÁC KHỐI THẺ (CARDS & CONTAINERS) Ở LIGHT MODE */
+    [data-theme="light"] .big-action-tile {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    [data-theme="light"] .big-action-tile:hover {
+      background: #ffffff !important;
+      border-color: #0284c7 !important;
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.16) !important;
+      transform: translateY(-3px) !important;
+    }
+
+    [data-theme="light"] .dash-info-card {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    [data-theme="light"] .dash-info-card:hover {
+      border-color: #0284c7 !important;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    [data-theme="light"] .compact-tool-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    [data-theme="light"] .compact-tool-card:hover {
+      background: #f8fafc !important;
+      border-color: #0284c7 !important;
+    }
+
+    [data-theme="light"] .compact-tool-card:active {
+      background: #f1f5f9 !important;
+    }
+
+    [data-theme="light"] .accordion-advanced-wrapper {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    [data-theme="light"] .accordion-search-bar {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    [data-theme="light"] .accordion-header-btn:hover {
+      background: #f1f5f9 !important;
+    }
+
+    [data-theme="light"] .quick-chip-pill {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #090d16 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+    }
+
     [data-theme="light"] .converted-result-box {
       background: #ffffff !important;
-      border-color: rgba(15, 23, 42, 0.12) !important;
-      box-shadow: var(--lv-shadow-md) !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
     }
-    [data-theme="light"] .res-lbl {
-      color: #64748b !important;
+
+    [data-theme="light"] .pin-picker-item {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #090d16 !important;
     }
-    [data-theme="light"] .res-val {
-      color: #0f172a !important;
+
+    [data-theme="light"] .pin-picker-item:hover {
+      background: #f1f5f9 !important;
+      border-color: #0284c7 !important;
     }
+
+    [data-theme="light"] .tree-folder,
+    [data-theme="light"] .drawer-folder {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    [data-theme="light"] .drawer-search-box {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    [data-theme="light"] .storage-option-card {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #090d16 !important;
+    }
+
+    [data-theme="light"] .pmb-summary-card,
+    [data-theme="light"] .cad-summary-card {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #090d16 !important;
+    }
+
+    /* 9.5 BẢNG BIỂU & DỮ LIỆU ĐO ĐẠC Ở LIGHT MODE */
+    [data-theme="light"] .table-selectable th,
+    [data-theme="light"] .table-volume th,
+    [data-theme="light"] .profile-table-scroll th,
+    [data-theme="light"] table.data-table th,
+    [data-theme="light"] .cad-coord-table th {
+      background: #e2e8f0 !important;
+      color: #090d16 !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    [data-theme="light"] .table-selectable td,
+    [data-theme="light"] .table-volume td,
+    [data-theme="light"] .profile-table-scroll td,
+    [data-theme="light"] table.data-table td,
+    [data-theme="light"] .cad-coord-table td {
+      background: #ffffff !important;
+      color: #090d16 !important;
+      border-color: #e2e8f0 !important;
+    }
+
+    /* 9.6 MODAL & FORM CONTROLS Ở LIGHT MODE */
+    [data-theme="light"] .modal-box,
+    [data-theme="light"] .modal-content,
+    [data-theme="light"] .modal-settings-content {
+      background: #ffffff !important;
+      color: #090d16 !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18) !important;
+    }
+
+    [data-theme="light"] .modal-settings-header,
+    [data-theme="light"] .modal-settings-footer {
+      background: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: #090d16 !important;
+    }
+
+    [data-theme="light"] .settings-tab-btn {
+      background: #f1f5f9 !important;
+      color: #334155 !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    [data-theme="light"] .settings-tab-btn.active {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      border-color: #0284c7 !important;
+    }
+
     [data-theme="light"] input,
     [data-theme="light"] select,
-    [data-theme="light"] textarea {
+    [data-theme="light"] textarea,
+    [data-theme="light"] .app-input,
+    [data-theme="light"] .app-select {
       background: #ffffff !important;
-      color: #0f172a !important;
-      border-color: rgba(15, 23, 42, 0.18) !important;
+      color: #090d16 !important;
+      border-color: #94a3b8 !important;
     }
+
+    [data-theme="light"] input:focus,
+    [data-theme="light"] select:focus,
+    [data-theme="light"] textarea:focus {
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18) !important;
+    }
+
+    [data-theme="light"] input::placeholder,
+    [data-theme="light"] textarea::placeholder,
+    [data-theme="light"] .acc-search-input::placeholder {
+      color: #64748b !important;
+    }
+
     [data-theme="light"] .cad-blocks-panel,
     [data-theme="light"] #projectMarksBlocksPanel {
-      background: rgba(255, 255, 255, 0.94) !important;
-      border-color: rgba(15, 23, 42, 0.15) !important;
-      color: #0f172a !important;
-      box-shadow: var(--lv-shadow-lg) !important;
+      background: rgba(255, 255, 255, 0.96) !important;
+      border-color: #cbd5e1 !important;
+      color: #090d16 !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12) !important;
     }
+
     [data-theme="light"] .cad-blocks-panel-header,
     [data-theme="light"] #pmbHeader {
       background: #f1f5f9 !important;
-      color: #0f172a !important;
-      border-bottom-color: rgba(15, 23, 42, 0.1) !important;
-    }
-    [data-theme="light"] .modal-content,
-    [data-theme="light"] .modal-box {
-      background: #ffffff !important;
-      color: #0f172a !important;
-      border-color: rgba(15, 23, 42, 0.15) !important;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
-    }
-    [data-theme="light"] .quick-chip-pill {
-      background: #ffffff !important;
-      border-color: rgba(15, 23, 42, 0.12) !important;
-      color: #0f172a !important;
+      color: #090d16 !important;
+      border-bottom-color: #e2e8f0 !important;
     }
 
-    /* 10. SMOOTH TRANSITIONS ON THEME SWITCHING */
+    /* 9.7 BENTO TILE ENHANCEMENT (DE-CLUTTERED 2026 UX) */
+    .big-action-tile {
+      padding: clamp(10px, 2.5vw, 14px);
+      min-height: clamp(94px, 14vw, 114px);
+    }
+
+    .big-tile-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .big-tile-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .big-tile-title {
+      font-size: clamp(13px, 3.2vw, 15px);
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.2px;
+      color: var(--text-main, #f8fafc);
+    }
+
+    /* 10. CHUYỂN ĐỔI MƯỢT MÀ THEME (60FPS HARDWARE-ACCELERATED TRANSITIONS) */
     body, #app-container, .screen-view, .app-header, nav#mobileBottomNav, 
-    .big-action-tile, .dash-info-card, .converted-result-box, .modal-content {
-      transition: background 0.25s ease, background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    .big-action-tile, .dash-info-card, .compact-tool-card, .converted-result-box, .modal-content {
+      transition: background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+                  color 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+                  border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+                  box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
   </style>
 </head>
