@@ -1394,73 +1394,89 @@
                 </div>
               </div>
 
-              <!-- Hàng nút Chuyển đổi chính -->
-              <div class="sheet-action-buttons">
-                <button type="button" class="btn-sheet-convert" onclick="appTransformMap.executeSingleConvert()">
-                  ⚡ Chuyển Đổi Tọa Độ
+              <!-- Hàng nút Chuyển đổi 2 chiều và Xóa điểm -->
+              <div class="sheet-action-buttons" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px;">
+                <button type="button" class="btn-sheet-convert btn-wgs-to-vn2k" onclick="appTransformMap.executeSingleConvert('wgs2vn2k')" title="Chuyển tọa độ từ WGS-84 sang VN-2000" style="padding: 10px 4px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1); border-radius: 8px; color: #fff; border: 1px solid rgba(56,189,248,0.5);">
+                  WGS ➔ VN2K ▼
                 </button>
-                <button type="button" class="btn-sheet-clear" onclick="appTransformMap.clearInputs()" title="Xóa trắng ô nhập">
-                  🗑️ Xóa
+                <button type="button" class="btn-sheet-convert btn-vn2k-to-wgs" onclick="appTransformMap.executeSingleConvert('vn2k2wgs')" title="Chuyển tọa độ từ VN-2000 sang WGS-84" style="padding: 10px 4px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #059669, #047857); border-radius: 8px; color: #fff; border: 1px solid rgba(52,211,153,0.5);">
+                  VN2K ➔ WGS ▲
+                </button>
+                <button type="button" class="btn-sheet-clear" onclick="appTransformMap.clearInputs()" title="Xóa điểm và xóa trắng ô nhập" style="padding: 10px 12px; border-radius: 8px;">
+                  🗑️ Xóa điểm
                 </button>
               </div>
 
-              <!-- HỘP KẾT QUẢ CHUYỂN ĐỔI NỔI BẬT -->
-              <div id="sheetResultBox" class="sheet-result-box converted-result-box" style="display: none;">
+              <!-- HỘP KẾT QUẢ CHUYỂN ĐỔI NỔI BẬT (BẢNG SAO CHÉP ĐẦY ĐỦ) -->
+              <div id="sheetResultBox" class="sheet-result-box converted-result-box" style="display: none; margin-top: 12px;">
                 <div class="result-box-header">
                   <span class="result-badge-status">✓ KẾT QUẢ CHUYỂN ĐỔI THÀNH CÔNG</span>
                   <span id="sheetResultTimestamp" class="result-timestamp">Vừa xong</span>
                 </div>
                 
-                <div class="result-box-content">
-                  <div class="result-item-row">
-                    <span class="res-lbl">Tọa độ VN-2000:</span>
-                    <span class="res-val selectable" id="sheetResultVn2k">X: 0.000 m | Y: 0.000 m</span>
-                  </div>
-                  <div class="result-item-row">
-                    <span class="res-lbl">Tọa độ WGS-84:</span>
-                    <span class="res-val selectable" id="sheetResultWgs">Lat: 0.000000° | Lng: 0.000000°</span>
-                  </div>
-                  <div class="result-item-row">
-                    <span class="res-lbl">KTT & Múi chiếu:</span>
-                    <span class="res-val" id="sheetResultKtt">KTT: 105°45' (Múi 3°)</span>
-                  </div>
+                <!-- Bảng so sánh và sao chép tọa độ Đơn điểm -->
+                <div class="sheet-result-table-wrap" style="margin: 8px 0; overflow-x: auto;">
+                  <table class="table-selectable" style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <thead>
+                      <tr style="background: rgba(255,255,255,0.05); color: #94a3b8; text-align: left;">
+                        <th style="padding: 6px 8px;">Hệ quy chiếu</th>
+                        <th style="padding: 6px 8px;">Tọa độ chi tiết</th>
+                        <th style="padding: 6px 8px; text-align: center; width: 60px;">Sao chép</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                        <td style="padding: 6px 8px; font-weight: 700; color: #4ade80;">VN-2000</td>
+                        <td style="padding: 6px 8px; font-family: monospace; color: #fde047;" class="selectable" id="sheetResultVn2k">X: 0.000 m | Y: 0.000 m</td>
+                        <td style="padding: 6px 8px; text-align: center;">
+                          <button type="button" class="btn-sm btn-green" style="padding: 2px 6px; font-size: 11px;" onclick="appTransformMap.copyVn2kResult()" title="Sao chép VN-2000">📋 Chép</button>
+                        </td>
+                      </tr>
+                      <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                        <td style="padding: 6px 8px; font-weight: 700; color: #38bdf8;">WGS-84</td>
+                        <td style="padding: 6px 8px; font-family: monospace; color: #38bdf8;" class="selectable" id="sheetResultWgs">Lat: 0.000000° | Lng: 0.000000°</td>
+                        <td style="padding: 6px 8px; text-align: center;">
+                          <button type="button" class="btn-sm btn-blue" style="padding: 2px 6px; font-size: 11px;" onclick="appTransformMap.copyWgsResult()" title="Sao chép WGS-84">📋 Chép</button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 8px; color: #cbd5e1;">KTT & Múi</td>
+                        <td style="padding: 6px 8px; font-size: 11px; color: #cbd5e1;" colspan="2" id="sheetResultKtt">KTT: 105°45' (Múi 3°)</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
 
                 <!-- BỘ NÚT SAO CHÉP THÔNG MINH 1 CHẠM & LƯU SỔ ĐO -->
-                <div class="result-box-actions">
-                  <div class="smart-copy-btn-group">
-                    <button type="button" class="btn-smart-copy" id="btnSmartCopy" onclick="appTransformMap.smartCopyResult()" title="Nhấn để sao chép toàn bộ tọa độ đầy đủ">
-                      📋 Sao Chép Thông Minh
-                    </button>
-                    <button type="button" class="btn-smart-copy-arrow" onclick="appTransformMap.toggleCopyMenu(event)" title="Tùy chọn sao chép">
-                      ▾
-                    </button>
-                    <div id="menuCopyOptions" class="menu-copy-dropdown" style="display: none;">
-                      <div class="copy-menu-item" onclick="appTransformMap.copyVn2kResult()">📋 Chỉ sao chép VN-2000 (X, Y)</div>
-                      <div class="copy-menu-item" onclick="appTransformMap.copyWgsResult()">📋 Chỉ sao chép WGS-84 (Lat, Lng)</div>
-                      <div class="copy-menu-item" onclick="appTransformMap.copyFullFormattedResult()">📋 Sao chép văn bản đầy đủ kèm KTT</div>
-                      <div class="copy-menu-item" onclick="appTransformMap.copyExcelFormatResult()">📊 Sao chép dạng Tab Excel</div>
-                    </div>
-                  </div>
-
+                <div class="result-box-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn-sm btn-blue" id="btnSmartCopy" onclick="appTransformMap.smartCopyResult()" title="Sao chép toàn bộ kết quả">
+                    📋 Chép tất cả
+                  </button>
+                  <button type="button" class="btn-sm btn-slate" onclick="appTransformMap.copyExcelFormatResult()" title="Sao chép dạng Tab Excel">
+                    📊 Chép Tab Excel
+                  </button>
                   <button type="button" class="btn-sheet-save-project" onclick="appTransformMap.saveConvertedToProject()" title="Lưu điểm này vào Sổ đo dự án">
                     💾 Lưu Vào Sổ Đo
                   </button>
+                  <div id="menuCopyOptions" style="display: none;"></div>
                 </div>
               </div>
             </div>
 
             <!-- NỘI DUNG PANEL ĐA ĐIỂM -->
             <div id="sheetPanelMulti" class="sheet-tab-panel" style="display: none;">
-              <div class="sheet-multi-toolbar">
+              <div class="sheet-multi-toolbar" style="display: flex; gap: 6px; flex-wrap: wrap;">
                 <button type="button" class="btn-sm btn-blue" onclick="appTransformMap.pasteMultiFromClipboard()">
-                  📋 Dán Excel/Clipboard
+                  📋 Dán Excel
                 </button>
                 <button type="button" class="btn-sm btn-slate" onclick="appTransformMap.addManualMultiPoint()">
                   ➕ Thêm mốc
                 </button>
-                <button type="button" class="btn-sm btn-green" onclick="appTransformMap.executeMultiConvert()">
-                  ⚡ Chuyển đổi hàng loạt
+                <button type="button" class="btn-sm btn-green" onclick="appTransformMap.executeMultiConvert('wgs2vn2k')" title="Chuyển đổi danh sách từ WGS-84 sang VN-2000">
+                  ⚡ WGS ➔ VN2K
+                </button>
+                <button type="button" class="btn-sm btn-green" onclick="appTransformMap.executeMultiConvert('vn2k2wgs')" title="Chuyển đổi danh sách từ VN-2000 sang WGS-84" style="background: #0d9488;">
+                  ⚡ VN2K ➔ WGS
                 </button>
                 <button type="button" class="btn-sm btn-red" onclick="appTransformMap.clearMultiPoints()">
                   🗑️ Xóa hết
@@ -1493,6 +1509,35 @@
                     <!-- Dynamic rows -->
                   </tbody>
                 </table>
+              </div>
+
+              <!-- BẢNG KẾT QUẢ CHUYỂN ĐỔI ĐA ĐIỂM CÓ THỂ SAO CHÉP -->
+              <div id="sheetMultiResultBox" class="sheet-result-box converted-result-box" style="display: none; margin-top: 10px;">
+                <div class="result-box-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                  <span class="result-badge-status">✨ KẾT QUẢ ĐA ĐIỂM (<span id="lblSheetMultiResultCount">0</span> mốc)</span>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button type="button" class="btn-sm btn-blue" onclick="appTransformMap.copyMultiResultsAll()" title="Chép tất cả dạng Tab Excel">📋 Chép hết</button>
+                    <button type="button" class="btn-sm btn-green" onclick="appTransformMap.copyMultiResultsVn2k()" title="Chép tọa độ VN-2000">📋 Chép VN2K</button>
+                    <button type="button" class="btn-sm btn-slate" onclick="appTransformMap.copyMultiResultsWgs()" title="Chép tọa độ WGS-84">📋 Chép WGS</button>
+                  </div>
+                </div>
+                <div style="max-height: 180px; overflow-y: auto; overflow-x: auto; margin-top: 6px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
+                  <table class="table-selectable" style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                    <thead>
+                      <tr style="background: rgba(255,255,255,0.06); color: #94a3b8;">
+                        <th style="padding: 4px; text-align: center;">STT</th>
+                        <th style="padding: 4px;">Tên</th>
+                        <th style="padding: 4px; text-align: right;">VN2K X (m)</th>
+                        <th style="padding: 4px; text-align: right;">VN2K Y (m)</th>
+                        <th style="padding: 4px; text-align: right;">WGS Lat</th>
+                        <th style="padding: 4px; text-align: right;">WGS Lng</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbodySheetMultiResult">
+                      <!-- Render kết quả -->
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

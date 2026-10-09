@@ -1515,12 +1515,12 @@ const appDashboard = {
                 if (vn && (vn.x || vn.X)) {
                     const vx = vn.x || vn.X;
                     const vy = vn.y || vn.Y;
-                    vnStr = `VN-2000 (X): ${vx.toFixed(3)} m\nVN-2000 (Y): ${vy.toFixed(3)} m\nKTT: ${AppState.provinceName || 'Tỉnh'} ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'\n`;
+                    vnStr = `VN-2000 (X): ${vx.toFixed(3)} m\r\nVN-2000 (Y): ${vy.toFixed(3)} m\r\nKTT: ${AppState.provinceName || 'Tỉnh'} ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'\r\n`;
                 }
             }
         } catch (e) {}
 
-        const textToCopy = `[TỌA ĐỘ HIỆN TRƯỜNG VN2000 PRO]\n${vnStr}WGS-84 (Lat, Lng): ${lat.toFixed(6)}, ${lng.toFixed(6)}\nCao độ (H): ${alt}\nSai số: ${acc}\nThời gian: ${new Date().toLocaleString('vi-VN')}`;
+        const textToCopy = `[TỌA ĐỘ HIỆN TRƯỜNG VN2000 PRO]\r\n${vnStr}WGS-84 (Lat, Lng): ${lat.toFixed(6)}, ${lng.toFixed(6)}\r\nCao độ (H): ${alt}\r\nSai số: ${acc}\r\nThời gian: ${new Date().toLocaleString('vi-VN')}`;
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(textToCopy).then(() => {
@@ -1642,6 +1642,17 @@ const appCoordPicker = {
         const btnApplyMulti = document.getElementById('btnPickerApplyMulti');
 
         if (mode === 'single') {
+            // Tách bạch hiển thị: ẩn lớp đa điểm, hiện lớp đơn điểm
+            if (this.multiMarkersGroup && AppState.leafletMap && AppState.leafletMap.hasLayer(this.multiMarkersGroup)) {
+                AppState.leafletMap.removeLayer(this.multiMarkersGroup);
+            }
+            if (this.multiPolyline && AppState.leafletMap && AppState.leafletMap.hasLayer(this.multiPolyline)) {
+                AppState.leafletMap.removeLayer(this.multiPolyline);
+            }
+            if (AppState.pickerMarker && AppState.leafletMap && !AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
+                AppState.pickerMarker.addTo(AppState.leafletMap);
+            }
+
             if (btnSingle) btnSingle.classList.add('active');
             if (btnMulti) btnMulti.classList.remove('active');
             if (boxSingle) boxSingle.style.display = 'flex';
@@ -1650,6 +1661,17 @@ const appCoordPicker = {
             if (btnApplyMulti) btnApplyMulti.style.display = 'none';
             showToast("🎯 Chế độ Chấm đơn điểm: Chạm vào bản đồ để chọn tọa độ!");
         } else {
+            // Tách bạch hiển thị: ẩn lớp đơn điểm, hiện lớp đa điểm
+            if (AppState.pickerMarker && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
+                AppState.leafletMap.removeLayer(AppState.pickerMarker);
+            }
+            if (this.multiMarkersGroup && AppState.leafletMap && !AppState.leafletMap.hasLayer(this.multiMarkersGroup)) {
+                this.multiMarkersGroup.addTo(AppState.leafletMap);
+            }
+            if (this.multiPolyline && AppState.leafletMap && !AppState.leafletMap.hasLayer(this.multiPolyline)) {
+                this.multiPolyline.addTo(AppState.leafletMap);
+            }
+
             if (btnSingle) btnSingle.classList.remove('active');
             if (btnMulti) btnMulti.classList.add('active');
             if (boxSingle) boxSingle.style.display = 'none';
@@ -1792,6 +1814,19 @@ const appCoordPicker = {
         if (lblTransform) {
             lblTransform.innerText = this.multiPoints.length;
         }
+    },
+
+    clearSinglePoint() {
+        if (AppState.pickerMarker && AppState.leafletMap) {
+            AppState.leafletMap.removeLayer(AppState.pickerMarker);
+            AppState.pickerMarker = null;
+        }
+        AppState.pickedCoord = null;
+        const textEl = document.getElementById('pickerSingleCoordText');
+        if (textEl) textEl.innerHTML = 'Chạm vào bản đồ để chọn tọa độ';
+        const sheet = document.getElementById('mapBottomSheet');
+        if (sheet) sheet.style.display = 'none';
+        showToast("🗑️ Đã xóa sạch điểm đơn điểm đã chấm");
     },
 
     clearMultiPoints() {
@@ -2254,7 +2289,7 @@ const appTransform = {
         const lat = formatLatLong(pt.lat, AppState.formatType);
         const lng = formatLatLong(pt.lng, AppState.formatType);
         const ktt = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
-        const text = `[MỐC]: ${pt.name}\nVN-2000: X=${x}, Y=${y}\nWGS-84: ${lat}, ${lng}\nKTT: ${ktt}`;
+        const text = `[MỐC]: ${pt.name}\r\nVN-2000: X=${x}, Y=${y}\r\nWGS-84: ${lat}, ${lng}\r\nKTT: ${ktt}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(() => showToast("📋 Đã chép toàn bộ kết quả chuyển đổi!"))
                 .catch(() => copyToClipboard(text));
@@ -2462,7 +2497,7 @@ const appTransform = {
             showToast("⚠️ Vui lòng dán văn bản tọa độ trước khi nạp!", true);
             return;
         }
-        const lines = ta.value.trim().split(/\r?\n/);
+        const lines = ta.value.trim().split(/\r?\r\n/);
         let added = 0;
 
         const cleanNumStr = (s) => {
@@ -2884,7 +2919,7 @@ const appTransform = {
         this.multiConvertedResults.forEach(r => {
             lines.push(`${r.stt}\t${r.name}\t${r.x}\t${r.y}\t${r.lat}\t${r.lng}\t${r.ktt}`);
         });
-        const text = lines.join('\n');
+        const text = lines.join('\r\n');
         copyToClipboard(text);
         showToast(`📋 Đã sao chép toàn bộ ${this.multiConvertedResults.length} mốc kết quả!`);
     },
@@ -2902,7 +2937,7 @@ const appTransform = {
         this.multiConvertedResults.forEach(r => {
             lines.push(`${r.name}\t${r.x}\t${r.y}`);
         });
-        copyToClipboard(lines.join('\n'));
+        copyToClipboard(lines.join('\r\n'));
         showToast("📋 Đã chép danh sách tọa độ VN-2000!");
     },
 
@@ -2915,7 +2950,7 @@ const appTransform = {
         this.multiConvertedResults.forEach(r => {
             lines.push(`${r.name}\t${r.lat}\t${r.lng}`);
         });
-        copyToClipboard(lines.join('\n'));
+        copyToClipboard(lines.join('\r\n'));
         showToast("📋 Đã chép danh sách tọa độ WGS-84!");
     },
 
@@ -2924,9 +2959,9 @@ const appTransform = {
             showToast("⚠️ Chưa có kết quả để xuất file!", true);
             return;
         }
-        let csv = "\uFEFFSTT,Ten_Moc,VN2000_X,VN2000_Y,WGS84_Lat,WGS84_Lng,Kinh_Tuyen_Truc\n";
+        let csv = "\uFEFFSTT,Ten_Moc,VN2000_X,VN2000_Y,WGS84_Lat,WGS84_Lng,Kinh_Tuyen_Truc\r\n";
         this.multiConvertedResults.forEach(r => {
-            csv += `${r.stt},"${r.name}",${r.x},${r.y},${r.lat},${r.lng},"${r.ktt}"\n`;
+            csv += `${r.stt},"${r.name}",${r.x},${r.y},${r.lat},${r.lng},"${r.ktt}"\r\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const a = document.createElement('a');
@@ -2982,13 +3017,39 @@ const appTransform = {
     },
 
     clearWgs() {
-        document.getElementById('txtWgsLat').value = '';
-        document.getElementById('txtWgsLng').value = '';
+        const inLat = document.getElementById('txtWgsLat');
+        const inLng = document.getElementById('txtWgsLng');
+        if (inLat) inLat.value = '';
+        if (inLng) inLng.value = '';
+        this.checkAndClearSingleResult();
     },
 
     clearVn2k() {
-        document.getElementById('txtVn2kX').value = '';
-        document.getElementById('txtVn2kY').value = '';
+        const inX = document.getElementById('txtVn2kX');
+        const inY = document.getElementById('txtVn2kY');
+        if (inX) inX.value = '';
+        if (inY) inY.value = '';
+        this.checkAndClearSingleResult();
+    },
+
+    checkAndClearSingleResult() {
+        const strLat = document.getElementById('txtWgsLat')?.value || '';
+        const strLng = document.getElementById('txtWgsLng')?.value || '';
+        const strX = document.getElementById('txtVn2kX')?.value || '';
+        const strY = document.getElementById('txtVn2kY')?.value || '';
+        if (!strLat && !strLng && !strX && !strY) {
+            AppState.lastConvertedPoint = null;
+            const resBox = document.getElementById('boxConvertedResult');
+            if (resBox) resBox.style.display = 'none';
+            if (AppState.pickerMarker && AppState.leafletMap) {
+                AppState.leafletMap.removeLayer(AppState.pickerMarker);
+                AppState.pickerMarker = null;
+            }
+            if (typeof appTransformMap !== 'undefined' && appTransformMap.clearSinglePoint) {
+                appTransformMap.clearSinglePoint();
+            }
+            showToast("🗑️ Đã xóa sạch dữ liệu điểm đơn điểm và kết quả");
+        }
     },
 
     savePointToCsv() {
@@ -3216,7 +3277,7 @@ const appTransform = {
             showToast("⚠️ Chưa có kết quả chuyển đổi!");
             return;
         }
-        const text = `Tên điểm: ${pt.name}\nVN-2000: X=${parseFloat(pt.x).toFixed(3)}, Y=${parseFloat(pt.y).toFixed(3)}\nWGS-84: Lat=${pt.lat.toFixed(7)}°, Lng=${pt.lng.toFixed(7)}°\nKTT: ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
+        const text = `Tên điểm: ${pt.name}\r\nVN-2000: X=${parseFloat(pt.x).toFixed(3)}, Y=${parseFloat(pt.y).toFixed(3)}\r\nWGS-84: Lat=${pt.lat.toFixed(7)}°, Lng=${pt.lng.toFixed(7)}°\r\nKTT: ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
         copyToClipboard(text);
     },
 
@@ -3500,6 +3561,15 @@ const appTransformMap = {
     currentSheetTab: 'single', // 'single' | 'multi'
     pickedSinglePoint: null,
     pickedMultiPoints: [],
+    multiConvertedResults: [],
+
+    // TÁCH LỚP ĐỘC LẬP: ĐƠN ĐIỂM VÀ ĐA ĐIỂM
+    singleMarkersLayer: null,
+    multiMarkersLayer: null,
+    singleConvertedLayer: null,
+    multiConvertedLayer: null,
+
+    // Tương thích ngược
     markersLayer: null,
     convertedLayer: null,
     sheetInitialized: false,
@@ -3609,6 +3679,7 @@ const appTransformMap = {
 
     ensureMap() {
         if (this.map) {
+            this.updateActiveLayers();
             setTimeout(() => this.map.invalidateSize(), 200);
             return;
         }
@@ -3639,8 +3710,14 @@ const appTransformMap = {
         };
         this.activeBaseLayer = 'google_hybrid';
 
-        this.markersLayer = L.layerGroup().addTo(this.map);
-        this.convertedLayer = L.layerGroup().addTo(this.map);
+        // TÁCH 4 LỚP ĐỘC LẬP: ĐƠN ĐIỂM VÀ ĐA ĐIỂM
+        this.singleMarkersLayer = L.layerGroup();
+        this.multiMarkersLayer = L.layerGroup();
+        this.singleConvertedLayer = L.layerGroup();
+        this.multiConvertedLayer = L.layerGroup();
+
+        // Kích hoạt lớp phù hợp theo chế độ ban đầu
+        this.updateActiveLayers();
 
         this.map.on('click', (e) => {
             this.handleMapClick(e.latlng.lat, e.latlng.lng);
@@ -3651,6 +3728,47 @@ const appTransformMap = {
         });
 
         setTimeout(() => this.map.invalidateSize(), 250);
+    },
+
+    // QUẢN LÝ TÁCH BẠCH LỚP: KHÔNG CÙNG THỂ HIỆN ĐƠN ĐIỂM VÀ ĐA ĐIỂM TRÊN CÙNG BẢN ĐỒ
+    updateActiveLayers() {
+        if (!this.map) return;
+        const isMulti = (this.pickSubMode === 'multi' || this.currentSheetTab === 'multi');
+        if (isMulti) {
+            // Ẩn lớp đơn điểm
+            if (this.singleMarkersLayer && this.map.hasLayer(this.singleMarkersLayer)) {
+                this.map.removeLayer(this.singleMarkersLayer);
+            }
+            if (this.singleConvertedLayer && this.map.hasLayer(this.singleConvertedLayer)) {
+                this.map.removeLayer(this.singleConvertedLayer);
+            }
+            // Hiện lớp đa điểm
+            if (this.multiMarkersLayer && !this.map.hasLayer(this.multiMarkersLayer)) {
+                this.multiMarkersLayer.addTo(this.map);
+            }
+            if (this.multiConvertedLayer && !this.map.hasLayer(this.multiConvertedLayer)) {
+                this.multiConvertedLayer.addTo(this.map);
+            }
+            this.markersLayer = this.multiMarkersLayer;
+            this.convertedLayer = this.multiConvertedLayer;
+        } else {
+            // Ẩn lớp đa điểm
+            if (this.multiMarkersLayer && this.map.hasLayer(this.multiMarkersLayer)) {
+                this.map.removeLayer(this.multiMarkersLayer);
+            }
+            if (this.multiConvertedLayer && this.map.hasLayer(this.multiConvertedLayer)) {
+                this.map.removeLayer(this.multiConvertedLayer);
+            }
+            // Hiện lớp đơn điểm
+            if (this.singleMarkersLayer && !this.map.hasLayer(this.singleMarkersLayer)) {
+                this.singleMarkersLayer.addTo(this.map);
+            }
+            if (this.singleConvertedLayer && !this.map.hasLayer(this.singleConvertedLayer)) {
+                this.singleConvertedLayer.addTo(this.map);
+            }
+            this.markersLayer = this.singleMarkersLayer;
+            this.convertedLayer = this.singleConvertedLayer;
+        }
     },
 
     initSheet() {
@@ -3677,12 +3795,22 @@ const appTransformMap = {
         const sel = document.getElementById('selSheetMultiTargetProject');
         if (!sel) return;
         sel.innerHTML = '';
-        const cur = AppState.currentProject || 'Dự án mặc định';
-        const opt = document.createElement('option');
-        opt.value = cur;
-        opt.innerText = cur;
-        opt.selected = true;
-        sel.appendChild(opt);
+        const list = (typeof appData !== 'undefined' && appData.getProjectList) ? appData.getProjectList() : (AppState.projectsList || []);
+        list.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.innerText = p;
+            if (p === AppState.currentProject) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        if (sel.options.length === 0) {
+            const cur = AppState.currentProject || 'Dự án mặc định';
+            const opt = document.createElement('option');
+            opt.value = cur;
+            opt.innerText = cur;
+            opt.selected = true;
+            sel.appendChild(opt);
+        }
     },
 
     onProvinceChange() {
@@ -3695,19 +3823,20 @@ const appTransformMap = {
         AppState.kttVal = p.deg + p.min / 60.0;
         showToast(`📍 Đã đổi KTT sang ${sel.value} (${AppState.kttVal.toFixed(4)}°)`);
         if (this.pickedSinglePoint) {
-            this.executeSingleConvert();
+            this.executeSingleConvert('auto');
         }
     },
 
     setMui(mui) {
         AppState.scaleFactor = (mui === 6) ? 0.9996 : 0.9999;
+        AppState.muiVal = mui;
         const btn3 = document.getElementById('btnSheetMui3');
         const btn6 = document.getElementById('btnSheetMui6');
         if (btn3) btn3.classList.toggle('active', mui === 3);
         if (btn6) btn6.classList.toggle('active', mui === 6);
         showToast(`⚙️ Đã chuyển sang Múi ${mui}° (k0 = ${AppState.scaleFactor})`);
         if (this.pickedSinglePoint) {
-            this.executeSingleConvert();
+            this.executeSingleConvert('auto');
         }
     },
 
@@ -3726,6 +3855,9 @@ const appTransformMap = {
     switchSheetTab(tab) {
         triggerHaptic('selection');
         this.currentSheetTab = tab;
+        this.pickSubMode = tab;
+        this.updateActiveLayers();
+
         const btnS = document.getElementById('sheetTabSingle');
         const btnM = document.getElementById('sheetTabMulti');
         const pS = document.getElementById('sheetPanelSingle');
@@ -3747,6 +3879,7 @@ const appTransformMap = {
     handleMapClick(lat, lng) {
         if (!this.map) return;
         triggerHaptic('light');
+        this.updateActiveLayers();
         const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         if (this.currentSheetTab === 'multi' || this.pickSubMode === 'multi') {
             this.addMultiPoint(lat, lng, vn);
@@ -3759,17 +3892,18 @@ const appTransformMap = {
         if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         this.pickedSinglePoint = { lat, lng, x: vn.X, y: vn.Y, name: 'Điểm Chuyển Đổi' };
         AppState.lastConvertedPoint = this.pickedSinglePoint;
+        this.updateActiveLayers();
 
-        // Cập nhật marker
-        if (this.markersLayer) {
-            this.markersLayer.clearLayers();
+        // Cập nhật marker đơn điểm
+        if (this.singleMarkersLayer) {
+            this.singleMarkersLayer.clearLayers();
             const icon = L.divIcon({
                 className: 'single-point-pin',
                 html: `<div style="background: #2563eb; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">🎯</div>`,
                 iconSize: [30, 30],
                 iconAnchor: [15, 15]
             });
-            const marker = L.marker([lat, lng], { icon }).addTo(this.markersLayer);
+            const marker = L.marker([lat, lng], { icon }).addTo(this.singleMarkersLayer);
             marker.bindPopup(`<b>Điểm Đã Chọn</b><br>VN-2000 X: <b>${vn.X.toFixed(3)}</b> m<br>VN-2000 Y: <b>${vn.Y.toFixed(3)}</b> m<br>WGS-84: ${lat.toFixed(6)}°, ${lng.toFixed(6)}°`).openPopup();
             this.map.panTo([lat, lng]);
         }
@@ -3784,7 +3918,7 @@ const appTransformMap = {
         if (inX) inX.value = vn.X.toFixed(3);
         if (inY) inY.value = vn.Y.toFixed(3);
 
-        // Hiển thị kết quả trong Hộp kết quả
+        // Hiển thị kết quả trong Hộp kết quả có thể sao chép
         this.renderResultBox(lat, lng, vn.X, vn.Y);
 
         // Tự động mở rộng sheet nếu đang ở peek
@@ -3792,7 +3926,6 @@ const appTransformMap = {
         if (sheet) sheet.classList.remove('sheet-peek');
 
         this.updateHud(lat, lng, vn, true);
-        showToast(`✓ Đã nạp và chuyển đổi tức thời: X=${vn.X.toFixed(2)}, Y=${vn.Y.toFixed(2)}`);
     },
 
     renderResultBox(lat, lng, x, y) {
@@ -3810,6 +3943,7 @@ const appTransformMap = {
     },
 
     onInputChanged(type) {
+        // Tự động tính khi gõ
         if (type === 'wgs') {
             const inLat = document.getElementById('txtSheetWgsLat');
             const inLng = document.getElementById('txtSheetWgsLng');
@@ -3860,8 +3994,8 @@ const appTransformMap = {
                     const inLng = document.getElementById('txtSheetWgsLng');
                     if (inLat) inLat.value = lat.toFixed(6);
                     if (inLng) inLng.value = lng.toFixed(6);
-                    this.executeSingleConvert();
-                    showToast("📋 Đã dán và chuyển đổi tọa độ WGS-84!");
+                    this.executeSingleConvert('wgs2vn2k');
+                    showToast("📋 Đã dán và chuyển đổi tọa độ WGS-84 ➔ VN-2000!");
                 } else {
                     showToast("⚠️ Định dạng tọa độ không hợp lệ!", true);
                 }
@@ -3890,8 +4024,8 @@ const appTransformMap = {
                     const inY = document.getElementById('txtSheetVn2kY');
                     if (inX) inX.value = x.toFixed(3);
                     if (inY) inY.value = y.toFixed(3);
-                    this.executeSingleConvert();
-                    showToast("📋 Đã dán và chuyển đổi tọa độ VN-2000!");
+                    this.executeSingleConvert('vn2k2wgs');
+                    showToast("📋 Đã dán và chuyển đổi tọa độ VN-2000 ➔ WGS-84!");
                 } else {
                     showToast("⚠️ Định dạng tọa độ không hợp lệ!", true);
                 }
@@ -3901,7 +4035,8 @@ const appTransformMap = {
         });
     },
 
-    executeSingleConvert() {
+    // CHUYỂN ĐỔI 2 CHIỀU ĐƠN ĐIỂM: WGS84 ➔ VN2000 VÀ VN2000 ➔ WGS84
+    executeSingleConvert(direction = 'auto') { // executeSingleConvert()
         const inLat = document.getElementById('txtSheetWgsLat');
         const inLng = document.getElementById('txtSheetWgsLng');
         const inX = document.getElementById('txtSheetVn2kX');
@@ -3917,31 +4052,83 @@ const appTransformMap = {
         let x = parseCoordinateNumber(strX);
         let y = parseCoordinateNumber(strY);
 
-        if (lat !== 0 && lng !== 0) {
+        let actualDirection = direction;
+        if (actualDirection === 'auto') {
+            if (lat !== 0 && lng !== 0 && (x === 0 || y === 0)) {
+                actualDirection = 'wgs2vn2k';
+            } else if (x !== 0 && y !== 0 && (lat === 0 || lng === 0)) {
+                actualDirection = 'vn2k2wgs';
+            } else if (x !== 0 && y !== 0) {
+                actualDirection = 'vn2k2wgs';
+            } else {
+                actualDirection = 'wgs2vn2k';
+            }
+        }
+
+        if (actualDirection === 'wgs2vn2k') {
+            // WGS-84 ➔ VN-2000
+            if (lat === 0 || lng === 0) {
+                showToast("⚠️ Vui lòng nhập tọa độ WGS-84 (Vĩ độ, Kinh độ)!", true);
+                return;
+            }
+            if (lat > 50 && lng < 50) {
+                const temp = lat; lat = lng; lng = temp;
+                if (inLat) inLat.value = lat.toFixed(6);
+                if (inLng) inLng.value = lng.toFixed(6);
+            }
             const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
             if (inX) inX.value = vn.X.toFixed(3);
             if (inY) inY.value = vn.Y.toFixed(3);
             this.setSinglePoint(lat, lng, vn);
-        } else if (x !== 0 && y !== 0) {
+            triggerHaptic('success');
+            showToast(`✓ Đã tính chuyển WGS-84 ➔ VN-2000: X=${vn.X.toFixed(2)}, Y=${vn.Y.toFixed(2)}`);
+        } else {
+            // VN-2000 ➔ WGS-84
+            if (x === 0 || y === 0) {
+                showToast("⚠️ Vui lòng nhập tọa độ VN-2000 (X, Y)!", true);
+                return;
+            }
+            if (x < 1000000 && y > 1000000) {
+                const temp = x; x = y; y = temp;
+                if (inX) inX.value = x.toFixed(3);
+                if (inY) inY.value = y.toFixed(3);
+            }
             const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
             if (inLat) inLat.value = wgs.lat.toFixed(6);
             if (inLng) inLng.value = wgs.lng.toFixed(6);
             this.setSinglePoint(wgs.lat, wgs.lng, { X: x, Y: y });
-        } else {
-            showToast("⚠️ Vui lòng nhập tọa độ WGS-84 hoặc VN-2000!", true);
+            triggerHaptic('success');
+            showToast(`✓ Đã tính chuyển VN-2000 ➔ WGS-84: Lat=${wgs.lat.toFixed(6)}, Lng=${wgs.lng.toFixed(6)}`);
         }
     },
 
-    clearInputs() {
+    // XÓA SẠCH ĐIỂM ĐƠN ĐIỂM: XÓA MARKER, LỚP VÀ BẢNG KẾT QUẢ
+    clearSinglePoint() {
         ['txtSheetWgsLat', 'txtSheetWgsLng', 'txtSheetVn2kX', 'txtSheetVn2kY'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
         });
         const box = document.getElementById('sheetResultBox');
         if (box) box.style.display = 'none';
-        if (this.markersLayer) this.markersLayer.clearLayers();
+
+        if (this.singleMarkersLayer) this.singleMarkersLayer.clearLayers();
+        if (this.singleConvertedLayer) this.singleConvertedLayer.clearLayers();
+        if (this.markersLayer && this.pickSubMode === 'single') this.markersLayer.clearLayers();
+        if (this.convertedLayer && this.pickSubMode === 'single') this.convertedLayer.clearLayers();
+
         this.pickedSinglePoint = null;
-        showToast("🗑️ Đã xóa trắng dữ liệu nhập");
+        this.viewSinglePoint = null;
+        AppState.lastConvertedPoint = null;
+
+        const hud = document.getElementById('transformMapCoordHud');
+        if (hud) hud.innerHTML = '<b>📍 VỊ TRÍ:</b> Chạm vào bản đồ để chọn tọa độ';
+
+        triggerHaptic('light');
+        showToast("🗑️ Đã xóa sạch điểm đơn điểm đã chấm");
+    },
+
+    clearInputs() {
+        this.clearSinglePoint();
     },
 
     // SAO CHÉP THÔNG MINH 1 CHẠM
@@ -3952,12 +4139,18 @@ const appTransformMap = {
             return;
         }
         const text = `Điểm: ${p.name || 'M-CHUYENDO'} | VN2000 X: ${parseFloat(p.x).toFixed(3)} m, Y: ${parseFloat(p.y).toFixed(3)} m | WGS84: ${parseFloat(p.lat).toFixed(6)}°, ${parseFloat(p.lng).toFixed(6)}° | KTT: ${AppState.kttVal}°`;
-        navigator.clipboard.writeText(text).then(() => {
-            triggerHaptic('success');
-            showToast("✓ Đã sao chép toàn bộ kết quả đầy đủ vào bộ nhớ tạm!");
-        }).catch(() => {
-            showToast("⚠️ Không thể ghi vào Clipboard!", true);
-        });
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                triggerHaptic('success');
+                showToast("✓ Đã sao chép toàn bộ kết quả đầy đủ!");
+            }).catch(() => {
+                copyToClipboard(text);
+                showToast("✓ Đã sao chép toàn bộ kết quả!");
+            });
+        } else {
+            copyToClipboard(text);
+            showToast("✓ Đã sao chép toàn bộ kết quả!");
+        }
     },
 
     toggleCopyMenu(e) {
@@ -3969,21 +4162,37 @@ const appTransformMap = {
 
     copyVn2kResult() {
         const p = AppState.lastConvertedPoint;
-        if (!p) return;
+        if (!p) {
+            showToast("⚠️ Chưa có kết quả VN-2000 để chép!", true);
+            return;
+        }
         const text = `X: ${parseFloat(p.x).toFixed(3)}, Y: ${parseFloat(p.y).toFixed(3)}`;
-        navigator.clipboard.writeText(text);
-        triggerHaptic('success');
-        showToast(`✓ Đã sao chép VN-2000: ${text}`);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                triggerHaptic('success');
+                showToast(`✓ Đã sao chép VN-2000: ${text}`);
+            }).catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
         this.toggleCopyMenu();
     },
 
     copyWgsResult() {
         const p = AppState.lastConvertedPoint;
-        if (!p) return;
+        if (!p) {
+            showToast("⚠️ Chưa có kết quả WGS-84 để chép!", true);
+            return;
+        }
         const text = `${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}`;
-        navigator.clipboard.writeText(text);
-        triggerHaptic('success');
-        showToast(`✓ Đã sao chép WGS-84: ${text}`);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                triggerHaptic('success');
+                showToast(`✓ Đã sao chép WGS-84: ${text}`);
+            }).catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
         this.toggleCopyMenu();
     },
 
@@ -3994,11 +4203,19 @@ const appTransformMap = {
 
     copyExcelFormatResult() {
         const p = AppState.lastConvertedPoint;
-        if (!p) return;
+        if (!p) {
+            showToast("⚠️ Chưa có kết quả để chép!", true);
+            return;
+        }
         const text = `${p.name || 'M1'}\t${parseFloat(p.x).toFixed(3)}\t${parseFloat(p.y).toFixed(3)}\t${parseFloat(p.lat).toFixed(6)}\t${parseFloat(p.lng).toFixed(6)}`;
-        navigator.clipboard.writeText(text);
-        triggerHaptic('success');
-        showToast(`✓ Đã sao chép dạng Tab Excel: ${text}`);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                triggerHaptic('success');
+                showToast(`✓ Đã sao chép dạng Tab Excel: ${text}`);
+            }).catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
         this.toggleCopyMenu();
     },
 
@@ -4032,6 +4249,7 @@ const appTransformMap = {
 
     setMode(mode) {
         this.mode = mode;
+        this.updateActiveLayers();
         const btnPick = document.getElementById('btnTfMapModePick');
         const btnView = document.getElementById('btnTfMapModeView');
         const actionsPick = document.getElementById('tfMapActionsPick');
@@ -4053,15 +4271,20 @@ const appTransformMap = {
 
     setPickSubMode(subMode) {
         this.pickSubMode = subMode;
+        this.currentSheetTab = subMode;
+        this.updateActiveLayers();
+
         const btnSingle = document.getElementById('btnTfPickSingle');
         const btnMulti = document.getElementById('btnTfPickMulti');
         if (subMode === 'single') {
             if (btnSingle) btnSingle.classList.add('active');
             if (btnMulti) btnMulti.classList.remove('active');
+            this.switchSheetTab('single');
             showToast("🎯 Chế độ Chấm đơn điểm: Nhấp vào vị trí cần lấy tọa độ!");
         } else {
             if (btnSingle) btnSingle.classList.remove('active');
             if (btnMulti) btnMulti.classList.add('active');
+            this.switchSheetTab('multi');
             showToast("📑 Chế độ Chấm đa điểm: Nhấp liên tiếp các vị trí để lập danh sách mốc!");
         }
     },
@@ -4109,8 +4332,7 @@ const appTransformMap = {
                     });
                     added++;
                 });
-                appTransform.renderMultiPointsTable();
-                appTransform.updateMultiSelectionStats();
+                appTransform.renderMultiTransPoints();
                 showToast(`✓ Đã nạp ${added} điểm đã chấm vào chuyển đổi hàng loạt!`);
                 appNav.showScreen('transform');
                 appTransform.switchTransformSubTab('multi');
@@ -4119,64 +4341,70 @@ const appTransformMap = {
     },
 
     renderConvertedPoints() {
-        if (!this.map || !this.convertedLayer) return;
-        this.convertedLayer.clearLayers();
+        if (!this.map) return;
+        this.updateActiveLayers();
         const bounds = [];
 
-        // Ưu tiên hiển thị mốc đơn vừa chuyển đổi nếu có
-        if (this.viewSinglePoint && this.viewSinglePoint.lat && this.viewSinglePoint.lng) {
-            const p = this.viewSinglePoint;
-            const fLat = parseFloat(p.lat);
-            const fLng = parseFloat(p.lng);
-            const fX = parseFloat(p.x);
-            const fY = parseFloat(p.y);
-            bounds.push([fLat, fLng]);
-            const icon = L.divIcon({
-                className: 'single-converted-pin',
-                html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">📍</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-            });
-            const marker = L.marker([fLat, fLng], { icon })
-                .addTo(this.convertedLayer)
-                .bindPopup(`<b>${p.name || 'Điểm Chuyển Đổi'}</b><br>VN-2000 X: <b>${fX.toFixed(3)}</b> m<br>VN-2000 Y: <b>${fY.toFixed(3)}</b> m<br>WGS-84: ${fLat.toFixed(6)}°, ${fLng.toFixed(6)}°<br>KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`)
-                .openPopup();
-            this.map.setView([fLat, fLng], 17);
-            setTimeout(() => this.map.invalidateSize(), 200);
-            return;
-        }
-
-        // Kiểm tra đa điểm chuyển đổi trước
-        if (typeof appTransform !== 'undefined' && appTransform.multiConvertedResults && appTransform.multiConvertedResults.length > 0) {
-            appTransform.multiConvertedResults.forEach(r => {
-                const fLat = parseFloat(r.lat);
-                const fLng = parseFloat(r.lng);
-                if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
-                    bounds.push([fLat, fLng]);
-                    const icon = L.divIcon({
-                        className: 'multipoint-converted-pin',
-                        html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">${r.stt}</div>`,
-                        iconSize: [26, 26],
-                        iconAnchor: [13, 13]
-                    });
-                    L.marker([fLat, fLng], { icon })
-                        .addTo(this.convertedLayer)
-                        .bindPopup(`<b>Mốc: ${r.name || ('P' + r.stt)}</b><br>VN-2000 X: ${r.x} m<br>VN-2000 Y: ${r.y} m<br>WGS-84: ${r.lat}, ${r.lng}<br>KTT: ${r.ktt || ''}`);
-                }
-            });
-        } else if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.lat && AppState.lastConvertedPoint.lng) {
-            const p = AppState.lastConvertedPoint;
-            bounds.push([p.lat, p.lng]);
-            const icon = L.divIcon({
-                className: 'single-converted-pin',
-                html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">📍</div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
-            });
-            L.marker([p.lat, p.lng], { icon })
-                .addTo(this.convertedLayer)
-                .bindPopup(`<b>${p.name || 'Điểm Chuyển Đổi'}</b><br>VN-2000 X: ${parseFloat(p.x).toFixed(3)} m<br>VN-2000 Y: ${parseFloat(p.y).toFixed(3)} m<br>WGS-84: ${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}`)
-                .openPopup();
+        // Nếu đang ở đơn điểm
+        if (this.pickSubMode === 'single' || this.currentSheetTab === 'single') {
+            if (this.singleConvertedLayer) this.singleConvertedLayer.clearLayers();
+            if (this.viewSinglePoint && this.viewSinglePoint.lat && this.viewSinglePoint.lng) {
+                const p = this.viewSinglePoint;
+                const fLat = parseFloat(p.lat);
+                const fLng = parseFloat(p.lng);
+                const fX = parseFloat(p.x);
+                const fY = parseFloat(p.y);
+                bounds.push([fLat, fLng]);
+                const icon = L.divIcon({
+                    className: 'single-converted-pin',
+                    html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">📍</div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+                L.marker([fLat, fLng], { icon })
+                    .addTo(this.singleConvertedLayer)
+                    .bindPopup(`<b>${p.name || 'Điểm Chuyển Đổi'}</b><br>VN-2000 X: <b>${fX.toFixed(3)}</b> m<br>VN-2000 Y: <b>${fY.toFixed(3)}</b> m<br>WGS-84: ${fLat.toFixed(6)}°, ${fLng.toFixed(6)}°<br>KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`)
+                    .openPopup();
+                this.map.setView([fLat, fLng], 17);
+                setTimeout(() => this.map.invalidateSize(), 200);
+                return;
+            } else if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.lat && AppState.lastConvertedPoint.lng) {
+                const p = AppState.lastConvertedPoint;
+                bounds.push([p.lat, p.lng]);
+                const icon = L.divIcon({
+                    className: 'single-converted-pin',
+                    html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">📍</div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+                L.marker([p.lat, p.lng], { icon })
+                    .addTo(this.singleConvertedLayer)
+                    .bindPopup(`<b>${p.name || 'Điểm Chuyển Đổi'}</b><br>VN-2000 X: <b>${parseFloat(p.x).toFixed(3)}</b> m<br>VN-2000 Y: <b>${parseFloat(p.y).toFixed(3)}</b> m<br>WGS-84: ${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}`)
+                    .openPopup();
+                this.map.setView([p.lat, p.lng], 17);
+                return;
+            }
+        } else {
+            // Đa điểm
+            if (this.multiConvertedLayer) this.multiConvertedLayer.clearLayers();
+            if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
+                this.multiConvertedResults.forEach(r => {
+                    const fLat = parseFloat(r.lat);
+                    const fLng = parseFloat(r.lng);
+                    if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
+                        bounds.push([fLat, fLng]);
+                        const icon = L.divIcon({
+                            className: 'multipoint-converted-pin',
+                            html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">${r.stt}</div>`,
+                            iconSize: [26, 26],
+                            iconAnchor: [13, 13]
+                        });
+                        L.marker([fLat, fLng], { icon })
+                            .addTo(this.multiConvertedLayer)
+                            .bindPopup(`<b>Mốc: ${r.name || ('P' + r.stt)}</b><br>VN-2000 X: ${r.x} m<br>VN-2000 Y: ${r.y} m<br>WGS-84: ${r.lat}, ${r.lng}`);
+                    }
+                });
+            }
         }
 
         if (bounds.length > 0) {
@@ -4212,14 +4440,15 @@ const appTransformMap = {
         const pt = { stt: idx, name: `P${idx}`, lat, lng, x: vn.X, y: vn.Y, selected: true };
         this.pickedMultiPoints.push(pt);
 
-        if (this.markersLayer) {
+        this.updateActiveLayers();
+        if (this.multiMarkersLayer) {
             const icon = L.divIcon({
                 className: 'multipoint-pin',
                 html: `<div style="background: #f59e0b; color: #000; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${idx}</div>`,
                 iconSize: [26, 26],
                 iconAnchor: [13, 13]
             });
-            L.marker([lat, lng], { icon }).addTo(this.markersLayer).bindPopup(`<b>Điểm P${idx}</b><br>X: ${vn.X.toFixed(3)} m | Y: ${vn.Y.toFixed(3)} m`);
+            L.marker([lat, lng], { icon }).addTo(this.multiMarkersLayer).bindPopup(`<b>Điểm P${idx}</b><br>X: ${vn.X.toFixed(3)} m | Y: ${vn.Y.toFixed(3)} m`);
         }
         this.renderSheetMultiTable();
         showToast(`✓ Đã thêm điểm P${idx} (${vn.X.toFixed(2)}, ${vn.Y.toFixed(2)})`);
@@ -4258,13 +4487,32 @@ const appTransformMap = {
         this.pickedMultiPoints.splice(i, 1);
         this.pickedMultiPoints.forEach((p, idx) => p.stt = idx + 1);
         this.renderSheetMultiTable();
+        this.replotMultiMarkers();
         showToast("🗑️ Đã xóa mốc khỏi danh sách");
+    },
+
+    replotMultiMarkers() {
+        if (!this.multiMarkersLayer) return;
+        this.multiMarkersLayer.clearLayers();
+        this.pickedMultiPoints.forEach(p => {
+            const icon = L.divIcon({
+                className: 'multipoint-pin',
+                html: `<div style="background: #f59e0b; color: #000; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${p.stt}</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+            L.marker([p.lat, p.lng], { icon }).addTo(this.multiMarkersLayer).bindPopup(`<b>Điểm P${p.stt}</b><br>X: ${p.x.toFixed(3)} m | Y: ${p.y.toFixed(3)} m`);
+        });
     },
 
     clearMultiPoints() {
         this.pickedMultiPoints = [];
+        this.multiConvertedResults = [];
         this.renderSheetMultiTable();
-        if (this.markersLayer) this.markersLayer.clearLayers();
+        if (this.multiMarkersLayer) this.multiMarkersLayer.clearLayers();
+        if (this.multiConvertedLayer) this.multiConvertedLayer.clearLayers();
+        const resBox = document.getElementById('sheetMultiResultBox');
+        if (resBox) resBox.style.display = 'none';
         showToast("🗑️ Đã xóa toàn bộ danh sách đa điểm");
     },
 
@@ -4288,12 +4536,16 @@ const appTransformMap = {
     },
 
     pasteMultiFromClipboard() {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+            showToast("⚠️ Trình duyệt chưa cấp quyền Clipboard!", true);
+            return;
+        }
         navigator.clipboard.readText().then(text => {
             if (!text || !text.trim()) {
                 showToast("⚠️ Clipboard trống!", true);
                 return;
             }
-            const lines = text.trim().split(/\r?\n/);
+            const lines = text.trim().split(/\r?\r\n/);
             let added = 0;
             lines.forEach(line => {
                 const parts = line.trim().split(/[\t,; ]+/);
@@ -4339,30 +4591,189 @@ const appTransformMap = {
         });
     },
 
-    executeMultiConvert() {
-        if (this.pickedMultiPoints.length === 0) {
-            showToast("⚠️ Chưa có điểm nào trong danh sách!", true);
+    // CHUYỂN ĐỔI 2 CHIỀU ĐA ĐIỂM KÈM BẢNG KẾT QUẢ CÓ THỂ SAO CHÉP
+    executeMultiConvert(direction = 'auto') { // executeMultiConvert()
+        const selected = this.pickedMultiPoints.filter(p => p.selected !== false);
+        if (selected.length === 0) {
+            showToast("⚠️ Chưa có điểm nào được tick chọn!", true);
             return;
         }
-        if (!this.map) return;
-        if (this.markersLayer) this.markersLayer.clearLayers();
+        this.updateActiveLayers();
+        if (this.multiConvertedLayer) this.multiConvertedLayer.clearLayers();
+
         const bounds = [];
-        this.pickedMultiPoints.forEach(p => {
-            if (p.selected && p.lat && p.lng) {
-                bounds.push([p.lat, p.lng]);
+        const results = [];
+
+        selected.forEach((p, idx) => {
+            let pLat = parseFloat(p.lat) || 0;
+            let pLng = parseFloat(p.lng) || 0;
+            let pX = parseFloat(p.x) || 0;
+            let pY = parseFloat(p.y) || 0;
+
+            let curDir = direction;
+            if (curDir === 'auto') {
+                if (pLat !== 0 && pLng !== 0) curDir = 'wgs2vn2k';
+                else curDir = 'vn2k2wgs';
+            }
+
+            if (curDir === 'vn2k2wgs' && pX !== 0 && pY !== 0) {
+                const w = convertVn2kToWgs(pX, pY, AppState.kttVal, AppState.scaleFactor);
+                pLat = w.lat;
+                pLng = w.lng;
+                p.lat = pLat;
+                p.lng = pLng;
+            } else if (pLat !== 0 && pLng !== 0) {
+                const vn = convertWgsToVn2k(pLat, pLng, AppState.kttVal, AppState.scaleFactor);
+                pX = vn.X;
+                pY = vn.Y;
+                p.x = pX;
+                p.y = pY;
+            }
+
+            if (pLat !== 0 && pLng !== 0) {
+                bounds.push([pLat, pLng]);
                 const icon = L.divIcon({
                     className: 'multipoint-pin',
-                    html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${p.stt}</div>`,
+                    html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${p.stt || (idx+1)}</div>`,
                     iconSize: [26, 26],
                     iconAnchor: [13, 13]
                 });
-                L.marker([p.lat, p.lng], { icon }).addTo(this.markersLayer).bindPopup(`<b>${p.name}</b><br>X: ${p.x.toFixed(3)} m | Y: ${p.y.toFixed(3)} m<br>WGS: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`);
+                L.marker([pLat, pLng], { icon })
+                    .addTo(this.multiConvertedLayer)
+                    .bindPopup(`<b>${p.name || ('P' + (idx+1))}</b><br>VN-2000 X: <b>${pX.toFixed(3)}</b> m<br>VN-2000 Y: <b>${pY.toFixed(3)}</b> m<br>WGS-84: ${pLat.toFixed(6)}°, ${pLng.toFixed(6)}°`);
             }
+
+            results.push({
+                stt: p.stt || (idx + 1),
+                name: p.name || `P${idx + 1}`,
+                x: pX.toFixed(3),
+                y: pY.toFixed(3),
+                lat: pLat.toFixed(6),
+                lng: pLng.toFixed(6)
+            });
         });
-        if (bounds.length > 0) {
+
+        this.multiConvertedResults = results;
+        this.renderSheetMultiResults(results);
+
+        if (this.map && bounds.length > 0) {
             this.map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
         }
-        showToast(`✓ Đã chuyển đổi và hiển thị ${bounds.length} mốc trên bản đồ!`);
+
+        // Tự động lưu dự án nếu tick
+        const chkSave = document.getElementById('chkSheetSaveMultiToProject');
+        if (chkSave && chkSave.checked) {
+            this.saveMultiToCurrentProject();
+        }
+
+        triggerHaptic('success');
+        showToast(`✓ Đã chuyển đổi thành công ${results.length} mốc! Có thể sao chép bảng kết quả bên dưới.`);
+    },
+
+    renderSheetMultiResults(results) {
+        const box = document.getElementById('sheetMultiResultBox');
+        const tbody = document.getElementById('tbodySheetMultiResult');
+        const lbl = document.getElementById('lblSheetMultiResultCount');
+        if (!box || !tbody) return;
+
+        if (!results || results.length === 0) {
+            box.style.display = 'none';
+            return;
+        }
+
+        if (lbl) lbl.innerText = results.length;
+        tbody.innerHTML = results.map(r => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-family: monospace;">
+                <td style="padding: 4px; text-align: center; color: #94a3b8;">${r.stt}</td>
+                <td style="padding: 4px; font-weight: 700; color: #fbbf24;" class="selectable">${r.name}</td>
+                <td style="padding: 4px; text-align: right; color: #4ade80;" class="selectable">${r.x}</td>
+                <td style="padding: 4px; text-align: right; color: #4ade80;" class="selectable">${r.y}</td>
+                <td style="padding: 4px; text-align: right; color: #38bdf8;" class="selectable">${r.lat}</td>
+                <td style="padding: 4px; text-align: right; color: #38bdf8;" class="selectable">${r.lng}</td>
+            </tr>
+        `).join('');
+
+        box.style.display = 'block';
+    },
+
+    copyMultiResultsAll() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả đa điểm để sao chép!", true);
+            return;
+        }
+        const lines = ["STT\tTên mốc\tVN-2000 X (m)\tVN-2000 Y (m)\tWGS-84 Lat\tWGS-84 Lng"];
+        this.multiConvertedResults.forEach(r => {
+            lines.push(`${r.stt}\t${r.name}\t${r.x}\t${r.y}\t${r.lat}\t${r.lng}`);
+        });
+        const text = lines.join('\r\n');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                triggerHaptic('success');
+                showToast(`📋 Đã sao chép ${this.multiConvertedResults.length} mốc dạng Tab Excel!`);
+            }).catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
+    },
+
+    copyMultiResultsVn2k() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả đa điểm để sao chép!", true);
+            return;
+        }
+        const lines = ["Tên mốc\tVN-2000 X\tVN-2000 Y"];
+        this.multiConvertedResults.forEach(r => lines.push(`${r.name}\t${r.x}\t${r.y}`));
+        const text = lines.join('\r\n');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                triggerHaptic('success');
+                showToast("📋 Đã chép danh sách tọa độ VN-2000!");
+            }).catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
+    },
+
+    copyMultiResultsWgs() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả đa điểm để sao chép!", true);
+            return;
+        }
+        const lines = ["Tên mốc\tWGS-84 Lat\tWGS-84 Lng"];
+        this.multiConvertedResults.forEach(r => lines.push(`${r.name}\t${r.lat}\t${r.lng}`));
+        const text = lines.join('\r\n');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                triggerHaptic('success');
+                showToast("📋 Đã chép danh sách tọa độ WGS-84!");
+            }).catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+        }
+    },
+
+    saveMultiToCurrentProject() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) return;
+        const sel = document.getElementById('selSheetMultiTargetProject');
+        const projName = (sel && sel.value) ? sel.value : (AppState.currentProject || 'Dự án mặc định');
+        const raw = localStorage.getItem(`vn2k_proj_${projName}`);
+        let pts = [];
+        try { if (raw) pts = JSON.parse(raw); } catch(e) {}
+
+        this.multiConvertedResults.forEach(r => {
+            pts.push({
+                id: Date.now() + Math.random(),
+                name: r.name,
+                x: parseFloat(r.x) || 0,
+                y: parseFloat(r.y) || 0,
+                h: 0,
+                lat: parseFloat(r.lat) || 0,
+                lng: parseFloat(r.lng) || 0,
+                note: 'Chuyển đổi đa điểm'
+            });
+        });
+        localStorage.setItem(`vn2k_proj_${projName}`, JSON.stringify(pts));
+        showToast(`💾 Đã lưu ${this.multiConvertedResults.length} mốc vào dự án "${projName}"!`);
     }
 };
 
@@ -5807,7 +6218,7 @@ const appMap = {
             lines.push(`${i+1}\t${p.name || `M${i+1}`}\t${p.x || '0'}\t${p.y || '0'}\t${p.lat || '0'}\t${p.lng || '0'}\t${p.note || ''}`);
         });
 
-        const text = lines.join("\n");
+        const text = lines.join("\r\n");
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(() => showToast(`📋 Đã sao chép toàn bộ bảng kê dự án ${curProj}!`))
                 .catch(() => copyToClipboard(text));
@@ -5819,9 +6230,9 @@ const appMap = {
     exportProjectBlocksExcel() {
         const curProj = AppState.currentProject;
         const pts = appData.getPoints(curProj) || [];
-        let csvContent = "\uFEFFSTT,Ten_Diem,Toa_Do_X,Toa_Do_Y,Vi_Do_Lat,Kinh_Do_Lng,Ghi_Chu\n";
+        let csvContent = "\uFEFFSTT,Ten_Diem,Toa_Do_X,Toa_Do_Y,Vi_Do_Lat,Kinh_Do_Lng,Ghi_Chu\r\n";
         pts.forEach((p, i) => {
-            csvContent += `${i+1},"${p.name || `M${i+1}`}",${p.x || 0},${p.y || 0},${p.lat || 0},${p.lng || 0},"${p.note || ''}"\n`;
+            csvContent += `${i+1},"${p.name || `M${i+1}`}",${p.x || 0},${p.y || 0},${p.lat || 0},${p.lng || 0},"${p.note || ''}"\r\n`;
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -7530,7 +7941,7 @@ function doGet(e) {
         });
 
         // Gắn UTF-8 BOM (\uFEFF)
-        const csvContent = "\uFEFF" + rows.join("\r\n");
+        const csvContent = "\uFEFF" + rows.join("\r\r\n");
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -7564,7 +7975,7 @@ function doGet(e) {
             ].join(","));
         });
 
-        const csvContent = "\uFEFF" + rows.join("\r\n");
+        const csvContent = "\uFEFF" + rows.join("\r\r\n");
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const file = new File([blob], AppState.currentProject, { type: "text/csv" });
 
@@ -7586,12 +7997,12 @@ function doGet(e) {
             return;
         }
 
-        let dxf = "0\nSECTION\n2\nHEADER\n0\nENDSEC\n";
-        dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n";
-        dxf += "0\nLAYER\n2\nMOC_TOADO\n70\n0\n62\n1\n6\nCONTINUOUS\n0\n";
-        dxf += "LAYER\n2\nTEN_MOC\n70\n0\n62\n3\n6\nCONTINUOUS\n0\n";
-        dxf += "LAYER\n2\nRANH_THUA\n70\n0\n62\n2\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n";
-        dxf += "0\nSECTION\n2\nENTITIES\n";
+        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n";
+        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nMOC_TOADO\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dxf += "LAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dxf += "LAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
+        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
         // Ghi các POINT và TEXT mốc (Trong CAD: X là Easting/Y VN2000, Y là Northing/X VN2000)
         pts.forEach(p => {
@@ -7599,24 +8010,24 @@ function doGet(e) {
             const northing = parseFloat(p.x) || 0;
             const elev = parseFloat(p.h || 0);
 
-            dxf += `0\nPOINT\n8\nMOC_TOADO\n10\n${easting}\n20\n${northing}\n30\n${elev}\n`;
-            const cleanName = (p.name || 'Moc').replace(/[\r\n]/g, '');
-            dxf += `0\nTEXT\n8\nTEN_MOC\n10\n${easting + 1.2}\n20\n${northing + 1.2}\n30\n${elev}\n40\n1.8\n1\n${cleanName}\n`;
+            dxf += `0\r\nPOINT\r\n8\r\nMOC_TOADO\r\n10\r\n${easting}\r\n20\r\n${northing}\r\n30\r\n${elev}\r\n`;
+            const cleanName = (p.name || 'Moc').replace(/[\r\r\n]/g, '');
+            dxf += `0\r\nTEXT\r\n8\r\nTEN_MOC\r\n10\r\n${easting + 1.2}\r\n20\r\n${northing + 1.2}\r\n30\r\n${elev}\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
         });
 
         // Nối đường ranh POLYLINE nếu có từ 2 mốc trở lên
         if (pts.length >= 2) {
-            dxf += "0\nPOLYLINE\n8\nRANH_THUA\n66\n1\n70\n1\n";
+            dxf += "0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n1\r\n";
             pts.forEach(p => {
                 const easting = parseFloat(p.y) || 0;
                 const northing = parseFloat(p.x) || 0;
                 const elev = parseFloat(p.h || 0);
-                dxf += `0\nVERTEX\n8\nRANH_THUA\n10\n${easting}\n20\n${northing}\n30\n${elev}\n`;
+                dxf += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${easting}\r\n20\r\n${northing}\r\n30\r\n${elev}\r\n`;
             });
-            dxf += "0\nSEQEND\n";
+            dxf += "0\r\nSEQEND\r\n";
         }
 
-        dxf += "0\nENDSEC\n0\nEOF\n";
+        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
         const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -7639,40 +8050,40 @@ function doGet(e) {
         }
 
         const projName = AppState.currentProject.replace(/\.[^/.]+$/, "");
-        let kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>${projName}</name>\n`;
-        kml += `<Style id="pointStyle"><IconStyle><color>ff00ff00</color><scale>1.1</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\n`;
-        kml += `<Style id="lineStyle"><LineStyle><color>ff00ffff</color><width>3</width></LineStyle><PolyStyle><color>4000ffff</color></PolyStyle></Style>\n`;
+        let kml = `<?xml version="1.0" encoding="UTF-8"?>\r\n<kml xmlns="http://www.opengis.net/kml/2.2">\r\n<Document>\r\n<name>${projName}</name>\r\n`;
+        kml += `<Style id="pointStyle"><IconStyle><color>ff00ff00</color><scale>1.1</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\r\n`;
+        kml += `<Style id="lineStyle"><LineStyle><color>ff00ffff</color><width>3</width></LineStyle><PolyStyle><color>4000ffff</color></PolyStyle></Style>\r\n`;
 
         pts.forEach(p => {
             const lat = parseFloat(p.lat) || 0;
             const lng = parseFloat(p.lng) || 0;
             const cleanName = (p.name || 'Moc').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            kml += `<Placemark>\n<name>${cleanName}</name>\n<description><![CDATA[`;
+            kml += `<Placemark>\r\n<name>${cleanName}</name>\r\n<description><![CDATA[`;
             kml += `<div><b>Dự án:</b> ${projName}</div>`;
             kml += `<div><b>VN-2000 X:</b> ${p.x} m</div>`;
             kml += `<div><b>VN-2000 Y:</b> ${p.y} m</div>`;
             kml += `<div><b>WGS-84:</b> ${p.lat}, ${p.lng}</div>`;
             if (p.note) kml += `<div><b>Ghi chú:</b> ${p.note}</div>`;
-            kml += `]]></description>\n<styleUrl>#pointStyle</styleUrl>\n`;
-            kml += `<Point><coordinates>${lng},${lat},0</coordinates></Point>\n</Placemark>\n`;
+            kml += `]]></description>\r\n<styleUrl>#pointStyle</styleUrl>\r\n`;
+            kml += `<Point><coordinates>${lng},${lat},0</coordinates></Point>\r\n</Placemark>\r\n`;
         });
 
         if (pts.length >= 2) {
-            kml += `<Placemark>\n<name>Ranh: ${projName}</name>\n<styleUrl>#lineStyle</styleUrl>\n`;
+            kml += `<Placemark>\r\n<name>Ranh: ${projName}</name>\r\n<styleUrl>#lineStyle</styleUrl>\r\n`;
             if (pts.length >= 3) {
-                kml += `<Polygon><outerBoundaryIs><LinearRing><coordinates>\n`;
-                pts.forEach(p => { kml += `${p.lng},${p.lat},0\n`; });
-                kml += `${pts[0].lng},${pts[0].lat},0\n`;
-                kml += `</coordinates></LinearRing></outerBoundaryIs></Polygon>\n`;
+                kml += `<Polygon><outerBoundaryIs><LinearRing><coordinates>\r\n`;
+                pts.forEach(p => { kml += `${p.lng},${p.lat},0\r\n`; });
+                kml += `${pts[0].lng},${pts[0].lat},0\r\n`;
+                kml += `</coordinates></LinearRing></outerBoundaryIs></Polygon>\r\n`;
             } else {
-                kml += `<LineString><coordinates>\n`;
-                pts.forEach(p => { kml += `${p.lng},${p.lat},0\n`; });
-                kml += `</coordinates></LineString>\n`;
+                kml += `<LineString><coordinates>\r\n`;
+                pts.forEach(p => { kml += `${p.lng},${p.lat},0\r\n`; });
+                kml += `</coordinates></LineString>\r\n`;
             }
-            kml += `</Placemark>\n`;
+            kml += `</Placemark>\r\n`;
         }
 
-        kml += `</Document>\n</kml>`;
+        kml += `</Document>\r\n</kml>`;
 
         const blob = new Blob([kml], { type: "application/vnd.google-earth.kml+xml;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -7695,7 +8106,7 @@ function doGet(e) {
             "M3,1144185.700,539620.450,10.346360,106.113580,3,105.75,Góc ranh phía Bắc",
             "M4,1144115.200,539560.800,10.345724,106.113035,3,105.75,Góc ranh phía Tây"
         ];
-        const content = "\uFEFF" + sampleRows.join("\r\n");
+        const content = "\uFEFF" + sampleRows.join("\r\r\n");
         const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -7730,7 +8141,7 @@ function doGet(e) {
                         try {
                             const cadShapes = appCadTool._parseWorkbookToShapes(wb, file.name);
                             if (cadShapes && cadShapes.length > 0) {
-                                const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\n\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
+                                const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\r\n\r\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\r\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
                                 if (wantCad) {
                                     appCadTool._applyImportedShapes(cadShapes, file.name);
                                     return; // Đã nạp thành công qua MiniCAD, không chạy tiếp extractPointsFromWorkbook làm đè mốc
@@ -7766,7 +8177,7 @@ function doGet(e) {
                     try {
                         const cadShapes = appCadTool._parseHtmlOrTextToShapes(text, file.name);
                         if (cadShapes && cadShapes.length > 0) {
-                            const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\n\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
+                            const wantCad = confirm("📁 File \"" + file.name + "\" chứa " + cadShapes.length + " khối bản vẽ MiniCAD (hình học & bảng kê diện tích).\r\n\r\n- Nhấn OK: Nạp trực tiếp lên bản đồ MiniCAD (hiển thị hình dạng các khối và bảng kê).\r\n- Nhấn CANCEL: Chỉ nạp điểm tọa độ vào Sổ đo dự án.");
                             if (wantCad) {
                                 appCadTool._applyImportedShapes(cadShapes, file.name);
                                 return; // Đã nạp thành công qua MiniCAD
@@ -8264,7 +8675,7 @@ function doGet(e) {
         }
 
         const opts = this.getManualImportOptions();
-        const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const lines = txt.split(/\r?\r\n/).map(l => l.trim()).filter(Boolean);
         const parsed = [];
 
         lines.forEach((line, idx) => {
@@ -8309,7 +8720,7 @@ function doGet(e) {
     },
 
     processImportedText(text, defaultName, customOptions = null) {
-        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const lines = text.split(/\r?\r\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length === 0) {
             return showToast("⚠️ Không tìm thấy dữ liệu tọa độ nào trong nội dung!", true);
         }
@@ -9677,7 +10088,7 @@ const appBluetoothRtk = {
     nmeaBuffer: "",
     handleNmeaChunk(chunk) {
         appBluetoothRtk.nmeaBuffer += chunk;
-        const lines = appBluetoothRtk.nmeaBuffer.split('\n');
+        const lines = appBluetoothRtk.nmeaBuffer.split('\r\n');
         appBluetoothRtk.nmeaBuffer = lines.pop(); // giữ lại phần dở dang
         for (const line of lines) {
             const clean = line.trim();
@@ -9690,7 +10101,7 @@ const appBluetoothRtk = {
     parseNmeaLine(line) {
         const term = document.getElementById('rtkNmeaTerminal');
         if (term) {
-            term.innerText = line + "\n" + term.innerText.slice(0, 300);
+            term.innerText = line + "\r\n" + term.innerText.slice(0, 300);
         }
 
         const parts = line.split(',');
@@ -10855,31 +11266,31 @@ const appElevationProfile = {
         const n = bPts.length;
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project_Pit";
 
-        let dxf = "0\nSECTION\n2\nHEADER\n0\nENDSEC\n";
-        dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n";
-        dxf += "0\nLAYER\n2\nHODAO_DAY\n70\n0\n62\n2\n6\nCONTINUOUS\n0\n";       // 2: Yellow
-        dxf += "LAYER\n2\nHODAO_MIENG\n70\n0\n62\n4\n6\nDASHED\n0\n";           // 4: Cyan
-        dxf += "LAYER\n2\nHODAO_TALUY\n70\n0\n62\n1\n6\nCONTINUOUS\n0\n";       // 1: Red
-        dxf += "LAYER\n2\nHODAO_DINH_MOC\n70\n0\n62\n3\n6\nCONTINUOUS\n0\n";    // 3: Green
-        dxf += "LAYER\n2\nHODAO_KICH_THUOC\n70\n0\n62\n6\n6\nCONTINUOUS\n0\n";  // 6: Magenta
-        dxf += "LAYER\n2\nHODAO_BANG_KHOILUONG\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n"; // 7: White
+        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n";
+        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nHODAO_DAY\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\n";       // 2: Yellow
+        dxf += "LAYER\r\n2\r\nHODAO_MIENG\r\n70\r\n0\r\n62\r\n4\r\n6\r\nDASHED\r\n0\r\n";           // 4: Cyan
+        dxf += "LAYER\r\n2\r\nHODAO_TALUY\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";       // 1: Red
+        dxf += "LAYER\r\n2\r\nHODAO_DINH_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";    // 3: Green
+        dxf += "LAYER\r\n2\r\nHODAO_KICH_THUOC\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n0\r\n";  // 6: Magenta
+        dxf += "LAYER\r\n2\r\nHODAO_BANG_KHOILUONG\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n"; // 7: White
 
-        dxf += "0\nSECTION\n2\nENTITIES\n";
+        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
         // 1. Closed Polyline Đáy Hố Đào (X: Đông/Y, Y: Bắc/X)
-        dxf += "0\nPOLYLINE\n8\nHODAO_DAY\n66\n1\n70\n1\n";
+        dxf += "0\r\nPOLYLINE\r\n8\r\nHODAO_DAY\r\n66\r\n1\r\n70\r\n1\r\n";
         bPts.forEach(p => {
             // Tọa độ CAD: X = Y_Đông, Y = X_Bắc
-            dxf += `0\nVERTEX\n8\nHODAO_DAY\n10\n${p.y.toFixed(3)}\n20\n${p.x.toFixed(3)}\n30\n${stats.designH.toFixed(3)}\n`;
+            dxf += `0\r\nVERTEX\r\n8\r\nHODAO_DAY\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${stats.designH.toFixed(3)}\r\n`;
         });
-        dxf += "0\nSEQEND\n";
+        dxf += "0\r\nSEQEND\r\n";
 
         // 2. Closed Polyline Miệng Hố Đào
-        dxf += "0\nPOLYLINE\n8\nHODAO_MIENG\n66\n1\n70\n1\n";
+        dxf += "0\r\nPOLYLINE\r\n8\r\nHODAO_MIENG\r\n66\r\n1\r\n70\r\n1\r\n";
         tPts.forEach(p => {
-            dxf += `0\nVERTEX\n8\nHODAO_MIENG\n10\n${p.y.toFixed(3)}\n20\n${p.x.toFixed(3)}\n30\n${p.z.toFixed(3)}\n`;
+            dxf += `0\r\nVERTEX\r\n8\r\nHODAO_MIENG\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${p.z.toFixed(3)}\r\n`;
         });
-        dxf += "0\nSEQEND\n";
+        dxf += "0\r\nSEQEND\r\n";
 
         // 3. Các vạch Taluy dốc
         for (let i = 0; i < n; i++) {
@@ -10902,16 +11313,16 @@ const appElevationProfile = {
                 const pxEnd = pxTop + (pxBot - pxTop) * fraction;
                 const pyEnd = pyTop + (pyBot - pyTop) * fraction;
 
-                dxf += `0\nLINE\n8\nHODAO_TALUY\n10\n${pxTop.toFixed(3)}\n20\n${pyTop.toFixed(3)}\n30\n0.0\n11\n${pxEnd.toFixed(3)}\n21\n${pyEnd.toFixed(3)}\n31\n0.0\n`;
+                dxf += `0\r\nLINE\r\n8\r\nHODAO_TALUY\r\n10\r\n${pxTop.toFixed(3)}\r\n20\r\n${pyTop.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${pxEnd.toFixed(3)}\r\n21\r\n${pyEnd.toFixed(3)}\r\n31\r\n0.0\r\n`;
             }
         }
 
         // 4. Mốc đỉnh đáy và text chú thích
         bPts.forEach((p, idx) => {
-            const pName = (p.name || `M${idx+1}`).replace(/[\r\n]/g, '');
+            const pName = (p.name || `M${idx+1}`).replace(/[\r\r\n]/g, '');
             const depth = (p.z - stats.designH).toFixed(2);
-            dxf += `0\nPOINT\n8\nHODAO_DINH_MOC\n10\n${p.y.toFixed(3)}\n20\n${p.x.toFixed(3)}\n30\n${stats.designH.toFixed(3)}\n`;
-            dxf += `0\nTEXT\n8\nHODAO_DINH_MOC\n10\n${(p.y + 0.6).toFixed(3)}\n20\n${(p.x + 0.6).toFixed(3)}\n30\n0.0\n40\n1.5\n1\n${pName} (H_day=${stats.designH.toFixed(2)}m, h=${depth}m)\n`;
+            dxf += `0\r\nPOINT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${stats.designH.toFixed(3)}\r\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${(p.y + 0.6).toFixed(3)}\r\n20\r\n${(p.x + 0.6).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.5\r\n1\r\n${pName} (H_day=${stats.designH.toFixed(2)}m, h=${depth}m)\r\n`;
         });
 
         // 5. Đường kích thước cạnh đáy
@@ -10921,7 +11332,7 @@ const appElevationProfile = {
             const dist = Math.hypot(pB.x - pA.x, pB.y - pA.y);
             const midY = (pA.x + pB.x) / 2;
             const midX = (pA.y + pB.y) / 2;
-            dxf += `0\nTEXT\n8\nHODAO_KICH_THUOC\n10\n${midX.toFixed(3)}\n20\n${midY.toFixed(3)}\n30\n0.0\n40\n1.2\n1\nL=${dist.toFixed(2)}m\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nHODAO_KICH_THUOC\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${midY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.2\r\n1\r\nL=${dist.toFixed(2)}m\r\n`;
         }
 
         // 6. Bảng Kê Khối Lượng TCVN 4447 đặt bên cạnh hố đào
@@ -10951,11 +11362,11 @@ const appElevationProfile = {
         tableLines.forEach(line => {
             const isHeader = line.startsWith('BAN VE') || line.startsWith('*');
             const txtH = isHeader ? 2.2 : 1.6;
-            dxf += `0\nTEXT\n8\nHODAO_BANG_KHOILUONG\n10\n${tbX.toFixed(3)}\n20\n${tbY.toFixed(3)}\n30\n0.0\n40\n${txtH}\n1\n${line}\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nHODAO_BANG_KHOILUONG\r\n10\r\n${tbX.toFixed(3)}\r\n20\r\n${tbY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${txtH}\r\n1\r\n${line}\r\n`;
             tbY -= lineH;
         });
 
-        dxf += "0\nENDSEC\n0\nEOF\n";
+        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
         const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -10983,29 +11394,29 @@ const appElevationProfile = {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project_Pit";
 
         let csv = "\uFEFF"; // UTF-8 BOM cho Excel
-        csv += "BAO CAO TINH TOAN KHOI LUONG HO DAO VA SAN NEN (TCVN 4447:2012)\n";
-        csv += `Du an:;${projName}\n`;
-        csv += `Ngay lap:;${new Date().toLocaleString('vi-VN')}\n\n`;
+        csv += "BAO CAO TINH TOAN KHOI LUONG HO DAO VA SAN NEN (TCVN 4447:2012)\r\n";
+        csv += `Du an:;${projName}\r\n`;
+        csv += `Ngay lap:;${new Date().toLocaleString('vi-VN')}\r\n\r\n`;
 
-        csv += "THONG SO TONG HOP\n";
-        csv += `Dien tich day mong F1 (m2):;${stats.f1.toFixed(2)}\n`;
-        csv += `Chu vi day mong P1 (m):;${stats.p1.toFixed(2)}\n`;
-        csv += `Chieu sau dao trung binh h (m):;${stats.hBar.toFixed(2)}\n`;
-        csv += `Cao do day thiet ke H_day (m):;${stats.designH.toFixed(2)}\n`;
-        csv += `Goc mai doc taluy alpha (do):;${stats.alpha.toFixed(1)}\n`;
-        csv += `He so mai doc m (1:m):;${stats.m.toFixed(2)}\n`;
-        csv += `Do mo rong taluy delta_d (m):;${stats.deltaD.toFixed(2)}\n`;
-        csv += `Dien tich mieng ho F2 (m2):;${stats.f2.toFixed(2)}\n`;
-        csv += `He so no dat k_tx:;${stats.kTx.toFixed(2)}\n`;
-        csv += `KHOI LUONG DAO NGUYEN THO V_DAO (m3):;${stats.vDao.toFixed(2)}\n`;
-        csv += `KHOI LUONG DAT TOI XOP V_NOI (m3):;${stats.vNo.toFixed(2)}\n`;
-        csv += `SO CHUYEN XE BEN VAN CHUYEN (${stats.vTruck}m3/xe):;${stats.numTrucks}\n\n`;
+        csv += "THONG SO TONG HOP\r\n";
+        csv += `Dien tich day mong F1 (m2):;${stats.f1.toFixed(2)}\r\n`;
+        csv += `Chu vi day mong P1 (m):;${stats.p1.toFixed(2)}\r\n`;
+        csv += `Chieu sau dao trung binh h (m):;${stats.hBar.toFixed(2)}\r\n`;
+        csv += `Cao do day thiet ke H_day (m):;${stats.designH.toFixed(2)}\r\n`;
+        csv += `Goc mai doc taluy alpha (do):;${stats.alpha.toFixed(1)}\r\n`;
+        csv += `He so mai doc m (1:m):;${stats.m.toFixed(2)}\r\n`;
+        csv += `Do mo rong taluy delta_d (m):;${stats.deltaD.toFixed(2)}\r\n`;
+        csv += `Dien tich mieng ho F2 (m2):;${stats.f2.toFixed(2)}\r\n`;
+        csv += `He so no dat k_tx:;${stats.kTx.toFixed(2)}\r\n`;
+        csv += `KHOI LUONG DAO NGUYEN THO V_DAO (m3):;${stats.vDao.toFixed(2)}\r\n`;
+        csv += `KHOI LUONG DAT TOI XOP V_NOI (m3):;${stats.vNo.toFixed(2)}\r\n`;
+        csv += `SO CHUYEN XE BEN VAN CHUYEN (${stats.vTruck}m3/xe):;${stats.numTrucks}\r\n\r\n`;
 
-        csv += "BANG TOA DO CAC MOC DAY HO DAO\n";
-        csv += "STT;Ten Moc;X (Bac - m);Y (Dong - m);H_Tu nhien (m);Chieu sau dao h (m)\n";
+        csv += "BANG TOA DO CAC MOC DAY HO DAO\r\n";
+        csv += "STT;Ten Moc;X (Bac - m);Y (Dong - m);H_Tu nhien (m);Chieu sau dao h (m)\r\n";
         pts.forEach((p, idx) => {
             const depth = (p.z - stats.designH).toFixed(2);
-            csv += `${idx+1};${p.name || 'M'+(idx+1)};${p.x.toFixed(3)};${p.y.toFixed(3)};${p.z.toFixed(3)};${depth}\n`;
+            csv += `${idx+1};${p.name || 'M'+(idx+1)};${p.x.toFixed(3)};${p.y.toFixed(3)};${p.z.toFixed(3)};${depth}\r\n`;
         });
 
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -11422,9 +11833,9 @@ const appElevationProfile = {
             return;
         }
         let csv = "\uFEFF";
-        csv += "STT;Ten Coc;Ly Trinh (m);Z_Tu Nhien (m);Z_Thiet Ke (m);Do Cao Thi Cong (m);V_Dao (m3);V_Dap (m3)\n";
+        csv += "STT;Ten Coc;Ly Trinh (m);Z_Tu Nhien (m);Z_Thiet Ke (m);Do Cao Thi Cong (m);V_Dao (m3);V_Dap (m3)\r\n";
         this.profileData.forEach((p, idx) => {
-            csv += `${idx+1};${p.name};${p.dist.toFixed(2)};${p.zNat.toFixed(2)};${p.zDesign.toFixed(2)};${p.deltaH.toFixed(2)};${p.cutVol.toFixed(2)};${p.fillVol.toFixed(2)}\n`;
+            csv += `${idx+1};${p.name};${p.dist.toFixed(2)};${p.zNat.toFixed(2)};${p.zDesign.toFixed(2)};${p.deltaH.toFixed(2)};${p.cutVol.toFixed(2)};${p.fillVol.toFixed(2)}\r\n`;
         });
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -11458,16 +11869,16 @@ const appElevationProfile = {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
         const scaleV = 5.0; // Phóng đại đứng 5x
 
-        let dxf = "0\nSECTION\n2\nHEADER\n0\nENDSEC\n";
-        dxf += "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n";
-        dxf += "0\nLAYER\n2\nTRACDOC_TUNHIEN\n70\n0\n62\n3\n6\nCONTINUOUS\n0\n";
-        dxf += "LAYER\n2\nTRACDOC_THIETKE\n70\n0\n62\n1\n6\nCONTINUOUS\n0\n";
-        dxf += "LAYER\n2\nTRACDOC_GIONG\n70\n0\n62\n8\n6\nDASHED\n0\n";
-        dxf += "LAYER\n2\nTRACDOC_BANG_SO_LIEU\n70\n0\n62\n7\n6\nCONTINUOUS\n0\n";
-        dxf += "LAYER\n2\nTRACDOC_TEXT_TIEUDE\n70\n0\n62\n4\n6\nCONTINUOUS\n0\n";
-        dxf += "LAYER\n2\nTRACDOC_TEXT_SOLIEU\n70\n0\n62\n2\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n";
+        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n";
+        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nTRACDOC_TUNHIEN\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dxf += "LAYER\r\n2\r\nTRACDOC_THIETKE\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dxf += "LAYER\r\n2\r\nTRACDOC_GIONG\r\n70\r\n0\r\n62\r\n8\r\n6\r\nDASHED\r\n0\r\n";
+        dxf += "LAYER\r\n2\r\nTRACDOC_BANG_SO_LIEU\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dxf += "LAYER\r\n2\r\nTRACDOC_TEXT_TIEUDE\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dxf += "LAYER\r\n2\r\nTRACDOC_TEXT_SOLIEU\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
 
-        dxf += "0\nSECTION\n2\nENTITIES\n";
+        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
         const allZ = items.flatMap(p => [p.zNat, p.zDesign]);
         const minZ = Math.floor(Math.min(...allZ) - 1.0);
@@ -11478,49 +11889,49 @@ const appElevationProfile = {
         const leftHeaderX = -35.0;
 
         // 1. Polyline Tự Nhiên
-        dxf += "0\nPOLYLINE\n8\nTRACDOC_TUNHIEN\n66\n1\n70\n0\n";
+        dxf += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_TUNHIEN\r\n66\r\n1\r\n70\r\n0\r\n";
         items.forEach(p => {
             const xCad = p.dist;
             const yCad = datumY + (p.zNat - minZ) * scaleV;
-            dxf += `0\nVERTEX\n8\nTRACDOC_TUNHIEN\n10\n${xCad.toFixed(3)}\n20\n${yCad.toFixed(3)}\n30\n0.0\n`;
+            dxf += `0\r\nVERTEX\r\n8\r\nTRACDOC_TUNHIEN\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
         });
-        dxf += "0\nSEQEND\n";
+        dxf += "0\r\nSEQEND\r\n";
 
         // 2. Polyline Thiết Kế
-        dxf += "0\nPOLYLINE\n8\nTRACDOC_THIETKE\n66\n1\n70\n0\n";
+        dxf += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_THIETKE\r\n66\r\n1\r\n70\r\n0\r\n";
         items.forEach(p => {
             const xCad = p.dist;
             const yCad = datumY + (p.zDesign - minZ) * scaleV;
-            dxf += `0\nVERTEX\n8\nTRACDOC_THIETKE\n10\n${xCad.toFixed(3)}\n20\n${yCad.toFixed(3)}\n30\n0.0\n`;
+            dxf += `0\r\nVERTEX\r\n8\r\nTRACDOC_THIETKE\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
         });
-        dxf += "0\nSEQEND\n";
+        dxf += "0\r\nSEQEND\r\n";
 
         // 3. Đường gióng và text
         items.forEach((p, idx) => {
             const xCad = p.dist;
             const yMax = datumY + Math.max(p.zNat - minZ, p.zDesign - minZ) * scaleV + 2.0;
 
-            dxf += `0\nLINE\n8\nTRACDOC_GIONG\n10\n${xCad.toFixed(3)}\n20\n${yMax.toFixed(3)}\n30\n0.0\n11\n${xCad.toFixed(3)}\n21\n${tableBottom.toFixed(3)}\n31\n0.0\n`;
+            dxf += `0\r\nLINE\r\n8\r\nTRACDOC_GIONG\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yMax.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${xCad.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
-            const cleanName = (p.name || `C${idx + 1}`).replace(/[\r\n]/g, '');
-            dxf += `0\nTEXT\n8\nTRACDOC_TEXT_SOLIEU\n10\n${xCad.toFixed(3)}\n20\n${(yMax + 1.0).toFixed(3)}\n30\n0.0\n40\n1.8\n1\n${cleanName}\n`;
+            const cleanName = (p.name || `C${idx + 1}`).replace(/[\r\r\n]/g, '');
+            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${(yMax + 1.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
 
             // Hàng 1
             const yRow1 = datumY - 0.6 * rowH;
             const deltaStr = (p.deltaH > 0 ? "+" : "") + p.deltaH.toFixed(2);
-            dxf += `0\nTEXT\n8\nTRACDOC_TEXT_SOLIEU\n10\n${xCad.toFixed(3)}\n20\n${yRow1.toFixed(3)}\n30\n0.0\n40\n1.6\n1\n${deltaStr}\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${deltaStr}\r\n`;
 
             // Hàng 2
             const yRow2 = datumY - 1.6 * rowH;
-            dxf += `0\nTEXT\n8\nTRACDOC_TEXT_SOLIEU\n10\n${xCad.toFixed(3)}\n20\n${yRow2.toFixed(3)}\n30\n0.0\n40\n1.6\n1\n${p.zDesign.toFixed(2)}\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zDesign.toFixed(2)}\r\n`;
 
             // Hàng 3
             const yRow3 = datumY - 2.6 * rowH;
-            dxf += `0\nTEXT\n8\nTRACDOC_TEXT_SOLIEU\n10\n${xCad.toFixed(3)}\n20\n${yRow3.toFixed(3)}\n30\n0.0\n40\n1.6\n1\n${p.zNat.toFixed(2)}\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zNat.toFixed(2)}\r\n`;
 
             // Hàng 4
             const yRow4 = datumY - 3.6 * rowH;
-            dxf += `0\nTEXT\n8\nTRACDOC_TEXT_SOLIEU\n10\n${xCad.toFixed(3)}\n20\n${yRow4.toFixed(3)}\n30\n0.0\n40\n1.6\n1\n${p.dist.toFixed(1)}\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow4.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.dist.toFixed(1)}\r\n`;
 
             // Hàng 5
             if (idx > 0) {
@@ -11528,18 +11939,18 @@ const appElevationProfile = {
                 const midX = (prevX + xCad) / 2;
                 const interD = p.dist - items[idx - 1].dist;
                 const yRow5 = datumY - 4.6 * rowH;
-                dxf += `0\nTEXT\n8\nTRACDOC_TEXT_SOLIEU\n10\n${midX.toFixed(3)}\n20\n${yRow5.toFixed(3)}\n30\n0.0\n40\n1.6\n1\n${interD.toFixed(1)}\n`;
+                dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${yRow5.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${interD.toFixed(1)}\r\n`;
             }
         });
 
         // Khung bảng số liệu
         for (let r = 0; r <= 5; r++) {
             const yLine = datumY - r * rowH;
-            dxf += `0\nLINE\n8\nTRACDOC_BANG_SO_LIEU\n10\n${leftHeaderX.toFixed(3)}\n20\n${yLine.toFixed(3)}\n30\n0.0\n11\n${maxDist.toFixed(3)}\n21\n${yLine.toFixed(3)}\n31\n0.0\n`;
+            dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${yLine.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${yLine.toFixed(3)}\r\n31\r\n0.0\r\n`;
         }
-        dxf += `0\nLINE\n8\nTRACDOC_BANG_SO_LIEU\n10\n${leftHeaderX.toFixed(3)}\n20\n${datumY.toFixed(3)}\n30\n0.0\n11\n${leftHeaderX.toFixed(3)}\n21\n${tableBottom.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nLINE\n8\nTRACDOC_BANG_SO_LIEU\n10\n0.0\n20\n${datumY.toFixed(3)}\n30\n0.0\n11\n0.0\n21\n${tableBottom.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nLINE\n8\nTRACDOC_BANG_SO_LIEU\n10\n${maxDist.toFixed(3)}\n20\n${datumY.toFixed(3)}\n30\n0.0\n11\n${maxDist.toFixed(3)}\n21\n${tableBottom.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${leftHeaderX.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n0.0\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n0.0\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${maxDist.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         const rowTitlesDxf = [
             "DO CAO THI CONG (+DAP/-DAO)",
@@ -11550,14 +11961,14 @@ const appElevationProfile = {
         ];
         rowTitlesDxf.forEach((title, idx) => {
             const yT = datumY - (idx + 0.6) * rowH;
-            dxf += `0\nTEXT\n8\nTRACDOC_TEXT_TIEUDE\n10\n${(leftHeaderX + 1.5).toFixed(3)}\n20\n${yT.toFixed(3)}\n30\n0.0\n40\n1.6\n1\n${title}\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n${(leftHeaderX + 1.5).toFixed(3)}\r\n20\r\n${yT.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${title}\r\n`;
         });
 
         const titleY = datumY + (Math.max(...allZ) - minZ) * scaleV + 8.0;
-        dxf += `0\nTEXT\n8\nTRACDOC_TEXT_TIEUDE\n10\n0.0\n20\n${titleY.toFixed(3)}\n30\n0.0\n40\n3.2\n1\nBAN VE TRAC DOC THIET KE & DAO DAP - DU AN: ${projName.toUpperCase()}\n`;
-        dxf += `0\nTEXT\n8\nTRACDOC_TEXT_SOLIEU\n10\n0.0\n20\n${(titleY - 4.0).toFixed(3)}\n30\n0.0\n40\n1.8\n1\nTY LE NGANG: 1/1000  -  TY LE DUNG: 1/200 (Phong dai 5x)  -  CAO DO CHUAN DATUM = ${minZ.toFixed(2)}m\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n0.0\r\n20\r\n${titleY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n3.2\r\n1\r\nBAN VE TRAC DOC THIET KE & DAO DAP - DU AN: ${projName.toUpperCase()}\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n0.0\r\n20\r\n${(titleY - 4.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\nTY LE NGANG: 1/1000  -  TY LE DUNG: 1/200 (Phong dai 5x)  -  CAO DO CHUAN DATUM = ${minZ.toFixed(2)}m\r\n`;
 
-        dxf += "0\nENDSEC\n0\nEOF\n";
+        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
         const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
@@ -14673,7 +15084,7 @@ const appCadTool = {
             return;
         }
         if (this.savedShapes.length > 0 && this.vertices.length > 0) {
-            const clearAll = confirm(`Xác nhận dọn bản vẽ:\n- Nhấn OK để XÓA TOÀN BỘ (cả ${this.savedShapes.length} cấu trúc đã lưu & nét vẽ đang dở)\n- Nhấn Cancel để chỉ xóa nét vẽ đang chấm dở.`);
+            const clearAll = confirm(`Xác nhận dọn bản vẽ:\r\n- Nhấn OK để XÓA TOÀN BỘ (cả ${this.savedShapes.length} cấu trúc đã lưu & nét vẽ đang dở)\r\n- Nhấn Cancel để chỉ xóa nét vẽ đang chấm dở.`);
             if (clearAll) {
                 this.savedShapes = [];
                 this.vertices = [];
@@ -17236,7 +17647,7 @@ const appCadTool = {
             showToast("⚠️ Cần vẽ ít nhất 2 đỉnh để tạo đường song song (Offset)!", true);
             return;
         }
-        const input = prompt("Nhập khoảng cách song song Offset (mét):\n(Nhập số dương: mở rộng ra ngoài/phải; số âm: thu vào trong/trái)", "5.0");
+        const input = prompt("Nhập khoảng cách song song Offset (mét):\r\n(Nhập số dương: mở rộng ra ngoài/phải; số âm: thu vào trong/trái)", "5.0");
         if (input === null) return;
         const d = parseFloat(input);
         if (isNaN(d) || d === 0) {
@@ -19117,7 +19528,7 @@ const appCadTool = {
         }
 
         // 2. Phân tích nếu là file CSV hoặc text
-        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const lines = text.split(/\r?\r\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length >= 2) {
             const firstDataLine = lines.find(l => l.includes(';') || l.includes(',') || l.includes('\t')) || '';
             const delimiter = firstDataLine.includes(';') ? ';' : (firstDataLine.includes('\t') ? '\t' : ',');
@@ -19250,7 +19661,7 @@ const appCadTool = {
         
         let appendMode = true;
         if (this.savedShapes && this.savedShapes.length > 0) {
-            const userChoice = confirm("Bản vẽ hiện tại đang có " + this.savedShapes.length + " cấu trúc/khối.\n\n- Nhấn OK: GIỮ NGUYÊN và THÊM TIẾP " + shapes.length + " khối mới từ file vào bản vẽ.\n- Nhấn CANCEL: XÓA CŨ và chỉ lấy " + shapes.length + " khối mới từ file.");
+            const userChoice = confirm("Bản vẽ hiện tại đang có " + this.savedShapes.length + " cấu trúc/khối.\r\n\r\n- Nhấn OK: GIỮ NGUYÊN và THÊM TIẾP " + shapes.length + " khối mới từ file vào bản vẽ.\r\n- Nhấn CANCEL: XÓA CŨ và chỉ lấy " + shapes.length + " khối mới từ file.");
             if (!userChoice) {
                 this.savedShapes = [];
                 appendMode = false;
@@ -19376,17 +19787,17 @@ const appCadTool = {
         const showPercent = meta.showPercent !== false;
 
         let csv = "\uFEFF"; // UTF-8 BOM
-        csv += "BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH\n";
-        csv += "Tiêu đề bản vẽ;" + meta.drawingName + ";Tên dự án;" + meta.projectName + "\n";
-        csv += "Đơn vị đo vẽ;" + (meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI') + ";Người đo;" + (meta.surveyor || '') + ";Kiểm tra;" + (meta.checker || '') + "\n";
-        csv += "Hệ tọa độ;VN-2000 (" + (AppState.provinceName || 'Tỉnh') + ");KTT;" + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°);Tỷ lệ;1:" + meta.scaleVal + "\n";
-        csv += "Ngày hoàn thành;" + meta.drawingDate + ";Số tờ/thửa;" + (meta.parcelNo || '01') + ";Tổng số khối;" + selectedShapes.length + "\n\n";
+        csv += "BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH\r\n";
+        csv += "Tiêu đề bản vẽ;" + meta.drawingName + ";Tên dự án;" + meta.projectName + "\r\n";
+        csv += "Đơn vị đo vẽ;" + (meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI') + ";Người đo;" + (meta.surveyor || '') + ";Kiểm tra;" + (meta.checker || '') + "\r\n";
+        csv += "Hệ tọa độ;VN-2000 (" + (AppState.provinceName || 'Tỉnh') + ");KTT;" + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°);Tỷ lệ;1:" + meta.scaleVal + "\r\n";
+        csv += "Ngày hoàn thành;" + meta.drawingDate + ";Số tờ/thửa;" + (meta.parcelNo || '01') + ";Tổng số khối;" + selectedShapes.length + "\r\n\r\n";
 
         // 1. PHẦN 1: BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ
-        csv += "=== BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT ===\n";
+        csv += "=== BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT ===\r\n";
         csv += showPercent 
-            ? "STT;Tên khối / Thửa;Loại hình;Mã màu;Số đỉnh;Diện tích [m2];Diện tích [ha];Chu vi [m];Tỉ lệ diện tích [%];Ghi chú\n"
-            : "STT;Tên khối / Thửa;Loại hình;Mã màu;Số đỉnh;Diện tích [m2];Diện tích [ha];Chu vi [m];Ghi chú\n";
+            ? "STT;Tên khối / Thửa;Loại hình;Mã màu;Số đỉnh;Diện tích [m2];Diện tích [ha];Chu vi [m];Tỉ lệ diện tích [%];Ghi chú\r\n"
+            : "STT;Tên khối / Thửa;Loại hình;Mã màu;Số đỉnh;Diện tích [m2];Diện tích [ha];Chu vi [m];Ghi chú\r\n";
 
         selectedShapes.forEach((s, idx) => {
             const isPoly = s.mode === 'polygon';
@@ -19395,32 +19806,32 @@ const appCadTool = {
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
 
             if (showPercent) {
-                csv += (idx + 1) + ";" + s.name + ";" + (isPoly ? 'Đa giác' : 'Tuyến') + ";" + (s.color || '#10b981') + ";" + s.vertices.length + ";" + (isPoly ? area.toFixed(2) : '--') + ";" + (isPoly ? (area / 10000).toFixed(4) : '--') + ";" + perim.toFixed(2) + ";" + pctStr + ";" + (s.isSnapped ? 'Hít mốc' : 'Tự do') + "\n";
+                csv += (idx + 1) + ";" + s.name + ";" + (isPoly ? 'Đa giác' : 'Tuyến') + ";" + (s.color || '#10b981') + ";" + s.vertices.length + ";" + (isPoly ? area.toFixed(2) : '--') + ";" + (isPoly ? (area / 10000).toFixed(4) : '--') + ";" + perim.toFixed(2) + ";" + pctStr + ";" + (s.isSnapped ? 'Hít mốc' : 'Tự do') + "\r\n";
             } else {
-                csv += (idx + 1) + ";" + s.name + ";" + (isPoly ? 'Đa giác' : 'Tuyến') + ";" + (s.color || '#10b981') + ";" + s.vertices.length + ";" + (isPoly ? area.toFixed(2) : '--') + ";" + (isPoly ? (area / 10000).toFixed(4) : '--') + ";" + perim.toFixed(2) + ";" + (s.isSnapped ? 'Hít mốc' : 'Tự do') + "\n";
+                csv += (idx + 1) + ";" + s.name + ";" + (isPoly ? 'Đa giác' : 'Tuyến') + ";" + (s.color || '#10b981') + ";" + s.vertices.length + ";" + (isPoly ? area.toFixed(2) : '--') + ";" + (isPoly ? (area / 10000).toFixed(4) : '--') + ";" + perim.toFixed(2) + ";" + (s.isSnapped ? 'Hít mốc' : 'Tự do') + "\r\n";
             }
         });
 
         const totalPctStr = (baseProjectArea > 0) ? ((totalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
         csv += showPercent
-            ? "--;TỔNG CỘNG;--;--; " + totalVertices + " đỉnh;" + totalArea.toFixed(2) + ";" + totalHa.toFixed(4) + ";" + totalPerimeter.toFixed(2) + ";" + totalPctStr + ";" + (meta.customTotalArea ? 'Theo DA quy hoạch' : 'Tổng đo thực tế') + "\n\n"
-            : "--;TỔNG CỘNG;--;--; " + totalVertices + " đỉnh;" + totalArea.toFixed(2) + ";" + totalHa.toFixed(4) + ";" + totalPerimeter.toFixed(2) + ";Tổng đo thực tế\n\n";
+            ? "--;TỔNG CỘNG;--;--; " + totalVertices + " đỉnh;" + totalArea.toFixed(2) + ";" + totalHa.toFixed(4) + ";" + totalPerimeter.toFixed(2) + ";" + totalPctStr + ";" + (meta.customTotalArea ? 'Theo DA quy hoạch' : 'Tổng đo thực tế') + "\r\n\r\n"
+            : "--;TỔNG CỘNG;--;--; " + totalVertices + " đỉnh;" + totalArea.toFixed(2) + ";" + totalHa.toFixed(4) + ";" + totalPerimeter.toFixed(2) + ";Tổng đo thực tế\r\n\r\n";
 
         // 2. PHẦN 2: BẢNG KÊ TỌA ĐỘ CHI TIẾT TỪNG ĐỈNH
-        csv += "=== BẢNG KÊ TỌA ĐỘ CHI TIẾT CÁC ĐỈNH RANH (TCVN) ===\n";
+        csv += "=== BẢNG KÊ TỌA ĐỘ CHI TIẾT CÁC ĐỈNH RANH (TCVN) ===\r\n";
         selectedShapes.forEach((shape) => {
-            csv += "--- KHỐI: " + shape.name.toUpperCase() + " (" + (shape.mode === 'polygon' ? 'Đa giác' : 'Tuyến') + ") " + (shape.color || '#10b981') + " ---\n";
-            csv += "STT;Tên Khối;Loại;Mã Màu;Tên Đỉnh;Tọa độ X (Bắc) [m];Tọa độ Y (Đông) [m];Cạnh kế [m];Góc phương vị (Az);Vĩ độ WGS84;Kinh độ WGS84;Cao độ H;Ghi chú\n";
+            csv += "--- KHỐI: " + shape.name.toUpperCase() + " (" + (shape.mode === 'polygon' ? 'Đa giác' : 'Tuyến') + ") " + (shape.color || '#10b981') + " ---\r\n";
+            csv += "STT;Tên Khối;Loại;Mã Màu;Tên Đỉnh;Tọa độ X (Bắc) [m];Tọa độ Y (Đông) [m];Cạnh kế [m];Góc phương vị (Az);Vĩ độ WGS84;Kinh độ WGS84;Cao độ H;Ghi chú\r\n";
             shape.vertices.forEach((v, idx) => {
                 const edge = shape.stats?.edges ? shape.stats.edges[idx] : null;
                 const edgeLen = edge ? edge.length.toFixed(3) : '';
                 const azStr = edge ? edge.azFormatted : '';
-                csv += (idx + 1) + ";" + shape.name + ";" + (shape.mode === 'polygon' ? 'Đa giác' : 'Tuyến') + ";" + (shape.color || '#10b981') + ";" + v.name + ";" + (v.x || 0).toFixed(3) + ";" + (v.y || 0).toFixed(3) + ";" + edgeLen + ";" + azStr + ";" + (v.lat || 0).toFixed(7) + ";" + (v.lng || 0).toFixed(7) + ";" + (v.h || 0).toFixed(3) + ";" + (v.isSnapped ? v.snapSource : 'Vẽ tự do') + "\n";
+                csv += (idx + 1) + ";" + shape.name + ";" + (shape.mode === 'polygon' ? 'Đa giác' : 'Tuyến') + ";" + (shape.color || '#10b981') + ";" + v.name + ";" + (v.x || 0).toFixed(3) + ";" + (v.y || 0).toFixed(3) + ";" + edgeLen + ";" + azStr + ";" + (v.lat || 0).toFixed(7) + ";" + (v.lng || 0).toFixed(7) + ";" + (v.h || 0).toFixed(3) + ";" + (v.isSnapped ? v.snapSource : 'Vẽ tự do') + "\r\n";
             });
             if (shape.mode === 'polygon' && shape.vertices.length >= 3) {
-                csv += "Tiểu kế " + shape.shortName + ";;;;Diện tích [m2];" + (shape.stats?.area || 0).toFixed(2) + ";Diện tích [ha];" + (shape.stats?.ha || 0).toFixed(4) + ";Chu vi [m];" + (shape.stats?.perimeter || 0).toFixed(3) + ";;;\n\n";
+                csv += "Tiểu kế " + shape.shortName + ";;;;Diện tích [m2];" + (shape.stats?.area || 0).toFixed(2) + ";Diện tích [ha];" + (shape.stats?.ha || 0).toFixed(4) + ";Chu vi [m];" + (shape.stats?.perimeter || 0).toFixed(3) + ";;;\r\n\r\n";
             } else {
-                csv += "Tiểu kế " + shape.shortName + ";;;;Chiều dài tuyến [m];" + (shape.stats?.perimeter || 0).toFixed(3) + ";;;;;;;\n\n";
+                csv += "Tiểu kế " + shape.shortName + ";;;;Chiều dài tuyến [m];" + (shape.stats?.perimeter || 0).toFixed(3) + ";;;;;;;\r\n\r\n";
             }
         });
 
@@ -19564,77 +19975,77 @@ const appCadTool = {
         }
 
         // Xuất file HTML .xls có nhúng đầy đủ metadata và data-* attributes
-        let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">\n' +
-'<head>\n' +
-'<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n' +
-'<!--[if gte mso 9]>\n' +
-'<xml>\n' +
-' <x:ExcelWorkbook>\n' +
-'  <x:ExcelWorksheets>\n' +
-'   <x:ExcelWorksheet>\n' +
-'    <x:Name>Bảng Kê VN-2000</x:Name>\n' +
-'    <x:WorksheetOptions>\n' +
-'     <x:DisplayGridlines/>\n' +
-'     <x:Print><x:ValidPrinterInfo/><x:PaperSizeIndex>9</x:PaperSizeIndex></x:Print>\n' +
-'    </x:WorksheetOptions>\n' +
-'   </x:ExcelWorksheet>\n' +
-'  </x:ExcelWorksheets>\n' +
-' </x:ExcelWorkbook>\n' +
-'</xml>\n' +
-'<![endif]-->\n' +
-'<style>\n' +
-'  body { font-family: \'Segoe UI\', Arial, sans-serif; font-size: 11pt; color: #1e293b; }\n' +
-'  table { border-collapse: collapse; margin-bottom: 24px; width: 100%; }\n' +
-'  th { background-color: #0284c7; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px 10px; text-align: center; }\n' +
-'  td { border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 10pt; }\n' +
-'  .title-main { font-size: 16pt; font-weight: bold; color: #0369a1; text-align: center; padding: 12px; }\n' +
-'  .meta-table td { border: none; padding: 4px 8px; font-size: 10.5pt; }\n' +
-'  .num-3 { mso-number-format: \'0\\.000\'; text-align: right; }\n' +
-'  .num-2 { mso-number-format: \'0\\.00\'; text-align: right; }\n' +
-'  .num-4 { mso-number-format: \'0\\.0000\'; text-align: right; }\n' +
-'  .num-pct { mso-number-format: \'0\\.00%\'; text-align: right; }\n' +
-'  .row-total { background-color: #fef08a; font-weight: bold; }\n' +
-'  .section-title { font-size: 12pt; font-weight: bold; color: #0284c7; background-color: #f0f9ff; padding: 8px; margin-top: 14px; margin-bottom: 6px; }\n' +
-'  .shape-header { background-color: #e0f2fe; font-weight: bold; color: #0369a1; }\n' +
-'</style>\n' +
-'</head>\n' +
-'<body>\n' +
-'  <table>\n' +
-'    <tr><td colspan="' + (showPercent ? 10 : 9) + '" class="title-main">' + (meta.drawingName || 'BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH') + '</td></tr>\n' +
-'  </table>\n\n' +
-'  <table class="meta-table">\n' +
-'    <tr>\n' +
-'      <td><b>Dự án:</b> ' + (meta.projectName || '') + '</td>\n' +
-'      <td><b>Đơn vị đo:</b> ' + (meta.organization || '') + '</td>\n' +
-'      <td><b>Cán bộ đo:</b> ' + (meta.surveyor || '') + '</td>\n' +
-'    </tr>\n' +
-'    <tr>\n' +
-'      <td><b>Hệ tọa độ:</b> VN-2000 (' + (AppState.provinceName || 'Tỉnh') + ')</td>\n' +
-'      <td><b>KTT:</b> ' + AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + '°)</td>\n' +
-'      <td><b>Kiểm tra:</b> ' + (meta.checker || '') + '</td>\n' +
-'    </tr>\n' +
-'    <tr>\n' +
-'      <td><b>Số tờ/thửa:</b> ' + (meta.parcelNo || '01') + '</td>\n' +
-'      <td><b>Tỷ lệ bản vẽ:</b> 1:' + meta.scaleVal + '</td>\n' +
-'      <td><b>Ngày hoàn thành:</b> ' + meta.drawingDate + '</td>\n' +
-'    </tr>\n' +
-'  </table>\n\n' +
-'  <div class="section-title">I. BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT</div>\n' +
-'  <table>\n' +
-'    <thead>\n' +
-'      <tr>\n' +
-'        <th style="width: 50px;">STT</th>\n' +
-'        <th>Tên Khối / Thửa</th>\n' +
-'        <th>Loại Hình</th>\n' +
-'        <th>Số Đỉnh</th>\n' +
-'        <th>Diện Tích (m²)</th>\n' +
-'        <th>Diện Tích (ha)</th>\n' +
-'        <th>Chu Vi / Chiều Dài (m)</th>\n' +
-        (showPercent ? '        <th>Tỉ Lệ Diện Tích (%)</th>\n' : '') +
-'        <th>Mã Màu</th>\n' +
-'        <th>Ghi Chú</th>\n' +
-'      </tr>\n' +
-'    </thead>\n' +
+        let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">\r\n' +
+'<head>\r\n' +
+'<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\r\n' +
+'<!--[if gte mso 9]>\r\n' +
+'<xml>\r\n' +
+' <x:ExcelWorkbook>\r\n' +
+'  <x:ExcelWorksheets>\r\n' +
+'   <x:ExcelWorksheet>\r\n' +
+'    <x:Name>Bảng Kê VN-2000</x:Name>\r\n' +
+'    <x:WorksheetOptions>\r\n' +
+'     <x:DisplayGridlines/>\r\n' +
+'     <x:Print><x:ValidPrinterInfo/><x:PaperSizeIndex>9</x:PaperSizeIndex></x:Print>\r\n' +
+'    </x:WorksheetOptions>\r\n' +
+'   </x:ExcelWorksheet>\r\n' +
+'  </x:ExcelWorksheets>\r\n' +
+' </x:ExcelWorkbook>\r\n' +
+'</xml>\r\n' +
+'<![endif]-->\r\n' +
+'<style>\r\n' +
+'  body { font-family: \'Segoe UI\', Arial, sans-serif; font-size: 11pt; color: #1e293b; }\r\n' +
+'  table { border-collapse: collapse; margin-bottom: 24px; width: 100%; }\r\n' +
+'  th { background-color: #0284c7; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px 10px; text-align: center; }\r\n' +
+'  td { border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 10pt; }\r\n' +
+'  .title-main { font-size: 16pt; font-weight: bold; color: #0369a1; text-align: center; padding: 12px; }\r\n' +
+'  .meta-table td { border: none; padding: 4px 8px; font-size: 10.5pt; }\r\n' +
+'  .num-3 { mso-number-format: \'0\\.000\'; text-align: right; }\r\n' +
+'  .num-2 { mso-number-format: \'0\\.00\'; text-align: right; }\r\n' +
+'  .num-4 { mso-number-format: \'0\\.0000\'; text-align: right; }\r\n' +
+'  .num-pct { mso-number-format: \'0\\.00%\'; text-align: right; }\r\n' +
+'  .row-total { background-color: #fef08a; font-weight: bold; }\r\n' +
+'  .section-title { font-size: 12pt; font-weight: bold; color: #0284c7; background-color: #f0f9ff; padding: 8px; margin-top: 14px; margin-bottom: 6px; }\r\n' +
+'  .shape-header { background-color: #e0f2fe; font-weight: bold; color: #0369a1; }\r\n' +
+'</style>\r\n' +
+'</head>\r\n' +
+'<body>\r\n' +
+'  <table>\r\n' +
+'    <tr><td colspan="' + (showPercent ? 10 : 9) + '" class="title-main">' + (meta.drawingName || 'BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH') + '</td></tr>\r\n' +
+'  </table>\r\n\r\n' +
+'  <table class="meta-table">\r\n' +
+'    <tr>\r\n' +
+'      <td><b>Dự án:</b> ' + (meta.projectName || '') + '</td>\r\n' +
+'      <td><b>Đơn vị đo:</b> ' + (meta.organization || '') + '</td>\r\n' +
+'      <td><b>Cán bộ đo:</b> ' + (meta.surveyor || '') + '</td>\r\n' +
+'    </tr>\r\n' +
+'    <tr>\r\n' +
+'      <td><b>Hệ tọa độ:</b> VN-2000 (' + (AppState.provinceName || 'Tỉnh') + ')</td>\r\n' +
+'      <td><b>KTT:</b> ' + AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + '°)</td>\r\n' +
+'      <td><b>Kiểm tra:</b> ' + (meta.checker || '') + '</td>\r\n' +
+'    </tr>\r\n' +
+'    <tr>\r\n' +
+'      <td><b>Số tờ/thửa:</b> ' + (meta.parcelNo || '01') + '</td>\r\n' +
+'      <td><b>Tỷ lệ bản vẽ:</b> 1:' + meta.scaleVal + '</td>\r\n' +
+'      <td><b>Ngày hoàn thành:</b> ' + meta.drawingDate + '</td>\r\n' +
+'    </tr>\r\n' +
+'  </table>\r\n\r\n' +
+'  <div class="section-title">I. BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT</div>\r\n' +
+'  <table>\r\n' +
+'    <thead>\r\n' +
+'      <tr>\r\n' +
+'        <th style="width: 50px;">STT</th>\r\n' +
+'        <th>Tên Khối / Thửa</th>\r\n' +
+'        <th>Loại Hình</th>\r\n' +
+'        <th>Số Đỉnh</th>\r\n' +
+'        <th>Diện Tích (m²)</th>\r\n' +
+'        <th>Diện Tích (ha)</th>\r\n' +
+'        <th>Chu Vi / Chiều Dài (m)</th>\r\n' +
+        (showPercent ? '        <th>Tỉ Lệ Diện Tích (%)</th>\r\n' : '') +
+'        <th>Mã Màu</th>\r\n' +
+'        <th>Ghi Chú</th>\r\n' +
+'      </tr>\r\n' +
+'    </thead>\r\n' +
 '    <tbody>';
 
         selectedShapes.forEach((s, idx) => {
@@ -19644,84 +20055,84 @@ const appCadTool = {
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
             const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
 
-            html += '\n      <tr style="background-color: ' + bg + ';" data-shape-idx="' + idx + '" data-color="' + (s.color || '#10b981') + '">' +
-'\n        <td style="text-align: center;">' + (idx + 1) + '</td>' +
-'\n        <td><b>' + s.name + '</b></td>' +
-'\n        <td style="text-align: center;">' + (isPoly ? 'Đa giác' : 'Tuyến') + '</td>' +
-'\n        <td style="text-align: center;">' + s.vertices.length + '</td>' +
-'\n        <td class="num-2">' + (isPoly ? area.toFixed(2) : '--') + '</td>' +
-'\n        <td class="num-4">' + (isPoly ? (area / 10000).toFixed(4) : '--') + '</td>' +
-'\n        <td class="num-2">' + perim.toFixed(2) + '</td>' +
-        (showPercent ? ('\n        <td class="num-pct">' + pctStr + '</td>') : '') +
-'\n        <td style="text-align: center; color: ' + (s.color || '#10b981') + '; font-weight: bold;">' + (s.color || '#10b981') + '</td>' +
-'\n        <td style="text-align: center;">' + (s.isSnapped ? 'Hít mốc' : 'Tự do') + '</td>' +
-'\n      </tr>';
+            html += '\r\n      <tr style="background-color: ' + bg + ';" data-shape-idx="' + idx + '" data-color="' + (s.color || '#10b981') + '">' +
+'\r\n        <td style="text-align: center;">' + (idx + 1) + '</td>' +
+'\r\n        <td><b>' + s.name + '</b></td>' +
+'\r\n        <td style="text-align: center;">' + (isPoly ? 'Đa giác' : 'Tuyến') + '</td>' +
+'\r\n        <td style="text-align: center;">' + s.vertices.length + '</td>' +
+'\r\n        <td class="num-2">' + (isPoly ? area.toFixed(2) : '--') + '</td>' +
+'\r\n        <td class="num-4">' + (isPoly ? (area / 10000).toFixed(4) : '--') + '</td>' +
+'\r\n        <td class="num-2">' + perim.toFixed(2) + '</td>' +
+        (showPercent ? ('\r\n        <td class="num-pct">' + pctStr + '</td>') : '') +
+'\r\n        <td style="text-align: center; color: ' + (s.color || '#10b981') + '; font-weight: bold;">' + (s.color || '#10b981') + '</td>' +
+'\r\n        <td style="text-align: center;">' + (s.isSnapped ? 'Hít mốc' : 'Tự do') + '</td>' +
+'\r\n      </tr>';
         });
 
         const totalPctStr = (baseProjectArea > 0) ? ((totalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
-        html += '\n      <tr class="row-total">' +
-'\n        <td style="text-align: center;">--</td>' +
-'\n        <td><b>TỔNG CỘNG</b></td>' +
-'\n        <td style="text-align: center;">--</td>' +
-'\n        <td style="text-align: center;"><b>' + totalVertices + ' đỉnh</b></td>' +
-'\n        <td class="num-2"><b>' + totalArea.toFixed(2) + '</b></td>' +
-'\n        <td class="num-4"><b>' + totalHa.toFixed(4) + '</b></td>' +
-'\n        <td class="num-2"><b>' + totalPerimeter.toFixed(2) + '</b></td>' +
-        (showPercent ? ('\n        <td class="num-pct"><b>' + totalPctStr + '</b></td>') : '') +
-'\n        <td style="text-align: center;">--</td>' +
-'\n        <td style="text-align: center;"><b>' + (meta.customTotalArea ? 'Theo quy hoạch' : 'Đo thực tế') + '</b></td>' +
-'\n      </tr>' +
-'\n    </tbody>' +
-'\n  </table>' +
-'\n\n  <div class="section-title">II. BẢNG KÊ TỌA ĐỘ CHI TIẾT TỪNG ĐỈNH RANH (TCVN)</div>';
+        html += '\r\n      <tr class="row-total">' +
+'\r\n        <td style="text-align: center;">--</td>' +
+'\r\n        <td><b>TỔNG CỘNG</b></td>' +
+'\r\n        <td style="text-align: center;">--</td>' +
+'\r\n        <td style="text-align: center;"><b>' + totalVertices + ' đỉnh</b></td>' +
+'\r\n        <td class="num-2"><b>' + totalArea.toFixed(2) + '</b></td>' +
+'\r\n        <td class="num-4"><b>' + totalHa.toFixed(4) + '</b></td>' +
+'\r\n        <td class="num-2"><b>' + totalPerimeter.toFixed(2) + '</b></td>' +
+        (showPercent ? ('\r\n        <td class="num-pct"><b>' + totalPctStr + '</b></td>') : '') +
+'\r\n        <td style="text-align: center;">--</td>' +
+'\r\n        <td style="text-align: center;"><b>' + (meta.customTotalArea ? 'Theo quy hoạch' : 'Đo thực tế') + '</b></td>' +
+'\r\n      </tr>' +
+'\r\n    </tbody>' +
+'\r\n  </table>' +
+'\r\n\r\n  <div class="section-title">II. BẢNG KÊ TỌA ĐỘ CHI TIẾT TỪNG ĐỈNH RANH (TCVN)</div>';
 
         selectedShapes.forEach((shape) => {
             const isPoly = shape.mode === 'polygon';
             const stats = shape.stats || {};
-            html += '\n  <table>' +
-'\n    <thead>' +
-'\n      <tr class="shape-header" data-name="' + shape.name + '" data-mode="' + shape.mode + '" data-color="' + (shape.color || '#10b981') + '" data-area="' + (stats.area || 0).toFixed(2) + '" data-perimeter="' + (stats.perimeter || 0).toFixed(2) + '">' +
-'\n        <td colspan="9">' +
-'\n          <b>' + shape.name.toUpperCase() + '</b> [' + (isPoly ? 'Đa giác' : 'Tuyến') + '] - ' + (isPoly ? ("Diện tích: " + (stats.area || 0).toFixed(2) + " m² (" + (stats.ha || 0).toFixed(4) + " ha) | Chu vi: " + (stats.perimeter || 0).toFixed(2) + " m") : ("Chiều dài: " + (stats.perimeter || 0).toFixed(2) + " m")) + " | Màu: " + (shape.color || '#10b981') +
-'\n        </td>' +
-'\n      </tr>' +
-'\n      <tr>' +
-'\n        <th style="width: 45px;">STT</th>' +
-'\n        <th>Tên Đỉnh</th>' +
-'\n        <th>Tọa độ X (Bắc) [m]</th>' +
-'\n        <th>Tọa độ Y (Đông) [m]</th>' +
-'\n        <th>Cạnh Kế [m]</th>' +
-'\n        <th>Phương Vị (Az)</th>' +
-'\n        <th>Vĩ độ WGS-84</th>' +
-'\n        <th>Kinh độ WGS-84</th>' +
-'\n        <th>Cao độ H [m]</th>' +
-'\n      </tr>' +
-'\n    </thead>' +
-'\n    <tbody>';
+            html += '\r\n  <table>' +
+'\r\n    <thead>' +
+'\r\n      <tr class="shape-header" data-name="' + shape.name + '" data-mode="' + shape.mode + '" data-color="' + (shape.color || '#10b981') + '" data-area="' + (stats.area || 0).toFixed(2) + '" data-perimeter="' + (stats.perimeter || 0).toFixed(2) + '">' +
+'\r\n        <td colspan="9">' +
+'\r\n          <b>' + shape.name.toUpperCase() + '</b> [' + (isPoly ? 'Đa giác' : 'Tuyến') + '] - ' + (isPoly ? ("Diện tích: " + (stats.area || 0).toFixed(2) + " m² (" + (stats.ha || 0).toFixed(4) + " ha) | Chu vi: " + (stats.perimeter || 0).toFixed(2) + " m") : ("Chiều dài: " + (stats.perimeter || 0).toFixed(2) + " m")) + " | Màu: " + (shape.color || '#10b981') +
+'\r\n        </td>' +
+'\r\n      </tr>' +
+'\r\n      <tr>' +
+'\r\n        <th style="width: 45px;">STT</th>' +
+'\r\n        <th>Tên Đỉnh</th>' +
+'\r\n        <th>Tọa độ X (Bắc) [m]</th>' +
+'\r\n        <th>Tọa độ Y (Đông) [m]</th>' +
+'\r\n        <th>Cạnh Kế [m]</th>' +
+'\r\n        <th>Phương Vị (Az)</th>' +
+'\r\n        <th>Vĩ độ WGS-84</th>' +
+'\r\n        <th>Kinh độ WGS-84</th>' +
+'\r\n        <th>Cao độ H [m]</th>' +
+'\r\n      </tr>' +
+'\r\n    </thead>' +
+'\r\n    <tbody>';
             shape.vertices.forEach((v, idx) => {
                 const edge = stats.edges ? stats.edges[idx] : null;
                 const edgeLen = edge ? edge.length.toFixed(3) : '--';
                 const azStr = edge ? edge.azFormatted : '--';
                 const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-                html += '\n      <tr style="background-color: ' + bg + ';">' +
-'\n        <td style="text-align: center;">' + (idx + 1) + '</td>' +
-'\n        <td><b>' + v.name + '</b></td>' +
-'\n        <td class="num-3">' + (v.x || 0).toFixed(3) + '</td>' +
-'\n        <td class="num-3">' + (v.y || 0).toFixed(3) + '</td>' +
-'\n        <td class="num-3">' + edgeLen + '</td>' +
-'\n        <td style="text-align: center;">' + azStr + '</td>' +
-'\n        <td class="num-3">' + (v.lat || 0).toFixed(7) + '</td>' +
-'\n        <td class="num-3">' + (v.lng || 0).toFixed(7) + '</td>' +
-'\n        <td class="num-3">' + (v.h || 0).toFixed(3) + '</td>' +
-'\n      </tr>';
+                html += '\r\n      <tr style="background-color: ' + bg + ';">' +
+'\r\n        <td style="text-align: center;">' + (idx + 1) + '</td>' +
+'\r\n        <td><b>' + v.name + '</b></td>' +
+'\r\n        <td class="num-3">' + (v.x || 0).toFixed(3) + '</td>' +
+'\r\n        <td class="num-3">' + (v.y || 0).toFixed(3) + '</td>' +
+'\r\n        <td class="num-3">' + edgeLen + '</td>' +
+'\r\n        <td style="text-align: center;">' + azStr + '</td>' +
+'\r\n        <td class="num-3">' + (v.lat || 0).toFixed(7) + '</td>' +
+'\r\n        <td class="num-3">' + (v.lng || 0).toFixed(7) + '</td>' +
+'\r\n        <td class="num-3">' + (v.h || 0).toFixed(3) + '</td>' +
+'\r\n      </tr>';
             });
 
-            html += '\n    </tbody>' +
-'\n  </table>';
+            html += '\r\n    </tbody>' +
+'\r\n  </table>';
         });
 
-        html += '\n</body>' +
-'\n</html>';
+        html += '\r\n</body>' +
+'\r\n</html>';
 
         const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -19751,17 +20162,17 @@ const appCadTool = {
             return;
         }
 
-        let text = `BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH - ${AppState.currentProject}\n`;
+        let text = `BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH - ${AppState.currentProject}\r\n`;
         selectedShapes.forEach(shape => {
-            text += `\n[${shape.name}]\nSTT\tTên Đỉnh\tX (Bắc)\tY (Đông)\tCạnh (m)\tPhương vị\n`;
+            text += `\r\n[${shape.name}]\r\nSTT\tTên Đỉnh\tX (Bắc)\tY (Đông)\tCạnh (m)\tPhương vị\r\n`;
             shape.vertices.forEach((v, idx) => {
                 const edge = shape.stats?.edges ? shape.stats.edges[idx] : null;
                 const edgeLen = edge ? edge.length.toFixed(3) : '';
                 const azStr = edge ? edge.azFormatted : '';
-                text += `${idx + 1}\t${v.name}\t${(v.x || 0).toFixed(3)}\t${(v.y || 0).toFixed(3)}\t${edgeLen}\t${azStr}\n`;
+                text += `${idx + 1}\t${v.name}\t${(v.x || 0).toFixed(3)}\t${(v.y || 0).toFixed(3)}\t${edgeLen}\t${azStr}\r\n`;
             });
             if (shape.mode === 'polygon' && shape.vertices.length >= 3) {
-                text += `Diện tích: ${shape.stats?.areaFormatted || 0} m² (${(shape.stats?.ha || 0).toFixed(4)} ha) | Chu vi: ${shape.stats?.perimeterFormatted || 0} m\n`;
+                text += `Diện tích: ${shape.stats?.areaFormatted || 0} m² (${(shape.stats?.ha || 0).toFixed(4)} ha) | Chu vi: ${shape.stats?.perimeterFormatted || 0} m\r\n`;
             }
         });
 
@@ -19863,7 +20274,7 @@ const appCadTool = {
             .replace(/[²]/g, '2')
             .replace(/[³]/g, '3')
             .replace(/[°]/g, ' deg')
-            .replace(/[\r\n\t]/g, ' ')
+            .replace(/[\r\r\n\t]/g, ' ')
             .replace(/[^\x20-\x7E]/g, '')
             .trim();
     },
@@ -20118,91 +20529,91 @@ const appCadTool = {
         // KHỞI TẠO FILE DXF AC1009 (AutoCAD R12/2000+) - TƯƠNG THÍCH 100% TẤT CẢ PHẦN MỀM CAD
         // Tùy chọn showBlockInfo: true = hiện đầy đủ S, P, cạnh; false (mặc định) = chỉ hiện số thứ tự/ký hiệu khối tại tâm
         const showBlockInfo = meta.showBlockInfo === true;
-        let dxf = "0\nSECTION\n2\nHEADER\n";
-        dxf += "9\n$ACADVER\n1\nAC1009\n";
-        dxf += "9\n$INSUNITS\n70\n6\n";       // 6 = Meters (TCVN)
-        dxf += "9\n$MEASUREMENT\n70\n1\n";    // 1 = Metric
-        dxf += "9\n$LTSCALE\n40\n" + S.toFixed(4) + "\n";
-        dxf += "9\n$TEXTSIZE\n40\n" + (2.5 * S).toFixed(4) + "\n";
-        dxf += "9\n$VIEWCTR\n10\n" + L.Cx.toFixed(3) + "\n20\n" + L.Cy.toFixed(3) + "\n";
-        dxf += "9\n$VIEWSIZE\n40\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\n";
-        dxf += "9\n$EXTMIN\n10\n" + L.X0.toFixed(3) + "\n20\n" + L.Y0.toFixed(3) + "\n30\n0.0\n";
-        dxf += "9\n$EXTMAX\n10\n" + (L.X0 + L.W_sheet).toFixed(3) + "\n20\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\n30\n0.0\n";
-        dxf += "9\n$LIMMIN\n10\n" + L.X0.toFixed(3) + "\n20\n" + L.Y0.toFixed(3) + "\n";
-        dxf += "9\n$LIMMAX\n10\n" + (L.X0 + L.W_sheet).toFixed(3) + "\n20\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\n";
-        dxf += "0\nENDSEC\n";
+        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
+        dxf += "9\r\n$ACADVER\r\n1\r\nAC1009\r\n";
+        dxf += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (TCVN)
+        dxf += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
+        dxf += "9\r\n$LTSCALE\r\n40\r\n" + S.toFixed(4) + "\r\n";
+        dxf += "9\r\n$TEXTSIZE\r\n40\r\n" + (2.5 * S).toFixed(4) + "\r\n";
+        dxf += "9\r\n$VIEWCTR\r\n10\r\n" + L.Cx.toFixed(3) + "\r\n20\r\n" + L.Cy.toFixed(3) + "\r\n";
+        dxf += "9\r\n$VIEWSIZE\r\n40\r\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\r\n";
+        dxf += "9\r\n$EXTMIN\r\n10\r\n" + L.X0.toFixed(3) + "\r\n20\r\n" + L.Y0.toFixed(3) + "\r\n30\r\n0.0\r\n";
+        dxf += "9\r\n$EXTMAX\r\n10\r\n" + (L.X0 + L.W_sheet).toFixed(3) + "\r\n20\r\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\r\n30\r\n0.0\r\n";
+        dxf += "9\r\n$LIMMIN\r\n10\r\n" + L.X0.toFixed(3) + "\r\n20\r\n" + L.Y0.toFixed(3) + "\r\n";
+        dxf += "9\r\n$LIMMAX\r\n10\r\n" + (L.X0 + L.W_sheet).toFixed(3) + "\r\n20\r\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\r\n";
+        dxf += "0\r\nENDSEC\r\n";
 
         // TABLES SECTION
-        dxf += "0\nSECTION\n2\nTABLES\n";
+        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
 
         // 1. Viewport: Camera tự động zoom lớn trực diện vào trung tâm bản vẽ thửa đất khi mở trong AutoCAD
-        dxf += "0\nTABLE\n2\nVPORT\n70\n1\n";
-        dxf += "0\nVPORT\n2\n*ACTIVE\n70\n0\n";
-        dxf += "10\n0.0\n20\n0.0\n11\n1.0\n21\n1.0\n";
-        dxf += "12\n" + L.Cx.toFixed(3) + "\n22\n" + L.Cy.toFixed(3) + "\n";
-        dxf += "40\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\n";
-        dxf += "41\n" + (L.W_sheet / L.H_sheet).toFixed(4) + "\n";
-        dxf += "0\nENDTAB\n";
+        dxf += "0\r\nTABLE\r\n2\r\nVPORT\r\n70\r\n1\r\n";
+        dxf += "0\r\nVPORT\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n";
+        dxf += "10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
+        dxf += "12\r\n" + L.Cx.toFixed(3) + "\r\n22\r\n" + L.Cy.toFixed(3) + "\r\n";
+        dxf += "40\r\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\r\n";
+        dxf += "41\r\n" + (L.W_sheet / L.H_sheet).toFixed(4) + "\r\n";
+        dxf += "0\r\nENDTAB\r\n";
 
         // 2. Line types
-        dxf += "0\nTABLE\n2\nLTYPE\n70\n3\n";
-        dxf += "0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n";
-        dxf += "0\nLTYPE\n2\nDASHED\n70\n0\n3\nDashed\n72\n65\n73\n2\n40\n" + (1.0 * S).toFixed(4) + "\n49\n" + (0.6 * S).toFixed(4) + "\n49\n" + (-0.4 * S).toFixed(4) + "\n";
-        dxf += "0\nLTYPE\n2\nCENTER\n70\n0\n3\nCenter\n72\n65\n73\n4\n40\n" + (2.0 * S).toFixed(4) + "\n49\n" + (1.0 * S).toFixed(4) + "\n49\n" + (-0.3 * S).toFixed(4) + "\n49\n" + (0.3 * S).toFixed(4) + "\n49\n" + (-0.3 * S).toFixed(4) + "\n";
-        dxf += "0\nENDTAB\n";
+        dxf += "0\r\nTABLE\r\n2\r\nLTYPE\r\n70\r\n3\r\n";
+        dxf += "0\r\nLTYPE\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dxf += "0\r\nLTYPE\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (0.6 * S).toFixed(4) + "\r\n49\r\n" + (-0.4 * S).toFixed(4) + "\r\n";
+        dxf += "0\r\nLTYPE\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
+        dxf += "0\r\nENDTAB\r\n";
 
         // 3. Layer table chuẩn kỹ thuật địa chính (R12 chuẩn không dùng handle)
-        dxf += "0\nTABLE\n2\nLAYER\n70\n18\n";
-        dxf += "0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nCAD_MUITEN\n70\n0\n62\n2\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nCAD_TEXT\n70\n0\n62\n7\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nCAD_HINHKHOI\n70\n0\n62\n6\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nCAD_TEMNHAN\n70\n0\n62\n4\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nKHUNG_NGOAI\n70\n0\n62\n7\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nKHUNG_TRONG\n70\n0\n62\n7\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nKHUNG_TEN\n70\n0\n62\n4\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nBANG_BIEU\n70\n0\n62\n4\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nRANH_THUA\n70\n0\n62\n5\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nDINH_MOC\n70\n0\n62\n1\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nTEN_MOC\n70\n0\n62\n3\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nKICH_THUOC\n70\n0\n62\n2\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nDIEN_TICH\n70\n0\n62\n6\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nLUOI_TOADO\n70\n0\n62\n8\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nTEXT_CHINH\n70\n0\n62\n7\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nTEXT_SO_LIEU\n70\n0\n62\n3\n6\nCONTINUOUS\n";
-        dxf += "0\nLAYER\n2\nHUONG_BAC\n70\n0\n62\n4\n6\nCONTINUOUS\n";
-        dxf += "0\nENDTAB\n";
+        dxf += "0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n18\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nCAD_MUITEN\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nCAD_TEXT\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nCAD_HINHKHOI\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nCAD_TEMNHAN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nKHUNG_NGOAI\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nKHUNG_TRONG\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nKHUNG_TEN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nBANG_BIEU\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n5\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nDINH_MOC\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nKICH_THUOC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nDIEN_TICH\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nLUOI_TOADO\r\n70\r\n0\r\n62\r\n8\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nTEXT_CHINH\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nTEXT_SO_LIEU\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nLAYER\r\n2\r\nHUONG_BAC\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dxf += "0\r\nENDTAB\r\n";
 
         // 4. Style table: Khai báo STANDARD và VN_ARIAL
-        dxf += "0\nTABLE\n2\nSTYLE\n70\n2\n";
-        dxf += "0\nSTYLE\n2\nSTANDARD\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\ntxt\n";
-        dxf += "0\nSTYLE\n2\nVN_ARIAL\n70\n0\n40\n0.0\n41\n1.0\n50\n0.0\n71\n0\n42\n2.5\n3\narial.ttf\n";
-        dxf += "0\nENDTAB\n";
+        dxf += "0\r\nTABLE\r\n2\r\nSTYLE\r\n70\r\n2\r\n";
+        dxf += "0\r\nSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n";
+        dxf += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n";
+        dxf += "0\r\nENDTAB\r\n";
 
-        dxf += "0\nENDSEC\n";
+        dxf += "0\r\nENDSEC\r\n";
 
         // ENTITIES SECTION
-        dxf += "0\nSECTION\n2\nENTITIES\n";
+        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
         // === A. KHUNG BẢN VẼ CHUẨN XÁC THEO KHỔ GIẤY (A3/A4) ===
         // 1. Khung Ngoài (Mép cắt khổ giấy A3/A4 chuẩn mm)
-        dxf += `0\nPOLYLINE\n8\nKHUNG_NGOAI\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_NGOAI\n10\n${L.X0.toFixed(3)}\n20\n${L.Y0.toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_NGOAI\n10\n${(L.X0 + L.W_sheet).toFixed(3)}\n20\n${L.Y0.toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_NGOAI\n10\n${(L.X0 + L.W_sheet).toFixed(3)}\n20\n${(L.Y0 + L.H_sheet).toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_NGOAI\n10\n${L.X0.toFixed(3)}\n20\n${(L.Y0 + L.H_sheet).toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nSEQEND\n8\nKHUNG_NGOAI\n`;
+        dxf += `0\r\nPOLYLINE\r\n8\r\nKHUNG_NGOAI\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nSEQEND\r\n8\r\nKHUNG_NGOAI\r\n`;
 
         // 2. Khung Trong (Đậm nét 0.50mm, cách lề trái 20mm, lề phải/trên/dưới 10mm)
-        dxf += `0\nPOLYLINE\n8\nKHUNG_TRONG\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_TRONG\n10\n${L.Xin0.toFixed(3)}\n20\n${L.Yin0.toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_TRONG\n10\n${L.Xin1.toFixed(3)}\n20\n${L.Yin0.toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_TRONG\n10\n${L.Xin1.toFixed(3)}\n20\n${L.Yin1.toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nVERTEX\n8\nKHUNG_TRONG\n10\n${L.Xin0.toFixed(3)}\n20\n${L.Yin1.toFixed(3)}\n30\n0.0\n`;
-        dxf += `0\nSEQEND\n8\nKHUNG_TRONG\n`;
+        dxf += `0\r\nPOLYLINE\r\n8\r\nKHUNG_TRONG\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dxf += `0\r\nSEQEND\r\n8\r\nKHUNG_TRONG\r\n`;
 
         // 3. Đường phân cách giữa Vùng Bản Đồ và Cột Bảng Kê Bên Phải
-        dxf += `0\nLINE\n8\nKHUNG_TRONG\n10\n${L.Xpanel0.toFixed(3)}\n20\n${L.Yin0.toFixed(3)}\n30\n0.0\n11\n${L.Xpanel0.toFixed(3)}\n21\n${L.Yin1.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xpanel0.toFixed(3)}\r\n21\r\n${L.Yin1.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // === B. LƯỚI TỌA ĐỘ CHUẨN TRẮC ĐỊA: DẤU CHỮ THẬP (+) & TỌA ĐỘ BIÊN ===
         const crossArm = 3.5 * S; // Cánh chữ thập dài 3.5mm trên giấy
@@ -20217,19 +20628,19 @@ const appCadTool = {
             for (let gy = startGy; gy <= endGy; gy += L.gridInterval) {
                 // Dấu chữ thập tọa độ trong lòng bản đồ
                 if (gx > L.Xin0 + 8 * S && gx < L.Xpanel0 - 8 * S && gy > L.Yin0 + 8 * S && gy < L.Yin1 - 8 * S) {
-                    dxf += `0\nLINE\n8\nLUOI_TOADO\n10\n${(gx - crossArm).toFixed(3)}\n20\n${gy.toFixed(3)}\n30\n0.0\n11\n${(gx + crossArm).toFixed(3)}\n21\n${gy.toFixed(3)}\n31\n0.0\n`;
-                    dxf += `0\nLINE\n8\nLUOI_TOADO\n10\n${gx.toFixed(3)}\n20\n${(gy - crossArm).toFixed(3)}\n30\n0.0\n11\n${gx.toFixed(3)}\n21\n${(gy + crossArm).toFixed(3)}\n31\n0.0\n`;
+                    dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx - crossArm).toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(gx + crossArm).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
+                    dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${(gy - crossArm).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(gy + crossArm).toFixed(3)}\r\n31\r\n0.0\r\n`;
                 }
             }
             // Vạch chia & Tọa độ cạnh dưới
-            dxf += `0\nLINE\n8\nLUOI_TOADO\n10\n${gx.toFixed(3)}\n20\n${L.Yin0.toFixed(3)}\n30\n0.0\n11\n${gx.toFixed(3)}\n21\n${(L.Yin0 + tickLen).toFixed(3)}\n31\n0.0\n`;
-            dxf += `0\nTEXT\n8\nLUOI_TOADO\n10\n${(gx - 8 * S).toFixed(3)}\n20\n${(L.Yin0 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nY=${gx.toFixed(0)}\n7\nVN_ARIAL\n`;
+            dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(L.Yin0 + tickLen).toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx - 8 * S).toFixed(3)}\r\n20\r\n${(L.Yin0 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nY=${gx.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
         }
 
         for (let gy = startGy; gy <= endGy; gy += L.gridInterval) {
             // Vạch chia & Tọa độ cạnh trái
-            dxf += `0\nLINE\n8\nLUOI_TOADO\n10\n${L.Xin0.toFixed(3)}\n20\n${gy.toFixed(3)}\n30\n0.0\n11\n${(L.Xin0 + tickLen).toFixed(3)}\n21\n${gy.toFixed(3)}\n31\n0.0\n`;
-            dxf += `0\nTEXT\n8\nLUOI_TOADO\n10\n${(L.Xin0 - 16 * S).toFixed(3)}\n20\n${(gy - 0.9 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nX=${gy.toFixed(0)}\n7\nVN_ARIAL\n`;
+            dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(L.Xin0 + tickLen).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nLUOI_TOADO\r\n10\r\n${(L.Xin0 - 16 * S).toFixed(3)}\r\n20\r\n${(gy - 0.9 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nX=${gy.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
         }
 
         // === C. KIM CHỈ HƯỚNG BẮC (NORTH ARROW CHUẨN ĐỊA CHÍNH TCVN) ===
@@ -20238,11 +20649,11 @@ const appCadTool = {
         const naR = 4.5 * S;
         const naH = 14.0 * S;
 
-        dxf += `0\nCIRCLE\n8\nHUONG_BAC\n10\n${naX.toFixed(3)}\n20\n${naY.toFixed(3)}\n30\n0.0\n40\n${naR.toFixed(4)}\n`;
-        dxf += `0\nLINE\n8\nHUONG_BAC\n10\n${naX.toFixed(3)}\n20\n${(naY - naR).toFixed(3)}\n30\n0.0\n11\n${naX.toFixed(3)}\n21\n${(naY + naH).toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nLINE\n8\nHUONG_BAC\n10\n${(naX - naR * 0.8).toFixed(3)}\n20\n${naY.toFixed(3)}\n30\n0.0\n11\n${naX.toFixed(3)}\n21\n${(naY + naH).toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nLINE\n8\nHUONG_BAC\n10\n${(naX + naR * 0.8).toFixed(3)}\n20\n${naY.toFixed(3)}\n30\n0.0\n11\n${naX.toFixed(3)}\n21\n${(naY + naH).toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nHUONG_BAC\n10\n${(naX - 1.2 * S).toFixed(3)}\n20\n${(naY + naH + 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(3.2 * S).toFixed(4)}\n1\nB\n7\nVN_ARIAL\n`;
+        dxf += `0\r\nCIRCLE\r\n8\r\nHUONG_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${naR.toFixed(4)}\r\n`;
+        dxf += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${(naY - naR).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX - naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX + naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX - 1.2 * S).toFixed(3)}\r\n20\r\n${(naY + naH + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.2 * S).toFixed(4)}\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n`;
 
         // === D. CÁC ĐỐI TƯỢNG ĐỒ HỌA THỬA ĐẤT (VÙNG TRỌNG TÂM BẢN ĐỒ) ===
         selectedShapes.forEach((shape, shapeIdx) => {
@@ -20255,11 +20666,11 @@ const appCadTool = {
 
             // Đường ranh thửa nét đậm 0.50mm
             if (meta.showBoundaries !== false) {
-                dxf += `0\nPOLYLINE\n8\nRANH_THUA\n66\n1\n70\n${isClosed ? 1 : 0}\n10\n0.0\n20\n0.0\n30\n0.0\n`;
+                dxf += `0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n${isClosed ? 1 : 0}\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
                 pts.forEach(p => {
-                    dxf += `0\nVERTEX\n8\nRANH_THUA\n10\n${p.y.toFixed(3)}\n20\n${p.x.toFixed(3)}\n30\n0.0\n`;
+                    dxf += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n0.0\r\n`;
                 });
-                dxf += `0\nSEQEND\n8\nRANH_THUA\n`;
+                dxf += `0\r\nSEQEND\r\n8\r\nRANH_THUA\r\n`;
             }
 
             // Điểm đỉnh mốc & Nhãn tên mốc (Hiển thị khi meta.showVertices !== false)
@@ -20268,11 +20679,11 @@ const appCadTool = {
                 pts.forEach((p, idx) => {
                     const cadX = p.y;
                     const cadY = p.x;
-                    dxf += `0\nCIRCLE\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n40\n${mRadius.toFixed(4)}\n`;
-                    dxf += `0\nPOINT\n8\nDINH_MOC\n10\n${cadX.toFixed(3)}\n20\n${cadY.toFixed(3)}\n30\n0.0\n`;
+                    dxf += `0\r\nCIRCLE\r\n8\r\nDINH_MOC\r\n10\r\n${cadX.toFixed(3)}\r\n20\r\n${cadY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${mRadius.toFixed(4)}\r\n`;
+                    dxf += `0\r\nPOINT\r\n8\r\nDINH_MOC\r\n10\r\n${cadX.toFixed(3)}\r\n20\r\n${cadY.toFixed(3)}\r\n30\r\n0.0\r\n`;
 
                     const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
-                    dxf += `0\nTEXT\n8\nTEN_MOC\n10\n${(cadX + 1.5 * S).toFixed(3)}\n20\n${(cadY + 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\n${cleanName}\n7\nVN_ARIAL\n`;
+                    dxf += `0\r\nTEXT\r\n8\r\nTEN_MOC\r\n10\r\n${(cadX + 1.5 * S).toFixed(3)}\r\n20\r\n${(cadY + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\n${cleanName}\r\n7\r\nVN_ARIAL\r\n`;
                 });
             }
 
@@ -20297,7 +20708,7 @@ const appCadTool = {
                     let textRot = angDeg;
                     if (angDeg > 90 && angDeg < 270) textRot = (angDeg + 180) % 360;
 
-                    dxf += `0\nTEXT\n8\nKICH_THUOC\n10\n${(midX + perpX).toFixed(3)}\n20\n${(midY + perpY).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n50\n${textRot.toFixed(2)}\n1\n${edge.lengthFormatted}m\n7\nVN_ARIAL\n`;
+                    dxf += `0\r\nTEXT\r\n8\r\nKICH_THUOC\r\n10\r\n${(midX + perpX).toFixed(3)}\r\n20\r\n${(midY + perpY).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n50\r\n${textRot.toFixed(2)}\r\n1\r\n${edge.lengthFormatted}m\r\n7\r\nVN_ARIAL\r\n`;
                 });
             }
 
@@ -20315,18 +20726,18 @@ const appCadTool = {
                     if (showPercent && baseProjectArea > 0) {
                         pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
                     }
-                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 8 * S).toFixed(3)}\n20\n${(cY + 3.0 * S).toFixed(3)}\n30\n0.0\n40\n${(2.8 * S).toFixed(4)}\n1\n[${cleanSymbol}] ${this.toCadAscii(shape.name || '')}${pctStr}\n7\nVN_ARIAL\n`;
-                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 8 * S).toFixed(3)}\n20\n${cY.toFixed(3)}\n30\n0.0\n40\n${(2.4 * S).toFixed(4)}\n1\nS=${stats.areaFormatted}m2 (${stats.haFormatted}ha)\n7\nVN_ARIAL\n`;
-                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 8 * S).toFixed(3)}\n20\n${(cY - 2.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.8 * S).toFixed(4)}\n1\nP=${stats.perimeterFormatted}m\n7\nVN_ARIAL\n`;
+                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${(cY + 3.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\n[${cleanSymbol}] ${this.toCadAscii(shape.name || '')}${pctStr}\r\n7\r\nVN_ARIAL\r\n`;
+                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${cY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\nS=${stats.areaFormatted}m2 (${stats.haFormatted}ha)\r\n7\r\nVN_ARIAL\r\n`;
+                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${(cY - 2.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nP=${stats.perimeterFormatted}m\r\n7\r\nVN_ARIAL\r\n`;
                 } else {
                     // Chế độ mặc định (Bắt buộc theo yêu cầu): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI TẠI TÂM
-                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(cX - 2.5 * S).toFixed(3)}\n20\n${(cY - 1.2 * S).toFixed(3)}\n30\n0.0\n40\n${(3.5 * S).toFixed(4)}\n1\n${cleanSymbol}\n7\nVN_ARIAL\n`;
+                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 2.5 * S).toFixed(3)}\r\n20\r\n${(cY - 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.5 * S).toFixed(4)}\r\n1\r\n${cleanSymbol}\r\n7\r\nVN_ARIAL\r\n`;
                 }
             } else if (!isClosed && shape.mode !== 'polygon') {
                 if (!showBlockInfo) {
                     const midIdx = Math.floor(pts.length / 2);
                     const mp = pts[midIdx] || pts[0];
-                    dxf += `0\nTEXT\n8\nDIEN_TICH\n10\n${(mp.y + 1.5 * S).toFixed(3)}\n20\n${(mp.x + 1.5 * S).toFixed(3)}\n30\n0.0\n40\n${(2.6 * S).toFixed(4)}\n1\n${this.toCadAscii(shape.name)}\n7\nVN_ARIAL\n`;
+                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(mp.y + 1.5 * S).toFixed(3)}\r\n20\r\n${(mp.x + 1.5 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.6 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(shape.name)}\r\n7\r\nVN_ARIAL\r\n`;
                 }
             }
         });
@@ -20341,7 +20752,7 @@ const appCadTool = {
                         const x1 = vnStart.Y, y1 = vnStart.X;
                         const x2 = vnEnd.Y, y2 = vnEnd.X;
 
-                        dxf += "0\nLINE\n8\nCAD_MUITEN\n10\n" + x1.toFixed(3) + "\n20\n" + y1.toFixed(3) + "\n30\n0.0\n11\n" + x2.toFixed(3) + "\n21\n" + y2.toFixed(3) + "\n31\n0.0\n";
+                        dxf += "0\r\nLINE\r\n8\r\nCAD_MUITEN\r\n10\r\n" + x1.toFixed(3) + "\r\n20\r\n" + y1.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + x2.toFixed(3) + "\r\n21\r\n" + y2.toFixed(3) + "\r\n31\r\n0.0\r\n";
 
                         const dx = x1 - x2, dy = y1 - y2;
                         const len = Math.hypot(dx, dy) || 1;
@@ -20352,10 +20763,10 @@ const appCadTool = {
                         const px1 = ax - uy * aWid, py1 = ay + ux * aWid;
                         const px2 = ax + uy * aWid, py2 = ay - ux * aWid;
 
-                        dxf += "0\nSOLID\n8\nCAD_MUITEN\n10\n" + x1.toFixed(3) + "\n20\n" + y1.toFixed(3) + "\n30\n0.0\n11\n" + px1.toFixed(3) + "\n21\n" + py1.toFixed(3) + "\n31\n0.0\n12\n" + px2.toFixed(3) + "\n22\n" + py2.toFixed(3) + "\n32\n0.0\n13\n" + x1.toFixed(3) + "\n23\n" + y1.toFixed(3) + "\n33\n0.0\n";
+                        dxf += "0\r\nSOLID\r\n8\r\nCAD_MUITEN\r\n10\r\n" + x1.toFixed(3) + "\r\n20\r\n" + y1.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + px1.toFixed(3) + "\r\n21\r\n" + py1.toFixed(3) + "\r\n31\r\n0.0\r\n12\r\n" + px2.toFixed(3) + "\r\n22\r\n" + py2.toFixed(3) + "\r\n32\r\n0.0\r\n13\r\n" + x1.toFixed(3) + "\r\n23\r\n" + y1.toFixed(3) + "\r\n33\r\n0.0\r\n";
 
                         const textStr = this.toCadAscii(ann.arrowText || 'Ghi chu');
-                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (x2 + 1.2 * S).toFixed(3) + "\n20\n" + (y2 + 0.8 * S).toFixed(3) + "\n30\n0.0\n40\n" + (((ann.fontSize || 12) * 0.22 * S).toFixed(4)) + "\n1\n" + textStr + "\n7\nVN_ARIAL\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (x2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (y2 + 0.8 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + (((ann.fontSize || 12) * 0.22 * S).toFixed(4)) + "\r\n1\r\n" + textStr + "\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
@@ -20364,28 +20775,28 @@ const appCadTool = {
                         const cX = vn.Y, cY = vn.X;
                         const nR = 4.0 * S;
                         const nH = 12.0 * S;
-                        dxf += "0\nCIRCLE\n8\nHUONG_BAC\n10\n" + cX.toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + nR.toFixed(4) + "\n";
-                        dxf += "0\nLINE\n8\nHUONG_BAC\n10\n" + cX.toFixed(3) + "\n20\n" + (cY - nR).toFixed(3) + "\n30\n0.0\n11\n" + cX.toFixed(3) + "\n21\n" + (cY + nH).toFixed(3) + "\n31\n0.0\n";
-                        dxf += "0\nLINE\n8\nHUONG_BAC\n10\n" + (cX - nR * 0.7).toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n11\n" + cX.toFixed(3) + "\n21\n" + (cY + nH).toFixed(3) + "\n31\n0.0\n";
-                        dxf += "0\nLINE\n8\nHUONG_BAC\n10\n" + (cX + nR * 0.7).toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n11\n" + cX.toFixed(3) + "\n21\n" + (cY + nH).toFixed(3) + "\n31\n0.0\n";
-                        dxf += "0\nTEXT\n8\nHUONG_BAC\n10\n" + (cX - 1.0 * S).toFixed(3) + "\n20\n" + (cY + nH + 1.2 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((2.8 * S).toFixed(4)) + "\n1\nB\n7\nVN_ARIAL\n";
+                        dxf += "0\r\nCIRCLE\r\n8\r\nHUONG_BAC\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + nR.toFixed(4) + "\r\n";
+                        dxf += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + (cY - nR).toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dxf += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX - nR * 0.7).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dxf += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX + nR * 0.7).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX - 1.0 * S).toFixed(3) + "\r\n20\r\n" + (cY + nH + 1.2 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((2.8 * S).toFixed(4)) + "\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
                     case 'rect': {
                         if (ann.corners && ann.corners.length >= 4) {
                             const vnPts = ann.corners.map(c => convertWgsToVn2k(c[0], c[1], AppState.kttVal, AppState.scaleFactor));
-                            dxf += "0\nPOLYLINE\n8\nCAD_HINHKHOI\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n";
+                            dxf += "0\r\nPOLYLINE\r\n8\r\nCAD_HINHKHOI\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n";
                             vnPts.forEach(p => {
-                                dxf += "0\nVERTEX\n8\nCAD_HINHKHOI\n10\n" + p.Y.toFixed(3) + "\n20\n" + p.X.toFixed(3) + "\n30\n0.0\n";
+                                dxf += "0\r\nVERTEX\r\n8\r\nCAD_HINHKHOI\r\n10\r\n" + p.Y.toFixed(3) + "\r\n20\r\n" + p.X.toFixed(3) + "\r\n30\r\n0.0\r\n";
                             });
-                            dxf += "0\nSEQEND\n8\nCAD_HINHKHOI\n";
+                            dxf += "0\r\nSEQEND\r\n8\r\nCAD_HINHKHOI\r\n";
 
                             const vnCenter = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                             const nameStr = this.toCadAscii(ann.rectName || 'Khoi nha');
                             const dimStr = ann.widthM + "x" + ann.lengthM + "m (" + ann.rectArea + "m2)";
-                            dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\n20\n" + (vnCenter.X + 1 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((2.0 * S).toFixed(4)) + "\n1\n" + nameStr + "\n7\nVN_ARIAL\n";
-                            dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\n20\n" + (vnCenter.X - 2 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.6 * S).toFixed(4)) + "\n1\n" + dimStr + "\n7\nVN_ARIAL\n";
+                            dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\r\n20\r\n" + (vnCenter.X + 1 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((2.0 * S).toFixed(4)) + "\r\n1\r\n" + nameStr + "\r\n7\r\nVN_ARIAL\r\n";
+                            dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\r\n20\r\n" + (vnCenter.X - 2 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.6 * S).toFixed(4)) + "\r\n1\r\n" + dimStr + "\r\n7\r\nVN_ARIAL\r\n";
                         }
                         break;
                     }
@@ -20394,9 +20805,9 @@ const appCadTool = {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cX = vn.Y, cY = vn.X;
                         const r = ann.radiusM || 10;
-                        dxf += "0\nCIRCLE\n8\nCAD_HINHKHOI\n10\n" + cX.toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + r.toFixed(4) + "\n";
+                        dxf += "0\r\nCIRCLE\r\n8\r\nCAD_HINHKHOI\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + r.toFixed(4) + "\r\n";
                         const nameStr = this.toCadAscii(ann.circleName || 'Vung bao ve');
-                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - 6 * S).toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + ((1.8 * S).toFixed(4)) + "\n1\n" + nameStr + " (R=" + r + "m)\n7\nVN_ARIAL\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - 6 * S).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.8 * S).toFixed(4)) + "\r\n1\r\n" + nameStr + " (R=" + r + "m)\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
@@ -20405,24 +20816,24 @@ const appCadTool = {
                         const cX = vn.Y, cY = vn.X;
                         const stampW = 24.0 * S;
                         const stampH = 14.0 * S;
-                        dxf += "0\nPOLYLINE\n8\nCAD_TEMNHAN\n66\n1\n70\n1\n10\n0.0\n20\n0.0\n30\n0.0\n";
-                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX - stampW / 2).toFixed(3) + "\n20\n" + (cY - stampH / 2).toFixed(3) + "\n30\n0.0\n";
-                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX + stampW / 2).toFixed(3) + "\n20\n" + (cY - stampH / 2).toFixed(3) + "\n30\n0.0\n";
-                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX + stampW / 2).toFixed(3) + "\n20\n" + (cY + stampH / 2).toFixed(3) + "\n30\n0.0\n";
-                        dxf += "0\nVERTEX\n8\nCAD_TEMNHAN\n10\n" + (cX - stampW / 2).toFixed(3) + "\n20\n" + (cY + stampH / 2).toFixed(3) + "\n30\n0.0\n";
-                        dxf += "0\nSEQEND\n8\nCAD_TEMNHAN\n";
+                        dxf += "0\r\nPOLYLINE\r\n8\r\nCAD_TEMNHAN\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n";
+                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY - stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY - stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dxf += "0\r\nSEQEND\r\n8\r\nCAD_TEMNHAN\r\n";
 
-                        dxf += "0\nLINE\n8\nCAD_TEMNHAN\n10\n" + (cX - stampW / 2).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\n30\n0.0\n11\n" + (cX + stampW / 2).toFixed(3) + "\n21\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\n31\n0.0\n";
+                        dxf += "0\r\nLINE\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n21\r\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\r\n31\r\n0.0\r\n";
 
                         const h1 = "To: " + (ann.sheetNo || '01') + " - Thua: " + (ann.parcelNo || '01');
                         const h2 = "DT: " + this.toCadAscii(ann.area || '--');
                         const h3 = "Chu: " + this.toCadAscii(ann.owner || '--');
                         const h4 = "Loai: " + this.toCadAscii(ann.landType || '--');
 
-                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 3.0 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.8 * S).toFixed(4)) + "\n1\n" + h1 + "\n7\nVN_ARIAL\n";
-                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 6.5 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.5 * S).toFixed(4)) + "\n1\n" + h2 + "\n7\nVN_ARIAL\n";
-                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 9.5 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.5 * S).toFixed(4)) + "\n1\n" + h3 + "\n7\nVN_ARIAL\n";
-                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\n20\n" + (cY + stampH / 2 - 12.5 * S).toFixed(3) + "\n30\n0.0\n40\n" + ((1.5 * S).toFixed(4)) + "\n1\n" + h4 + "\n7\nVN_ARIAL\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 3.0 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.8 * S).toFixed(4)) + "\r\n1\r\n" + h1 + "\r\n7\r\nVN_ARIAL\r\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 6.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h2 + "\r\n7\r\nVN_ARIAL\r\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 9.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h3 + "\r\n7\r\nVN_ARIAL\r\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 12.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h4 + "\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
@@ -20431,7 +20842,7 @@ const appCadTool = {
                         const cX = vn.Y, cY = vn.X;
                         const txt = this.toCadAscii(ann.text || 'Ghi chu');
                         const fSize = (ann.fontSize || 12) * 0.22 * S;
-                        dxf += "0\nTEXT\n8\nCAD_TEXT\n10\n" + cX.toFixed(3) + "\n20\n" + cY.toFixed(3) + "\n30\n0.0\n40\n" + fSize.toFixed(4) + "\n1\n" + txt + "\n7\nVN_ARIAL\n";
+                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + fSize.toFixed(4) + "\r\n1\r\n" + txt + "\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
                 }
@@ -20453,21 +20864,21 @@ const appCadTool = {
         ];
 
         // Tiêu đề bảng tổng hợp
-        dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\n20\n${(curTableY - 4.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.4 * S).toFixed(4)}\n1\nBANG TONG HOP DIEN TICH\n7\nVN_ARIAL\n`;
+        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\r\n20\r\n${(curTableY - 4.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\nBANG TONG HOP DIEN TICH\r\n7\r\nVN_ARIAL\r\n`;
         curTableY -= 6.0 * S;
-        dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         const sumHeaders = ["STT", "Ten thua", "Dien tich(m2)", "Ti le(%)"];
         let shX = L.Xpanel0;
         sumHeaders.forEach((h, idx) => {
-            dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(shX + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.6 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${h}\n7\nVN_ARIAL\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(shX + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.6 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${h}\r\n7\r\nVN_ARIAL\r\n`;
             shX += colWSum[idx];
         });
 
         const sumTopY = curTableY;
         curTableY -= sumRowH;
-        dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         function wrapDxfLines(txt, maxLen = 18) {
             if (!txt) return [''];
@@ -20500,18 +20911,18 @@ const appCadTool = {
             const dynamicRowH = (Math.max(1, nameLines.length) * 2.8 + 2.2) * S;
 
             // STT, Area, Pct hiển thị tại dòng đầu tiên
-            dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.4 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${idx + 1}\n7\nVN_ARIAL\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${idx + 1}\r\n7\r\nVN_ARIAL\r\n`;
             
             // Xuống dòng tên khối/thửa không xóa mất ký tự hay thay bằng ".."
             nameLines.forEach((line, lIdx) => {
-                dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + colWSum[0] + 1.2 * S).toFixed(3)}\n20\n${(curTableY - (3.4 + lIdx * 2.8) * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${line}\n7\nVN_ARIAL\n`;
+                dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - (3.4 + lIdx * 2.8) * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${line}\r\n7\r\nVN_ARIAL\r\n`;
             });
 
-            dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.4 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${isPoly ? area.toFixed(2) : '--'}\n7\nVN_ARIAL\n`;
-            dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + colWSum[2] + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.4 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${pctStr}\n7\nVN_ARIAL\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${isPoly ? area.toFixed(2) : '--'}\r\n7\r\nVN_ARIAL\r\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + colWSum[2] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${pctStr}\r\n7\r\nVN_ARIAL\r\n`;
 
             curTableY -= dynamicRowH;
-            dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
+            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
         });
 
         // Dòng tổng cộng bảng tổng hợp
@@ -20519,20 +20930,20 @@ const appCadTool = {
         const sumTotalRow = ['--', 'TONG CONG', measuredTotalArea.toFixed(2), totalPctVal];
         let strX = L.Xpanel0;
         sumTotalRow.forEach((val, cIdx) => {
-            dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(strX + 1.2 * S).toFixed(3)}\n20\n${(curTableY - 3.6 * S).toFixed(3)}\n30\n0.0\n40\n${(1.7 * S).toFixed(4)}\n1\n${val}\n7\nVN_ARIAL\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(strX + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.6 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${val}\r\n7\r\nVN_ARIAL\r\n`;
             strX += colWSum[cIdx];
         });
 
         curTableY -= sumRowH;
-        dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // Kẻ dọc bảng tổng hợp (chuẩn khít tuyệt đối với colWPanel)
         const sumBottomY = curTableY;
         let svLineX = L.Xpanel0;
-        dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${svLineX.toFixed(3)}\n20\n${sumTopY.toFixed(3)}\n30\n0.0\n11\n${svLineX.toFixed(3)}\n21\n${sumBottomY.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${svLineX.toFixed(3)}\r\n20\r\n${sumTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${svLineX.toFixed(3)}\r\n21\r\n${sumBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
         colWSum.forEach(w => {
             svLineX += w;
-            dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${svLineX.toFixed(3)}\n20\n${sumTopY.toFixed(3)}\n30\n0.0\n11\n${svLineX.toFixed(3)}\n21\n${sumBottomY.toFixed(3)}\n31\n0.0\n`;
+            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${svLineX.toFixed(3)}\r\n20\r\n${sumTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${svLineX.toFixed(3)}\r\n21\r\n${sumBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
         });
 
         // --- 2. BẢNG KÊ TỌA ĐỘ RANH THỬA (TCVN 7285) ---
@@ -20550,21 +20961,21 @@ const appCadTool = {
 
         // Chỉ vẽ bảng kê nếu còn đủ chỗ phía trên khung tên
         if (curTableY > L.YtitleTop + 20 * S) {
-            dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
-            dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\n20\n${(curTableY - 3.8 * S).toFixed(3)}\n30\n0.0\n40\n${(2.2 * S).toFixed(4)}\n1\nBANG KE TOA DO RANH THUA\n7\nVN_ARIAL\n`;
+            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.2 * S).toFixed(4)}\r\n1\r\nBANG KE TOA DO RANH THUA\r\n7\r\nVN_ARIAL\r\n`;
             curTableY -= 5.0 * S;
-            dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
+            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
             const coordHeaders = ["STT", "Diem", "X(Bac)", "Y(Dong)", "Canh", "Az"];
             let chX = L.Xpanel0;
             coordHeaders.forEach((h, idx) => {
-                dxf += `0\nTEXT\n8\nTEXT_CHINH\n10\n${(chX + 1.0 * S).toFixed(3)}\n20\n${(curTableY - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\n${h}\n7\nVN_ARIAL\n`;
+                dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(chX + 1.0 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\n${h}\r\n7\r\nVN_ARIAL\r\n`;
                 chX += colWCoord[idx];
             });
 
             const coordTopY = curTableY;
             curTableY -= coordRowH;
-            dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
+            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
             // Lấy danh sách điểm ranh
             selectedShapes.forEach(shape => {
@@ -20581,22 +20992,22 @@ const appCadTool = {
                     const row = [String(pIdx + 1), cleanName, p.x.toFixed(3), p.y.toFixed(3), edgeStr, azStr];
                     let rx = L.Xpanel0;
                     row.forEach((v, cIdx) => {
-                        dxf += `0\nTEXT\n8\nTEXT_SO_LIEU\n10\n${(rx + 1.0 * S).toFixed(3)}\n20\n${(curTableY - 3.0 * S).toFixed(3)}\n30\n0.0\n40\n${(1.5 * S).toFixed(4)}\n1\n${v}\n7\nVN_ARIAL\n`;
+                        dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(rx + 1.0 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.5 * S).toFixed(4)}\r\n1\r\n${v}\r\n7\r\nVN_ARIAL\r\n`;
                         rx += colWCoord[cIdx];
                     });
 
                     curTableY -= coordRowH;
-                    dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${L.Xpanel0.toFixed(3)}\n20\n${curTableY.toFixed(3)}\n30\n0.0\n11\n${L.Xin1.toFixed(3)}\n21\n${curTableY.toFixed(3)}\n31\n0.0\n`;
+                    dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
                 });
             });
 
             // Kẻ dọc bảng kê tọa độ (vừa khít colWPanel)
             const coordBottomY = curTableY;
             let cvLineX = L.Xpanel0;
-            dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${cvLineX.toFixed(3)}\n20\n${coordTopY.toFixed(3)}\n30\n0.0\n11\n${cvLineX.toFixed(3)}\n21\n${coordBottomY.toFixed(3)}\n31\n0.0\n`;
+            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${cvLineX.toFixed(3)}\r\n20\r\n${coordTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${cvLineX.toFixed(3)}\r\n21\r\n${coordBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
             colWCoord.forEach(w => {
                 cvLineX += w;
-                dxf += `0\nLINE\n8\nBANG_BIEU\n10\n${cvLineX.toFixed(3)}\n20\n${coordTopY.toFixed(3)}\n30\n0.0\n11\n${cvLineX.toFixed(3)}\n21\n${coordBottomY.toFixed(3)}\n31\n0.0\n`;
+                dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${cvLineX.toFixed(3)}\r\n20\r\n${coordTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${cvLineX.toFixed(3)}\r\n21\r\n${coordBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
             });
         }
 
@@ -20608,38 +21019,38 @@ const appCadTool = {
         const tX1 = L.Xin1;
 
         // Khung bao quanh khung tên
-        dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${tY_top.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${tY_top.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${tY_top.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${tY_top.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // Hàng 1 (Đơn vị đo vẽ - cao 8.5mm)
         const yRow1 = tY_top - 8.5 * S;
-        dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${yRow1.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${yRow1.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 2.0 * S).toFixed(3)}\n20\n${(tY_top - 5.8 * S).toFixed(3)}\n30\n0.0\n40\n${(2.4 * S).toFixed(4)}\n1\n${this.toCadAscii(meta.organization || 'TRUNG TAM KHAO SAT & DO DAC DIA CHINH').toUpperCase()}\n7\nVN_ARIAL\n`;
+        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow1.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tY_top - 5.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(meta.organization || 'TRUNG TAM KHAO SAT & DO DAC DIA CHINH').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Hàng 2 (Tên bản vẽ - cao 9.5mm)
         const yRow2 = yRow1 - 9.5 * S;
-        dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${yRow2.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${yRow2.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 2.0 * S).toFixed(3)}\n20\n${(yRow1 - 6.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.8 * S).toFixed(4)}\n1\n${this.toCadAscii(meta.drawingName || 'BAN DO HIEN TRANG VI TRI THUA DAT').toUpperCase()}\n7\nVN_ARIAL\n`;
+        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow2.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(yRow1 - 6.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(meta.drawingName || 'BAN DO HIEN TRANG VI TRI THUA DAT').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Hàng 3 (Tên công trình / dự án - cao 6.0mm)
         const yRow3 = yRow2 - 6.0 * S;
-        dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${tX0.toFixed(3)}\n20\n${yRow3.toFixed(3)}\n30\n0.0\n11\n${tX1.toFixed(3)}\n21\n${yRow3.toFixed(3)}\n31\n0.0\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 2.0 * S).toFixed(3)}\n20\n${(yRow2 - 4.2 * S).toFixed(3)}\n30\n0.0\n40\n${(2.0 * S).toFixed(4)}\n1\nDU AN: ${this.toCadAscii(meta.projectName || '').toUpperCase()}\n7\nVN_ARIAL\n`;
+        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow3.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(yRow2 - 4.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nDU AN: ${this.toCadAscii(meta.projectName || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Hàng 4 (Thông tin chi tiết chia 2 cột - cao 12.0mm)
         const midColX = tX0 + colWPanel * 0.52;
-        dxf += `0\nLINE\n8\nKHUNG_TEN\n10\n${midColX.toFixed(3)}\n20\n${yRow3.toFixed(3)}\n30\n0.0\n11\n${midColX.toFixed(3)}\n21\n${tY0.toFixed(3)}\n31\n0.0\n`;
+        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${midColX.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${midColX.toFixed(3)}\r\n21\r\n${tY0.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // Cột trái hàng 4
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nHe VN2k: ${this.toCadAscii(AppState.provinceName || 'Tinh')} KTT:${AppState.kttDeg}\n7\nVN_ARIAL\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 6.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nNguoi do: ${this.toCadAscii(meta.surveyor || '').toUpperCase()}\n7\nVN_ARIAL\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(tX0 + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 10.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nKiem tra: ${this.toCadAscii(meta.checker || '').toUpperCase()}\n7\nVN_ARIAL\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nHe VN2k: ${this.toCadAscii(AppState.provinceName || 'Tinh')} KTT:${AppState.kttDeg}\r\n7\r\nVN_ARIAL\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 6.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nNguoi do: ${this.toCadAscii(meta.surveyor || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 10.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nKiem tra: ${this.toCadAscii(meta.checker || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Cột phải hàng 4
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(midColX + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 3.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nTy le: 1:${L.scaleVal}\n7\nVN_ARIAL\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(midColX + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 6.8 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nSo to/thua: ${this.toCadAscii(meta.parcelNo || '01')}\n7\nVN_ARIAL\n`;
-        dxf += `0\nTEXT\n8\nKHUNG_TEN\n10\n${(midColX + 1.8 * S).toFixed(3)}\n20\n${(yRow3 - 10.2 * S).toFixed(3)}\n30\n0.0\n40\n${(1.6 * S).toFixed(4)}\n1\nNgay lap: ${this.toCadAscii(meta.drawingDate)}\n7\nVN_ARIAL\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nTy le: 1:${L.scaleVal}\r\n7\r\nVN_ARIAL\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 6.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nSo to/thua: ${this.toCadAscii(meta.parcelNo || '01')}\r\n7\r\nVN_ARIAL\r\n`;
+        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 10.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nNgay lap: ${this.toCadAscii(meta.drawingDate)}\r\n7\r\nVN_ARIAL\r\n`;
 
-        dxf += "0\nENDSEC\n0\nEOF\n";
+        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
         const blob = new Blob([dxf], { type: "application/dxf" });
         const url = URL.createObjectURL(blob);
@@ -21356,10 +21767,10 @@ const appCadTool = {
 `;
         const gridInt = meta.scaleVal >= 2000 ? 100 : meta.scaleVal >= 1000 ? 50 : 20;
         for (let gx = Math.floor(minX / gridInt) * gridInt; gx <= maxX + gridInt; gx += gridInt) {
-            svgContent += `  <line class="grid" x1="${toSvgX(gx).toFixed(1)}" y1="${pad}" x2="${toSvgX(gx).toFixed(1)}" y2="${mapH - pad}"/>\n`;
+            svgContent += `  <line class="grid" x1="${toSvgX(gx).toFixed(1)}" y1="${pad}" x2="${toSvgX(gx).toFixed(1)}" y2="${mapH - pad}"/>\r\n`;
         }
         for (let gy = Math.floor(minY / gridInt) * gridInt; gy <= maxY + gridInt; gy += gridInt) {
-            svgContent += `  <line class="grid" x1="${pad}" y1="${toSvgY(gy).toFixed(1)}" x2="${svgW - pad}" y2="${toSvgY(gy).toFixed(1)}"/>\n`;
+            svgContent += `  <line class="grid" x1="${pad}" y1="${toSvgY(gy).toFixed(1)}" x2="${svgW - pad}" y2="${toSvgY(gy).toFixed(1)}"/>\r\n`;
         }
 
         svgContent += `
@@ -21378,9 +21789,9 @@ const appCadTool = {
 
             if (meta.showBoundaries !== false) {
                 if (isClosed) {
-                    svgContent += `  <polygon class="layer-ranh" points="${svgPts}" fill="${shape.color || '#38bdf8'}30"/>\n`;
+                    svgContent += `  <polygon class="layer-ranh" points="${svgPts}" fill="${shape.color || '#38bdf8'}30"/>\r\n`;
                 } else {
-                    svgContent += `  <polyline class="layer-ranh" points="${svgPts}"/>\n`;
+                    svgContent += `  <polyline class="layer-ranh" points="${svgPts}"/>\r\n`;
                 }
             }
 
@@ -21389,8 +21800,8 @@ const appCadTool = {
                 pts.forEach((p, idx) => {
                     const sx2 = toSvgX(p.y);
                     const sy2 = toSvgY(p.x);
-                    svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="4"/>\n`;
-                    svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}">${p.name || ('Đ' + (idx+1))}</text>\n`;
+                    svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="4"/>\r\n`;
+                    svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}">${p.name || ('Đ' + (idx+1))}</text>\r\n`;
                 });
             }
 
@@ -21402,7 +21813,7 @@ const appCadTool = {
                     const p2 = pts[(idx + 1) % pts.length];
                     const mx = toSvgX((p1.y + p2.y) / 2);
                     const my = toSvgY((p1.x + p2.x) / 2);
-                    svgContent += `  <text class="layer-kich-thuoc" x="${mx.toFixed(1)}" y="${(my-4).toFixed(1)}" text-anchor="middle">${edge.lengthFormatted}m</text>\n`;
+                    svgContent += `  <text class="layer-kich-thuoc" x="${mx.toFixed(1)}" y="${(my-4).toFixed(1)}" text-anchor="middle">${edge.lengthFormatted}m</text>\r\n`;
                 });
             }
 
@@ -21417,15 +21828,15 @@ const appCadTool = {
                     if (showPercent && baseProjectArea > 0) {
                         pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
                     }
-                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) - 8).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="bold" fill="#0D47A1">[${blockSymbol}] ${shape.name}</text>\n`;
-                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="#6A1B9A">S=${stats.areaFormatted}m²${pctStr}</text>\n`;
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) - 8).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="bold" fill="#0D47A1">[${blockSymbol}] ${shape.name}</text>\r\n`;
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="#6A1B9A">S=${stats.areaFormatted}m²${pctStr}</text>\r\n`;
                 } else {
-                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 5).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="bold" fill="#0D47A1">${blockSymbol}</text>\n`;
+                    svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 5).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="bold" fill="#0D47A1">${blockSymbol}</text>\r\n`;
                 }
             } else if (!isClosed && shape.mode !== 'polygon') {
                 const midIdx = Math.floor(pts.length / 2);
                 const mp = pts[midIdx] || pts[0];
-                svgContent += `  <text class="layer-dien-tich" x="${toSvgX(mp.y).toFixed(1)}" y="${toSvgY(mp.x).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="bold" fill="#0D47A1">${shape.name}</text>\n`;
+                svgContent += `  <text class="layer-dien-tich" x="${toSvgX(mp.y).toFixed(1)}" y="${toSvgY(mp.x).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="bold" fill="#0D47A1">${shape.name}</text>\r\n`;
             }
         });
 
@@ -21438,17 +21849,17 @@ const appCadTool = {
                         const vnEnd = convertWgsToVn2k(ann.endLat, ann.endLng, AppState.kttVal, AppState.scaleFactor);
                         const x1 = toSvgX(vnStart.Y), y1 = toSvgY(vnStart.X);
                         const x2 = toSvgX(vnEnd.Y), y2 = toSvgY(vnEnd.X);
-                        svgContent += '  <line x1="' + x2.toFixed(1) + '" y1="' + y2.toFixed(1) + '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '" stroke="' + (ann.color || '#f59e0b') + '" stroke-width="2" stroke-dasharray="4,4"/>\n';
-                        svgContent += '  <circle cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="4" fill="' + (ann.color || '#f59e0b') + '"/>\n';
-                        svgContent += '  <text x="' + (x2 + 6).toFixed(1) + '" y="' + (y2 - 4).toFixed(1) + '" font-size="' + (ann.fontSize || 12) + '" font-weight="bold" fill="#0f172a">' + (ann.arrowText || 'Ghi chú') + '</text>\n';
+                        svgContent += '  <line x1="' + x2.toFixed(1) + '" y1="' + y2.toFixed(1) + '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '" stroke="' + (ann.color || '#f59e0b') + '" stroke-width="2" stroke-dasharray="4,4"/>\r\n';
+                        svgContent += '  <circle cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="4" fill="' + (ann.color || '#f59e0b') + '"/>\r\n';
+                        svgContent += '  <text x="' + (x2 + 6).toFixed(1) + '" y="' + (y2 - 4).toFixed(1) + '" font-size="' + (ann.fontSize || 12) + '" font-weight="bold" fill="#0f172a">' + (ann.arrowText || 'Ghi chú') + '</text>\r\n';
                         break;
                     }
                     case 'north_arrow': {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
-                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="18" fill="#fff" stroke="' + (ann.color || '#38bdf8') + '" stroke-width="2"/>\n';
-                        svgContent += '  <polygon points="' + cx.toFixed(1) + ',' + (cy-15).toFixed(1) + ' ' + (cx-6).toFixed(1) + ',' + cy.toFixed(1) + ' ' + (cx+6).toFixed(1) + ',' + cy.toFixed(1) + '" fill="#e11d48"/>\n';
-                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+13).toFixed(1) + '" font-size="11" font-weight="bold" text-anchor="middle" fill="#0284c7">N</text>\n';
+                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="18" fill="#fff" stroke="' + (ann.color || '#38bdf8') + '" stroke-width="2"/>\r\n';
+                        svgContent += '  <polygon points="' + cx.toFixed(1) + ',' + (cy-15).toFixed(1) + ' ' + (cx-6).toFixed(1) + ',' + cy.toFixed(1) + ' ' + (cx+6).toFixed(1) + ',' + cy.toFixed(1) + '" fill="#e11d48"/>\r\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+13).toFixed(1) + '" font-size="11" font-weight="bold" text-anchor="middle" fill="#0284c7">N</text>\r\n';
                         break;
                     }
                     case 'rect': {
@@ -21457,11 +21868,11 @@ const appCadTool = {
                                 const vn = convertWgsToVn2k(c[0], c[1], AppState.kttVal, AppState.scaleFactor);
                                 return toSvgX(vn.Y).toFixed(1) + ',' + toSvgY(vn.X).toFixed(1);
                             }).join(' ');
-                            svgContent += '  <polygon points="' + pts + '" fill="' + (ann.color || '#ec4899') + '33" stroke="' + (ann.color || '#ec4899') + '" stroke-width="2"/>\n';
+                            svgContent += '  <polygon points="' + pts + '" fill="' + (ann.color || '#ec4899') + '33" stroke="' + (ann.color || '#ec4899') + '" stroke-width="2"/>\r\n';
                             const vnC = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                             const cx = toSvgX(vnC.Y), cy = toSvgY(vnC.X);
-                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy-4).toFixed(1) + '" font-size="11" font-weight="bold" text-anchor="middle" fill="#831843">' + (ann.rectName || 'Khối nhà') + '</text>\n';
-                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+10).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#9d174d">' + ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)</text>\n';
+                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy-4).toFixed(1) + '" font-size="11" font-weight="bold" text-anchor="middle" fill="#831843">' + (ann.rectName || 'Khối nhà') + '</text>\r\n';
+                            svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + (cy+10).toFixed(1) + '" font-size="9" text-anchor="middle" fill="#9d174d">' + ann.widthM + 'x' + ann.lengthM + 'm (' + ann.rectArea + 'm²)</text>\r\n';
                         }
                         break;
                     }
@@ -21469,8 +21880,8 @@ const appCadTool = {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
                         const r_px = (ann.radiusM || 10) * sc;
-                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + r_px.toFixed(1) + '" fill="' + (ann.color || '#10b981') + '22" stroke="' + (ann.color || '#10b981') + '" stroke-width="1.8" stroke-dasharray="4,4"/>\n';
-                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="10" font-weight="bold" text-anchor="middle" fill="#065f46">' + (ann.circleName || 'Vùng bảo vệ') + ' (R=' + ann.radiusM + 'm)</text>\n';
+                        svgContent += '  <circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="' + r_px.toFixed(1) + '" fill="' + (ann.color || '#10b981') + '22" stroke="' + (ann.color || '#10b981') + '" stroke-width="1.8" stroke-dasharray="4,4"/>\r\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="10" font-weight="bold" text-anchor="middle" fill="#065f46">' + (ann.circleName || 'Vùng bảo vệ') + ' (R=' + ann.radiusM + 'm)</text>\r\n';
                         break;
                     }
                     case 'stamp': {
@@ -21478,18 +21889,18 @@ const appCadTool = {
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
                         const stW = 120, stH = 70;
                         const left = cx - stW / 2, top = cy - stH / 2;
-                        svgContent += '  <rect x="' + left.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + stW + '" height="' + stH + '" rx="5" fill="#ffffff" stroke="' + (ann.color || '#0284c7') + '" stroke-width="2"/>\n';
-                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+16).toFixed(1) + '" font-size="10.5" font-weight="bold" fill="#0369a1">TỜ: ' + (ann.sheetNo || '01') + ' - THỬA: ' + (ann.parcelNo || '01') + '</text>\n';
-                        svgContent += '  <line x1="' + left.toFixed(1) + '" y1="' + (top+22).toFixed(1) + '" x2="' + (left+stW).toFixed(1) + '" y2="' + (top+22).toFixed(1) + '" stroke="#cbd5e1" stroke-width="1"/>\n';
-                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+36).toFixed(1) + '" font-size="9.5" fill="#0f172a">DT: ' + (ann.area || '--') + '</text>\n';
-                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+50).toFixed(1) + '" font-size="9.5" fill="#0f172a">Chủ: ' + (ann.owner || '--') + '</text>\n';
-                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+64).toFixed(1) + '" font-size="9.5" fill="#0f172a">Loại: ' + (ann.landType || '--') + '</text>\n';
+                        svgContent += '  <rect x="' + left.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + stW + '" height="' + stH + '" rx="5" fill="#ffffff" stroke="' + (ann.color || '#0284c7') + '" stroke-width="2"/>\r\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+16).toFixed(1) + '" font-size="10.5" font-weight="bold" fill="#0369a1">TỜ: ' + (ann.sheetNo || '01') + ' - THỬA: ' + (ann.parcelNo || '01') + '</text>\r\n';
+                        svgContent += '  <line x1="' + left.toFixed(1) + '" y1="' + (top+22).toFixed(1) + '" x2="' + (left+stW).toFixed(1) + '" y2="' + (top+22).toFixed(1) + '" stroke="#cbd5e1" stroke-width="1"/>\r\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+36).toFixed(1) + '" font-size="9.5" fill="#0f172a">DT: ' + (ann.area || '--') + '</text>\r\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+50).toFixed(1) + '" font-size="9.5" fill="#0f172a">Chủ: ' + (ann.owner || '--') + '</text>\r\n';
+                        svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+64).toFixed(1) + '" font-size="9.5" fill="#0f172a">Loại: ' + (ann.landType || '--') + '</text>\r\n';
                         break;
                     }
                     case 'text': {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cx = toSvgX(vn.Y), cy = toSvgY(vn.X);
-                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="' + (ann.fontSize || 13) + '" font-weight="bold" fill="' + (ann.color || '#0f172a') + '">' + (ann.text || 'Ghi chú') + '</text>\n';
+                        svgContent += '  <text x="' + cx.toFixed(1) + '" y="' + cy.toFixed(1) + '" font-size="' + (ann.fontSize || 13) + '" font-weight="bold" fill="' + (ann.color || '#0f172a') + '">' + (ann.text || 'Ghi chú') + '</text>\r\n';
                         break;
                     }
                 }
@@ -21501,7 +21912,7 @@ const appCadTool = {
         svgContent += `  <circle cx="${naXs}" cy="${naYs+20}" r="22" fill="#ffffff" stroke="#1565C0" stroke-width="2"/>
   <polygon points="${naXs},${naYs-5} ${naXs-7},${naYs+18} ${naXs+7},${naYs+18}" fill="#e11d48"/>
   <text x="${naXs}" y="${naYs+36}" text-anchor="middle" font-size="13" font-weight="bold" fill="#0284c7">N</text>
-  <text x="${naXs}" y="${naYs+52}" text-anchor="middle" font-size="9.5" fill="#666">Bắc</text>\n`;
+  <text x="${naXs}" y="${naYs+52}" text-anchor="middle" font-size="9.5" fill="#666">Bắc</text>\r\n`;
 
         // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT TRÊN KHUNG TÊN - XUỐNG DÒNG ĐẦY ĐỦ KHÔNG BỊ CẮT "...")
         const tblY = mapH + 30;
@@ -21537,24 +21948,24 @@ const appCadTool = {
             const pctStr = (isPoly && baseProjectArea > 0) ? ((area / baseProjectArea) * 100.0).toFixed(2) + '%' : '--';
             const rowBottom = curY + r.rowH;
 
-            svgContent += `  <line class="layer-bang-ke" x1="30" y1="${rowBottom}" x2="${tableRight}" y2="${rowBottom}"/>\n`;
-            svgContent += `  <text class="layer-bang-ke-text" x="45" y="${curY + 17}">${idx + 1}</text>\n`;
+            svgContent += `  <line class="layer-bang-ke" x1="30" y1="${rowBottom}" x2="${tableRight}" y2="${rowBottom}"/>\r\n`;
+            svgContent += `  <text class="layer-bang-ke-text" x="45" y="${curY + 17}">${idx + 1}</text>\r\n`;
             
             // Xuống dòng tên khối bằng tspan, bảo toàn 100% ký tự
-            svgContent += `  <text class="layer-bang-ke-text" x="95" y="${curY + 17}" font-weight="bold">\n`;
+            svgContent += `  <text class="layer-bang-ke-text" x="95" y="${curY + 17}" font-weight="bold">\r\n`;
             r.lines.forEach((l, lIdx) => {
                 if (lIdx === 0) {
-                    svgContent += `    <tspan x="95">${l}</tspan>\n`;
+                    svgContent += `    <tspan x="95">${l}</tspan>\r\n`;
                 } else {
-                    svgContent += `    <tspan x="95" dy="14">${l}</tspan>\n`;
+                    svgContent += `    <tspan x="95" dy="14">${l}</tspan>\r\n`;
                 }
             });
-            svgContent += `  </text>\n`;
+            svgContent += `  </text>\r\n`;
 
-            svgContent += `  <text class="layer-bang-ke-text" x="${colX_AreaM2 + 15}" y="${curY + 17}" font-weight="bold">${isPoly ? area.toFixed(2) : '--'}</text>\n`;
-            svgContent += `  <text class="layer-bang-ke-text" x="${colX_AreaHa + 15}" y="${curY + 17}">${isPoly ? (area/10000).toFixed(4) : '--'}</text>\n`;
+            svgContent += `  <text class="layer-bang-ke-text" x="${colX_AreaM2 + 15}" y="${curY + 17}" font-weight="bold">${isPoly ? area.toFixed(2) : '--'}</text>\r\n`;
+            svgContent += `  <text class="layer-bang-ke-text" x="${colX_AreaHa + 15}" y="${curY + 17}">${isPoly ? (area/10000).toFixed(4) : '--'}</text>\r\n`;
             if (showPercent) {
-                svgContent += `  <text class="layer-bang-ke-text" x="${colX_Pct + 15}" y="${curY + 17}" font-weight="bold" fill="#E65100">${pctStr}</text>\n`;
+                svgContent += `  <text class="layer-bang-ke-text" x="${colX_Pct + 15}" y="${curY + 17}" font-weight="bold" fill="#E65100">${pctStr}</text>\r\n`;
             }
             curY = rowBottom;
         });
