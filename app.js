@@ -363,6 +363,13 @@ const appNav = window.appNav = {
 
     handleHeaderBack() {
         triggerHaptic('light');
+        const tfMapView = document.getElementById('screen-transform-map');
+        if (tfMapView && (tfMapView.classList.contains('active') || tfMapView.style.display === 'flex')) {
+            tfMapView.classList.remove('active');
+            tfMapView.style.display = 'none';
+            appNav.showScreen('transform');
+            return;
+        }
         const mapView = document.getElementById('map-view-container');
         if (mapView && (mapView.classList.contains('active') || mapView.style.display === 'block')) {
             appNav.closeMap();
@@ -601,6 +608,9 @@ const appNav = window.appNav = {
         } else if (action === 'transform') {
             appNav.showScreen('transform');
             appNav.setActiveMenuItem('drawerItem_transform');
+        } else if (action === 'transform_map') {
+            appNav.openTransformMap();
+            appNav.setActiveMenuItem('drawerItem_transform_map');
         } else if (action === 'map') {
             appNav.openProjectMap();
             appNav.setActiveMenuItem('drawerItem_map');
@@ -794,6 +804,38 @@ const appNav = window.appNav = {
         const chip = document.getElementById('drawerStatusInfo');
         if (chip) {
             chip.innerHTML = `<span>📁 ${AppState.currentProject}</span> • <span>🌐 ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')</span>`;
+        }
+    },
+
+    openTransformMap(options = { mode: 'pick' }) {
+        AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'transform_map') ? AppState.currentScreen : 'transform';
+        AppState.currentScreen = 'transform_map';
+        AppState.mapMode = 'transform_map';
+
+        document.querySelectorAll('.screen-view').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none';
+        });
+        const tfMapView = document.getElementById('screen-transform-map');
+        if (tfMapView) {
+            tfMapView.classList.add('active');
+            tfMapView.style.display = 'flex';
+            void tfMapView.offsetHeight;
+        }
+
+        // Đồng bộ Header trên cùng
+        const btnBack = document.getElementById('btnHeaderBack');
+        if (btnBack) btnBack.style.display = 'inline-flex';
+        const titleEl = document.getElementById('headerTitle');
+        const subTitleEl = document.getElementById('headerSubtitle');
+        if (titleEl) titleEl.innerHTML = `<span>🗺️ 1.3 BẢN ĐỒ CHUYỂN ĐỔI TỌA ĐỘ</span>`;
+        if (subTitleEl) subTitleEl.innerText = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+
+        appNav.setActiveMenuItem('drawerItem_transform_map');
+        this.syncBottomNav('transform');
+
+        if (typeof appTransformMap !== 'undefined') {
+            appTransformMap.init(options);
         }
     },
 
@@ -2102,21 +2144,11 @@ const appTransform = {
             }
         }
 
-        appNav.openCoordPickerMap({ mode: 'single' });
-
-        // Nếu người dùng đã có tọa độ nhập, đặt con trỏ tâm ngắm quang học tại đó
-        if (initLat && initLng && initLat !== 0 && initLng !== 0) {
-            appCoordPicker.handleMapClick(initLat, initLng);
-        } else if (AppState.lastGps && AppState.lastGps.lat) {
-            // Nếu chưa nhập tọa độ nhưng đã có GPS, đặt tâm ngắm tại GPS
-            appCoordPicker.handleMapClick(AppState.lastGps.lat, AppState.lastGps.lng);
-        }
-
-        // Đảm bảo Live GPS Marker luôn hiển thị đồng thời nếu có GPS
-        if (AppState.lastGps && AppState.lastGps.lat) {
-            appMap.updateLiveGps(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
-            appMap.fitBothPoints();
-        }
+        appNav.openTransformMap({
+            mode: 'pick',
+            subMode: 'single',
+            initialPoint: (initLat && initLng) ? { lat: initLat, lng: initLng } : null
+        });
     },
 
     pasteCoords() {
@@ -2340,8 +2372,7 @@ const appTransform = {
     },
 
     openPickMultiOnMap() {
-        appNav.openCoordPickerMap({ mode: 'multi' });
-        showToast("📍 Chế độ Chấm đa điểm: Chạm liên tiếp các vị trí trên bản đồ để chọn điểm!", true);
+        appNav.openTransformMap({ mode: 'pick', subMode: 'multi' });
     },
 
     loadMultiFromPickedMap() {
@@ -2946,51 +2977,7 @@ const appTransform = {
             return;
         }
 
-        appNav.openConvertedMap(null);
-
-        const map = AppState.leafletMap;
-        if (!map) return;
-
-        if (!this._multiConvertedLayer) {
-            this._multiConvertedLayer = L.layerGroup().addTo(map);
-        } else {
-            this._multiConvertedLayer.clearLayers();
-            if (!map.hasLayer(this._multiConvertedLayer)) {
-                this._multiConvertedLayer.addTo(map);
-            }
-        }
-
-        const latlngs = [];
-        this.multiConvertedResults.forEach((r) => {
-            const fLat = parseFloat(r.lat);
-            const fLng = parseFloat(r.lng);
-            if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
-                latlngs.push([fLat, fLng]);
-                const icon = L.divIcon({
-                    className: 'multipoint-converted-pin',
-                    html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">${r.stt}</div>`,
-                    iconSize: [26, 26],
-                    iconAnchor: [13, 13]
-                });
-                const marker = L.marker([fLat, fLng], { icon }).addTo(this._multiConvertedLayer);
-                marker.bindPopup(`
-                    <div style="font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5;">
-                        <b style="color: #0d9488; font-size: 13px;">${r.name}</b><br>
-                        VN2000 X: <b>${r.x}</b><br>
-                        VN2000 Y: <b>${r.y}</b><br>
-                        WGS84: ${r.lat}°, ${r.lng}°<br>
-                        <span style="font-size: 11px; color: #64748b;">${r.ktt}</span>
-                    </div>
-                `);
-            }
-        });
-
-        if (latlngs.length > 0) {
-            map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40] });
-            showToast(`🗺️ Đang hiển thị ${latlngs.length} mốc chuyển đổi trên bản đồ!`);
-        } else {
-            showToast("⚠️ Không có tọa độ WGS-84 hợp lệ để hiển thị trên bản đồ!", true);
-        }
+        appNav.openTransformMap({ mode: 'view' });
     },
 
     clearWgs() {
@@ -3154,7 +3141,7 @@ const appTransform = {
             AppState.lastConvertedPoint = pt;
         }
 
-        appNav.openConvertedMap(pt);
+        appNav.openTransformMap({ mode: 'view' });
     },
 
     saveConvertedToProject() {
@@ -3498,12 +3485,285 @@ const appTransform = {
     },
 
     openFullConvertedMap() {
-        if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
-            this.viewMultiConvertedOnMap();
-        } else if (AppState.lastConvertedPoint) {
-            this.viewConvertedOnMap();
+        appNav.openTransformMap({ mode: 'view' });
+    }
+};
+
+// ================= 4B. PHÂN HỆ BẢN ĐỒ CHUYỂN ĐỔI TỌA ĐỘ ĐỘC LẬP =================
+const appTransformMap = {
+    map: null,
+    baseLayers: {},
+    activeBaseLayer: 'google_hybrid',
+    mode: 'pick', // 'pick' | 'view'
+    pickSubMode: 'single', // 'single' | 'multi'
+    pickedSinglePoint: null,
+    pickedMultiPoints: [],
+    markersLayer: null,
+    convertedLayer: null,
+
+    init(options = {}) {
+        const mode = options.mode || 'pick';
+        const subMode = options.subMode || 'single';
+        this.mode = mode;
+        this.pickSubMode = subMode;
+
+        this.ensureMap();
+        this.setMode(mode);
+        if (mode === 'pick') {
+            this.setPickSubMode(subMode);
+            if (options.initialPoint && options.initialPoint.lat && options.initialPoint.lng) {
+                this.setSinglePoint(options.initialPoint.lat, options.initialPoint.lng);
+            }
+        } else if (mode === 'view') {
+            this.renderConvertedPoints();
+        }
+    },
+
+    ensureMap() {
+        if (this.map) {
+            setTimeout(() => this.map.invalidateSize(), 200);
+            return;
+        }
+        if (typeof L === 'undefined') return;
+        const container = document.getElementById('leaflet-transform-map');
+        if (!container) return;
+
+        this.map = L.map('leaflet-transform-map', {
+            zoomControl: false,
+            attributionControl: false,
+            maxZoom: 24,
+            minZoom: 4
+        }).setView([10.5, 106.0], 12);
+
+        const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 24,
+            maxNativeZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 24,
+            maxNativeZoom: 19
+        });
+        googleHybrid.addTo(this.map);
+        this.baseLayers = {
+            'google_hybrid': googleHybrid,
+            'osm_streets': osmStreets
+        };
+        this.activeBaseLayer = 'google_hybrid';
+
+        this.markersLayer = L.layerGroup().addTo(this.map);
+        this.convertedLayer = L.layerGroup().addTo(this.map);
+
+        this.map.on('click', (e) => {
+            if (this.mode === 'pick') {
+                this.handleMapClick(e.latlng.lat, e.latlng.lng);
+            }
+        });
+
+        this.map.on('mousemove', (e) => {
+            this.updateHud(e.latlng.lat, e.latlng.lng);
+        });
+
+        setTimeout(() => this.map.invalidateSize(), 250);
+    },
+
+    setMode(mode) {
+        this.mode = mode;
+        const btnPick = document.getElementById('btnTfMapModePick');
+        const btnView = document.getElementById('btnTfMapModeView');
+        const actionsPick = document.getElementById('tfMapActionsPick');
+        const actionsView = document.getElementById('tfMapActionsView');
+
+        if (mode === 'pick') {
+            if (btnPick) btnPick.classList.add('active');
+            if (btnView) btnView.classList.remove('active');
+            if (actionsPick) actionsPick.style.display = 'flex';
+            if (actionsView) actionsView.style.display = 'none';
         } else {
-            appNav.openCoordPickerMap();
+            if (btnPick) btnPick.classList.remove('active');
+            if (btnView) btnView.classList.add('active');
+            if (actionsPick) actionsPick.style.display = 'none';
+            if (actionsView) actionsView.style.display = 'flex';
+            this.renderConvertedPoints();
+        }
+    },
+
+    setPickSubMode(subMode) {
+        this.pickSubMode = subMode;
+        const btnSingle = document.getElementById('btnTfPickSingle');
+        const btnMulti = document.getElementById('btnTfPickMulti');
+        if (subMode === 'single') {
+            if (btnSingle) btnSingle.classList.add('active');
+            if (btnMulti) btnMulti.classList.remove('active');
+            showToast("🎯 Chế độ Chấm đơn điểm: Nhấp vào vị trí cần lấy tọa độ!");
+        } else {
+            if (btnSingle) btnSingle.classList.remove('active');
+            if (btnMulti) btnMulti.classList.add('active');
+            showToast("📑 Chế độ Chấm đa điểm: Nhấp liên tiếp các vị trí để lập danh sách mốc!");
+        }
+    },
+
+    handleMapClick(lat, lng) {
+        if (!this.map) return;
+        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        if (this.pickSubMode === 'single') {
+            this.setSinglePoint(lat, lng, vn);
+        } else {
+            this.addMultiPoint(lat, lng, vn);
+        }
+    },
+
+    setSinglePoint(lat, lng, vn) {
+        if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        this.pickedSinglePoint = { lat, lng, x: vn.X, y: vn.Y };
+        if (this.markersLayer) {
+            this.markersLayer.clearLayers();
+            const icon = L.divIcon({
+                className: 'single-point-pin',
+                html: `<div style="background: #2563eb; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">🎯</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+            const marker = L.marker([lat, lng], { icon }).addTo(this.markersLayer);
+            marker.bindPopup(`<b>Điểm đã chọn</b><br>VN-2000 X: ${vn.X.toFixed(3)} m<br>VN-2000 Y: ${vn.Y.toFixed(3)} m<br>WGS-84: ${lat.toFixed(6)}, ${lng.toFixed(6)}`).openPopup();
+            this.map.panTo([lat, lng]);
+        }
+        this.updateHud(lat, lng, vn, true);
+    },
+
+    addMultiPoint(lat, lng, vn) {
+        if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        const idx = this.pickedMultiPoints.length + 1;
+        const pt = { stt: idx, name: `P${idx}`, lat, lng, x: vn.X, y: vn.Y };
+        this.pickedMultiPoints.push(pt);
+
+        if (this.markersLayer) {
+            const icon = L.divIcon({
+                className: 'multipoint-pin',
+                html: `<div style="background: #f59e0b; color: #000; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${idx}</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+            L.marker([lat, lng], { icon }).addTo(this.markersLayer).bindPopup(`<b>Điểm P${idx}</b><br>X: ${vn.X.toFixed(3)} m | Y: ${vn.Y.toFixed(3)} m`);
+        }
+        showToast(`✓ Đã thêm điểm P${idx} (${vn.X.toFixed(2)}, ${vn.Y.toFixed(2)})`);
+        this.updateHud(lat, lng, vn, true);
+    },
+
+    updateHud(lat, lng, vn, isPinned = false) {
+        const hud = document.getElementById('transformMapCoordHud');
+        if (!hud) return;
+        if (!vn) vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        const prefix = isPinned ? '🎯 ĐÃ CHỌN' : '📍 VỊ TRÍ';
+        hud.innerHTML = `<b>${prefix}:</b> Lat: <span style="color:#38bdf8">${lat.toFixed(6)}</span>, Lng: <span style="color:#38bdf8">${lng.toFixed(6)}</span> | X: <span style="color:#fde047">${vn.X.toFixed(3)}</span>, Y: <span style="color:#fde047">${vn.Y.toFixed(3)}</span>`;
+    },
+
+    applyToForm() {
+        if (this.pickSubMode === 'single') {
+            if (!this.pickedSinglePoint) {
+                showToast("⚠️ Vui lòng nhấp chọn 1 điểm trên bản đồ trước khi áp dụng!", true);
+                return;
+            }
+            const p = this.pickedSinglePoint;
+            const inLat = document.getElementById('txtWgsLat');
+            const inLng = document.getElementById('txtWgsLng');
+            if (inLat) inLat.value = formatLatLong(p.lat, AppState.formatType);
+            if (inLng) inLng.value = formatLatLong(p.lng, AppState.formatType);
+            showToast("✓ Đã áp dụng tọa độ về Form chuyển đổi!");
+            appNav.showScreen('transform');
+            if (typeof appTransform !== 'undefined' && appTransform.switchTransformSubTab) {
+                appTransform.switchTransformSubTab('single');
+            }
+        } else {
+            if (this.pickedMultiPoints.length === 0) {
+                showToast("⚠️ Chưa có điểm đa điểm nào được chấm!", true);
+                return;
+            }
+            if (typeof appTransform !== 'undefined') {
+                let added = 0;
+                this.pickedMultiPoints.forEach(p => {
+                    appTransform.multiPoints.push({
+                        stt: appTransform.multiPoints.length + 1,
+                        name: p.name,
+                        c1: p.x.toFixed(3),
+                        c2: p.y.toFixed(3),
+                        lat: p.lat,
+                        lng: p.lng,
+                        selected: true
+                    });
+                    added++;
+                });
+                appTransform.renderMultiPointsTable();
+                appTransform.updateMultiSelectionStats();
+                showToast(`✓ Đã nạp ${added} điểm đã chấm vào chuyển đổi hàng loạt!`);
+                appNav.showScreen('transform');
+                appTransform.switchTransformSubTab('multi');
+            }
+        }
+    },
+
+    renderConvertedPoints() {
+        if (!this.map || !this.convertedLayer) return;
+        this.convertedLayer.clearLayers();
+        const bounds = [];
+
+        // Kiểm tra đa điểm chuyển đổi trước
+        if (typeof appTransform !== 'undefined' && appTransform.multiConvertedResults && appTransform.multiConvertedResults.length > 0) {
+            appTransform.multiConvertedResults.forEach(r => {
+                const fLat = parseFloat(r.lat);
+                const fLng = parseFloat(r.lng);
+                if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
+                    bounds.push([fLat, fLng]);
+                    const icon = L.divIcon({
+                        className: 'multipoint-converted-pin',
+                        html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">${r.stt}</div>`,
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
+                    });
+                    L.marker([fLat, fLng], { icon })
+                        .addTo(this.convertedLayer)
+                        .bindPopup(`<b>Mốc: ${r.name || ('P' + r.stt)}</b><br>VN-2000 X: ${r.x} m<br>VN-2000 Y: ${r.y} m<br>WGS-84: ${r.lat}, ${r.lng}<br>KTT: ${r.ktt || ''}`);
+                }
+            });
+        } else if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.lat && AppState.lastConvertedPoint.lng) {
+            const p = AppState.lastConvertedPoint;
+            bounds.push([p.lat, p.lng]);
+            const icon = L.divIcon({
+                className: 'single-converted-pin',
+                html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">📍</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+            L.marker([p.lat, p.lng], { icon })
+                .addTo(this.convertedLayer)
+                .bindPopup(`<b>${p.name || 'Điểm Chuyển Đổi'}</b><br>VN-2000 X: ${parseFloat(p.x).toFixed(3)} m<br>VN-2000 Y: ${parseFloat(p.y).toFixed(3)} m<br>WGS-84: ${parseFloat(p.lat).toFixed(6)}, ${parseFloat(p.lng).toFixed(6)}`)
+                .openPopup();
+        }
+
+        if (bounds.length > 0) {
+            this.map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 18 });
+        } else {
+            showToast("ℹ️ Chưa có dữ liệu điểm chuyển đổi để hiển thị trên bản đồ.");
+        }
+    },
+
+    fitConvertedBounds() {
+        if (!this.map) return;
+        this.renderConvertedPoints();
+    },
+
+    toggleTileLayer() {
+        if (!this.map) return;
+        if (this.activeBaseLayer === 'google_hybrid') {
+            this.map.removeLayer(this.baseLayers['google_hybrid']);
+            this.baseLayers['osm_streets'].addTo(this.map);
+            this.activeBaseLayer = 'osm_streets';
+            showToast("🗺️ Đã chuyển sang Lớp bản đồ Đường phố");
+        } else {
+            this.map.removeLayer(this.baseLayers['osm_streets']);
+            this.baseLayers['google_hybrid'].addTo(this.map);
+            this.activeBaseLayer = 'google_hybrid';
+            showToast("🛰️ Đã chuyển sang Lớp Vệ tinh Google Hybrid");
         }
     }
 };
