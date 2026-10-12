@@ -5965,11 +5965,27 @@
           👋 Chào bạn, ứng dụng <b style="color: #38bdf8;">WGS-84 ⇄ VN-2000 PRO</b> được tác giả phát triển hoàn toàn <b style="color: #4ade80;">miễn phí</b> nhằm phục vụ cộng đồng kỹ sư trắc địa, địa chính toàn quốc. Mọi đóng góp nhỏ của bạn là nguồn động viên to lớn để duy trì hệ thống và cập nhật tính năng mới!
         </div>
 
+        <!-- Chọn Kênh Chuyển Khoản & Ví Điện Tử (0839656568) -->
+        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+          <button type="button" class="donate-channel-pill active" data-channel="vietinbank" onclick="appDonate.setChannel('vietinbank')">
+            🏦 VietinBank
+          </button>
+          <button type="button" class="donate-channel-pill" data-channel="bidv" onclick="appDonate.setChannel('bidv')">
+            🏦 BIDV
+          </button>
+          <button type="button" class="donate-channel-pill" data-channel="momo" onclick="appDonate.setChannel('momo')">
+            📱 MoMo
+          </button>
+          <button type="button" class="donate-channel-pill" data-channel="zalopay" onclick="appDonate.setChannel('zalopay')">
+            📱 ZaloPay
+          </button>
+        </div>
+
         <!-- Khung Mã QR VietQR Napas -->
         <div style="background: #0f172a; border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
           <div style="position: relative; width: 180px; height: 180px; background: #ffffff; border-radius: 10px; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
             <img id="imgDonateVietQR" alt="Mã VietQR Donate" style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;"
-              src="https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU">
+              src="https://img.vietqr.io/image/ICB-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU">
           </div>
           <div style="font-size: 11px; color: #94a3b8; text-align: center;">
             📱 Mở ứng dụng ngân hàng bất kỳ để quét mã VietQR tự động
@@ -5979,12 +5995,12 @@
           <div style="width: 100%; background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.6;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
               <span style="color: #94a3b8;">Ngân hàng:</span>
-              <b id="txtDonateBankName" style="color: #f8fafc;">MBBank (Quân Đội)</b>
+              <b id="txtDonateBankName" style="color: #f8fafc;">VietinBank (Ngân hàng Công Thương)</b>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span style="color: #94a3b8;">Số tài khoản:</span>
+              <span style="color: #94a3b8;">Số tài khoản / SĐT:</span>
               <div style="display: flex; align-items: center; gap: 6px;">
-                <b id="txtDonateAccountNo" style="color: #4ade80; font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: 1px;">0987654321</b>
+                <b id="txtDonateAccountNo" style="color: #4ade80; font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: 1px;">0839656568</b>
                 <button type="button" class="btn-sm btn-blue" style="height: 22px; padding: 0 8px; font-size: 10.5px;" onclick="appDonate.copyAccountNumber()">📋 Chép</button>
               </div>
             </div>

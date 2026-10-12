@@ -23352,13 +23352,61 @@ const appDonate = {
     timerId: null,
     remainingSeconds: 30,
 
-    // Cấu hình thông tin tài khoản tác giả
-    config: {
-        bankCode: 'MB',                     // Mã ngân hàng VietQR (MB, VCB, TCB, VPB, TPB, BIDV, CTG...)
-        bankName: 'MBBank (Ngân hàng Quân Đội)',
-        accountNumber: '0987654321',         // STK mẫu (sẽ cập nhật ngay khi tác giả cung cấp)
-        accountName: 'ĐẶNG NHƯ',            // Chủ tài khoản
-        memo: 'Ung ho VN2000 Pro'            // Lời nhắn chuyển khoản mặc định
+    // Cấu hình 4 kênh nhận donate của tác giả Đặng Như: STK 0839656568
+    activeChannel: 'vietinbank',
+    channels: {
+        'vietinbank': {
+            name: 'VietinBank (Ngân hàng Công Thương)',
+            bankCode: 'ICB',
+            accountNumber: '0839656568',
+            accountName: 'ĐẶNG NHƯ',
+            memo: 'Ung ho VN2000 Pro',
+            qrUrl: 'https://img.vietqr.io/image/ICB-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU'
+        },
+        'bidv': {
+            name: 'BIDV (Đầu tư và Phát triển VN)',
+            bankCode: 'BIDV',
+            accountNumber: '0839656568',
+            accountName: 'ĐẶNG NHƯ',
+            memo: 'Ung ho VN2000 Pro',
+            qrUrl: 'https://img.vietqr.io/image/BIDV-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU'
+        },
+        'momo': {
+            name: 'Ví Điện Tử MoMo (SĐT)',
+            bankCode: 'MOMO',
+            accountNumber: '0839656568',
+            accountName: 'ĐẶNG NHƯ',
+            memo: 'Ung ho VN2000 Pro',
+            qrUrl: 'https://img.vietqr.io/image/ICB-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU'
+        },
+        'zalopay': {
+            name: 'Ví Điện Tử ZaloPay (SĐT)',
+            bankCode: 'ZALOPAY',
+            accountNumber: '0839656568',
+            accountName: 'ĐẶNG NHƯ',
+            memo: 'Ung ho VN2000 Pro',
+            qrUrl: 'https://img.vietqr.io/image/BIDV-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU'
+        }
+    },
+
+    get config() {
+        return this.channels[this.activeChannel] || this.channels['vietinbank'];
+    },
+
+    setChannel(ch) {
+        if (!this.channels[ch]) return;
+        this.activeChannel = ch;
+        if (typeof document !== 'undefined') {
+            const pills = document.querySelectorAll('.donate-channel-pill');
+            pills.forEach(p => {
+                if (p.getAttribute('data-channel') === ch) {
+                    p.classList.add('active');
+                } else {
+                    p.classList.remove('active');
+                }
+            });
+        }
+        this.renderBankInfo();
     },
 
     init() {
@@ -23373,20 +23421,37 @@ const appDonate = {
             const saved = localStorage.getItem('vn2k_donate_author_config_v1');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                this.config = { ...this.config, ...parsed };
+                if (parsed.accountNumber) {
+                    Object.keys(this.channels).forEach(k => {
+                        this.channels[k].accountNumber = parsed.accountNumber;
+                    });
+                }
+                if (parsed.accountName) {
+                    Object.keys(this.channels).forEach(k => {
+                        this.channels[k].accountName = parsed.accountName;
+                    });
+                }
             }
         } catch(e) {}
     },
 
     updateAuthorAccount(bankCode, bankName, accountNumber, accountName, memo) {
-        if (bankCode) this.config.bankCode = bankCode;
-        if (bankName) this.config.bankName = bankName;
-        if (accountNumber) this.config.accountNumber = accountNumber;
-        if (accountName) this.config.accountName = accountName;
-        if (memo) this.config.memo = memo;
+        if (accountNumber) {
+            Object.keys(this.channels).forEach(k => {
+                this.channels[k].accountNumber = accountNumber;
+            });
+        }
+        if (accountName) {
+            Object.keys(this.channels).forEach(k => {
+                this.channels[k].accountName = accountName;
+            });
+        }
         try {
             if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('vn2k_donate_author_config_v1', JSON.stringify(this.config));
+                localStorage.setItem('vn2k_donate_author_config_v1', JSON.stringify({
+                    accountNumber: accountNumber || '0839656568',
+                    accountName: accountName || 'ĐẶNG NHƯ'
+                }));
             }
         } catch(e) {}
         this.renderBankInfo();
@@ -23438,20 +23503,20 @@ const appDonate = {
 
     renderBankInfo() {
         if (typeof document === 'undefined') return;
+        const cur = this.config;
         const elBank = document.getElementById('txtDonateBankName');
         const elStk = document.getElementById('txtDonateAccountNo');
         const elName = document.getElementById('txtDonateAccountName');
         const elMemo = document.getElementById('txtDonateMemo');
         const elQr = document.getElementById('imgDonateVietQR');
 
-        if (elBank) elBank.innerText = this.config.bankName;
-        if (elStk) elStk.innerText = this.config.accountNumber;
-        if (elName) elName.innerText = this.config.accountName;
-        if (elMemo) elMemo.innerText = this.config.memo;
+        if (elBank) elBank.innerText = cur.name;
+        if (elStk) elStk.innerText = cur.accountNumber;
+        if (elName) elName.innerText = cur.accountName;
+        if (elMemo) elMemo.innerText = cur.memo;
 
-        // Sinh link ảnh VietQR Napas chuẩn quốc gia
-        if (elQr && this.config.accountNumber) {
-            const qrUrl = `https://img.vietqr.io/image/${this.config.bankCode}-${this.config.accountNumber}-compact2.png?amount=0&addInfo=${encodeURIComponent(this.config.memo)}&accountName=${encodeURIComponent(this.config.accountName)}`;
+        if (elQr && cur.accountNumber) {
+            const qrUrl = cur.qrUrl || `https://img.vietqr.io/image/${cur.bankCode}-${cur.accountNumber}-compact2.png?amount=0&addInfo=${encodeURIComponent(cur.memo)}&accountName=${encodeURIComponent(cur.accountName)}`;
             elQr.src = qrUrl;
         }
     },
