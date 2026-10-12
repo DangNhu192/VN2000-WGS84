@@ -358,7 +358,11 @@ const appNav = window.appNav = {
             } else if (screenName === 'datamgmt') {
                 titleText = "5. SỔ ĐO & DỰ ÁN";
                 targetScreen = document.getElementById('screen-datamgmt');
-                if (typeof appData !== 'undefined' && appData.refreshTable) appData.refreshTable();
+                if (typeof appData !== 'undefined') {
+                    if (appData.populateProjectSelect) appData.populateProjectSelect();
+                    if (appData.refreshTable) appData.refreshTable();
+                    if (appData.updateSyncUI) appData.updateSyncUI();
+                }
             } else if (screenName === 'about') {
                 titleText = "6. THÔNG TIN & HƯỚNG DẪN";
                 targetScreen = document.getElementById('screen-about');
@@ -4776,13 +4780,12 @@ const appTransformMap = {
         if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) return;
         const sel = document.getElementById('selSheetMultiTargetProject');
         const projName = (sel && sel.value) ? sel.value : (AppState.currentProject || 'Dự án mặc định');
-        const raw = localStorage.getItem(`vn2k_proj_${projName}`);
-        let pts = [];
-        try { if (raw) pts = JSON.parse(raw); } catch(e) {}
+        let pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(projName) : [];
 
         this.multiConvertedResults.forEach(r => {
             pts.push({
                 id: Date.now() + Math.random(),
+                project: projName,
                 name: r.name,
                 x: parseFloat(r.x) || 0,
                 y: parseFloat(r.y) || 0,
@@ -4792,7 +4795,18 @@ const appTransformMap = {
                 note: 'Chuyển đổi đa điểm'
             });
         });
-        localStorage.setItem(`vn2k_proj_${projName}`, JSON.stringify(pts));
+
+        if (typeof appData !== 'undefined' && appData.savePoints) {
+            appData.savePoints(projName, pts);
+            if (appData.updateSyncUI) appData.updateSyncUI();
+            if (AppState.currentScreen === 'datamgmt' && appData.refreshTable) {
+                appData.refreshTable();
+            }
+        } else {
+            safeStorage.setItem(`vn2k_pts_${projName}`, JSON.stringify(pts));
+        }
+
+        if (typeof appNav !== 'undefined' && appNav.updateBanner) appNav.updateBanner();
         showToast(`💾 Đã lưu ${this.multiConvertedResults.length} mốc vào dự án "${projName}"!`);
     }
 };
@@ -6479,10 +6493,64 @@ const appData = {
             setTimeout(() => appData.flushOfflineQueue(), 2500);
         }
 
+        // Tự động di trú dọn dẹp các khóa lưu trữ cũ sang chuẩn vn2k_pts_
+        appData.migrateAllLegacyProjectKeys();
+
         appData.populateProjectSelect();
         appData.updateSyncUI();
         appData.purgeExpiredTrash();
         appData.updateTrashBadge();
+    },
+
+    migrateAllLegacyProjectKeys() {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            const legacyPrefix = 'vn2k_proj_';
+            const keysToMigrate = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(legacyPrefix)) {
+                    keysToMigrate.push(k);
+                }
+            }
+
+            keysToMigrate.forEach(legacyKey => {
+                const projName = legacyKey.slice(legacyPrefix.length);
+                if (!projName) return;
+                const standardKey = `vn2k_pts_${projName}`;
+                const legacyVal = localStorage.getItem(legacyKey);
+                if (legacyVal) {
+                    try {
+                        const legacyPts = JSON.parse(legacyVal);
+                        if (Array.isArray(legacyPts) && legacyPts.length > 0) {
+                            let standardPts = [];
+                            const curVal = localStorage.getItem(standardKey);
+                            if (curVal) {
+                                try { standardPts = JSON.parse(curVal) || []; } catch (e) {}
+                            }
+                            if (!Array.isArray(standardPts)) standardPts = [];
+
+                            const existingIds = new Set(standardPts.map(p => String(p.id)));
+                            legacyPts.forEach((p, idx) => {
+                                if (!p.id || !existingIds.has(String(p.id))) {
+                                    if (!p.id) p.id = Date.now() + idx;
+                                    p.project = projName;
+                                    standardPts.push(p);
+                                }
+                            });
+                            safeStorage.setItem(standardKey, JSON.stringify(standardPts));
+                        }
+                    } catch (e) {}
+                }
+                localStorage.removeItem(legacyKey);
+                if (!AppState.projectsList.includes(projName)) {
+                    AppState.projectsList.push(projName);
+                    safeStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+                }
+            });
+        } catch (e) {
+            console.warn('[AppData] Migration error:', e);
+        }
     },
 
     populateProjectSelect() {
@@ -6507,22 +6575,60 @@ const appData = {
     },
 
     getPoints(projectName) {
-        const key = `vn2k_pts_${projectName}`;
-        const raw = localStorage.getItem(key);
-        if (!raw) return [];
-        try {
-            const list = JSON.parse(raw);
-            if (Array.isArray(list)) {
-                // Đảm bảo từng mốc luôn mang thuộc tính project chuẩn xác
-                list.forEach(p => {
-                    if (!p.project) p.project = projectName;
-                });
-                return list;
-            }
-            return [];
-        } catch (e) {
-            return [];
+        const proj = projectName || AppState.currentProject;
+        const key = `vn2k_pts_${proj}`;
+        let raw = localStorage.getItem(key);
+        let list = [];
+
+        if (raw) {
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    list = parsed;
+                }
+            } catch (e) {}
         }
+
+        // Tự động hồi phục mốc từ khóa cũ vn2k_proj_ nếu khóa chuẩn đang rỗng
+        if (list.length === 0) {
+            const legacyKey = `vn2k_proj_${proj}`;
+            const legacyRaw = localStorage.getItem(legacyKey);
+            if (legacyRaw) {
+                try {
+                    const parsedLegacy = JSON.parse(legacyRaw);
+                    if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+                        list = parsedLegacy;
+                        safeStorage.setItem(key, JSON.stringify(list));
+                        localStorage.removeItem(legacyKey);
+                        console.log(`[AppData] Đã tự động di trú ${list.length} mốc từ "${legacyKey}" sang "${key}"!`);
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // Kiểm tra biến thể có hoặc không có đuôi .csv
+        if (list.length === 0) {
+            const altName = proj.endsWith('.csv') ? proj.slice(0, -4) : (proj + '.csv');
+            const altKey = `vn2k_pts_${altName}`;
+            const altRaw = localStorage.getItem(altKey) || localStorage.getItem(`vn2k_proj_${altName}`);
+            if (altRaw) {
+                try {
+                    const parsedAlt = JSON.parse(altRaw);
+                    if (Array.isArray(parsedAlt) && parsedAlt.length > 0) {
+                        list = parsedAlt;
+                        safeStorage.setItem(key, JSON.stringify(list));
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // Đảm bảo từng mốc luôn mang thuộc tính project chuẩn xác và có ID duy nhất
+        list.forEach((p, idx) => {
+            if (!p.id) p.id = Date.now() + idx;
+            if (!p.project) p.project = proj;
+        });
+
+        return list;
     },
 
     savePoints(projectName, points) {
@@ -6637,7 +6743,7 @@ const appData = {
 
     syncCurrentProjectToGoogle() {
         if (!AppState.googleScriptUrl) {
-            showToast("⚠️ Bạn chưa cài đặt link Google Apps Script URL!", true);
+            showToast("⚠️ Bạn chưa cấu hình Google Apps Script Web App! Vui lòng bấm 'Cấu hình' để kết nối hoặc dùng Xuất CSV/Excel ngoại tuyến.", true);
             appModal.openGoogleConfig();
             return;
         }
@@ -6645,7 +6751,8 @@ const appData = {
         const proj = AppState.currentProject;
         const pts = appData.getPoints(proj);
         if (pts.length === 0) {
-            showToast(`⚠️ Dự án "${proj}" hiện chưa có mốc nào để đồng bộ!`, true);
+            showToast(`⚠️ Dự án "${proj}" hiện chưa có mốc đo nào trong sổ đo để đồng bộ!`, true);
+            appData.updateSyncUI();
             return;
         }
 
@@ -6703,7 +6810,7 @@ const appData = {
             method: 'POST',
             mode: 'no-cors',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'text/plain;charset=utf-8'
             },
             body: JSON.stringify(payload)
         }).then(() => {
@@ -6715,12 +6822,13 @@ const appData = {
                 btn.innerText = origText;
                 btn.disabled = false;
             }
+            appData.updateSyncUI();
         });
     },
 
     syncAllProjectsToGoogle() {
         if (!AppState.googleScriptUrl) {
-            showToast("⚠️ Bạn chưa cài đặt link Google Apps Script URL!", true);
+            showToast("⚠️ Bạn chưa cấu hình Google Apps Script Web App! Vui lòng bấm 'Cấu hình' để kết nối hoặc dùng Xuất CSV/Excel ngoại tuyến.", true);
             appModal.openGoogleConfig();
             return;
         }
@@ -6767,6 +6875,7 @@ const appData = {
 
         if (allPoints.length === 0 && allShapes.length === 0) {
             showToast("⚠️ Tất cả các dự án hiện chưa có mốc nào để đồng bộ!", true);
+            appData.updateSyncUI();
             return;
         }
 
@@ -6787,7 +6896,7 @@ const appData = {
             method: 'POST',
             mode: 'no-cors',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'text/plain;charset=utf-8'
             },
             body: JSON.stringify(payload)
         }).then(() => {
@@ -6799,6 +6908,7 @@ const appData = {
                 btn.innerText = origText;
                 btn.disabled = false;
             }
+            appData.updateSyncUI();
         });
     },
 
@@ -7719,6 +7829,7 @@ function doGet(e) {
         localStorage.setItem('vn2k_cur_project', AppState.currentProject);
         appNav.updateBanner();
         appData.refreshTable();
+        appData.updateSyncUI();
         if (window.appMap && appMap.populateMapProjectSelect) {
             appMap.populateMapProjectSelect(newProj);
         }
@@ -7742,6 +7853,7 @@ function doGet(e) {
         appData.populateProjectSelect();
         appNav.updateBanner();
         appData.refreshTable();
+        appData.updateSyncUI();
         showToast(`✓ Đã tạo file dự án mới: ${name}`);
     },
 
@@ -7754,6 +7866,7 @@ function doGet(e) {
         const pts = appData.getPoints(cur);
         appData.savePoints(newName, pts);
         localStorage.removeItem(`vn2k_pts_${cur}`);
+        localStorage.removeItem(`vn2k_proj_${cur}`);
 
         const idx = AppState.projectsList.indexOf(cur);
         if (idx !== -1) AppState.projectsList[idx] = newName;
@@ -7764,6 +7877,8 @@ function doGet(e) {
 
         appData.populateProjectSelect();
         appNav.updateBanner();
+        appData.refreshTable();
+        appData.updateSyncUI();
         showToast(`✓ Đã đổi tên thành: ${newName}`);
     },
 
@@ -7782,10 +7897,12 @@ function doGet(e) {
         tbody.innerHTML = '';
 
         const pts = appData.getPoints(AppState.currentProject);
-        document.getElementById('txtPointsCount').innerText = pts.length;
+        const cntEl = document.getElementById('txtPointsCount');
+        if (cntEl) cntEl.innerText = pts.length;
 
         if (pts.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:16px; color:#94a3b8;">Chưa có mốc đo nào trong dự án này.</td></tr>`;
+            if (typeof this.updateSyncUI === 'function') this.updateSyncUI();
             return;
         }
 
@@ -7806,20 +7923,23 @@ function doGet(e) {
                 <td style="text-align: left; font-family: inherit;">${p.note || ''}</td>
                 <td style="text-align: center;">
                     <button class="btn-sm btn-blue" style="height:26px; padding:2px 8px; font-size:11px; display:inline-flex; align-items:center;" onclick="appMap.loadPointDirect('${p.lat}', '${p.lng}', '${p.x}', '${p.y}')" title="Nạp tọa độ mốc lên bản đồ">📌 Nạp</button>
-                    <button class="btn-sm btn-red" style="height:26px; padding:2px 8px; font-size:11px; display:inline-flex; align-items:center;" onclick="appData.deletePoint(${p.id})" title="Xóa mốc đo">🗑️</button>
+                    <button class="btn-sm btn-red" style="height:26px; padding:2px 8px; font-size:11px; display:inline-flex; align-items:center;" onclick="appData.deletePoint('${p.id}')" title="Xóa mốc đo">🗑️</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
+
+        if (typeof this.updateSyncUI === 'function') this.updateSyncUI();
     },
 
     deletePoint(id) {
         if (!confirm("Xóa mốc đo này?")) return;
         let pts = appData.getPoints(AppState.currentProject);
-        pts = pts.filter(p => p.id !== id);
+        pts = pts.filter(p => String(p.id) !== String(id));
         appData.savePoints(AppState.currentProject, pts);
         appNav.updateBanner();
         appData.refreshTable();
+        appData.updateSyncUI();
         showToast("✓ Đã xóa mốc!");
     },
 
