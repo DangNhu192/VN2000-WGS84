@@ -5766,9 +5766,6 @@ const appMap = {
                     <button onclick="appMap.loadPointDirect('${p.lat}', '${p.lng}', '${p.x}', '${p.y}')" style="margin-top:6px; background:#1565C0; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
                         📌 NẠP VÀO MÀN HÌNH CHÍNH
                     </button>
-                    <button onclick="appElevationProfile.addSurveyPointFromCoord(${p.lat}, ${p.lng}, '${p.name}', ${p.h || p.z || 10.0})" style="margin-top:4px; background:linear-gradient(135deg, #9333ea 0%, #059669 100%); color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
-                        ➕ THÊM VÀO TUYẾN / HỐ ĐÀO
-                    </button>
                     <button onclick="appMap.startMeasureFromPoint(${idx})" style="margin-top:4px; background:#d97706; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
                         📏 ĐO KHOẢNG CÁCH TỪ ĐIỂM NÀY
                     </button>
@@ -11177,9 +11174,9 @@ const appElevationProfile = {
         triggerHaptic('medium');
         this.cadBridgeMode = (targetMode === 'alignment' || targetMode === 'align') ? 'align' : 'pit';
 
-        // 1. Chuyển sang màn hình bản đồ
-        if (typeof appNav !== 'undefined' && appNav.openProjectMap) {
-            appNav.openProjectMap();
+        // 1. Chuyển sang không gian MiniCAD (Phân hệ 3.5 riêng biệt, KHÔNG chạm vào Bản đồ dự án)
+        if (typeof appNav !== 'undefined' && appNav.openCadMap) {
+            appNav.openCadMap();
         }
 
         // 2. Mở thanh công cụ MiniCAD
@@ -11190,6 +11187,14 @@ const appElevationProfile = {
             } else {
                 appCadTool.setMode('polygon');
             }
+        }
+
+        // Đổi Header tiêu đề để phân biệt rõ ràng không gian MiniCAD
+        const headerTitleEl = document.getElementById('headerTitle');
+        if (headerTitleEl) {
+            headerTitleEl.innerHTML = (this.cadBridgeMode === 'align')
+                ? `<span>🛣️ VẼ TUYẾN TRẮC DỌC TRÊN MINICAD</span>`
+                : `<span>🚜 VẼ HỐ ĐÀO MÓNG TRÊN MINICAD</span>`;
         }
 
         // 3. Hiển thị Banner liên thông nổi bật trên MiniCAD
@@ -11279,6 +11284,10 @@ const appElevationProfile = {
 
         if (navigateBack) {
             triggerHaptic('light');
+            const titleEl = document.getElementById('headerTitle');
+            if (titleEl) {
+                titleEl.innerHTML = `<img src="icon.png" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
+            }
             if (typeof appCadTool !== 'undefined' && appCadTool.closeToolbar) {
                 appCadTool.closeToolbar();
             }
@@ -20654,9 +20663,9 @@ const appCadTool = {
             });
         });
 
-        // 1. Chuyển sang màn hình bản đồ nếu đang ở màn hình khác
-        if (typeof appNav !== 'undefined' && appNav.openProjectMap) {
-            appNav.openProjectMap();
+        // 1. Chuyển sang không gian MiniCAD (Phân hệ 3.5 độc lập)
+        if (typeof appNav !== 'undefined' && appNav.openCadMap) {
+            appNav.openCadMap();
         }
 
         // 2. Mở thanh công cụ CAD nếu chưa mở

@@ -1647,57 +1647,6 @@
           </div>
         </div>
 
-        <!-- ================= THANH CÔNG CỤ KHẢO SÁT THỰC ĐỊA: TRẮC DỌC TUYẾN & HỐ ĐÀO MÓNG (TCVN 4447) ================= -->
-        <div id="barProfileSurveyor" class="bar-coord-picker" style="display: none; background: rgba(15, 23, 42, 0.95); border: 1.5px solid #a855f7; box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.4); z-index: 1050;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; width: 100%;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span id="profileSurveyorIcon" style="font-size: 16px;">🛣️</span>
-              <b id="profileSurveyorTitle" style="color: #d8b4fe; font-size: 13px;">KHẢO SÁT TUYẾN TRẮC DỌC</b>
-            </div>
-            <div style="display: flex; gap: 4px; align-items: center;">
-              <span id="profileSurveyorBadge" style="font-size: 11px; background: rgba(168, 85, 247, 0.25); color: #e9d5ff; padding: 2px 8px; border-radius: 6px; font-weight: 700;">0 cọc (0 m)</span>
-              <button type="button" class="btn-picker-close" onclick="appElevationProfile.closeMapSurveyor()" title="Đóng quay lại" style="height: 26px; width: 26px;">✕</button>
-            </div>
-          </div>
-
-          <!-- Trạng thái hướng dẫn và nút hoàn tác -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px; margin-bottom: 6px;">
-            <div style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #bae6fd;">
-              <span>💡</span>
-              <span id="profileSurveyorHint">Chạm bản đồ để cắm cọc hoặc bấm vào mốc dự án</span>
-            </div>
-            <div style="display: flex; gap: 4px;">
-              <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10.5px; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3);" onclick="appElevationProfile.surveyUndoLast()" title="Xóa cọc/đỉnh vừa thêm">↩ Lùi 1 cọc</button>
-              <button type="button" class="btn-sm" style="height: 24px; padding: 0 7px; font-size: 10.5px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appElevationProfile.surveyClearAll()" title="Xóa toàn bộ">🗑️ Xóa hết</button>
-            </div>
-          </div>
-
-          <!-- Bảng nhập nhanh thông số cọc/đỉnh vừa cắm (Tên & Cao độ Z tự nhiên) -->
-          <div id="profileSurveyorPointEditor" style="display: none; width: 100%; background: rgba(15, 23, 42, 0.9); border: 1px solid #38bdf8; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">📍 Cọc vừa cắm trên bản đồ:</span>
-              <span id="profileSurveyorPointCoord" style="font-size: 10.5px; color: #94a3b8; font-family: monospace;"></span>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <div>
-                <label class="form-label" style="font-size: 10px; margin-bottom: 2px;">Tên cọc / đỉnh:</label>
-                <input type="text" id="txtSurveyPointName" class="app-input" style="height: 30px; font-size: 12px; font-weight: 700; color: #fbbf24;" onchange="appElevationProfile.updateCurrentSurveyPoint()">
-              </div>
-              <div>
-                <label class="form-label" style="font-size: 10px; margin-bottom: 2px;">Cao độ Z tự nhiên (m):</label>
-                <input type="number" id="txtSurveyPointZ" class="app-input" inputmode="decimal" step="0.01" style="height: 30px; font-size: 12px; font-weight: 700; color: #4ade80;" onchange="appElevationProfile.updateCurrentSurveyPoint()">
-              </div>
-            </div>
-          </div>
-
-          <!-- Nút áp dụng dữ liệu về phân hệ 8 -->
-          <div style="display: flex; gap: 6px; width: 100%;">
-            <button type="button" id="btnProfileSurveyorApply" class="btn-picker-apply" style="flex: 1; height: 38px; font-size: 12.5px; font-weight: 700; background: linear-gradient(135deg, #9333ea 0%, #7e22ce 100%); border: 1px solid #c084fc;" onclick="appElevationProfile.applyMapSurveyor()">
-              ✓ Áp dụng về Tuyến Trắc Dọc
-            </button>
-          </div>
-        </div>
-
         <!-- Project Selector & View Bar on Map (Chỉ hiện nạp dữ liệu và xem mốc dự án) -->
         <div id="mapProjectBar" class="map-project-bar">
           <div class="map-proj-select-box" title="Chọn dự án đang lưu để hiển thị mốc">
@@ -3218,34 +3167,27 @@
                   </div>
                   <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
                     <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 34px; font-weight: 700;"
-                      onclick="appElevationProfile.loadFromProject()">
-                      📁 Nạp mốc Dự án
+                      onclick="appElevationProfile.loadFromProject()" title="Chọn mốc từ Sổ đo / Dự án đang mở">
+                      📁 Chọn mốc Dự án
                     </button>
                     <button type="button" class="btn-sm"
                       style="flex: 1; height: 34px; background: rgba(147, 51, 234, 0.25); border: 1px solid #c084fc; color: #d8b4fe; font-weight: 700;"
-                      onclick="appElevationProfile.openCadForProfile('align')">
+                      onclick="appElevationProfile.openCadForProfile('align')" title="Mở phân hệ 3.5 MiniCAD để vẽ tuyến đường / tim cọc">
                       📐 Vẽ Tuyến trên MiniCAD
-                    </button>
-                  </div>
-                  <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
-                    <button type="button" class="btn-sm"
-                      style="flex: 1; height: 32px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #7dd3fc; font-weight: 700;"
-                      onclick="appElevationProfile.loadAlignmentFromCad()">
-                      📂 Nạp từ MiniCAD
-                    </button>
-                    <button type="button" class="btn-sm"
-                      style="flex: 1; height: 32px; background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; font-weight: 600;"
-                      onclick="appElevationProfile.openMapSurveyor('alignment')">
-                      🗺️ Chấm nhanh B.Đồ
                     </button>
                   </div>
                   <div style="display: flex; gap: 6px;">
                     <button type="button" class="btn-sm"
-                      style="flex: 1; height: 28px; font-size: 11px; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 600;"
-                      onclick="appElevationProfile.loadSampleAlignment()" title="Nạp nhanh 5 cọc mẫu thử nghiệm">
-                      🛣️ Nạp Tuyến Mẫu (5 Cọc)
+                      style="flex: 1; height: 30px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #7dd3fc; font-weight: 700;"
+                      onclick="appElevationProfile.loadAlignmentFromCad()" title="Nạp nhanh tim tuyến đã vẽ trên MiniCAD">
+                      📂 Nạp từ MiniCAD
                     </button>
-                    <button type="button" class="btn-sm btn-red" style="height: 28px; padding: 0 8px; font-size: 11px;"
+                    <button type="button" class="btn-sm"
+                      style="height: 30px; font-size: 11px; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 600;"
+                      onclick="appElevationProfile.loadSampleAlignment()" title="Nạp nhanh 5 cọc mẫu thử nghiệm">
+                      🛣️ Tuyến Mẫu (5 Cọc)
+                    </button>
+                    <button type="button" class="btn-sm btn-red" style="height: 30px; padding: 0 8px; font-size: 11px;"
                       onclick="appElevationProfile.clearAlignmentPoints()" title="Xóa danh sách cọc hiện tại">
                       ✕ Xóa
                     </button>
@@ -3411,30 +3353,29 @@
                   </div>
                   <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
                     <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 34px; font-weight: 700;"
-                      onclick="appElevationProfile.openProjectPointPicker()">
+                      onclick="appElevationProfile.openProjectPointPicker()" title="Chọn mốc chu vi đáy từ Dự án đang mở">
                       📁 Chọn mốc Dự án
                     </button>
                     <button type="button" class="btn-sm"
                       style="flex: 1; height: 34px; background: rgba(16, 185, 129, 0.25); border: 1px solid #10b981; color: #6ee7b7; font-weight: 700;"
-                      onclick="appElevationProfile.openCadForProfile('pit')">
+                      onclick="appElevationProfile.openCadForProfile('pit')" title="Mở phân hệ 3.5 MiniCAD để vẽ đa giác chu vi đáy móng">
                       📐 Vẽ Đáy Hố trên MiniCAD
                     </button>
                   </div>
-                  <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+                  <div style="display: flex; gap: 6px; margin-bottom: 8px;">
                     <button type="button" class="btn-sm"
-                      style="flex: 1; height: 32px; background: rgba(6, 182, 212, 0.2); border: 1px solid #06b6d4; color: #67e8f9; font-weight: 700;"
-                      onclick="appElevationProfile.loadPitFromCad()">
+                      style="flex: 1; height: 30px; background: rgba(6, 182, 212, 0.2); border: 1px solid #06b6d4; color: #67e8f9; font-weight: 700;"
+                      onclick="appElevationProfile.loadPitFromCad()" title="Nạp nhanh đa giác đáy đã vẽ trên CAD Mini">
                       📂 Nạp từ CAD Mini
                     </button>
                     <button type="button" class="btn-sm"
-                      style="flex: 1; height: 32px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; font-weight: 700;"
-                      onclick="appElevationProfile.openMapSurveyor('pit')">
-                      🗺️ Chấm nhanh B.Đồ
-                    </button>
-                    <button type="button" class="btn-sm"
-                      style="height: 32px; padding: 0 8px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7;"
+                      style="height: 30px; font-size: 11px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7;"
                       onclick="appElevationProfile.loadSamplePit()" title="Nạp nhanh móng mẫu 6x8m sâu 2.5m">
                       🚜 Mẫu 4 Đỉnh
+                    </button>
+                    <button type="button" class="btn-sm btn-red" style="height: 30px; padding: 0 8px; font-size: 11px;"
+                      onclick="appElevationProfile.clearPitPoints()" title="Xóa danh sách mốc đáy hố đào">
+                      ✕ Xóa
                     </button>
                   </div>
 

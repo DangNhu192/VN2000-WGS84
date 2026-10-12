@@ -86,3 +86,17 @@ test('=== 3. KIỂM THỬ XỬ LÝ DỮ LIỆU ĐA DẠNG TỪ MINICAD (VERTICES
     area = Math.abs(area) / 2.0;
     assert.strictEqual(area, 80, 'Diện tích đáy móng 10m x 8m phải là 80 m²');
 });
+
+test('=== 4. BẢO VỆ PHÂN TÁCH ĐỘC LẬP: BẢN ĐỒ DỰ ÁN (2) & MINICAD (3.5) KHÔNG XUNG ĐỘT ===', () => {
+    // 4.1 openCadForProfile phải mở MiniCAD (openCadMap), tuyệt đối không mở openProjectMap
+    const fnStr = appJs.slice(appJs.indexOf('openCadForProfile(targetMode'));
+    const fnBody = fnStr.slice(0, fnStr.indexOf('updateCadBridgeStats()'));
+    assert(fnBody.includes('appNav.openCadMap()'), 'openCadForProfile phải gọi appNav.openCadMap()');
+    assert(!fnBody.includes('appNav.openProjectMap()'), 'openCadForProfile KHÔNG được gọi appNav.openProjectMap()');
+
+    // 4.2 Popup marker của Bản đồ dự án KHÔNG chứa nút thêm vào tuyến / hố đào
+    assert(!appJs.includes('THÊM VÀO TUYẾN / HỐ ĐÀO'), 'Popup marker của Dự án không được chứa nút thêm vào tuyến / hố đào');
+
+    // 4.3 Đã gỡ bỏ hoàn toàn thanh lạ #barProfileSurveyor khỏi index.html
+    assert(!indexHtml.includes('id="barProfileSurveyor"'), 'Không được tồn tại thanh lạ #barProfileSurveyor trong DOM');
+});
