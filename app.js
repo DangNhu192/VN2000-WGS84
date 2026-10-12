@@ -5752,6 +5752,9 @@ const appMap = {
                     <button onclick="appMap.loadPointDirect('${p.lat}', '${p.lng}', '${p.x}', '${p.y}')" style="margin-top:6px; background:#1565C0; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
                         📌 NẠP VÀO MÀN HÌNH CHÍNH
                     </button>
+                    <button onclick="appElevationProfile.addSurveyPointFromCoord(${p.lat}, ${p.lng}, '${p.name}', ${p.h || p.z || 10.0})" style="margin-top:4px; background:linear-gradient(135deg, #9333ea 0%, #059669 100%); color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
+                        ➕ THÊM VÀO TUYẾN / HỐ ĐÀO
+                    </button>
                     <button onclick="appMap.startMeasureFromPoint(${idx})" style="margin-top:4px; background:#d97706; color:#fff; border:none; border-radius:6px; padding:6px 10px; font-weight:700; width:100%; cursor:pointer;">
                         📏 ĐO KHOẢNG CÁCH TỪ ĐIỂM NÀY
                     </button>
@@ -10642,11 +10645,672 @@ const appElevationProfile = {
         this.openProjectPointPicker('pit');
     },
 
+    // ================= KHẢO SÁT THỰC ĐỊA TUYẾN TRẮC DỌC & HỐ ĐÀO MÓNG TRÊN BẢN ĐỒ =================
+    surveyMode: 'align', // 'align' (tuyến) hoặc 'pit' (hố móng/đắp)
+    surveyPoints: [], // Mảng các điểm đang khảo sát: [{ id, name, lat, lng, x, y, z }]
+    surveyLayerGroup: null,
+    isMapSurveyorActive: false,
+    _surveyMapClickHandler: null,
+    activeSurveyEditId: null,
+
     pickFromMap(mode) {
+        this.openMapSurveyor(mode);
+    },
+
+    openMapSurveyor(mode = 'align') {
+        triggerHaptic('medium');
+        this.surveyMode = (mode === 'alignment' || mode === 'align') ? 'align' : 'pit';
+        this.isMapSurveyorActive = true;
+
+        // 1. Sao chép các mốc hiện có sang mảng khảo sát tạm thời
+        const sourcePoints = (this.surveyMode === 'align') ? this.alignPoints : this.pitPoints;
+        this.surveyPoints = [];
+        if (Array.isArray(sourcePoints) && sourcePoints.length > 0) {
+            sourcePoints.forEach(p => {
+                let lat = p.lat, lng = p.lng;
+                if ((!lat || !lng) && p.x && p.y) {
+                    try {
+                        const wgs = convertVn2kToWgs(p.x, p.y, AppState.kttVal, AppState.scaleFactor);
+                        lat = wgs.lat;
+                        lng = wgs.lng;
+                    } catch (e) {}
+                }
+                this.surveyPoints.push({
+                    id: p.id || ('PT_' + Date.now() + Math.random().toString(36).slice(2, 6)),
+                    name: p.name || '',
+                    x: parseFloat(p.x) || 0,
+                    y: parseFloat(p.y) || 0,
+                    z: (p.z !== undefined && p.z !== null) ? parseFloat(p.z) : 10.0,
+                    lat: parseFloat(lat) || 0,
+                    lng: parseFloat(lng) || 0
+                });
+            });
+        }
+
+        // 2. Chuyển sang màn hình bản đồ và cô lập các thanh công cụ khác
+        document.querySelectorAll('.screen-view').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none';
+        });
+        const mapView = document.getElementById('map-view-container');
+        if (mapView) {
+            mapView.classList.add('active');
+            mapView.style.display = 'block';
+        }
+
+        // Ẩn tất cả toolbar khác để chống va chạm và rối mắt
+        const projectBar = document.getElementById('mapProjectBar');
+        const coordPickerBar = document.getElementById('barCoordPicker');
+        const cadBar = document.getElementById('mapCadToolbar');
+        const distanceHud = document.getElementById('mapDistanceHud');
+        if (projectBar) projectBar.style.display = 'none';
+        if (coordPickerBar) coordPickerBar.style.display = 'none';
+        if (cadBar) cadBar.style.display = 'none';
+        if (distanceHud) distanceHud.style.display = 'none';
+
+        // 3. Hiển thị thanh công cụ khảo sát trắc dọc / hố móng
+        const bar = document.getElementById('barProfileSurveyor');
+        const titleEl = document.getElementById('profileSurveyorTitle');
+        const iconEl = document.getElementById('profileSurveyorIcon');
+        const hintEl = document.getElementById('profileSurveyorHint');
+        const applyBtn = document.getElementById('btnProfileSurveyorApply');
+        const editorBox = document.getElementById('profileSurveyorPointEditor');
+        if (editorBox) editorBox.style.display = 'none';
+
+        if (bar) {
+            bar.style.display = 'flex';
+            if (this.surveyMode === 'align') {
+                bar.style.borderColor = '#a855f7';
+                bar.style.boxShadow = '0 10px 25px -5px rgba(168, 85, 247, 0.4)';
+                if (titleEl) {
+                    titleEl.innerText = "KHẢO SÁT TUYẾN TRẮC DỌC";
+                    titleEl.style.color = "#d8b4fe";
+                }
+                if (iconEl) iconEl.innerText = "🛣️";
+                if (hintEl) hintEl.innerText = "Chạm bản đồ để cắm cọc tuyến hoặc bấm vào mốc dự án";
+                if (applyBtn) {
+                    applyBtn.innerText = "✓ Áp dụng về Tuyến Trắc Dọc";
+                    applyBtn.style.background = "linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)";
+                    applyBtn.style.borderColor = "#c084fc";
+                }
+            } else {
+                bar.style.borderColor = '#10b981';
+                bar.style.boxShadow = '0 10px 25px -5px rgba(16, 185, 129, 0.4)';
+                if (titleEl) {
+                    titleEl.innerText = "KHẢO SÁT HỐ ĐÀO MÓNG (TCVN 4447)";
+                    titleEl.style.color = "#6ee7b7";
+                }
+                if (iconEl) iconEl.innerText = "🚜";
+                if (hintEl) hintEl.innerText = "Chạm bản đồ để chấm đỉnh chu vi đáy móng hoặc bấm vào mốc dự án";
+                if (applyBtn) {
+                    applyBtn.innerText = "✓ Áp dụng về Hố Đào Móng";
+                    applyBtn.style.background = "linear-gradient(135deg, #059669 0%, #047857 100%)";
+                    applyBtn.style.borderColor = "#34d399";
+                }
+            }
+        }
+
+        // 4. Khởi tạo bản đồ nếu chưa có và đăng ký sự kiện click
+        if (window.appMap && appMap.initMap) {
+            if (!AppState.leafletMap) appMap.initMap();
+        }
+
+        if (AppState.leafletMap) {
+            setTimeout(() => {
+                AppState.leafletMap.invalidateSize();
+                if (this.surveyPoints.length > 0) {
+                    const validPts = this.surveyPoints.filter(p => p.lat && p.lng);
+                    if (validPts.length > 0) {
+                        const bounds = L.latLngBounds(validPts.map(p => [p.lat, p.lng]));
+                        if (bounds.isValid()) AppState.leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+                    }
+                } else if (AppState.lastGps && AppState.lastGps.lat) {
+                    AppState.leafletMap.setView([AppState.lastGps.lat, AppState.lastGps.lng], 16);
+                }
+            }, 100);
+
+            this.setupSurveyMapInteractions();
+            this.renderSurveyMapGraphics();
+        }
+
+        // Bổ sung marker mốc dự án lên nền để có thể click chọn mốc đưa vào tuyến
+        if (window.appMap && appMap.loadProjectMarkers) {
+            appMap.loadProjectMarkers();
+        }
+    },
+
+    setupSurveyMapInteractions() {
+        const map = AppState.leafletMap;
+        if (!map) return;
+
+        if (this._surveyMapClickHandler) {
+            map.off('click', this._surveyMapClickHandler);
+        }
+
+        this._surveyMapClickHandler = (e) => {
+            if (!this.isMapSurveyorActive) return;
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            this.addSurveyPointFromCoord(lat, lng);
+        };
+
+        map.on('click', this._surveyMapClickHandler);
+    },
+
+    addSurveyPointFromCoord(lat, lng, snapName = '', snapZ = null) {
         triggerHaptic('light');
-        appNav.openProjectMap();
-        const targetName = (mode === 'alignment' || mode === 'align') ? "Tuyến trắc dọc" : "Hố đào móng";
-        showToast(`🗺️ Đã mở Bản đồ dự án. Bạn có thể xem và quản lý các mốc cho ${targetName}!`);
+        let x = 0, y = 0;
+        try {
+            const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+            x = parseFloat(vn2k.X.toFixed(3));
+            y = parseFloat(vn2k.Y.toFixed(3));
+        } catch (e) {
+            console.warn('Lỗi chuyển VN-2000:', e);
+        }
+
+        const idx = this.surveyPoints.length + 1;
+        let defaultName = snapName;
+        if (!defaultName) {
+            defaultName = (this.surveyMode === 'align') ? `KM0+${String((idx - 1) * 20).padStart(2, '0')}` : `Đ${idx}`;
+        }
+
+        let defaultZ = (snapZ !== null && snapZ !== undefined) ? parseFloat(snapZ) : 10.0;
+        if (snapZ === null && this.surveyPoints.length > 0) {
+            defaultZ = this.surveyPoints[this.surveyPoints.length - 1].z;
+        }
+
+        const newPt = {
+            id: 'SURV_' + Date.now() + Math.random().toString(36).slice(2, 6),
+            name: defaultName,
+            x: x,
+            y: y,
+            z: defaultZ,
+            lat: parseFloat(lat.toFixed(7)),
+            lng: parseFloat(lng.toFixed(7))
+        };
+
+        this.surveyPoints.push(newPt);
+        this.renderSurveyMapGraphics();
+        this.showSurveyPointEditor(newPt);
+    },
+
+    showSurveyPointEditor(pt) {
+        const box = document.getElementById('profileSurveyorPointEditor');
+        const nameInput = document.getElementById('txtSurveyPointName');
+        const zInput = document.getElementById('txtSurveyPointZ');
+        const coordSpan = document.getElementById('profileSurveyorPointCoord');
+        if (!box) return;
+
+        this.activeSurveyEditId = pt.id;
+        box.style.display = 'block';
+        if (nameInput) nameInput.value = pt.name;
+        if (zInput) zInput.value = pt.z.toFixed(2);
+        if (coordSpan) coordSpan.innerText = `X: ${pt.x} | Y: ${pt.y}`;
+    },
+
+    updateCurrentSurveyPoint() {
+        if (!this.activeSurveyEditId) return;
+        const pt = this.surveyPoints.find(p => p.id === this.activeSurveyEditId);
+        if (!pt) return;
+
+        const nameInput = document.getElementById('txtSurveyPointName');
+        const zInput = document.getElementById('txtSurveyPointZ');
+        if (nameInput && nameInput.value.trim()) pt.name = nameInput.value.trim();
+        if (zInput && !isNaN(parseFloat(zInput.value))) pt.z = parseFloat(zInput.value);
+
+        this.renderSurveyMapGraphics();
+        triggerHaptic('light');
+    },
+
+    renderSurveyMapGraphics() {
+        const map = AppState.leafletMap;
+        if (!map) return;
+
+        if (!this.surveyLayerGroup) {
+            this.surveyLayerGroup = L.layerGroup().addTo(map);
+        } else {
+            this.surveyLayerGroup.clearLayers();
+        }
+
+        const pts = this.surveyPoints;
+        const latlngs = pts.filter(p => p.lat && p.lng).map(p => [p.lat, p.lng]);
+        const isAlign = (this.surveyMode === 'align');
+        const color = isAlign ? '#a855f7' : '#10b981';
+
+        // 1. Vẽ đường Polyline (Tuyến) hoặc Polygon (Đa giác hố móng)
+        if (latlngs.length >= 2) {
+            if (isAlign) {
+                L.polyline(latlngs, {
+                    color: color,
+                    weight: 4,
+                    opacity: 0.9,
+                    dashArray: '6, 6'
+                }).addTo(this.surveyLayerGroup);
+            } else {
+                L.polygon(latlngs, {
+                    color: color,
+                    weight: 3,
+                    fillColor: '#10b981',
+                    fillOpacity: 0.25
+                }).addTo(this.surveyLayerGroup);
+            }
+        }
+
+        // 2. Vẽ các marker đỉnh cọc kèm nhãn Z
+        pts.forEach((p, idx) => {
+            if (!p.lat || !p.lng) return;
+            const markerHtml = `
+                <div style="background: ${color}; border: 2px solid #ffffff; color: #ffffff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer;">
+                    ${idx + 1}
+                </div>
+            `;
+            const icon = L.divIcon({
+                className: 'custom-survey-marker',
+                html: markerHtml,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+
+            const marker = L.marker([p.lat, p.lng], { icon: icon }).addTo(this.surveyLayerGroup);
+            marker.bindTooltip(`<b>${p.name}</b><br>Z=${p.z.toFixed(2)}m<br>X: ${p.x}<br>Y: ${p.y}`, {
+                permanent: false,
+                direction: 'top'
+            });
+
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                this.showSurveyPointEditor(p);
+            });
+        });
+
+        // 3. Tính toán tổng khoảng cách hoặc diện tích cập nhật lên badge
+        this.updateSurveyorMetrics();
+    },
+
+    updateSurveyorMetrics() {
+        const badgeEl = document.getElementById('profileSurveyorBadge');
+        if (!badgeEl) return;
+        const pts = this.surveyPoints;
+        const count = pts.length;
+
+        if (this.surveyMode === 'align') {
+            let totalDist = 0;
+            for (let i = 1; i < pts.length; i++) {
+                const dx = pts[i].x - pts[i - 1].x;
+                const dy = pts[i].y - pts[i - 1].y;
+                totalDist += Math.sqrt(dx * dx + dy * dy);
+            }
+            badgeEl.innerText = `${count} cọc (L = ${totalDist.toFixed(1)} m)`;
+        } else {
+            let area = 0;
+            if (pts.length >= 3) {
+                // Shoelace formula tính diện tích phẳng từ X, Y
+                for (let i = 0; i < pts.length; i++) {
+                    const j = (i + 1) % pts.length;
+                    area += pts[i].x * pts[j].y;
+                    area -= pts[j].x * pts[i].y;
+                }
+                area = Math.abs(area) / 2.0;
+            }
+            badgeEl.innerText = `${count} đỉnh (F = ${area.toFixed(1)} m²)`;
+        }
+    },
+
+    surveyUndoLast() {
+        triggerHaptic('light');
+        if (this.surveyPoints.length === 0) return;
+        this.surveyPoints.pop();
+        const editorBox = document.getElementById('profileSurveyorPointEditor');
+        if (this.surveyPoints.length === 0 && editorBox) {
+            editorBox.style.display = 'none';
+        } else if (this.surveyPoints.length > 0) {
+            this.showSurveyPointEditor(this.surveyPoints[this.surveyPoints.length - 1]);
+        }
+        this.renderSurveyMapGraphics();
+        showToast("↩ Đã lùi lại 1 điểm");
+    },
+
+    surveyClearAll() {
+        triggerHaptic('light');
+        if (this.surveyPoints.length === 0) return;
+        if (!confirm("Xóa toàn bộ các điểm đang khảo sát trên bản đồ?")) return;
+        this.surveyPoints = [];
+        const editorBox = document.getElementById('profileSurveyorPointEditor');
+        if (editorBox) editorBox.style.display = 'none';
+        this.renderSurveyMapGraphics();
+        showToast("✓ Đã xóa toàn bộ điểm khảo sát");
+    },
+
+    closeMapSurveyor() {
+        triggerHaptic('light');
+        this.isMapSurveyorActive = false;
+        if (this.surveyLayerGroup && AppState.leafletMap) {
+            this.surveyLayerGroup.clearLayers();
+        }
+        if (this._surveyMapClickHandler && AppState.leafletMap) {
+            AppState.leafletMap.off('click', this._surveyMapClickHandler);
+            this._surveyMapClickHandler = null;
+        }
+
+        const bar = document.getElementById('barProfileSurveyor');
+        if (bar) bar.style.display = 'none';
+
+        // Quay lại màn hình 8 Trắc dọc
+        appNav.showScreen('profile');
+        if (this.surveyMode === 'pit') {
+            this.switchTab('pit');
+        } else {
+            this.switchTab('alignment');
+        }
+    },
+
+    applyMapSurveyor() {
+        triggerHaptic('success');
+        if (!this.surveyPoints || this.surveyPoints.length === 0) {
+            showToast("⚠️ Chưa có cọc/đỉnh nào được cắm trên bản đồ!", true);
+            return;
+        }
+
+        const isAlign = (this.surveyMode === 'align');
+
+        if (isAlign) {
+            if (this.surveyPoints.length < 2) {
+                showToast("⚠️ Tuyến trắc dọc cần tối thiểu 2 cọc để vẽ mặt cắt!", true);
+                return;
+            }
+            this.alignPoints = JSON.parse(JSON.stringify(this.surveyPoints));
+            this.closeMapSurveyor();
+            this.switchTab('alignment');
+            this.calculateAndRender();
+            showToast(`✓ Đã nạp thành công ${this.alignPoints.length} cọc vào Tuyến trắc dọc!`);
+        } else {
+            if (this.surveyPoints.length < 3) {
+                showToast("⚠️ Chu vi đáy hố đào cần tối thiểu 3 đỉnh khép kín!", true);
+                return;
+            }
+            this.pitPoints = JSON.parse(JSON.stringify(this.surveyPoints));
+            this.closeMapSurveyor();
+            this.switchTab('pit');
+            this.renderPitPointsTable();
+            this.calculateAndRenderPit();
+            showToast(`✓ Đã nạp thành công ${this.pitPoints.length} đỉnh vào Hố đào móng (TCVN 4447)!`);
+        }
+    },
+
+    // ================= LIÊN THÔNG ĐỘC LẬP VỚI MINICAD (TCVN 4447 & TRẮC DỌC) =================
+    cadBridgeMode: null, // null | 'align' | 'pit'
+
+    openCadForProfile(targetMode = 'align') {
+        triggerHaptic('medium');
+        this.cadBridgeMode = (targetMode === 'alignment' || targetMode === 'align') ? 'align' : 'pit';
+
+        // 1. Chuyển sang màn hình bản đồ
+        if (typeof appNav !== 'undefined' && appNav.openProjectMap) {
+            appNav.openProjectMap();
+        }
+
+        // 2. Mở thanh công cụ MiniCAD
+        if (typeof appCadTool !== 'undefined' && appCadTool.openToolbar) {
+            appCadTool.openToolbar();
+            if (this.cadBridgeMode === 'align') {
+                appCadTool.setMode('polyline');
+            } else {
+                appCadTool.setMode('polygon');
+            }
+        }
+
+        // 3. Hiển thị Banner liên thông nổi bật trên MiniCAD
+        const banner = document.getElementById('cadProfileBridgeBanner');
+        const iconEl = document.getElementById('cadProfileBridgeIcon');
+        const titleEl = document.getElementById('cadProfileBridgeTitle');
+        const btnApply = document.getElementById('btnCadApplyToProfile');
+
+        if (banner) {
+            banner.style.display = 'flex';
+            if (this.cadBridgeMode === 'align') {
+                banner.style.borderColor = '#c084fc';
+                if (iconEl) iconEl.innerText = '🛣️';
+                if (titleEl) {
+                    titleEl.innerText = 'VẼ TUYẾN TRẮC DỌC (MINICAD)';
+                    titleEl.style.color = '#d8b4fe';
+                }
+                if (btnApply) {
+                    btnApply.innerText = '✓ Áp dụng về Tuyến Trắc Dọc';
+                    btnApply.style.background = 'linear-gradient(135deg, #9333ea, #7e22ce)';
+                    btnApply.style.borderColor = '#c084fc';
+                }
+            } else {
+                banner.style.borderColor = '#34d399';
+                if (iconEl) iconEl.innerText = '🚜';
+                if (titleEl) {
+                    titleEl.innerText = 'VẼ HỐ ĐÀO MÓNG (TCVN 4447)';
+                    titleEl.style.color = '#6ee7b7';
+                }
+                if (btnApply) {
+                    btnApply.innerText = '✓ Áp dụng về Hố Đào Móng';
+                    btnApply.style.background = 'linear-gradient(135deg, #059669, #047857)';
+                    btnApply.style.borderColor = '#34d399';
+                }
+            }
+        }
+
+        this.updateCadBridgeStats();
+        showToast(this.cadBridgeMode === 'align'
+            ? "🛣️ Đang ở chế độ Vẽ Tuyến MiniCAD! Bắt điểm snap mốc hoặc vẽ cọc, sau đó bấm [Áp dụng về Tuyến Trắc Dọc]."
+            : "🚜 Đang ở chế độ Vẽ Hố Móng MiniCAD! Bắt điểm snap mốc hoặc vẽ đa giác đáy, sau đó bấm [Áp dụng về Hố Đào Móng]."
+        );
+    },
+
+    updateCadBridgeStats() {
+        const statsEl = document.getElementById('cadProfileBridgeStats');
+        if (!statsEl) return;
+
+        let vertices = [];
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.vertices && appCadTool.vertices.length > 0) {
+                vertices = appCadTool.vertices;
+            } else if (appCadTool.selectedItem && appCadTool.selectedItem.type === 'shape' && appCadTool.savedShapes) {
+                const s = appCadTool.savedShapes[appCadTool.selectedItem.index];
+                if (s && (s.vertices || s.points)) vertices = s.vertices || s.points;
+            }
+        }
+
+        const count = vertices.length;
+        if (this.cadBridgeMode === 'align') {
+            let totalDist = 0;
+            for (let i = 1; i < vertices.length; i++) {
+                const dx = (vertices[i].x || 0) - (vertices[i-1].x || 0);
+                const dy = (vertices[i].y || 0) - (vertices[i-1].y || 0);
+                totalDist += Math.sqrt(dx * dx + dy * dy);
+            }
+            statsEl.innerText = `${count} cọc • L = ${totalDist.toFixed(1)} m`;
+        } else {
+            let area = 0;
+            if (vertices.length >= 3) {
+                for (let i = 0; i < vertices.length; i++) {
+                    const j = (i + 1) % vertices.length;
+                    const xi = vertices[i].x || 0, yi = vertices[i].y || 0;
+                    const xj = vertices[j].x || 0, yj = vertices[j].y || 0;
+                    area += xi * yj - xj * yi;
+                }
+                area = Math.abs(area) / 2.0;
+            }
+            statsEl.innerText = `${count} đỉnh • F = ${area.toFixed(1)} m²`;
+        }
+    },
+
+    closeCadBridge(navigateBack = true) {
+        this.cadBridgeMode = null;
+        const banner = document.getElementById('cadProfileBridgeBanner');
+        if (banner) banner.style.display = 'none';
+
+        if (navigateBack) {
+            triggerHaptic('light');
+            if (typeof appCadTool !== 'undefined' && appCadTool.closeToolbar) {
+                appCadTool.closeToolbar();
+            }
+            if (typeof appNav !== 'undefined' && appNav.showScreen) {
+                appNav.showScreen('profile');
+            }
+        }
+    },
+
+    applyCadToProfile() {
+        triggerHaptic('success');
+        let vertices = [];
+
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.vertices && appCadTool.vertices.length > 0) {
+                vertices = appCadTool.vertices;
+            } else if (appCadTool.selectedItem && appCadTool.selectedItem.type === 'shape' && appCadTool.savedShapes) {
+                const s = appCadTool.savedShapes[appCadTool.selectedItem.index];
+                if (s && (s.vertices || s.points)) {
+                    vertices = s.vertices || s.points;
+                }
+            } else if (appCadTool.savedShapes && appCadTool.savedShapes.length > 0) {
+                const targetMode = (this.cadBridgeMode === 'align') ? 'polyline' : 'polygon';
+                const s = [...appCadTool.savedShapes].reverse().find(shape => (shape.mode === targetMode || (targetMode === 'polygon' && shape.mode !== 'polyline')));
+                if (s && (s.vertices || s.points)) {
+                    vertices = s.vertices || s.points;
+                }
+            }
+        }
+
+        if (!vertices || vertices.length === 0) {
+            showToast("⚠️ Chưa có nét vẽ hoặc khối nào trên MiniCAD! Hãy chấm các đỉnh trước.", true);
+            return;
+        }
+
+        const isAlign = (this.cadBridgeMode === 'align');
+
+        if (isAlign) {
+            if (vertices.length < 2) {
+                showToast("⚠️ Tuyến trắc dọc cần tối thiểu 2 cọc!", true);
+                return;
+            }
+
+            this.alignPoints = vertices.map((v, i) => {
+                let x = parseFloat(v.x) || 0;
+                let y = parseFloat(v.y) || 0;
+                let lat = parseFloat(v.lat) || 0;
+                let lng = parseFloat(v.lng) || 0;
+                if ((!x || !y) && lat && lng) {
+                    try {
+                        const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        x = parseFloat(vn2k.X.toFixed(3));
+                        y = parseFloat(vn2k.Y.toFixed(3));
+                    } catch (e) {}
+                }
+                const zVal = (v.z !== undefined && v.z !== null) ? parseFloat(v.z) : ((v.h !== undefined && v.h !== null) ? parseFloat(v.h) : 10.0);
+                const name = v.name || v.id || `KM0+${String(i * 20).padStart(2, '0')}`;
+                return {
+                    id: `CAD_AL_${i+1}`,
+                    name: name,
+                    x: x,
+                    y: y,
+                    z: isNaN(zVal) ? 10.0 : zVal,
+                    lat: lat,
+                    lng: lng
+                };
+            });
+
+            this.closeCadBridge(true);
+            this.switchTab('alignment');
+            this.calculateAndRender();
+            showToast(`✓ Đã nạp ${this.alignPoints.length} cọc từ MiniCAD vào Tuyến trắc dọc!`);
+        } else {
+            if (vertices.length < 3) {
+                showToast("⚠️ Chu vi đáy hố đào móng cần tối thiểu 3 đỉnh khép kín!", true);
+                return;
+            }
+
+            this.pitPoints = vertices.map((v, i) => {
+                let x = parseFloat(v.x) || 0;
+                let y = parseFloat(v.y) || 0;
+                let lat = parseFloat(v.lat) || 0;
+                let lng = parseFloat(v.lng) || 0;
+                if ((!x || !y) && lat && lng) {
+                    try {
+                        const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        x = parseFloat(vn2k.X.toFixed(3));
+                        y = parseFloat(vn2k.Y.toFixed(3));
+                    } catch (e) {}
+                }
+                const zVal = (v.z !== undefined && v.z !== null) ? parseFloat(v.z) : ((v.h !== undefined && v.h !== null) ? parseFloat(v.h) : 10.0);
+                const name = v.name || v.id || `Đ${i+1}`;
+                return {
+                    id: `CAD_PIT_${i+1}`,
+                    name: name,
+                    x: x,
+                    y: y,
+                    z: isNaN(zVal) ? 10.0 : zVal,
+                    lat: lat,
+                    lng: lng
+                };
+            });
+
+            this.closeCadBridge(true);
+            this.switchTab('pit');
+            this.renderPitPointsTable();
+            this.calculateAndRenderPit();
+            showToast(`✓ Đã nạp ${this.pitPoints.length} đỉnh từ MiniCAD vào Hố đào móng!`);
+        }
+    },
+
+    loadAlignmentFromCad() {
+        triggerHaptic('light');
+        let vertices = [];
+
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.vertices && appCadTool.vertices.length >= 2) {
+                vertices = appCadTool.vertices;
+            } else if (appCadTool.selectedItem && appCadTool.selectedItem.type === 'shape' && appCadTool.savedShapes) {
+                const s = appCadTool.savedShapes[appCadTool.selectedItem.index];
+                if (s && (s.vertices || s.points) && (s.vertices || s.points).length >= 2) {
+                    vertices = s.vertices || s.points;
+                }
+            } else if (appCadTool.savedShapes && appCadTool.savedShapes.length > 0) {
+                const polylineShape = [...appCadTool.savedShapes].reverse().find(s => (s.mode === 'polyline' || s.type === 'polyline') && (s.vertices || s.points) && (s.vertices || s.points).length >= 2);
+                if (polylineShape) {
+                    vertices = polylineShape.vertices || polylineShape.points;
+                } else {
+                    const anyShape = appCadTool.savedShapes.find(s => (s.vertices || s.points) && (s.vertices || s.points).length >= 2);
+                    if (anyShape) vertices = anyShape.vertices || anyShape.points;
+                }
+            }
+        }
+
+        if (vertices && vertices.length >= 2) {
+            this.alignPoints = vertices.map((v, i) => {
+                let x = parseFloat(v.x) || 0;
+                let y = parseFloat(v.y) || 0;
+                let lat = parseFloat(v.lat) || 0;
+                let lng = parseFloat(v.lng) || 0;
+                if ((!x || !y) && lat && lng) {
+                    try {
+                        const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        x = parseFloat(vn2k.X.toFixed(3));
+                        y = parseFloat(vn2k.Y.toFixed(3));
+                    } catch (e) {}
+                }
+                const zVal = (v.z !== undefined && v.z !== null) ? parseFloat(v.z) : ((v.h !== undefined && v.h !== null) ? parseFloat(v.h) : 10.0);
+                return {
+                    id: `CAD_AL_${i+1}`,
+                    name: v.name || v.id || `KM0+${String(i * 20).padStart(2, '0')}`,
+                    x: x,
+                    y: y,
+                    z: isNaN(zVal) ? 10.0 : zVal,
+                    lat: lat,
+                    lng: lng
+                };
+            });
+
+            this.calculateAndRender();
+            showToast(`✓ Đã nạp ${this.alignPoints.length} cọc từ CAD Mini vào Tuyến trắc dọc!`);
+            return;
+        }
+
+        showToast("⚠️ Chưa có tuyến đường nào được vẽ trên CAD Mini. Bấm [📐 Vẽ Tuyến trên MiniCAD] để bắt đầu!", true);
     },
 
     openProjectPointPicker(mode = 'pit') {
@@ -10844,42 +11508,56 @@ const appElevationProfile = {
 
     loadPitFromCad() {
         triggerHaptic('light');
-        if (typeof appCadTool !== 'undefined' && appCadTool.vertices && appCadTool.vertices.length >= 3) {
-            this.pitPoints = appCadTool.vertices.map((v, i) => ({
-                id: `CAD_${i+1}`,
-                name: `C${i+1}`,
-                x: v.x,
-                y: v.y,
-                z: v.z || 10.0,
-                lat: v.lat,
-                lng: v.lng
-            }));
-            this.renderPitPointsTable();
-            this.calculateAndRenderPit();
-            showToast(`✓ Đã nạp ${this.pitPoints.length} điểm từ công cụ CAD Mini!`);
-            return;
-        }
+        let vertices = [];
 
-        if (typeof appCadTool !== 'undefined' && appCadTool.savedShapes && appCadTool.savedShapes.length > 0) {
-            const polygonShape = appCadTool.savedShapes.find(s => s.type === 'polygon' && s.points && s.points.length >= 3);
-            if (polygonShape) {
-                this.pitPoints = polygonShape.points.map((p, i) => ({
-                    id: `CAD_P${i+1}`,
-                    name: `P${i+1}`,
-                    x: p.x,
-                    y: p.y,
-                    z: p.z || 10.0,
-                    lat: p.lat,
-                    lng: p.lng
-                }));
-                this.renderPitPointsTable();
-                this.calculateAndRenderPit();
-                showToast(`✓ Đã nạp ${this.pitPoints.length} đỉnh đa giác từ CAD Tool!`);
-                return;
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.vertices && appCadTool.vertices.length >= 3) {
+                vertices = appCadTool.vertices;
+            } else if (appCadTool.selectedItem && appCadTool.selectedItem.type === 'shape' && appCadTool.savedShapes) {
+                const s = appCadTool.savedShapes[appCadTool.selectedItem.index];
+                if (s && (s.vertices || s.points) && (s.vertices || s.points).length >= 3) {
+                    vertices = s.vertices || s.points;
+                }
+            } else if (appCadTool.savedShapes && appCadTool.savedShapes.length > 0) {
+                const polygonShape = [...appCadTool.savedShapes].reverse().find(s => (s.mode === 'polygon' || s.mode !== 'polyline' || s.type === 'polygon') && (s.vertices || s.points) && (s.vertices || s.points).length >= 3);
+                if (polygonShape) {
+                    vertices = polygonShape.vertices || polygonShape.points;
+                }
             }
         }
 
-        showToast("⚠️ Chưa có đa giác nào được vẽ trên CAD Mini. Hãy vẽ đa giác trước hoặc bấm [Chọn mốc Dự án]!", true);
+        if (vertices && vertices.length >= 3) {
+            this.pitPoints = vertices.map((v, i) => {
+                let x = parseFloat(v.x) || 0;
+                let y = parseFloat(v.y) || 0;
+                let lat = parseFloat(v.lat) || 0;
+                let lng = parseFloat(v.lng) || 0;
+                if ((!x || !y) && lat && lng) {
+                    try {
+                        const vn2k = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        x = parseFloat(vn2k.X.toFixed(3));
+                        y = parseFloat(vn2k.Y.toFixed(3));
+                    } catch (e) {}
+                }
+                const zVal = (v.z !== undefined && v.z !== null) ? parseFloat(v.z) : ((v.h !== undefined && v.h !== null) ? parseFloat(v.h) : 10.0);
+                return {
+                    id: `CAD_PIT_${i+1}`,
+                    name: v.name || v.id || `Đ${i+1}`,
+                    x: x,
+                    y: y,
+                    z: isNaN(zVal) ? 10.0 : zVal,
+                    lat: lat,
+                    lng: lng
+                };
+            });
+
+            this.renderPitPointsTable();
+            this.calculateAndRenderPit();
+            showToast(`✓ Đã nạp ${this.pitPoints.length} đỉnh đa giác từ CAD Mini!`);
+            return;
+        }
+
+        showToast("⚠️ Chưa có đa giác nào được vẽ trên CAD Mini. Bấm [📐 Vẽ Đáy Hố trên MiniCAD] để bắt đầu!", true);
     },
 
     // --- CÀI ĐẶT THÔNG SỐ TCVN 4447 & LOẠI ĐẤT ---
@@ -13522,6 +14200,11 @@ const appCadTool = {
         if (thumbBar) thumbBar.style.display = 'none';
         const loupe = document.getElementById('cadTouchLoupe');
         if (loupe) loupe.style.display = 'none';
+
+        // Tự động đóng banner liên thông nếu đang mở từ Trắc dọc
+        if (typeof appElevationProfile !== 'undefined' && appElevationProfile.cadBridgeMode) {
+            appElevationProfile.closeCadBridge(false);
+        }
 
         // Khôi phục con trỏ bình thường
         const mapContainer = document.getElementById('map-view-container');
@@ -17458,6 +18141,11 @@ const appCadTool = {
 
         // Cập nhật số liệu đo diện tích và chu vi tức thời trên CAD Status HUD
         this.updateLiveStatsHud();
+
+        // Cập nhật số liệu tức thời cho banner liên thông Trắc dọc / Hố móng
+        if (typeof appElevationProfile !== 'undefined' && appElevationProfile.cadBridgeMode) {
+            appElevationProfile.updateCadBridgeStats();
+        }
     },
 
     updateLiveStatsHud(candLat = null, candLng = null, candX = null, candY = null) {
