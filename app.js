@@ -1232,8 +1232,22 @@ const appNav = window.appNav = {
         const muiEl = document.getElementById('bannerMui');
         const projEl = document.getElementById('bannerProject');
 
-        if (provEl) provEl.innerText = `${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+        const kttVal = AppState.kttVal || (AppState.kttDeg + AppState.kttMin / 60.0);
+        const decStr = kttVal.toFixed(4).replace(/\.?0+$/, '');
+        const dmsStr = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`;
+
+        if (provEl) provEl.innerText = `${AppState.provinceName} (${dmsStr} ⇄ ${decStr}°)`;
         if (muiEl) muiEl.innerText = `Múi ${AppState.muiVal}° (k0 = ${AppState.scaleFactor})`;
+
+        // Cập nhật chip hiển thị KTT ở màn hình chuyển đổi
+        const tfDms = document.getElementById('tfKttDmsText');
+        const tfDec = document.getElementById('tfKttDecText');
+        if (tfDms) tfDms.innerText = dmsStr;
+        if (tfDec) tfDec.innerText = `${decStr}°`;
+
+        // Cập nhật chip trên Dashboard
+        const dashChip = document.getElementById('dashChipProvinceKtt');
+        if (dashChip) dashChip.innerText = `${AppState.provinceName} (${dmsStr} ⇄ ${decStr}°)`;
         
         const count = appData.getPoints(AppState.currentProject).length;
         if (projEl) projEl.innerText = `${AppState.currentProject} (${count} mốc)`;
@@ -1252,7 +1266,7 @@ const appNav = window.appNav = {
         // Tích hợp thông tin trắc địa gọn gàng vào Header Subtitle khi ở màn hình Menu
         const subTitleEl = document.getElementById('headerSubtitle');
         if (subTitleEl && AppState.currentScreen === 'menu') {
-            subTitleEl.innerHTML = `<span class="header-geodetic-pill" onclick="appModal.openUnifiedSettings('ktt')" title="Nhấp để đổi Tỉnh thành & Kinh tuyến trục">📍 ${AppState.provinceName} • KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal}°) ▾</span>`;
+            subTitleEl.innerHTML = `<span class="header-geodetic-pill" onclick="appModal.openUnifiedSettings('ktt')" title="Nhấp để đổi Tỉnh thành & Kinh tuyến trục">📍 ${AppState.provinceName} • KTT ${dmsStr} (${decStr}°) • Múi ${AppState.muiVal}° ▾</span>`;
         }
 
         if (typeof appDashboard !== 'undefined') {
@@ -9078,6 +9092,8 @@ const appModal = {
         const minInput = document.getElementById('txtModalMin');
         if (minInput) minInput.value = AppState.kttMin;
         appModal.setMui(AppState.muiVal);
+        appModal.renderKttGuideAndPresets();
+        appModal.updateKttPreview(true);
 
         // 2. Khởi tạo dữ liệu Tab Lưu dữ liệu
         appData.selectStorageMode(AppState.storageMode || 'offline');
@@ -9158,18 +9174,134 @@ const appModal = {
         const idx = parseInt(document.getElementById('modalProvinceSelect').value, 10);
         if (idx >= 0 && idx < VN_PROVINCES.length) {
             const p = VN_PROVINCES[idx];
-            document.getElementById('txtModalDeg').value = p.deg;
-            document.getElementById('txtModalMin').value = p.min;
+            const degEl = document.getElementById('txtModalDeg');
+            const minEl = document.getElementById('txtModalMin');
+            if (degEl) degEl.value = p.deg;
+            if (minEl) minEl.value = p.min;
+        }
+        appModal.updateKttPreview(true);
+    },
+
+    renderKttGuideAndPresets() {
+        const container = document.getElementById('kttQuickChipsContainer');
+        if (!container) return;
+        if (container.children.length > 0) return; // Đã render rồi
+
+        const presets = (typeof COMMON_KTT_PRESETS !== 'undefined') ? COMMON_KTT_PRESETS : [
+            { deg: 105, min: 0, decimal: 105.0, label: "105°00' (105.0°)", provinces: "Lai Châu, Điện Biên" },
+            { deg: 105, min: 30, decimal: 105.5, label: "105°30' (105.5°)", provinces: "Hà Giang, Tuyên Quang" },
+            { deg: 105, min: 45, decimal: 105.75, label: "105°45' (105.75°)", provinces: "TP.HCM, Tây Ninh, Bình Phước" },
+            { deg: 106, min: 0, decimal: 106.0, label: "106°00' (106.0°)", provinces: "Đồng Nai, Bình Dương, Long An" },
+            { deg: 106, min: 30, decimal: 106.5, label: "106°30' (106.5°)", provinces: "Bà Rịa - Vũng Tàu, Tiền Giang" },
+            { deg: 107, min: 0, decimal: 107.0, label: "107°00' (107.0°)", provinces: "Lâm Đồng, Đắk Lắk" },
+            { deg: 107, min: 45, decimal: 107.75, label: "107°45' (107.75°)", provinces: "Bình Thuận" },
+            { deg: 108, min: 0, decimal: 108.0, label: "108°00' (108.0°)", provinces: "Khánh Hòa, Phú Yên, Gia Lai" },
+            { deg: 108, min: 30, decimal: 108.5, label: "108°30' (108.5°)", provinces: "Đà Nẵng, Quảng Nam, Quảng Ngãi" }
+        ];
+
+        container.innerHTML = '';
+        presets.forEach(p => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'btn-sm';
+            chip.style.cssText = 'height: 26px; padding: 0 8px; font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; cursor: pointer; white-space: nowrap;';
+            chip.title = `KTT: ${p.label} - Áp dụng cho: ${p.provinces}`;
+            chip.innerHTML = `<b>${p.label}</b>`;
+            chip.onclick = () => appModal.setKttFromPreset(p.deg, p.min, p.provinces);
+            container.appendChild(chip);
+        });
+    },
+
+    onQuickKttInput(val) {
+        if (!val || !val.trim()) {
+            appModal.updateKttPreview(false);
+            return;
+        }
+        const parser = (typeof parseKttString === 'function') ? parseKttString : null;
+        if (parser) {
+            const parsed = parser(val);
+            if (parsed && parsed.isValid) {
+                const degInput = document.getElementById('txtModalDeg');
+                const minInput = document.getElementById('txtModalMin');
+                if (degInput) degInput.value = parsed.deg;
+                if (minInput) minInput.value = parsed.min;
+                appModal.updateKttPreview(false);
+            }
+        }
+    },
+
+    setKttFromPreset(deg, min, provName = '') {
+        triggerHaptic('light');
+        const degInput = document.getElementById('txtModalDeg');
+        const minInput = document.getElementById('txtModalMin');
+        const quickInput = document.getElementById('txtModalKttQuick');
+        const sel = document.getElementById('modalProvinceSelect');
+
+        if (degInput) degInput.value = deg;
+        if (minInput) minInput.value = min;
+
+        if (sel) {
+            let matchedIdx = -1;
+            VN_PROVINCES.forEach((p, idx) => {
+                if (p.deg === deg && p.min === min) {
+                    if (provName && provName.includes(p.name)) matchedIdx = idx;
+                    else if (matchedIdx === -1) matchedIdx = idx;
+                }
+            });
+            sel.value = matchedIdx;
+        }
+
+        appModal.updateKttPreview(true);
+        const decVal = (deg + min / 60.0).toFixed(4).replace(/\.?0+$/, '');
+        showToast(`✓ Đã nạp KTT: ${deg}°${String(min).padStart(2, '0')}' (${decVal}°)`);
+    },
+
+    updateKttPreview(syncQuickInput = true) {
+        const degInput = document.getElementById('txtModalDeg');
+        const minInput = document.getElementById('txtModalMin');
+        const quickInput = document.getElementById('txtModalKttQuick');
+        const previewText = document.getElementById('lblModalKttPreviewText');
+        const equivBadge = document.getElementById('badgeModalKttEquiv');
+
+        const d = parseInt(degInput && degInput.value ? degInput.value : AppState.kttDeg, 10) || 105;
+        const m = parseInt(minInput && minInput.value ? minInput.value : AppState.kttMin, 10) || 0;
+        const decimal = d + (m / 60.0);
+        const decFormatted = decimal.toFixed(4).replace(/\.?0+$/, '') + '°';
+
+        if (previewText) {
+            previewText.innerHTML = `<b>${d}°${String(m).padStart(2, '0')}'</b> ⇄ <span style="color: #4ade80; font-weight: 800;">${decFormatted}</span> (Thập phân)`;
+        }
+        if (equivBadge) {
+            const minPart = (m / 60.0).toFixed(4).replace(/\.?0+$/, '');
+            equivBadge.innerText = `${m}' ÷ 60 = ${minPart}°`;
+        }
+        if (syncQuickInput && quickInput) {
+            quickInput.value = `${d}°${String(m).padStart(2, '0')}' (${decFormatted})`;
         }
     },
 
     saveSettings() {
         const selIdx = parseInt(document.getElementById('modalProvinceSelect').value, 10);
-        const d = parseInt(document.getElementById('txtModalDeg').value, 10);
-        const m = parseInt(document.getElementById('txtModalMin').value, 10);
+        const degInput = document.getElementById('txtModalDeg');
+        const minInput = document.getElementById('txtModalMin');
+        const quickInput = document.getElementById('txtModalKttQuick');
+
+        let d = parseInt(degInput ? degInput.value : '', 10);
+        let m = parseInt(minInput ? minInput.value : '', 10);
+
+        // Nếu ô tách rời trống hoặc không hợp lệ, thử phân tích từ ô nhập nhanh
+        if ((isNaN(d) || isNaN(m)) && quickInput && quickInput.value.trim()) {
+            const parsed = (typeof parseKttString === 'function') ? parseKttString(quickInput.value) : null;
+            if (parsed && parsed.isValid) {
+                d = parsed.deg;
+                m = parsed.min;
+                if (degInput) degInput.value = d;
+                if (minInput) minInput.value = m;
+            }
+        }
 
         if (isNaN(d) || isNaN(m)) {
-            showToast("⚠️ Vui lòng nhập độ và phút hợp lệ!", true);
+            showToast("⚠️ Vui lòng nhập Kinh tuyến trục hợp lệ (VD: 105°45' hoặc 105.75)!", true);
             return;
         }
 
@@ -9197,7 +9329,8 @@ const appModal = {
         appNav.updateBanner();
         appSettings.saveNow();
         appModal.closeSettings();
-        showToast(`✓ Đã lưu KTT: ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`);
+        const decStr = AppState.kttVal.toFixed(4).replace(/\.?0+$/, '') + '°';
+        showToast(`✓ Đã lưu KTT: ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' ⇄ ${decStr})`);
     },
 
     openGoogleConfig() {

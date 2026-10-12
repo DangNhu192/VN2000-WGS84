@@ -554,6 +554,84 @@ function checkPolygonSelfIntersection(vertices) {
     return Ok({ hasSelfIntersection: false });
 }
 
+// Danh sách các mốc Kinh tuyến trục phổ biến nhất tại Việt Nam kèm quy đổi độ thập phân
+const COMMON_KTT_PRESETS = [
+    { deg: 105, min: 0, decimal: 105.0, label: "105°00' (105.0°)", provinces: "Lai Châu, Điện Biên" },
+    { deg: 105, min: 30, decimal: 105.5, label: "105°30' (105.5°)", provinces: "Hà Giang, Tuyên Quang" },
+    { deg: 105, min: 45, decimal: 105.75, label: "105°45' (105.75°)", provinces: "TP.HCM, Tây Ninh, Bình Phước" },
+    { deg: 106, min: 0, decimal: 106.0, label: "106°00' (106.0°)", provinces: "Đồng Nai, Bình Dương, Long An" },
+    { deg: 106, min: 30, decimal: 106.5, label: "106°30' (106.5°)", provinces: "Bà Rịa - Vũng Tàu, Tiền Giang" },
+    { deg: 107, min: 0, decimal: 107.0, label: "107°00' (107.0°)", provinces: "Lâm Đồng, Đắk Lắk" },
+    { deg: 107, min: 45, decimal: 107.75, label: "107°45' (107.75°)", provinces: "Bình Thuận" },
+    { deg: 108, min: 0, decimal: 108.0, label: "108°00' (108.0°)", provinces: "Khánh Hòa, Phú Yên, Gia Lai" },
+    { deg: 108, min: 30, decimal: 108.5, label: "108°30' (108.5°)", provinces: "Đà Nẵng, Quảng Nam, Quảng Ngãi" }
+];
+
+/**
+ * Phân tích cú pháp chuỗi Kinh tuyến trục linh hoạt
+ * Hỗ trợ các định dạng: 105°45', 105O45', 105o45', 105d45, 105.75, 105,75, 105 45
+ */
+function parseKttString(str) {
+    if (!str) return null;
+    let s = String(str).trim();
+    if (!s) return null;
+
+    // Xử lý chữ O/o/Đ/đ gõ nhầm ký hiệu độ (VD: 105O45 hoặc 105o45)
+    s = s.replace(/(\d+)[OoĐđ](\d+)/g, "$1°$2");
+
+    // Xử lý dấu phẩy thập phân đơn thuần (VD: 105,75 -> 105.75)
+    if (/^\d+,\d+$/.test(s)) {
+        s = s.replace(',', '.');
+    }
+
+    // TH1: Dạng số thập phân (VD: 105.75 hoặc 105.5 hoặc 105)
+    if (/^\d+(\.\d+)?$/.test(s)) {
+        const val = parseFloat(s);
+        if (isNaN(val) || val < 100 || val > 115) return null;
+        const deg = Math.floor(val);
+        const minFloat = (val - deg) * 60.0;
+        const min = Math.round(minFloat);
+        return {
+            deg: deg,
+            min: min,
+            decimal: val,
+            dmsFormatted: `${deg}°${String(min).padStart(2, '0')}'`,
+            decimalFormatted: `${val.toFixed(4).replace(/\.?0+$/, '')}°`,
+            isValid: true
+        };
+    }
+
+    // TH2: Dạng Độ - Phút (VD: 105°45', 105d45, 105 45, 105-45, 105p45)
+    s = s.replace(/°|d|deg|Đ|đ|-|\s+/gi, " ").replace(/'|m|min|p|′|″|"/gi, " ").trim();
+    const parts = s.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+        const d = parseInt(parts[0], 10);
+        const m = parseFloat(parts[1].replace(',', '.'));
+        if (isNaN(d) || isNaN(m) || d < 100 || d > 115 || m < 0 || m >= 60) return null;
+        const dec = d + (m / 60.0);
+        return {
+            deg: d,
+            min: Math.round(m),
+            decimal: dec,
+            dmsFormatted: `${d}°${String(Math.round(m)).padStart(2, '0')}'`,
+            decimalFormatted: `${dec.toFixed(4).replace(/\.?0+$/, '')}°`,
+            isValid: true
+        };
+    } else if (parts.length === 1) {
+        const d = parseInt(parts[0], 10);
+        if (isNaN(d) || d < 100 || d > 115) return null;
+        return {
+            deg: d,
+            min: 0,
+            decimal: d * 1.0,
+            dmsFormatted: `${d}°00'`,
+            decimalFormatted: `${d.toFixed(1)}°`,
+            isValid: true
+        };
+    }
+    return null;
+}
+
 // Xuất các hàm ra phạm vi toàn cục hoặc module
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -561,6 +639,8 @@ if (typeof module !== 'undefined' && module.exports) {
         CoordLatLong,
         ProjTransverseMercator,
         VN_PROVINCES,
+        COMMON_KTT_PRESETS,
+        parseKttString,
         formatLatLong,
         parseCoordinateNumber,
         convertWgsToVn2k,

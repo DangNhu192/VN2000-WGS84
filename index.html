@@ -838,10 +838,16 @@
                     Đổi KTT
                   </button>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom: 6px;">
                   <select id="tfSelectProvince" class="app-select" onchange="appTransform.onProvinceChange()">
                     <!-- Options nạp tự động từ geodesy.js -->
                   </select>
+                </div>
+                <!-- DÒNG GHI CHÚ QUY ĐỔI KTT ĐỘ PHÚT ⇄ THẬP PHÂN -->
+                <div id="lblTransformKttPreview"
+                  style="font-size: 11px; color: #38bdf8; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 4px 8px;">
+                  <span>📍 KTT: <b id="tfKttDmsText">105°45'</b> (tương đương <b id="tfKttDecText" style="color: #4ade80;">105.75°</b>)</span>
+                  <span style="font-size: 10px; color: #94a3b8; cursor: pointer;" onclick="appModal.openUnifiedSettings('ktt')" title="Đổi KTT hoặc xem hướng dẫn">45'/60 = 0.75° ⚙️</span>
                 </div>
                 <div class="toggle-mui-group">
                   <button id="btnMui3" class="btn-mui-toggle active" onclick="appTransform.setMui(3)">
@@ -3807,6 +3813,7 @@
         </div>
 
         <!-- THẺ 2: CÀI ĐẶT KTT -->
+        <!-- THẺ 5.1: CÀI ĐẶT KINH TUYẾN TRỤC & MÚI CHIẾU VN-2000 -->
         <div id="settingsTabContentKtt" class="settings-tab-content" style="display: none;">
           <div class="form-group">
             <label class="form-label">Chọn tỉnh thành:</label>
@@ -3814,13 +3821,64 @@
               <!-- 63 tỉnh -->
             </select>
           </div>
+
+          <!-- BẢNG LIVE PREVIEW KTT QUY ĐỔI HIỆN TẠI -->
+          <div id="boxModalKttPreview"
+            style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">📍 Kinh tuyến trục hiệu dụng:</div>
+              <div id="lblModalKttPreviewText" style="font-size: 13.5px; font-weight: 800; color: #38bdf8; margin-top: 2px;">
+                105°45' ⇄ 105.75° (Thập phân)
+              </div>
+            </div>
+            <span id="badgeModalKttEquiv"
+              style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+              45' / 60 = 0.75°
+            </span>
+          </div>
+
+          <!-- TỰ NHẬP KTT LINH HOẠT HỖ TRỢ CẢ ĐỘ PHÚT & THẬP PHÂN -->
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>⚡ Nhập nhanh KTT (Độ Phút hoặc Thập phân):</span>
+              <span style="font-size: 11px; color: #38bdf8; font-weight: normal;">VD: 105°45', 105O45' hoặc 105.75</span>
+            </label>
+            <input type="text" id="txtModalKttQuick" class="app-input"
+              placeholder="Gõ nhanh: 105°45', 105O45' hoặc 105.75"
+              oninput="appModal.onQuickKttInput(this.value)">
+          </div>
+
           <div class="form-group">
-            <label class="form-label">Tự nhập Kinh tuyến trục (° '):</label>
+            <label class="form-label">Tự nhập tách rời theo Độ (°) và Phút ('):</label>
             <div class="input-row">
-              <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)">
-              <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)">
+              <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)"
+                oninput="appModal.updateKttPreview(true)">
+              <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)"
+                oninput="appModal.updateKttPreview(true)">
             </div>
           </div>
+
+          <!-- HỘP GHI CHÚ VÀ HƯỚNG DẪN QUY ĐỔI KINH TUYẾN TRỤC CHI TIẾT -->
+          <div class="ktt-guide-card"
+            style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+              <span style="font-size: 16px;">💡</span>
+              <span style="font-size: 12px; font-weight: 800; color: #d8b4fe; text-transform: uppercase;">Ghi chú sử dụng Kinh tuyến trục (KTT)</span>
+            </div>
+            <div style="font-size: 11.5px; color: #cbd5e1; line-height: 1.6; margin-bottom: 10px;">
+              Kinh tuyến trục địa phương tại Việt Nam có thể biểu diễn dưới 2 dạng tương đương:
+              <div style="margin: 6px 0; background: rgba(30, 41, 59, 0.6); padding: 8px 10px; border-radius: 6px; border-left: 3px solid #c084fc;">
+                <div>• <b>Dạng Độ - Phút (DMS):</b> Viết <code>105°45'</code> (hoặc gõ nhanh <code>105O45'</code>, <code>105d45</code>) theo Quyết định 05/2007/QĐ-BTNMT.</div>
+                <div style="margin-top: 3px;">• <b>Dạng Độ Thập Phân (Decimal):</b> Viết <code>105.75°</code> (thường dùng trong máy RTK, QGIS, ArcGIS).</div>
+                <div style="margin-top: 3px; color: #38bdf8;">• <b>Công thức quy đổi:</b> <code>105° + 45'/60 = 105.75°</code> (Số phút chia cho 60).</div>
+              </div>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 6px;">⚡ Bấm nhanh các KTT chuẩn phổ biến tại Việt Nam:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 5px;" id="kttQuickChipsContainer">
+              <!-- Render tự động bởi appModal.renderKttGuideAndPresets() -->
+            </div>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Chọn Múi chiếu:</label>
             <div class="toggle-mui-group">
