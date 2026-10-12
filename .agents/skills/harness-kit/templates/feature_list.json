@@ -1,0 +1,21 @@
+{
+  "active_feature": "F-001",
+  "features": [
+    {
+      "id": "F-001",
+      "name": "Bootstrap harness",
+      "description": "Scaffold the zero-dependency Python harness into the workspace and confirm baseline modules compile cleanly.",
+      "status": "in_progress",
+      "dependencies": [],
+      "evidence": ""
+    },
+    {
+      "id": "F-002",
+      "name": "Wire verification",
+      "description": "Ensure init.sh / init.ps1 compile every harness module and run any tests/ suite, failing fast on error.",
+      "status": "pending",
+      "dependencies": ["F-001"],
+      "evidence": ""
+    }
+  ]
+}

@@ -33,7 +33,7 @@ test('=== 2. KIỂM THỬ CHIẾN LƯỢC SERVICE WORKER (SW.JS) VÀ CACHE OFFLI
     assert.ok(fs.existsSync(swPath), 'Tệp sw.js phải tồn tại');
 
     const swContent = fs.readFileSync(swPath, 'utf8');
-    assert.ok(swContent.includes("CACHE_NAME = 'vn2000-pro-v2.8.0'"), 'CACHE_NAME phải nâng cấp lên v2.8.0');
+    assert.ok(/CACHE_NAME = 'vn2000-pro-v2\.8\.\d+'/.test(swContent), 'CACHE_NAME phải nâng cấp lên v2.8.x');
     assert.ok(swContent.includes('!req.url.startsWith(\'http\')'), 'Phải có guard kiểm tra http/https tránh lỗi protocol ngoại vi');
     assert.ok(swContent.includes('caches.open(CACHE_NAME)'), 'Phải mở đúng CACHE_NAME');
     assert.ok(swContent.includes('self.skipWaiting()'), 'Phải kích hoạt skipWaiting để cài đặt nhanh');

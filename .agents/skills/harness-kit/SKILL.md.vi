@@ -1,0 +1,115 @@
+---
+name: harness-kit
+description: >-
+  Thiết kế, khởi tạo và đánh giá bộ harness tác nhân Python chỉ dùng thư viện
+  chuẩn, theo 9 thành phần cốt lõi: vòng lặp while, nén ngữ cảnh, tool registry,
+  sub-agent, primitive, persistence, lắp ráp prompt, lifecycle hook, và cổng
+  phân quyền shell.
+license: MIT
+---
+
+# Harness Kit
+
+Dùng skill này để biến repository thành nơi mọi coding agent (Claude Code, Cursor, Codex, Windsurf, Antigravity) có thể khởi động nhanh, ở trong scope, tự xác minh kết quả và phục hồi giữa các phiên — dựa trên một harness Python không phụ thuộc.
+
+Không dùng cho framework đa-agent nặng, kiến trúc ứng dụng tổng quát, hay thiết kế UI front-end.
+
+## Mô hình Cốt lõi
+
+Harness có 9 thành phần nội bộ ánh xạ vào 5 subsystem bên ngoài. Bộ chấm điểm chấm theo subsystem; template ship theo thành phần.
+
+| Subsystem    | Artifact tối thiểu                              | Mục đích |
+|--------------|-------------------------------------------------|----------|
+| Instructions | `AGENTS.md` (hoặc `CLAUDE.md`)                  | Quy trình khởi động, working rules, Definition of Done |
+| State        | `feature_list.json`, `progress.md`              | Feature đang chạy, trạng thái, bằng chứng, bước tiếp |
+| Verification | `init.sh` / `init.ps1`                          | Test, compile, lint — fail nhanh trước khi tuyên bố done |
+| Scope        | Phụ thuộc feature + Definition of Done          | Một feature mỗi lần; không có việc dở dang |
+| Lifecycle    | `session-handoff.md`, quy trình kết thúc phiên  | Khiến phiên kế tiếp khởi động lại được |
+
+Code module (`harness.py`, `tool_registry.py`, `persistence.py`, ...) nằm trong `harness/`. File governance (`AGENTS.md`, `feature_list.json`, ...) nằm ở thư mục gốc dự án.
+
+## Khởi đầu (First Move)
+
+1. Kiểm tra cái đã có: file instruction, danh sách feature, init script, thư mục harness nếu có.
+2. Chỉ hỏi context không thể suy luận: tên file agent (AGENTS.md vs CLAUDE.md), tên thư mục harness, có được ghi đè không.
+3. Scaffold tối thiểu trước. Hook, sub-agent hoặc benchmarking chỉ thêm khi bài toán của người dùng cần đến.
+
+## Các Tác vụ Thường gặp
+
+Tất cả script dùng thư viện chuẩn Python. Dùng `py` trên Windows, `python3` ở nơi khác.
+
+### Scaffold một harness
+
+```bash
+python3 skills/scripts/scaffold_harness.py --target /duong/dan/du/an
+```
+
+Tham số:
+
+- `--harness-dir harness` — nơi đặt 9 module Python (mặc định: `harness`).
+- `--agent-file CLAUDE.md` — viết `CLAUDE.md` thay vì `AGENTS.md`.
+- `--governance-only` — chỉ tạo file governance, không scaffold code.
+- `--force` — ghi đè file đã có (xác nhận với người dùng trước).
+
+Sau khi scaffold, thư mục gốc có `AGENTS.md`, `feature_list.json`, `progress.md`, `session-handoff.md`, `init.sh`, `init.ps1`, `feature-list.schema.json`. Thư mục harness có 7 module Python và `__init__.py`.
+
+### Đánh giá một harness
+
+```bash
+python3 skills/scripts/validate_harness.py --target /duong/dan/du/an
+```
+
+Báo cáo điểm tổng (0–100), subsystem yếu nhất ("bottleneck") và pass/fail cho 25 check cấu trúc. Dùng `--json` cho output máy đọc, `--html report.html` cho báo cáo HTML.
+
+Hãy coi subsystem yếu nhất là *ứng viên* bottleneck. Xác nhận bằng task lỗi hoặc session log trước khi kết luận nhân quả.
+
+Cho CI hãy nâng ngưỡng: `--min-score 90` là phù hợp với harness đã ổn định; mức mặc định `70` chỉ thân thiện cho project mới khởi tạo.
+
+### Sinh báo cáo benchmark
+
+```bash
+python3 skills/scripts/run_benchmark.py --target /duong/dan/du/an --html report.html
+```
+
+Kết hợp điểm cấu trúc với độ phủ eval (`evals/evals.json`) và đưa ra khuyến nghị. Đầu ra là cấu trúc — hiệu quả thực tế vẫn cần kiểm chứng bằng phiên agent trước/sau.
+
+### Chỉ render HTML đánh giá
+
+```bash
+python3 skills/scripts/render_assessment_html.py --target /duong/dan/du/an --output report.html
+```
+
+## Khi nào đọc tài liệu Reference
+
+Chỉ nạp reference cần cho bài toán cụ thể:
+
+- Invariant cấp cao (zero-dep, vòng lặp có giới hạn, log append-only): [Architecture Principles](references/architecture-principles.md)
+- Mỗi module làm gì và mở rộng ở đâu: [Nine Components](references/nine-components.vi.md)
+- Phân quyền, classify, fork sub-agent: [Tool Registry and Safety](references/tool-registry-and-safety.md)
+- Nén context, prefix cache, persistence JSONL: [Context and Memory](references/context-and-memory.md)
+- Bootstrap, hook, hợp đồng restart: [Lifecycle and Hooks](references/lifecycle-and-hooks.md)
+- Các kiểu lỗi phi-hiển-nhiên (đánh số): [Gotchas](references/gotchas.md)
+
+## Quy chuẩn Thiết kế
+
+- **Không phụ thuộc ngoài** trong các module harness cốt lõi. Chỉ thư viện chuẩn.
+- **Giữ prefix cache**: prompt tĩnh trước, nội dung động append sau; không viết lại prefix.
+- **Logging append-only**: flush mỗi event ngay; replay tái dựng context, không tái chạy side-effect.
+- **Fork sub-agent đơn cấp**: con không được phép sinh tiếp.
+- **Cổng quyền fail-closed**: lệnh lạ phải leo thang; trust là toàn-bộ-hoặc-không-có theo workspace.
+- **Một feature đang chạy**: ép bằng `feature_list.json`, không bằng hy vọng.
+- **Không giấu hành vi phá hủy trong script**: `--force` phải bật chủ động; hỏi trước khi ghi đè.
+
+## Danh sách Bàn giao
+
+Một harness dùng được để lại cho project đích:
+
+- [ ] `AGENTS.md` (hoặc `CLAUDE.md`) — startup, scope, Definition of Done, end-of-session
+- [ ] `feature_list.json` + `feature-list.schema.json` — feature có id/name/description/status/dependencies
+- [ ] `progress.md` — Current State, What I Did, Verification Evidence, Recommended Next Step
+- [ ] `session-handoff.md` — Blockers, Files, Next Session
+- [ ] `init.sh` / `init.ps1` — xác minh fail-fast (compile + test)
+- [ ] `<harness-dir>/` chứa `harness.py`, `context_manager.py`, `tool_registry.py`, `persistence.py`, `hooks.py`, `subagent.py`, `prompt_assembly.py`
+- [ ] Thư mục `.harness/` được tạo lần chạy đầu bởi `SessionLogger`
+
+Nếu không thể tạo file, output nội dung file và lệnh tương ứng để người dùng tự chạy.

@@ -103,7 +103,7 @@ Toàn bộ hệ thống quản lý dữ liệu được tổ chức khoa học, 
 /**
  * =========================================================================
  * GOOGLE APPS SCRIPT ĐỒNG BỘ SỔ ĐO TRẮC ĐỊA VN-2000 & MINICAD PRO (V4.0)
- * Tác giả: Đặng Như (dnpn.ttqt@gmail.com) - Kiến Trúc Lưu Trữ Tập Trung 2 Tab
+ * Tác giả: Đặng Như (contact@vn2000pro.vn) - Kiến Trúc Lưu Trữ Tập Trung 2 Tab
  * =========================================================================
  * TỐI ƯU HÓA ĐẶC BIỆT CHO DỮ LIỆU LỚN (BIG DATA):
  * 1. KHÔNG PHÂN MẢNH THÀNH NHIỀU TAB/SHEET CON:

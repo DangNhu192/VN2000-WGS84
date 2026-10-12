@@ -1,7 +1,7 @@
 /**
  * ỨNG DỤNG TRẮC ĐỊA VN-2000 & WGS-84 CHO IOS & WEB PWA
  * Thiết kế giao diện và chức năng chuẩn hóa 100% theo bản Android B4A
- * Tác giả: Đặng Như (dnpn.ttqt@gmail.com)
+ * Tác giả: Đặng Như (contact@vn2000pro.vn)
  */
 
 // ================= 1. TRẠNG THÁI TOÀN CỤC (GLOBAL STATE) =================
@@ -67,6 +67,41 @@ const AppState = {
     
     // Geodesy State
     boundaryPoints: []
+};
+
+// ================= 1.1 TIỆN ÍCH LƯU TRỮ AN TOÀN (SAFE STORAGE) =================
+// Tự động bắt lỗi QuotaExceededError, bảo vệ dữ liệu đo đạc và cảnh báo kịp thời cho người dùng
+const safeStorage = {
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+            return true;
+        } catch (e) {
+            console.error(`[SafeStorage] Lỗi ghi dữ liệu cho khóa "${key}":`, e);
+            if (typeof showToast === 'function') {
+                showToast("⚠️ Dung lượng lưu trữ trình duyệt đã đầy! Vui lòng xuất file sao lưu hoặc dọn thùng rác.", true);
+            }
+            return false;
+        }
+    },
+    getItem(key, defaultValue = null) {
+        try {
+            const val = localStorage.getItem(key);
+            return (val !== null) ? val : defaultValue;
+        } catch (e) {
+            console.error(`[SafeStorage] Lỗi đọc dữ liệu từ khóa "${key}":`, e);
+            return defaultValue;
+        }
+    },
+    removeItem(key) {
+        try {
+            localStorage.removeItem(key);
+            return true;
+        } catch (e) {
+            console.error(`[SafeStorage] Lỗi xóa khóa "${key}":`, e);
+            return false;
+        }
+    }
 };
 
 // ================= 1b. LƯU CÀI ĐẶT BỀN VỮNG TRÊN THIẾT BỊ =================
@@ -4231,25 +4266,25 @@ const appTransformMap = {
             return;
         }
         triggerHaptic('success');
-        const curProj = AppState.currentProject || 'Dự án mặc định';
-        const raw = localStorage.getItem(`vn2k_proj_${curProj}`);
-        let pts = [];
-        try {
-            if (raw) pts = JSON.parse(raw);
-        } catch(e) {}
+        const curProj = AppState.currentProject || 'VN2000_SoLieu_DoDac.csv';
+        const curPts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(curProj) : [];
         const newPt = {
             id: Date.now(),
-            name: p.name || `M${pts.length + 1}`,
+            name: p.name || `M${curPts.length + 1}`,
             x: parseFloat(p.x) || 0,
             y: parseFloat(p.y) || 0,
             h: 0,
             lat: parseFloat(p.lat) || 0,
             lng: parseFloat(p.lng) || 0,
-            note: 'Chuyển đổi tọa độ'
+            note: `Chuyển đổi KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`
         };
-        pts.push(newPt);
-        localStorage.setItem(`vn2k_proj_${curProj}`, JSON.stringify(pts));
-        showToast(`💾 Đã lưu mốc ${newPt.name} vào dự án "${curProj}" thành công!`);
+        if (typeof appData !== 'undefined' && appData.addPoint) {
+            appData.addPoint(curProj, newPt);
+        } else {
+            curPts.push(newPt);
+            safeStorage.setItem(`vn2k_pts_${curProj}`, JSON.stringify(curPts));
+        }
+        showToast(`💾 Đã lưu mốc "${newPt.name}" vào sổ đo dự án "${curProj}" thành công!`);
     },
 
     setMode(mode) {
@@ -5994,9 +6029,8 @@ const appMap = {
     onMapClick(lat, lng) {
         triggerHaptic('light');
 
-        // 1. Phân hệ MiniCAD: Chỉ xử lý vẽ đỉnh / bắt điểm khi ở mode CAD
-        if (AppState.mapMode === 'cad' && typeof appCadTool !== 'undefined' && appCadTool.isActive) {
-            appCadTool.handleMapClick(lat, lng);
+        // 1. Phân hệ MiniCAD: Đã có listener riêng độc lập trên leafletMap trong appCadTool (tránh kích hoạt kép)
+        if (AppState.mapMode === 'cad') {
             return;
         }
 
@@ -6493,7 +6527,7 @@ const appData = {
 
     savePoints(projectName, points) {
         const key = `vn2k_pts_${projectName}`;
-        localStorage.setItem(key, JSON.stringify(points));
+        return safeStorage.setItem(key, JSON.stringify(points));
     },
 
     addPoint(projectName, point) {
@@ -6905,7 +6939,7 @@ const appData = {
         const scriptCode = `/**
  * =========================================================================
  * GOOGLE APPS SCRIPT ĐỒNG BỘ SỔ ĐO TRẮC ĐỊA VN-2000 & MINICAD PRO (V4.0)
- * Tác giả: Đặng Như (dnpn.ttqt@gmail.com) - Kiến Trúc Lưu Trữ Tập Trung 2 Tab
+ * Tác giả: Đặng Như (contact@vn2000pro.vn) - Kiến Trúc Lưu Trữ Tập Trung 2 Tab
  * =========================================================================
  * TỐI ƯU HÓA ĐẶC BIỆT CHO DỮ LIỆU LỚN (BIG DATA):
  * 1. KHÔNG PHÂN MẢNH THÀNH NHIỀU TAB/SHEET CON:

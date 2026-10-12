@@ -1,0 +1,77 @@
+{
+  "project": "VN2000-PWA",
+  "version": "2.6.4",
+  "active_feature": null,
+  "features": [
+    {
+      "id": "F-001",
+      "name": "Toán trắc địa WGS84 - VN2000",
+      "description": "Thuật toán chuyển đổi tọa độ Helmert 7 tham số, chiếu Gauss-Kruger, KTT 63 tỉnh thành",
+      "status": "done",
+      "dependencies": []
+    },
+    {
+      "id": "F-002",
+      "name": "Phân hệ Chuyển đổi tọa độ (Giao diện độc lập & Live Map riêng biệt)",
+      "description": "Chuyển đổi đơn điểm & hàng loạt, dán thông minh, tách biệt 100% khỏi Bản đồ dự án, không gọi nhầm thanh công cụ khác",
+      "status": "done",
+      "dependencies": ["F-001"]
+    },
+    {
+      "id": "F-003",
+      "name": "Phân hệ Bản đồ Dự án & Quản lý Mốc",
+      "description": "Bản đồ dự án chuyên biệt, thùng rác 30 ngày, bảng kê khối CAD của dự án",
+      "status": "done",
+      "dependencies": ["F-001"]
+    },
+    {
+      "id": "F-004",
+      "name": "Phân hệ Tiện ích phụ trợ: Vẽ MiniCAD",
+      "description": "Thanh công cụ CAD, vẽ mặt bằng, bắt điểm Snap, tính diện tích, xuất DXF",
+      "status": "done",
+      "dependencies": ["F-001"]
+    },
+    {
+      "id": "F-005",
+      "name": "Bố trí điểm thực địa GPS & Camera AR",
+      "description": "Dẫn đường cự ly/góc phương vị tới mốc chuẩn",
+      "status": "done",
+      "dependencies": ["F-001", "F-003"]
+    },
+    {
+      "id": "F-006",
+      "name": "Trắc dọc địa hình & Đào đắp",
+      "description": "Vẽ mặt cắt địa hình và tính khối lượng m3 đào đắp",
+      "status": "done",
+      "dependencies": ["F-001"]
+    },
+    {
+      "id": "F-007",
+      "name": "Giao hội trắc địa khi mất GPS",
+      "description": "Giao hội nghịch 2 mốc chuẩn tính điểm P",
+      "status": "done",
+      "dependencies": ["F-001"]
+    },
+    {
+      "id": "F-008",
+      "name": "Quy đổi cao độ Geoid VIGAC2017",
+      "description": "Quy đổi độ cao Hòn Dấu H = h - zeta",
+      "status": "done",
+      "dependencies": ["F-001"]
+    },
+    {
+      "id": "F-009",
+      "name": "Sổ đo trắc địa & Đồng bộ",
+      "description": "Quản lý điểm đo, lưu trữ cục bộ IndexedDB/localStorage và đồng bộ Google Sheets",
+      "status": "done",
+      "dependencies": ["F-001"]
+    },
+    {
+      "id": "F-010",
+      "name": "Hệ thống & Cài đặt Đồng nhất",
+      "description": "Quản trị KTT, giao diện Lovable 2026, chuyển đổi Light/Dark theme",
+      "status": "done",
+      "dependencies": []
+    }
+  ]
+}
