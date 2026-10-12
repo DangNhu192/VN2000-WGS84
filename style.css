@@ -8688,3 +8688,18 @@
         max-width: 85px !important;
       }
     }
+
+/* 30s Donate Modal Styles */
+#btnDonateEnterApp.btn-ready {
+  opacity: 1 !important;
+  cursor: pointer !important;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  border: 1.5px solid #10b981 !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4) !important;
+  color: #ffffff !important;
+  animation: pulse-donate-ready 2s infinite ease-in-out;
+}
+@keyframes pulse-donate-ready {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}

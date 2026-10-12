@@ -23345,6 +23345,196 @@ const appTheme = {
     }
 };
 
+// ================= 10.10 CỬA SỔ CHỜ 30S XIN DONATE TÁC GIẢ (1 LẦN/NGÀY) =================
+const appDonate = {
+    STORAGE_KEY: 'vn2k_donate_last_shown_date_v1',
+    COUNTDOWN_SECONDS: 30,
+    timerId: null,
+    remainingSeconds: 30,
+
+    // Cấu hình thông tin tài khoản tác giả
+    config: {
+        bankCode: 'MB',                     // Mã ngân hàng VietQR (MB, VCB, TCB, VPB, TPB, BIDV, CTG...)
+        bankName: 'MBBank (Ngân hàng Quân Đội)',
+        accountNumber: '0987654321',         // STK mẫu (sẽ cập nhật ngay khi tác giả cung cấp)
+        accountName: 'ĐẶNG NHƯ',            // Chủ tài khoản
+        memo: 'Ung ho VN2000 Pro'            // Lời nhắn chuyển khoản mặc định
+    },
+
+    init() {
+        this.loadCustomConfig();
+        // Kiểm tra điều kiện mở cửa sổ chờ (chỉ 1 lần/ngày vào lần mở app đầu tiên)
+        this.checkDailyTrigger();
+    },
+
+    loadCustomConfig() {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            const saved = localStorage.getItem('vn2k_donate_author_config_v1');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                this.config = { ...this.config, ...parsed };
+            }
+        } catch(e) {}
+    },
+
+    updateAuthorAccount(bankCode, bankName, accountNumber, accountName, memo) {
+        if (bankCode) this.config.bankCode = bankCode;
+        if (bankName) this.config.bankName = bankName;
+        if (accountNumber) this.config.accountNumber = accountNumber;
+        if (accountName) this.config.accountName = accountName;
+        if (memo) this.config.memo = memo;
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('vn2k_donate_author_config_v1', JSON.stringify(this.config));
+            }
+        } catch(e) {}
+        this.renderBankInfo();
+    },
+
+    checkDailyTrigger() {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            const today = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+            const lastShown = localStorage.getItem(this.STORAGE_KEY);
+            if (lastShown !== today) {
+                // Đánh dấu ngay lập tức để không lặp lại nếu refresh trang
+                localStorage.setItem(this.STORAGE_KEY, today);
+                // Mở cửa sổ sau khi UI đã nạp ổn định
+                setTimeout(() => {
+                    this.openModal();
+                }, 800);
+            }
+        } catch(e) {
+            console.warn('[appDonate] Lỗi kiểm tra ngày:', e);
+        }
+    },
+
+    openModal() {
+        const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+        if (modal) modal.classList.add('active');
+        this.renderBankInfo();
+
+        const badge = (typeof document !== 'undefined') ? document.getElementById('badgeDonateStatus') : null;
+        if (badge) {
+            badge.innerText = `Đang chờ ${this.COUNTDOWN_SECONDS}s`;
+            badge.style.color = '#facc15';
+        }
+
+        this.remainingSeconds = this.COUNTDOWN_SECONDS;
+        this.updateCountdownUi();
+
+        clearInterval(this.timerId);
+        this.timerId = setInterval(() => {
+            this.remainingSeconds--;
+            this.updateCountdownUi();
+            if (this.remainingSeconds <= 0) {
+                clearInterval(this.timerId);
+                this.timerId = null;
+                this.unlockCloseButton();
+            }
+        }, 1000);
+    },
+
+    renderBankInfo() {
+        if (typeof document === 'undefined') return;
+        const elBank = document.getElementById('txtDonateBankName');
+        const elStk = document.getElementById('txtDonateAccountNo');
+        const elName = document.getElementById('txtDonateAccountName');
+        const elMemo = document.getElementById('txtDonateMemo');
+        const elQr = document.getElementById('imgDonateVietQR');
+
+        if (elBank) elBank.innerText = this.config.bankName;
+        if (elStk) elStk.innerText = this.config.accountNumber;
+        if (elName) elName.innerText = this.config.accountName;
+        if (elMemo) elMemo.innerText = this.config.memo;
+
+        // Sinh link ảnh VietQR Napas chuẩn quốc gia
+        if (elQr && this.config.accountNumber) {
+            const qrUrl = `https://img.vietqr.io/image/${this.config.bankCode}-${this.config.accountNumber}-compact2.png?amount=0&addInfo=${encodeURIComponent(this.config.memo)}&accountName=${encodeURIComponent(this.config.accountName)}`;
+            elQr.src = qrUrl;
+        }
+    },
+
+    updateCountdownUi() {
+        if (typeof document === 'undefined') return;
+        const txtTimer = document.getElementById('txtDonateCountdownSec');
+        const barProgress = document.getElementById('barDonateProgressFill');
+        const btnClose = document.getElementById('btnDonateEnterApp');
+
+        if (txtTimer) txtTimer.innerText = Math.max(0, this.remainingSeconds);
+
+        const pct = Math.min(100, Math.round(((this.COUNTDOWN_SECONDS - this.remainingSeconds) / this.COUNTDOWN_SECONDS) * 100));
+        if (barProgress) barProgress.style.width = pct + '%';
+
+        if (btnClose) {
+            if (this.remainingSeconds > 0) {
+                btnClose.disabled = true;
+                btnClose.classList.remove('btn-ready');
+                btnClose.innerHTML = `⏳ Chờ <b>${this.remainingSeconds}s</b> để vào ứng dụng...`;
+            } else {
+                this.unlockCloseButton();
+            }
+        }
+    },
+
+    unlockCloseButton() {
+        if (typeof document === 'undefined') return;
+        const btnClose = document.getElementById('btnDonateEnterApp');
+        if (btnClose) {
+            btnClose.disabled = false;
+            btnClose.classList.add('btn-ready');
+            btnClose.innerHTML = `✓ Cảm ơn bạn! Bấm để Vào Ứng Dụng ngay 🚀`;
+        }
+        const badge = document.getElementById('badgeDonateStatus');
+        if (badge) {
+            badge.innerText = 'Đã mở khóa (Sẵn sàng)';
+            badge.style.color = '#4ade80';
+        }
+    },
+
+    closeModal() {
+        if (this.remainingSeconds > 0) {
+            if (typeof showToast === 'function') {
+                showToast(`⏳ Vui lòng đợi thêm ${this.remainingSeconds} giây trước khi đóng cửa sổ!`, true);
+            }
+            return;
+        }
+        const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+        if (modal) modal.classList.remove('active');
+        clearInterval(this.timerId);
+        this.timerId = null;
+        if (typeof showToast === 'function') {
+            showToast("✨ Chúc bạn một ngày làm việc thực địa hiệu quả!");
+        }
+    },
+
+    copyAccountNumber() {
+        if (!this.config.accountNumber) return;
+        const self = this;
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(this.config.accountNumber)
+                .then(() => {
+                    if (typeof showToast === 'function') showToast(`✓ Đã sao chép STK: ${self.config.accountNumber}`);
+                })
+                .catch(() => self.fallbackCopy(self.config.accountNumber));
+        } else {
+            self.fallbackCopy(this.config.accountNumber);
+        }
+    },
+
+    fallbackCopy(text) {
+        if (typeof document === 'undefined') return;
+        const input = document.createElement('input');
+        input.value = text;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        if (typeof showToast === 'function') showToast(`✓ Đã sao chép STK: ${text}`);
+    }
+};
+
 // ================= 11. KHỞI TẠO ỨNG DỤNG (APP BOOTSTRAP) =================
 window.addEventListener('DOMContentLoaded', () => {
 // Menu button handled via debounced appNav.toggleTreeMenu
@@ -23356,6 +23546,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (typeof appDashboard !== 'undefined') appDashboard.init();
     if (typeof appCadTool !== 'undefined') appCadTool.init();
     if (typeof appDateTime !== 'undefined') appDateTime.init();
+    if (typeof appDonate !== 'undefined') appDonate.init();
     appSettings.applyToUi();
     appNav.updateBanner();
 
@@ -23411,5 +23602,14 @@ if (typeof window !== 'undefined') {
     window.triggerHaptic = triggerHaptic;
     window.showToast = showToast;
     window.appSettings = appSettings;
+    window.appDonate = appDonate;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        appDonate,
+        appTheme,
+        appDateTime
+    };
 }
 
