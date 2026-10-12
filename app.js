@@ -14001,6 +14001,7 @@ const appCadTool = {
         this.renderGeometry();
         this.updateUi();
         if (this.renderBlocksPanel) this.renderBlocksPanel();
+        this.updateCurrentProjectBadge();
         this.loadAnnotations();
         this.initToolbarAutoCollapse();
         this.setToolbarCollapsed(false);
@@ -16975,6 +16976,7 @@ const appCadTool = {
     loadShapesForProject(projName) {
         const curProj = projName || AppState.currentProject;
         if (!curProj) return false;
+        this.updateCurrentProjectBadge();
         try {
             const cleanKey = this.getProjectStorageKey(curProj);
             let raw = localStorage.getItem('vn2k_cad_shapes_' + cleanKey);
@@ -18690,11 +18692,244 @@ const appCadTool = {
         this.renderBlockList(this._getAllExportShapes());
     },
 
+    // === QUẢN LÝ DỰ ÁN TRONG MINICAD ===
+    updateCurrentProjectBadge() {
+        const el = document.getElementById('cadCurrentProjectName');
+        if (el) {
+            const cur = AppState.currentProject || "Dự án mới";
+            el.innerText = cur.replace(/(\.(csv|xlsx|xls|txt))+$/i, '');
+            el.title = `Dự án MiniCAD: ${cur} (Nhấp để đổi hoặc tạo mới)`;
+        }
+    },
+
+    quickCreateNewProject() {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const defaultName = `DuAn_CAD_${dateStr}_${Math.floor(Math.random() * 900 + 100)}.csv`;
+        
+        let name = prompt("Nhập tên dự án MiniCAD mới (.csv):", defaultName);
+        if (!name) return;
+        name = name.trim();
+        if (!name) return;
+        if (!name.toLowerCase().endsWith('.csv')) name += '.csv';
+
+        // Tùy chọn giữ lại nét vẽ hay làm sạch hoàn toàn
+        let carryOver = false;
+        const hasCurrentShapes = (this.savedShapes && this.savedShapes.length > 0) || (this.vertices && this.vertices.length > 0);
+        if (hasCurrentShapes) {
+            carryOver = confirm(`Bạn có muốn giữ lại các khối/nét vẽ hiện tại để tiếp tục vẽ trong dự án mới "${name}" không?\n\n- Chọn OK: Giữ nguyên hình vẽ và gán sang dự án mới "${name}".\n- Chọn Cancel: Bắt đầu một bản vẽ TRẮNG SẠCH (các khối cũ đã được lưu an toàn ở dự án trước).`);
+        }
+
+        // Trước khi chuyển, lưu bản vẽ của dự án cũ nếu chưa lưu
+        if (AppState.currentProject && !carryOver) {
+            this.saveShapesForProject(AppState.currentProject);
+        }
+
+        // Đăng ký dự án mới vào AppState
+        if (!AppState.projectsList.includes(name)) {
+            AppState.projectsList.push(name);
+            if (typeof appData !== 'undefined' && appData.saveProjectsList) {
+                appData.saveProjectsList();
+            } else {
+                localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+            }
+        }
+        AppState.currentProject = name;
+        localStorage.setItem('vn2k_cur_project', name);
+
+        const cleanKey = this.getProjectStorageKey(name);
+
+        if (!carryOver) {
+            // Khởi tạo bản vẽ trắng sạch từ đầu
+            this.savedShapes = [];
+            this.vertices = [];
+            this.selectedShape = null;
+            if (this.clearDynamicHelpers) this.clearDynamicHelpers();
+            if (this.clearAnnotations) this.clearAnnotations();
+            if (this.layers && this.layers.group) {
+                this.layers.group.clearLayers();
+            }
+            if (this.clearHistory) this.clearHistory();
+            
+            // Lưu storage trống cho dự án mới
+            const emptyData = { savedShapes: [], mode: 'polygon', updated: Date.now() };
+            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(emptyData));
+            if (name !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + name, JSON.stringify(emptyData));
+            if (typeof appData !== 'undefined' && appData.savePoints) {
+                appData.savePoints(name, []);
+            }
+        } else {
+            // Giữ lại các khối hiện có và lưu trực tiếp sang key của dự án mới
+            const copyShapes = JSON.parse(JSON.stringify(this.savedShapes || []));
+            const data = { savedShapes: copyShapes, mode: this.mode || 'polygon', updated: Date.now() };
+            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(data));
+            if (name !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + name, JSON.stringify(data));
+            // Xuất các mốc đỉnh thành mốc dự án mới
+            if (typeof appData !== 'undefined' && appData.savePoints) {
+                const newPoints = [];
+                copyShapes.forEach(shape => {
+                    (shape.vertices || []).forEach(v => {
+                        if (v && v.name && isFinite(v.x) && isFinite(v.y)) {
+                            newPoints.push({
+                                id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                                name: v.name,
+                                x: v.x,
+                                y: v.y,
+                                lat: v.lat,
+                                lng: v.lng,
+                                note: `Đỉnh của ${shape.name || 'khối'}`
+                            });
+                        }
+                    });
+                });
+                appData.savePoints(name, newPoints);
+            }
+        }
+
+        // Cập nhật MiniCAD UI & HUD
+        this.renderGeometry();
+        this.updateUi();
+        if (this.renderBlocksPanel) this.renderBlocksPanel();
+        this.updateCurrentProjectBadge();
+
+        // Cập nhật các dropdown dự án trên toàn ứng dụng
+        if (typeof appData !== 'undefined' && appData.populateProjectSelect) appData.populateProjectSelect();
+        if (typeof appMap !== 'undefined' && appMap.populateMapProjectSelect) appMap.populateMapProjectSelect(name);
+        if (typeof appNav !== 'undefined') {
+            if (appNav.updateBanner) appNav.updateBanner();
+            if (appNav.updateTreeNavState) appNav.updateTreeNavState();
+        }
+
+        // Cập nhật lại dropdown trong modal nạp mốc nếu modal đang mở
+        const selLoad = document.getElementById('cadLoadProjectSelect');
+        if (selLoad) {
+            selLoad.innerHTML = '';
+            AppState.projectsList.forEach(pName => {
+                const opt = document.createElement('option');
+                opt.value = pName;
+                const count = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(pName).length : 0;
+                opt.innerText = `📁 ${pName} (${count} mốc)`;
+                if (pName === name) opt.selected = true;
+                selLoad.appendChild(opt);
+            });
+            this.onLoadProjectSelectChange(name);
+        }
+
+        this.closeLoadProjectModal();
+        this.setMode('polygon');
+        triggerHaptic('success');
+        showToast(`✓ Đã khởi tạo dự án mới: "${name}"! Bản vẽ MiniCAD trắng sạch sẵn sàng.`, true);
+    },
+
+    saveAsNewProject() {
+        if ((!this.savedShapes || this.savedShapes.length === 0) && (!this.vertices || this.vertices.length === 0)) {
+            showToast("⚠️ Bản vẽ hiện đang trống, chưa có khối nào để lưu thành dự án mới!", true);
+            return;
+        }
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const defaultName = `DuAn_LuuTuCAD_${dateStr}.csv`;
+        let name = prompt("Nhập tên dự án mới để lưu các khối hiện tại (.csv):", defaultName);
+        if (!name) return;
+        name = name.trim();
+        if (!name) return;
+        if (!name.toLowerCase().endsWith('.csv')) name += '.csv';
+
+        if (!AppState.projectsList.includes(name)) {
+            AppState.projectsList.push(name);
+            if (typeof appData !== 'undefined' && appData.saveProjectsList) {
+                appData.saveProjectsList();
+            } else {
+                localStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList));
+            }
+        }
+        AppState.currentProject = name;
+        localStorage.setItem('vn2k_cur_project', name);
+
+        // Lưu các khối hiện tại sang dự án mới
+        const cleanKey = this.getProjectStorageKey(name);
+        const copyShapes = JSON.parse(JSON.stringify(this.savedShapes || []));
+        const data = { savedShapes: copyShapes, mode: this.mode || 'polygon', updated: Date.now() };
+        localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(data));
+        if (name !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + name, JSON.stringify(data));
+
+        // Chuyển các đỉnh thành mốc dự án
+        if (typeof appData !== 'undefined' && appData.savePoints) {
+            const newPoints = [];
+            copyShapes.forEach(shape => {
+                (shape.vertices || []).forEach(v => {
+                    if (v && v.name && isFinite(v.x) && isFinite(v.y)) {
+                        newPoints.push({
+                            id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                            name: v.name,
+                            x: v.x,
+                            y: v.y,
+                            lat: v.lat,
+                            lng: v.lng,
+                            note: `Đỉnh của ${shape.name || 'khối'}`
+                        });
+                    }
+                });
+            });
+            appData.savePoints(name, newPoints);
+        }
+
+        this.updateCurrentProjectBadge();
+        if (typeof appData !== 'undefined' && appData.populateProjectSelect) appData.populateProjectSelect();
+        if (typeof appMap !== 'undefined' && appMap.populateMapProjectSelect) appMap.populateMapProjectSelect(name);
+        if (typeof appNav !== 'undefined') {
+            if (appNav.updateBanner) appNav.updateBanner();
+            if (appNav.updateTreeNavState) appNav.updateTreeNavState();
+        }
+        triggerHaptic('success');
+        showToast(`✓ Đã lưu toàn bộ bản vẽ thành dự án mới: "${name}"!`, true);
+    },
+
+    switchActiveProjectFromModal() {
+        const sel = document.getElementById('cadLoadProjectSelect');
+        const targetProj = sel ? sel.value : null;
+        if (!targetProj) return;
+
+        if (targetProj === AppState.currentProject) {
+            showToast(`ℹ️ MiniCAD đã đang ở dự án "${targetProj}".`);
+            this.closeLoadProjectModal();
+            return;
+        }
+
+        if (confirm(`Chuyển MiniCAD sang làm việc với dự án "${targetProj}"?\r\nBản vẽ sẽ tải các khối của dự án này.`)) {
+            // Lưu dự án hiện tại trước
+            this.saveShapesForProject(AppState.currentProject);
+
+            AppState.currentProject = targetProj;
+            localStorage.setItem('vn2k_cur_project', targetProj);
+
+            // Nạp các khối của dự án mới
+            this.savedShapes = [];
+            this.vertices = [];
+            this.loadShapesForProject(targetProj);
+
+            this.renderGeometry();
+            this.updateUi();
+            if (this.renderBlocksPanel) this.renderBlocksPanel();
+            this.updateCurrentProjectBadge();
+
+            if (typeof appData !== 'undefined' && appData.populateProjectSelect) appData.populateProjectSelect();
+            if (typeof appMap !== 'undefined' && appMap.populateMapProjectSelect) appMap.populateMapProjectSelect(targetProj);
+            if (typeof appNav !== 'undefined' && appNav.updateBanner) appNav.updateBanner();
+
+            this.closeLoadProjectModal();
+            triggerHaptic('success');
+            showToast(`✓ Đã chuyển MiniCAD sang dự án: "${targetProj}"!`, true);
+        }
+    },
+
     // === HỘP THOẠI NẠP MỐC TỌA ĐỘ / KHỐI DỰ ÁN VÀO MINICAD ===
     openLoadProjectModal() {
         const modal = document.getElementById('modalCadLoadProject');
         if (!modal) return;
         modal.classList.add('active');
+
+        this.updateCurrentProjectBadge();
 
         const sel = document.getElementById('cadLoadProjectSelect');
         if (sel) {

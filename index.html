@@ -1706,6 +1706,12 @@
               <span id="cadModeBadge" class="cad-mode-badge">Đa giác ranh</span>
             </div>
 
+            <!-- Hiện dự án MiniCAD đang vẽ & Cho phép bấm đổi hoặc tạo mới -->
+            <div id="cadCurrentProjectBadge" class="cad-proj-pill" onclick="appCadTool.openLoadProjectModal()"
+              title="Dự án MiniCAD hiện hành - Nhấp để chuyển hoặc tạo mới">
+              📁 <span id="cadCurrentProjectName" style="max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">Dự án</span> ▾
+            </div>
+
             <!-- Segmented Tool Switcher Tabs -->
             <div class="cad-tab-group" id="cadTabGroup">
               <button type="button" class="cad-tab-btn active" id="cadTabDraw"
@@ -1893,6 +1899,12 @@
 
           <!-- TAB 4: XUẤT DỮ LIỆU & BẢNG KÊ (DATA & EXPORT) -->
           <div id="cadPanelData" class="cad-actions-row cad-collapsible-row" style="display: none;">
+            <button id="btnCadNewProject" class="cad-btn"
+              style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.4) 100%); border-color: #10b981; color: #6ee7b7; font-weight: 800;"
+              onclick="appCadTool.quickCreateNewProject()"
+              title="Khởi tạo dự án mới độc lập với bản vẽ trắng sạch ngay trong MiniCAD">
+              ➕ Dự án mới
+            </button>
             <button class="cad-btn"
               style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;"
               onclick="appCadTool.openAreaTableModal()"
@@ -1914,6 +1926,12 @@
               style="background: rgba(250, 204, 21, 0.15); border-color: rgba(250, 204, 21, 0.4); color: #fde047;"
               onclick="appCadTool.openLoadProjectModal()" title="Nạp mốc tọa độ từ các dự án đã lưu vào MiniCAD">
               📁 Nạp mốc dự án
+            </button>
+            <button class="cad-btn"
+              style="background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;"
+              onclick="appCadTool.saveAsNewProject()"
+              title="Lưu tất cả các khối hiện tại thành một file dự án mới độc lập">
+              💾 Lưu thành dự án mới
             </button>
             <button class="cad-btn"
               style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #6ee7b7; font-weight: 700;"
@@ -4589,8 +4607,17 @@
         style="flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
         <!-- Chọn dự án nguồn -->
         <div>
-          <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #facc15; font-weight: 700;">Chọn
-            dự án đã lưu để nạp:</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <label class="form-label" style="font-size: 11px; margin: 0; color: #facc15; font-weight: 700;">Dự án đang làm việc & Nạp mốc:</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn-sm btn-green" style="height: 25px; padding: 0 9px; font-size: 11px; font-weight: 700;" onclick="appCadTool.quickCreateNewProject()" title="Tạo dự án mới độc lập với bản vẽ trắng sạch">
+                ➕ Dự Án Mới
+              </button>
+              <button type="button" class="btn-sm btn-blue" style="height: 25px; padding: 0 9px; font-size: 11px; font-weight: 700;" onclick="appCadTool.switchActiveProjectFromModal()" title="Chuyển MiniCAD sang làm việc trực tiếp trên dự án đang chọn này">
+                🔄 Đổi Dự Án Này
+              </button>
+            </div>
+          </div>
           <select id="cadLoadProjectSelect" class="app-select" style="height: 34px; font-size: 12px; width: 100%;"
             onchange="appCadTool.onLoadProjectSelectChange(this.value)">
             <!-- Render danh sách dự án -->
