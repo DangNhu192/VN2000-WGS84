@@ -15616,9 +15616,9 @@ const appCadTool = {
                     const clickVn = convertWgsToVn2k(clickLat, clickLng, AppState.kttVal, AppState.scaleFactor);
                     const segDx = v2.x - v1.x;
                     const segDy = v2.y - v1.y;
-                    const lenSq = segDx * segDx + segDy * segDy;
+                    const segLenSq = segDx * segDx + segDy * segDy;
                     if (segLenSq > 1e-4) {
-                        // Tham số hình chiếu t = ((P_vn - V1) . (V2 - V1)) / lenSq
+                        // Tham số hình chiếu t = ((P_vn - V1) . (V2 - V1)) / segLenSq
                         let tMetric = ((clickVn.X - v1.x) * segDx + (clickVn.Y - v1.y) * segDy) / segLenSq;
                         if (tMetric > 0.015 && tMetric < 0.985) {
                             // Tọa độ VN-2000 nằm nghiêm ngặt trên đường thẳng V1-V2 (Độ lệch diện tích Shoelace = 0.0000 m²)
