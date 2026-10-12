@@ -3358,10 +3358,12 @@ const appTransform = {
                 minZoom: 4
             }).setView([10.7769, 106.7009], 13); // Mặc định TP. Hồ Chí Minh
 
-            const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                 maxZoom: 24,
-                maxNativeZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                maxNativeZoom: 19,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                keepBuffer: 8,
+                className: 'leaflet-layer-satellite'
             });
 
             const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -3752,10 +3754,18 @@ const appTransformMap = {
             minZoom: 4
         }).setView([10.5, 106.0], 12);
 
-        const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             maxZoom: 24,
-            maxNativeZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            maxNativeZoom: 19,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            keepBuffer: 8,
+            className: 'leaflet-layer-satellite'
+        });
+        const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 24,
+            maxNativeZoom: 19,
+            keepBuffer: 8,
+            className: 'leaflet-layer-satellite'
         });
         const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 24,
@@ -3764,6 +3774,7 @@ const appTransformMap = {
         googleHybrid.addTo(this.map);
         this.baseLayers = {
             'google_hybrid': googleHybrid,
+            'esri_satellite': esriSatellite,
             'osm_streets': osmStreets
         };
         this.activeBaseLayer = 'google_hybrid';
@@ -4461,14 +4472,25 @@ const appTransformMap = {
         if (!this.map) return;
         if (this.activeBaseLayer === 'google_hybrid') {
             this.map.removeLayer(this.baseLayers['google_hybrid']);
+            if (this.baseLayers['esri_satellite']) {
+                this.baseLayers['esri_satellite'].addTo(this.map);
+                this.activeBaseLayer = 'esri_satellite';
+                showToast("🌍 Lớp Vệ tinh Esri Clarity (Nội suy siêu nét)");
+            } else {
+                this.baseLayers['osm_streets'].addTo(this.map);
+                this.activeBaseLayer = 'osm_streets';
+                showToast("🗺️ Bản đồ Đường phố (OSM)");
+            }
+        } else if (this.activeBaseLayer === 'esri_satellite') {
+            this.map.removeLayer(this.baseLayers['esri_satellite']);
             this.baseLayers['osm_streets'].addTo(this.map);
             this.activeBaseLayer = 'osm_streets';
-            showToast("🗺️ Đã chuyển sang Lớp bản đồ Đường phố");
+            showToast("🗺️ Bản đồ Đường phố (OSM)");
         } else {
             this.map.removeLayer(this.baseLayers['osm_streets']);
             this.baseLayers['google_hybrid'].addTo(this.map);
             this.activeBaseLayer = 'google_hybrid';
-            showToast("🛰️ Đã chuyển sang Lớp Vệ tinh Google Hybrid");
+            showToast("🛰️ Bản đồ Vệ tinh Google Hybrid (Nội suy siêu nét)");
         }
     },
 
@@ -5208,11 +5230,21 @@ const appMap = {
             minZoom: 4
         }).setView([10.5, 106.0], 12);
 
-        // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa, nội suy siêu nét lên mức 24)
-        const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa, nội suy siêu nét lên mức 24, chống đen màn hình)
+        const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             maxZoom: 24,
-            maxNativeZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            maxNativeZoom: 19,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            keepBuffer: 8,
+            className: 'leaflet-layer-satellite'
+        });
+
+        // Lớp vệ tinh Esri World Imagery độ phân giải cao dự phòng (nội suy siêu nét mức 24)
+        const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 24,
+            maxNativeZoom: 19,
+            keepBuffer: 8,
+            className: 'leaflet-layer-satellite'
         });
 
         // Lớp OpenStreetMap đường phố (nội suy lên mức 24)
@@ -5223,6 +5255,7 @@ const appMap = {
 
         googleHybrid.addTo(map);
         AppState.baseLayers['google_hybrid'] = googleHybrid;
+        AppState.baseLayers['esri_satellite'] = esriSatellite;
         AppState.baseLayers['osm_streets'] = osmStreets;
 
         AppState.projectMarkersGroup = L.layerGroup().addTo(map);
@@ -5334,6 +5367,19 @@ const appMap = {
         if (!map) return;
         if (AppState.activeBaseLayerId === 'google_hybrid') {
             map.removeLayer(AppState.baseLayers['google_hybrid']);
+            if (AppState.baseLayers['esri_satellite']) {
+                AppState.baseLayers['esri_satellite'].addTo(map);
+                AppState.activeBaseLayerId = 'esri_satellite';
+                appSettings.save();
+                showToast("🌍 Lớp Vệ tinh Esri Clarity (Nội suy siêu nét)");
+            } else {
+                AppState.baseLayers['osm_streets'].addTo(map);
+                AppState.activeBaseLayerId = 'osm_streets';
+                appSettings.save();
+                showToast("🗺️ Bản đồ Đường phố (OSM)");
+            }
+        } else if (AppState.activeBaseLayerId === 'esri_satellite') {
+            map.removeLayer(AppState.baseLayers['esri_satellite']);
             AppState.baseLayers['osm_streets'].addTo(map);
             AppState.activeBaseLayerId = 'osm_streets';
             appSettings.save();
@@ -5343,7 +5389,7 @@ const appMap = {
             AppState.baseLayers['google_hybrid'].addTo(map);
             AppState.activeBaseLayerId = 'google_hybrid';
             appSettings.save();
-            showToast("🛰️ Bản đồ Vệ tinh (Google Hybrid)");
+            showToast("🛰️ Bản đồ Vệ tinh Google Hybrid (Nội suy siêu nét)");
         }
     },
 
@@ -9407,9 +9453,12 @@ const appStakeout = {
                     touchZoom: true
                 }).setView([10.762622, 106.660172], 18);
 
-                L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                    maxZoom: 22,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                    maxZoom: 24,
+                    maxNativeZoom: 19,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    keepBuffer: 8,
+                    className: 'leaflet-layer-satellite'
                 }).addTo(this.miniMap);
 
                 L.control.zoom({ position: 'topright' }).addTo(this.miniMap);
@@ -18039,10 +18088,12 @@ const appCadTool = {
                 boxZoom: false
             }).setView([10.5, 106.0], 18);
 
-            L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
                 maxZoom: 24,
-                maxNativeZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                maxNativeZoom: 19,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                keepBuffer: 8,
+                className: 'leaflet-layer-satellite'
             }).addTo(loupe);
 
             this._loupeMap = loupe;
