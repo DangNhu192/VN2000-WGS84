@@ -9075,7 +9075,12 @@ const appGeodesy = {
             c.innerText = "Chưa có đỉnh nào được chọn.";
             return;
         }
-        c.innerHTML = AppState.boundaryPoints.map((p, i) => `${i + 1}. <b>${p.name}</b> (X: ${p.X.toFixed(2)}, Y: ${p.Y.toFixed(2)})`).join("<br>");
+        c.innerHTML = AppState.boundaryPoints.map((p, i) => {
+            const xVal = typeof p.X === 'number' ? p.X : (typeof p.x === 'number' ? p.x : parseFloat(p.X || p.x || 0));
+            const yVal = typeof p.Y === 'number' ? p.Y : (typeof p.y === 'number' ? p.y : parseFloat(p.Y || p.y || 0));
+            const ptName = p.name || (`Đỉnh ${i + 1}`);
+            return `${i + 1}. <b>${ptName}</b> (X: ${xVal.toFixed(2)}, Y: ${yVal.toFixed(2)})`;
+        }).join("<br>");
     },
 
     calcArea() {
@@ -10469,7 +10474,17 @@ const appBluetoothRtk = {
         }
 
         // Chuyển sang VN-2000
-        const vn2k = VN2000.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+        let vn2k = null;
+        try {
+            if (typeof convertWgsToVn2k === 'function') {
+                const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                if (pt) vn2k = { x: pt.X, y: pt.Y };
+            } else if (typeof VN2000 !== 'undefined' && VN2000.wgs84ToVn2000) {
+                vn2k = VN2000.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+            }
+        } catch (e) {
+            console.warn("Lỗi chuyển đổi VN2000 RTK:", e);
+        }
 
         appBluetoothRtk.rtkData = {
             solType: sol,
@@ -10614,7 +10629,17 @@ const appResection = {
         const yP = yA + dA * Math.sin(azAP);
 
         // Chuyển sang WGS-84
-        const wgs = VN2000.vn2000ToWgs84(xP, yP, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+        let wgs = null;
+        try {
+            if (typeof convertVn2kToWgs === 'function') {
+                const pt = convertVn2kToWgs(xP, yP, AppState.kttVal, AppState.scaleFactor);
+                if (pt) wgs = { lat: pt.lat, lng: pt.lng };
+            } else if (typeof VN2000 !== 'undefined' && VN2000.vn2000ToWgs84) {
+                wgs = VN2000.vn2000ToWgs84(xP, yP, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+            }
+        } catch (e) {
+            console.warn("Lỗi chuyển đổi WGS84 Resection:", e);
+        }
 
         appResection.calculatedPoint = {
             x: xP,

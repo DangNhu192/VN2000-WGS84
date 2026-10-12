@@ -452,10 +452,15 @@ function calculatePolygonAreaAndPerimeter(points) {
         const cur = points[i];
         const next = points[(i + 1) % n];
 
-        sumArea += (cur.X * next.Y - next.X * cur.Y);
+        const curX = typeof cur.X === 'number' ? cur.X : (typeof cur.x === 'number' ? cur.x : parseFloat(cur.X || cur.x || 0));
+        const curY = typeof cur.Y === 'number' ? cur.Y : (typeof cur.y === 'number' ? cur.y : parseFloat(cur.Y || cur.y || 0));
+        const nextX = typeof next.X === 'number' ? next.X : (typeof next.x === 'number' ? next.x : parseFloat(next.X || next.x || 0));
+        const nextY = typeof next.Y === 'number' ? next.Y : (typeof next.y === 'number' ? next.y : parseFloat(next.Y || next.y || 0));
 
-        const dx = next.X - cur.X;
-        const dy = next.Y - cur.Y;
+        sumArea += (curX * nextY - nextX * curY);
+
+        const dx = nextX - curX;
+        const dy = nextY - curY;
         perimeter += Math.sqrt(dx * dx + dy * dy);
     }
 
@@ -630,6 +635,26 @@ function parseKttString(str) {
         };
     }
     return null;
+}
+
+// Đối tượng tiện ích VN2000 bao gói tương thích ngược
+const VN2000 = {
+    wgs84ToVn2000(lat, lng, kttDeg = 105, kttMin = 45, mui = 3) {
+        const kttVal = (kttDeg || 105) + (kttMin || 0) / 60.0;
+        const scale = (mui === 6) ? 0.9996 : 0.9999;
+        const pt = convertWgsToVn2k(lat, lng, kttVal, scale);
+        return pt ? { x: pt.X, y: pt.Y } : null;
+    },
+    vn2000ToWgs84(x, y, kttDeg = 105, kttMin = 45, mui = 3) {
+        const kttVal = (kttDeg || 105) + (kttMin || 0) / 60.0;
+        const scale = (mui === 6) ? 0.9996 : 0.9999;
+        const pt = convertVn2kToWgs(x, y, kttVal, scale);
+        return pt ? { lat: pt.lat, lng: pt.lng } : null;
+    }
+};
+
+if (typeof window !== 'undefined') {
+    window.VN2000 = VN2000;
 }
 
 // Xuất các hàm ra phạm vi toàn cục hoặc module
