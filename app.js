@@ -8140,7 +8140,7 @@ function doGet(e) {
         });
 
         // Gắn UTF-8 BOM (\uFEFF)
-        const csvContent = "\uFEFF" + rows.join("\r\r\n");
+        const csvContent = "\uFEFF" + rows.join("\r\n");
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -8174,7 +8174,7 @@ function doGet(e) {
             ].join(","));
         });
 
-        const csvContent = "\uFEFF" + rows.join("\r\r\n");
+        const csvContent = "\uFEFF" + rows.join("\r\n");
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const file = new File([blob], AppState.currentProject, { type: "text/csv" });
 
@@ -8210,7 +8210,7 @@ function doGet(e) {
             const elev = parseFloat(p.h || 0);
 
             dxf += `0\r\nPOINT\r\n8\r\nMOC_TOADO\r\n10\r\n${easting}\r\n20\r\n${northing}\r\n30\r\n${elev}\r\n`;
-            const cleanName = (p.name || 'Moc').replace(/[\r\r\n]/g, '');
+            const cleanName = (p.name || 'Moc').replace(/[\r\n]/g, '');
             dxf += `0\r\nTEXT\r\n8\r\nTEN_MOC\r\n10\r\n${easting + 1.2}\r\n20\r\n${northing + 1.2}\r\n30\r\n${elev}\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
         });
 
@@ -8305,7 +8305,7 @@ function doGet(e) {
             "M3,1144185.700,539620.450,10.346360,106.113580,3,105.75,Góc ranh phía Bắc",
             "M4,1144115.200,539560.800,10.345724,106.113035,3,105.75,Góc ranh phía Tây"
         ];
-        const content = "\uFEFF" + sampleRows.join("\r\r\n");
+        const content = "\uFEFF" + sampleRows.join("\r\n");
         const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -11937,7 +11937,7 @@ const appElevationProfile = {
 
         // 4. Mốc đỉnh đáy và text chú thích
         bPts.forEach((p, idx) => {
-            const pName = (p.name || `M${idx+1}`).replace(/[\r\r\n]/g, '');
+            const pName = (p.name || `M${idx+1}`).replace(/[\r\n]/g, '');
             const depth = (p.z - stats.designH).toFixed(2);
             dxf += `0\r\nPOINT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${stats.designH.toFixed(3)}\r\n`;
             dxf += `0\r\nTEXT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${(p.y + 0.6).toFixed(3)}\r\n20\r\n${(p.x + 0.6).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.5\r\n1\r\n${pName} (H_day=${stats.designH.toFixed(2)}m, h=${depth}m)\r\n`;
@@ -12531,7 +12531,7 @@ const appElevationProfile = {
 
             dxf += `0\r\nLINE\r\n8\r\nTRACDOC_GIONG\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yMax.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${xCad.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
-            const cleanName = (p.name || `C${idx + 1}`).replace(/[\r\r\n]/g, '');
+            const cleanName = (p.name || `C${idx + 1}`).replace(/[\r\n]/g, '');
             dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${(yMax + 1.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
 
             // Hàng 1
@@ -20904,7 +20904,7 @@ const appCadTool = {
             .replace(/[²]/g, '2')
             .replace(/[³]/g, '3')
             .replace(/[°]/g, ' deg')
-            .replace(/[\r\r\n\t]/g, ' ')
+            .replace(/[\r\n\t]/g, ' ')
             .replace(/[^\x20-\x7E]/g, '')
             .trim();
     },
