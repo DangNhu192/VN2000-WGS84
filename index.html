@@ -3654,6 +3654,9 @@
           <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')">
             📐 Giao hội GPS
           </button>
+          <button id="btnTabOptimizer" class="settings-tab-btn" onclick="appModal.switchSettingsTab('optimizer')">
+            ⚡ Tối ưu PixOptimizer
+          </button>
         </div>
       </div>
 
@@ -4114,6 +4117,87 @@
           </div>
         </div>
       </div>
+        <!-- THẺ 6: CẤU HÌNH TỐI ƯU HÓA BẢN ĐỒ & XUẤT ẢNH (PIXOPTIMIZER) -->
+        <div id="settingsTabContentOptimizer" class="settings-tab-content" style="display: none;">
+          <div
+            style="background: rgba(15, 23, 42, 0.85); border: 1px solid #0284c7; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
+            ⚡ <b style="color: #38bdf8;">Động cơ PixOptimizer Client-Side (VIG Digital):</b> Tối ưu hóa nén ảnh 100% trên thiết bị, không qua máy chủ, bảo mật dữ liệu trắc địa. Giúp xuất bản vẽ mặt bằng siêu nhẹ và cuộn/pan bản đồ vệ tinh mượt mà 60fps.
+          </div>
+
+          <!-- Nhóm 1: Tùy chọn Xuất Bản Vẽ MiniCAD -->
+          <div
+            style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 12px; margin-bottom: 8px;">
+              📐 1. CẤU HÌNH XUẤT BẢN VẼ MINICAD & TRẮC DỌC:
+            </div>
+
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label class="form-label" style="font-size: 11px;">Định dạng xuất ảnh ưu tiên:</label>
+              <select id="selOptimizerFormat" class="app-select" style="height: 32px; font-size: 11.5px;">
+                <option value="webp" selected>WebP (Khuyến nghị - Siêu nhẹ, nét căng, giảm ~85% dung lượng)</option>
+                <option value="jpeg">JPEG (Tương thích phổ biến - Gửi Zalo / Chèn Word)</option>
+                <option value="png">PNG (Nguyên bản không nén - Dung lượng lớn)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label class="form-label" style="font-size: 11px;">Mức chất lượng nén ảnh:</label>
+              <select id="selOptimizerQuality" class="app-select" style="height: 32px; font-size: 11.5px;">
+                <option value="high">Cao (90% - Sắc nét in ấn khổ lớn A3/A2)</option>
+                <option value="balanced" selected>Cân bằng (80% - Cân đối tối ưu dung lượng & độ nét)</option>
+                <option value="light">Siêu nhẹ (65% - Tiết kiệm dung lượng tối đa, gửi 3G)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 4px;">
+              <label class="form-label" style="font-size: 11px;">Giới hạn kích thước cạnh ảnh tối đa (Max Edge):</label>
+              <select id="selOptimizerMaxEdge" class="app-select" style="height: 32px; font-size: 11.5px;">
+                <option value="3840">3840 px (Chuẩn 4K Ultra HD)</option>
+                <option value="2048" selected>2048 px (Chuẩn 2K Cân bằng - Khuyến nghị)</option>
+                <option value="1440">1440 px (Chuẩn Di động nhẹ)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Nhóm 2: Tùy chọn Bản Đồ & Bộ Nhớ Đệm -->
+          <div
+            style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+            <div style="font-weight: 700; color: #4ade80; font-size: 12px; margin-bottom: 8px;">
+              🗺️ 2. TỐI ƯU HÓA BẢN ĐỒ VỆ TINH & BỘ NHỚ ĐỆM:
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+              <div>
+                <div style="font-weight: 700; font-size: 12px; color: #f8fafc;">Chế độ tải bản đồ mượt mà (Smooth Map)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; margin-top: 2px;">Chỉ tải tile khi dừng vuốt & Giảm buffer RAM (chống giật lag 60fps)</div>
+              </div>
+              <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+                <input type="checkbox" id="chkOptimizerSmoothMap" checked style="opacity: 0; width: 0; height: 0;">
+                <span
+                  style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #38bdf8; transition: .3s; border-radius: 24px;"
+                  id="sliderOptimizerSmooth"></span>
+              </label>
+            </div>
+
+            <div
+              style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+              <div style="font-size: 11px; color: #94a3b8;">
+                Bộ nhớ đệm ô bản đồ: <span id="txtTileCacheStatus" style="color: #38bdf8;">Đang hoạt động</span>
+              </div>
+              <button type="button" class="btn-sm btn-amber" style="height: 28px; font-size: 11px;"
+                onclick="appModal.clearTileCacheNow()">
+                🧹 Dọn dẹp cache tile
+              </button>
+            </div>
+          </div>
+
+          <!-- Nút Lưu Cài Đặt Tối Ưu -->
+          <button type="button" class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px;"
+            onclick="appModal.saveOptimizerSettings()">
+            💾 LƯU CẤU HÌNH TỐI ƯU PIXOPTIMIZER
+          </button>
+        </div>
+      </div>
       <!-- Kết thúc modal-settings-body -->
 
       <!-- Sticky Footer: Cố định ở đáy cho Thẻ Lưu dữ liệu -->
@@ -4540,7 +4624,37 @@
             <span>🚀</span>
             <span>5. CHỌN ĐỊNH DẠNG XUẤT FILE:</span>
           </div>
+          <!-- Tùy chọn chất lượng ảnh PixOptimizer -->
+          <div
+            style="background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(56, 189, 248, 0.45); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 15px;">⚡</span>
+              <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">Tùy chọn Xuất Ảnh Siêu Nhẹ (PixOptimizer):</span>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <select id="cadExportImgFormat" class="app-select" style="height: 30px; font-size: 11px; padding: 0 8px;"
+                onchange="appCadTool.onExportImgSettingChange()">
+                <option value="webp" selected>WebP (Siêu nhẹ ~300KB, giảm 85%)</option>
+                <option value="jpeg">JPEG (Tương thích Zalo / Word)</option>
+                <option value="png">PNG (Gốc không nén ~4MB)</option>
+              </select>
+              <select id="cadExportImgQuality" class="app-select" style="height: 30px; font-size: 11px; padding: 0 8px;"
+                onchange="appCadTool.onExportImgSettingChange()">
+                <option value="balanced" selected>Cân bằng (80% - Khuyến nghị)</option>
+                <option value="high">Cao (90% - Sắc nét in ấn)</option>
+                <option value="light">Siêu nhẹ (65% - Gửi 3G/Zalo)</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: none;">
+          </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+            <button class="btn-sm" id="btnCadExportOptimizedImg"
+              style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: #fff; border: 1.5px solid #38bdf8; border-radius: 6px; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);"
+              onclick="appCadTool.exportOptimizedImage()"
+              title="Xuất ảnh bản vẽ mặt bằng tối ưu dung lượng (WebP/JPEG/PNG), chia sẻ tức thì qua Zalo">
+              ⚡ Ảnh Tối Ưu (.webp)
+            </button>
             <button class="btn-sm"
               style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 6px;"
               onclick="appCadTool.exportDxf()"
@@ -5756,6 +5870,7 @@
   <script src="xlsx.full.min.js"></script>
 
   <!-- APPLICATION CORE SCRIPT -->
+  <script src="pixoptimizer.js"></script>
   <script src="app.js?v=2.8.1"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->

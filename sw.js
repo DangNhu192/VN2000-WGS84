@@ -10,6 +10,7 @@ const ASSETS_TO_CACHE = [
   './vietnam_34_tinh.js',
   './dong_thap_communes.js',
   './offline_regions.js',
+  './pixoptimizer.js',
   './icon.png',
   './apple-touch-icon.png',
   './favicon.png',

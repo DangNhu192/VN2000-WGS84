@@ -3358,17 +3358,18 @@ const appTransform = {
                 minZoom: 4
             }).setView([10.7769, 106.7009], 13); // Mặc định TP. Hồ Chí Minh
 
+            const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
+                ? window.PixOptimizer.getTileLayerOptions() 
+                : { maxZoom: 24, maxNativeZoom: 19, keepBuffer: 3, updateWhenIdle: true };
+
             const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                maxZoom: 24,
-                maxNativeZoom: 19,
+                ...tileOpt,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                keepBuffer: 8,
                 className: 'leaflet-layer-satellite'
             });
 
             const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 24,
-                maxNativeZoom: 19
+                ...tileOpt
             });
 
             this._liveMapTileLayers['google_hybrid'] = googleHybrid;
@@ -3754,22 +3755,21 @@ const appTransformMap = {
             minZoom: 4
         }).setView([10.5, 106.0], 12);
 
+        const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
+            ? window.PixOptimizer.getTileLayerOptions() 
+            : { maxZoom: 24, maxNativeZoom: 19, keepBuffer: 3, updateWhenIdle: true };
+
         const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 24,
-            maxNativeZoom: 19,
+            ...tileOpt,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            keepBuffer: 8,
             className: 'leaflet-layer-satellite'
         });
         const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 24,
-            maxNativeZoom: 19,
-            keepBuffer: 8,
+            ...tileOpt,
             className: 'leaflet-layer-satellite'
         });
         const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 24,
-            maxNativeZoom: 19
+            ...tileOpt
         });
         googleHybrid.addTo(this.map);
         this.baseLayers = {
@@ -5230,27 +5230,26 @@ const appMap = {
             minZoom: 4
         }).setView([10.5, 106.0], 12);
 
+        const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
+            ? window.PixOptimizer.getTileLayerOptions() 
+            : { maxZoom: 24, maxNativeZoom: 19, keepBuffer: 3, updateWhenIdle: true };
+
         // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa, nội suy siêu nét lên mức 24, chống đen màn hình)
         const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 24,
-            maxNativeZoom: 19,
+            ...tileOpt,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            keepBuffer: 8,
             className: 'leaflet-layer-satellite'
         });
 
         // Lớp vệ tinh Esri World Imagery độ phân giải cao dự phòng (nội suy siêu nét mức 24)
         const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 24,
-            maxNativeZoom: 19,
-            keepBuffer: 8,
+            ...tileOpt,
             className: 'leaflet-layer-satellite'
         });
 
         // Lớp OpenStreetMap đường phố (nội suy lên mức 24)
         const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 24,
-            maxNativeZoom: 19
+            ...tileOpt
         });
 
         googleHybrid.addTo(map);
@@ -9168,7 +9167,7 @@ const appModal = {
 
     switchSettingsTab(tab = 'storage') {
         appModal.currentSettingsTab = tab;
-        const tabList = ['storage', 'ktt', 'datetime', 'rtk', 'resection'];
+        const tabList = ['storage', 'ktt', 'datetime', 'rtk', 'resection', 'optimizer'];
         
         tabList.forEach(t => {
             const cap = t.charAt(0).toUpperCase() + t.slice(1);
@@ -9192,6 +9191,68 @@ const appModal = {
         }
         if (tab === 'rtk' && typeof appBluetoothRtk !== 'undefined') {
             appBluetoothRtk.updateUi();
+        }
+        if (tab === 'optimizer') {
+            appModal.initOptimizerSettingsUI();
+        }
+    },
+
+    initOptimizerSettingsUI() {
+        if (typeof window === 'undefined' || !window.PixOptimizer) return;
+        const s = window.PixOptimizer.settings || {};
+        const selFmt = document.getElementById('selOptimizerFormat');
+        if (selFmt && s.format) selFmt.value = s.format;
+
+        const selQual = document.getElementById('selOptimizerQuality');
+        if (selQual && s.qualityPreset) selQual.value = s.qualityPreset;
+
+        const selEdge = document.getElementById('selOptimizerMaxEdge');
+        if (selEdge && s.maxEdge) selEdge.value = String(s.maxEdge);
+
+        const chkSmooth = document.getElementById('chkOptimizerSmoothMap');
+        if (chkSmooth) chkSmooth.checked = s.smoothMap !== false;
+
+        const txtCache = document.getElementById('txtTileCacheStatus');
+        if (txtCache) {
+            txtCache.innerText = 'Đang sẵn sàng';
+        }
+    },
+
+    saveOptimizerSettings() {
+        if (typeof window === 'undefined' || !window.PixOptimizer) return;
+        const fmt = document.getElementById('selOptimizerFormat')?.value || 'webp';
+        const quality = document.getElementById('selOptimizerQuality')?.value || 'balanced';
+        const maxEdge = parseInt(document.getElementById('selOptimizerMaxEdge')?.value, 10) || 2048;
+        const smoothMap = document.getElementById('chkOptimizerSmoothMap')?.checked !== false;
+
+        window.PixOptimizer.saveSettings({
+            format: fmt,
+            qualityPreset: quality,
+            maxEdge: maxEdge,
+            smoothMap: smoothMap
+        });
+
+        // Đồng bộ sang MiniCAD export modal nếu đang mở
+        const cadFmt = document.getElementById('cadExportImgFormat');
+        if (cadFmt) cadFmt.value = fmt;
+        const cadQual = document.getElementById('cadExportImgQuality');
+        if (cadQual) cadQual.value = quality;
+        if (typeof appCadTool !== 'undefined' && appCadTool.onExportImgSettingChange) {
+            appCadTool.onExportImgSettingChange();
+        }
+
+        showToast("✓ Đã lưu cấu hình tối ưu hóa PixOptimizer!");
+    },
+
+    async clearTileCacheNow() {
+        if (typeof window === 'undefined' || !window.PixOptimizer) return;
+        const res = await window.PixOptimizer.clearTileCache();
+        if (res.success) {
+            const txtCache = document.getElementById('txtTileCacheStatus');
+            if (txtCache) txtCache.innerText = `Đã dọn ${res.deletedCount} ô tile`;
+            showToast(`✓ ${res.message}`);
+        } else {
+            showToast(`⚠️ ${res.error || res.message}`, true);
         }
     },
 
@@ -9918,12 +9979,25 @@ const appCamera = {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
 
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
+        let targetW = img.width;
+        let targetH = img.height;
+        const maxEdge = (typeof window !== 'undefined' && window.PixOptimizer) ? (window.PixOptimizer.settings.maxEdge || 2048) : 2048;
+        if (targetW > maxEdge || targetH > maxEdge) {
+            if (targetW >= targetH) {
+                targetH = Math.round((targetH * maxEdge) / targetW);
+                targetW = maxEdge;
+            } else {
+                targetW = Math.round((targetW * maxEdge) / targetH);
+                targetH = maxEdge;
+            }
+        }
+
+        canvas.width = targetW;
+        canvas.height = targetH;
+        ctx.drawImage(img, 0, 0, targetW, targetH);
 
         // Tỷ lệ kích thước watermark theo độ phân giải ảnh
-        const scale = Math.max(1, img.width / 1200);
+        const scale = Math.max(1, targetW / 1200);
         const padding = Math.round(18 * scale);
         const fontSizeHeader = Math.round(18 * scale);
         const fontSizeBody = Math.round(13.5 * scale);
@@ -10015,7 +10089,8 @@ const appCamera = {
 
         const resultCard = document.getElementById('cardCameraResult');
         if (resultCard) resultCard.style.display = 'block';
-        appCamera.renderedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const qual = (typeof window !== 'undefined' && window.PixOptimizer) ? window.PixOptimizer.getQualityFloat() : 0.82;
+        appCamera.renderedDataUrl = canvas.toDataURL('image/jpeg', qual);
         showToast("✅ Đã hoàn tất đóng dấu mốc tọa độ lên ảnh!");
     },
 
@@ -22905,11 +22980,11 @@ const appCadTool = {
         showToast(`✓ Đã xuất bản vẽ SVG Vector độ nét cao: ${projName}_BanDo_1-${meta.scaleVal}.svg`);
     },
 
-    exportPng() {
+    exportOptimizedImage(customOpts = {}) {
         const allShapes = this._getAllExportShapes();
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         if (selectedShapes.length === 0) {
-            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất PNG!", true);
+            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất ảnh bản vẽ!", true);
             return;
         }
 
@@ -23186,19 +23261,58 @@ const appCadTool = {
         ctx.fillText(`Ngày: ${meta.drawingDate}`, midX + 20, lY + 48);
         ctx.fillText(`Số đối tượng: ${selectedShapes.length}`, midX + 20, lY + 72);
 
-        // Xuất file PNG
-        canvas.toBlob((blob) => {
-            if (!blob) { showToast("⚠️ Lỗi tạo ảnh PNG!", true); return; }
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${projName}_BanDo_1-${meta.scaleVal}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast(`✓ Đã xuất ảnh PNG kèm bảng tổng hợp: ${projName}_BanDo_1-${meta.scaleVal}.png`);
-        }, 'image/png');
+        // Xuất ảnh bản vẽ tối ưu qua PixOptimizer (WebP / JPEG / PNG)
+        const fmt = customOpts.format || document.getElementById('cadExportImgFormat')?.value || (window.PixOptimizer ? window.PixOptimizer.settings.format : 'webp');
+        const qualityPreset = customOpts.qualityPreset || document.getElementById('cadExportImgQuality')?.value || (window.PixOptimizer ? window.PixOptimizer.settings.qualityPreset : 'balanced');
+        const maxEdge = customOpts.maxEdge || (window.PixOptimizer ? window.PixOptimizer.settings.maxEdge : 2048);
+
+        if (typeof window !== 'undefined' && window.PixOptimizer && typeof window.PixOptimizer.compressCanvas === 'function') {
+            window.PixOptimizer.compressCanvas(canvas, { format: fmt, qualityPreset: qualityPreset, maxEdge: maxEdge }).then((res) => {
+                const url = URL.createObjectURL(res.blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${projName}_BanDo_1-${meta.scaleVal}.${res.ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                const sizeStr = window.PixOptimizer.formatBytes(res.compressedBytes);
+                const saveStr = res.savedPercent > 0 ? ` (giảm ${res.savedPercent}%)` : '';
+                showToast(`✓ Đã xuất ảnh ${res.ext.toUpperCase()} tối ưu: ${sizeStr}${saveStr}`);
+            }).catch((err) => {
+                console.error('[CAD Export Image Error]', err);
+                showToast("⚠️ Lỗi nén xuất ảnh: " + err.message, true);
+            });
+        } else {
+            // Fallback khi chưa nạp PixOptimizer
+            const mime = (fmt === 'jpeg' || fmt === 'jpg') ? 'image/jpeg' : ((fmt === 'png') ? 'image/png' : 'image/webp');
+            const ext = (fmt === 'jpeg' || fmt === 'jpg') ? 'jpg' : ((fmt === 'png') ? 'png' : 'webp');
+            canvas.toBlob((blob) => {
+                if (!blob) { showToast("⚠️ Lỗi tạo ảnh!", true); return; }
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${projName}_BanDo_1-${meta.scaleVal}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`✓ Đã xuất ảnh ${ext.toUpperCase()}: ${projName}_BanDo_1-${meta.scaleVal}.${ext}`);
+            }, mime);
+        }
+    },
+
+    exportPng() {
+        return this.exportOptimizedImage({ format: 'png' });
+    },
+
+    onExportImgSettingChange() {
+        const fmt = document.getElementById('cadExportImgFormat')?.value || 'webp';
+        const btn = document.getElementById('btnCadExportOptimizedImg');
+        if (btn) {
+            const ext = (fmt === 'jpeg') ? 'jpg' : fmt;
+            btn.innerHTML = `⚡ Ảnh Tối Ưu (.${ext})`;
+        }
     }
 };
 
