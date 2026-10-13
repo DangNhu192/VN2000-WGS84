@@ -16342,6 +16342,16 @@ const appCadTool = {
         if (!this.layers.annotationsGroup) return;
         this.layers.annotationsGroup.clearLayers();
 
+        // Tự động cập nhật lại góc xoay dọc thân mũi tên khi người dùng phóng to / thu nhỏ bản đồ
+        if (AppState.leafletMap && !this._zoomListenerAttached) {
+            this._zoomListenerAttached = true;
+            AppState.leafletMap.on('zoomend', () => {
+                if (this.isActive && this.showAnnotations) {
+                    this.renderAnnotations();
+                }
+            });
+        }
+
         const countEl = document.getElementById('cadMarkupCount');
         if (countEl) countEl.innerText = this.annotations ? this.annotations.length : 0;
 
@@ -16442,7 +16452,26 @@ const appCadTool = {
                     const labelLat = isDouble ? (ann.labelLat || midLat) : ann.endLat;
                     const labelLng = isDouble ? (ann.labelLng || midLng) : ann.endLng;
 
-                    const labelHtml = `<div class="cad-arrow-label-marker" style="background: rgba(15,23,42,0.94); border: 1.5px solid ${annColor}; color: #f8fafc; font-size: ${ann.fontSize || 12}px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; display: flex; align-items: center; gap: 4px; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                    // Tính góc vector hướng của thân mũi tên trên màn hình bản đồ
+                    let screenAngleDeg = 0;
+                    if (AppState.leafletMap) {
+                        const pt1 = AppState.leafletMap.latLngToLayerPoint([ann.startLat, ann.startLng]);
+                        const pt2 = AppState.leafletMap.latLngToLayerPoint([ann.endLat, ann.endLng]);
+                        const dx = pt2.x - pt1.x;
+                        const dy = pt2.y - pt1.y;
+                        screenAngleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+                    } else {
+                        const dLat = ann.endLat - ann.startLat;
+                        const dLng = (ann.endLng - ann.startLng) * Math.cos((ann.startLat + ann.endLat) * Math.PI / 360);
+                        screenAngleDeg = -Math.atan2(dLat, dLng) * 180 / Math.PI;
+                    }
+
+                    // Chuẩn LibreCAD / ISO CAD: Văn bản nằm dọc theo thân mũi tên, tự động lật 180° để mắt đọc thuận từ trái sang phải, dưới lên trên
+                    let textRot = screenAngleDeg;
+                    while (textRot > 90) textRot -= 180;
+                    while (textRot < -90) textRot += 180;
+
+                    const labelHtml = `<div class="cad-arrow-label-marker" style="background: rgba(15,23,42,0.94); border: 1.5px solid ${annColor}; color: #f8fafc; font-size: ${ann.fontSize || 12}px; font-weight: 700; padding: 2.5px 7px; border-radius: 5px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; display: inline-flex; align-items: center; gap: 4px; transform: rotate(${textRot.toFixed(1)}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
                         <span style="color: ${annColor}; font-size: 11px;">${isDouble ? '↔️' : '🏹'}</span>
                         <span>${ann.arrowText || (isDouble ? 'Kích thước' : 'Ghi chú')}</span>
                     </div>`;
@@ -16450,7 +16479,7 @@ const appCadTool = {
                         className: 'cad-arrow-label-icon',
                         html: labelHtml,
                         iconSize: null,
-                        iconAnchor: isDouble ? [20, 12] : [0, 12]
+                        iconAnchor: [24, 12]
                     });
                     const textMarker = L.marker([labelLat, labelLng], {
                         icon: labelIcon,
@@ -16511,8 +16540,10 @@ const appCadTool = {
                         this.layers.annotationsGroup.addLayer(poly);
                     }
 
-                    const rotInfo = ann.rotationDeg ? ` • ${ann.rotationDeg}°` : '';
-                    const rectLabelHtml = `<div style="background: rgba(15,23,42,0.92); border: 1.5px solid ${annColor}; color: #fce7f3; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-align: center; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                    // Tên khối có thể điều chỉnh xoay tròn tự do (0° - 360°) để phù hợp với bố cục
+                    const labelRot = (typeof ann.labelRotationDeg !== 'undefined') ? ann.labelRotationDeg : (ann.rotationDeg || 0);
+                    const rotInfo = labelRot ? ` • ${labelRot}°` : '';
+                    const rectLabelHtml = `<div class="cad-rect-label-box" style="background: rgba(15,23,42,0.92); border: 1.5px solid ${annColor}; color: #fce7f3; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-align: center; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; transform: rotate(${labelRot}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
                         <div>🏠 ${ann.rectName || 'Khối nhà'}</div>
                         <div style="color: #f472b6; font-size: 9.5px; font-weight: 600;">${ann.widthM || 0}x${ann.lengthM || 0}m (${ann.rectArea || 0}m²)${rotInfo}</div>
                     </div>`;
@@ -16556,42 +16587,57 @@ const appCadTool = {
                 }
 
                 case 'stamp': {
-                    let stampInner = '';
-                    if (ann.stampType === 'drawing') {
-                        stampInner = `
-                            <div style="font-weight: 800; color: ${annColor}; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 3px; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">
-                                📋 ${ann.drawTitle || 'HIỆN TRẠNG KHU ĐẤT'}
-                            </div>
-                            <div style="font-size: 10px; color: #cbd5e1; line-height: 1.45;">
-                                <div>📐 Tỷ lệ: <b style="color: #4ade80;">${ann.drawScale || '1:500'}</b></div>
-                                <div>👤 Người lập: <b style="color: #f1f5f9;">${ann.drawAuthor || '--'}</b></div>
-                                <div>🏷️ Thửa/Khối: <b style="color: #fbbf24;">${ann.parcelNo || '--'} (Tờ ${ann.sheetNo || '--'})</b></div>
-                            </div>
-                        `;
-                    } else {
-                        // Mặc định hoặc tem thửa đất
-                        stampInner = `
-                            <div style="font-weight: 800; color: ${annColor}; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 3px; margin-bottom: 4px; display: flex; justify-content: space-between; font-size: 11px;">
-                                <span>TỜ: <b style="color: #fff;">${ann.sheetNo || '01'}</b></span>
-                                <span>THỬA: <b style="color: #fff;">${ann.parcelNo || '01'}</b></span>
-                            </div>
-                            <div style="font-size: 10px; color: #cbd5e1; line-height: 1.45;">
-                                <div>📐 DT: <b style="color: #4ade80;">${ann.area || '--'}</b></div>
-                                <div>👤 Chủ: <b style="color: #f1f5f9;">${ann.owner || '--'}</b></div>
-                                <div>🏷️ Loại: <b style="color: #fbbf24;">${ann.landType || '--'}</b></div>
-                            </div>
-                        `;
+                    // Tự động chuyển đổi tem cũ sang cấu trúc danh sách động Key-Value tự do (chuẩn LibreCAD)
+                    if (!ann.fields) {
+                        ann.title = ann.title || ann.drawTitle || 'THÔNG TIN BẢN VẼ';
+                        ann.fields = [];
+                        if (ann.owner) ann.fields.push({ key: 'Chủ đầu tư', val: ann.owner });
+                        if (ann.area) ann.fields.push({ key: 'Diện tích', val: ann.area });
+                        if (ann.drawScale) ann.fields.push({ key: 'Tỷ lệ', val: ann.drawScale });
+                        if (ann.drawAuthor) ann.fields.push({ key: 'Người đo vẽ', val: ann.drawAuthor });
+                        if (ann.landType) ann.fields.push({ key: 'Hạng mục', val: ann.landType });
+                        if (ann.parcelNo && !ann.fields.some(f => f.key === 'Ký hiệu')) {
+                            ann.fields.push({ key: 'Ký hiệu/Mã', val: ann.parcelNo });
+                        }
+                        if (ann.fields.length === 0) {
+                            ann.fields = [
+                                { key: 'Tên công trình', val: 'Khảo sát hiện trạng mặt bằng' },
+                                { key: 'Tỷ lệ', val: '1:500' },
+                                { key: 'Người đo vẽ', val: 'Kỹ sư trắc địa' }
+                            ];
+                        }
                     }
 
-                    const stampHtml = `<div style="background: rgba(15,23,42,0.95); border: 2px solid ${annColor}; border-radius: 8px; padding: 6px 10px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 6px 18px rgba(0,0,0,0.65); min-width: 145px; cursor: move; user-select: none; text-align: left; ${isSelected ? 'box-shadow: 0 0 12px #facc15;' : ''}">
-                        ${stampInner}
-                    </div>`;
+                    const title = ann.title || 'THÔNG TIN BẢN VẼ';
+                    let fieldsHtml = '';
+                    if (ann.fields && ann.fields.length > 0) {
+                        fieldsHtml = ann.fields.map(f => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+                                <span style="color:#94a3b8; font-weight:600; font-size:10px; white-space:nowrap;">${f.key}:</span>
+                                <b style="color:#f8fafc; font-size:10px; text-align:right; word-break:break-word;">${f.val || '--'}</b>
+                            </div>
+                        `).join('');
+                    } else {
+                        fieldsHtml = `<div style="color:#94a3b8; font-style:italic; font-size:10px;">(Nhấp vào để thêm các dòng thông tin)</div>`;
+                    }
+
+                    const stampHtml = `
+                        <div class="cad-drawing-stamp-card" style="background: rgba(15,23,42,0.96); border: 2px solid ${annColor}; border-radius: 8px; padding: 7px 12px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 6px 18px rgba(0,0,0,0.65); min-width: 175px; max-width: 280px; cursor: move; user-select: none; text-align: left; ${isSelected ? 'box-shadow: 0 0 12px #facc15;' : ''}">
+                            <div style="font-weight: 800; color: ${annColor}; border-bottom: 1.5px solid rgba(255,255,255,0.2); padding-bottom: 4px; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
+                                <span>📋 ${title}</span>
+                                <span style="font-size: 9px; opacity: 0.7; color: #38bdf8;">CAD 2D</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px;">
+                                ${fieldsHtml}
+                            </div>
+                        </div>
+                    `;
 
                     const stampIcon = L.divIcon({
                         className: 'cad-parcel-stamp-marker',
                         html: stampHtml,
                         iconSize: null,
-                        iconAnchor: [72, 35]
+                        iconAnchor: [85, 35]
                     });
                     const marker = L.marker([ann.lat, ann.lng], {
                         icon: stampIcon,
@@ -16612,7 +16658,7 @@ const appCadTool = {
                     marker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
                         if (this.mode === 'select') {
-                            this.selectItem({ type: 'annotation', id: ann.id, name: 'Tem nhãn ' + (ann.parcelNo || '') });
+                            this.selectItem({ type: 'annotation', id: ann.id, name: 'Tem nhãn: ' + title });
                         } else {
                             this.showQuickEditPopup(e.latlng, { type: 'stamp', ann: ann });
                         }
@@ -16799,27 +16845,13 @@ const appCadTool = {
                 break;
 
             case 'stamp':
-                if (titleEl) titleEl.innerText = '🏷️ Sửa Tem / Nhãn Bản Vẽ';
+                if (titleEl) titleEl.innerText = '📋 Sửa Tem / Nhãn Bản Vẽ';
                 if (grpStamp) grpStamp.style.display = 'flex';
-                const sTypeEl = document.getElementById('selCadEditAnnStampType');
-                if (sTypeEl) sTypeEl.value = ann.stampType || 'parcel';
-                this.onStampTypeChange(ann.stampType || 'parcel');
-
-                document.getElementById('txtCadEditAnnSheet').value = ann.sheetNo || '';
-                document.getElementById('txtCadEditAnnParcel').value = ann.parcelNo || '';
-                document.getElementById('txtCadEditAnnArea').value = ann.area || '';
-                document.getElementById('txtCadEditAnnLandType').value = ann.landType || '';
-                document.getElementById('txtCadEditAnnOwner').value = ann.owner || '';
-
-                if (document.getElementById('txtCadEditAnnDrawTitle')) {
-                    document.getElementById('txtCadEditAnnDrawTitle').value = ann.drawTitle || 'HIỆN TRẠNG KHU ĐẤT';
+                const titleInput = document.getElementById('txtCadEditAnnStampTitle');
+                if (titleInput) {
+                    titleInput.value = ann.title || ann.drawTitle || 'THÔNG TIN BẢN VẼ';
                 }
-                if (document.getElementById('txtCadEditAnnDrawScale')) {
-                    document.getElementById('txtCadEditAnnDrawScale').value = ann.drawScale || '1:500';
-                }
-                if (document.getElementById('txtCadEditAnnDrawAuthor')) {
-                    document.getElementById('txtCadEditAnnDrawAuthor').value = ann.drawAuthor || 'Kỹ sư trắc địa';
-                }
+                this.renderStampFieldsEditor(ann);
                 break;
 
             case 'rect':
@@ -16844,12 +16876,12 @@ const appCadTool = {
                 break;
         }
 
-        modal.classList.add('show');
+        modal.classList.add('active', 'show');
     },
 
     closeAnnotationModal() {
         const modal = document.getElementById('modalCadEditAnnotation');
-        if (modal) modal.classList.remove('show');
+        if (modal) modal.classList.remove('active', 'show');
     },
 
     saveAnnotationEdit() {
@@ -16907,21 +16939,8 @@ const appCadTool = {
                 break;
 
             case 'stamp':
-                ann.stampType = document.getElementById('selCadEditAnnStampType')?.value || 'parcel';
-                ann.sheetNo = document.getElementById('txtCadEditAnnSheet').value.trim();
-                ann.parcelNo = document.getElementById('txtCadEditAnnParcel').value.trim();
-                ann.area = document.getElementById('txtCadEditAnnArea').value.trim();
-                ann.landType = document.getElementById('txtCadEditAnnLandType').value.trim();
-                ann.owner = document.getElementById('txtCadEditAnnOwner').value.trim();
-                if (document.getElementById('txtCadEditAnnDrawTitle')) {
-                    ann.drawTitle = document.getElementById('txtCadEditAnnDrawTitle').value.trim();
-                }
-                if (document.getElementById('txtCadEditAnnDrawScale')) {
-                    ann.drawScale = document.getElementById('txtCadEditAnnDrawScale').value.trim();
-                }
-                if (document.getElementById('txtCadEditAnnDrawAuthor')) {
-                    ann.drawAuthor = document.getElementById('txtCadEditAnnDrawAuthor').value.trim();
-                }
+                ann.title = document.getElementById('txtCadEditAnnStampTitle')?.value.trim() || 'THÔNG TIN BẢN VẼ';
+                ann.fields = this.collectStampFields();
                 break;
 
             case 'rect': {
@@ -16968,6 +16987,92 @@ const appCadTool = {
             this.renderAnnotations();
             showToast('✓ Đã xóa chú thích');
         }
+    },
+
+    // === CÁC HÀM QUẢN LÝ TEM / NHÃN BẢN VẼ ĐỘNG (KEY-VALUE BUILDER - CHUẨN LIBRECAD) ===
+    renderStampFieldsEditor(ann) {
+        const listEl = document.getElementById('listCadEditAnnStampFields');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        const fields = (ann && Array.isArray(ann.fields) && ann.fields.length > 0) ? ann.fields : [
+            { key: 'Tên công trình', val: 'Khảo sát hiện trạng mặt bằng' },
+            { key: 'Chủ đầu tư', val: ann?.owner || '' },
+            { key: 'Tỷ lệ', val: ann?.drawScale || '1:500' },
+            { key: 'Người đo vẽ', val: ann?.drawAuthor || 'Kỹ sư trắc địa' }
+        ];
+        fields.forEach(f => {
+            this.appendStampFieldRow(f.key, f.val);
+        });
+    },
+
+    addStampField(key = '', val = '') {
+        this.appendStampFieldRow(key, val);
+    },
+
+    appendStampFieldRow(key = '', val = '') {
+        const listEl = document.getElementById('listCadEditAnnStampFields');
+        if (!listEl) return;
+        const row = document.createElement('div');
+        row.className = 'cad-stamp-field-row';
+        row.style.cssText = 'display: grid; grid-template-columns: 1fr 1.2fr auto; gap: 6px; align-items: center; background: rgba(30,41,59,0.7); padding: 4px 6px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.08);';
+        const safeKey = (key || '').replace(/"/g, '&quot;');
+        const safeVal = (val || '').replace(/"/g, '&quot;');
+        row.innerHTML = `
+            <input type="text" class="form-control stamp-field-key" value="${safeKey}" placeholder="Tên thông tin..." style="height: 28px; font-size: 11px; padding: 0 6px; font-weight: 600;">
+            <input type="text" class="form-control stamp-field-val" value="${safeVal}" placeholder="Nội dung / Giá trị..." style="height: 28px; font-size: 11px; padding: 0 6px;">
+            <button type="button" class="btn-sm btn-red" style="height: 28px; padding: 0 6px; font-size: 11px;" onclick="this.closest('.cad-stamp-field-row').remove()" title="Xóa dòng này">🗑️</button>
+        `;
+        listEl.appendChild(row);
+        listEl.scrollTop = listEl.scrollHeight;
+    },
+
+    collectStampFields() {
+        const rows = document.querySelectorAll('.cad-stamp-field-row');
+        const fields = [];
+        rows.forEach(r => {
+            const k = r.querySelector('.stamp-field-key')?.value.trim();
+            const v = r.querySelector('.stamp-field-val')?.value.trim();
+            if (k || v) {
+                fields.push({ key: k || 'Thông tin', val: v || '' });
+            }
+        });
+        return fields;
+    },
+
+    // === CÁC HÀM ĐIỀU CHỈNH XOAY TRÒN TÊN KHỐI & NHÃN TÂM (0 - 360 ĐỘ) ===
+    onQuickShapeRotChange(val, sIdx) {
+        val = parseInt(val, 10) || 0;
+        const lbl = document.getElementById('lblQuickShapeRotVal');
+        if (lbl) lbl.innerText = val + '°';
+        const s = this.savedShapes && this.savedShapes[sIdx];
+        if (s) {
+            s.labelRotationDeg = val;
+            this.renderGeometry();
+        }
+    },
+
+    setQuickShapeRot(val, sIdx) {
+        const rng = document.getElementById('rngQuickShapeRot');
+        if (rng) rng.value = val;
+        this.onQuickShapeRotChange(val, sIdx);
+    },
+
+    onQuickRectRotChange(val, annId) {
+        val = parseInt(val, 10) || 0;
+        const lbl = document.getElementById('lblQuickRectRotVal');
+        if (lbl) lbl.innerText = val + '°';
+        const ann = (this.annotations || []).find(a => a.id === annId);
+        if (ann) {
+            ann.labelRotationDeg = val;
+            const el = document.getElementById('cadRectLabel_' + ann.id) || document.querySelector('.cad-rect-label-box');
+            if (el) el.style.transform = `rotate(${val}deg)`;
+        }
+    },
+
+    setQuickRectRot(val, annId) {
+        const rng = document.getElementById('rngQuickRectRot');
+        if (rng) rng.value = val;
+        this.onQuickRectRotChange(val, annId);
     },
 
     clearAnnotations() {
@@ -17609,6 +17714,9 @@ const appCadTool = {
                 // và Scale kích thước vừa khít theo khoảng cách mép trong lòng khối
                 const [cLat, cLng, clearanceDeg] = this.calculatePolygonVisualCenter(sVerts);
                 const blockSymbol = shape.symbol || String(sIdx + 1);
+                // Góc xoay nhãn tâm khối đa giác (chuẩn LibreCAD xoay tròn 0 - 360 độ)
+                const shapeRot = shape.labelRotationDeg || 0;
+                const rotStyle = `transform: rotate(${shapeRot}deg); transform-origin: center center; transition: transform 0.1s ease;`;
 
                 // Tính toán kích thước pixel của khối trên màn hình để scale nhãn chuẩn xác
                 let maxW = 75, maxH = 32, badgeHtml = '';
@@ -17635,27 +17743,31 @@ const appCadTool = {
                     if (safeInnerDiam < 45) {
                         // Khối rất nhỏ hoặc nhánh chữ L hẹp: Hiển thị chấm tròn ký hiệu cực gọn, lọt thỏm trong lòng khối
                         const bDim = Math.min(22, Math.max(16, safeInnerDiam));
-                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.94); border:1.5px solid ${sColor}; color:${sColor}; width:${bDim}px; height:${bDim}px; min-width:${bDim}px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px; box-shadow:0 1px 6px rgba(0,0,0,0.5);" title="${shape.name} (${shape.stats?.areaFormatted || 0} m²)">${blockSymbol}</div>`;
+                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.94); border:1.5px solid ${sColor}; color:${sColor}; width:${bDim}px; height:${bDim}px; min-width:${bDim}px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px; box-shadow:0 1px 6px rgba(0,0,0,0.5); cursor:pointer; ${rotStyle}" title="${shape.name} (${shape.stats?.areaFormatted || 0} m²)">${blockSymbol}</div>`;
                     } else if (safeInnerDiam < 85) {
                         // Khối trung bình: Hiển thị ký hiệu + diện tích làm tròn
-                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid ${sColor}; color:#ffffff; padding:1px 4px; border-radius:4px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.4);" title="${shape.name}">
+                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid ${sColor}; color:#ffffff; padding:1px 4px; border-radius:4px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.4); cursor:pointer; ${rotStyle}" title="${shape.name}">
                             <div style="font-weight:800; font-size:11px; color:${sColor}; line-height:1.1;">${blockSymbol}</div>
                             <div class="cad-center-area-val" style="font-weight:700; font-size:8.5px; color:#f8fafc; white-space:nowrap;">${Math.round(shape.stats?.area || 0)} m²</div>
                         </div>`;
                     } else {
                         // Khối lớn: Hiển thị đầy đủ
-                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.90); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:5px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.45);" title="${shape.name}">
+                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.90); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:5px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.45); cursor:pointer; ${rotStyle}" title="${shape.name}">
                             <div style="font-weight:800; font-size:13px; color:${sColor}; line-height:1.15;">${blockSymbol}</div>
                             <div class="cad-center-area-val" style="font-weight:700; font-size:10px; color:#f8fafc; white-space:nowrap;">${shape.stats?.areaFormatted || 0} m²</div>
                         </div>`;
                     }
                 } else {
-                    badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.9); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:4px;"><div style="font-weight:800; font-size:12px; color:${sColor};">${blockSymbol}</div></div>`;
+                    badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.9); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:4px; cursor:pointer; ${rotStyle}"><div style="font-weight:800; font-size:12px; color:${sColor};">${blockSymbol}</div></div>`;
                 }
 
                 // iconAnchor [0, 0] kết hợp transform: translate(-50%, -50%) định tâm hoàn hảo, không bị trôi offset
                 const centerIcon = L.divIcon({ className: 'cad-center-divicon', html: badgeHtml, iconSize: [0, 0], iconAnchor: [0, 0] });
-                sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: false, zIndexOffset: 2300 }).addTo(this.layers.group);
+                sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: true, zIndexOffset: 2450 }).addTo(this.layers.group);
+                sCenterMarker.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    this.showQuickEditPopup(e.latlng, { type: 'shape', shapeIndex: sIdx, shape: shape });
+                });
                 }
             } else if (showBoundaries && sLen >= 2) {
                 const isSelected = this.selectedItem && this.selectedItem.type === 'shape' && this.selectedItem.index === sIdx;
@@ -20699,10 +20811,44 @@ const appCadTool = {
                     <button type="button" onclick="appCadTool.deleteVertex(${targetData.shapeIndex}, ${targetData.vertexIndex}); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa đỉnh này">🗑️</button>
                 </div>
             `;
+        } else if (targetData.type === 'shape') {
+            const s = targetData.shape;
+            title = `📦 Khối Đa Giác / Thửa Đất [${s.shortName || s.name || 'Khối'}]`;
+            currentName = s.name || '';
+            const rot = s.labelRotationDeg || 0;
+            metaInfo = `
+                <div style="font-size:10px; color:#94a3b8; margin-top:2px; display:flex; justify-content:space-between;">
+                    <span>Diện tích: <b style="color:#4ade80;">${s.stats?.areaFormatted || 0} m²</b></span>
+                    <span>Ký hiệu: <b style="color:#38bdf8;">${s.symbol || String(targetData.shapeIndex + 1)}</b></span>
+                </div>
+                <div style="margin-top:6px; padding:5px 0; border-top:1px dashed rgba(255,255,255,0.15);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                        <span style="font-size:10px; color:#cbd5e1; font-weight:600;">🔄 Góc xoay tên/nhãn khối:</span>
+                        <b id="lblQuickShapeRotVal" style="font-size:11px; color:#38bdf8;">${rot}°</b>
+                    </div>
+                    <input type="range" id="rngQuickShapeRot" min="0" max="360" step="5" value="${rot}"
+                        style="width:100%; height:4px; accent-color:#38bdf8; cursor:pointer;"
+                        oninput="appCadTool.onQuickShapeRotChange(this.value, ${targetData.shapeIndex})">
+                    <div style="display:flex; gap:3px; margin-top:4px;">
+                        <button type="button" onclick="appCadTool.setQuickShapeRot(0, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">0°</button>
+                        <button type="button" onclick="appCadTool.setQuickShapeRot(45, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">45°</button>
+                        <button type="button" onclick="appCadTool.setQuickShapeRot(90, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">90°</button>
+                        <button type="button" onclick="appCadTool.setQuickShapeRot(180, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">180°</button>
+                        <button type="button" onclick="appCadTool.setQuickShapeRot(270, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">270°</button>
+                    </div>
+                </div>
+            `;
+            extraControls = `
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                    <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Khối</button>
+                    <button type="button" onclick="appCadTool.openAreaTableModal(); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(255,255,255,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Mở bảng kê diện tích">📊</button>
+                    <button type="button" onclick="appCadTool.deleteBlock(${targetData.shapeIndex}); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa khối này">🗑️</button>
+                </div>
+            `;
         } else if (targetData.type === 'arrow') {
             const ann = targetData.ann;
             const isDouble = ann.arrowType === 'double';
-            title = isDouble ? '↔️ Mũi tên 2 đầu nhọn' : '🏹 Mũi tên 1 đầu nhọn';
+            title = isDouble ? '↔️ Mũi tên 2 đầu nhọn (Dọc thân)' : '🏹 Mũi tên 1 đầu nhọn (Dọc thân)';
             currentName = ann.arrowText || '';
             extraControls = `
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; padding:4px 0; border-top:1px dashed rgba(255,255,255,0.15);">
@@ -20721,6 +20867,25 @@ const appCadTool = {
             const ann = targetData.ann;
             title = `🏠 Khối Nhà (${ann.widthM || 0}x${ann.lengthM || 0}m)`;
             currentName = ann.rectName || '';
+            const rot = (typeof ann.labelRotationDeg !== 'undefined') ? ann.labelRotationDeg : (ann.rotationDeg || 0);
+            metaInfo = `
+                <div style="margin-top:6px; padding:5px 0; border-top:1px dashed rgba(255,255,255,0.15);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                        <span style="font-size:10px; color:#cbd5e1; font-weight:600;">🔄 Góc xoay tên khối nhà:</span>
+                        <b id="lblQuickRectRotVal" style="font-size:11px; color:#f59e0b;">${rot}°</b>
+                    </div>
+                    <input type="range" id="rngQuickRectRot" min="0" max="360" step="5" value="${rot}"
+                        style="width:100%; height:4px; accent-color:#f59e0b; cursor:pointer;"
+                        oninput="appCadTool.onQuickRectRotChange(this.value, '${ann.id}')">
+                    <div style="display:flex; gap:3px; margin-top:4px;">
+                        <button type="button" onclick="appCadTool.setQuickRectRot(0, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">0°</button>
+                        <button type="button" onclick="appCadTool.setQuickRectRot(45, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">45°</button>
+                        <button type="button" onclick="appCadTool.setQuickRectRot(90, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">90°</button>
+                        <button type="button" onclick="appCadTool.setQuickRectRot(180, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">180°</button>
+                        <button type="button" onclick="appCadTool.setQuickRectRot(270, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">270°</button>
+                    </div>
+                </div>
+            `;
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Tên</button>
@@ -20741,12 +20906,12 @@ const appCadTool = {
             `;
         } else if (targetData.type === 'stamp') {
             const ann = targetData.ann;
-            title = '🏷️ Tem / Nhãn Thửa Đất';
-            currentName = ann.parcelNo || '';
+            title = '📋 Tem / Nhãn Bản Vẽ (LibreCAD)';
+            currentName = ann.title || 'THÔNG TIN BẢN VẼ';
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
-                    <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Số Thửa</button>
-                    <button type="button" onclick="appCadTool.openAnnotationModal('${ann.id}'); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(255,255,255,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Mở chi tiết thuộc tính">⚙️</button>
+                    <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Tiêu Đề</button>
+                    <button type="button" onclick="appCadTool.openAnnotationModal('${ann.id}'); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid rgba(56,189,248,0.4); border-radius:4px; font-size:11px; padding:0 8px; font-weight:700; cursor:pointer;" title="Sửa tất cả các dòng thông tin Key-Value">⚙️ Các Dòng</button>
                     <button type="button" onclick="appCadTool.deleteAnnotation('${ann.id}'); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa tem nhãn">🗑️</button>
                 </div>
             `;
@@ -20765,7 +20930,7 @@ const appCadTool = {
 
         const safeVal = (currentName || '').replace(/"/g, '&quot;');
         const popupHtml = `
-            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; min-width:210px; max-width:260px;">
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; min-width:220px; max-width:270px;">
                 <div style="font-weight:700; font-size:12px; color:#38bdf8; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
                     <span>${title}</span>
                 </div>
@@ -20779,7 +20944,7 @@ const appCadTool = {
             </div>
         `;
 
-        L.popup({ className: 'cad-quick-popup', maxWidth: 280, autoPan: true })
+        L.popup({ className: 'cad-quick-popup', maxWidth: 290, autoPan: true })
             .setLatLng(latlng)
             .setContent(popupHtml)
             .openOn(AppState.leafletMap);
@@ -20812,6 +20977,17 @@ const appCadTool = {
             this.renderBlocksPanel();
             if (this.modalTableActiveTab === 'vertices') this.renderModalVerticesTable();
             showToast(`✓ Đã đổi tên đỉnh thành: ${newVal}`);
+        } else if (t.type === 'shape') {
+            this.pushHistoryState(`Đổi tên khối ${t.shape.name} -> ${newVal}`);
+            t.shape.name = newVal;
+            const rot = parseInt(document.getElementById('rngQuickShapeRot')?.value, 10);
+            if (!isNaN(rot)) t.shape.labelRotationDeg = rot;
+            this.saveShapesForProject(AppState.currentProject);
+            this.persistSession();
+            this.renderGeometry();
+            this.renderBlocksPanel();
+            if (this.modalTableActiveTab === 'polygons') this.renderModalPolygonsTable();
+            showToast(`✓ Đã cập nhật khối: ${newVal}`);
         } else if (t.type === 'arrow') {
             this.pushHistoryState('Đổi nội dung mũi tên');
             t.ann.arrowText = newVal;
@@ -20823,6 +20999,8 @@ const appCadTool = {
         } else if (t.type === 'rect') {
             this.pushHistoryState('Đổi tên khối nhà');
             t.ann.rectName = newVal;
+            const rot = parseInt(document.getElementById('rngQuickRectRot')?.value, 10);
+            if (!isNaN(rot)) t.ann.labelRotationDeg = rot;
             this.saveAnnotations();
             this.renderAnnotations();
             this.renderBlocksPanel();
@@ -20837,12 +21015,12 @@ const appCadTool = {
             if (this.modalTableActiveTab === 'circles') this.renderModalCirclesTable();
             showToast(`✓ Đã đổi tên vùng bán kính: ${newVal}`);
         } else if (t.type === 'stamp') {
-            this.pushHistoryState('Đổi số thửa tem');
-            t.ann.parcelNo = newVal;
+            this.pushHistoryState('Đổi tiêu đề tem');
+            t.ann.title = newVal;
             this.saveAnnotations();
             this.renderAnnotations();
             this.renderBlocksPanel();
-            showToast(`✓ Đã đổi số thửa: ${newVal}`);
+            showToast(`✓ Đã đổi tiêu đề tem: ${newVal}`);
         } else if (t.type === 'text') {
             this.pushHistoryState('Đổi chữ ghi chú');
             t.ann.text = newVal;
