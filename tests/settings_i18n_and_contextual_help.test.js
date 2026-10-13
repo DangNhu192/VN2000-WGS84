@@ -144,3 +144,65 @@ test('=== 4. KIỂM THỬ KHỬ RÁC TEXT TRONG CÁC TAB CŨ (DE-CLUTTERING TEXT
     // 4.2 Tab KTT có nút xem hướng dẫn chi tiết qua appGuide
     assert(indexHtml.includes("appGuide.openGuide('settings_ktt')"), "Tab KTT có nút liên kết tới hướng dẫn quy đổi KTT");
 });
+
+test('=== 5. KIỂM THỬ MÀN HÌNH CHÀO MỪNG LOGO VÀ 7 THẺ CHỌN NHANH CÀI ĐẶT ===', () => {
+    // 5.1 Kiểm tra sự tồn tại của Welcome tab trong index.html
+    assert(indexHtml.includes('id="btnTabWelcome"'), "Phải có nút tab Tổng quan btnTabWelcome trong index.html");
+    assert(indexHtml.includes('id="settingsTabContentWelcome"'), "Phải có nội dung settingsTabContentWelcome trong index.html");
+    assert(indexHtml.includes('settings-welcome-logo'), "Màn hình chào mừng phải có logo thương hiệu");
+    assert(indexHtml.includes('settings-quick-cards-grid'), "Phải có lưới 7 thẻ chọn nhanh danh mục");
+
+    // 5.2 Kiểm tra sự tồn tại của 7 thẻ chọn nhanh
+    const subtabs = ['general', 'storage', 'ktt', 'datetime', 'rtk', 'resection', 'optimizer'];
+    subtabs.forEach(sub => {
+        assert(indexHtml.includes(`appModal.switchSettingsTab('${sub}')`), `Thẻ điều hướng cho tab ${sub} phải tồn tại`);
+    });
+
+    // 5.3 Nút quay lại tổng quan cài đặt (btn-subtab-back) trong các subtabs
+    assert(indexHtml.includes('btn-subtab-back'), "Các subtab cài đặt phải có nút quay lại màn hình tổng quan");
+
+    // 5.4 Hướng dẫn cho màn hình chào mừng trong appGuide
+    assert(appGuide.guides['settings_welcome'], "appGuide phải có hướng dẫn settings_welcome");
+    assert(appGuide.guides['settings_welcome'].title.vi.toLowerCase().includes('tổng quan'), "Tiêu đề tiếng Việt của settings_welcome phải chính xác");
+    assert(appGuide.guides['settings_welcome'].title.en.toLowerCase().includes('overview'), "Tiêu đề tiếng Anh của settings_welcome phải chính xác");
+
+    // 5.5 Kiểm tra logic switchSettingsTab mặc định 'welcome'
+    appModal.switchSettingsTab('welcome');
+    assert.strictEqual(appModal.currentSettingsTab, 'welcome', "currentSettingsTab phải chuyển về 'welcome'");
+    assert.strictEqual(appGuide.activeGuideKey, 'settings_welcome', "activeGuideKey phải là 'settings_welcome'");
+});
+
+test('=== 6. KIỂM THỬ CHUYỂN NGỮ TIẾNG ANH TOÀN DIỆN CHO TOÀN BỘ ỨNG DỤNG ===', () => {
+    // 6.1 Kiểm tra từ điển đầy đủ cho Bottom Navigation
+    const bnavKeys = ['bnav.menu', 'bnav.transform', 'bnav.map', 'bnav.stakeout', 'bnav.datamgmt'];
+    
+    appI18n.setLanguage('en', false);
+    bnavKeys.forEach(key => {
+        assert(appI18n.t(key) && appI18n.t(key) !== key, `Khóa ${key} phải có bản dịch tiếng Anh`);
+    });
+
+    appI18n.setLanguage('vi', false);
+    bnavKeys.forEach(key => {
+        assert(appI18n.t(key) && appI18n.t(key) !== key, `Khóa ${key} phải có bản dịch tiếng Việt`);
+    });
+
+    // 6.2 Kiểm tra các thẻ chọn nhanh Cài đặt và Header ở tiếng Anh
+    appI18n.setLanguage('en', false);
+    assert.strictEqual(appI18n.t('settings.tab.welcome'), '🏠 Overview', "settings.tab.welcome tiếng Anh");
+    assert.strictEqual(appI18n.t('settings.btn_overview'), 'All Settings', "Nút quay lại tổng quan tiếng Anh");
+    assert.strictEqual(appI18n.t('settings.welcome.title'), 'VN-2000 PRO SYSTEM SETTINGS', "Tiêu đề chào mừng tiếng Anh");
+
+    // 6.3 Kiểm tra chuyển ngữ cho 4 khối Bento trên Dashboard
+    assert(appI18n.t('feature.transform').includes('Transform'), "Bento Tile 1 chuyển ngữ tiếng Anh");
+    assert(appI18n.t('feature.map').includes('Map'), "Bento Tile 2 chuyển ngữ tiếng Anh");
+    assert(appI18n.t('feature.stakeout').includes('Stakeout'), "Bento Tile 3 chuyển ngữ tiếng Anh");
+    assert(appI18n.t('feature.datamgmt').includes('Survey Book'), "Bento Tile 4 chuyển ngữ tiếng Anh");
+
+    // 6.4 Kiểm tra các thẻ data-i18n gắn trong index.html
+    assert(indexHtml.includes('data-i18n="bnav.menu"'), "Nút Trang chủ Bottom Nav có data-i18n");
+    assert(indexHtml.includes('data-i18n="bnav.transform"'), "Nút Chuyển đổi Bottom Nav có data-i18n");
+    assert(indexHtml.includes('data-i18n="bnav.map"'), "Nút Bản đồ Bottom Nav có data-i18n");
+    assert(indexHtml.includes('data-i18n="bnav.stakeout"'), "Nút Cắm mốc Bottom Nav có data-i18n");
+    assert(indexHtml.includes('data-i18n="bnav.datamgmt"'), "Nút Sổ đo Bottom Nav có data-i18n");
+});
+

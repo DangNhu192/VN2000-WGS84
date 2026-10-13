@@ -1269,7 +1269,11 @@ const appNav = window.appNav = {
         // Tích hợp thông tin trắc địa gọn gàng vào Header Subtitle khi ở màn hình Menu
         const subTitleEl = document.getElementById('headerSubtitle');
         if (subTitleEl && AppState.currentScreen === 'menu') {
-            subTitleEl.innerHTML = `<span class="header-geodetic-pill" onclick="appModal.openUnifiedSettings('ktt')" title="Nhấp để đổi Tỉnh thành & Kinh tuyến trục">📍 ${AppState.provinceName} • KTT ${dmsStr} (${decStr}°) • Múi ${AppState.muiVal}° ▾</span>`;
+            const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+            const kttLabel = isEn ? 'CM' : 'KTT';
+            const zoneLabel = isEn ? 'Zone' : 'Múi';
+            const subTitleTooltip = isEn ? 'Click to change Province & Central Meridian' : 'Nhấp để đổi Tỉnh thành & Kinh tuyến trục';
+            subTitleEl.innerHTML = `<span class="header-geodetic-pill" onclick="appModal.openUnifiedSettings('ktt')" title="${subTitleTooltip}">📍 ${AppState.provinceName} • ${kttLabel} ${dmsStr} (${decStr}°) • ${zoneLabel} ${AppState.muiVal}° ▾</span>`;
         }
 
         if (typeof appDashboard !== 'undefined') {
@@ -1375,29 +1379,31 @@ const appDashboard = {
             );
         }
 
+        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
         if (unpinnedFeatures.length === 0) {
             compactList.innerHTML = `
               <div style="grid-column: 1/-1; text-align: center; padding: 22px 10px; color: #64748b; font-size: 12px;">
-                🔍 Không tìm thấy công cụ nào phù hợp với từ khóa "${escapeHtml(appDashboard.toolFilterQuery)}"
+                ${isEn ? `🔍 No tools found matching "${escapeHtml(appDashboard.toolFilterQuery)}"` : `🔍 Không tìm thấy công cụ nào phù hợp với từ khóa "${escapeHtml(appDashboard.toolFilterQuery)}"`}
               </div>
             `;
         } else {
             compactList.innerHTML = unpinnedFeatures.map(f => {
+                const toolTitle = isEn ? appI18n.t('feature.' + f.id) : f.name;
                 return `
                   <div class="compact-tool-card" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}">
                     <div class="compact-tool-left">
                       <div class="compact-tool-icon icon-box-${f.color}">${f.icon}</div>
                       <div class="compact-tool-info">
                         <div class="compact-tool-title-row">
-                          <span class="compact-tool-title">${f.name}</span>
+                          <span class="compact-tool-title">${toolTitle}</span>
                           ${f.tag ? `<span class="compact-tool-tag">${f.tag}</span>` : ''}
                         </div>
                         <div class="compact-tool-desc">${f.sub}</div>
                       </div>
                     </div>
                     <div class="compact-tool-right">
-                      <button type="button" class="btn-compact-pin" onclick="event.stopPropagation(); appDashboard.quickSwapPin('${f.id}')" title="Ghim lên màn hình chính">⭐</button>
-                      <span class="btn-compact-launch">Mở ➔</span>
+                      <button type="button" class="btn-compact-pin" onclick="event.stopPropagation(); appDashboard.quickSwapPin('${f.id}')" title="${isEn ? 'Pin to home screen' : 'Ghim lên màn hình chính'}">⭐</button>
+                      <span class="btn-compact-launch">${isEn ? 'Open ➔' : 'Mở ➔'}</span>
                     </div>
                   </div>
                 `;
@@ -1405,7 +1411,7 @@ const appDashboard = {
         }
 
         if (countBadge) {
-            countBadge.innerText = `${unpinnedFeatures.length} công cụ`;
+            countBadge.innerText = isEn ? `${unpinnedFeatures.length} tools` : `${unpinnedFeatures.length} công cụ`;
         }
     },
 
@@ -1422,9 +1428,12 @@ const appDashboard = {
             }
         });
 
+        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+
         // 1. Render 4 Big Action Tiles (Bento Grid Lovable 2026 - De-cluttered)
         grid.innerHTML = pinnedFeatures.map(f => {
             const metricVal = typeof f.metric === 'function' ? f.metric() : f.metric;
+            const tileTitle = isEn ? appI18n.t('feature.' + f.id) : f.short;
             return `
               <div class="big-action-tile tile-${f.color}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="Mở ${f.name}: ${f.sub}">
                 <div class="big-tile-top">
@@ -1432,7 +1441,7 @@ const appDashboard = {
                   <span class="tile-metric-pill metric-${f.color}">${metricVal || f.tag || 'Mở ➔'}</span>
                 </div>
                 <div class="big-tile-bottom">
-                  <div class="big-tile-title">${f.short}</div>
+                  <div class="big-tile-title">${tileTitle}</div>
                 </div>
               </div>
             `;
@@ -9119,7 +9128,7 @@ const appModal = {
         }
     },
 
-    openUnifiedSettings(defaultTab = 'general') {
+    openUnifiedSettings(defaultTab = 'welcome') {
         const m = document.getElementById('modalSettings');
         if (!m) return;
         m.classList.add('active');
@@ -9322,9 +9331,9 @@ const appModal = {
         if (btnTree) btnTree.classList.toggle('active', !isBig);
     },
 
-    switchSettingsTab(tab = 'general') {
+    switchSettingsTab(tab = 'welcome') {
         appModal.currentSettingsTab = tab;
-        const tabList = ['general', 'storage', 'ktt', 'datetime', 'rtk', 'resection', 'optimizer'];
+        const tabList = ['welcome', 'general', 'storage', 'ktt', 'datetime', 'rtk', 'resection', 'optimizer'];
         
         tabList.forEach(t => {
             const cap = t.charAt(0).toUpperCase() + t.slice(1);
@@ -9338,6 +9347,10 @@ const appModal = {
         const storageFooter = document.getElementById('settingsStorageFooter');
         if (storageFooter) {
             storageFooter.style.display = (tab === 'storage') ? 'flex' : 'none';
+        }
+
+        if (typeof appGuide !== 'undefined') {
+            appGuide.activeGuideKey = (tab === 'welcome') ? 'settings_welcome' : ('settings_' + tab);
         }
 
         if (tab === 'general') {
@@ -25025,11 +25038,29 @@ const appI18n = {
     currentLang: 'vi',
     dict: {
         vi: {
+            // Header & Navigation
             'header.menu': 'Menu',
             'header.back': '◀ Quay lại',
             'header.title': 'WGS-84 ⇄ VN-2000 PRO',
             'header.settings': ' Cài đặt',
+            'header.subtitle_prefix': 'Hệ Quy Chiếu & Tọa Độ Quốc Gia',
+            'bnav.menu': 'Trang Chủ',
+            'bnav.transform': 'Chuyển Đổi',
+            'bnav.map': 'Bản Đồ',
+            'bnav.stakeout': 'Cắm Mốc',
+            'bnav.datamgmt': 'Sổ Đo',
+
+            // Dashboard
+            'dash.section_title': 'CHỨC NĂNG CỐT LÕI THỰC ĐỊA',
+            'dash.btn_pins': '⭐ Đổi ghim',
+            'dash.all_tools': 'Công Cụ Kỹ Thuật & Tiện Ích Khác',
+            'dash.all_tools_sub': 'Nghiệp vụ trắc địa & đồ họa chuyên sâu',
+            'dash.search_placeholder': 'Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)',
+
+            // Unified Settings
             'settings.title': '⚙️ Cài Đặt Hệ Thống',
+            'settings.btn_overview': 'Tổng quan cài đặt',
+            'settings.tab.welcome': '🏠 Tổng quan',
             'settings.tab.general': '🌐 Chung',
             'settings.tab.storage': '☁️ Lưu dữ liệu',
             'settings.tab.ktt': '⚙️ KTT & Múi',
@@ -25037,6 +25068,26 @@ const appI18n = {
             'settings.tab.rtk': '🛰️ RTK Bluetooth',
             'settings.tab.resection': '📐 Giao hội GPS',
             'settings.tab.optimizer': '⚡ Tối ưu PixOptimizer',
+
+            // Settings Welcome Hub
+            'settings.welcome.title': 'HỆ THỐNG CÀI ĐẶT VN-2000 PRO',
+            'settings.welcome.sub': 'Bấm chọn một danh mục cài đặt bên dưới để thiết lập nghiệp vụ:',
+            'settings.card.general.title': '1. Cài Đặt Chung',
+            'settings.card.general.sub': 'Ngôn ngữ • Giao diện • Tọa độ WGS-84 • Số lẻ',
+            'settings.card.storage.title': '2. Lưu Dữ Liệu',
+            'settings.card.storage.sub': 'Bộ nhớ máy ngoại tuyến • Google Sheets Cloud',
+            'settings.card.ktt.title': '3. KTT & Múi Chiếu',
+            'settings.card.ktt.sub': '63 Tỉnh thành • Kinh tuyến trục • Múi 3°/6°',
+            'settings.card.datetime.title': '4. Ngày & Giờ',
+            'settings.card.datetime.sub': 'Đồng hồ hệ thống • Múi giờ ICT • Chỉnh tay',
+            'settings.card.rtk.title': '5. RTK Bluetooth',
+            'settings.card.rtk.sub': 'Kết nối máy rover GNSS ngoài • Độ chính xác cm',
+            'settings.card.resection.title': '6. Giao Hội GPS',
+            'settings.card.resection.sub': 'Bù định vị từ 2 mốc chuẩn hầm / tán cây',
+            'settings.card.optimizer.title': '7. Tối Ưu PixOptimizer',
+            'settings.card.optimizer.sub': 'Nén bản vẽ MiniCAD WebP • Cache bản đồ offline',
+
+            // Settings - General Tab
             'settings.general.lang_label': '🌐 Ngôn ngữ hiển thị (Language):',
             'settings.general.theme_label': '🎨 Giao diện màu sắc (Theme Mode):',
             'settings.general.layout_label': '📱 Bố cục Màn hình chính:',
@@ -25049,17 +25100,119 @@ const appI18n = {
             'settings.general.maintenance_title': '🛠️ Quản trị Bộ nhớ Ứng dụng & Reset:',
             'settings.general.btn_clean_cache': '🧹 Dọn Dẹp Cache',
             'settings.general.btn_reset_defaults': '🔄 Khôi Phục Mặc Định',
+
+            // Settings - Storage Tab
+            'settings.storage.mode_label': 'Chọn chế độ lưu trữ:',
+            'settings.storage.offline_title': '📱 Lưu Ngoại Tuyến (Offline)',
+            'settings.storage.offline_sub': 'Tốc độ cao, không phụ thuộc mạng thực địa',
+            'settings.storage.cloud_title': '☁️ Tự Động Đồng Bộ Google Sheets',
+            'settings.storage.cloud_sub': 'Tự động gửi mốc lên Google Drive khi có mạng',
+            'settings.storage.script_url': 'Google Apps Script Web App URL:',
+            'settings.storage.sheet_url': 'Link xem file Google Sheet (tùy chọn):',
+            'settings.storage.box_title': '📖 Thiết lập Google Sheet (1 Phút)',
+            'settings.storage.btn_guide': 'Hướng dẫn (?) ➔',
+            'settings.storage.btn_sheet': '✨ Mở sheets.new',
+            'settings.storage.btn_copy': '📋 Chép mã Script',
+            'settings.storage.btn_test': '🔌 Thử kết nối',
+            'settings.storage.btn_save': '💾 LƯU CẤU HÌNH',
+
+            // Settings - KTT Tab
+            'settings.ktt.province_label': 'Chọn tỉnh thành:',
+            'settings.ktt.preview_title': '📍 Kinh tuyến trục hiệu dụng:',
+            'settings.ktt.quick_label': '⚡ Nhập nhanh KTT:',
+            'settings.ktt.split_label': 'Tự nhập tách rời (Độ - Phút):',
+            'settings.ktt.chips_title': '⚡ Bấm nhanh KTT chuẩn Việt Nam:',
+            'settings.ktt.btn_rules': 'Quy tắc (?) ➔',
+            'settings.ktt.zone_label': 'Chọn Múi chiếu:',
+            'settings.ktt.btn_save': '💾 LƯU CẤU HÌNH KTT',
+
+            // Settings - Datetime Tab
+            'settings.datetime.clock_label': '⏰ Thời gian hiệu dụng:',
+            'settings.datetime.mode_label': 'Chế độ đồng bộ ngày giờ:',
+            'settings.datetime.auto': '🔄 Tự động (Hệ thống)',
+            'settings.datetime.manual': '✏️ Điều chỉnh thủ công',
+            'settings.datetime.btn_device': '⏱️ Lấy giờ máy',
+            'settings.datetime.btn_save': '💾 LƯU CẤU HÌNH NGÀY GIỜ',
+
+            // Settings - RTK Tab
+            'settings.rtk.status_label': 'Chưa kết nối RTK ngoài',
+            'settings.rtk.sol_label': 'Giải pháp (Solution):',
+            'settings.rtk.svs_label': 'Số vệ tinh (SVs):',
+            'settings.rtk.hrms_label': 'Sai số HRMS (Ngang):',
+            'settings.rtk.vrms_label': 'Sai số VRMS (Đứng):',
+            'settings.rtk.vn2k_label': 'Tọa độ VN-2000 (X - Y - Z):',
+            'settings.rtk.prefer_label': 'Ưu tiên vị trí từ máy RTK ngoài',
+            'settings.rtk.prefer_sub': 'Độ chính xác cm cho Bản đồ, Cắm mốc & Camera',
+            'settings.rtk.nmea_label': '📡 Dòng dữ liệu NMEA ($GNGGA):',
+            'settings.rtk.btn_scan': '🔍 Quét Rover',
+            'settings.rtk.btn_sim': '⚡ Thử RTK Fix',
+            'settings.rtk.btn_disc': '⏹️ Ngắt',
+
+            // Settings - Resection Tab
+            'settings.resection.pt_a': '📍 MỐC KHỐNG CHẾ A:',
+            'settings.resection.pt_b': '📍 MỐC KHỐNG CHẾ B:',
+            'settings.resection.side_label': 'Hướng trạm đo so với trục A ➔ B:',
+            'settings.resection.side_right': '👉 Bên Phải (Right)',
+            'settings.resection.side_left': '👈 Bên Trái (Left)',
+            'settings.resection.btn_calc': '⚡ TÍNH TOÁN TỌA ĐỘ GIAO HỘI',
+            'settings.resection.res_title': '🎯 TỌA ĐỘ TRẠM ĐO GIAO HỘI THÀNH CÔNG:',
+            'settings.resection.btn_apply': '📍 Gán bù GPS',
+            'settings.resection.btn_save': '💾 Lưu sổ đo',
+            'settings.resection.btn_map': '🗺️ Xem bản đồ',
+
+            // Settings - PixOptimizer Tab
+            'settings.opt.cad_title': '📐 1. CẤU HÌNH XUẤT BẢN VẼ MINICAD:',
+            'settings.opt.fmt_label': 'Định dạng nén ảnh:',
+            'settings.opt.qual_label': 'Chất lượng nén:',
+            'settings.opt.edge_label': 'Kích thước cạnh tối đa:',
+            'settings.opt.map_title': '🗺️ 2. TỐI ƯU BẢN ĐỒ VỆ TINH OFFLINE:',
+            'settings.opt.smooth_label': 'Làm mịn ảnh bản đồ vệ tinh',
+            'settings.opt.cache_status': 'Bộ nhớ đệm ô bản đồ:',
+            'settings.opt.btn_clear_tile': '🧹 Dọn cache tile',
+            'settings.opt.btn_save': '💾 LƯU CẤU HÌNH TỐI ƯU PIXOPTIMIZER',
+
+            // Features Short Names
+            'feature.transform': 'Chuyển Đổi Tọa Độ',
+            'feature.map': 'Bản Đồ Trắc Địa',
+            'feature.stakeout': 'Cắm Mốc Thực Địa',
+            'feature.datamgmt': 'Sổ Đo & Dự Án',
+            'feature.camera': 'Camera Khảo Sát',
+            'feature.resection': 'Tính Toán Geodesy',
+            'feature.profile': 'Trắc Dọc & Đào Đắp',
+            'feature.rtk': 'RTK Bluetooth Rover',
+            'feature.about': 'Thông Tin & Cẩm Nang',
+            'feature.cad_tool': 'MiniCAD Độc Lập',
+
+            // System Toasts
             'toast.lang_vi': '🇻🇳 Đã chuyển sang Tiếng Việt',
             'toast.lang_en': '🇬🇧 Switched to English',
             'toast.cache_cleaned': '🧹 Đã dọn dẹp bộ nhớ đệm cache thành công!',
             'toast.settings_reset': '🔄 Đã khôi phục cài đặt hệ thống về mặc định!'
         },
         en: {
+            // Header & Navigation
             'header.menu': 'Menu',
             'header.back': '◀ Back',
             'header.title': 'WGS-84 ⇄ VN-2000 PRO',
             'header.settings': ' Settings',
+            'header.subtitle_prefix': 'National Coordinate & Geodesy System',
+            'bnav.menu': 'Home',
+            'bnav.transform': 'Transform',
+            'bnav.map': 'Map',
+            'bnav.stakeout': 'Stakeout',
+            'bnav.datamgmt': 'Survey Book',
+
+            // Dashboard
+            'dash.section_title': 'FIELD CORE OPERATIONS',
+            'dash.btn_pins': '⭐ Pins',
+            'dash.all_tools': 'Technical Tools & Utilities',
+            'dash.all_tools_sub': 'Advanced surveying & geodetic graphics',
+            'dash.search_placeholder': 'Quick search (cad, rtk, cut/fill, stakeout, camera...)',
+
+            // Unified Settings
             'settings.title': '⚙️ System Settings',
+            'settings.btn_overview': 'All Settings',
+            'settings.tab.welcome': '🏠 Overview',
             'settings.tab.general': '🌐 General',
             'settings.tab.storage': '☁️ Data Storage',
             'settings.tab.ktt': '⚙️ CM & Zone',
@@ -25067,6 +25220,26 @@ const appI18n = {
             'settings.tab.rtk': '🛰️ RTK Bluetooth',
             'settings.tab.resection': '📐 GPS Resection',
             'settings.tab.optimizer': '⚡ PixOptimizer',
+
+            // Settings Welcome Hub
+            'settings.welcome.title': 'VN-2000 PRO SYSTEM SETTINGS',
+            'settings.welcome.sub': 'Select a settings category below to configure parameters:',
+            'settings.card.general.title': '1. General Settings',
+            'settings.card.general.sub': 'Language • Themes • WGS-84 format • Decimals',
+            'settings.card.storage.title': '2. Data Storage',
+            'settings.card.storage.sub': 'Offline storage • Google Sheets cloud sync',
+            'settings.card.ktt.title': '3. CM & Projection Zone',
+            'settings.card.ktt.sub': '63 Provinces • Central Meridian • Zone 3°/6°',
+            'settings.card.datetime.title': '4. Date & Time',
+            'settings.card.datetime.sub': 'System clock • ICT timezone • Manual adjustment',
+            'settings.card.rtk.title': '5. RTK Bluetooth',
+            'settings.card.rtk.sub': 'External GNSS rover • Centimeter precision',
+            'settings.card.resection.title': '6. GPS Resection',
+            'settings.card.resection.sub': 'Position backup from 2 benchmarks under canopies',
+            'settings.card.optimizer.title': '7. PixOptimizer',
+            'settings.card.optimizer.sub': 'WebP MiniCAD compression • Offline map tile cache',
+
+            // Settings - General Tab
             'settings.general.lang_label': '🌐 Display Language:',
             'settings.general.theme_label': '🎨 Theme Mode:',
             'settings.general.layout_label': '📱 Home Screen Layout:',
@@ -25079,7 +25252,91 @@ const appI18n = {
             'settings.general.maintenance_title': '🛠️ Storage Maintenance & Reset:',
             'settings.general.btn_clean_cache': '🧹 Clear App Cache',
             'settings.general.btn_reset_defaults': '🔄 Reset to Factory Defaults',
-            'toast.lang_vi': '🇻🇳 Đã chuyển sang Tiếng Việt',
+
+            // Settings - Storage Tab
+            'settings.storage.mode_label': 'Storage Mode Selection:',
+            'settings.storage.offline_title': '📱 Offline Storage (Local)',
+            'settings.storage.offline_sub': 'Fast speed, zero cellular network dependency',
+            'settings.storage.cloud_title': '☁️ Auto Sync Google Sheets',
+            'settings.storage.cloud_sub': 'Auto backup points to Google Drive when online',
+            'settings.storage.script_url': 'Google Apps Script Web App URL:',
+            'settings.storage.sheet_url': 'Google Sheet View URL (optional):',
+            'settings.storage.box_title': '📖 Google Sheets Setup (1 Minute)',
+            'settings.storage.btn_guide': 'Guide (?) ➔',
+            'settings.storage.btn_sheet': '✨ Open sheets.new',
+            'settings.storage.btn_copy': '📋 Copy Apps Script',
+            'settings.storage.btn_test': '🔌 Test Connection',
+            'settings.storage.btn_save': '💾 SAVE CONFIG',
+
+            // Settings - KTT Tab
+            'settings.ktt.province_label': 'Select Province:',
+            'settings.ktt.preview_title': '📍 Effective Central Meridian:',
+            'settings.ktt.quick_label': '⚡ Quick CM Input:',
+            'settings.ktt.split_label': 'Manual Degrees - Minutes:',
+            'settings.ktt.chips_title': '⚡ Standard Vietnam CM Presets:',
+            'settings.ktt.btn_rules': 'Rules (?) ➔',
+            'settings.ktt.zone_label': 'Map Projection Zone:',
+            'settings.ktt.btn_save': '💾 SAVE CM CONFIG',
+
+            // Settings - Datetime Tab
+            'settings.datetime.clock_label': '⏰ Current Effective Time:',
+            'settings.datetime.mode_label': 'Date & Time Sync Mode:',
+            'settings.datetime.auto': '🔄 Automatic (System)',
+            'settings.datetime.manual': '✏️ Manual Adjustment',
+            'settings.datetime.btn_device': '⏱️ Sync Device Time',
+            'settings.datetime.btn_save': '💾 SAVE DATE/TIME',
+
+            // Settings - RTK Tab
+            'settings.rtk.status_label': 'Disconnected',
+            'settings.rtk.sol_label': 'Solution Quality:',
+            'settings.rtk.svs_label': 'Satellites (SVs):',
+            'settings.rtk.hrms_label': 'HRMS Error (Horizontal):',
+            'settings.rtk.vrms_label': 'VRMS Error (Vertical):',
+            'settings.rtk.vn2k_label': 'VN-2000 Grid (X - Y - Z):',
+            'settings.rtk.prefer_label': 'Prefer External RTK Position',
+            'settings.rtk.prefer_sub': 'Centimeter precision for Map, Stakeout & Camera',
+            'settings.rtk.nmea_label': '📡 NMEA Stream ($GNGGA):',
+            'settings.rtk.btn_scan': '🔍 Scan Rover',
+            'settings.rtk.btn_sim': '⚡ Simulate Fix',
+            'settings.rtk.btn_disc': '⏹️ Disconnect',
+
+            // Settings - Resection Tab
+            'settings.resection.pt_a': '📍 CONTROL BENCHMARK A:',
+            'settings.resection.pt_b': '📍 CONTROL BENCHMARK B:',
+            'settings.resection.side_label': 'Station Side relative to A ➔ B:',
+            'settings.resection.side_right': '👉 Right Side',
+            'settings.resection.side_left': '👈 Left Side',
+            'settings.resection.btn_calc': '⚡ COMPUTE RESECTION',
+            'settings.resection.res_title': '🎯 RESECTION COMPUTED POSITION:',
+            'settings.resection.btn_apply': '📍 Apply as GPS',
+            'settings.resection.btn_save': '💾 Save to Book',
+            'settings.resection.btn_map': '🗺️ View on Map',
+
+            // Settings - PixOptimizer Tab
+            'settings.opt.cad_title': '📐 1. MINICAD EXPORT SETTINGS:',
+            'settings.opt.fmt_label': 'Image Compression Format:',
+            'settings.opt.qual_label': 'Compression Quality:',
+            'settings.opt.edge_label': 'Max Edge Dimension:',
+            'settings.opt.map_title': '🗺️ 2. OFFLINE SATELLITE MAP OPTIMIZATION:',
+            'settings.opt.smooth_label': 'Smooth Satellite Map Tiles',
+            'settings.opt.cache_status': 'Map Tile Cache Status:',
+            'settings.opt.btn_clear_tile': '🧹 Clear Tile Cache',
+            'settings.opt.btn_save': '💾 SAVE PIXOPTIMIZER CONFIG',
+
+            // Features Short Names
+            'feature.transform': 'Coordinate Transform',
+            'feature.map': 'Survey & Map',
+            'feature.stakeout': 'Field Stakeout',
+            'feature.datamgmt': 'Survey Book',
+            'feature.camera': 'Survey Camera',
+            'feature.resection': 'Geodesy & Resection',
+            'feature.profile': 'Profiles & Cut/Fill',
+            'feature.rtk': 'Bluetooth RTK',
+            'feature.about': 'Manual & Info',
+            'feature.cad_tool': 'Standalone MiniCAD',
+
+            // System Toasts
+            'toast.lang_vi': '🇻🇳 Switched to Vietnamese',
             'toast.lang_en': '🇬🇧 Switched to English',
             'toast.cache_cleaned': '🧹 App cache successfully cleared!',
             'toast.settings_reset': '🔄 System settings restored to factory defaults!'
@@ -25114,6 +25371,8 @@ const appI18n = {
     },
     applyTranslations() {
         if (typeof document === 'undefined') return;
+
+        // 1. Text elements
         const elements = document.querySelectorAll('[data-i18n]');
         elements.forEach(el => {
             const key = el.getAttribute('data-i18n');
@@ -25122,6 +25381,8 @@ const appI18n = {
                 el.textContent = text;
             }
         });
+
+        // 2. Title attributes (tooltips)
         const titledElements = document.querySelectorAll('[data-i18n-title]');
         titledElements.forEach(el => {
             const key = el.getAttribute('data-i18n-title');
@@ -25130,6 +25391,24 @@ const appI18n = {
                 el.setAttribute('title', text);
             }
         });
+
+        // 3. Placeholder attributes
+        const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+        placeholderElements.forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            const text = this.t(key);
+            if (text && text !== key) {
+                el.setAttribute('placeholder', text);
+            }
+        });
+
+        // 4. Đồng bộ các UI động (Dashboard tiles & Header Subtitle)
+        if (typeof appNav !== 'undefined' && appNav.updateBanner) {
+            appNav.updateBanner();
+        }
+        if (typeof appDashboard !== 'undefined' && appDashboard.renderDashboard) {
+            appDashboard.renderDashboard();
+        }
     }
 };
 
@@ -25137,8 +25416,31 @@ const appI18n = {
 // 💡 MODULE HƯỚNG DẪN NGỮ CẢNH CHUYÊN SÂU RIÊNG CHO TỪNG CHỨC NĂNG (APP GUIDE)
 // ====================================================================================
 const appGuide = {
-    activeGuideKey: 'settings_general',
+    activeGuideKey: 'settings_welcome',
     guides: {
+        'settings_welcome': {
+            icon: '⚙️',
+            title: { vi: 'Tổng Quan Cài Đặt VN-2000 PRO', en: 'VN-2000 Pro Settings Overview' },
+            category: { vi: 'HƯỚNG DẪN TỔNG QUAN', en: 'GENERAL OVERVIEW' },
+            purpose: {
+                vi: 'Trung tâm quản trị toàn bộ thông số kỹ thuật, cấu hình trắc địa, lưu trữ ngoại tuyến và liên kết thiết bị.',
+                en: 'Central hub for configuring all geodesy parameters, offline storage, and external surveying devices.'
+            },
+            steps: [
+                {
+                    title: { vi: '1. Chọn danh mục cài đặt', en: '1. Choose settings category' },
+                    desc: { vi: 'Nhấp vào một trong 7 thẻ hoặc thanh tab phía trên để truy cập cài đặt cụ thể.', en: 'Tap any of the 7 cards or the top tab bar to access specific configurations.' }
+                },
+                {
+                    title: { vi: '2. Lưu cấu hình an toàn', en: '2. Save configuration safely' },
+                    desc: { vi: 'Các thiết lập được tự động ghi nhớ trên thiết bị của bạn và không làm ảnh hưởng đến dữ liệu mốc đã đo.', en: 'Settings are stored locally on your device without affecting your existing survey points.' }
+                }
+            ],
+            proTip: {
+                vi: 'Bạn có thể bấm nút 🏠 Tổng quan bất kỳ lúc nào để quay lại danh mục cài đặt.',
+                en: 'You can tap the 🏠 Overview tab at any time to return to the main settings category list.'
+            }
+        },
         'settings_general': {
             icon: '🌐',
             title: { vi: 'Cài Đặt Chung & Cá Nhân Hóa', en: 'General Settings & Preferences' },
