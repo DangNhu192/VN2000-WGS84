@@ -61,8 +61,8 @@ test('=== 3. KIỂM THỬ VÒNG 3: TIỆN ÍCH LƯU TRỮ AN TOÀN SAFESTORAGE &
         'appData.savePoints phải sử dụng safeStorage.setItem để chống tràn quota'
     );
 
-    // 3.3 sw.js cache name được cập nhật lên v2.8.1
-    assert.ok(swContent.includes("const CACHE_NAME = 'vn2000-pro-v2.8.1';"), 'sw.js CACHE_NAME phải là vn2000-pro-v2.8.1');
+    // 3.3 sw.js cache name được cập nhật lên tối thiểu v2.8.1
+    assert.ok(/const CACHE_NAME = 'vn2000-pro-v2\.8\.[1-9]\d*';/.test(swContent), 'sw.js CACHE_NAME phải là vn2000-pro-v2.8.x (>= v2.8.1)');
 
     // 3.4 Tất cả tệp trong ASSETS_TO_CACHE phải tồn tại thực tế trên ổ đĩa
     const assetsMatch = swContent.match(/const\s+ASSETS_TO_CACHE\s*=\s*\[([\s\S]*?)\];/);

@@ -813,7 +813,7 @@
           <!-- CỘT TRÁI: FORM ĐIỀU KHIỂN & CHUYỂN ĐỔI (ĐƠN ĐIỂM & ĐA ĐIỂM) -->
           <div class="transform-content-column">
             <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm vs Bản đồ lớn trực quan -->
-            <div class="transform-subtabs">
+            <div class="transform-subtabs" style="align-items: center;">
               <button id="tabTransSingle" class="btn-subtab active"
                 onclick="appTransform.switchTransformSubTab('single')">
                 📍 Chuyển Đổi Đơn Điểm
@@ -825,6 +825,7 @@
                 title="Xem bản đồ lớn trực quan chiếm đa số màn hình">
                 🗺️ Bản Đồ Lớn Trực Quan
               </button>
+              <button id="btnTransformHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('transform')" title="Hướng dẫn chuyển đổi tọa độ" style="margin-left: auto;">?</button>
             </div>
 
             <!-- ================= PANEL 1: CHUYỂN ĐỔI ĐƠN ĐIỂM ================= -->
@@ -1734,6 +1735,7 @@
                 title="Làm lại thao tác vừa lùi (Ctrl+Y)">↪ Tiến</button>
               <span id="cadStatsPill" class="cad-stats-pill" onclick="appCadTool.toggleToolbarCollapse()"
                 style="cursor: pointer;" title="Nhấn để thu nhỏ / mở rộng">0 đỉnh • 0 m²</span>
+              <button id="btnCadHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('cad')" title="Hướng dẫn sử dụng MiniCAD & Bảng kê" style="margin-right: 4px;">?</button>
               <button id="btnCadToolbarCollapse" type="button" class="btn-sm"
                 style="height: 24px; padding: 0 6px; font-size: 11px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; border-radius: 4px; cursor: pointer;"
                 onclick="appCadTool.toggleToolbarCollapse()" title="Thu nhỏ / Mở rộng">▾</button>
@@ -2123,7 +2125,7 @@
             title="Nhấp & kéo giữ để di chuyển bảng khắp màn hình" style="cursor: grab; user-select: none;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 13px; color: #38bdf8;" title="Tay cầm kéo thả">⠿</span>
-              <span style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">📊 CÁC KHỐI ĐÃ VẼ</span>
+              <span id="cadPanelTitleLabel" style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">📊 CÁC KHỐI ĐÃ VẼ</span>
               <span id="cadPanelShapeCountBadge" class="cad-panel-pill">0 khối</span>
             </div>
             <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0; white-space: nowrap;">
@@ -2144,6 +2146,14 @@
               <button class="btn-sm btn-red" style="height: 22px; padding: 0 6px; font-size: 10px; flex-shrink: 0;"
                 onclick="appCadTool.toggleBlocksPanel()" title="Đóng bảng">✕</button>
             </div>
+          </div>
+          <!-- Thanh Subtab Chuyển Đổi Nhanh 5 Danh Mục MiniCAD Trên Map -->
+          <div id="cadPanelSubtabs" style="display: flex; gap: 3px; padding: 3px 0 6px 0; border-bottom: 1px solid rgba(56,189,248,0.2); margin-bottom: 6px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none;">
+            <button type="button" class="btn-sm active" id="btnSubtabBlocks" onclick="appCadTool.switchPanelTab('blocks')" style="height: 22px; font-size: 10px; padding: 0 6px; font-weight: 700; border-radius: 4px; white-space: nowrap;">📦 Khối (<span id="cadSubtabCountBlocks">0</span>)</button>
+            <button type="button" class="btn-sm" id="btnSubtabVertices" onclick="appCadTool.switchPanelTab('vertices')" style="height: 22px; font-size: 10px; padding: 0 6px; font-weight: 700; border-radius: 4px; white-space: nowrap; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1);">📍 Đỉnh (<span id="cadSubtabCountVertices">0</span>)</button>
+            <button type="button" class="btn-sm" id="btnSubtabArrows" onclick="appCadTool.switchPanelTab('arrows')" style="height: 22px; font-size: 10px; padding: 0 6px; font-weight: 700; border-radius: 4px; white-space: nowrap; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1);">🏹 Mũi tên (<span id="cadSubtabCountArrows">0</span>)</button>
+            <button type="button" class="btn-sm" id="btnSubtabBuildings" onclick="appCadTool.switchPanelTab('buildings')" style="height: 22px; font-size: 10px; padding: 0 6px; font-weight: 700; border-radius: 4px; white-space: nowrap; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1);">🏠 Nhà (<span id="cadSubtabCountBuildings">0</span>)</button>
+            <button type="button" class="btn-sm" id="btnSubtabCircles" onclick="appCadTool.switchPanelTab('circles')" style="height: 22px; font-size: 10px; padding: 0 6px; font-weight: 700; border-radius: 4px; white-space: nowrap; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1);">⭕ Bán kính (<span id="cadSubtabCountCircles">0</span>)</button>
           </div>
           <div id="cadPanelBlocksList" class="cad-blocks-panel-body">
             <!-- Render danh sách khối bằng JS -->
@@ -2297,6 +2307,7 @@
         <div class="app-card">
           <div class="card-header">
             <span class="card-title">🎯 1. Chọn Mốc Cần Cắm Thực Địa</span>
+            <button id="btnStakeoutHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('stakeout')" title="Hướng dẫn cắm mốc thực địa" style="margin-left: auto; margin-right: 8px;">?</button>
             <div class="card-tools">
               <button class="btn-sm btn-blue" onclick="appStakeout.refreshPointsList()"
                 style="height: 28px; padding: 2px 8px;">
@@ -2508,6 +2519,7 @@
         <div class="app-card">
           <div class="card-header">
             <span class="card-title">📁 File Dự Án & Sổ Đo Hiện Tại</span>
+            <button id="btnDatamgmtHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('datamgmt')" title="Hướng dẫn sổ đo & quản lý dự án" style="margin-left: auto;">?</button>
           </div>
           <div class="form-group">
             <div class="input-row">
@@ -2635,6 +2647,7 @@
         <div class="app-card">
           <div class="card-header">
             <span class="card-title">📏 1. Tính Cự Ly & Góc Phương Vị (A ➔ B)</span>
+            <button id="btnGeodesyHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('geodesy')" title="Hướng dẫn tiện ích trắc địa & giao hội" style="margin-left: auto;">?</button>
           </div>
           <div class="form-group">
             <label class="form-label">Chọn Mốc A (hoặc nhập X, Y):</label>
@@ -3628,221 +3641,276 @@
   </div>
 
   <!-- MODAL CÀI ĐẶT HỆ THỐNG (LƯU DỮ LIỆU & KTT) -->
-  <div id="modalSettings" class="modal-overlay">
+    <div id="modalSettings" class="modal-overlay">
     <div class="modal-box modal-settings-box" style="max-width: 500px;">
-      <!-- Sticky Header: Tiêu đề & Lưới 2x2 Cố Định 4 Tab -->
+      <!-- Sticky Header: Tiêu đề, Nút Trợ Giúp (?) & Nút Đóng (✕) -->
       <div class="modal-settings-header">
-        <div class="modal-title">
-          <span style="color: #38bdf8;">⚙️ Cài Đặt Hệ Thống</span>
-          <button class="btn-modal-close" onclick="appModal.closeSettings()">✕</button>
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #38bdf8; font-weight: 800;" data-i18n="settings.title">⚙️ Cài Đặt Hệ Thống</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button id="btnSettingsHelpGuide" type="button" class="btn-help-circle" onclick="appGuide.openSettingsTabGuide()" title="Hướng dẫn sử dụng riêng cho mục cài đặt này">?</button>
+            <button class="btn-modal-close" onclick="appModal.closeSettings()" title="Đóng cài đặt">✕</button>
+          </div>
         </div>
 
-        <!-- Thanh chuyển Tab: 5 Tab chức năng thống nhất ứng dụng -->
+        <!-- Thanh chuyển Tab: 7 Tab chức năng cuộn ngang mượt mà -->
         <div class="settings-tab-bar">
-          <button id="btnTabStorage" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('storage')">
+          <button id="btnTabGeneral" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('general')" data-i18n="settings.tab.general">
+            🌐 Chung
+          </button>
+          <button id="btnTabStorage" class="settings-tab-btn" onclick="appModal.switchSettingsTab('storage')" data-i18n="settings.tab.storage">
             ☁️ Lưu dữ liệu
           </button>
-          <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')">
+          <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')" data-i18n="settings.tab.ktt">
             ⚙️ KTT & Múi
           </button>
-          <button id="btnTabDatetime" class="settings-tab-btn" onclick="appModal.switchSettingsTab('datetime')">
+          <button id="btnTabDatetime" class="settings-tab-btn" onclick="appModal.switchSettingsTab('datetime')" data-i18n="settings.tab.datetime">
             ⏰ Ngày & Giờ
           </button>
-          <button id="btnTabRtk" class="settings-tab-btn" onclick="appModal.switchSettingsTab('rtk')">
+          <button id="btnTabRtk" class="settings-tab-btn" onclick="appModal.switchSettingsTab('rtk')" data-i18n="settings.tab.rtk">
             🛰️ RTK Bluetooth
           </button>
-          <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')">
+          <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')" data-i18n="settings.tab.resection">
             📐 Giao hội GPS
           </button>
-          <button id="btnTabOptimizer" class="settings-tab-btn" onclick="appModal.switchSettingsTab('optimizer')">
+          <button id="btnTabOptimizer" class="settings-tab-btn" onclick="appModal.switchSettingsTab('optimizer')" data-i18n="settings.tab.optimizer">
             ⚡ Tối ưu PixOptimizer
           </button>
         </div>
       </div>
 
-      <!-- Cuộn nội dung Tab bên dưới -->
+      <!-- Cuộn nội dung 7 Tab bên dưới (Zero Text Clutter) -->
       <div class="modal-settings-body">
-        <!-- THẺ 1: CÀI ĐẶT LƯU DỮ LIỆU -->
-        <div id="settingsTabContentStorage" class="settings-tab-content">
-          <!-- Giải thích bảo mật & offline -->
-          <div
-            style="background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
-            🛡️ <b style="color: #f8fafc;">Bảo mật tuyệt đối:</b> GitHub & Vercel chỉ chứa giao diện ứng dụng. Tọa độ đo
-            đạc của bạn được lưu an toàn 100% trên thiết bị cá nhân hoặc tài khoản Google Drive riêng của bạn.
+        <!-- ================= THẺ 1: CÀI ĐẶT CHUNG ================= -->
+        <div id="settingsTabContentGeneral" class="settings-tab-content">
+          <!-- 1. Ngôn ngữ hiển thị -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span data-i18n="settings.general.lang_label">🌐 Ngôn ngữ:</span>
+              <span id="badgeCurrentLang" style="font-size: 11px; color: #38bdf8; font-weight: 700;">Tiếng Việt</span>
+            </label>
+            <div class="btn-group-row">
+              <button type="button" id="btnLangVi" class="btn-sm active" style="flex: 1; height: 36px; font-size: 12px; font-weight: 700;" onclick="appI18n.setLanguage('vi')">
+                🇻🇳 Tiếng Việt
+              </button>
+              <button type="button" id="btnLangEn" class="btn-sm" style="flex: 1; height: 36px; font-size: 12px; font-weight: 700;" onclick="appI18n.setLanguage('en')">
+                🇬🇧 English
+              </button>
+            </div>
           </div>
 
+          <!-- 2. Giao diện sáng / tối -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 6px;" data-i18n="settings.general.theme_label">🎨 Giao diện:</label>
+            <div class="btn-group-row">
+              <button type="button" id="btnThemeDark" class="btn-sm active" style="flex: 1; height: 36px; font-size: 11.5px;" onclick="appModal.setTheme('dark')">
+                🌙 Tối (Dark Pro)
+              </button>
+              <button type="button" id="btnThemeLight" class="btn-sm" style="flex: 1; height: 36px; font-size: 11.5px;" onclick="appModal.setTheme('light')">
+                ☀️ Sáng (Light Minimal)
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. Bố cục Màn hình chính -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 6px;" data-i18n="settings.general.layout_label">📱 Bố cục Trang chủ:</label>
+            <div class="btn-group-row">
+              <button type="button" id="btnSettingViewBigTiles" class="btn-sm active" style="flex: 1; height: 36px; font-size: 11.5px;" onclick="appNav.switchMainMenuView('big_tiles'); appModal.updateViewModeSettingsUI();">
+                ⭐ 4 Khối lớn 2x2
+              </button>
+              <button type="button" id="btnSettingViewTree" class="btn-sm" style="flex: 1; height: 36px; font-size: 11.5px;" onclick="appNav.switchMainMenuView('tree'); appModal.updateViewModeSettingsUI();">
+                🌳 Cây thư mục
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Định dạng Tọa độ Địa lý -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 6px;" data-i18n="settings.general.coord_format_label">📐 Tọa độ Địa lý (WGS-84):</label>
+            <div class="btn-group-row">
+              <button type="button" id="btnCoordFmtDD" class="btn-sm active" style="flex: 1; height: 34px; font-size: 11px;" onclick="appModal.setCoordFormat('dd')">
+                Thập phân (DD)
+              </button>
+              <button type="button" id="btnCoordFmtDMS" class="btn-sm" style="flex: 1; height: 34px; font-size: 11px;" onclick="appModal.setCoordFormat('dms')">
+                Độ Phút Giây (DMS)
+              </button>
+              <button type="button" id="btnCoordFmtDMM" class="btn-sm" style="flex: 1; height: 34px; font-size: 11px;" onclick="appModal.setCoordFormat('dmm')">
+                Độ Phút (DMM)
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. Số chữ số thập phân tọa độ phẳng X, Y (m) -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 6px;" data-i18n="settings.general.decimals_label">🎯 Số chữ số lẻ VN-2000:</label>
+            <div class="btn-group-row">
+              <button type="button" id="btnDecimals3" class="btn-sm active" style="flex: 1; height: 34px; font-size: 11px;" onclick="appModal.setCoordDecimals(3)">
+                3 số lẻ (0.001 m - Chuẩn)
+              </button>
+              <button type="button" id="btnDecimals2" class="btn-sm" style="flex: 1; height: 34px; font-size: 11px;" onclick="appModal.setCoordDecimals(2)">
+                2 số lẻ (0.01 m)
+              </button>
+              <button type="button" id="btnDecimals4" class="btn-sm" style="flex: 1; height: 34px; font-size: 11px;" onclick="appModal.setCoordDecimals(4)">
+                4 số lẻ (0.0001 m)
+              </button>
+            </div>
+          </div>
+
+          <!-- 6. Phản hồi rung & Hướng dẫn sử dụng (Card gọn gàng) -->
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-weight: 700; font-size: 12px; color: #f8fafc;" data-i18n="settings.general.haptic_title">📳 Rung phản hồi (Haptic)</span>
+              <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
+                <input type="checkbox" id="chkHapticFeedback" checked onchange="appModal.toggleHaptic(this.checked)" style="opacity: 0; width: 0; height: 0;">
+                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0284c7; transition: .3s; border-radius: 24px;" id="sliderHaptic"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px dashed rgba(51,65,85,0.7);">
+              <span style="font-weight: 700; font-size: 12px; color: #f8fafc;" data-i18n="settings.general.tips_title">💡 Hướng dẫn tính năng mới</span>
+              <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
+                <input type="checkbox" id="chkFirstTimeTips" checked onchange="appModal.toggleFirstTimeTips(this.checked)" style="opacity: 0; width: 0; height: 0;">
+                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0284c7; transition: .3s; border-radius: 24px;" id="sliderFirstTimeTips"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 7. Quản trị bộ nhớ & Khôi phục -->
+          <div class="form-group" style="margin-bottom: 6px;">
+            <label class="form-label" style="margin-bottom: 6px;" data-i18n="settings.general.maintenance_title">🛠️ Bộ nhớ & Khôi phục:</label>
+            <div class="btn-group-row">
+              <button type="button" class="btn-sm" style="flex: 1; height: 36px; font-size: 11.5px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8;" onclick="appModal.clearAppCache()" data-i18n="settings.general.btn_clean_cache">
+                🧹 Dọn Cache
+              </button>
+              <button type="button" class="btn-sm btn-red" style="flex: 1; height: 36px; font-size: 11.5px;" onclick="appModal.resetAppSettings()" data-i18n="settings.general.btn_reset_defaults">
+                🔄 Khôi Phục Mặc Định
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= THẺ 2: CÀI ĐẶT LƯU DỮ LIỆU (TINH GỌN & FIX NÚT FOOTER) ================= -->
+        <div id="settingsTabContentStorage" class="settings-tab-content" style="display: none;">
           <!-- Chọn chế độ lưu -->
-          <div class="form-group">
-            <label class="form-label">Chọn chế độ lưu trữ:</label>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 6px;">Chọn chế độ lưu trữ:</label>
             <div style="display: flex; flex-direction: column; gap: 8px;">
-              <div class="storage-option-card active" id="cardModeOffline"
-                onclick="appData.selectStorageMode('offline')">
-                <input type="radio" name="radioStorageMode" id="radioModeOffline" value="offline" checked
-                  style="margin-top: 3px; cursor: pointer;">
+              <div class="storage-option-card active" id="cardModeOffline" onclick="appData.selectStorageMode('offline')">
+                <input type="radio" name="radioStorageMode" id="radioModeOffline" value="offline" checked style="margin-top: 3px; cursor: pointer;">
                 <div>
-                  <div style="font-weight: 700; color: #4ade80; font-size: 13px;">📱 Lưu Ngoại Tuyến Trên Máy (Mặc định)
-                  </div>
-                  <div style="font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.4;">
-                    Tốc độ lưu tức thời, không phụ thuộc 4G/Wifi khi làm thực địa. Bạn có thể bấm nút <b>"Đồng bộ Google
-                      Sheets"</b> bất cứ lúc nào khi có mạng.
-                  </div>
+                  <div style="font-weight: 700; color: #4ade80; font-size: 13px;">📱 Lưu Ngoại Tuyến (Offline)</div>
+                  <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Tốc độ cao, không phụ thuộc mạng thực địa</div>
                 </div>
               </div>
 
-              <div class="storage-option-card" id="cardModeAutoGoogle"
-                onclick="appData.selectStorageMode('auto_google')">
-                <input type="radio" name="radioStorageMode" id="radioModeAutoGoogle" value="auto_google"
-                  style="margin-top: 3px; cursor: pointer;">
+              <div class="storage-option-card" id="cardModeAutoGoogle" onclick="appData.selectStorageMode('auto_google')">
+                <input type="radio" name="radioStorageMode" id="radioModeAutoGoogle" value="auto_google" style="margin-top: 3px; cursor: pointer;">
                 <div>
-                  <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">☁️ Tự Động Đồng Bộ Lên Google Sheets
-                  </div>
-                  <div style="font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.4;">
-                    Vừa lưu an toàn trên máy, vừa tự động gửi mốc lên bảng tính Google Sheets trên Google Drive của bạn
-                    khi có kết nối Internet.
-                  </div>
+                  <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">☁️ Tự Động Đồng Bộ Google Sheets</div>
+                  <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Tự động gửi mốc lên Google Drive khi có mạng</div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Cấu hình Google Apps Script Web App URL -->
-          <div class="form-group">
-            <label class="form-label">Google Apps Script Web App URL:</label>
-            <input type="url" id="txtGoogleScriptUrl" class="app-input"
-              placeholder="https://script.google.com/macros/s/.../exec">
-            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Link Web App tạo từ Google Sheet của bạn
-              (quyền Anyone/Bất kỳ ai).</div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label class="form-label" style="margin-bottom: 4px;">Google Apps Script Web App URL:</label>
+            <input type="url" id="txtGoogleScriptUrl" class="app-input" placeholder="https://script.google.com/macros/s/.../exec">
           </div>
 
           <!-- Link xem file Google Sheet -->
-          <div class="form-group">
-            <label class="form-label">Link xem file Google Sheet (tùy chọn):</label>
-            <input type="url" id="txtGoogleSheetViewUrl" class="app-input"
-              placeholder="https://docs.google.com/spreadsheets/d/.../edit">
-            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Để mở xem bảng tính nhanh chỉ với 1 chạm.
-            </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 4px;">Link xem file Google Sheet (tùy chọn):</label>
+            <input type="url" id="txtGoogleSheetViewUrl" class="app-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
           </div>
 
-          <!-- Hộp hướng dẫn 3 bước và nút chép mã Script -->
-          <div
-            style="background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; font-size: 11.5px; line-height: 1.5; color: #cbd5e1; margin-bottom: 10px;">
-            <div
-              style="font-weight: 700; color: #fbbf24; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
-              <span>📖 Kết Nối Google Sheet Riêng (1 Phút)</span>
-              <button class="btn-sm btn-blue" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;"
-                onclick="appModal.openGoogleGuide()">
-                Chi tiết ➔
+          <!-- Hộp kết nối nhanh Google Sheet -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-weight: 700; color: #fbbf24; font-size: 12px;">📖 Thiết lập Google Sheet (1 Phút)</span>
+              <button type="button" class="btn-sm btn-blue" style="height: 22px; padding: 1px 7px; font-size: 10.5px;" onclick="appGuide.openGuide('settings_storage')">
+                Hướng dẫn (?) ➔
               </button>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
-              <div>1. Mở <a href="https://sheets.new" target="_blank"
-                  style="color: #38bdf8; font-weight: 700; text-decoration: underline;">sheets.new</a> để tạo bảng tính
-                mới trên Google Drive.</div>
-              <div>2. Vào <b>Tiện ích mở rộng (Extensions)</b> ➔ <b>Apps Script</b>.</div>
-              <div>3. Dán mã kịch bản bên dưới ➔ Bấm <b>Triển khai (Deploy)</b> ➔ <b>Ứng dụng web mới</b> (Quyền:
-                <i>"Bất kỳ ai / Anyone"</i>).
-              </div>
-            </div>
             <div class="btn-group-row">
-              <a href="https://sheets.new" target="_blank" class="btn-sm btn-green"
-                style="text-decoration: none; height: 34px; font-size: 11.5px; display: inline-flex; align-items: center; justify-content: center;">
+              <a href="https://sheets.new" target="_blank" class="btn-sm btn-green" style="text-decoration: none; height: 32px; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; flex: 1;">
                 ✨ Mở sheets.new
               </a>
-              <button class="btn-sm btn-amber" style="height: 34px; font-size: 11.5px;"
-                onclick="appData.copyAppsScriptTemplate()">
-                📋 Sao Chép Mã Apps Script
+              <button type="button" class="btn-sm btn-amber" style="height: 32px; font-size: 11px; flex: 1;" onclick="appData.copyAppsScriptTemplate()">
+                📋 Chép mã Script
               </button>
             </div>
           </div>
 
-          <!-- TÙY CHỌN BỐ CỤC MÀN HÌNH CHÍNH (UI/UX PRO MAX) -->
-          <div class="form-group"
-            style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(56, 189, 248, 0.25);">
-            <label class="form-label">Bố cục Màn hình chính:</label>
-            <div class="btn-group-row">
-              <button type="button" id="btnSettingViewBigTiles" class="btn-sm active"
-                style="flex: 1; height: 38px; font-size: 11.5px;"
-                onclick="appNav.switchMainMenuView('big_tiles'); appModal.updateViewModeSettingsUI();">
-                ⭐ 4 Khối lớn 2x2 (Gọn gàng)
-              </button>
-              <button type="button" id="btnSettingViewTree" class="btn-sm"
-                style="flex: 1; height: 38px; font-size: 11.5px;"
-                onclick="appNav.switchMainMenuView('tree'); appModal.updateViewModeSettingsUI();">
-                🌳 Cây thư mục
-              </button>
-            </div>
+          <!-- Nút Thử kết nối & Lưu cấu hình (Tích hợp hoàn hảo bên trong Tab Storage) -->
+          <div id="settingsStorageFooter" class="modal-settings-footer" style="padding: 12px 0 0 0; background: transparent; border-top: 1px dashed rgba(56, 189, 248, 0.25); display: flex; gap: 8px;">
+            <button type="button" class="btn-sm btn-green" style="height: 42px; font-size: 12.5px; font-weight: 700; flex: 1;" onclick="appData.testGoogleConnection()">
+              🔌 Thử kết nối
+            </button>
+            <button type="button" class="btn-convert btn-wgs-to-vn2k" style="height: 42px; margin: 0; font-size: 13px; font-weight: 800; flex: 1.4;" onclick="appData.saveGoogleConfig()">
+              💾 LƯU CẤU HÌNH
+            </button>
           </div>
         </div>
 
-        <!-- THẺ 2: CÀI ĐẶT KTT -->
-        <!-- THẺ 5.1: CÀI ĐẶT KINH TUYẾN TRỤC & MÚI CHIẾU VN-2000 -->
+        <!-- ================= THẺ 3: CÀI ĐẶT KTT & MÚI CHIẾU ================= -->
         <div id="settingsTabContentKtt" class="settings-tab-content" style="display: none;">
-          <div class="form-group">
-            <label class="form-label">Chọn tỉnh thành:</label>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label class="form-label" style="margin-bottom: 4px;">Chọn tỉnh thành:</label>
             <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()">
               <!-- 63 tỉnh -->
             </select>
           </div>
 
           <!-- BẢNG LIVE PREVIEW KTT QUY ĐỔI HIỆN TẠI -->
-          <div id="boxModalKttPreview"
-            style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <div id="boxModalKttPreview" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
             <div>
               <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">📍 Kinh tuyến trục hiệu dụng:</div>
               <div id="lblModalKttPreviewText" style="font-size: 13.5px; font-weight: 800; color: #38bdf8; margin-top: 2px;">
                 105°45' ⇄ 105.75° (Thập phân)
               </div>
             </div>
-            <span id="badgeModalKttEquiv"
-              style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+            <span id="badgeModalKttEquiv" style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
               45' / 60 = 0.75°
             </span>
           </div>
 
-          <!-- TỰ NHẬP KTT LINH HOẠT HỖ TRỢ CẢ ĐỘ PHÚT & THẬP PHÂN -->
+          <!-- TỰ NHẬP KTT LINH HOẠT -->
           <div class="form-group" style="margin-bottom: 10px;">
-            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
-              <span>⚡ Nhập nhanh KTT (Độ Phút hoặc Thập phân):</span>
-              <span style="font-size: 11px; color: #38bdf8; font-weight: normal;">VD: 105°45', 105O45' hoặc 105.75</span>
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span>⚡ Nhập nhanh KTT:</span>
+              <span style="font-size: 10.5px; color: #38bdf8;">VD: 105°45' hoặc 105.75</span>
             </label>
-            <input type="text" id="txtModalKttQuick" class="app-input"
-              placeholder="Gõ nhanh: 105°45', 105O45' hoặc 105.75"
-              oninput="appModal.onQuickKttInput(this.value)">
+            <input type="text" id="txtModalKttQuick" class="app-input" placeholder="Gõ nhanh: 105°45', 105O45' hoặc 105.75" oninput="appModal.onQuickKttInput(this.value)">
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Tự nhập tách rời theo Độ (°) và Phút ('):</label>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label class="form-label" style="margin-bottom: 4px;">Tự nhập tách rời (Độ - Phút):</label>
             <div class="input-row">
-              <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)"
-                oninput="appModal.updateKttPreview(true)">
-              <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)"
-                oninput="appModal.updateKttPreview(true)">
+              <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)" oninput="appModal.updateKttPreview(true)">
+              <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)" oninput="appModal.updateKttPreview(true)">
             </div>
           </div>
 
-          <!-- HỘP GHI CHÚ VÀ HƯỚNG DẪN QUY ĐỔI KINH TUYẾN TRỤC CHI TIẾT -->
-          <div class="ktt-guide-card"
-            style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-              <span style="font-size: 16px;">💡</span>
-              <span style="font-size: 12px; font-weight: 800; color: #d8b4fe; text-transform: uppercase;">Ghi chú sử dụng Kinh tuyến trục (KTT)</span>
+          <!-- Hộp KTT phổ biến -->
+          <div class="ktt-guide-card" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;">⚡ Bấm nhanh KTT chuẩn Việt Nam:</span>
+              <button type="button" class="btn-sm btn-blue" style="height: 22px; padding: 1px 7px; font-size: 10.5px;" onclick="appGuide.openGuide('settings_ktt')">
+                Quy tắc (?) ➔
+              </button>
             </div>
-            <div style="font-size: 11.5px; color: #cbd5e1; line-height: 1.6; margin-bottom: 10px;">
-              Kinh tuyến trục địa phương tại Việt Nam có thể biểu diễn dưới 2 dạng tương đương:
-              <div style="margin: 6px 0; background: rgba(30, 41, 59, 0.6); padding: 8px 10px; border-radius: 6px; border-left: 3px solid #c084fc;">
-                <div>• <b>Dạng Độ - Phút (DMS):</b> Viết <code>105°45'</code> (hoặc gõ nhanh <code>105O45'</code>, <code>105d45</code>) theo Quyết định 05/2007/QĐ-BTNMT.</div>
-                <div style="margin-top: 3px;">• <b>Dạng Độ Thập Phân (Decimal):</b> Viết <code>105.75°</code> (thường dùng trong máy RTK, QGIS, ArcGIS).</div>
-                <div style="margin-top: 3px; color: #38bdf8;">• <b>Công thức quy đổi:</b> <code>105° + 45'/60 = 105.75°</code> (Số phút chia cho 60).</div>
-              </div>
-            </div>
-            <div style="font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 6px;">⚡ Bấm nhanh các KTT chuẩn phổ biến tại Việt Nam:</div>
             <div style="display: flex; flex-wrap: wrap; gap: 5px;" id="kttQuickChipsContainer">
-              <!-- Render tự động bởi appModal.renderKttGuideAndPresets() -->
+              <!-- Render tự động -->
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Chọn Múi chiếu:</label>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" style="margin-bottom: 4px;">Chọn Múi chiếu:</label>
             <div class="toggle-mui-group">
               <button id="modalBtnMui3" class="btn-mui-toggle active" onclick="appModal.setMui(3)">
                 Múi 3° (k0=0.9999)
@@ -3852,101 +3920,75 @@
               </button>
             </div>
           </div>
-          <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 14px; height: 42px; font-size: 13.5px;"
-            onclick="appModal.saveSettings()">
+
+          <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px; font-weight: 800;" onclick="appModal.saveSettings()">
             💾 LƯU CẤU HÌNH KTT
           </button>
         </div>
 
-        <!-- THẺ 5.6: CÀI ĐẶT NGÀY GIỜ HỆ THỐNG (ĐỒNG BỘ TỰ ĐỘNG / ĐIỀU CHỈNH THỦ CÔNG) -->
+        <!-- ================= THẺ 4: CÀI ĐẶT NGÀY GIỜ HỆ THỐNG ================= -->
         <div id="settingsTabContentDatetime" class="settings-tab-content" style="display: none;">
           <!-- Thẻ hiển thị đồng hồ thời gian hiệu dụng -->
-          <div class="datetime-display-card">
+          <div class="datetime-display-card" style="margin-bottom: 12px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">⏰ Thời gian hệ
-                thống hiệu dụng:</span>
-              <span id="badgeDatetimeMode"
-                style="font-size: 10px; font-weight: 700; background: rgba(16,185,129,0.2); color: #4ade80; border: 1px solid rgba(16,185,129,0.4); padding: 1px 6px; border-radius: 4px;">Tự
-                động (Thiết bị)</span>
+              <span style="font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">⏰ Thời gian hiệu dụng:</span>
+              <span id="badgeDatetimeMode" style="font-size: 10px; font-weight: 700; background: rgba(16,185,129,0.2); color: #4ade80; border: 1px solid rgba(16,185,129,0.4); padding: 1px 6px; border-radius: 4px;">Tự động</span>
             </div>
             <div id="clockDatetimeDisplay" class="datetime-digital-clock">--:--:--</div>
             <div id="lblDatetimeFullDate" style="font-size: 11.5px; color: #cbd5e1; font-weight: 600;">--</div>
-            <div id="lblDatetimeTzInfo" style="font-size: 11px; color: #94a3b8;">Múi giờ: GMT+7:00 (Giờ Đông Dương -
-              ICT)</div>
+            <div id="lblDatetimeTzInfo" style="font-size: 10.5px; color: #94a3b8;">Múi giờ: GMT+07:00 (Indochina Time - ICT)</div>
           </div>
 
-          <!-- Chế độ Đồng bộ Tự động vs Chỉnh Thủ công -->
-          <div class="form-group">
-            <label class="form-label">Chế độ đồng bộ ngày giờ:</label>
+          <!-- Chế độ Đồng bộ -->
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label" style="margin-bottom: 4px;">Chế độ đồng bộ ngày giờ:</label>
             <div class="toggle-mui-group">
-              <button type="button" id="btnDatetimeModeAuto" class="btn-mui-toggle active"
-                onclick="appDateTime.setMode('auto')">
+              <button type="button" id="btnDatetimeModeAuto" class="btn-mui-toggle active" onclick="appDateTime.setMode('auto')">
                 🔄 Tự động (Hệ thống)
               </button>
-              <button type="button" id="btnDatetimeModeManual" class="btn-mui-toggle"
-                onclick="appDateTime.setMode('manual')">
+              <button type="button" id="btnDatetimeModeManual" class="btn-mui-toggle" onclick="appDateTime.setMode('manual')">
                 ✏️ Điều chỉnh thủ công
               </button>
             </div>
           </div>
 
           <!-- Khung chỉnh thủ công khi được kích hoạt -->
-          <div id="boxManualDatetimeControls"
-            style="display: none; background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+          <div id="boxManualDatetimeControls" style="display: none; background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px; margin-bottom: 12px;">
             <div class="form-group" style="margin-bottom: 8px;">
-              <label class="form-label" style="font-size: 11px;">Thiết lập ngày và giờ thủ công:</label>
-              <input type="datetime-local" id="inputManualDatetimeLocal" class="app-input"
-                style="font-size: 12.5px; color: #f8fafc;" onchange="appDateTime.onManualInputChange()">
+              <label class="form-label" style="font-size: 11px;">Thiết lập ngày và giờ:</label>
+              <input type="datetime-local" id="inputManualDatetimeLocal" class="app-input" style="font-size: 12px; color: #f8fafc;" onchange="appDateTime.onManualInputChange()">
             </div>
             <div class="form-group" style="margin-bottom: 6px;">
-              <label class="form-label" style="font-size: 11px;">Múi giờ chuẩn (Timezone):</label>
-              <select id="selManualTimezoneOffset" class="app-select" style="height: 32px; font-size: 11.5px;"
-                onchange="appDateTime.onTimezoneChange()">
-                <option value="7" selected>GMT+07:00 (Việt Nam, Thái Lan, Jakarta)</option>
-                <option value="8">GMT+08:00 (Singapore, Bắc Kinh, Manila)</option>
+              <label class="form-label" style="font-size: 11px;">Múi giờ (Timezone):</label>
+              <select id="selManualTimezoneOffset" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appDateTime.onTimezoneChange()">
+                <option value="7" selected>GMT+07:00 (Việt Nam, Bangkok, Jakarta)</option>
+                <option value="8">GMT+08:00 (Singapore, Bắc Kinh)</option>
                 <option value="9">GMT+09:00 (Tokyo, Seoul)</option>
-                <option value="0">GMT+00:00 (UTC / Giờ Quốc tế chuẩn)</option>
-                <option value="1">GMT+01:00 (Trung Âu / CET)</option>
+                <option value="0">GMT+00:00 (UTC)</option>
               </select>
             </div>
             <div class="btn-group-row">
-              <button type="button" class="btn-sm btn-blue" style="height: 32px; font-size: 11px;"
-                onclick="appDateTime.adjustMinutes(-15)">-15 phút</button>
-              <button type="button" class="btn-sm btn-blue" style="height: 32px; font-size: 11px;"
-                onclick="appDateTime.adjustMinutes(+15)">+15 phút</button>
-              <button type="button" class="btn-sm btn-green" style="height: 32px; font-size: 11px;"
-                onclick="appDateTime.syncToDeviceNow()">⏱️ Lấy giờ máy</button>
+              <button type="button" class="btn-sm btn-blue" style="height: 32px; font-size: 11px;" onclick="appDateTime.adjustMinutes(-15)">-15 phút</button>
+              <button type="button" class="btn-sm btn-blue" style="height: 32px; font-size: 11px;" onclick="appDateTime.adjustMinutes(+15)">+15 phút</button>
+              <button type="button" class="btn-sm btn-green" style="height: 32px; font-size: 11px;" onclick="appDateTime.syncToDeviceNow()">⏱️ Lấy giờ máy</button>
             </div>
           </div>
 
-          <div style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-bottom: 12px;">
-            💡 <i>Dấu ngày giờ hệ thống sẽ được tự động gắn kèm khi lưu sổ đo mốc, xuất nhật ký công trình, xuất file
-              CAD/DXF và in tem thủy ấn Camera.</i>
-          </div>
-
-          <button type="button" class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px;"
-            onclick="appDateTime.saveSettings()">
+          <button type="button" class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px; font-weight: 800; margin-top: 8px;" onclick="appDateTime.saveSettings()">
             💾 LƯU CẤU HÌNH NGÀY GIỜ
           </button>
         </div>
 
-        <!-- THẺ 3: KẾT NỐI MÁY ĐỊNH VỊ RTK NGOÀI (WEB BLUETOOTH GNSS ROVER) -->
+        <!-- ================= THẺ 5: KẾT NỐI MÁY ĐỊNH VỊ RTK NGOÀI ================= -->
         <div id="settingsTabContentRtk" class="settings-tab-content" style="display: none;">
-          <div
-            style="background: rgba(15, 23, 42, 0.85); border: 1px solid #1e3a8a; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
-            🛰️ <b>Độ chính xác centimet:</b> Kết nối trực tiếp máy đo RTK Rover (CHCNAV, Stonex, South, Emlid Reach,
-            Trimble, Leica) qua Web Bluetooth SPP / NMEA 0183 ($GNGGA) để đạt độ chính xác ±8mm ngoài thực địa.
-          </div>
-
           <!-- Hộp Trạng Thái Kết Nối RTK -->
-          <div class="rtk-status-card">
+          <div class="rtk-status-card" style="margin-bottom: 12px;">
             <div class="rtk-header-row">
               <div style="display: flex; align-items: center; font-weight: 700; font-size: 13px;">
                 <span id="rtkLedIndicator" class="rtk-led-dot"></span>
-                <span id="rtkStatusText" style="color: #f8fafc;">Chưa kết nối máy RTK ngoài</span>
+                <span id="rtkStatusText" style="color: #f8fafc;">Chưa kết nối RTK ngoài</span>
               </div>
-              <span id="rtkDeviceNameBadge" class="pill-badge"
-                style="display: none; background: #0369a1; color: #ffffff;">Bluetooth</span>
+              <span id="rtkDeviceNameBadge" class="pill-badge" style="display: none; background: #0369a1; color: #ffffff;">Bluetooth</span>
             </div>
 
             <div class="rtk-grid-metrics">
@@ -3968,110 +4010,80 @@
               </div>
               <div class="rtk-metric-item" style="grid-column: span 2;">
                 <div class="rtk-metric-label">Tọa độ VN-2000 (X - Y - Z):</div>
-                <div class="rtk-metric-value" id="rtkVn2kCoord" style="color: #38bdf8; font-size: 11.5px;">X: -- | Y: --
-                  | Z: --</div>
+                <div class="rtk-metric-value" id="rtkVn2kCoord" style="color: #38bdf8; font-size: 11.5px;">X: -- | Y: -- | Z: --</div>
               </div>
             </div>
           </div>
 
-          <!-- Tùy chọn sử dụng RTK thay GPS điện thoại -->
-          <div
-            style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <!-- Tùy chọn sử dụng RTK -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
             <div>
-              <div style="font-weight: 700; font-size: 12.5px; color: #f8fafc;">Ưu tiên vị trí từ máy RTK ngoài</div>
-              <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Cung cấp vị trí cm cho Bản đồ, Cắm mốc &
-                Camera</div>
+              <div style="font-weight: 700; font-size: 12px; color: #f8fafc;">Ưu tiên vị trí từ máy RTK ngoài</div>
+              <div style="font-size: 10.5px; color: #94a3b8; margin-top: 1px;">Độ chính xác cm cho Bản đồ, Cắm mốc & Camera</div>
             </div>
-            <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
-              <input type="checkbox" id="chkUseExternalRtk" onchange="appBluetoothRtk.toggleUseRtk(this.checked)"
-                style="opacity: 0; width: 0; height: 0;">
-              <span
-                style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px;"
-                id="sliderUseRtk"></span>
+            <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
+              <input type="checkbox" id="chkUseExternalRtk" onchange="appBluetoothRtk.toggleUseRtk(this.checked)" style="opacity: 0; width: 0; height: 0;">
+              <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px;" id="sliderUseRtk"></span>
             </label>
           </div>
 
           <!-- NMEA Terminal Log -->
-          <div style="font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">📡 Dòng dữ liệu NMEA thời
-            gian thực ($GNGGA):</div>
-          <div class="nmea-log-terminal" id="rtkNmeaTerminal">$GNGGA,waiting_for_bluetooth_connection...</div>
+          <div style="font-size: 10.5px; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">📡 Dòng dữ liệu NMEA ($GNGGA):</div>
+          <div class="nmea-log-terminal" id="rtkNmeaTerminal" style="font-size: 11px;">$GNGGA,waiting_for_bluetooth_connection...</div>
 
           <!-- Nút hành động kết nối -->
           <div class="btn-group-row" style="margin-top: 10px;">
-            <button class="btn-sm btn-blue" style="height: 42px; font-size: 12.5px;"
-              onclick="appBluetoothRtk.connect()">
-              🔍 Quét Bluetooth Rover
+            <button class="btn-sm btn-blue" style="height: 40px; font-size: 12px; font-weight: 700; flex: 1.2;" onclick="appBluetoothRtk.connect()">
+              🔍 Quét Rover
             </button>
-            <button class="btn-sm btn-amber" style="height: 42px; font-size: 12.5px;"
-              onclick="appBluetoothRtk.simulateFix()">
+            <button class="btn-sm btn-amber" style="height: 40px; font-size: 12px; font-weight: 700; flex: 1;" onclick="appBluetoothRtk.simulateFix()">
               ⚡ Thử RTK Fix
             </button>
-            <button class="btn-sm btn-red" style="height: 42px; font-size: 12.5px;"
-              onclick="appBluetoothRtk.disconnect()">
+            <button class="btn-sm btn-red" style="height: 40px; font-size: 12px; font-weight: 700; flex: 0.8;" onclick="appBluetoothRtk.disconnect()">
               ⏹️ Ngắt
             </button>
           </div>
         </div>
 
-        <!-- THẺ 4: GIAO HỘI TRẮC ĐỊA KHI MẤT SÓNG GPS (RESECTION & INTERSECTION) -->
+        <!-- ================= THẺ 6: GIAO HỘI TRẮC ĐỊA BÙ GPS ================= -->
         <div id="settingsTabContentResection" class="settings-tab-content" style="display: none;">
-          <div
-            style="background: rgba(15, 23, 42, 0.85); border: 1px solid #d97706; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
-            📐 <b>Bù vị trí khi mất GPS:</b> Khi làm việc trong tán rừng rậm, tầng hầm hoặc góc phố cao tầng mất sóng vệ
-            tinh, sử dụng phương pháp giao hội cạnh từ 2 mốc khống chế đã biết để xác định chính xác tọa độ trạm đo.
-          </div>
-
           <!-- Mốc khống chế A -->
-          <div
-            style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
-            <div style="font-weight: 700; color: #38bdf8; font-size: 12px; margin-bottom: 6px;">📍 MỐC KHỐNG CHẾ A:
-            </div>
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 12px; margin-bottom: 6px;">📍 MỐC KHỐNG CHẾ A:</div>
             <div class="form-group" style="margin-bottom: 6px;">
-              <label class="form-label" style="font-size: 11px;">Chọn nhanh từ mốc dự án:</label>
-              <select id="selResectionPtA" class="app-select" onchange="appResection.onSelectPtA(this.value)">
+              <select id="selResectionPtA" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appResection.onSelectPtA(this.value)">
                 <option value="">-- Chọn mốc có sẵn --</option>
               </select>
             </div>
             <div class="input-row" style="margin-bottom: 6px;">
-              <input type="number" id="txtResectionXA" class="app-input" inputmode="decimal" placeholder="X (m) mốc A"
-                step="0.001">
-              <input type="number" id="txtResectionYA" class="app-input" inputmode="decimal" placeholder="Y (m) mốc A"
-                step="0.001">
+              <input type="number" id="txtResectionXA" class="app-input" inputmode="decimal" placeholder="X (m) mốc A" step="0.001">
+              <input type="number" id="txtResectionYA" class="app-input" inputmode="decimal" placeholder="Y (m) mốc A" step="0.001">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 11px;">Khoảng cách từ trạm đo tới Mốc A (dA):</label>
-              <input type="number" id="txtResectionDistA" class="app-input" inputmode="decimal"
-                placeholder="Khoảng cách dA (m)" step="0.001">
+              <input type="number" id="txtResectionDistA" class="app-input" inputmode="decimal" placeholder="Khoảng cách dA (m)" step="0.001">
             </div>
           </div>
 
           <!-- Mốc khống chế B -->
-          <div
-            style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
-            <div style="font-weight: 700; color: #fbbf24; font-size: 12px; margin-bottom: 6px;">📍 MỐC KHỐNG CHẾ B:
-            </div>
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
+            <div style="font-weight: 700; color: #fbbf24; font-size: 12px; margin-bottom: 6px;">📍 MỐC KHỐNG CHẾ B:</div>
             <div class="form-group" style="margin-bottom: 6px;">
-              <label class="form-label" style="font-size: 11px;">Chọn nhanh từ mốc dự án:</label>
-              <select id="selResectionPtB" class="app-select" onchange="appResection.onSelectPtB(this.value)">
+              <select id="selResectionPtB" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appResection.onSelectPtB(this.value)">
                 <option value="">-- Chọn mốc có sẵn --</option>
               </select>
             </div>
             <div class="input-row" style="margin-bottom: 6px;">
-              <input type="number" id="txtResectionXB" class="app-input" inputmode="decimal" placeholder="X (m) mốc B"
-                step="0.001">
-              <input type="number" id="txtResectionYB" class="app-input" inputmode="decimal" placeholder="Y (m) mốc B"
-                step="0.001">
+              <input type="number" id="txtResectionXB" class="app-input" inputmode="decimal" placeholder="X (m) mốc B" step="0.001">
+              <input type="number" id="txtResectionYB" class="app-input" inputmode="decimal" placeholder="Y (m) mốc B" step="0.001">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 11px;">Khoảng cách từ trạm đo tới Mốc B (dB):</label>
-              <input type="number" id="txtResectionDistB" class="app-input" inputmode="decimal"
-                placeholder="Khoảng cách dB (m)" step="0.001">
+              <input type="number" id="txtResectionDistB" class="app-input" inputmode="decimal" placeholder="Khoảng cách dB (m)" step="0.001">
             </div>
           </div>
 
           <!-- Lựa chọn hướng giao điểm -->
-          <div class="form-group">
-            <label class="form-label">Vị trí điểm trạm đo so với hướng ngắm A ➔ B:</label>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label class="form-label" style="margin-bottom: 4px;">Hướng trạm đo so với trục A ➔ B:</label>
             <div class="toggle-mui-group">
               <button id="btnResectionSideRight" class="btn-mui-toggle active" onclick="appResection.setSide('right')">
                 👉 Bên Phải (Right)
@@ -4083,145 +4095,122 @@
           </div>
 
           <!-- Nút Tính Toán -->
-          <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px;"
-            onclick="appResection.calculate()">
+          <button class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px; font-weight: 800;" onclick="appResection.calculate()">
             ⚡ TÍNH TOÁN TỌA ĐỘ GIAO HỘI
           </button>
 
           <!-- Kết quả giao hội -->
-          <div id="resectionResultCard"
-            style="display: none; background: #061e33; border: 1.5px solid #0284c7; border-radius: 10px; padding: 12px; margin-top: 12px;">
-            <div style="font-weight: 800; color: #38bdf8; font-size: 13px; margin-bottom: 6px;">
+          <div id="resectionResultCard" style="display: none; background: #061e33; border: 1.5px solid #0284c7; border-radius: 10px; padding: 12px; margin-top: 10px;">
+            <div style="font-weight: 800; color: #38bdf8; font-size: 12.5px; margin-bottom: 6px;">
               🎯 TỌA ĐỘ TRẠM ĐO GIAO HỘI THÀNH CÔNG:
             </div>
-            <div style="font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.7; color: #f8fafc;">
+            <div style="font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.6; color: #f8fafc;">
               <div>• VN-2000 X: <b id="resResectionX" style="color: #4ade80;">--</b> m</div>
               <div>• VN-2000 Y: <b id="resResectionY" style="color: #4ade80;">--</b> m</div>
               <div>• WGS-84: <span id="resResectionWgs">--</span></div>
               <div>• Cự ly khống chế AB: <span id="resResectionDistAB">--</span> m</div>
             </div>
             <div style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
-              <button class="btn-sm btn-green" style="height: 36px; font-size: 11.5px; flex: 1;"
-                onclick="appResection.applyAsCurrentPosition()">
-                📍 Gán vị trí bù GPS
+              <button class="btn-sm btn-green" style="height: 34px; font-size: 11.5px; flex: 1;" onclick="appResection.applyAsCurrentPosition()">
+                📍 Gán bù GPS
               </button>
-              <button class="btn-sm btn-blue" style="height: 36px; font-size: 11.5px; flex: 1;"
-                onclick="appResection.saveAsProjectPoint()">
-                💾 Lưu vào sổ đo
+              <button class="btn-sm btn-blue" style="height: 34px; font-size: 11.5px; flex: 1;" onclick="appResection.saveAsProjectPoint()">
+                💾 Lưu sổ đo
               </button>
-              <button class="btn-sm btn-amber" style="height: 36px; font-size: 11.5px; flex: 1;"
-                onclick="appResection.viewOnMap()">
+              <button class="btn-sm btn-amber" style="height: 34px; font-size: 11.5px; flex: 1;" onclick="appResection.viewOnMap()">
                 🗺️ Xem bản đồ
               </button>
             </div>
           </div>
         </div>
-      </div>
-        <!-- THẺ 6: CẤU HÌNH TỐI ƯU HÓA BẢN ĐỒ & XUẤT ẢNH (PIXOPTIMIZER) -->
+
+        <!-- ================= THẺ 7: TỐI ƯU PIXOPTIMIZER ================= -->
         <div id="settingsTabContentOptimizer" class="settings-tab-content" style="display: none;">
-          <div
-            style="background: rgba(15, 23, 42, 0.85); border: 1px solid #0284c7; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.5; color: #94a3b8; margin-bottom: 10px;">
-            ⚡ <b style="color: #38bdf8;">Động cơ PixOptimizer Client-Side (VIG Digital):</b> Tối ưu hóa nén ảnh 100% trên thiết bị, không qua máy chủ, bảo mật dữ liệu trắc địa. Giúp xuất bản vẽ mặt bằng siêu nhẹ và cuộn/pan bản đồ vệ tinh mượt mà 60fps.
-          </div>
-
-          <!-- Nhóm 1: Tùy chọn Xuất Bản Vẽ MiniCAD -->
-          <div
-            style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+          <!-- Cấu hình Xuất Bản Vẽ MiniCAD -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
             <div style="font-weight: 700; color: #38bdf8; font-size: 12px; margin-bottom: 8px;">
-              📐 1. CẤU HÌNH XUẤT BẢN VẼ MINICAD & TRẮC DỌC:
+              📐 1. CẤU HÌNH XUẤT BẢN VẼ MINICAD:
             </div>
-
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label class="form-label" style="font-size: 11px;">Định dạng xuất ảnh ưu tiên:</label>
-              <select id="selOptimizerFormat" class="app-select" style="height: 32px; font-size: 11.5px;">
-                <option value="webp" selected>WebP (Khuyến nghị - Siêu nhẹ, nét căng, giảm ~85% dung lượng)</option>
-                <option value="jpeg">JPEG (Tương thích phổ biến - Gửi Zalo / Chèn Word)</option>
-                <option value="png">PNG (Nguyên bản không nén - Dung lượng lớn)</option>
+            <div class="form-group" style="margin-bottom: 6px;">
+              <label class="form-label" style="font-size: 11px;">Định dạng nén ảnh:</label>
+              <select id="selOptimizerFormat" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()">
+                <option value="webp" selected>WebP (Khuyên dùng - Siêu nhẹ)</option>
+                <option value="jpeg">MozJPEG (Tương thích AutoCAD cũ)</option>
+                <option value="png">PNG (Không nén lossless)</option>
               </select>
             </div>
-
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label class="form-label" style="font-size: 11px;">Mức chất lượng nén ảnh:</label>
-              <select id="selOptimizerQuality" class="app-select" style="height: 32px; font-size: 11.5px;">
-                <option value="high">Cao (90% - Sắc nét in ấn khổ lớn A3/A2)</option>
-                <option value="balanced" selected>Cân bằng (80% - Cân đối tối ưu dung lượng & độ nét)</option>
-                <option value="light">Siêu nhẹ (65% - Tiết kiệm dung lượng tối đa, gửi 3G)</option>
+            <div class="form-group" style="margin-bottom: 6px;">
+              <label class="form-label" style="font-size: 11px;">Chất lượng nén:</label>
+              <select id="selOptimizerQuality" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()">
+                <option value="high" selected>Cao (85% - Sắc nét nét vẽ)</option>
+                <option value="medium">Vừa (75% - Cân bằng dung lượng)</option>
+                <option value="max">Tối đa (95% - Xuất in ấn A0)</option>
               </select>
             </div>
-
-            <div class="form-group" style="margin-bottom: 4px;">
-              <label class="form-label" style="font-size: 11px;">Giới hạn kích thước cạnh ảnh tối đa (Max Edge):</label>
-              <select id="selOptimizerMaxEdge" class="app-select" style="height: 32px; font-size: 11.5px;">
-                <option value="3840">3840 px (Chuẩn 4K Ultra HD)</option>
-                <option value="2048" selected>2048 px (Chuẩn 2K Cân bằng - Khuyến nghị)</option>
-                <option value="1440">1440 px (Chuẩn Di động nhẹ)</option>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 11px;">Kích thước cạnh tối đa:</label>
+              <select id="selOptimizerMaxEdge" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()">
+                <option value="2560" selected>2560 px (2K QHD)</option>
+                <option value="3840">3840 px (4K UHD)</option>
+                <option value="1920">1920 px (Full HD)</option>
               </select>
             </div>
           </div>
 
-          <!-- Nhóm 2: Tùy chọn Bản Đồ & Bộ Nhớ Đệm -->
-          <div
-            style="background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+          <!-- Tối ưu Bản đồ Vệ tinh -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;">
             <div style="font-weight: 700; color: #4ade80; font-size: 12px; margin-bottom: 8px;">
-              🗺️ 2. TỐI ƯU HÓA BẢN ĐỒ VỆ TINH & BỘ NHỚ ĐỆM:
+              🗺️ 2. TỐI ƯU BẢN ĐỒ VỆ TINH OFFLINE:
             </div>
-
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-              <div>
-                <div style="font-weight: 700; font-size: 12px; color: #f8fafc;">Chế độ tải bản đồ mượt mà (Smooth Map)</div>
-                <div style="font-size: 10.5px; color: #94a3b8; margin-top: 2px;">Chỉ tải tile khi dừng vuốt & Giảm buffer RAM (chống giật lag 60fps)</div>
-              </div>
-              <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
-                <input type="checkbox" id="chkOptimizerSmoothMap" checked style="opacity: 0; width: 0; height: 0;">
-                <span
-                  style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #38bdf8; transition: .3s; border-radius: 24px;"
-                  id="sliderOptimizerSmooth"></span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 11.5px; color: #f8fafc;">Làm mịn ảnh bản đồ vệ tinh</span>
+              <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
+                <input type="checkbox" id="chkOptimizerSmoothMap" checked onchange="appModal.onOptimizerSettingChange()" style="opacity: 0; width: 0; height: 0;">
+                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0284c7; transition: .3s; border-radius: 24px;" id="sliderOptimizerSmooth"></span>
               </label>
             </div>
-
-            <div
-              style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 6px; border-top: 1px dashed rgba(51,65,85,0.7);">
               <div style="font-size: 11px; color: #94a3b8;">
                 Bộ nhớ đệm ô bản đồ: <span id="txtTileCacheStatus" style="color: #38bdf8;">Đang hoạt động</span>
               </div>
-              <button type="button" class="btn-sm btn-amber" style="height: 28px; font-size: 11px;"
-                onclick="appModal.clearTileCacheNow()">
-                🧹 Dọn dẹp cache tile
+              <button type="button" class="btn-sm btn-amber" style="height: 28px; font-size: 10.5px;" onclick="appModal.clearTileCacheNow()">
+                🧹 Dọn cache tile
               </button>
             </div>
           </div>
 
-          <!-- Nút Lưu Cài Đặt Tối Ưu -->
-          <button type="button" class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px;"
-            onclick="appModal.saveOptimizerSettings()">
+          <button type="button" class="btn-convert btn-wgs-to-vn2k" style="height: 42px; font-size: 13.5px; font-weight: 800;" onclick="appModal.saveOptimizerSettings()">
             💾 LƯU CẤU HÌNH TỐI ƯU PIXOPTIMIZER
           </button>
         </div>
-      </div>
-      <!-- Kết thúc modal-settings-body -->
+      </div> <!-- Kết thúc modal-settings-body -->
+    </div> <!-- Kết thúc modal-settings-box -->
+  </div> <!-- Kết thúc modalSettings -->
 
-      <!-- Sticky Footer: Cố định ở đáy cho Thẻ Lưu dữ liệu -->
-      <div id="settingsStorageFooter" class="modal-settings-footer">
-        <button class="btn-sm btn-green" style="height: 40px; flex: 1;" onclick="appData.testGoogleConnection()">
-          🔌 Thử kết nối
-        </button>
-        <button class="btn-convert btn-wgs-to-vn2k" style="height: 40px; margin: 0; font-size: 13px; flex: 1.5;"
-          onclick="appData.saveGoogleConfig()">
-          💾 LƯU CẤU HÌNH
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- ================= MODAL BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH (3.5) ================= -->
   <div id="modalCadAreaTable" class="modal-overlay">
-    <div class="modal-box" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="modal-box" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-title">
-        <span style="color: #38bdf8;">📐 Bảng Kê Tọa Độ Ranh & Diện Tích Mặt Bằng</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <span id="lblCadAreaTableTitle" style="color: #38bdf8; font-weight: 800;">📐 Bảng Kê & Thống Kê Tổng Hợp MiniCAD</span>
+          <button id="btnCadTableHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('cad_tables')" title="Hướng dẫn 5 bảng kê MiniCAD" style="margin-left: auto; margin-right: 8px;">?</button>
+        </div>
         <button class="btn-modal-close" onclick="appCadTool.closeAreaTableModal()">✕</button>
       </div>
 
-      <!-- Thẻ tóm tắt thông số diện tích và chu vi -->
+      <!-- Segmented Tab Switcher cho 5 Bảng Kê MiniCAD -->
+      <div class="cad-tab-group" id="cadModalTableTabs" style="display: flex; gap: 4px; padding: 4px; background: rgba(15,23,42,0.85); border: 1.5px solid rgba(56,189,248,0.25); border-radius: 8px; margin-bottom: 12px; overflow-x: auto; flex-shrink: 0;">
+        <button type="button" class="cad-tab-btn active" id="tabBtnCadTableRanh" onclick="appCadTool.switchModalTableTab('ranh')" title="Bảng kê ranh mốc và tổng hợp diện tích các khối">📐 Ranh & Diện Tích</button>
+        <button type="button" class="cad-tab-btn" id="tabBtnCadTableVertices" onclick="appCadTool.switchModalTableTab('vertices')" title="Bảng kê toàn bộ các đỉnh mốc (tọa độ VN2000, ẩn/hiện, sửa tên)">📍 Bảng Kê Các Đỉnh (<span id="cadCountTabVertices">0</span>)</button>
+        <button type="button" class="cad-tab-btn" id="tabBtnCadTableArrows" onclick="appCadTool.switchModalTableTab('arrows')" title="Bảng kê các mũi tên CAD (1 đầu nhọn / 2 đầu nhọn, cự ly, sửa tên)">🏹 Bảng Kê Mũi Tên (<span id="cadCountTabArrows">0</span>)</button>
+        <button type="button" class="cad-tab-btn" id="tabBtnCadTableBuildings" onclick="appCadTool.switchModalTableTab('buildings')" title="Bảng kê các khối công trình / nhà ở (kích thước, diện tích, sửa tên)">🏠 Bảng Kê Khối Nhà (<span id="cadCountTabBuildings">0</span>)</button>
+        <button type="button" class="cad-tab-btn" id="tabBtnCadTableCircles" onclick="appCadTool.switchModalTableTab('circles')" title="Bảng kê các vùng đệm / bán kính bảo vệ (tọa độ tâm, bán kính R, sửa tên)">⭕ Bảng Kê Bán Kính (<span id="cadCountTabCircles">0</span>)</button>
+      </div>
+
+      <!-- TAB 1: BẢNG KÊ RANH & DIỆN TÍCH (GỐC) -->
+      <div id="tabContentCadTableRanh" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
+        <!-- Thẻ tóm tắt thông số diện tích và chu vi -->
       <div class="cad-summary-grid">
         <div class="cad-summary-card">
           <span class="cad-summary-label">Tổng Diện Tích</span>
@@ -4313,6 +4302,125 @@
             <!-- Render danh sách đỉnh bằng JS -->
           </tbody>
         </table>
+      </div>
+
+      </div>
+      <!-- Hết TAB 1 -->
+
+      <!-- TAB 2: BẢNG KÊ TOÀN BỘ CÁC ĐỈNH -->
+      <div id="tabContentCadTableVertices" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">📍 Danh sách tất cả đỉnh trên bản vẽ:</span>
+            <input type="text" id="txtSearchCadVertices" class="app-input" placeholder="Tìm đỉnh / khối..." style="height: 26px; width: 160px; font-size: 11px; padding: 0 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;" oninput="appCadTool.filterVerticesTable(this.value)">
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #facc15; font-weight: 700; cursor: pointer;">
+              <input type="checkbox" id="cadCheckAllVerticesVisible" checked onchange="appCadTool.toggleAllVerticesVisible(this.checked)" style="accent-color: #facc15; width: 14px; height: 14px;">
+              <span>Hiện tất cả đỉnh trên map</span>
+            </label>
+          </div>
+        </div>
+        <div class="cad-table-wrap" style="flex: 1;">
+          <table class="cad-coord-table">
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">STT</th>
+                <th style="text-align: left; min-width: 90px;">Tên đỉnh</th>
+                <th style="text-align: left; min-width: 100px;">Thuộc khối / Nét</th>
+                <th style="text-align: right; padding-right: 10px;">X (Bắc) [m]</th>
+                <th style="text-align: right; padding-right: 10px;">Y (Đông) [m]</th>
+                <th style="text-align: right; padding-right: 10px;">Cạnh [m]</th>
+                <th style="text-align: center; width: 75px;">Hiện đỉnh</th>
+                <th style="text-align: center; min-width: 90px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="cadTableBodyAllVertices">
+              <!-- Render JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: BẢNG KÊ MŨI TÊN CAD (1 ĐẦU / 2 ĐẦU NHỌN) -->
+      <div id="tabContentCadTableArrows" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <span style="font-size: 11.5px; font-weight: 700; color: #f59e0b;">🏹 Danh sách các mũi tên chỉ dẫn & đường đo kích thước:</span>
+          <span style="font-size: 10.5px; color: #94a3b8;">Click tên để sửa • Nhấp vào Loại để chuyển đổi 1 đầu ↔ 2 đầu</span>
+        </div>
+        <div class="cad-table-wrap" style="flex: 1;">
+          <table class="cad-coord-table">
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">STT</th>
+                <th style="text-align: left; min-width: 120px;">Tên / Ghi chú</th>
+                <th style="text-align: center; min-width: 100px;">Loại mũi tên</th>
+                <th style="text-align: right; padding-right: 10px;">Cự ly [m]</th>
+                <th style="text-align: right; padding-right: 10px;">Gốc (X1, Y1)</th>
+                <th style="text-align: right; padding-right: 10px;">Ngọn (X2, Y2)</th>
+                <th style="text-align: center; width: 60px;">Màu</th>
+                <th style="text-align: center; min-width: 90px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="cadTableBodyArrows">
+              <!-- Render JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: BẢNG KÊ KHỐI CÔNG TRÌNH / NHÀ Ở -->
+      <div id="tabContentCadTableBuildings" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <span style="font-size: 11.5px; font-weight: 700; color: #ec4899;">🏠 Danh sách các khối công trình & nhà ở linh hoạt:</span>
+          <span style="font-size: 10.5px; color: #94a3b8;">Click tên để sửa • Tự động tính diện tích theo Dài x Rộng</span>
+        </div>
+        <div class="cad-table-wrap" style="flex: 1;">
+          <table class="cad-coord-table">
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">STT</th>
+                <th style="text-align: left; min-width: 120px;">Tên khối nhà</th>
+                <th style="text-align: center; min-width: 95px;">Kích thước</th>
+                <th style="text-align: right; padding-right: 10px;">Diện tích [m²]</th>
+                <th style="text-align: right; padding-right: 10px;">Tâm (X, Y)</th>
+                <th style="text-align: center; width: 70px;">Góc xoay</th>
+                <th style="text-align: center; width: 60px;">Màu</th>
+                <th style="text-align: center; min-width: 90px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="cadTableBodyBuildings">
+              <!-- Render JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 5: BẢNG KÊ VÙNG ĐỆM / BÁN KÍNH BẢO VỆ -->
+      <div id="tabContentCadTableCircles" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <span style="font-size: 11.5px; font-weight: 700; color: #10b981;">⭕ Danh sách vùng đệm / bán kính bảo vệ công trình:</span>
+          <span style="font-size: 10.5px; color: #94a3b8;">Click tên để sửa • Tính toán diện tích vùng ảnh hưởng π×R²</span>
+        </div>
+        <div class="cad-table-wrap" style="flex: 1;">
+          <table class="cad-coord-table">
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">STT</th>
+                <th style="text-align: left; min-width: 130px;">Tên đối tượng / Vùng</th>
+                <th style="text-align: right; padding-right: 10px;">Bán kính R [m]</th>
+                <th style="text-align: right; padding-right: 10px;">Chu vi [m]</th>
+                <th style="text-align: right; padding-right: 10px;">Diện tích π×R² [m²]</th>
+                <th style="text-align: right; padding-right: 10px;">Tâm (X, Y)</th>
+                <th style="text-align: center; width: 60px;">Màu</th>
+                <th style="text-align: center; min-width: 90px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="cadTableBodyCircles">
+              <!-- Render JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Footer Bảng Kê Rộng Rãi & Nút Chuyển Sang Xuất Bản Vẽ -->
@@ -4953,6 +5061,13 @@
       <div id="cadEditAnnBody" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
         <!-- Trường dành cho Text & Arrow -->
         <div id="grpCadEditAnnText">
+          <div id="grpCadEditAnnArrowTypeChoice" style="display: none; margin-bottom: 8px;">
+            <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 3px;">Kiểu mũi tên:</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" id="btnEditArrowTypeSingle" class="btn-sm active" style="flex: 1; height: 30px; font-size: 11px; font-weight: 700;" onclick="appCadTool.setEditAnnotationArrowType('single')">🏹 1 đầu nhọn</button>
+              <button type="button" id="btnEditArrowTypeDouble" class="btn-sm" style="flex: 1; height: 30px; font-size: 11px; font-weight: 700; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.15);" onclick="appCadTool.setEditAnnotationArrowType('double')">↔️ 2 đầu nhọn</button>
+            </div>
+          </div>
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Nội
             dung hiển thị:</label>
           <input type="text" id="txtCadEditAnnText" class="form-control" placeholder="Nhập ghi chú..."
@@ -5142,6 +5257,38 @@
             style="height: 36px; padding: 0 18px; font-weight: 700;" onclick="appCadTool.saveAnnotationEdit()">💾 Lưu
             thay đổi</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL TẠO MŨI TÊN CAD (1 ĐẦU NHỌN HOẶC 2 ĐẦU NHỌN) ================= -->
+  <div id="modalCadCreateArrow" class="modal-overlay">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-title">
+        <span style="color: #f59e0b; font-weight: 800;">🏹 Thêm Mũi Tên CAD / Đường Kích Thước</span>
+        <button class="btn-modal-close" onclick="appCadTool.closeCreateArrowModal()">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 6px;">Chọn kiểu mũi tên:</label>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btnArrowTypeSingle" class="cad-tab-btn active" style="flex: 1; height: 36px; font-size: 11.5px; border: 1.5px solid #38bdf8; font-weight: 700;" onclick="appCadTool.selectNewArrowType('single')">
+              🏹 1 đầu nhọn (Chỉ dẫn)
+            </button>
+            <button type="button" id="btnArrowTypeDouble" class="cad-tab-btn" style="flex: 1; height: 36px; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.18); font-weight: 700; background: transparent; color: #94a3b8;" onclick="appCadTool.selectNewArrowType('double')">
+              ↔️ 2 đầu nhọn (Kích thước)
+            </button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tên / Ghi chú mũi tên:</label>
+          <input type="text" id="txtNewArrowText" class="form-control" placeholder="Mốc M1, Ranh thửa, L=15.5m..." style="width: 100%; height: 36px; font-size: 12px;">
+          <div id="lblNewArrowDistHint" style="font-size: 11px; color: #38bdf8; margin-top: 5px; font-weight: 700;">Cự ly đo thực tế: -- m</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn-sm" style="height: 34px; padding: 0 14px; background: rgba(255,255,255,0.1); color: #cbd5e1;" onclick="appCadTool.closeCreateArrowModal()">Hủy</button>
+        <button type="button" id="btnCadConfirmCreateArrow" class="btn-sm btn-blue" style="height: 34px; padding: 0 18px; font-weight: 700;" onclick="appCadTool.confirmCreateArrow()">✓ Thêm Mũi Tên</button>
       </div>
     </div>
   </div>
@@ -6041,6 +6188,40 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL HƯỚNG DẪN NGỮ CẢNH CHUYÊN SÂU TỪNG CHỨC NĂNG (LOVABLE PRO 2026) ================= -->
+  <div id="modalFeatureHelpGuide" class="modal-overlay" style="display: none; z-index: 99990;">
+    <div class="modal-box modal-help-guide-box">
+      <!-- Header Modal -->
+      <div class="modal-help-guide-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="lblGuideIcon" style="font-size: 22px;">💡</span>
+          <div>
+            <div id="lblGuideTitle" style="font-weight: 800; font-size: 14px; color: #38bdf8;">Hướng Dẫn Sử Dụng</div>
+            <div id="lblGuideCategory" style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">HỆ THỐNG TRẮC ĐỊA VN2000</div>
+          </div>
+        </div>
+        <button class="btn-modal-close" onclick="appGuide.closeGuide()" title="Đóng hướng dẫn">✕</button>
+      </div>
+
+      <!-- Nội dung hướng dẫn theo từng chức năng -->
+      <div class="modal-help-guide-body" id="guideModalBody">
+        <!-- Render động bởi appGuide.renderGuideContent() -->
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="modal-help-guide-footer">
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; cursor: pointer; user-select: none;">
+          <input type="checkbox" id="chkGuideDontShowAgain" onchange="appGuide.onDontShowAgainToggle(this.checked)" style="cursor: pointer;">
+          <span id="lblGuideDontShowText">Không tự động hiện lại chức năng này</span>
+        </label>
+        <button type="button" class="btn-sm btn-green" style="height: 34px; padding: 0 16px; font-size: 12px; font-weight: 700;" onclick="appGuide.closeGuide()">
+          ✓ Đã hiểu
+        </button>
+      </div>
     </div>
   </div>
 

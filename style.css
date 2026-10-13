@@ -3249,17 +3249,45 @@
     }
 
     .settings-tab-bar {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
       background: #091322;
       border: 1px solid #334155;
       border-radius: 12px;
-      padding: 5px;
+      padding: 6px;
       margin-top: 8px;
       margin-bottom: 2px;
       gap: 6px;
       width: 100%;
       box-sizing: border-box;
+    }
+    .settings-tab-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .settings-tab-btn {
+      white-space: nowrap;
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: rgba(30, 41, 59, 0.5);
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .settings-tab-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      color: #e2e8f0;
+    }
+    .settings-tab-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border-color: #38bdf8;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
     }
 
     .datetime-display-card {
@@ -8726,4 +8754,237 @@
   color: #ffffff;
   border-color: #38bdf8;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+/* ================= 14. MINI-CAD ENHANCED POPUP & TABLES ================= */
+.cad-quick-popup .leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(56, 189, 248, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  padding: 0;
+  color: #f8fafc;
+}
+
+.cad-quick-popup .leaflet-popup-content {
+  margin: 10px 12px;
+  line-height: 1.4;
+  min-width: 230px;
+}
+
+.cad-quick-popup .leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+.cad-panel-subtabs button.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 1px 6px rgba(2, 132, 199, 0.4);
+}
+
+.cad-editable-inline-cell {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  transition: all 0.15s ease;
+}
+.cad-editable-inline-cell:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  text-decoration: underline;
+}
+
+[data-theme="light"] .cad-quick-popup .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: #0284c7;
+  color: #0f172a;
+}
+[data-theme="light"] .cad-quick-popup .leaflet-popup-tip {
+  background: #ffffff;
+  border-color: #0284c7;
+}
+
+
+/* ================= LOVABLE 2026: NÚT TRỢ GIÚP (?) & MODAL HƯỚNG DẪN NGỮ CẢNH RIÊNG CHO TỪNG CHỨC NĂNG ================= */
+.btn-help-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  user-select: none;
+  flex-shrink: 0;
+}
+.btn-help-circle:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: scale(1.08);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+.btn-help-circle:active {
+  transform: scale(0.95);
+}
+
+.btn-help-circle-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.18s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+.btn-help-circle-sm:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.modal-help-guide-box {
+  max-width: 560px;
+  width: 92%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #0b1526;
+  border: 1.5px solid rgba(56, 189, 248, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65), 0 0 25px rgba(56, 189, 248, 0.15);
+  overflow: hidden;
+  animation: modalHelpPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalHelpPop {
+  0% { opacity: 0; transform: scale(0.94) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-help-guide-header {
+  padding: 14px 18px;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-help-guide-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+.modal-help-guide-footer {
+  padding: 12px 18px;
+  background: rgba(15, 23, 42, 0.85);
+  border-top: 1px solid rgba(56, 189, 248, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.guide-step-card {
+  display: flex;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s ease;
+}
+.guide-step-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+.guide-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.guide-tip-card {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px dashed rgba(245, 158, 11, 0.4);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: #fde68a;
+  line-height: 1.5;
+}
+
+/* Light Theme support */
+[data-theme="light"] .modal-help-guide-box {
+  background: #ffffff;
+  border-color: rgba(2, 132, 199, 0.4);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .modal-help-guide-header,
+[data-theme="light"] .modal-help-guide-footer {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .modal-help-guide-body {
+  color: #334155;
+}
+[data-theme="light"] .guide-step-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .guide-tip-card {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(217, 119, 6, 0.4);
+  color: #92400e;
+}
+[data-theme="light"] .btn-help-circle,
+[data-theme="light"] .btn-help-circle-sm {
+  background: rgba(2, 132, 199, 0.08);
+  border-color: rgba(2, 132, 199, 0.4);
+  color: #0284c7;
+}
+[data-theme="light"] .settings-tab-bar {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+[data-theme="light"] .settings-tab-btn {
+  background: #ffffff;
+  color: #475569;
+}
+[data-theme="light"] .settings-tab-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border-color: #0284c7;
 }
