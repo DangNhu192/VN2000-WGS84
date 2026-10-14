@@ -9429,8 +9429,19 @@ const appModal = {
             const isActive = (t === tab);
             if (btn) {
                 btn.classList.toggle('active', isActive);
-                if (isActive && typeof btn.scrollIntoView === 'function') {
-                    btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                if (isActive) {
+                    const dock = document.getElementById('macSettingsDock');
+                    if (dock && typeof dock.scrollTo === 'function') {
+                        const bLeft = btn.offsetLeft;
+                        const bRight = bLeft + btn.offsetWidth;
+                        const dLeft = dock.scrollLeft;
+                        const dRight = dLeft + dock.clientWidth;
+                        if (bLeft < dLeft) {
+                            dock.scrollTo({ left: Math.max(0, bLeft - 8), behavior: 'smooth' });
+                        } else if (bRight > dRight) {
+                            dock.scrollTo({ left: bRight - dock.clientWidth + 8, behavior: 'smooth' });
+                        }
+                    }
                 }
             }
             if (content) content.style.display = isActive ? 'block' : 'none';

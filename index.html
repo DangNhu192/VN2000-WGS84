@@ -25,11 +25,11 @@
   <script src="offline_regions.js"></script>
   <script src="geodesy.js?v=2.8.1"></script>
 
-  <!-- Google Fonts: Inter (UI) & JetBrains Mono (Precision Geodesy Coordinates) -->
+  <!-- Google Fonts: Be Vietnam Pro (Tối ưu 100% hiển thị tiếng Việt có dấu, sắc nét, chống lỗi font) & JetBrains Mono (Số liệu tọa độ) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
@@ -3687,23 +3687,22 @@
     </nav>
   </div>
 
-  <!-- MODAL CÀI ĐẶT HỆ THỐNG (MACBOOK TASKBAR DOCK & IOS 21 LIQUID GLASS) -->
+  <!-- MODAL CÀI ĐẶT HỆ THỐNG (CỐ ĐỊNH HEADER, HIỂN THỊ TRỌN VẸN TEXT, CHỐNG GIẬT LAG) -->
   <div id="modalSettings" class="modal-overlay">
-    <div class="modal-box modal-settings-box mac-window-box" style="max-width: 540px;">
-      <!-- Sticky Header: macOS Window Traffic Lights, Tiêu đề, Nút Trợ Giúp (?) & Nút Đóng (✕) -->
+    <div class="modal-box modal-settings-box mac-window-box">
+      <!-- Cố định Header Cài Đặt ở trên cùng (Sticky Header chống giật layout) -->
       <div class="modal-settings-header mac-window-header">
         <div class="modal-title mac-title-bar" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          <!-- Cụm macOS Traffic Lights Buttons (Đỏ - Vàng - Xanh) -->
-          <div class="mac-traffic-lights" title="Điều khiển cửa sổ macOS">
+          <!-- Cụm nút điều khiển cửa sổ (Đỏ - Vàng - Xanh) -->
+          <div class="mac-traffic-lights" title="Điều khiển cửa sổ">
             <span class="mac-traffic-dot mac-dot-close" onclick="appModal.closeSettings()" title="Đóng cửa sổ [Esc]"></span>
             <span class="mac-traffic-dot mac-dot-minimize" onclick="appModal.toggleMinimizeSettings()" title="Thu nhỏ / Mở rộng"></span>
             <span class="mac-traffic-dot mac-dot-zoom" onclick="appModal.toggleZoomSettings()" title="Phóng to toàn màn hình"></span>
           </div>
 
-          <div class="mac-window-title" style="display: flex; align-items: center; gap: 8px;">
-            <span class="mac-title-icon" style="font-size: 15px;">⚙️</span>
-            <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px;" data-i18n="settings.title">Cài Đặt Hệ Thống</span>
-            <span class="mac-os-badge">iOS 21 Pro</span>
+          <!-- Tiêu đề duy nhất (Không lặp icon) -->
+          <div class="mac-window-title" style="display: flex; align-items: center; justify-content: center; flex: 1;">
+            <span style="color: #38bdf8; font-weight: 700; font-size: 13.5px;" data-i18n="settings.title">Cài Đặt Hệ Thống</span>
           </div>
 
           <div class="mac-window-actions" style="display: flex; align-items: center; gap: 6px;">
@@ -3712,47 +3711,39 @@
           </div>
         </div>
 
-        <!-- Taskbar / Dock macOS: Thanh ngang chứa các Icon cài đặt (Chưa chọn: Icon, Đã chọn: Icon + Tên Tab) -->
+        <!-- Thanh chuyển Tab: Hiển thị đầy đủ Icon và Tên Tab, kích thước ổn định, chuyển tab không bị giật -->
         <div class="settings-tab-bar mac-dock-taskbar" id="macSettingsDock" role="tablist">
           <button id="btnTabWelcome" class="settings-tab-btn mac-dock-item active" onclick="appModal.switchSettingsTab('welcome')" title="Tổng quan hệ thống" data-i18n="settings.tab.welcome">
             <span class="mac-dock-icon">🏠</span>
             <span class="mac-dock-title">Tổng quan</span>
-            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabGeneral" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('general')" title="Cài đặt chung: Ngôn ngữ, Giao diện, Tọa độ, Số lẻ" data-i18n="settings.tab.general">
+          <button id="btnTabGeneral" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('general')" title="Cài đặt chung" data-i18n="settings.tab.general">
             <span class="mac-dock-icon">🌐</span>
             <span class="mac-dock-title">Chung</span>
-            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabStorage" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('storage')" title="Lưu trữ ngoại tuyến & Google Sheets Cloud" data-i18n="settings.tab.storage">
+          <button id="btnTabStorage" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('storage')" title="Lưu dữ liệu" data-i18n="settings.tab.storage">
             <span class="mac-dock-icon">☁️</span>
             <span class="mac-dock-title">Lưu dữ liệu</span>
-            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabKtt" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('ktt')" title="Kinh tuyến trục 63 tỉnh & Múi chiếu 3°/6°" data-i18n="settings.tab.ktt">
+          <button id="btnTabKtt" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('ktt')" title="Kinh tuyến trục & Múi chiếu" data-i18n="settings.tab.ktt">
             <span class="mac-dock-icon">⚙️</span>
             <span class="mac-dock-title">KTT & Múi</span>
-            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabDatetime" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('datetime')" title="Đồng hồ hệ thống & Múi giờ thực địa" data-i18n="settings.tab.datetime">
+          <button id="btnTabDatetime" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('datetime')" title="Ngày & Giờ hệ thống" data-i18n="settings.tab.datetime">
             <span class="mac-dock-icon">⏰</span>
             <span class="mac-dock-title">Ngày & Giờ</span>
-            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabRtk" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('rtk')" title="Kết nối máy định vị GNSS Rover RTK ngoài" data-i18n="settings.tab.rtk">
+          <button id="btnTabRtk" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('rtk')" title="Định vị RTK GNSS" data-i18n="settings.tab.rtk">
             <span class="mac-dock-icon">🛰️</span>
             <span class="mac-dock-title">RTK GNSS</span>
-            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabResection" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('resection')" title="Giao hội trắc địa khi mất sóng GPS vệ tinh" data-i18n="settings.tab.resection">
+          <button id="btnTabResection" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('resection')" title="Giao hội trắc địa" data-i18n="settings.tab.resection">
             <span class="mac-dock-icon">📐</span>
             <span class="mac-dock-title">Giao hội</span>
-            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabOptimizer" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('optimizer')" title="Tối ưu nén ảnh WebP & Cache bản đồ PixOptimizer" data-i18n="settings.tab.optimizer">
+          <button id="btnTabOptimizer" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('optimizer')" title="Tối ưu PixOptimizer" data-i18n="settings.tab.optimizer">
             <span class="mac-dock-icon">⚡</span>
             <span class="mac-dock-title">PixOptimizer</span>
-            <span class="mac-dock-dot"></span>
           </button>
         </div>
       </div>
@@ -3842,7 +3833,7 @@
             <button type="button" class="btn-subtab-back" onclick="appModal.switchSettingsTab('welcome')">
               <span>◀</span> <span data-i18n="settings.btn_overview">Tổng quan cài đặt</span>
             </button>
-            <span style="font-size: 11px; color: #38bdf8; font-weight: 700;">🌐 Cài Đặt Chung</span>
+            <span style="font-size: 11px; color: #38bdf8; font-weight: 700;">Cài Đặt Chung</span>
           </div>
 
           <!-- 1. Ngôn ngữ hiển thị -->
@@ -3958,7 +3949,7 @@
             <button type="button" class="btn-subtab-back" onclick="appModal.switchSettingsTab('welcome')">
               <span>◀</span> <span data-i18n="settings.btn_overview">Tổng quan cài đặt</span>
             </button>
-            <span style="font-size: 11px; color: #4ade80; font-weight: 700;" data-i18n="settings.tab.storage">☁️ Lưu Dữ Liệu</span>
+            <span style="font-size: 11px; color: #4ade80; font-weight: 700;">Lưu Dữ Liệu</span>
           </div>
 
           <!-- Chọn chế độ lưu -->
@@ -4030,7 +4021,7 @@
             <button type="button" class="btn-subtab-back" onclick="appModal.switchSettingsTab('welcome')">
               <span>◀</span> <span data-i18n="settings.btn_overview">Tổng quan cài đặt</span>
             </button>
-            <span style="font-size: 11px; color: #fbbf24; font-weight: 700;" data-i18n="settings.tab.ktt">⚙️ KTT & Múi Chiếu</span>
+            <span style="font-size: 11px; color: #fbbf24; font-weight: 700;">KTT & Múi Chiếu</span>
           </div>
 
           <div class="form-group" style="margin-bottom: 10px;">
@@ -4106,7 +4097,7 @@
             <button type="button" class="btn-subtab-back" onclick="appModal.switchSettingsTab('welcome')">
               <span>◀</span> <span data-i18n="settings.btn_overview">Tổng quan cài đặt</span>
             </button>
-            <span style="font-size: 11px; color: #c084fc; font-weight: 700;" data-i18n="settings.tab.datetime">⏰ Ngày & Giờ</span>
+            <span style="font-size: 11px; color: #c084fc; font-weight: 700;">Ngày & Giờ Hệ Thống</span>
           </div>
 
           <!-- Thẻ hiển thị đồng hồ thời gian hiệu dụng -->
@@ -4166,7 +4157,7 @@
             <button type="button" class="btn-subtab-back" onclick="appModal.switchSettingsTab('welcome')">
               <span>◀</span> <span data-i18n="settings.btn_overview">Tổng quan cài đặt</span>
             </button>
-            <span style="font-size: 11px; color: #60a5fa; font-weight: 700;" data-i18n="settings.tab.rtk">🛰️ RTK Bluetooth</span>
+            <span style="font-size: 11px; color: #60a5fa; font-weight: 700;">Định Vị RTK Bluetooth</span>
           </div>
 
           <!-- Hộp Trạng Thái Kết Nối RTK -->
@@ -4239,7 +4230,7 @@
             <button type="button" class="btn-subtab-back" onclick="appModal.switchSettingsTab('welcome')">
               <span>◀</span> <span data-i18n="settings.btn_overview">Tổng quan cài đặt</span>
             </button>
-            <span style="font-size: 11px; color: #fb7185; font-weight: 700;" data-i18n="settings.tab.resection">📐 Giao Hội GPS</span>
+            <span style="font-size: 11px; color: #fb7185; font-weight: 700;">Giao Hội GPS Trắc Địa</span>
           </div>
 
           <!-- Mốc khống chế A -->
@@ -4325,7 +4316,7 @@
             <button type="button" class="btn-subtab-back" onclick="appModal.switchSettingsTab('welcome')">
               <span>◀</span> <span data-i18n="settings.btn_overview">Tổng quan cài đặt</span>
             </button>
-            <span style="font-size: 11px; color: #facc15; font-weight: 700;" data-i18n="settings.tab.optimizer">⚡ Tối Ưu PixOptimizer</span>
+            <span style="font-size: 11px; color: #facc15; font-weight: 700;">Tối Ưu PixOptimizer</span>
           </div>
 
           <!-- Cấu hình Xuất Bản Vẽ MiniCAD -->
@@ -5887,8 +5878,7 @@
       <div class="drawer-title-group">
         <div class="drawer-title" style="display: flex; align-items: center; gap: 8px;">
           <span class="drawer-icon" style="font-size: 16px;">📂</span>
-          <span style="font-size: 13.5px; font-weight: 800; color: #f8fafc;">TRUNG TÂM NGHIỆP VỤ PRO</span>
-          <span class="mac-os-badge">macOS</span>
+          <span style="font-size: 13.5px; font-weight: 700; color: #f8fafc;">CÂY THƯ MỤC CHỨC NĂNG</span>
         </div>
         <div class="drawer-subtitle">Chọn nhanh chức năng từ mọi màn hình</div>
       </div>

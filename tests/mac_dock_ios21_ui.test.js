@@ -24,16 +24,16 @@ test('=== 1. KIỂM THỬ THANH TASKBAR / MACBOOK DOCK CHO CÀI ĐẶT ===', (t)
             `Bảo toàn nút tab btnTab${tab} cho nghiệp vụ`);
     });
 
-    assert.ok(indexHtmlContent.includes('mac-dock-icon') && indexHtmlContent.includes('mac-dock-title') && indexHtmlContent.includes('mac-dock-dot'),
-        'Các item trong Dock có đầy đủ Icon, Tên Tab và Chấm đèn chỉ báo mac-dock-dot');
+    assert.ok(indexHtmlContent.includes('mac-dock-icon') && indexHtmlContent.includes('mac-dock-title'),
+        'Các item trong Dock có đầy đủ Icon và Tên Tab để hiển thị trọn vẹn');
 
-    // 3. Kiểm tra CSS Dock: unselected ẩn text, active bung text
-    assert.ok(styleCssContent.includes('.mac-dock-item:not(.active) .mac-dock-title'),
-        'CSS đã định nghĩa ẩn tên Tab khi chưa chọn để chỉ hiện Icon như Taskbar Macbook');
-    assert.ok(styleCssContent.includes('.mac-dock-item.active .mac-dock-title'),
-        'CSS đã định nghĩa bung nở Tên Tab và Icon dạng Capsule khi được chọn');
-    assert.ok(styleCssContent.includes('.mac-dock-dot'),
-        'CSS đã định nghĩa đèn chỉ báo macOS Dock Dot sáng rực rỡ');
+    // 3. Kiểm tra CSS Dock: Hiển thị đầy đủ tên tab, kích thước ổn định chống giật
+    assert.ok(styleCssContent.includes('.mac-dock-title'),
+        'CSS đã định nghĩa hiển thị trọn vẹn Tên Tab không bị che khuất');
+    assert.ok(styleCssContent.includes('.modal-settings-header'),
+        'CSS đã cố định header cài đặt ở trên cùng');
+    assert.ok(!indexHtmlContent.includes('iOS 21 Pro'),
+        'Đã loại bỏ nhãn khoe mẽ iOS 21 Pro theo văn phong tự nhiên');
 });
 
 test('=== 2. KIỂM THỬ CỤM NÚT ĐÈN GIAO THÔNG MACBOOK TRAFFIC LIGHTS ===', (t) => {
