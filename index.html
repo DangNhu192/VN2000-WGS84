@@ -38,21 +38,22 @@
 
 <body>
   <div id="app-container">
-    <!-- TOP HEADER -->
-    <header class="app-header">
+    <!-- TOP HEADER (macOS Menu Bar & iOS 21 Dynamic Island Control Center) -->
+    <header class="app-header mac-top-bar">
       <div class="header-left">
-        <button id="btnHeaderMenu" class="btn-header-action btn-header-tree" onclick="appNav.toggleTreeMenu()"
+        <button id="btnHeaderMenu" class="btn-header-action btn-header-tree mac-pill-btn" onclick="appNav.toggleTreeMenu()"
           title="Cây thư mục chức năng (Chuyển nhanh)">
           <span class="tree-nav-icon">☰</span>
           <span class="tree-nav-label" data-i18n="header.menu">Menu</span>
         </button>
-        <button id="btnHeaderBack" class="btn-header-back" onclick="appNav.handleHeaderBack()"
+        <button id="btnHeaderBack" class="btn-header-back mac-pill-btn" onclick="appNav.handleHeaderBack()"
           title="Quay lại Trang chủ" data-i18n="header.back">
           ◀ Quay lại
         </button>
         <div class="app-title-group">
           <div class="app-title" id="headerTitle">
-            <img src="icon.png" alt="VN2000 Pro">
+            <span class="mac-apple-badge"></span>
+            <img src="icon.png" alt="VN2000 Pro" class="mac-header-logo">
             <span>WGS-84 ⇄ VN-2000 PRO</span>
           </div>
           <div class="app-subtitle" id="headerSubtitle" onclick="appModal.openUnifiedSettings('ktt')"
@@ -61,19 +62,22 @@
         </div>
       </div>
       <div class="header-right">
-        <button id="btnHeaderThemeToggle" class="btn-header-action btn-header-theme" onclick="appTheme.toggleTheme()"
-          title="Chuyển đổi giao diện Sáng / Tối (Dark / Light Theme)">
-          <span id="headerThemeIcon">☀️</span>
-        </button>
-        <button id="btnHeaderGpsToggle" class="btn-header-action btn-header-gps gps-searching"
-          onclick="appGps.toggleTracking()" title="Bật/Tắt định vị GPS & Hiển thị sai số">
-          <span id="headerGpsDot" class="gps-dot searching"></span>
-          <span id="headerGpsText">🛰️ Tìm...</span>
-        </button>
-        <button class="btn-header-action" onclick="appModal.openUnifiedSettings()"
-          title="Cài đặt hệ thống (Lưu dữ liệu & KTT)">
-          <span class="header-action-icon">⚙️</span><span class="header-action-text" data-i18n="header.settings"> Cài đặt</span>
-        </button>
+        <!-- Cụm Control Center Capsule phong cách macOS Tahoe & iOS 21 -->
+        <div class="mac-control-center-capsule">
+          <button id="btnHeaderThemeToggle" class="btn-header-action btn-header-theme mac-ctrl-btn" onclick="appTheme.toggleTheme()"
+            title="Chuyển đổi giao diện Sáng / Tối (Dark / Light Theme)">
+            <span id="headerThemeIcon">☀️</span>
+          </button>
+          <button id="btnHeaderGpsToggle" class="btn-header-action btn-header-gps gps-searching mac-ctrl-btn"
+            onclick="appGps.toggleTracking()" title="Bật/Tắt định vị GPS & Hiển thị sai số">
+            <span id="headerGpsDot" class="gps-dot searching"></span>
+            <span id="headerGpsText">🛰️ Tìm...</span>
+          </button>
+          <button class="btn-header-action mac-ctrl-btn mac-settings-btn" onclick="appModal.openUnifiedSettings()"
+            title="Cài đặt hệ thống (Lưu dữ liệu & KTT)">
+            <span class="header-action-icon">⚙️</span><span class="header-action-text" data-i18n="header.settings"> Cài đặt</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -3648,8 +3652,8 @@
 
     </main>
 
-    <!-- MOBILE BOTTOM NAVIGATION BAR (PWA MISSION CONTROL) -->
-    <nav id="mobileBottomNav" class="mobile-bottom-nav">
+    <!-- MOBILE BOTTOM NAVIGATION BAR (macOS FLOATING DOCK & MISSION CONTROL) -->
+    <nav id="mobileBottomNav" class="mobile-bottom-nav mac-floating-dock">
       <button type="button" class="bottom-nav-item active" id="bnavMenu" onclick="appNav.goToMenu()"
         title="Trang chủ tính năng">
         <span class="nav-indicator"></span>
@@ -3683,46 +3687,72 @@
     </nav>
   </div>
 
-  <!-- MODAL CÀI ĐẶT HỆ THỐNG (LƯU DỮ LIỆU & KTT) -->
-    <div id="modalSettings" class="modal-overlay">
-    <div class="modal-box modal-settings-box" style="max-width: 500px;">
-      <!-- Sticky Header: Tiêu đề, Nút Trợ Giúp (?) & Nút Đóng (✕) -->
-      <div class="modal-settings-header">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: #38bdf8; font-weight: 800;" data-i18n="settings.title">⚙️ Cài Đặt Hệ Thống</span>
+  <!-- MODAL CÀI ĐẶT HỆ THỐNG (MACBOOK TASKBAR DOCK & IOS 21 LIQUID GLASS) -->
+  <div id="modalSettings" class="modal-overlay">
+    <div class="modal-box modal-settings-box mac-window-box" style="max-width: 540px;">
+      <!-- Sticky Header: macOS Window Traffic Lights, Tiêu đề, Nút Trợ Giúp (?) & Nút Đóng (✕) -->
+      <div class="modal-settings-header mac-window-header">
+        <div class="modal-title mac-title-bar" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <!-- Cụm macOS Traffic Lights Buttons (Đỏ - Vàng - Xanh) -->
+          <div class="mac-traffic-lights" title="Điều khiển cửa sổ macOS">
+            <span class="mac-traffic-dot mac-dot-close" onclick="appModal.closeSettings()" title="Đóng cửa sổ [Esc]"></span>
+            <span class="mac-traffic-dot mac-dot-minimize" onclick="appModal.toggleMinimizeSettings()" title="Thu nhỏ / Mở rộng"></span>
+            <span class="mac-traffic-dot mac-dot-zoom" onclick="appModal.toggleZoomSettings()" title="Phóng to toàn màn hình"></span>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button id="btnSettingsHelpGuide" type="button" class="btn-help-circle" onclick="appGuide.openSettingsTabGuide()" title="Hướng dẫn sử dụng riêng cho mục cài đặt này">?</button>
-            <button class="btn-modal-close" onclick="appModal.closeSettings()" title="Đóng cài đặt">✕</button>
+
+          <div class="mac-window-title" style="display: flex; align-items: center; gap: 8px;">
+            <span class="mac-title-icon" style="font-size: 15px;">⚙️</span>
+            <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px;" data-i18n="settings.title">Cài Đặt Hệ Thống</span>
+            <span class="mac-os-badge">iOS 21 Pro</span>
+          </div>
+
+          <div class="mac-window-actions" style="display: flex; align-items: center; gap: 6px;">
+            <button id="btnSettingsHelpGuide" type="button" class="btn-help-circle mac-action-circle" onclick="appGuide.openSettingsTabGuide()" title="Hướng dẫn sử dụng riêng cho mục cài đặt này">?</button>
+            <button class="btn-modal-close mac-action-circle" onclick="appModal.closeSettings()" title="Đóng cài đặt">✕</button>
           </div>
         </div>
 
-        <!-- Thanh chuyển Tab: 8 Tab chức năng (Welcome Hub + 7 Tab chuyên sâu) -->
-        <div class="settings-tab-bar">
-          <button id="btnTabWelcome" class="settings-tab-btn active" onclick="appModal.switchSettingsTab('welcome')" data-i18n="settings.tab.welcome">
-            🏠 Tổng quan
+        <!-- Taskbar / Dock macOS: Thanh ngang chứa các Icon cài đặt (Chưa chọn: Icon, Đã chọn: Icon + Tên Tab) -->
+        <div class="settings-tab-bar mac-dock-taskbar" id="macSettingsDock" role="tablist">
+          <button id="btnTabWelcome" class="settings-tab-btn mac-dock-item active" onclick="appModal.switchSettingsTab('welcome')" title="Tổng quan hệ thống" data-i18n="settings.tab.welcome">
+            <span class="mac-dock-icon">🏠</span>
+            <span class="mac-dock-title">Tổng quan</span>
+            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabGeneral" class="settings-tab-btn" onclick="appModal.switchSettingsTab('general')" data-i18n="settings.tab.general">
-            🌐 Chung
+          <button id="btnTabGeneral" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('general')" title="Cài đặt chung: Ngôn ngữ, Giao diện, Tọa độ, Số lẻ" data-i18n="settings.tab.general">
+            <span class="mac-dock-icon">🌐</span>
+            <span class="mac-dock-title">Chung</span>
+            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabStorage" class="settings-tab-btn" onclick="appModal.switchSettingsTab('storage')" data-i18n="settings.tab.storage">
-            ☁️ Lưu dữ liệu
+          <button id="btnTabStorage" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('storage')" title="Lưu trữ ngoại tuyến & Google Sheets Cloud" data-i18n="settings.tab.storage">
+            <span class="mac-dock-icon">☁️</span>
+            <span class="mac-dock-title">Lưu dữ liệu</span>
+            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabKtt" class="settings-tab-btn" onclick="appModal.switchSettingsTab('ktt')" data-i18n="settings.tab.ktt">
-            ⚙️ KTT & Múi
+          <button id="btnTabKtt" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('ktt')" title="Kinh tuyến trục 63 tỉnh & Múi chiếu 3°/6°" data-i18n="settings.tab.ktt">
+            <span class="mac-dock-icon">⚙️</span>
+            <span class="mac-dock-title">KTT & Múi</span>
+            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabDatetime" class="settings-tab-btn" onclick="appModal.switchSettingsTab('datetime')" data-i18n="settings.tab.datetime">
-            ⏰ Ngày & Giờ
+          <button id="btnTabDatetime" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('datetime')" title="Đồng hồ hệ thống & Múi giờ thực địa" data-i18n="settings.tab.datetime">
+            <span class="mac-dock-icon">⏰</span>
+            <span class="mac-dock-title">Ngày & Giờ</span>
+            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabRtk" class="settings-tab-btn" onclick="appModal.switchSettingsTab('rtk')" data-i18n="settings.tab.rtk">
-            🛰️ RTK Bluetooth
+          <button id="btnTabRtk" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('rtk')" title="Kết nối máy định vị GNSS Rover RTK ngoài" data-i18n="settings.tab.rtk">
+            <span class="mac-dock-icon">🛰️</span>
+            <span class="mac-dock-title">RTK GNSS</span>
+            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabResection" class="settings-tab-btn" onclick="appModal.switchSettingsTab('resection')" data-i18n="settings.tab.resection">
-            📐 Giao hội GPS
+          <button id="btnTabResection" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('resection')" title="Giao hội trắc địa khi mất sóng GPS vệ tinh" data-i18n="settings.tab.resection">
+            <span class="mac-dock-icon">📐</span>
+            <span class="mac-dock-title">Giao hội</span>
+            <span class="mac-dock-dot"></span>
           </button>
-          <button id="btnTabOptimizer" class="settings-tab-btn" onclick="appModal.switchSettingsTab('optimizer')" data-i18n="settings.tab.optimizer">
-            ⚡ Tối ưu PixOptimizer
+          <button id="btnTabOptimizer" class="settings-tab-btn mac-dock-item" onclick="appModal.switchSettingsTab('optimizer')" title="Tối ưu nén ảnh WebP & Cache bản đồ PixOptimizer" data-i18n="settings.tab.optimizer">
+            <span class="mac-dock-icon">⚡</span>
+            <span class="mac-dock-title">PixOptimizer</span>
+            <span class="mac-dock-dot"></span>
           </button>
         </div>
       </div>
@@ -5844,22 +5874,29 @@
     </div>
   </div>
 
-  <!-- NAVIGATION TREE DRAWER (CÂY THƯ MỤC CHỨC NĂNG - CHUYỂN NHANH) -->
+  <!-- NAVIGATION TREE DRAWER (CÂY THƯ MỤC CHỨC NĂNG - macOS SYSTEM SIDEBAR & iOS 21) -->
   <div id="navTreeBackdrop" class="nav-tree-backdrop" onclick="appNav.closeTreeMenu()"></div>
-  <aside id="navTreeDrawer" class="nav-tree-drawer">
-    <div class="drawer-header">
+  <aside id="navTreeDrawer" class="nav-tree-drawer mac-settings-sidebar">
+    <div class="drawer-header mac-sidebar-header">
+      <!-- 3 Nút macOS Traffic Lights -->
+      <div class="mac-traffic-lights" style="margin-bottom: 8px;">
+        <span class="mac-traffic-dot mac-dot-close" onclick="appNav.closeTreeMenu()" title="Đóng menu"></span>
+        <span class="mac-traffic-dot mac-dot-minimize" onclick="appNav.closeTreeMenu()" title="Thu nhỏ"></span>
+        <span class="mac-traffic-dot mac-dot-zoom" title="Phóng to"></span>
+      </div>
       <div class="drawer-title-group">
-        <div class="drawer-title">
-          <span class="drawer-icon">🌳</span>
-          <span>CÂY THƯ MỤC CHỨC NĂNG</span>
+        <div class="drawer-title" style="display: flex; align-items: center; gap: 8px;">
+          <span class="drawer-icon" style="font-size: 16px;">📂</span>
+          <span style="font-size: 13.5px; font-weight: 800; color: #f8fafc;">TRUNG TÂM NGHIỆP VỤ PRO</span>
+          <span class="mac-os-badge">macOS</span>
         </div>
         <div class="drawer-subtitle">Chọn nhanh chức năng từ mọi màn hình</div>
       </div>
-      <button class="btn-drawer-close" onclick="appNav.closeTreeMenu()" title="Đóng menu">✕</button>
+      <button class="btn-drawer-close mac-action-circle" onclick="appNav.closeTreeMenu()" title="Đóng menu">✕</button>
     </div>
 
     <!-- Status Chip -->
-    <div class="drawer-status-chip" id="drawerStatusInfo">
+    <div class="drawer-status-chip mac-status-chip" id="drawerStatusInfo">
       <span>📁 Đang tải thông tin dự án...</span>
     </div>
 

@@ -3248,46 +3248,124 @@
       z-index: 10;
     }
 
-    .settings-tab-bar {
-      display: flex;
-      overflow-x: auto;
+    /* ================= MACBOOK TASKBAR DOCK CHO CÀI ĐẶT (iOS 21 & macOS TAHOE) ================= */
+    .settings-tab-bar,
+    .mac-dock-taskbar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      background: #091322;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 6px;
-      margin-top: 8px;
-      margin-bottom: 2px;
-      gap: 6px;
-      width: 100%;
-      box-sizing: border-box;
+      background: rgba(15, 23, 42, 0.78) !important;
+      backdrop-filter: blur(28px) saturate(210%) !important;
+      -webkit-backdrop-filter: blur(28px) saturate(210%);
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 22px !important;
+      padding: 6px 10px !important;
+      margin-top: 8px !important;
+      margin-bottom: 6px !important;
+      gap: 7px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
     }
-    .settings-tab-bar::-webkit-scrollbar {
-      display: none;
+    .settings-tab-bar::-webkit-scrollbar,
+    .mac-dock-taskbar::-webkit-scrollbar {
+      display: none !important;
     }
-    .settings-tab-btn {
-      white-space: nowrap;
-      flex: 0 0 auto;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      background: rgba(30, 41, 59, 0.5);
-      color: #94a3b8;
+
+    /* Từng Item trên Dock Taskbar */
+    .mac-dock-taskbar .mac-dock-item,
+    .settings-tab-btn.mac-dock-item {
+      width: auto !important;
+      min-width: 40px !important;
+      height: 40px !important;
+      flex: 0 0 auto !important;
+      border-radius: 14px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      padding: 0 8px !important;
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      user-select: none;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
-    .settings-tab-btn:hover {
-      background: rgba(56, 189, 248, 0.15);
-      color: #e2e8f0;
+
+    .mac-dock-icon {
+      font-size: 17px !important;
+      line-height: 1 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    .settings-tab-btn.active {
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      color: #ffffff;
-      border-color: #38bdf8;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+
+    /* CHƯA CHỌN: Chỉ hiển thị ICON, chiều rộng 40px hình Squircle Dock MacBook */
+    .mac-dock-taskbar .mac-dock-item:not(.active),
+    .settings-tab-btn.mac-dock-item:not(.active) {
+      width: 40px !important;
+      min-width: 40px !important;
+      padding: 0 !important;
+      background: rgba(30, 41, 59, 0.55) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #94a3b8 !important;
+    }
+    .mac-dock-taskbar .mac-dock-item:not(.active) .mac-dock-title,
+    .settings-tab-btn.mac-dock-item:not(.active) .mac-dock-title {
+      display: none !important;
+    }
+    .mac-dock-taskbar .mac-dock-item:not(.active):hover,
+    .settings-tab-btn.mac-dock-item:not(.active):hover {
+      background: rgba(56, 189, 248, 0.2) !important;
+      border-color: rgba(56, 189, 248, 0.45) !important;
+      color: #f8fafc !important;
+      transform: translateY(-3px) scale(1.16) !important;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45) !important;
+    }
+    .mac-dock-taskbar .mac-dock-item:not(.active):hover .mac-dock-icon {
+      transform: scale(1.12) !important;
+    }
+
+    /* Đèn chỉ báo Dock Dot */
+    .mac-dock-dot {
+      display: none !important;
+    }
+
+    /* ĐÃ CHỌN (Active): Bung nở hiển thị cả ICON và TÊN TAB dạng Capsule Pill phát sáng */
+    .mac-dock-taskbar .mac-dock-item.active,
+    .settings-tab-btn.mac-dock-item.active {
+      width: auto !important;
+      padding: 0 14px !important;
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.55) 0%, rgba(99, 102, 241, 0.5) 100%) !important;
+      border: 1px solid rgba(56, 189, 248, 0.8) !important;
+      box-shadow: 0 4px 20px rgba(2, 132, 199, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.45) !important;
+      color: #ffffff !important;
+      transform: scale(1.04) !important;
+    }
+    .mac-dock-taskbar .mac-dock-item.active .mac-dock-title,
+    .settings-tab-btn.mac-dock-item.active .mac-dock-title {
+      display: inline-block !important;
+      margin-left: 6px !important;
+      font-weight: 800 !important;
+      font-size: 12px !important;
+      color: #ffffff !important;
+      white-space: nowrap !important;
+    }
+    .mac-dock-taskbar .mac-dock-item.active .mac-dock-dot,
+    .settings-tab-btn.mac-dock-item.active .mac-dock-dot {
+      display: block !important;
+      position: absolute !important;
+      bottom: 2px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 4px !important;
+      height: 4px !important;
+      background: #38bdf8 !important;
+      border-radius: 50% !important;
+      box-shadow: 0 0 8px #38bdf8 !important;
     }
 
     /* WELCOME LOGO & QUICK CARDS GRID IN UNIFIED SETTINGS */
@@ -9380,4 +9458,340 @@
   border-color: #0284c7;
   color: #0284c7;
 }
+
+/* ==========================================================================
+   🍎 macOS TAHOE & iOS 21 LIQUID GLASS DESIGN SYSTEM SUITE (PRO MAX)
+   ========================================================================== */
+
+/* 1. CỬA SỔ macOS WINDOW & TRAFFIC LIGHTS */
+.mac-window-box {
+  border-radius: 24px !important;
+  background: rgba(15, 23, 42, 0.88) !important;
+  backdrop-filter: blur(36px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(220%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+  transition: all 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  overflow: hidden;
+}
+
+.mac-window-box.mac-minimized {
+  max-height: 128px !important;
+  overflow: hidden !important;
+}
+.mac-window-box.mac-minimized .modal-settings-body,
+.mac-window-box.mac-minimized .modal-settings-footer {
+  display: none !important;
+}
+
+.mac-window-box.mac-maximized {
+  max-width: 95vw !important;
+  width: 95vw !important;
+  height: 92vh !important;
+  max-height: 92vh !important;
+}
+
+.mac-window-header {
+  padding: 12px 16px 8px 16px !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.mac-title-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 6px !important;
+}
+
+/* 3 NÚT ĐÈN GIAO THÔNG TRAFFIC LIGHTS */
+.mac-traffic-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.mac-traffic-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  display: inline-block;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: all 0.2s ease;
+}
+.mac-dot-close {
+  background: #ff5f56;
+  border: 1px solid #e0443e;
+}
+.mac-dot-minimize {
+  background: #ffbd2e;
+  border: 1px solid #dea123;
+}
+.mac-dot-zoom {
+  background: #27c93f;
+  border: 1px solid #1aab29;
+}
+.mac-traffic-dot:hover {
+  filter: brightness(1.15);
+  transform: scale(1.12);
+}
+
+.mac-os-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1.5px 7px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.25));
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #7dd3fc;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.mac-action-circle {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #cbd5e1 !important;
+  font-size: 11.5px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+.mac-action-circle:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #ffffff !important;
+  transform: scale(1.08) !important;
+}
+
+/* 2. TOP HEADER (macOS MENU BAR & DYNAMIC ISLAND CONTROL CENTER) */
+.mac-top-bar {
+  background: rgba(11, 17, 32, 0.82) !important;
+  backdrop-filter: blur(30px) saturate(210%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(210%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.mac-apple-badge {
+  font-size: 17px;
+  color: #f8fafc;
+  line-height: 1;
+  opacity: 0.9;
+  margin-right: 2px;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
+}
+
+.mac-header-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.mac-pill-btn {
+  border-radius: 20px !important;
+  padding: 0 10px !important;
+  height: 32px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.mac-pill-btn:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  transform: scale(1.04) !important;
+}
+
+/* VIÊN THUỐC CONTROL CENTER LIỀN KHỐI */
+.mac-control-center-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.mac-ctrl-btn {
+  height: 30px !important;
+  border-radius: 16px !important;
+  padding: 0 8px !important;
+  font-size: 11.5px !important;
+  border: none !important;
+  background: transparent !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.mac-ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  transform: translateY(-1px) scale(1.04) !important;
+}
+
+/* 3. MOBILE BOTTOM NAVIGATION (macOS FLOATING DOCK) */
+.mac-floating-dock {
+  background: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(32px) saturate(210%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(210%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 28px !important;
+  margin: 0 10px 8px 10px !important;
+  height: 60px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+.mac-floating-dock .bottom-nav-item {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.mac-floating-dock .bottom-nav-item:hover {
+  transform: translateY(-3px) scale(1.08) !important;
+}
+.mac-floating-dock .bottom-nav-item.active {
+  transform: translateY(-2px) !important;
+}
+.mac-floating-dock .bottom-nav-item.active .bottom-nav-icon {
+  filter: drop-shadow(0 0 8px #38bdf8) !important;
+}
+
+/* 4. SIDEBAR CÂY THƯ MỤC macOS SYSTEM SIDEBAR */
+.mac-settings-sidebar {
+  background: rgba(15, 23, 42, 0.94) !important;
+  backdrop-filter: blur(36px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(220%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 16px 0 48px rgba(0, 0, 0, 0.6) !important;
+}
+
+.mac-sidebar-header {
+  padding: 16px 16px 12px 16px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.mac-status-chip {
+  margin: 10px 14px !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* SQUIRCLE APP ICONS CHO CÁC MỤC LEAF ITEM */
+.mac-settings-sidebar .drawer-leaf-item {
+  border-radius: 14px !important;
+  padding: 8px 12px !important;
+  margin: 3px 8px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: 1px solid transparent !important;
+}
+.mac-settings-sidebar .drawer-leaf-item:hover {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.25) !important;
+  transform: translateX(4px) scale(1.01) !important;
+}
+.mac-settings-sidebar .drawer-leaf-icon {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 5. TƯƠNG THÍCH LIGHT THEME CHO macOS TAHOE / iOS 21 */
+[data-theme="light"] .mac-window-box {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .mac-window-header {
+  background: rgba(248, 250, 252, 0.85) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .mac-top-bar {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .mac-apple-badge {
+  color: #0f172a !important;
+  opacity: 0.95;
+}
+
+[data-theme="light"] .mac-control-center-capsule {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .mac-ctrl-btn:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .mac-dock-taskbar {
+  background: rgba(241, 245, 249, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="light"] .mac-dock-item {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .mac-dock-item:not(.active):hover {
+  background: rgba(2, 132, 199, 0.12) !important;
+  color: #0284c7 !important;
+  border-color: rgba(2, 132, 199, 0.3) !important;
+}
+
+[data-theme="light"] .mac-dock-item.active {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.85) 0%, rgba(99, 102, 241, 0.85) 100%) !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35) !important;
+}
+
+[data-theme="light"] .mac-dock-item.active .mac-dock-title {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .mac-floating-dock {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="light"] .mac-settings-sidebar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-right-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 16px 0 48px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .mac-action-circle {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #475569 !important;
+}
+[data-theme="light"] .mac-action-circle:hover {
+  background: rgba(2, 132, 199, 0.12) !important;
+  color: #0284c7 !important;
+}
+
 

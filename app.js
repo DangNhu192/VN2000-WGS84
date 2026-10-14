@@ -9400,6 +9400,24 @@ const appModal = {
         if (btnTree) btnTree.classList.toggle('active', !isBig);
     },
 
+    toggleMinimizeSettings() {
+        const box = document.querySelector('#modalSettings .modal-settings-box');
+        if (box) {
+            box.classList.toggle('mac-minimized');
+            const isMin = box.classList.contains('mac-minimized');
+            showToast(isMin ? '🟡 Đã thu nhỏ cửa sổ cài đặt' : '🟢 Đã mở rộng cửa sổ cài đặt');
+        }
+    },
+
+    toggleZoomSettings() {
+        const box = document.querySelector('#modalSettings .modal-settings-box');
+        if (box) {
+            box.classList.toggle('mac-maximized');
+            const isMax = box.classList.contains('mac-maximized');
+            showToast(isMax ? '🟢 Đã phóng to toàn màn hình' : '⚪ Đã khôi phục kích thước cửa sổ');
+        }
+    },
+
     switchSettingsTab(tab = 'welcome') {
         appModal.currentSettingsTab = tab;
         const tabList = ['welcome', 'general', 'storage', 'ktt', 'datetime', 'rtk', 'resection', 'optimizer'];
@@ -9409,7 +9427,12 @@ const appModal = {
             const btn = document.getElementById('btnTab' + cap);
             const content = document.getElementById('settingsTabContent' + cap);
             const isActive = (t === tab);
-            if (btn) btn.classList.toggle('active', isActive);
+            if (btn) {
+                btn.classList.toggle('active', isActive);
+                if (isActive && typeof btn.scrollIntoView === 'function') {
+                    btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+            }
             if (content) content.style.display = isActive ? 'block' : 'none';
         });
 
@@ -27831,7 +27854,15 @@ const appI18n = {
             const key = el.getAttribute('data-i18n');
             const text = this.t(key);
             if (text && text !== key) {
-                el.textContent = text;
+                if (el.classList.contains('mac-dock-item')) {
+                    const titleEl = el.querySelector('.mac-dock-title');
+                    if (titleEl) {
+                        titleEl.textContent = text.replace(/^[^\s]+\s*/, '');
+                    }
+                    el.setAttribute('title', text);
+                } else {
+                    el.textContent = text;
+                }
             }
         });
 
