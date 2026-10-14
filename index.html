@@ -4336,6 +4336,7 @@
         <button type="button" class="cad-tab-btn" id="tabBtnCadTableArrows" onclick="appCadTool.switchModalTableTab('arrows')" title="Bảng kê các mũi tên CAD (1 đầu nhọn / 2 đầu nhọn, cự ly, sửa tên)">🏹 Bảng Kê Mũi Tên (<span id="cadCountTabArrows">0</span>)</button>
         <button type="button" class="cad-tab-btn" id="tabBtnCadTableBuildings" onclick="appCadTool.switchModalTableTab('buildings')" title="Bảng kê các khối công trình / nhà ở (kích thước, diện tích, sửa tên)">🏠 Bảng Kê Khối Nhà (<span id="cadCountTabBuildings">0</span>)</button>
         <button type="button" class="cad-tab-btn" id="tabBtnCadTableCircles" onclick="appCadTool.switchModalTableTab('circles')" title="Bảng kê các vùng đệm / bán kính bảo vệ (tọa độ tâm, bán kính R, sửa tên)">⭕ Bảng Kê Bán Kính (<span id="cadCountTabCircles">0</span>)</button>
+        <button type="button" class="cad-tab-btn" id="tabBtnCadTableStamps" onclick="appCadTool.switchModalTableTab('stamps')" title="Bảng kê các tem nhãn kỹ thuật & chữ ghi chú CAD (sửa nội dung, tọa độ, sao chép)">📋 Bảng Kê Tem & Nhãn (<span id="cadCountTabStamps">0</span>)</button>
       </div>
 
       <!-- TAB 1: BẢNG KÊ RANH & DIỆN TÍCH (GỐC) -->
@@ -4547,6 +4548,32 @@
               </tr>
             </thead>
             <tbody id="cadTableBodyCircles">
+              <!-- Render JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 6: BẢNG KÊ TEM NHÃN KỸ THUẬT & CHỮ GHI CHÚ -->
+      <div id="tabContentCadTableStamps" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">📋 Danh sách Tem khung tên kỹ thuật & Chữ ghi chú CAD:</span>
+          <span style="font-size: 10.5px; color: #94a3b8;">Click tiêu đề/nội dung để đổi tên • Xem tọa độ VN-2000 tâm nhãn</span>
+        </div>
+        <div class="cad-table-wrap" style="flex: 1;">
+          <table class="cad-coord-table">
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">STT</th>
+                <th style="text-align: left; min-width: 140px;">Tiêu đề / Nội dung</th>
+                <th style="text-align: center; min-width: 90px;">Phân loại</th>
+                <th style="text-align: right; padding-right: 10px;">Tọa độ X [m]</th>
+                <th style="text-align: right; padding-right: 10px;">Tọa độ Y [m]</th>
+                <th style="text-align: center; width: 60px;">Màu</th>
+                <th style="text-align: center; min-width: 95px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="cadTableBodyStamps">
               <!-- Render JS -->
             </tbody>
           </table>

@@ -17690,12 +17690,17 @@ const appCadTool = {
                     }
                 });
                 sShapeLayer.on('click', (e) => {
-                    if (appCadTool.isActive) {
+                    const isDrawing = (appCadTool.mode !== 'select') && (appCadTool.vertices && appCadTool.vertices.length > 0);
+                    if (isDrawing) {
                         L.DomEvent.stopPropagation(e);
                         appCadTool.handleMapClick(e.latlng.lat, e.latlng.lng);
                         return;
                     }
                     L.DomEvent.stopPropagation(e);
+                    if (appCadTool.mode === 'select') {
+                        appCadTool.selectItem({ type: 'shape', index: sIdx, name: shape.name || shape.shortName });
+                        return;
+                    }
                     shape._pinned = !shape._pinned;
                     edgeMarkers.forEach(em => {
                         const b = em.getElement()?.querySelector('.cad-edge-badge');
@@ -18030,7 +18035,8 @@ const appCadTool = {
 
                 marker.on('click', (e) => {
                     if (isDragging) return;
-                    if (appCadTool.isActive) {
+                    const isDrawing = (appCadTool.mode !== 'select') && (appCadTool.vertices && appCadTool.vertices.length > 0);
+                    if (isDrawing) {
                         L.DomEvent.stopPropagation(e);
                         appCadTool.handleMapClick(v.lat, v.lng);
                         return;
@@ -18044,15 +18050,6 @@ const appCadTool = {
                         shape: shape
                     });
                 });
-                marker.bindPopup(`
-                    <div style="font-family: -apple-system, sans-serif; font-size: 12px; line-height: 1.5; min-width: 175px;">
-                        <b style="color: ${sColor}; font-size: 13px;">📍 ${shape.shortName} - ${v.name}</b>
-                        <div style="color: #334155; margin-top: 3px;">• <b>X:</b> ${v.x.toFixed(3)} m</div>
-                        <div style="color: #334155;">• <b>Y:</b> ${v.y.toFixed(3)} m</div>
-                        <div style="color: #0284c7; font-size: 11px; margin-top: 2px;">🖐️ <i>Kéo thả để nắn ranh đỉnh</i></div>
-                        <button type="button" class="btn-sm" style="margin-top: 6px; width: 100%; height: 26px; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-size: 11px; cursor: pointer; border-radius: 4px; font-weight: 700;" onclick="appCadTool.deleteVertex(${sIdx}, ${vIdx})">🗑️ Xóa đỉnh này</button>
-                    </div>
-                `);
                 marker.on('contextmenu', (e) => {
                     L.DomEvent.stopPropagation(e);
                     if (confirm(`Bạn có chắc muốn xóa đỉnh ${v.name} của [${shape.shortName}]?`)) {
@@ -20220,20 +20217,22 @@ const appCadTool = {
     // === CHUYỂN ĐỔI TAB VÀ RENDER CÁC BẢNG KÊ MINICAD ===
     switchModalTableTab(tabKey) {
         this.modalTableActiveTab = tabKey;
-        const tabs = ['ranh', 'vertices', 'arrows', 'buildings', 'circles'];
+        const tabs = ['ranh', 'vertices', 'arrows', 'buildings', 'circles', 'stamps'];
         const tabBtns = {
             ranh: 'tabBtnCadTableRanh',
             vertices: 'tabBtnCadTableVertices',
             arrows: 'tabBtnCadTableArrows',
             buildings: 'tabBtnCadTableBuildings',
-            circles: 'tabBtnCadTableCircles'
+            circles: 'tabBtnCadTableCircles',
+            stamps: 'tabBtnCadTableStamps'
         };
         const tabContents = {
             ranh: 'tabContentCadTableRanh',
             vertices: 'tabContentCadTableVertices',
             arrows: 'tabContentCadTableArrows',
             buildings: 'tabContentCadTableBuildings',
-            circles: 'tabContentCadTableCircles'
+            circles: 'tabContentCadTableCircles',
+            stamps: 'tabContentCadTableStamps'
         };
 
         tabs.forEach(t => {
@@ -20256,6 +20255,7 @@ const appCadTool = {
             else if (tabKey === 'arrows') titleEl.innerText = '🏹 Bảng Kê Mũi Tên CAD & Đường Kích Thước';
             else if (tabKey === 'buildings') titleEl.innerText = '🏠 Bảng Kê Khối Công Trình & Nhà Ở';
             else if (tabKey === 'circles') titleEl.innerText = '⭕ Bảng Kê Vùng Đệm & Bán Kính Bảo Vệ';
+            else if (tabKey === 'stamps') titleEl.innerText = '📋 Bảng Kê Tem Nhãn Kỹ Thuật & Chữ Ghi Chú';
         }
 
         this.updateModalTableCounts();
@@ -20263,6 +20263,7 @@ const appCadTool = {
         else if (tabKey === 'arrows') this.renderModalArrowsTable();
         else if (tabKey === 'buildings') this.renderModalBuildingsTable();
         else if (tabKey === 'circles') this.renderModalCirclesTable();
+        else if (tabKey === 'stamps') this.renderModalStampsTable();
     },
 
     updateModalTableCounts() {
@@ -20295,6 +20296,11 @@ const appCadTool = {
         if (cBadge) cBadge.innerText = circCount;
         const subCBadge = document.getElementById('cadSubtabCountCircles');
         if (subCBadge) subCBadge.innerText = circCount;
+
+        // Đếm tem & chữ ghi chú
+        const stampCount = (this.annotations || []).filter(a => a.type === 'stamp' || a.type === 'text').length;
+        const sBadge = document.getElementById('cadCountTabStamps');
+        if (sBadge) sBadge.innerText = stampCount;
 
         // Đếm khối
         const blkCount = (this.savedShapes || []).length;
@@ -20499,6 +20505,48 @@ const appCadTool = {
                     <td style="text-align: center; white-space: nowrap;">
                         <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${c.id}')" title="Thu phóng đến vùng bảo vệ">🎯 Zoom</button>
                         <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${c.id}')" title="Xóa vùng bảo vệ">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    },
+
+    renderModalStampsTable() {
+        const tbody = document.getElementById('cadTableBodyStamps');
+        if (!tbody) return;
+
+        const items = (this.annotations || []).filter(a => a.type === 'stamp' || a.type === 'text');
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; padding:18px;">Chưa có tem khung tên hoặc chữ ghi chú nào. Bấm vào tab <b>🏷️ Nhãn ➔ 📋 Tem bản vẽ</b> hoặc <b>🔤 Chữ ghi chú</b> để tạo!</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        items.forEach((it, idx) => {
+            const vn = convertWgsToVn2k(it.lat, it.lng, AppState.kttVal, AppState.scaleFactor);
+            const isStamp = it.type === 'stamp';
+            const nameVal = isStamp ? (it.title || 'THÔNG TIN BẢN VẼ') : (it.text || 'Ghi chú');
+            const typeLabel = isStamp ? '<span style="color:#38bdf8; font-weight:700;">📋 Tem kỹ thuật</span>' : '<span style="color:#fde047; font-weight:700;">🔤 Chữ ghi chú</span>';
+            const itColor = it.color || (isStamp ? '#38bdf8' : '#f8fafc');
+
+            html += `
+                <tr>
+                    <td style="text-align: center; font-weight: 700; color: #94a3b8;">${idx + 1}</td>
+                    <td style="font-weight: 700; color: #f8fafc;">
+                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${it.id}', '${nameVal.replace(/'/g, "\\'")}', '${it.type}')" title="Nhấp để đổi tiêu đề/nội dung">
+                            ✏️ ${nameVal}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">${typeLabel}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">${vn.X.toFixed(3)}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">${vn.Y.toFixed(3)}</td>
+                    <td style="text-align: center;">
+                        <span style="display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: ${itColor}; border: 1px solid rgba(255,255,255,0.3); vertical-align: middle;"></span>
+                    </td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${it.id}')" title="Thu phóng đến vị trí">🎯 Zoom</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${it.id}')" title="Xóa">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -22493,7 +22541,33 @@ const appCadTool = {
             if (circRows.length > 4) wsCirc['!autofilter'] = { ref: "A4:G" + circRows.length };
             XLSX.utils.book_append_sheet(wb, wsCirc, 'BangKe_BanKinh');
 
-            // TỐI ƯU HÓA DỮ LIỆU LỚN: Lưu tập trung 5 sheet đầy đủ
+            // 6. Sheet 6: Bảng kê tem nhãn kỹ thuật & chữ ghi chú CAD
+            const stampsAndTexts = (this.annotations || []).filter(a => a.type === 'stamp' || a.type === 'text');
+            const stampRows = [
+                ['BẢNG KÊ TEM KHUNG TÊN KỸ THUẬT & CHỮ GHI CHÚ (CAD)'],
+                ["Dự án: " + (meta.projectName || projName) + " | Tổng số tem/chữ: " + stampsAndTexts.length],
+                [],
+                ['STT', 'Tiêu Đề / Nội Dung', 'Phân Loại', 'Tọa Độ Tâm X', 'Tọa Độ Tâm Y', 'Cỡ Chữ (pt)', 'Màu Sắc']
+            ];
+            stampsAndTexts.forEach((st, stIdx) => {
+                const vn = convertWgsToVn2k(st.lat, st.lng, AppState.kttVal, AppState.scaleFactor);
+                const isStamp = st.type === 'stamp';
+                stampRows.push([
+                    stIdx + 1,
+                    isStamp ? (st.title || 'THÔNG TIN BẢN VẼ') : (st.text || 'Ghi chú'),
+                    isStamp ? 'Tem kỹ thuật' : 'Chữ ghi chú',
+                    parseFloat(vn.X.toFixed(3)),
+                    parseFloat(vn.Y.toFixed(3)),
+                    isStamp ? '--' : (st.fontSize || 12),
+                    st.color || (isStamp ? '#38bdf8' : '#f8fafc')
+                ]);
+            });
+            const wsStamp = XLSX.utils.aoa_to_sheet(stampRows);
+            wsStamp['!cols'] = [{ wch: 6 }, { wch: 30 }, { wch: 15 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 12 }];
+            if (stampRows.length > 4) wsStamp['!autofilter'] = { ref: "A4:G" + stampRows.length };
+            XLSX.utils.book_append_sheet(wb, wsStamp, 'BangKe_TemNhan');
+
+            // TỐI ƯU HÓA DỮ LIỆU LỚN: Lưu tập trung 6 sheet đầy đủ
             const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
             const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const filename = projName + "_Bang_Tong_Hop_Dien_Tich.xlsx";

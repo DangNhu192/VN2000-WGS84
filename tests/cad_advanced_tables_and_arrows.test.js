@@ -16,20 +16,22 @@ const indexHtml = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf
 const styleCss = fs.readFileSync(path.resolve(__dirname, '../style.css'), 'utf8');
 const appJs = fs.readFileSync(path.resolve(__dirname, '../app.js'), 'utf8');
 
-test('=== 1. KIỂM THỬ GIAO DIỆN MODAL BẢNG KÊ 5 TAB TRONG INDEX.HTML ===', (t) => {
-    // 5 nút Tab trong Modal Bảng Kê
+test('=== 1. KIỂM THỬ GIAO DIỆN MODAL BẢNG KÊ 6 TAB TRONG INDEX.HTML ===', (t) => {
+    // 6 nút Tab trong Modal Bảng Kê
     assert.match(indexHtml, /id="tabBtnCadTableRanh"/, 'Có tab Ranh & Diện tích');
     assert.match(indexHtml, /id="tabBtnCadTableVertices"/, 'Có tab Bảng kê đỉnh');
     assert.match(indexHtml, /id="tabBtnCadTableArrows"/, 'Có tab Bảng kê mũi tên');
     assert.match(indexHtml, /id="tabBtnCadTableBuildings"/, 'Có tab Bảng kê khối nhà');
     assert.match(indexHtml, /id="tabBtnCadTableCircles"/, 'Có tab Bảng kê bán kính');
+    assert.match(indexHtml, /id="tabBtnCadTableStamps"/, 'Có tab Bảng kê tem & nhãn');
 
-    // 5 container nội dung tương ứng
+    // 6 container nội dung tương ứng
     assert.match(indexHtml, /id="tabContentCadTableRanh"/, 'Có container nội dung Ranh');
     assert.match(indexHtml, /id="tabContentCadTableVertices"/, 'Có container nội dung Đỉnh');
     assert.match(indexHtml, /id="tabContentCadTableArrows"/, 'Có container nội dung Mũi tên');
     assert.match(indexHtml, /id="tabContentCadTableBuildings"/, 'Có container nội dung Khối nhà');
     assert.match(indexHtml, /id="tabContentCadTableCircles"/, 'Có container nội dung Bán kính');
+    assert.match(indexHtml, /id="tabContentCadTableStamps"/, 'Có container nội dung Tem & Nhãn');
 
     // Bộ lọc và công tắc hiển thị đỉnh
     assert.match(indexHtml, /id="txtSearchCadVertices"/, 'Có ô tìm kiếm lọc đỉnh');
@@ -51,6 +53,7 @@ test('=== 2. KIỂM THỬ FLOATING PANEL SUBTABS & BADGES TRÊN MAP TRONG INDEX.
     assert.match(indexHtml, /id="cadSubtabCountArrows"/, 'Có badge đếm mũi tên');
     assert.match(indexHtml, /id="cadSubtabCountBuildings"/, 'Có badge đếm nhà');
     assert.match(indexHtml, /id="cadSubtabCountCircles"/, 'Có badge đếm bán kính');
+    assert.match(indexHtml, /id="cadCountTabStamps"/, 'Có badge đếm tem nhãn');
 });
 
 test('=== 3. KIỂM THỬ MODAL TẠO & SỬA MŨI TÊN 1 ĐẦU / 2 ĐẦU NHỌN TRONG INDEX.HTML ===', (t) => {
@@ -82,6 +85,7 @@ test('=== 5. KIỂM THỬ LOGIC JAVASCRIPT TRONG APP.JS (APPCADTOOL) ===', (t) =
     assert.match(appJs, /renderModalArrowsTable\s*\(/, 'Có hàm renderModalArrowsTable');
     assert.match(appJs, /renderModalBuildingsTable\s*\(/, 'Có hàm renderModalBuildingsTable');
     assert.match(appJs, /renderModalCirclesTable\s*\(/, 'Có hàm renderModalCirclesTable');
+    assert.match(appJs, /renderModalStampsTable\s*\(/, 'Có hàm renderModalStampsTable');
 
     // Hàm chuyển đổi subtab trên map panel
     assert.match(appJs, /switchPanelTab\s*\(/, 'Có hàm switchPanelTab');
@@ -107,8 +111,9 @@ test('=== 5. KIỂM THỬ LOGIC JAVASCRIPT TRONG APP.JS (APPCADTOOL) ===', (t) =
     assert.match(appJs, /deleteVertexFromTable\s*\(/, 'Có hàm deleteVertexFromTable');
     assert.match(appJs, /deleteAnnotationFromTable\s*\(/, 'Có hàm deleteAnnotationFromTable');
 
-    // Xuất Excel 5 sheets
+    // Xuất Excel 6 sheets
     assert.match(appJs, /'BangKe_MuiTen'/, 'Xuất Excel có Sheet BangKe_MuiTen');
     assert.match(appJs, /'BangKe_KhoiNha'/, 'Xuất Excel có Sheet BangKe_KhoiNha');
     assert.match(appJs, /'BangKe_BanKinh'/, 'Xuất Excel có Sheet BangKe_BanKinh');
+    assert.match(appJs, /'BangKe_TemNhan'/, 'Xuất Excel có Sheet BangKe_TemNhan');
 });
