@@ -394,8 +394,14 @@ const appNav = window.appNav = {
                     }
                 }, 40);
             } else if (screenName === 'transform') {
-                appNav.openTransformMap();
-                return;
+                titleText = "1. CHUYỂN ĐỔI TỌA ĐỘ";
+                titleTextEn = "1. COORDINATE TRANSFORMATION";
+                customSubVi = "WGS-84 ⇄ VN-2000 • 7 Tham Số BTNMT";
+                customSubEn = "WGS-84 ⇄ VN-2000 • 7-Parameter Bursa-Wolf";
+                targetScreen = document.getElementById('screen-transform');
+                if (typeof appTransform !== 'undefined' && appTransform.init) {
+                    appTransform.init();
+                }
             } else if (screenName === 'stakeout') {
                 titleText = "3. CẮM MỐC THỰC ĐỊA";
                 titleTextEn = "3. FIELD STAKEOUT";
@@ -698,16 +704,53 @@ const appNav = window.appNav = {
         }
     },
 
+    openTransformCoordScreen(tab = 'single') {
+        AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'transform') ? AppState.currentScreen : 'menu';
+        AppState.currentScreen = 'transform';
+        AppState.mapMode = 'transform';
+
+        document.querySelectorAll('.screen-view').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none';
+        });
+        const tfView = document.getElementById('screen-transform');
+        if (tfView) {
+            tfView.classList.add('active');
+            tfView.style.display = 'block';
+            void tfView.offsetHeight;
+        }
+
+        const btnBack = document.getElementById('btnHeaderBack');
+        if (btnBack) btnBack.style.display = 'inline-flex';
+
+        if (tab === 'multi') {
+            this.syncHeader('1.2 CHUYỂN ĐỔI ĐA ĐIỂM HÀNG LOẠT', '1.2 BATCH TRANSFORMATION');
+            appNav.setActiveMenuItem('drawerItem_batch');
+        } else {
+            this.syncHeader('1.1 CHUYỂN ĐỔI 2 CHIỀU ĐƠN ĐIỂM', '1.1 SINGLE POINT TRANSFORMATION');
+            appNav.setActiveMenuItem('drawerItem_transform');
+        }
+        this.syncBottomNav('transform');
+
+        if (typeof appTransform !== 'undefined') {
+            if (appTransform.init) appTransform.init();
+            if (appTransform.switchTransformSubTab) appTransform.switchTransformSubTab(tab);
+        }
+    },
+
     navigateTo(action, param) {
-        const isModalAction = ['profile_volume', 'settings_ktt', 'settings_storage', 'settings_rtk', 'settings_resection', 'batch_import'].includes(action);
+        const isModalAction = ['profile_volume', 'settings_ktt', 'settings_storage', 'settings_rtk', 'settings_resection'].includes(action);
         appNav.closeTreeMenu(isModalAction);
         if (action === 'menu') {
             appNav.goToMenu();
         } else if (action === 'transform') {
-            appNav.openTransformMap();
+            appNav.openTransformCoordScreen('single');
             appNav.setActiveMenuItem('drawerItem_transform');
+        } else if (action === 'batch_import') {
+            appNav.openTransformCoordScreen('multi');
+            appNav.setActiveMenuItem('drawerItem_batch');
         } else if (action === 'transform_map') {
-            appNav.openTransformMap();
+            appNav.openTransformMap({ mode: 'pick' });
             appNav.setActiveMenuItem('drawerItem_transform_map');
         } else if (action === 'map') {
             appNav.openProjectMap();
@@ -725,9 +768,6 @@ const appNav = window.appNav = {
         } else if (action === 'about') {
             appNav.showScreen('about');
             appNav.setActiveMenuItem('drawerItem_about');
-        } else if (action === 'batch_import') {
-            appNav.setActiveMenuItem('drawerItem_batch');
-            appModal.openImportProjectModal();
         } else if (action === 'measure_distance') {
             appNav.setActiveMenuItem('drawerItem_measure_distance');
             appNav.openProjectMap(); // Mở bản đồ mới sạch theo yêu cầu
@@ -2733,11 +2773,188 @@ const appTransform = {
         }
     },
 
+    multiDirection: 'wgs2vn2k',
+
+    toggleMultiDirection() {
+        this.multiDirection = (this.multiDirection === 'wgs2vn2k') ? 'vn2k2wgs' : 'wgs2vn2k';
+        const btn = document.getElementById('btnToggleMultiDirection');
+        const th1 = document.getElementById('thMultiCol1');
+        const th2 = document.getElementById('thMultiCol2');
+        if (this.multiDirection === 'vn2k2wgs') {
+            if (btn) btn.innerText = '🔄 Nguồn: VN-2000 ➔ WGS-84';
+            if (th1) th1.innerText = 'Tọa độ 1: X Bắc (m)';
+            if (th2) th2.innerText = 'Tọa độ 2: Y Đông (m)';
+            showToast('Chế độ nguồn: VN-2000 (X, Y) ➔ Đích: WGS-84 (Lat, Lng)');
+        } else {
+            if (btn) btn.innerText = '🔄 Nguồn: WGS-84 ➔ VN-2000';
+            if (th1) th1.innerText = 'Tọa độ 1: Vĩ độ Lat (B)';
+            if (th2) th2.innerText = 'Tọa độ 2: Kinh độ Lng (L)';
+            showToast('Chế độ nguồn: WGS-84 (Lat, Lng) ➔ Đích: VN-2000 (X, Y)');
+        }
+        this.renderMultiTransPoints();
+    },
+
+    addManualMultiPoint(name, c1, c2) {
+        const nextIdx = this.multiPoints.length + 1;
+        const newPt = {
+            id: Date.now() + Math.random(),
+            name: name || `M${nextIdx}`,
+            c1: c1 !== undefined ? c1 : '',
+            c2: c2 !== undefined ? c2 : '',
+            selected: true
+        };
+        this.multiPoints.push(newPt);
+        this.renderMultiTransPoints();
+        // Cuộn xuống và focus vào ô tọa độ dòng mới thêm
+        setTimeout(() => {
+            const wrap = document.getElementById('boxMultiPointsTableWrap');
+            if (wrap) wrap.scrollTop = wrap.scrollHeight;
+            const rows = document.querySelectorAll('#multiTransTableBody tr');
+            if (rows && rows.length > 0) {
+                const lastRow = rows[rows.length - 1];
+                const inputC1 = lastRow.querySelector('.pt-coord1');
+                if (inputC1) inputC1.focus();
+            }
+        }, 60);
+        showToast(`➕ Đã thêm dòng mốc M${nextIdx}. Bạn có thể nhập trực tiếp số liệu.`);
+    },
+
+    updatePointName(idx, val) {
+        if (this.multiPoints[idx]) {
+            this.multiPoints[idx].name = val;
+        }
+    },
+
+    updatePointCoord(idx, field, val) {
+        if (!this.multiPoints[idx]) return;
+        this.multiPoints[idx][field] = val;
+
+        // Tự động tính chuyển tức thời cho dòng này nếu đủ số liệu
+        const pt = this.multiPoints[idx];
+        const resSpan = document.getElementById(`resMultiCell_${idx}`);
+        if (!resSpan) return;
+
+        const cleanVal = (s) => {
+            if (s === undefined || s === null || s === '') return NaN;
+            return parseFloat(String(s).trim().replace(',', '.'));
+        };
+        const n1 = cleanVal(pt.c1);
+        const n2 = cleanVal(pt.c2);
+
+        if (isNaN(n1) || isNaN(n2)) {
+            resSpan.innerHTML = '<span style="color:#64748b;">(Chờ nhập số)</span>';
+            pt.convertedStr = '';
+            return;
+        }
+
+        try {
+            const isVn2k = (n1 > 1000 || n2 > 1000);
+            const mode = this.multiDirection || (isVn2k ? 'vn2k2wgs' : 'wgs2vn2k');
+            if (mode === 'wgs2vn2k') {
+                let lat = (n1 <= 90) ? n1 : n2;
+                let lng = (n1 <= 90) ? n2 : n1;
+                const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                resSpan.innerHTML = `<b style="color:#4ade80;">X: ${vn.X.toFixed(2)}</b> | <b style="color:#38bdf8;">Y: ${vn.Y.toFixed(2)}</b>`;
+                pt.convertedStr = `X=${vn.X.toFixed(3)}, Y=${vn.Y.toFixed(3)}`;
+                pt.x = vn.X.toFixed(3);
+                pt.y = vn.Y.toFixed(3);
+                pt.lat = lat.toFixed(6);
+                pt.lng = lng.toFixed(6);
+            } else {
+                let x = (n1 > n2) ? n1 : n2;
+                let y = (n1 > n2) ? n2 : n1;
+                const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                resSpan.innerHTML = `<b style="color:#38bdf8;">Lat: ${wgs.lat.toFixed(5)}</b>, <b style="color:#a78bfa;">Lng: ${wgs.lng.toFixed(5)}</b>`;
+                pt.convertedStr = `Lat=${wgs.lat.toFixed(6)}, Lng=${wgs.lng.toFixed(6)}`;
+                pt.x = x.toFixed(3);
+                pt.y = y.toFixed(3);
+                pt.lat = wgs.lat.toFixed(6);
+                pt.lng = wgs.lng.toFixed(6);
+            }
+        } catch (e) {
+            resSpan.innerHTML = '<span style="color:#f87171;">Lỗi số liệu</span>';
+        }
+    },
+
+    handleFileInput(inputEl) {
+        if (!inputEl || !inputEl.files || !inputEl.files[0]) return;
+        const file = inputEl.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target.result;
+            if (!content) return;
+            const ta = document.getElementById('txtMultiPasteArea');
+            if (ta) ta.value = content;
+            this.parsePasteMultiText();
+            inputEl.value = '';
+        };
+        reader.readAsText(file);
+    },
+
+    sendSingleToMulti() {
+        const resX = document.getElementById('resVn2kX');
+        const resY = document.getElementById('resVn2kY');
+        const resLat = document.getElementById('resWgsLat');
+        const resLng = document.getElementById('resWgsLng');
+        const ptName = (document.getElementById('txtSavePointName') && document.getElementById('txtSavePointName').value.trim()) || `M${this.multiPoints.length + 1}`;
+
+        let c1 = '', c2 = '';
+        if (resX && resX.innerText !== '--' && resY && resY.innerText !== '--') {
+            c1 = resX.innerText;
+            c2 = resY.innerText;
+        } else if (resLat && resLat.innerText !== '--' && resLng && resLng.innerText !== '--') {
+            c1 = resLat.innerText;
+            c2 = resLng.innerText;
+        } else {
+            const inLat = document.getElementById('txtWgsLat').value.trim();
+            const inLng = document.getElementById('txtWgsLng').value.trim();
+            const inX = document.getElementById('txtVn2kX').value.trim();
+            const inY = document.getElementById('txtVn2kY').value.trim();
+            if (inX && inY) { c1 = inX; c2 = inY; }
+            else if (inLat && inLng) { c1 = inLat; c2 = inLng; }
+        }
+
+        if (!c1 || !c2) {
+            showToast("⚠️ Chưa có số liệu tọa độ đơn điểm để chuyển sang Đa điểm!", true);
+            return;
+        }
+
+        this.addManualMultiPoint(ptName, c1, c2);
+        this.switchTransformSubTab('multi');
+        showToast(`✓ Đã đưa mốc "${ptName}" vào bảng Đa điểm!`, true);
+    },
+
+    viewMultiPointOnMap(idx) {
+        if (!this.multiPoints[idx]) return;
+        const pt = this.multiPoints[idx];
+        let lat = pt.lat, lng = pt.lng;
+        if (!lat || !lng) {
+            const clean = (s) => parseFloat(String(s).replace(',', '.'));
+            const n1 = clean(pt.c1);
+            const n2 = clean(pt.c2);
+            if (!isNaN(n1) && !isNaN(n2)) {
+                if (n1 <= 90 && n2 <= 180) { lat = n1; lng = n2; }
+                else if (n1 > 1000 && n2 > 1000) {
+                    try {
+                        const wgs = convertVn2kToWgs(n1 > n2 ? n1 : n2, n1 > n2 ? n2 : n1, AppState.kttVal, AppState.scaleFactor);
+                        lat = wgs.lat; lng = wgs.lng;
+                    } catch (e) {}
+                }
+            }
+        }
+        if (lat && lng) {
+            appNav.openTransformMap({ mode: 'view', singlePoint: { lat: parseFloat(lat), lng: parseFloat(lng), name: pt.name } });
+        } else {
+            showToast("⚠️ Vui lòng nhập đầy đủ tọa độ hợp lệ trước khi xem trên bản đồ!", true);
+        }
+    },
+
     renderMultiTransPoints() {
         const tbody = document.getElementById('multiTransTableBody');
         const countEl = document.getElementById('txtMultiPointCount');
         const emptyNotice = document.getElementById('boxMultiEmptyNotice');
         const tableWrap = document.getElementById('boxMultiPointsTableWrap');
+        const addRowBar = document.getElementById('boxMultiAddRowBar');
         const selectedCountEl = document.getElementById('lblMultiSelectedCount');
         const selectAllChk = document.getElementById('chkMultiSelectAll');
 
@@ -2749,33 +2966,58 @@ const appTransform = {
         if (selectAllChk) selectAllChk.checked = (totalCount > 0 && selectedCount === totalCount);
         this.updatePickedMapCountBadge();
 
+        const isWgs = this.multiDirection !== 'vn2k2wgs';
+        const th1 = document.getElementById('thMultiCol1');
+        const th2 = document.getElementById('thMultiCol2');
+        if (th1) th1.innerText = isWgs ? 'Tọa độ 1: Lat (B)' : 'Tọa độ 1: X Bắc (m)';
+        if (th2) th2.innerText = isWgs ? 'Tọa độ 2: Lng (L)' : 'Tọa độ 2: Y Đông (m)';
+
         if (!tbody) return;
 
         if (totalCount === 0) {
             if (emptyNotice) emptyNotice.style.display = 'block';
             if (tableWrap) tableWrap.style.display = 'none';
+            if (addRowBar) addRowBar.style.display = 'none';
             tbody.innerHTML = '';
             return;
         }
 
         if (emptyNotice) emptyNotice.style.display = 'none';
         if (tableWrap) tableWrap.style.display = 'block';
+        if (addRowBar) addRowBar.style.display = 'block';
 
         tbody.innerHTML = this.multiPoints.map((pt, idx) => {
             const isChecked = pt.selected !== false ? 'checked' : '';
-            const c1Val = pt.c1 !== undefined ? pt.c1 : (pt.x ? parseFloat(pt.x).toFixed(3) : (pt.lat ? parseFloat(pt.lat).toFixed(6) : '---'));
-            const c2Val = pt.c2 !== undefined ? pt.c2 : (pt.y ? parseFloat(pt.y).toFixed(3) : (pt.lng ? parseFloat(pt.lng).toFixed(6) : '---'));
+            const c1Val = pt.c1 !== undefined ? pt.c1 : (pt.x ? parseFloat(pt.x).toFixed(3) : (pt.lat ? parseFloat(pt.lat).toFixed(6) : ''));
+            const c2Val = pt.c2 !== undefined ? pt.c2 : (pt.y ? parseFloat(pt.y).toFixed(3) : (pt.lng ? parseFloat(pt.lng).toFixed(6) : ''));
+            const p1Placeholder = isWgs ? 'VD: 10.345211' : 'VD: 1144058.623';
+            const p2Placeholder = isWgs ? 'VD: 106.113617' : 'VD: 539624.574';
+            const resHtml = pt.convertedStr ? `<span style="font-size: 11px; font-weight: 700; color: #4ade80;">${pt.convertedStr}</span>` : '<span style="color:#64748b; font-size: 11px;">(Chờ tính)</span>';
+
             return `
                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-family: ui-monospace, monospace;">
-                    <td style="text-align: center; padding: 6px 4px;">
+                    <td style="text-align: center; padding: 4px;">
                         <input type="checkbox" ${isChecked} onchange="appTransform.toggleSelectPoint(${idx}, this.checked)">
                     </td>
-                    <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
-                    <td style="font-weight: 700; color: #fbbf24;" class="selectable">${pt.name || `P${idx+1}`}</td>
-                    <td style="color: #4ade80; text-align: right;" class="selectable">${c1Val}</td>
-                    <td style="color: #38bdf8; text-align: right;" class="selectable">${c2Val}</td>
-                    <td style="text-align: center;">
-                        <button type="button" class="btn-sm btn-red" style="padding: 2px 6px; font-size: 11px;" onclick="appTransform.removeMultiPoint(${idx})">✕</button>
+                    <td style="text-align: center; color: #94a3b8; font-size: 11.5px;">${idx + 1}</td>
+                    <td style="padding: 4px;">
+                        <input type="text" class="table-inline-input pt-name" value="${pt.name || ''}" placeholder="M${idx+1}" 
+                          oninput="appTransform.updatePointName(${idx}, this.value)" style="width: 100%; min-width: 75px; height: 28px; padding: 2px 6px; font-size: 12px; font-weight: 700; color: #fbbf24; background: rgba(15,23,42,0.6); border: 1px solid rgba(251,191,36,0.3); border-radius: 4px;">
+                    </td>
+                    <td style="padding: 4px;">
+                        <input type="text" class="table-inline-input pt-coord1 font-mono" value="${c1Val === '---' ? '' : c1Val}" placeholder="${p1Placeholder}" 
+                          oninput="appTransform.updatePointCoord(${idx}, 'c1', this.value)" style="width: 100%; min-width: 115px; height: 28px; padding: 2px 6px; font-size: 12px; font-weight: 600; color: #4ade80; text-align: right; background: rgba(15,23,42,0.6); border: 1px solid rgba(74,222,128,0.3); border-radius: 4px;">
+                    </td>
+                    <td style="padding: 4px;">
+                        <input type="text" class="table-inline-input pt-coord2 font-mono" value="${c2Val === '---' ? '' : c2Val}" placeholder="${p2Placeholder}" 
+                          oninput="appTransform.updatePointCoord(${idx}, 'c2', this.value)" style="width: 100%; min-width: 115px; height: 28px; padding: 2px 6px; font-size: 12px; font-weight: 600; color: #38bdf8; text-align: right; background: rgba(15,23,42,0.6); border: 1px solid rgba(56,189,248,0.3); border-radius: 4px;">
+                    </td>
+                    <td style="padding: 4px; vertical-align: middle;">
+                        <span id="resMultiCell_${idx}">${resHtml}</span>
+                    </td>
+                    <td style="text-align: center; padding: 4px; white-space: nowrap;">
+                        <button type="button" class="btn-sm btn-red" style="padding: 2px 6px; font-size: 11px;" onclick="appTransform.removeMultiPoint(${idx})" title="Xóa dòng">✕</button>
+                        <button type="button" class="btn-sm btn-blue" style="padding: 2px 6px; font-size: 11px; margin-left: 2px;" onclick="appTransform.viewMultiPointOnMap(${idx})" title="Xem vị trí mốc trên bản đồ">🗺️</button>
                     </td>
                 </tr>
             `;
@@ -4598,12 +4840,14 @@ const appTransformMap = {
         tbody.innerHTML = '';
         this.pickedMultiPoints.forEach((p, i) => {
             const tr = document.createElement('tr');
+            const xVal = (p.x !== undefined && p.x !== null) ? (typeof p.x === 'number' ? p.x.toFixed(3) : p.x) : '';
+            const yVal = (p.y !== undefined && p.y !== null) ? (typeof p.y === 'number' ? p.y.toFixed(3) : p.y) : '';
             tr.innerHTML = `
                 <td><input type="checkbox" ${p.selected ? 'checked' : ''} onchange="appTransformMap.toggleMultiPointSelect(${i}, this.checked)"></td>
                 <td>${p.stt}</td>
-                <td><input type="text" class="sheet-input" style="height: 24px; padding: 0 4px; font-size: 11px;" value="${p.name}" onchange="appTransformMap.updateMultiPointName(${i}, this.value)"></td>
-                <td>${p.x.toFixed(3)}</td>
-                <td>${p.y.toFixed(3)}</td>
+                <td><input type="text" class="sheet-input" style="height: 24px; padding: 0 4px; font-size: 11px;" value="${p.name}" oninput="appTransformMap.updateMultiPointName(${i}, this.value)"></td>
+                <td><input type="text" class="sheet-input font-mono" style="height: 24px; padding: 0 4px; font-size: 11px; text-align: right;" value="${xVal}" oninput="appTransformMap.updateMultiPointCoord(${i}, 'x', this.value)"></td>
+                <td><input type="text" class="sheet-input font-mono" style="height: 24px; padding: 0 4px; font-size: 11px; text-align: right;" value="${yVal}" oninput="appTransformMap.updateMultiPointCoord(${i}, 'y', this.value)"></td>
                 <td><button type="button" class="btn-card-mini" style="color: #f87171;" onclick="appTransformMap.deleteMultiPoint(${i})">✕</button></td>
             `;
             tbody.appendChild(tr);
@@ -4616,6 +4860,21 @@ const appTransformMap = {
 
     updateMultiPointName(i, name) {
         if (this.pickedMultiPoints[i]) this.pickedMultiPoints[i].name = name;
+    },
+
+    updateMultiPointCoord(i, field, val) {
+        if (!this.pickedMultiPoints[i]) return;
+        const num = parseFloat(String(val).replace(',', '.'));
+        this.pickedMultiPoints[i][field] = isNaN(num) ? val : num;
+        const p = this.pickedMultiPoints[i];
+        if (typeof p.x === 'number' && typeof p.y === 'number' && p.x > 1000 && p.y > 1000) {
+            try {
+                const wgs = convertVn2kToWgs(p.x, p.y, AppState.kttVal, AppState.scaleFactor);
+                p.lat = wgs.lat;
+                p.lng = wgs.lng;
+                this.replotMultiMarkers();
+            } catch (e) {}
+        }
     },
 
     deleteMultiPoint(i) {

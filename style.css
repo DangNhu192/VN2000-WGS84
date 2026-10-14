@@ -9807,4 +9807,81 @@
   color: #0284c7 !important;
 }
 
+/* ================= BẢNG LƯỚI NHẬP & ĐIỀU CHỈNH TRỰC TIẾP TỌA ĐỘ ĐA ĐIỂM (1.2) ================= */
+.table-editable-grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-editable-grid th {
+  padding: 8px 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.table-editable-grid td {
+  padding: 4px;
+  vertical-align: middle;
+}
+
+.table-inline-input {
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.table-inline-input:focus {
+  outline: none;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+}
+
+.table-inline-input.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Light theme for editable table */
+[data-theme="light"] .table-editable-grid th {
+  background: rgba(241, 245, 249, 0.95) !important;
+  color: #475569 !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .table-inline-input {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] .table-inline-input.pt-name {
+  color: #b45309 !important;
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+
+[data-theme="light"] .table-inline-input.pt-coord1 {
+  color: #15803d !important;
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+}
+
+[data-theme="light"] .table-inline-input.pt-coord2 {
+  color: #0369a1 !important;
+  background: #f0f9ff !important;
+  border-color: #bae6fd !important;
+}
+
+[data-theme="light"] .table-inline-input:focus {
+  background: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25) !important;
+}
+
+
 

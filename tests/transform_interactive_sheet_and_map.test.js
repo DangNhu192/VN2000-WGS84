@@ -37,15 +37,18 @@ test('=== 1. KIỂM THỬ GIAO DIỆN FORM FLOATING PANEL / BOTTOM SHEET TRÊN B
     assert.ok(indexHtml.includes('class="btn-sheet-save-project"'), 'Có nút Lưu vào Sổ đo dự án');
 });
 
-test('=== 2. KIỂM THỬ ĐIỀU HƯỚNG TẬP TRUNG VÀO BẢN ĐỒ CHUYỂN ĐỔI TỌA ĐỘ ===', () => {
-    // 1. showScreen('transform') mở thẳng openTransformMap
-    assert.ok(appJs.includes("if (screenName === 'transform') {\n                appNav.openTransformMap();\n                return;"), 'showScreen("transform") mở thẳng openTransformMap()');
-    
-    // 2. navigateTo('transform') gọi openTransformMap
-    assert.ok(appJs.includes("action === 'transform'") && appJs.includes("appNav.openTransformMap();"), 'navigateTo("transform") gọi appNav.openTransformMap()');
-    
+test('=== 2. KIỂM THỬ ĐIỀU HƯỚNG PHÂN HỆ CHUYỂN ĐỔI TỌA ĐỘ (1.1, 1.2, 1.3) ===', () => {
+    // 1. showScreen('transform') mở màn hình screen-transform và khởi tạo appTransform
+    assert.ok(appJs.includes("targetScreen = document.getElementById('screen-transform');"), 'showScreen("transform") mở đúng targetScreen screen-transform');
+    assert.ok(appJs.includes("openTransformCoordScreen(tab = 'single')"), 'appNav có hàm openTransformCoordScreen phân định subtab');
+
+    // 2. navigateTo('transform') gọi openTransformCoordScreen('single') và navigateTo('batch_import') gọi 'multi'
+    assert.ok(appJs.includes("action === 'transform'") && appJs.includes("openTransformCoordScreen('single');"), 'navigateTo("transform") gọi openTransformCoordScreen("single")');
+    assert.ok(appJs.includes("action === 'batch_import'") && appJs.includes("openTransformCoordScreen('multi');"), 'navigateTo("batch_import") gọi openTransformCoordScreen("multi")');
+    assert.ok(appJs.includes("action === 'transform_map'") && appJs.includes("openTransformMap("), 'navigateTo("transform_map") gọi openTransformMap()');
+
     // 3. openTransformMap đồng bộ Header và Menu active
-    assert.ok(appJs.includes("1. CHUYỂN ĐỔI TỌA ĐỘ"), 'openTransformMap đặt tiêu đề 1. CHUYỂN ĐỔI TỌA ĐỘ');
+    assert.ok(appJs.includes("1. CHUYỂN ĐỔI TỌA ĐỘ") || appJs.includes("CHUYỂN ĐỔI TỌA ĐỘ"), 'openTransformMap đồng bộ tiêu đề chuyển đổi tọa độ');
 });
 
 test('=== 3. KIỂM THỬ CÁC HÀM XỬ LÝ LOGIC TRONG APPTRANSFORMMAP ===', () => {

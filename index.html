@@ -546,12 +546,12 @@
                 <span class="tree-folder-name">NHÓM 1: CHUYỂN ĐỔI TỌA ĐỘ QUỐC GIA</span>
               </div>
               <div class="tree-folder-meta">
-                <span class="tree-badge badge-blue">2 mục</span>
+                <span class="tree-badge badge-blue">3 mục</span>
                 <span class="tree-chevron">▼</span>
               </div>
             </div>
             <div class="tree-folder-body">
-              <div class="tree-leaf-item" onclick="appNav.showScreen('transform')">
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('transform')">
                 <div class="tree-leaf-connector">├─</div>
                 <div class="tree-leaf-icon" style="color: #38bdf8;">🔄</div>
                 <div class="tree-leaf-content">
@@ -561,11 +561,20 @@
                 <span class="tree-leaf-arrow">›</span>
               </div>
               <div class="tree-leaf-item" onclick="appNav.navigateTo('batch_import')">
-                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-connector">├─</div>
                 <div class="tree-leaf-icon" style="color: #60a5fa;">📑</div>
                 <div class="tree-leaf-content">
                   <div class="tree-leaf-title">1.2 Chuyển đổi danh sách hàng loạt & Nhập file</div>
-                  <div class="tree-leaf-desc">Nhập file CSV mốc hoặc dán bảng số liệu nhiều điểm từ Zalo/Excel</div>
+                  <div class="tree-leaf-desc">Bảng nhập sửa mốc trực tiếp, dán Excel, nhập file CSV/Excel</div>
+                </div>
+                <span class="tree-leaf-arrow">›</span>
+              </div>
+              <div class="tree-leaf-item" onclick="appNav.navigateTo('transform_map')">
+                <div class="tree-leaf-connector">└─</div>
+                <div class="tree-leaf-icon" style="color: #34d399;">🗺️</div>
+                <div class="tree-leaf-content">
+                  <div class="tree-leaf-title">1.3 Bản đồ Chuyển đổi & Chấm điểm</div>
+                  <div class="tree-leaf-desc">Chấm lấy tọa độ vệ tinh và xem vị trí điểm chuyển đổi</div>
                 </div>
                 <span class="tree-leaf-arrow">›</span>
               </div>
@@ -960,6 +969,11 @@
                       onclick="appTransform.viewConvertedOnMap()" title="Xem vị trí điểm này trực tiếp trên Bản đồ">
                       🗺️ XEM TRÊN BẢN ĐỒ
                     </button>
+                    <button type="button" class="btn-convert"
+                      style="grid-column: 1 / -1; height: 38px; font-size: 12.5px; background: rgba(56, 189, 248, 0.16); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700;"
+                      onclick="appTransform.sendSingleToMulti()" title="Đưa điểm này vào Bảng Đa điểm (1.2)">
+                      📑 ĐƯA VÀO BẢNG ĐA ĐIỂM (1.2) ➔
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1019,29 +1033,50 @@
 
               <!-- ================= PANEL 2: CHUYỂN ĐỔI ĐA ĐIỂM (HÀNG LOẠT) ================= -->
               <div id="panelTransMulti" style="display: none;">
-                <!-- Card Nạp Điểm Đa Điểm -->
+                <!-- Input file ẩn cho chức năng Nhập file -->
+                <input type="file" id="fileMultiBatchInput" accept=".csv,.txt,.xlsx,.xls" style="display: none;"
+                  onchange="appTransform.handleFileInput(this)">
+
+                <!-- Card 1: Công Cụ Nạp & Điều Chỉnh Dữ Liệu Đa Điểm -->
                 <div class="app-card">
                   <div class="card-header">
-                    <span class="card-title">📥 1. Nạp Danh Sách Tọa Độ Đa Điểm</span>
+                    <span class="card-title">📥 1. Công Cụ Nạp & Nhập Dữ Liệu Tọa Độ</span>
                   </div>
-                  <div class="btn-group-row" style="margin-bottom: 8px;">
-                    <button class="btn-sm btn-blue" onclick="appTransform.openPickMultiOnMap()"
+
+                  <!-- Thanh công cụ hành động -->
+                  <div class="btn-group-row" style="margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                    <button type="button" class="btn-sm btn-blue" onclick="appTransform.addManualMultiPoint()"
+                      title="Thêm một dòng mốc mới để nhập trực tiếp">
+                      ➕ Thêm mốc
+                    </button>
+                    <button type="button" id="btnToggleMultiDirection" class="btn-sm"
+                      style="background: rgba(14, 165, 233, 0.2); border: 1px solid #38bdf8; color: #7dd3fc; font-weight: 700;"
+                      onclick="appTransform.toggleMultiDirection()" title="Chạm để chuyển đổi hệ tọa độ nguồn">
+                      🔄 Nguồn: WGS-84 ➔ VN-2000
+                    </button>
+                    <button type="button" class="btn-sm" onclick="appTransform.togglePasteMultiModal(true)"
+                      title="Dán nhanh tọa độ từ Excel, Zalo hoặc Clipboard">
+                      📋 Dán text nhanh
+                    </button>
+                    <button type="button" class="btn-sm" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #6ee7b7;"
+                      onclick="document.getElementById('fileMultiBatchInput').click()"
+                      title="Nhập danh sách mốc từ file CSV hoặc Excel">
+                      📂 Nhập file (CSV/Excel)
+                    </button>
+                    <button type="button" class="btn-sm btn-blue" onclick="appTransform.openPickMultiOnMap()"
                       title="Mở bản đồ để chấm chọn đa điểm trực tiếp">
                       📍 Chấm trên Bản đồ
                     </button>
-                    <button class="btn-sm btn-blue" onclick="appTransform.loadMultiFromPickedMap()"
+                    <button type="button" class="btn-sm btn-blue" onclick="appTransform.loadMultiFromPickedMap()"
                       title="Lấy các điểm đã chấm trên bản đồ">
                       🎯 Lấy từ Bản đồ (<span id="lblCountPickedMap">0</span>)
                     </button>
-                    <button class="btn-sm btn-green" onclick="appTransform.loadMultiFromCurrentProject()"
+                    <button type="button" class="btn-sm btn-green" onclick="appTransform.loadMultiFromCurrentProject()"
                       title="Nạp toàn bộ điểm từ dự án hiện tại">
                       📂 Lấy từ Dự án
                     </button>
-                    <button class="btn-sm" onclick="appTransform.togglePasteMultiModal(true)"
-                      title="Dán tọa độ nhanh từ bảng Excel hoặc văn bản">
-                      📋 Dán text nhanh
-                    </button>
-                    <button class="btn-sm btn-red" onclick="appTransform.clearMultiInputPoints()">
+                    <button type="button" class="btn-sm btn-red" onclick="appTransform.clearMultiInputPoints()"
+                      title="Xóa toàn bộ danh sách điểm">
                       🗑️ Xóa hết
                     </button>
                   </div>
@@ -1062,13 +1097,13 @@
                   </div>
                 </div>
 
-                <!-- Card Danh Sách Điểm Đã Nạp Kèm Checkbox Lựa Chọn -->
+                <!-- Card 2: Bảng Danh Sách Điểm Nhập & Điều Chỉnh Trực Tiếp -->
                 <div class="app-card">
                   <div class="card-header">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <input type="checkbox" id="chkMultiSelectAll" style="width: 16px; height: 16px; cursor: pointer;"
                         onchange="appTransform.toggleSelectAllMulti(this.checked)" checked>
-                      <span class="card-title">📋 2. Chọn Điểm Cần Chuyển Đổi</span>
+                      <span class="card-title">📋 2. Nhập & Điều Chỉnh Trực Tiếp Dữ Liệu Tọa Độ</span>
                     </div>
                     <span id="lblMultiSelectedCount" style="font-size: 11.5px; color: #38bdf8; font-weight: 700;">Đã
                       chọn 0/0 điểm</span>
@@ -1076,27 +1111,35 @@
 
                   <div id="boxMultiEmptyNotice"
                     style="text-align: center; color: var(--text-muted); padding: 20px 10px; font-size: 12.5px;">
-                    Chưa có điểm nào được nạp. Nhấn <b>"🎯 Lấy từ Bản đồ"</b>, <b>"📂 Lấy từ Dự án"</b> hoặc <b>"📋 Dán
-                      text nhanh"</b> để nạp điểm.
+                    Chưa có điểm nào trong bảng. Bấm <b>"➕ Thêm mốc"</b> để gõ trực tiếp, hoặc nhấn <b>"📋 Dán text nhanh"</b>, <b>"📂 Nhập file"</b>, <b>"🎯 Lấy từ Bản đồ"</b>.
                   </div>
 
                   <div id="boxMultiPointsTableWrap"
-                    style="display: none; max-height: 220px; overflow-y: auto; border: 1px solid #1e293b; border-radius: 6px;">
-                    <table class="table-selectable" id="tblMultiInputPoints">
+                    style="display: none; max-height: 280px; overflow-y: auto; overflow-x: auto; border: 1px solid #1e293b; border-radius: 6px;">
+                    <table class="table-selectable table-editable-grid" id="tblMultiInputPoints">
                       <thead>
                         <tr>
                           <th style="width: 32px; text-align: center;">✓</th>
-                          <th style="width: 40px;">STT</th>
-                          <th>Tên điểm</th>
-                          <th>Tọa độ 1 (X / Lat)</th>
-                          <th>Tọa độ 2 (Y / Lng)</th>
-                          <th style="width: 36px; text-align: center;">Xóa</th>
+                          <th style="width: 36px; text-align: center;">STT</th>
+                          <th style="min-width: 90px;">Tên mốc</th>
+                          <th id="thMultiCol1" style="min-width: 125px;">Tọa độ 1 (Lat / X)</th>
+                          <th id="thMultiCol2" style="min-width: 125px;">Tọa độ 2 (Lng / Y)</th>
+                          <th style="min-width: 140px;">Kết quả chuyển đổi tức thời</th>
+                          <th style="width: 50px; text-align: center;">Xóa</th>
                         </tr>
                       </thead>
                       <tbody id="multiTransTableBody">
-                        <!-- Render danh sách điểm nạp vào -->
+                        <!-- Render danh sách điểm nạp vào có thể nhập sửa trực tiếp -->
                       </tbody>
                     </table>
+                  </div>
+
+                  <!-- Hàng Thêm Điểm Trực Tiếp Dưới Bảng -->
+                  <div id="boxMultiAddRowBar" style="display: none; margin-top: 8px;">
+                    <button type="button" class="btn-sm" style="width: 100%; height: 34px; background: rgba(56, 189, 248, 0.12); border: 1px dashed #38bdf8; color: #38bdf8; font-weight: 700;"
+                      onclick="appTransform.addManualMultiPoint()">
+                      ➕ Thêm dòng mốc mới (Gõ trực tiếp vào bảng)
+                    </button>
                   </div>
                 </div>
 
