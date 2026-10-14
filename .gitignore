@@ -25,3 +25,6 @@ yarn-error.log*
 # Thư mục kiểm thử tạm
 scratch/
 .system_generated/
+node_modules/
+modern-react/node_modules/
+modern-react/dist/

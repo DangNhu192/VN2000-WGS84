@@ -509,7 +509,7 @@
     }
 
     .hero-coord-lbl {
-      font-size: 10.5px;
+      font-size: 11.5px;
       font-weight: 700;
       color: #94a3b8;
       text-transform: uppercase;
@@ -695,7 +695,7 @@
       background: rgba(56, 189, 248, 0.12);
       color: var(--accent-cyan, #38bdf8);
       border: 1px solid rgba(56, 189, 248, 0.28);
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 700;
       padding: 1px 7px;
       border-radius: 999px;
@@ -783,7 +783,7 @@
     }
 
     .quick-chip-pill .chip-arrow {
-      font-size: 10px;
+      font-size: 11.5px;
       color: #64748b;
       flex-shrink: 0;
     }
@@ -818,7 +818,7 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 16px rgba(0, 0, 0, 0.35);
-      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
       overflow: hidden;
     }
 
@@ -1194,7 +1194,7 @@
     }
 
     .dash-card-heading {
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 700;
       color: #64748b;
       letter-spacing: 0.5px;
@@ -1202,7 +1202,7 @@
     }
 
     .dash-card-action-link {
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 600;
       color: #38bdf8;
       opacity: 0.8;
@@ -1238,7 +1238,7 @@
     }
 
     .dash-chip-badge {
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 700;
       border-radius: 999px;
       padding: 1px 7px;
@@ -1385,7 +1385,7 @@
     }
 
     .accordion-title-sub {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: var(--text-muted, #94a3b8);
     }
 
@@ -1399,14 +1399,14 @@
       background: rgba(56, 189, 248, 0.12);
       color: var(--accent-cyan, #38bdf8);
       border: 1px solid rgba(56, 189, 248, 0.25);
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 600;
       padding: 2px 8px;
       border-radius: 999px;
     }
 
     .accordion-chevron {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: var(--text-muted, #94a3b8);
       display: inline-block;
       transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1569,7 +1569,7 @@
     }
 
     .compact-tool-tag {
-      font-size: 9.5px;
+      font-size: 11px;
       font-weight: 700;
       color: #38bdf8;
       background: rgba(56, 189, 248, 0.1);
@@ -1580,7 +1580,7 @@
     }
 
     .compact-tool-desc {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: var(--text-muted, #94a3b8);
       white-space: nowrap;
       overflow: hidden;
@@ -2806,10 +2806,10 @@
       padding: 10px;
     }
     .sheet-coord-card.card-wgs {
-      border-left: 3px solid #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
     }
     .sheet-coord-card.card-vn2k {
-      border-left: 3px solid #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.4);
     }
     .coord-card-head {
       display: flex;
@@ -2828,7 +2828,7 @@
       color: var(--text-main, #f8fafc);
       border-radius: 6px;
       padding: 2px 6px;
-      font-size: 10px;
+      font-size: 11.5px;
       cursor: pointer;
     }
     .coord-inputs-row {
@@ -2839,7 +2839,7 @@
       flex: 1;
     }
     .input-col label {
-      font-size: 10px;
+      font-size: 11.5px;
       color: var(--text-muted, #94a3b8);
       display: block;
       margin-bottom: 2px;
@@ -2908,7 +2908,7 @@
       color: #34d399;
     }
     .result-timestamp {
-      font-size: 10px;
+      font-size: 11.5px;
       color: #64748b;
     }
     .result-box-content {
@@ -2923,7 +2923,7 @@
       gap: 2px;
     }
     .result-item-row .res-lbl {
-      font-size: 10px;
+      font-size: 11.5px;
       color: #94a3b8;
     }
     .result-item-row .res-val {
@@ -3388,7 +3388,7 @@
       transform: translateX(-50%);
       background: linear-gradient(135deg, #0284c7, #0369a1);
       color: #ffffff;
-      font-size: 9.5px;
+      font-size: 11px;
       font-weight: 800;
       padding: 2px 8px;
       border-radius: 10px;
@@ -3458,7 +3458,7 @@
       gap: 6px;
     }
     .nav-card-sub {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: #94a3b8;
       margin-top: 1px;
       white-space: nowrap;
@@ -3655,7 +3655,7 @@
 
     .rtk-metric-label {
       color: #94a3b8;
-      font-size: 10.5px;
+      font-size: 11.5px;
       margin-bottom: 2px;
     }
 
@@ -3671,7 +3671,7 @@
       border-radius: 8px;
       padding: 8px;
       font-family: ui-monospace, monospace;
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: #4ade80;
       height: 90px;
       overflow-y: auto;
@@ -4720,7 +4720,7 @@
       .cad-btn {
         height: 29px !important;
         padding: 2px 7px !important;
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
       }
 
       .map-cad-toolbar-header {
@@ -4735,12 +4735,12 @@
 
       .cad-tab-btn {
         padding: 0 6px !important;
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
       }
 
       .cad-btn-icon {
         padding: 0 5px !important;
-        font-size: 10px !important;
+        font-size: 11.5px !important;
       }
 
       #modalCadExportConfig .modal-body {
@@ -5150,7 +5150,7 @@
     }
 
     .pill-badge {
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 800;
       padding: 1px 6px;
       border-radius: 6px;
@@ -5305,7 +5305,7 @@
     }
 
     .tree-chevron {
-      font-size: 10px;
+      font-size: 11.5px;
       color: #94a3b8;
       transition: transform 0.2s ease;
     }
@@ -5319,7 +5319,7 @@
     }
 
     .tree-badge {
-      font-size: 10.5px;
+      font-size: 11.5px;
       font-weight: 700;
       padding: 2px 7px;
       border-radius: 10px;
@@ -5530,7 +5530,7 @@
     }
 
     .drawer-subtitle {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: #bae6fd;
       margin-top: 1px;
     }
@@ -5669,7 +5669,7 @@
     }
 
     .drawer-chevron {
-      font-size: 9px;
+      font-size: 11px;
       color: #94a3b8;
       transition: transform 0.2s ease;
     }
@@ -5784,7 +5784,7 @@
     }
 
     .drawer-leaf-sub {
-      font-size: 10px;
+      font-size: 11.5px;
       color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
@@ -5792,7 +5792,7 @@
     }
 
     .drawer-leaf-btn {
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 700;
       color: #38bdf8;
       padding: 3px 6px;
@@ -5921,7 +5921,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10.5px;
+      font-size: 11.5px;
       font-weight: 800;
       flex-shrink: 0;
       margin-top: 1px;
@@ -6084,7 +6084,7 @@
     }
 
     .cad-mode-badge {
-      font-size: 10px;
+      font-size: 11.5px;
       color: #38bdf8;
       background: rgba(56, 189, 248, 0.15);
       padding: 1px 6px;
@@ -6144,7 +6144,7 @@
     }
 
     .cad-panel-pill {
-      font-size: 10px;
+      font-size: 11.5px;
       background: rgba(56, 189, 248, 0.15);
       color: #38bdf8;
       padding: 1px 6px;
@@ -6245,7 +6245,7 @@
     }
 
     .pmb-summary-label {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: #94a3b8;
     }
 
@@ -6414,7 +6414,7 @@
     }
 
     .cad-stats-pill {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: #a7f3d0;
       background: rgba(16, 185, 129, 0.15);
       border: 1px solid rgba(16, 185, 129, 0.3);
@@ -6490,7 +6490,7 @@
       color: #38bdf8;
       padding: 1px 6px;
       border-radius: 4px;
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 700;
       white-space: nowrap;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
@@ -6608,7 +6608,7 @@
       width: auto !important;
       min-width: 22px !important;
       height: 22px !important;
-      font-size: 10px !important;
+      font-size: 11.5px !important;
       line-height: 20px !important;
       padding: 0 6px !important;
       border-radius: 11px !important;
@@ -6829,7 +6829,7 @@
     .cad-status-hud .cad-hud-label {
       color: #38bdf8;
       font-weight: 700;
-      font-size: 10px;
+      font-size: 11.5px;
     }
 
     .cad-status-hud .cad-hud-val {
@@ -6857,7 +6857,7 @@
       color: #94a3b8;
       border-radius: 4px;
       padding: 2px 7px;
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s ease;
@@ -6912,7 +6912,7 @@
     }
 
     .cad-status-hud .cad-hud-tips {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: #94a3b8;
       white-space: nowrap;
     }
@@ -6930,7 +6930,7 @@
         bottom: 8px;
         left: 6px;
         padding: 3px 8px;
-        font-size: 10px;
+        font-size: 11.5px;
       }
     }
 
@@ -7038,7 +7038,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 9.5px;
+      font-size: 11px;
       font-family: var(--font-mono);
       color: #f8fafc;
       margin-bottom: 4px;
@@ -7144,7 +7144,7 @@
       background: rgba(245, 158, 11, 0.95);
       color: #000;
       font-weight: 800;
-      font-size: 9px;
+      font-size: 11px;
       padding: 1px 7px;
       border-radius: 10px;
       white-space: nowrap;
@@ -7158,7 +7158,7 @@
       border: 1px solid rgba(56, 189, 248, 0.35);
       border-radius: 4px;
       padding: 1px 6px;
-      font-size: 9.5px;
+      font-size: 11px;
       font-family: var(--font-mono);
       color: #38bdf8;
       font-weight: 700;
@@ -7245,7 +7245,7 @@
     }
 
     .cad-summary-label {
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: #94a3b8;
       text-transform: uppercase;
       font-weight: 700;
@@ -7483,7 +7483,7 @@
       background: transparent;
       border: none;
       color: #94a3b8;
-      font-size: 10px;
+      font-size: 11.5px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -7572,7 +7572,7 @@
       --bauhaus-titan-card: #131c2e;
       --bauhaus-titan-border: rgba(255, 255, 255, 0.1);
       --bauhaus-titan-chamfer: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      --bauhaus-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --bauhaus-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
       --bauhaus-ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -8374,7 +8374,7 @@
 
     .gps-pulse-dot,
     #dashGpsPulseDot {
-      animation: hudPulseRadar 1.8s infinite var(--hud-spring-ease) !important;
+      animation: hudPulseRadar 2s infinite ease-out !important;
     }
 
     /* Unified Bottom Navigation Active Pill Indicator */
@@ -8461,7 +8461,7 @@
         flex-shrink: 0 !important;
       }
       .app-subtitle {
-        font-size: 10px !important;
+        font-size: 11.5px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -8498,7 +8498,7 @@
         display: none !important;
       }
       #headerGpsText {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         max-width: 50px !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -8573,14 +8573,14 @@
         font-size: 12px !important;
       }
       .sheet-sub-title {
-        font-size: 10px !important;
+        font-size: 11.5px !important;
       }
       .sheet-header-actions {
         gap: 4px !important;
       }
       .btn-sheet-pick-mode {
         padding: 3px 6px !important;
-        font-size: 10px !important;
+        font-size: 11.5px !important;
         border-radius: 6px !important;
         gap: 3px !important;
       }
@@ -8612,7 +8612,7 @@
         min-width: 120px !important;
       }
       .sheet-field-label {
-        font-size: 10px !important;
+        font-size: 11.5px !important;
         margin-bottom: 2px !important;
       }
       .sheet-select {
@@ -8627,7 +8627,7 @@
       .btn-sheet-mui {
         height: 30px !important;
         padding: 0 7px !important;
-        font-size: 10px !important;
+        font-size: 11.5px !important;
         border-radius: 7px !important;
       }
       .sheet-inputs-grid {
@@ -8642,18 +8642,18 @@
         margin-bottom: 4px !important;
       }
       .coord-card-title {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
       }
       .btn-card-mini {
         padding: 2px 5px !important;
-        font-size: 9.5px !important;
+        font-size: 11px !important;
         border-radius: 5px !important;
       }
       .coord-inputs-row {
         gap: 6px !important;
       }
       .input-col label {
-        font-size: 9.5px !important;
+        font-size: 11px !important;
         margin-bottom: 2px !important;
       }
       .sheet-input {
@@ -8685,17 +8685,17 @@
         margin-bottom: 6px !important;
       }
       .result-badge-status {
-        font-size: 10px !important;
+        font-size: 11.5px !important;
       }
       .result-timestamp {
-        font-size: 9.5px !important;
+        font-size: 11px !important;
       }
       .result-box-content {
         gap: 4px !important;
         margin-bottom: 8px !important;
       }
       .result-item-row .res-lbl {
-        font-size: 9.5px !important;
+        font-size: 11px !important;
       }
       .result-item-row .res-val {
         font-size: 12px !important;
@@ -8708,17 +8708,17 @@
         flex: 1 1 130px !important;
       }
       .btn-smart-copy {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         padding: 6px 8px !important;
         height: 34px !important;
       }
       .btn-smart-copy-arrow {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         padding: 6px 7px !important;
         height: 34px !important;
       }
       .btn-sheet-save-project {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         padding: 6px 8px !important;
         height: 34px !important;
         border-radius: 8px !important;
@@ -8738,11 +8738,11 @@
         gap: 4px !important;
       }
       .bar-badge {
-        font-size: 9.5px !important;
+        font-size: 11px !important;
         padding: 1px 5px !important;
       }
       .btn-customize-pins {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         padding: 3px 7px !important;
         height: 25px !important;
         border-radius: 6px !important;
@@ -8760,7 +8760,7 @@
         gap: 4px !important;
       }
       .chip-label {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         max-width: 120px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
@@ -8774,10 +8774,10 @@
         margin-bottom: 6px !important;
       }
       .hero-hud-label {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
       }
       .dash-chip-badge {
-        font-size: 9px !important;
+        font-size: 11px !important;
         padding: 1.5px 5px !important;
       }
       .hero-hud-coords-grid {
@@ -8785,20 +8785,20 @@
         margin-bottom: 6px !important;
       }
       .hero-coord-lbl {
-        font-size: 9.5px !important;
+        font-size: 11px !important;
       }
       .hero-coord-val {
         font-size: clamp(12px, 3.5vw, 14.5px) !important;
       }
       .hero-hud-subrow {
-        font-size: 10px !important;
+        font-size: 11.5px !important;
         margin-bottom: 6px !important;
       }
       .hero-hud-actions {
         gap: 6px !important;
       }
       .btn-hud-action {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         padding: 5px 8px !important;
         height: 32px !important;
         border-radius: 7px !important;
@@ -8823,7 +8823,7 @@
         border-radius: 9px !important;
       }
       .tile-metric-pill {
-        font-size: 9px !important;
+        font-size: 11px !important;
         padding: 2px 5px !important;
       }
       .big-tile-title {
@@ -8835,7 +8835,7 @@
         border-radius: 12px !important;
       }
       .dash-card-heading {
-        font-size: 10px !important;
+        font-size: 11.5px !important;
       }
       .dash-card-main-val {
         font-size: 12.5px !important;
@@ -8848,10 +8848,10 @@
         font-size: 11.5px !important;
       }
       .accordion-title-sub {
-        font-size: 9.5px !important;
+        font-size: 11px !important;
       }
       .accordion-badge {
-        font-size: 9px !important;
+        font-size: 11px !important;
         padding: 1.5px 5px !important;
       }
       .compact-tools-list {
@@ -8873,10 +8873,10 @@
         font-size: 11.5px !important;
       }
       .compact-tool-sub {
-        font-size: 9px !important;
+        font-size: 11px !important;
       }
       .compact-tool-badge {
-        font-size: 8.5px !important;
+        font-size: 11px !important;
         padding: 1.5px 5px !important;
       }
 
@@ -8890,7 +8890,7 @@
       }
       .bottom-nav-item {
         padding: 3px 2px !important;
-        font-size: 9px !important;
+        font-size: 11px !important;
         border-radius: 10px !important;
       }
       .bottom-nav-icon {
@@ -8922,7 +8922,7 @@
         font-size: 12.5px !important;
       }
       .btn-header-back {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         padding: 4px 6px !important;
       }
       .tree-nav-label {
@@ -8935,7 +8935,7 @@
         max-width: 95px !important;
       }
       .sheet-tab-btn {
-        font-size: 10.5px !important;
+        font-size: 11.5px !important;
         padding: 4px 4px !important;
       }
       .big-tile-title {
@@ -9269,7 +9269,7 @@
   width: 20px;
   height: 20px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 11.5px;
   line-height: 1;
   cursor: pointer;
   display: inline-flex;
@@ -9386,7 +9386,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   color: #94a3b8;
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
@@ -9552,7 +9552,7 @@
 }
 
 .mac-os-badge {
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 800;
   padding: 1.5px 7px;
   border-radius: 12px;
