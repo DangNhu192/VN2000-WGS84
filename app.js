@@ -14095,6 +14095,9 @@ const appCadTool = {
             } else if (key === 'S' || e.key === 'F3') {
                 e.preventDefault();
                 this.toggleSnap();
+            } else if (e.key === 'F8') {
+                e.preventDefault();
+                this.toggleOrthoMode();
             } else if (key === 'B') {
                 e.preventDefault();
                 this.toggleSnapLine();
@@ -14313,6 +14316,13 @@ const appCadTool = {
         const toggleBtn = document.getElementById('btnToggleCadTool');
         if (toggleBtn) toggleBtn.classList.add('active');
 
+        // Bật CADCraft Floating HUD CLI & Status Ribbon
+        const cmdBar = document.getElementById('cadFloatingCmdBar');
+        if (cmdBar) {
+            cmdBar.style.display = 'block';
+            this.initFloatingCmdBarDrag();
+        }
+
         // Bật CAD Realtime Status & Coordinates HUD Bar
         const hud = document.getElementById('cadStatusHud');
         if (hud) hud.style.display = 'flex';
@@ -14330,7 +14340,7 @@ const appCadTool = {
         this.setToolbarCollapsed(false);
         this.scheduleToolbarCollapse(this.toolbarIdleMs * 2);
         if (typeof appNav !== 'undefined' && appNav.syncBottomNav) appNav.syncBottomNav('cad');
-        showToast("📐 MiniCAD sẵn sàng! Chuột trái: Đặt mốc • Chuột phải/Space: Khép góc • Chuột giữa: Pan/Zoom");
+        showToast("📐 MiniCAD 2D CADCraft sẵn sàng! Gõ lệnh hoặc bấm nút để vẽ & biên tập!");
     },
 
     closeToolbar() {
@@ -14340,6 +14350,10 @@ const appCadTool = {
         if (bar) bar.style.display = 'none';
         const toggleBtn = document.getElementById('btnToggleCadTool');
         if (toggleBtn) toggleBtn.classList.remove('active');
+
+        // Ẩn CADCraft Floating HUD CLI
+        const cmdBar = document.getElementById('cadFloatingCmdBar');
+        if (cmdBar) cmdBar.style.display = 'none';
 
         // Ẩn CAD Status HUD
         const hud = document.getElementById('cadStatusHud');
@@ -15692,6 +15706,7 @@ const appCadTool = {
             hudX.innerText = `X: ${curVn2k.X.toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
             hudY.innerText = `Y: ${curVn2k.Y.toLocaleString('vi-VN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
         }
+        this.updateCmdCoordsLive(lat, lng);
 
         // Nếu đang ở chế độ Nhãn (Markup), hiển thị đường bóng mờ tương tác cho công cụ nhãn
         if (this.markupMode) {
@@ -15900,6 +15915,21 @@ const appCadTool = {
             triggerHaptic('success');
             showToast(`🧲 Đã bắt trùng: ${candidate.source || candidate.name}`);
         } else {
+            // Áp dụng Ortho Mode (F8) nếu đang bật và đã có >= 1 đỉnh
+            if (this.orthoMode && this.vertices && this.vertices.length > 0) {
+                const lastV = this.vertices[this.vertices.length - 1];
+                const curVn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                const dx = Math.abs(curVn.X - lastV.x);
+                const dy = Math.abs(curVn.Y - lastV.y);
+                if (dx >= dy) {
+                    curVn.Y = lastV.y; // khóa phương ngang
+                } else {
+                    curVn.X = lastV.x; // khóa phương dọc
+                }
+                const backWgs = convertVn2kToWgs(curVn.X, curVn.Y, AppState.kttVal, AppState.scaleFactor);
+                lat = backWgs.lat;
+                lng = backWgs.lng;
+            }
             const nextIdx = this.vertices.length + 1;
             this.addVertex(lat, lng, `Đ${nextIdx}`, false, null);
         }
@@ -16466,10 +16496,12 @@ const appCadTool = {
                         screenAngleDeg = -Math.atan2(dLat, dLng) * 180 / Math.PI;
                     }
 
-                    // Chuẩn LibreCAD / ISO CAD: Văn bản nằm dọc theo thân mũi tên, tự động lật 180° để mắt đọc thuận từ trái sang phải, dưới lên trên
-                    let textRot = screenAngleDeg;
-                    while (textRot > 90) textRot -= 180;
-                    while (textRot < -90) textRot += 180;
+                    // Chuẩn CADCraft / AutoCAD: Hỗ trợ xoay nhãn tùy biến 0-360° hoặc tự động dọc theo thân mũi tên
+                    let textRot = (typeof ann.labelRotationDeg !== 'undefined' && ann.labelRotationDeg !== null) ? ann.labelRotationDeg : screenAngleDeg;
+                    if (typeof ann.labelRotationDeg === 'undefined' || ann.labelRotationDeg === null) {
+                        while (textRot > 90) textRot -= 180;
+                        while (textRot < -90) textRot += 180;
+                    }
 
                     const labelHtml = `<div class="cad-arrow-label-marker" style="background: rgba(15,23,42,0.94); border: 1.5px solid ${annColor}; color: #f8fafc; font-size: ${ann.fontSize || 12}px; font-weight: 700; padding: 2.5px 7px; border-radius: 5px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; display: inline-flex; align-items: center; gap: 4px; transform: rotate(${textRot.toFixed(1)}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
                         <span style="color: ${annColor}; font-size: 11px;">${isDouble ? '↔️' : '🏹'}</span>
@@ -16621,8 +16653,9 @@ const appCadTool = {
                         fieldsHtml = `<div style="color:#94a3b8; font-style:italic; font-size:10px;">(Nhấp vào để thêm các dòng thông tin)</div>`;
                     }
 
+                    const stampRot = ann.labelRotationDeg || 0;
                     const stampHtml = `
-                        <div class="cad-drawing-stamp-card" style="background: rgba(15,23,42,0.96); border: 2px solid ${annColor}; border-radius: 8px; padding: 7px 12px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 6px 18px rgba(0,0,0,0.65); min-width: 175px; max-width: 280px; cursor: move; user-select: none; text-align: left; ${isSelected ? 'box-shadow: 0 0 12px #facc15;' : ''}">
+                        <div class="cad-drawing-stamp-card" style="background: rgba(15,23,42,0.96); border: 2px solid ${annColor}; border-radius: 8px; padding: 7px 12px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 6px 18px rgba(0,0,0,0.65); min-width: 175px; max-width: 280px; cursor: move; user-select: none; text-align: left; transform: rotate(${stampRot}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 12px #facc15;' : ''}">
                             <div style="font-weight: 800; color: ${annColor}; border-bottom: 1.5px solid rgba(255,255,255,0.2); padding-bottom: 4px; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
                                 <span>📋 ${title}</span>
                                 <span style="font-size: 9px; opacity: 0.7; color: #38bdf8;">CAD 2D</span>
@@ -16726,7 +16759,8 @@ const appCadTool = {
                 }
 
                 case 'text': {
-                    const textHtml = `<div style="background: ${ann.bgColor || 'rgba(15, 23, 42, 0.9)'}; border: 1.5px solid ${annColor}; border-radius: 6px; padding: 3px 8px; color: ${ann.color || '#f8fafc'}; font-size: ${ann.fontSize || 12}px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: move; user-select: none; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                    const textRot = ann.labelRotationDeg || 0;
+                    const textHtml = `<div style="background: ${ann.bgColor || 'rgba(15, 23, 42, 0.9)'}; border: 1.5px solid ${annColor}; border-radius: 6px; padding: 3px 8px; color: ${ann.color || '#f8fafc'}; font-size: ${ann.fontSize || 12}px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: move; user-select: none; transform: rotate(${textRot}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
                         ${ann.text || 'Ghi chú'}
                     </div>`;
                     const textIcon = L.divIcon({
@@ -20837,6 +20871,127 @@ const appCadTool = {
         }
     },
 
+    // === TIỆN ÍCH XOAY NHÃN THỐNG NHẤT (0° - 360°) CHUẨN CADCRAFT ===
+    renderUnifiedRotationControl(rot, targetType, targetIdOrIdx) {
+        const r = (typeof rot !== 'undefined' && rot !== null) ? parseInt(rot, 10) : 0;
+        return `
+            <div style="margin-top:6px; padding:5px 0; border-top:1px dashed rgba(255,255,255,0.15);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                    <span style="font-size:10.5px; color:#cbd5e1; font-weight:700;">🔄 Góc xoay nhãn (0° - 360°):</span>
+                    <b id="lblQuickRotVal" style="font-size:11px; color:#38bdf8;">${r}°</b>
+                </div>
+                <input type="range" id="rngQuickRot" min="0" max="360" step="5" value="${r}"
+                    style="width:100%; height:4px; accent-color:#38bdf8; cursor:pointer;"
+                    oninput="appCadTool.setQuickLabelRotation(this.value, '${targetType}', '${targetIdOrIdx}')">
+                <div style="display:flex; gap:3px; margin-top:4px;">
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(0, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">0°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(45, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">45°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(90, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">90°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(180, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">180°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(270, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">270°</button>
+                </div>
+            </div>
+        `;
+    },
+
+    setQuickLabelRotation(val, targetType, targetIdOrIdx) {
+        const deg = parseInt(val, 10) || 0;
+        const lbl = document.getElementById('lblQuickRotVal');
+        if (lbl) lbl.innerText = deg + '°';
+        const rng = document.getElementById('rngQuickRot');
+        if (rng && parseInt(rng.value, 10) !== deg) rng.value = deg;
+
+        // Đồng bộ các element cũ nếu có
+        const lblShape = document.getElementById('lblQuickShapeRotVal');
+        if (lblShape) lblShape.innerText = deg + '°';
+        const lblRect = document.getElementById('lblQuickRectRotVal');
+        if (lblRect) lblRect.innerText = deg + '°';
+
+        if (targetType === 'shape') {
+            const idx = parseInt(targetIdOrIdx, 10);
+            const s = (this.savedShapes || [])[idx];
+            if (s) {
+                s.labelRotationDeg = deg;
+                this.renderGeometry();
+            }
+        } else if (targetType === 'rect') {
+            const ann = (this.annotations || []).find(a => a.id === targetIdOrIdx);
+            if (ann) {
+                ann.labelRotationDeg = deg;
+                ann.rotationDeg = deg;
+                this.renderAnnotations();
+            }
+        } else if (targetType === 'arrow') {
+            const ann = (this.annotations || []).find(a => a.id === targetIdOrIdx);
+            if (ann) {
+                ann.labelRotationDeg = deg;
+                this.renderAnnotations();
+            }
+        } else if (targetType === 'circle') {
+            const ann = (this.annotations || []).find(a => a.id === targetIdOrIdx);
+            if (ann) {
+                ann.labelRotationDeg = deg;
+                this.renderAnnotations();
+            }
+        } else if (targetType === 'stamp') {
+            const ann = (this.annotations || []).find(a => a.id === targetIdOrIdx);
+            if (ann) {
+                ann.labelRotationDeg = deg;
+                this.renderAnnotations();
+            }
+        } else if (targetType === 'text') {
+            const ann = (this.annotations || []).find(a => a.id === targetIdOrIdx);
+            if (ann) {
+                ann.labelRotationDeg = deg;
+                this.renderAnnotations();
+            }
+        }
+    },
+
+    // Hàm xoay nhãn tương thích ngược
+    onQuickShapeRotChange(val, idx) { this.setQuickLabelRotation(val, 'shape', idx); },
+    setQuickShapeRot(deg, idx) { this.setQuickLabelRotation(deg, 'shape', idx); },
+    onQuickRectRotChange(val, annId) { this.setQuickLabelRotation(val, 'rect', annId); },
+    setQuickRectRot(deg, annId) { this.setQuickLabelRotation(deg, 'rect', annId); },
+
+    promptRotateSelected(presetDeg) {
+        if (!this.selectedItem) {
+            showToast('ℹ️ Vui lòng click chọn 1 đối tượng trên bản đồ trước để xoay [RO]');
+            return;
+        }
+        let deg = presetDeg;
+        if (typeof deg === 'undefined') {
+            const promptVal = prompt('Nhập góc xoay nhãn / đối tượng (0° - 360°):', '45');
+            if (promptVal === null) return;
+            deg = parseInt(promptVal, 10);
+        }
+        if (isNaN(deg)) {
+            showToast('⚠️ Góc xoay không hợp lệ');
+            return;
+        }
+
+        const sel = this.selectedItem;
+        if (sel.type === 'shape') {
+            const s = (this.savedShapes || [])[sel.index];
+            if (s) {
+                s.labelRotationDeg = deg;
+                this.saveShapesForProject(AppState.currentProject);
+                this.persistSession();
+                this.renderGeometry();
+                showToast(`✓ Đã xoay nhãn khối thành ${deg}°`);
+            }
+        } else if (sel.type === 'annotation') {
+            const ann = (this.annotations || []).find(a => a.id === sel.id);
+            if (ann) {
+                ann.labelRotationDeg = deg;
+                if (ann.type === 'rect') ann.rotationDeg = deg;
+                this.saveAnnotations();
+                this.renderAnnotations();
+                showToast(`✓ Đã xoay đối tượng thành ${deg}°`);
+            }
+        }
+    },
+
     // === POPUP CHỈNH SỬA NHANH TÊN / THUỘC TÍNH TRỰC TIẾP TRÊN BẢN ĐỒ ===
     showQuickEditPopup(latlng, targetData) {
         if (!AppState.leafletMap) return;
@@ -20869,22 +21024,7 @@ const appCadTool = {
                     <span>Diện tích: <b style="color:#4ade80;">${s.stats?.areaFormatted || 0} m²</b></span>
                     <span>Ký hiệu: <b style="color:#38bdf8;">${s.symbol || String(targetData.shapeIndex + 1)}</b></span>
                 </div>
-                <div style="margin-top:6px; padding:5px 0; border-top:1px dashed rgba(255,255,255,0.15);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                        <span style="font-size:10px; color:#cbd5e1; font-weight:600;">🔄 Góc xoay tên/nhãn khối:</span>
-                        <b id="lblQuickShapeRotVal" style="font-size:11px; color:#38bdf8;">${rot}°</b>
-                    </div>
-                    <input type="range" id="rngQuickShapeRot" min="0" max="360" step="5" value="${rot}"
-                        style="width:100%; height:4px; accent-color:#38bdf8; cursor:pointer;"
-                        oninput="appCadTool.onQuickShapeRotChange(this.value, ${targetData.shapeIndex})">
-                    <div style="display:flex; gap:3px; margin-top:4px;">
-                        <button type="button" onclick="appCadTool.setQuickShapeRot(0, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">0°</button>
-                        <button type="button" onclick="appCadTool.setQuickShapeRot(45, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">45°</button>
-                        <button type="button" onclick="appCadTool.setQuickShapeRot(90, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">90°</button>
-                        <button type="button" onclick="appCadTool.setQuickShapeRot(180, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">180°</button>
-                        <button type="button" onclick="appCadTool.setQuickShapeRot(270, ${targetData.shapeIndex})" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">270°</button>
-                    </div>
-                </div>
+                ${this.renderUnifiedRotationControl(rot, 'shape', targetData.shapeIndex)}
             `;
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
@@ -20896,16 +21036,20 @@ const appCadTool = {
         } else if (targetData.type === 'arrow') {
             const ann = targetData.ann;
             const isDouble = ann.arrowType === 'double';
-            title = isDouble ? '↔️ Mũi tên 2 đầu nhọn (Dọc thân)' : '🏹 Mũi tên 1 đầu nhọn (Dọc thân)';
+            title = isDouble ? '↔️ Mũi tên 2 đầu nhọn (Kích thước)' : '🏹 Mũi tên 1 đầu nhọn (Chỉ dẫn)';
             currentName = ann.arrowText || '';
-            extraControls = `
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; padding:4px 0; border-top:1px dashed rgba(255,255,255,0.15);">
-                    <span style="font-size:10px; color:#cbd5e1;">Kiểu:</span>
+            const rot = ann.labelRotationDeg || 0;
+            metaInfo = `
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+                    <span style="font-size:10px; color:#cbd5e1;">Kiểu mũi tên:</span>
                     <button type="button" onclick="appCadTool.quickToggleArrowType('${ann.id}')" style="background:${isDouble ? '#0284c7' : '#f59e0b'}; color:#fff; border:none; border-radius:4px; font-size:10px; font-weight:700; padding:2px 8px; cursor:pointer;">
-                        ${isDouble ? '↔️ 2 đầu' : '🏹 1 đầu'} 🔄 Đổi kiểu
+                        ${isDouble ? '↔️ 2 đầu nhọn' : '🏹 1 đầu nhọn'} 🔄 Đổi
                     </button>
                 </div>
-                <div style="display:flex; gap:6px; margin-top:6px;">
+                ${this.renderUnifiedRotationControl(rot, 'arrow', ann.id)}
+            `;
+            extraControls = `
+                <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu</button>
                     <button type="button" onclick="appCadTool.openAnnotationModal('${ann.id}'); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(255,255,255,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Mở chi tiết thuộc tính">⚙️</button>
                     <button type="button" onclick="appCadTool.deleteAnnotation('${ann.id}'); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa mũi tên">🗑️</button>
@@ -20916,24 +21060,7 @@ const appCadTool = {
             title = `🏠 Khối Nhà (${ann.widthM || 0}x${ann.lengthM || 0}m)`;
             currentName = ann.rectName || '';
             const rot = (typeof ann.labelRotationDeg !== 'undefined') ? ann.labelRotationDeg : (ann.rotationDeg || 0);
-            metaInfo = `
-                <div style="margin-top:6px; padding:5px 0; border-top:1px dashed rgba(255,255,255,0.15);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                        <span style="font-size:10px; color:#cbd5e1; font-weight:600;">🔄 Góc xoay tên khối nhà:</span>
-                        <b id="lblQuickRectRotVal" style="font-size:11px; color:#f59e0b;">${rot}°</b>
-                    </div>
-                    <input type="range" id="rngQuickRectRot" min="0" max="360" step="5" value="${rot}"
-                        style="width:100%; height:4px; accent-color:#f59e0b; cursor:pointer;"
-                        oninput="appCadTool.onQuickRectRotChange(this.value, '${ann.id}')">
-                    <div style="display:flex; gap:3px; margin-top:4px;">
-                        <button type="button" onclick="appCadTool.setQuickRectRot(0, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">0°</button>
-                        <button type="button" onclick="appCadTool.setQuickRectRot(45, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">45°</button>
-                        <button type="button" onclick="appCadTool.setQuickRectRot(90, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">90°</button>
-                        <button type="button" onclick="appCadTool.setQuickRectRot(180, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">180°</button>
-                        <button type="button" onclick="appCadTool.setQuickRectRot(270, '${ann.id}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">270°</button>
-                    </div>
-                </div>
-            `;
+            metaInfo = this.renderUnifiedRotationControl(rot, 'rect', ann.id);
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Tên</button>
@@ -20945,6 +21072,8 @@ const appCadTool = {
             const ann = targetData.ann;
             title = `⭕ Bán Kính (R = ${ann.radiusM || 10}m)`;
             currentName = ann.circleName || '';
+            const rot = ann.labelRotationDeg || 0;
+            metaInfo = this.renderUnifiedRotationControl(rot, 'circle', ann.id);
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Tên</button>
@@ -20954,8 +21083,10 @@ const appCadTool = {
             `;
         } else if (targetData.type === 'stamp') {
             const ann = targetData.ann;
-            title = '📋 Tem / Nhãn Bản Vẽ (LibreCAD)';
+            title = '📋 Tem / Nhãn Bản Vẽ (CADCraft)';
             currentName = ann.title || 'THÔNG TIN BẢN VẼ';
+            const rot = ann.labelRotationDeg || 0;
+            metaInfo = this.renderUnifiedRotationControl(rot, 'stamp', ann.id);
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Tiêu Đề</button>
@@ -20967,6 +21098,8 @@ const appCadTool = {
             const ann = targetData.ann;
             title = '🔤 Chữ Ghi Chú CAD';
             currentName = ann.text || '';
+            const rot = ann.labelRotationDeg || 0;
+            metaInfo = this.renderUnifiedRotationControl(rot, 'text', ann.id);
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Chữ</button>
@@ -20978,7 +21111,7 @@ const appCadTool = {
 
         const safeVal = (currentName || '').replace(/"/g, '&quot;');
         const popupHtml = `
-            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; min-width:220px; max-width:270px;">
+            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; min-width:230px; max-width:290px;">
                 <div style="font-weight:700; font-size:12px; color:#38bdf8; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
                     <span>${title}</span>
                 </div>
@@ -20992,7 +21125,7 @@ const appCadTool = {
             </div>
         `;
 
-        L.popup({ className: 'cad-quick-popup', maxWidth: 290, autoPan: true })
+        L.popup({ className: 'cad-quick-popup', maxWidth: 300, autoPan: true })
             .setLatLng(latlng)
             .setContent(popupHtml)
             .openOn(AppState.leafletMap);
@@ -21016,6 +21149,8 @@ const appCadTool = {
         }
 
         const t = this.currentQuickTarget;
+        const rotVal = parseInt(document.getElementById('rngQuickRot')?.value || document.getElementById('rngQuickShapeRot')?.value || document.getElementById('rngQuickRectRot')?.value, 10);
+
         if (t.type === 'vertex') {
             this.pushHistoryState(`Đổi tên đỉnh ${t.vertex.name} -> ${newVal}`);
             t.vertex.name = newVal;
@@ -21028,8 +21163,7 @@ const appCadTool = {
         } else if (t.type === 'shape') {
             this.pushHistoryState(`Đổi tên khối ${t.shape.name} -> ${newVal}`);
             t.shape.name = newVal;
-            const rot = parseInt(document.getElementById('rngQuickShapeRot')?.value, 10);
-            if (!isNaN(rot)) t.shape.labelRotationDeg = rot;
+            if (!isNaN(rotVal)) t.shape.labelRotationDeg = rotVal;
             this.saveShapesForProject(AppState.currentProject);
             this.persistSession();
             this.renderGeometry();
@@ -21039,6 +21173,7 @@ const appCadTool = {
         } else if (t.type === 'arrow') {
             this.pushHistoryState('Đổi nội dung mũi tên');
             t.ann.arrowText = newVal;
+            if (!isNaN(rotVal)) t.ann.labelRotationDeg = rotVal;
             this.saveAnnotations();
             this.renderAnnotations();
             this.renderBlocksPanel();
@@ -21047,8 +21182,10 @@ const appCadTool = {
         } else if (t.type === 'rect') {
             this.pushHistoryState('Đổi tên khối nhà');
             t.ann.rectName = newVal;
-            const rot = parseInt(document.getElementById('rngQuickRectRot')?.value, 10);
-            if (!isNaN(rot)) t.ann.labelRotationDeg = rot;
+            if (!isNaN(rotVal)) {
+                t.ann.labelRotationDeg = rotVal;
+                t.ann.rotationDeg = rotVal;
+            }
             this.saveAnnotations();
             this.renderAnnotations();
             this.renderBlocksPanel();
@@ -21057,6 +21194,7 @@ const appCadTool = {
         } else if (t.type === 'circle') {
             this.pushHistoryState('Đổi tên bán kính');
             t.ann.circleName = newVal;
+            if (!isNaN(rotVal)) t.ann.labelRotationDeg = rotVal;
             this.saveAnnotations();
             this.renderAnnotations();
             this.renderBlocksPanel();
@@ -21065,13 +21203,16 @@ const appCadTool = {
         } else if (t.type === 'stamp') {
             this.pushHistoryState('Đổi tiêu đề tem');
             t.ann.title = newVal;
+            if (!isNaN(rotVal)) t.ann.labelRotationDeg = rotVal;
             this.saveAnnotations();
             this.renderAnnotations();
             this.renderBlocksPanel();
+            if (this.modalTableActiveTab === 'stamps') this.renderModalStampsTable();
             showToast(`✓ Đã đổi tiêu đề tem: ${newVal}`);
         } else if (t.type === 'text') {
             this.pushHistoryState('Đổi chữ ghi chú');
             t.ann.text = newVal;
+            if (!isNaN(rotVal)) t.ann.labelRotationDeg = rotVal;
             this.saveAnnotations();
             this.renderAnnotations();
             this.renderBlocksPanel();
@@ -21102,6 +21243,339 @@ const appCadTool = {
         showToast(`🔄 Đã chuyển sang ${ann.arrowType === 'double' ? 'mũi tên 2 đầu nhọn (đo khoảng cách)' : 'mũi tên 1 đầu nhọn (chỉ dẫn)'}`);
         if (AppState.leafletMap) {
             AppState.leafletMap.closePopup();
+        }
+    },
+
+    // ================= 15. CADCRAFT 2D: COMMAND LINE INTERFACE (CLI) & ORTHO MODE =================
+    orthoMode: false,
+    dynamicInputEnabled: true,
+    cadCmdHistory: [],
+    cadCmdHistoryIndex: -1,
+
+    toggleOrthoMode(forceVal) {
+        this.orthoMode = (typeof forceVal === 'boolean') ? forceVal : !this.orthoMode;
+        const btn = document.getElementById('btnCadOrthoMode');
+        if (btn) {
+            btn.classList.toggle('active', this.orthoMode);
+            btn.innerText = this.orthoMode ? '📐 Ortho: BẬT [F8]' : '📐 Ortho: TẮT [F8]';
+            btn.style.color = this.orthoMode ? '#38bdf8' : '';
+            btn.style.borderColor = this.orthoMode ? '#38bdf8' : '';
+        }
+        const rBtn = document.getElementById('btnCadRibbonOrtho');
+        if (rBtn) {
+            rBtn.classList.toggle('active', this.orthoMode);
+        }
+        showToast(this.orthoMode ? '📐 Đã BẬT Ortho Mode: Khóa vẽ vuông góc 90° [F8]' : '📐 Đã TẮT Ortho Mode [F8]');
+    },
+
+    toggleDynamicInput(forceVal) {
+        this.dynamicInputEnabled = (typeof forceVal === 'boolean') ? forceVal : !this.dynamicInputEnabled;
+        const btn = document.getElementById('btnCadDynInput');
+        if (btn) {
+            btn.classList.toggle('active', this.dynamicInputEnabled);
+            btn.innerText = this.dynamicInputEnabled ? '📏 Thước DYN: BẬT' : '📏 Thước DYN: TẮT';
+        }
+        const rBtn = document.getElementById('btnCadRibbonDyn');
+        if (rBtn) {
+            rBtn.classList.toggle('active', this.dynamicInputEnabled);
+        }
+        showToast(this.dynamicInputEnabled ? '📏 Đã BẬT Dynamic Input (Thước đo động)' : '📏 Đã TẮT Dynamic Input');
+    },
+
+    cadCommandList: [
+        { cmd: 'L', desc: 'Vẽ tuyến / ranh hở [Line]' },
+        { cmd: 'PL', desc: 'Vẽ đường polyline đa đoạn [Polyline]' },
+        { cmd: 'P', desc: 'Vẽ đa giác khép kín thửa đất [Polygon]' },
+        { cmd: 'REC', desc: 'Vẽ khối công trình / Nhà ở [Rectangle]' },
+        { cmd: 'C', desc: 'Vẽ vùng đệm / Bán kính bảo vệ [Circle]' },
+        { cmd: 'DIM', desc: 'Vẽ mũi tên đo khoảng cách / ghi chú [Dimension]' },
+        { cmd: 'ARR', desc: 'Vẽ mũi tên chỉ dẫn CAD [Arrow]' },
+        { cmd: 'STAMP', desc: 'Đặt tem khung tên kỹ thuật [Stamp]' },
+        { cmd: 'T', desc: 'Đặt chữ ghi chú tùy biến [Text]' },
+        { cmd: 'RO', desc: 'Xoay nhãn / đối tượng 0° - 360° [Rotate]' },
+        { cmd: 'O', desc: 'Tạo đường song song cách khoảng [Offset]' },
+        { cmd: 'CL', desc: 'Nối đỉnh cuối về đỉnh đầu để khép góc [Close]' },
+        { cmd: 'V', desc: 'Bật con trỏ chọn đối tượng [Select]' },
+        { cmd: 'E', desc: 'Mở bảng kê diện tích & tọa độ 6 tab [Table]' },
+        { cmd: 'EXP', desc: 'Mở xuất bản vẽ AutoCAD DXF, PDF, Excel [Export]' },
+        { cmd: 'Z', desc: 'Phóng to cực đại mức 23-24 [Zoom Max]' },
+        { cmd: 'DEL', desc: 'Xóa đối tượng đang chọn [Delete]' },
+        { cmd: 'N', desc: 'Lưu khối hiện tại và vẽ khối mới [New/Save]' },
+        { cmd: 'CLEAR', desc: 'Xóa toàn bộ bản vẽ MiniCAD [Clear All]' },
+        { cmd: 'ORTHO', desc: 'Bật/Tắt khóa vẽ vuông góc 90° [F8]' },
+        { cmd: 'OSNAP', desc: 'Bật/Tắt tự động bắt điểm nam châm [F3/S]' },
+        { cmd: 'SNAPLINE', desc: 'Bật/Tắt bắt cạnh khối liền kề [B]' }
+    ],
+
+    executeCommandLine() {
+        const input = document.getElementById('txtCadCommandLine');
+        if (!input) return;
+        const raw = input.value.trim();
+        if (!raw) return;
+
+        this.cadCmdHistory.push(raw);
+        this.cadCmdHistoryIndex = this.cadCmdHistory.length;
+
+        const parts = raw.split(/\s+/);
+        const cmd = parts[0].toUpperCase();
+        const arg = parts[1];
+
+        input.value = '';
+        this.hideCmdAutocomplete();
+
+        switch (cmd) {
+            case 'L':
+            case 'LINE':
+            case 'PL':
+            case 'PLINE':
+                this.setMode('polyline');
+                showToast('📏 Đã chuyển sang chế độ Vẽ Tuyến [Line]');
+                break;
+            case 'P':
+            case 'POL':
+            case 'PG':
+            case 'POLYGON':
+                this.setMode('polygon');
+                showToast('📐 Đã chuyển sang chế độ Vẽ Đa Giác [Polygon]');
+                break;
+            case 'REC':
+            case 'RECT':
+            case 'RECTANGLE':
+                this.setMarkupMode('rect');
+                showToast('🏠 Đã chọn công cụ Vẽ Khối Nhà [Rectangle]');
+                break;
+            case 'C':
+            case 'CIR':
+            case 'CIRCLE':
+                this.setMarkupMode('circle');
+                showToast('⭕ Đã chọn công cụ Vẽ Bán Kính [Circle]');
+                break;
+            case 'DIM':
+            case 'ARR':
+            case 'ARROW':
+                this.setMarkupMode('arrow');
+                showToast('🏹 Đã chọn công cụ Mũi Tên CAD [Dimension]');
+                break;
+            case 'STAMP':
+                this.setMarkupMode('stamp');
+                showToast('📋 Đã chọn công cụ Tem Khung Tên [Stamp]');
+                break;
+            case 'T':
+            case 'TEXT':
+            case 'DT':
+                this.setMarkupMode('text');
+                showToast('🔤 Đã chọn công cụ Chữ Ghi Chú [Text]');
+                break;
+            case 'RO':
+            case 'ROTATE':
+                if (typeof arg !== 'undefined') {
+                    this.promptRotateSelected(parseInt(arg, 10));
+                } else {
+                    this.promptRotateSelected();
+                }
+                break;
+            case 'V':
+            case 'M':
+            case 'MOVE':
+            case 'SEL':
+            case 'SELECT':
+                this.setMode('select');
+                showToast('↖️ Đã bật con trỏ Chọn Đối Tượng [Select]');
+                break;
+            case 'O':
+            case 'OFFSET':
+                this.promptOffset();
+                break;
+            case 'CL':
+            case 'CLOSE':
+                this.closeLoop();
+                break;
+            case 'E':
+            case 'TABLE':
+                this.openAreaTableModal();
+                break;
+            case 'EXP':
+            case 'EXPORT':
+                this.openExportModal();
+                break;
+            case 'Z':
+            case 'ZOOM':
+                this.zoomMax();
+                break;
+            case 'DEL':
+            case 'ERASE':
+                this.deleteSelectedItem();
+                break;
+            case 'N':
+            case 'SAVE':
+                this.saveAndStartNewShape();
+                break;
+            case 'CLEAR':
+            case 'X':
+                this.clearDrawing();
+                break;
+            case 'ORTHO':
+                this.toggleOrthoMode();
+                break;
+            case 'OSNAP':
+            case 'SNAP':
+                this.toggleSnap();
+                break;
+            case 'SNAPLINE':
+                this.toggleSnapLine();
+                break;
+            case 'DYN':
+                this.toggleDynamicInput();
+                break;
+            default:
+                showToast(`⚠️ Không nhận diện lệnh CAD: "${cmd}". Gõ L, P, REC, C, DIM, RO, O, E, EXP...`);
+                break;
+        }
+    },
+
+    handleCmdKeyDown(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.executeCommandLine();
+        } else if (e.key === 'Escape') {
+            const input = document.getElementById('txtCadCommandLine');
+            if (input) input.value = '';
+            this.hideCmdAutocomplete();
+        } else if (e.key === 'ArrowUp') {
+            if (this.cadCmdHistory.length > 0) {
+                e.preventDefault();
+                this.cadCmdHistoryIndex = Math.max(0, this.cadCmdHistoryIndex - 1);
+                const input = document.getElementById('txtCadCommandLine');
+                if (input) input.value = this.cadCmdHistory[this.cadCmdHistoryIndex] || '';
+            }
+        } else if (e.key === 'ArrowDown') {
+            if (this.cadCmdHistory.length > 0) {
+                e.preventDefault();
+                this.cadCmdHistoryIndex = Math.min(this.cadCmdHistory.length, this.cadCmdHistoryIndex + 1);
+                const input = document.getElementById('txtCadCommandLine');
+                if (input) input.value = this.cadCmdHistory[this.cadCmdHistoryIndex] || '';
+            }
+        }
+    },
+
+    onCmdInputChange(val) {
+        const query = (val || '').trim().toUpperCase();
+        const autoBox = document.getElementById('cadCmdAutocomplete');
+        if (!autoBox) return;
+
+        if (!query) {
+            this.hideCmdAutocomplete();
+            return;
+        }
+
+        const matches = this.cadCommandList.filter(item => item.cmd.startsWith(query) || item.desc.toUpperCase().includes(query));
+        if (matches.length === 0) {
+            this.hideCmdAutocomplete();
+            return;
+        }
+
+        let html = '';
+        matches.slice(0, 7).forEach((m, idx) => {
+            html += `
+                <div class="cad-cmd-suggest-item ${idx === 0 ? 'active' : ''}" onclick="appCadTool.selectCmdSuggestion('${m.cmd}')">
+                    <b style="color:#38bdf8; font-family:monospace;">${m.cmd}</b>
+                    <span style="color:#94a3b8; font-size:10px;">${m.desc}</span>
+                </div>
+            `;
+        });
+        autoBox.innerHTML = html;
+        autoBox.style.display = 'block';
+    },
+
+    selectCmdSuggestion(cmd) {
+        const input = document.getElementById('txtCadCommandLine');
+        if (input) {
+            input.value = cmd;
+            input.focus();
+        }
+        this.executeCommandLine();
+    },
+
+    hideCmdAutocomplete() {
+        const autoBox = document.getElementById('cadCmdAutocomplete');
+        if (autoBox) autoBox.style.display = 'none';
+    },
+
+    toggleCmdBarCollapse() {
+        const wrap = document.getElementById('cadCmdInputWrap');
+        const rib = document.getElementById('cadCmdStatusRibbon');
+        const isCollapsed = wrap && wrap.style.display === 'none';
+        if (wrap) wrap.style.display = isCollapsed ? 'flex' : 'none';
+        if (rib) rib.style.display = isCollapsed ? 'flex' : 'none';
+    },
+
+    toggleCmdBarVisibility() {
+        const bar = document.getElementById('cadFloatingCmdBar');
+        if (!bar) return;
+        const isHidden = bar.style.display === 'none';
+        bar.style.display = isHidden ? 'block' : 'none';
+        showToast(isHidden ? '⌨️ Đã hiển thị thanh lệnh CADCraft CLI' : '⌨️ Đã ẩn thanh lệnh CADCraft CLI');
+    },
+
+    initFloatingCmdBarDrag() {
+        const bar = document.getElementById('cadFloatingCmdBar');
+        const header = document.getElementById('cadFloatingCmdHeader');
+        if (!bar || !header || bar._dragInit) return;
+        bar._dragInit = true;
+
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        const onStart = (e) => {
+            if (e.target.tagName === 'BUTTON') return;
+            isDragging = true;
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            startX = clientX;
+            startY = clientY;
+            const rect = bar.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            header.style.cursor = 'grabbing';
+            e.preventDefault();
+        };
+
+        const onMove = (e) => {
+            if (!isDragging) return;
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            bar.style.bottom = 'auto';
+            bar.style.left = `${Math.max(10, Math.min(window.innerWidth - bar.offsetWidth - 10, initialLeft + dx))}px`;
+            bar.style.top = `${Math.max(10, Math.min(window.innerHeight - bar.offsetHeight - 10, initialTop + dy))}px`;
+        };
+
+        const onEnd = () => {
+            if (isDragging) {
+                isDragging = false;
+                header.style.cursor = 'grab';
+            }
+        };
+
+        header.addEventListener('mousedown', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
+
+        header.addEventListener('touchstart', onStart, { passive: false });
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
+    },
+
+    updateCmdCoordsLive(lat, lng) {
+        const label = document.getElementById('cadCmdCoordsLive');
+        if (!label) return;
+        try {
+            const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+            label.innerText = `X: ${vn.X.toFixed(1)} | Y: ${vn.Y.toFixed(1)}`;
+        } catch (e) {
+            // bỏ qua
         }
     },
 

@@ -1715,18 +1715,18 @@
             </div>
 
             <!-- Segmented Tool Switcher Tabs -->
+            <!-- Segmented Tool Switcher Tabs: 5 Nhóm Tab Chuẩn AutoCAD / CADCraft -->
             <div class="cad-tab-group" id="cadTabGroup">
               <button type="button" class="cad-tab-btn active" id="cadTabDraw"
-                onclick="appCadTool.switchToolTab('draw')" title="Công cụ vẽ đa giác, tuyến, khép góc, snap">📐
-                Vẽ</button>
+                onclick="appCadTool.switchToolTab('draw')" title="Công cụ vẽ đối tượng: Đa giác [P], Tuyến [L], Khối nhà [REC], Bán kính [C]">📐 Vẽ [Draw]</button>
               <button type="button" class="cad-tab-btn" id="cadTabSelect" onclick="appCadTool.switchToolTab('select')"
-                title="Chọn đối tượng trên bản đồ để sửa, đổi màu hoặc xóa">↖️ Chọn</button>
+                title="Biên tập: Chọn [V], Xoay nhãn [RO], Offset ranh [O], Đổi màu, Xóa [Del]">✂️ Biên tập [Modify]</button>
               <button type="button" class="cad-tab-btn" id="cadTabMarkup" onclick="appCadTool.switchToolTab('markup')"
-                title="Mũi tên, tem nhãn, khối nhà, chữ ghi chú">🏷️ Nhãn</button>
-              <button type="button" class="cad-tab-btn" id="cadTabData" onclick="appCadTool.switchToolTab('data')"
-                title="Bảng kê diện tích, danh sách khối, xuất CAD/PDF">📤 Dữ liệu</button>
+                title="Ghi chú kỹ thuật: Mũi tên CAD [DIM], Tem khung tên, Chữ [T], Bảng kê [E]">🏹 Ghi chú [Annotate]</button>
               <button type="button" class="cad-tab-btn" id="cadTabLayers" onclick="appCadTool.switchToolTab('layers')"
-                title="Tùy chọn ẩn hiện lớp đỉnh, cự ly cạnh, tâm khối">👁️ Lớp</button>
+                title="Trợ vẽ & Bắt điểm: OSNAP nam châm [F3], Khóa vuông góc ORTHO [F8], Bắt line [B], Thước DYN">🧲 Trợ vẽ & OSNAP</button>
+              <button type="button" class="cad-tab-btn" id="cadTabData" onclick="appCadTool.switchToolTab('data')"
+                title="Quản lý dự án: Dự án mới, Nạp mốc, Quản lý khối, Nhập/Xuất DXF, PDF, Excel">📁 Dự án [Project]</button>
             </div>
 
             <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
@@ -1766,7 +1766,7 @@
             </div>
           </div>
 
-          <!-- TAB 1: CÔNG CỤ VẼ & BIÊN TẬP HÌNH HỌC -->
+          <!-- TAB 1: CÔNG CỤ VẼ HÌNH HỌC (DRAW) -->
           <div id="cadPanelDraw" class="cad-actions-row cad-collapsible-row active">
             <button id="btnCadModePoly" class="cad-btn active" onclick="appCadTool.setMode('polygon')"
               title="Vẽ đa giác khép kín tính diện tích thửa đất (Phím tắt: P)">
@@ -1776,13 +1776,13 @@
               title="Vẽ đường tim tuyến / bờ ranh hở (Phím tắt: L)">
               📏 Tuyến [L]
             </button>
-            <button id="btnCadSnap" class="cad-btn active" onclick="appCadTool.toggleSnap()"
-              title="Tự động bắt điểm (Snap) vào mốc dự án và đỉnh CAD (Phím tắt: S)">
-              🧲 Snap: BẬT [S]
+            <button class="cad-btn" onclick="appCadTool.setMarkupMode('rect')"
+              title="Vẽ khối công trình / Nhà ở (Phím tắt: REC)">
+              🏠 Nhà [REC]
             </button>
-            <button id="btnCadSnapLine" class="cad-btn active" onclick="appCadTool.toggleSnapLine()"
-              title="Tự động bắt cạnh/line khối liền kề chống hở ranh và chống chồng lấn thửa đất (Phím tắt: B)">
-              🔗 Bắt line: BẬT [B]
+            <button class="cad-btn" onclick="appCadTool.setMarkupMode('circle')"
+              title="Vẽ vùng đệm / Bán kính bảo vệ (Phím tắt: C)">
+              ⭕ Bán kính [C]
             </button>
             <button class="cad-btn" onclick="appCadTool.openPolarModal()"
               title="Bắn điểm tiếp theo theo Cự ly & Góc phương vị (Phím tắt: D)">
@@ -1793,18 +1793,8 @@
               📌 Nhập X,Y
             </button>
             <button class="cad-btn" onclick="appCadTool.closeLoop()"
-              title="Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: C)">
-              🔒 Khép góc [C]
-            </button>
-            <button class="cad-btn"
-              style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;"
-              onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
-              ↔ Offset [O]
-            </button>
-            <button class="cad-btn"
-              style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;"
-              onclick="appCadTool.zoomMax()" title="Phóng to cực đại mức 23-24 (Phím tắt: Z)">
-              🔍 Siêu Zoom [Z]
+              title="Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: CL)">
+              🔒 Khép góc [CL]
             </button>
             <input type="text" id="cadActiveShapeName" class="app-input"
               style="height: 26px; width: 110px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px; flex: none;"
@@ -1815,17 +1805,13 @@
               title="Lưu cấu trúc/thửa đất này và bắt đầu vẽ cấu trúc mới (Phím tắt: N)">
               ➕ Lưu [N]
             </button>
-            <button class="cad-btn" style="color: #f87171;" onclick="appCadTool.clearDrawing()"
-              title="Xóa toàn bộ bản vẽ CAD (Phím tắt: X)">
-              🗑️ Xóa hết [X]
-            </button>
             <span id="cadQcWarning"
               style="font-size: 10.5px; color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 4px; padding: 2px 6px; display: none; font-weight: 700; white-space: nowrap;">
               ⚠️ Tự cắt chéo!
             </span>
           </div>
 
-          <!-- TAB 2: CHỌN ĐỐI TƯỢNG (SELECT & EDIT TOOL) -->
+          <!-- TAB 2: CHỌN & BIÊN TẬP ĐỐI TƯỢNG (MODIFY) -->
           <div id="cadPanelSelect" class="cad-actions-row cad-collapsible-row" style="display: none;">
             <button id="btnCadToolSelectMode" class="cad-btn" onclick="appCadTool.setMode('select')"
               title="Bật chế độ con trỏ chọn đối tượng (Phím tắt: V hoặc Esc)">
@@ -1835,6 +1821,16 @@
               style="font-size: 11px; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.15); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(251, 191, 36, 0.3); white-space: nowrap;">
               Chưa chọn đối tượng nào
             </span>
+            <button id="btnCadRotateSelected" class="cad-btn"
+              style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;"
+              onclick="appCadTool.promptRotateSelected()" title="Xoay nhãn / góc nghiêng đối tượng 0° - 360° (Phím tắt: RO)">
+              🔄 Xoay nhãn [RO]
+            </button>
+            <button class="cad-btn"
+              style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;"
+              onclick="appCadTool.promptOffset()" title="Tạo đường song song cách một khoảng (Phím tắt: O)">
+              ↔ Offset [O]
+            </button>
             <button id="btnCadEditSelected" class="cad-btn" style="display: none;"
               onclick="appCadTool.editSelectedItem()" title="Chỉnh sửa thông số hoặc thuộc tính đối tượng đang chọn">
               ✏️ Sửa
@@ -1843,19 +1839,25 @@
               onclick="appCadTool.changeSelectedColor()" title="Đổi màu sắc hiển thị của đối tượng đang chọn">
               🎨 Đổi màu
             </button>
+            <button class="cad-btn"
+              style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;"
+              onclick="appCadTool.zoomMax()" title="Phóng to cực đại mức 23-24 (Phím tắt: Z)">
+              🔍 Siêu Zoom [Z]
+            </button>
             <button id="btnCadDeleteSelected" class="cad-btn"
               style="display: none; color: #f87171; background: rgba(239, 68, 68, 0.2); border-color: #ef4444;"
               onclick="appCadTool.deleteSelectedItem()"
               title="Xóa đối tượng đang chọn (Phím tắt: Delete hoặc Backspace)">
               🗑️ Xóa đối tượng [Del]
             </button>
+            <button class="cad-btn" style="color: #f87171;" onclick="appCadTool.clearDrawing()"
+              title="Xóa toàn bộ bản vẽ CAD (Phím tắt: X)">
+              🗑️ Xóa hết [X]
+            </button>
             <button id="btnCadDeselect" class="cad-btn" style="display: none;" onclick="appCadTool.deselectCurrent()"
               title="Bỏ chọn đối tượng (Phím tắt: Esc)">
               ✖ Bỏ chọn [Esc]
             </button>
-            <span style="font-size: 10px; color: #94a3b8; margin-left: auto; padding-left: 6px; white-space: nowrap;">
-              💡 Click thửa đất / nhãn để chọn • Kéo chuột để dời vị trí • Nhấn Del để xóa
-            </span>
           </div>
 
           <!-- TAB 3: NHÃN & GHI CHÚ KỸ THUẬT (MARKUP) -->
@@ -1946,8 +1948,24 @@
               onchange="appCadTool.importExcel(event)">
           </div>
 
-          <!-- TAB 5: TÙY CHỌN HIỂN THỊ CÁC LỚP BẢN VẼ -->
+          <!-- TAB 4: TRỢ VẼ & OSNAP BẮT ĐIỂM (ASSIST & OSNAP) -->
           <div id="cadPanelLayers" class="cad-actions-row cad-collapsible-row" style="display: none;">
+            <button id="btnCadSnap" class="cad-btn active" onclick="appCadTool.toggleSnap()"
+              title="Tự động bắt điểm nam châm (OSNAP) vào mốc dự án và đỉnh CAD (Phím tắt: F3 hoặc S)">
+              🧲 Snap mốc: BẬT [F3/S]
+            </button>
+            <button id="btnCadSnapLine" class="cad-btn active" onclick="appCadTool.toggleSnapLine()"
+              title="Tự động bắt cạnh/line khối liền kề chống hở ranh và chống chồng lấn thửa đất (Phím tắt: B)">
+              🔗 Bắt line: BẬT [B]
+            </button>
+            <button id="btnCadOrthoMode" class="cad-btn" onclick="appCadTool.toggleOrthoMode()"
+              title="Khóa vẽ vuông góc 90° (Ngang/Dọc) chuẩn AutoCAD (Phím tắt: F8)">
+              📐 Ortho: TẮT [F8]
+            </button>
+            <button id="btnCadDynInput" class="cad-btn active" onclick="appCadTool.toggleDynamicInput()"
+              title="Thước đo động: Hiển thị cự ly cạnh và góc phương vị thời gian thực theo trỏ chuột">
+              📏 Thước DYN: BẬT
+            </button>
             <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh (Đ1, Đ2, Đ3...) trên bản vẽ">
               <input type="checkbox" id="cadCheckShowVertices"
                 onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
@@ -1973,11 +1991,35 @@
                 onchange="appCadTool.toggleDisplayOption('showBoundaries', this.checked)">
               <span>📐 Ranh giới khối</span>
             </label>
-            <label class="cad-check-label"
-              title="Tự động bắt cạnh/line khối liền kề chống hở ranh và chống chồng lấn thửa đất">
-              <input type="checkbox" id="cadCheckSnapLine" checked onchange="appCadTool.toggleSnapLine(this.checked)">
-              <span>🔗 Bắt line liền kề</span>
-            </label>
+          </div>
+        </div>
+
+        <!-- CỬA SỔ NỔI FLOATING HUD CADCRAFT (COMMAND LINE & DRAFTING STATUS RIBBON) -->
+        <div id="cadFloatingCmdBar" class="cad-floating-cmd-bar" style="display: none;">
+          <div class="cad-cmd-header" id="cadFloatingCmdHeader">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px;">⌨️</span>
+              <b style="font-size: 11px; color: #38bdf8; letter-spacing: 0.5px;">CADCraft 2D CLI</b>
+              <span id="cadCmdCoordsLive" style="font-family: monospace; font-size: 10px; color: #94a3b8; margin-left: 6px;">X: — | Y: —</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <button type="button" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdBarCollapse()" title="Thu nhỏ / Mở rộng thanh lệnh">_</button>
+              <button type="button" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdBarVisibility()" title="Ẩn thanh lệnh">✕</button>
+            </div>
+          </div>
+          <div class="cad-cmd-input-wrap" id="cadCmdInputWrap">
+            <span class="cad-cmd-prompt-label">Command:</span>
+            <input type="text" id="txtCadCommandLine" class="cad-cmd-input" placeholder="Gõ lệnh (L, P, REC, C, DIM, RO, O, E, EXP...)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="appCadTool.handleCmdKeyDown(event)" oninput="appCadTool.onCmdInputChange(this.value)">
+            <button type="button" class="cad-cmd-submit-btn" onclick="appCadTool.executeCommandLine()" title="Thực thi lệnh [Enter]">↵</button>
+            <div id="cadCmdAutocomplete" class="cad-cmd-autocomplete" style="display: none;"></div>
+          </div>
+          <div class="cad-cmd-status-ribbon" id="cadCmdStatusRibbon">
+            <button type="button" id="btnCadRibbonOsnap" class="cad-ribbon-btn active" onclick="appCadTool.toggleSnap()" title="Bắt điểm nam châm mốc [F3 hoặc S]">🧲 OSNAP</button>
+            <button type="button" id="btnCadRibbonOrtho" class="cad-ribbon-btn" onclick="appCadTool.toggleOrthoMode()" title="Khóa vẽ vuông góc 90° [F8]">📐 ORTHO</button>
+            <button type="button" id="btnCadRibbonSnapLine" class="cad-ribbon-btn active" onclick="appCadTool.toggleSnapLine()" title="Bắt cạnh khối liền kề [B]">🔗 SNAP LINE</button>
+            <button type="button" id="btnCadRibbonDyn" class="cad-ribbon-btn active" onclick="appCadTool.toggleDynamicInput()" title="Hiển thị thước đo & phương vị động [DYN]">📏 DYN</button>
+            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openAreaTableModal()" title="Mở bảng kê 6 tab [E]">📊 BẢNG KÊ [E]</button>
+            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openExportModal()" title="Xuất AutoCAD DXF / PDF / Excel [EXP]">📤 XUẤT [EXP]</button>
           </div>
         </div>
 
