@@ -9974,6 +9974,51 @@ const appModal = {
         const sliderTips = document.getElementById('sliderFirstTimeTips');
         if (chkTips) chkTips.checked = tipsEnabled;
         if (sliderTips) sliderTips.style.backgroundColor = tipsEnabled ? '#0284c7' : '#334155';
+
+        // Cập nhật Chế độ Biểu tượng lớn (Icon Pro - Ít chữ)
+        const uiIconMode = (typeof localStorage !== 'undefined' && localStorage.getItem('vn2k_ui_icon_mode')) || 'icon_pro';
+        const btnIconPro = document.getElementById('btnUiModeIconPro');
+        const btnDetailed = document.getElementById('btnUiModeDetailed');
+        if (btnIconPro) btnIconPro.classList.toggle('active', uiIconMode === 'icon_pro');
+        if (btnDetailed) btnDetailed.classList.toggle('active', uiIconMode === 'detailed');
+    },
+
+    initUiIconMode() {
+        let mode = 'icon_pro';
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const saved = localStorage.getItem('vn2k_ui_icon_mode');
+                if (saved) mode = saved;
+            }
+        } catch (e) {}
+        this.applyUiIconMode(mode);
+    },
+
+    setUiIconMode(mode) {
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('vn2k_ui_icon_mode', mode);
+            }
+        } catch (e) {}
+        this.applyUiIconMode(mode);
+        this.updateGeneralSettingsUI();
+        if (typeof showToast === 'function') {
+            showToast(mode === 'icon_pro' 
+                ? '✨ Đã kích hoạt Chế độ Biểu tượng lớn (Icon Pro - Ít chữ, trực quan)' 
+                : '📝 Đã kích hoạt Chế độ Chi tiết (Có nhãn chữ)');
+        }
+        if (typeof triggerHaptic === 'function') triggerHaptic('light');
+    },
+
+    applyUiIconMode(mode) {
+        const isIconPro = mode !== 'detailed';
+        if (typeof document !== 'undefined' && document.body) {
+            if (isIconPro) {
+                document.body.classList.add('ui-mode-icon-pro');
+            } else {
+                document.body.classList.remove('ui-mode-icon-pro');
+            }
+        }
     },
 
     setTheme(theme) {
@@ -27345,7 +27390,8 @@ const appDonate = {
 window.addEventListener('DOMContentLoaded', () => {
 // Menu button handled via debounced appNav.toggleTreeMenu
 
-        appTheme.init();
+    appTheme.init();
+    if (typeof appModal !== 'undefined' && appModal.initUiIconMode) appModal.initUiIconMode();
     if (typeof appI18n !== 'undefined') appI18n.init();
     appTransform.init();
     appData.init();

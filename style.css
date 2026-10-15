@@ -7830,16 +7830,18 @@
         top: calc(var(--sat-safe-top) + 155px) !important;
       }
 
-      /* Tối ưu kích thước FAB trên màn hình nhỏ chống tràn khỏi cạnh dưới */
+      /* Kích thước FAB lớn, dễ chạm trên màn hình nhỏ (Chuẩn Apple 44px) */
       .btn-map-fab {
-        width: 36px !important;
-        height: 36px !important;
-        font-size: 16px !important;
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 22px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
       }
 
       .drag-handle-right-controls {
-        width: 36px !important;
-        height: 18px !important;
+        width: 44px !important;
+        height: 20px !important;
       }
 
       /* Panel danh sách khối MiniCAD co giãn linh hoạt theo màn hình di động */
@@ -9198,26 +9200,29 @@
         margin-bottom: 6px !important;
       }
       .big-action-tile {
-        padding: 9px 9px !important;
+        padding: 10px 12px !important;
         min-height: 98px !important;
-        border-radius: 13px !important;
+        border-radius: 14px !important;
       }
       .big-tile-top {
-        margin-bottom: 6px !important;
+        margin-bottom: 8px !important;
       }
       .big-tile-icon-box {
-        width: 36px !important;
-        height: 36px !important;
-        font-size: 18px !important;
-        border-radius: 9px !important;
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 28px !important;
+        border-radius: 13px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
       }
       .tile-metric-pill {
         font-size: 11px !important;
-        padding: 2px 5px !important;
+        padding: 2px 7px !important;
+        border-radius: 999px !important;
       }
       .big-tile-title {
-        font-size: 12px !important;
-        line-height: 1.2 !important;
+        font-size: 13.5px !important;
+        font-weight: 800 !important;
+        line-height: 1.25 !important;
       }
       .dash-info-card {
         padding: 9px 11px !important;
@@ -9234,10 +9239,11 @@
         border-radius: 12px !important;
       }
       .accordion-title-main {
-        font-size: 11.5px !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
       }
       .accordion-title-sub {
-        font-size: 11px !important;
+        display: none !important; /* Ẩn chữ mô tả dài phụ để màn hình gọn gàng */
       }
       .accordion-badge {
         font-size: 11px !important;
@@ -9247,44 +9253,49 @@
         gap: 6px !important;
       }
       .compact-tool-card {
-        padding: 7px 9px !important;
-        border-radius: 9px !important;
-        gap: 7px !important;
-        min-height: 42px !important;
+        padding: 8px 10px !important;
+        border-radius: 11px !important;
+        gap: 10px !important;
+        min-height: 50px !important;
       }
       .compact-tool-icon {
-        width: 30px !important;
-        height: 30px !important;
-        font-size: 15px !important;
-        border-radius: 7px !important;
+        width: 42px !important;
+        height: 42px !important;
+        font-size: 22px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25) !important;
       }
       .compact-tool-title {
-        font-size: 11.5px !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
       }
       .compact-tool-sub {
-        font-size: 11px !important;
+        display: none !important; /* Ẩn triệt để phụ đề mô tả 2 dòng, chỉ giữ tiêu đề và badge */
       }
       .compact-tool-badge {
         font-size: 11px !important;
-        padding: 1.5px 5px !important;
+        padding: 2px 6px !important;
       }
 
-      /* 5. Mobile Bottom Navigation: cân bằng không gian chạm */
+      /* 5. Mobile Bottom Navigation: Icon to 26px, không gian chạm chuẩn 48px */
       nav#mobileBottomNav.mobile-bottom-nav {
         left: 8px !important;
         right: 8px !important;
-        padding: 4px 4px !important;
+        padding: 4px 6px !important;
         bottom: calc(var(--sat-safe-bottom) + 6px) !important;
-        border-radius: 16px !important;
+        border-radius: 18px !important;
       }
       .bottom-nav-item {
-        padding: 3px 2px !important;
-        font-size: 11px !important;
-        border-radius: 10px !important;
+        padding: 4px 2px !important;
+        font-size: 10.5px !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
+        min-height: 48px !important;
       }
       .bottom-nav-icon {
-        font-size: 17px !important;
-        margin-bottom: 1px !important;
+        font-size: 26px !important;
+        line-height: 1 !important;
+        margin-bottom: 2px !important;
       }
 
       /* 6. MiniCAD, Sổ đo, Trắc địa & Cắm mốc trên di động dọc */
@@ -10271,6 +10282,191 @@
   border-color: #0284c7 !important;
   box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25) !important;
 }
+
+/* ==========================================================================
+   CHẾ ĐỘ BIỂU TƯỢNG LỚN & TINH GỌN CHỮ (ICON PRO & TEXT DECLUTTER)
+   Tối ưu trải nghiệm thực địa trên thiết bị di động / màn hình nhỏ:
+   - Các Icon to lên rõ rệt (24px - 32px), dễ chạm, chống bấm trượt
+   - Triệt tiêu các đoạn chữ rườm rà, giải phóng không gian màn hình
+   - Áp dụng tự động trên mobile và kích hoạt toàn diện qua .ui-mode-icon-pro
+   ========================================================================== */
+
+/* 1. Header Top Bar: Tinh gọn, icon to rõ */
+.ui-mode-icon-pro .mac-settings-btn .header-action-text,
+@media (max-width: 640px) {
+  .mac-settings-btn .header-action-text {
+    display: none !important;
+  }
+  .mac-settings-btn {
+    padding: 0 8px !important;
+    min-width: 36px !important;
+  }
+  .mac-settings-btn .header-action-icon {
+    font-size: 20px !important;
+    margin: 0 !important;
+  }
+  #headerGpsText {
+    display: none !important;
+  }
+  .btn-header-gps {
+    padding: 0 8px !important;
+    min-width: 36px !important;
+    font-size: 18px !important;
+  }
+  .app-subtitle {
+    font-size: 11px !important;
+    max-width: 200px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* 2. Bento Grid 4 Khối lớn 2x2: Icon Pro Siêu Nổi Bật */
+.ui-mode-icon-pro .big-action-tile {
+  padding: 12px 14px !important;
+  min-height: 110px !important;
+  border-radius: 16px !important;
+}
+.ui-mode-icon-pro .big-tile-icon-box {
+  width: 52px !important;
+  height: 52px !important;
+  font-size: 30px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35) !important;
+}
+.ui-mode-icon-pro .big-tile-title {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.2px !important;
+}
+
+/* 3. Mobile Bottom Navigation: Floating Dock với Icon to 26px - 28px */
+.ui-mode-icon-pro .bottom-nav-icon {
+  font-size: 28px !important;
+  line-height: 1 !important;
+  margin-bottom: 2px !important;
+}
+.ui-mode-icon-pro .bottom-nav-item {
+  min-height: 48px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+@media (max-width: 380px) {
+  /* Màn hình siêu nhỏ: Chuyển Bottom Nav thành Icon Dock Pro sạch sẽ */
+  nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item span:not(.bottom-nav-icon):not(.nav-indicator) {
+    display: none !important;
+  }
+  nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-icon {
+    font-size: 28px !important;
+    margin: 0 !important;
+  }
+  nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item {
+    padding: 8px 4px !important;
+    min-height: 44px !important;
+  }
+}
+
+/* 4. Bản đồ: Nút FAB lớn 44px và thanh công cụ tinh gọn */
+.ui-mode-icon-pro .btn-map-fab {
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 22px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+.ui-mode-icon-pro .map-project-bar .btn-map-action,
+@media (max-width: 640px) {
+  .map-project-bar .btn-map-action {
+    height: 38px !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    padding: 0 8px !important;
+    border-radius: 8px !important;
+  }
+  .map-project-bar .map-proj-icon {
+    font-size: 18px !important;
+  }
+  .bar-coord-picker .btn-picker-mode {
+    height: 36px !important;
+    font-size: 12px !important;
+    padding: 0 10px !important;
+  }
+  .bar-coord-picker .btn-picker-apply {
+    height: 36px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 0 12px !important;
+  }
+}
+
+/* 5. Hero Live HUD Card: Ít chữ, số liệu tọa độ to sáng rõ */
+.ui-mode-icon-pro .hero-hud-label,
+@media (max-width: 640px) {
+  .hero-hud-label {
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+  }
+  .hero-coord-lbl {
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+  }
+  .hero-coord-val {
+    font-size: 17px !important;
+    letter-spacing: 0.5px !important;
+  }
+  .btn-hud-action {
+    height: 38px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 0 10px !important;
+  }
+}
+
+/* 6. Form Chuyển Đổi Tọa Độ: Nút to, icon 18-20px, giảm tải mắt */
+.ui-mode-icon-pro .btn-convert,
+@media (max-width: 640px) {
+  .transform-subtabs .btn-subtab {
+    height: 38px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 0 10px !important;
+  }
+  .btn-convert {
+    height: 46px !important;
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+  }
+  .btn-group-row button {
+    height: 38px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* 7. Danh sách công cụ phụ: Ẩn phụ đề mô tả 2 dòng rườm rà */
+.ui-mode-icon-pro .compact-tool-sub,
+@media (max-width: 640px) {
+  .compact-tool-sub {
+    display: none !important;
+  }
+  .compact-tool-icon {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 24px !important;
+    border-radius: 11px !important;
+  }
+  .compact-tool-title {
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+  }
+  .compact-tool-card {
+    min-height: 52px !important;
+    padding: 8px 12px !important;
+    border-radius: 12px !important;
+  }
+}
+
 
 
 
