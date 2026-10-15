@@ -16396,6 +16396,7 @@ const appCadTool = {
 
         const bar = document.getElementById('mapCadToolbar');
         if (bar) bar.style.display = 'flex';
+        this.switchToolTab(this.activeToolTab || 'draw');
         const toggleBtn = document.getElementById('btnToggleCadTool');
         if (toggleBtn) toggleBtn.classList.add('active');
 
