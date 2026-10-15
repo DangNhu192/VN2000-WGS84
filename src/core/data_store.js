@@ -36,8 +36,8 @@ const DataStoreEngine = {
             pointsCount: 0,
             shapesCount: 0,
             province: options.province || 'TP. Hồ Chí Minh',
-            kttDeg: options.kttDeg || 105,
-            kttMin: options.kttMin || 45,
+            kttDeg: (typeof options.kttDeg === 'number') ? options.kttDeg : 105,
+            kttMin: (typeof options.kttMin === 'number') ? options.kttMin : 45,
             muiVal: options.muiVal || 3
         };
     }

@@ -807,25 +807,9 @@
 
       <!-- ================= SCREEN 1: CHUYỂN ĐỔI TỌA ĐỘ ================= -->
       <section id="screen-transform" class="screen-view">
-        <!-- 2026 HERO LIVE MAP & SPLIT CONTROLS -->
-        <div class="transform-view-mode-bar" id="transformViewModeBar">
-          <button type="button" id="btnTfModeMapDominant" class="btn-tf-view-mode active"
-            onclick="appTransform.setTransformViewMode('map-dominant')" title="Bản đồ lớn chiếm đa số màn hình (65%)">
-            🗺️ Bản đồ lớn (65%)
-          </button>
-          <button type="button" id="btnTfModeSplit" class="btn-tf-view-mode"
-            onclick="appTransform.setTransformViewMode('split')" title="Chia đôi Form và Bản đồ (50/50)">
-            ⚖️ Chia đôi (50/50)
-          </button>
-          <button type="button" id="btnTfModeFormOnly" class="btn-tf-view-mode"
-            onclick="appTransform.setTransformViewMode('form-only')" title="Chỉ hiển thị Form nhập liệu">
-            📝 Chỉ Form
-          </button>
-        </div>
-
-        <div class="transform-split-layout mode-map-dominant" id="transformSplitLayout">
+        <div class="transform-split-layout" id="transformSplitLayout">
           <!-- CỘT TRÁI: FORM ĐIỀU KHIỂN & CHUYỂN ĐỔI (ĐƠN ĐIỂM & ĐA ĐIỂM) -->
-          <div class="transform-content-column">
+          <div class="transform-content-column" id="transformContentColumn">
             <!-- Sub-tabs: Chuyển đổi Đơn điểm vs Đa điểm vs Bản đồ lớn trực quan -->
             <div class="transform-subtabs" style="align-items: center;">
               <button id="tabTransSingle" class="btn-subtab active"
@@ -1265,41 +1249,138 @@
                 </div>
               </div>
 
-              <!-- CỘT PHẢI: BẢN ĐỒ SỐ LIVE TRỰC TIẾP (TỰ ĐỘNG HIỆN TRÊN MÀN HÌNH LỚN >= 1024px HOẶC KHI CHỌN TAB BẢN ĐỒ) -->
-              <div class="transform-map-column mobile-active large-focus" id="boxTransformLiveMapWrap">
-                <div class="transform-live-map-header">
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="font-size: 14px;">🗺️</span>
-                    <span style="font-weight: 800; color: #38bdf8; font-size: 12px; letter-spacing: 0.3px;">BẢN ĐỒ TỌA
-                      ĐỘ TRỰC QUAN (LIVE MAP)</span>
+              <!-- TAB 3: BẢNG ĐIỀU KHIỂN & TRA CỨU TỌA ĐỘ BẢN ĐỒ TRỰC QUAN -->
+              <div id="panelTransLiveMap" style="display: none; padding-top: 4px;">
+                <!-- Card 1: Hướng dẫn & Tọa độ tức thời khi chấm/di chuột -->
+                <div class="hero-subcard" style="padding: 12px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                      🎯 TRA CỨU TỌA ĐỘ TRỰC TIẾP
+                    </span>
+                    <span class="badge" style="font-size: 10px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 6px; border-radius: 6px;">
+                      Live Inspector
+                    </span>
                   </div>
-                  <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
-                    <button type="button" class="btn-sm"
-                      style="height: 26px; padding: 0 8px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);"
-                      onclick="appTransform.toggleLiveMapLayer()" title="Đổi lớp bản đồ (Vệ tinh / Bản đồ đường)">🛰️
-                      Lớp nền</button>
-                    <button type="button" class="btn-sm btn-green"
-                      style="height: 26px; padding: 0 8px; font-size: 11px;" onclick="appTransform.fitLiveMapBounds()"
-                      title="Thu phóng nhìn rõ điểm chuyển đổi">🔍 Bao quát</button>
-                    <button type="button" id="btnLiveMapExpand" class="btn-sm btn-blue"
-                      style="height: 26px; padding: 0 8px; font-size: 11px;"
-                      onclick="appTransform.toggleLiveMapExpand()" title="Phóng to bản đồ chiếm đa số màn hình">⛶ Phóng
-                      to</button>
-                    <button type="button" class="btn-sm"
-                      style="height: 26px; padding: 0 8px; font-size: 11px; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #fff; border: 1px solid #2dd4bf;"
-                      onclick="appTransform.openFullConvertedMap()" title="Mở bản đồ lớn toàn màn hình">🗺️ Bản đồ
-                      lớn</button>
+                  <div style="font-size: 11.5px; color: #94a3b8; line-height: 1.5; margin-bottom: 10px;">
+                    👉 Nhấp chuột hoặc chạm vào bất kỳ vị trí nào trên Bản đồ bên cạnh để ghim điểm mốc và xem tọa độ song song WGS-84 & VN-2000 tức thời.
+                  </div>
+
+                  <!-- Khung hiển thị Tọa độ điểm vừa chấm / chọn -->
+                  <div style="background: rgba(11, 19, 41, 0.85); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 11.5px; font-weight: 700; color: #f8fafc;">📍 Điểm Đang Chọn:</span>
+                      <span id="txtLiveMapInspectorStatus" style="font-size: 11px; color: #10b981; font-weight: 600;">Sẵn sàng chấm điểm</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                      <div style="background: rgba(15, 23, 42, 0.6); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">WGS-84 (Vĩ độ / Lat):</div>
+                        <div id="txtLiveMapLat" style="font-size: 12.5px; font-weight: 800; color: #38bdf8; font-family: monospace;">--</div>
+                      </div>
+                      <div style="background: rgba(15, 23, 42, 0.6); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">WGS-84 (Kinh độ / Lng):</div>
+                        <div id="txtLiveMapLng" style="font-size: 12.5px; font-weight: 800; color: #38bdf8; font-family: monospace;">--</div>
+                      </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                      <div style="background: rgba(15, 23, 42, 0.6); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size: 10px; color: #f59e0b; font-weight: 600;">VN-2000 (X - Trục Bắc):</div>
+                        <div id="txtLiveMapVnX" style="font-size: 12.5px; font-weight: 800; color: #fbbf24; font-family: monospace;">--</div>
+                      </div>
+                      <div style="background: rgba(15, 23, 42, 0.6); padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size: 10px; color: #f59e0b; font-weight: 600;">VN-2000 (Y - Trục Đông):</div>
+                        <div id="txtLiveMapVnY" style="font-size: 12.5px; font-weight: 800; color: #fbbf24; font-family: monospace;">--</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Nút hành động với điểm vừa chấm -->
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 36px; font-size: 11.5px; font-weight: 700;"
+                      onclick="appTransform.applyLivePickedToSingle()" title="Đưa tọa độ điểm này vào Form chuyển đổi đơn điểm">
+                      📥 Áp Dụng Về Đơn Điểm
+                    </button>
+                    <button type="button" class="btn-sm btn-green" style="flex: 1; height: 36px; font-size: 11.5px; font-weight: 700;"
+                      onclick="appTransform.addLivePickedToMulti()" title="Thêm điểm này vào danh sách chuyển đổi đa điểm">
+                      ➕ Thêm Vào Đa Điểm
+                    </button>
                   </div>
                 </div>
-                <div class="transform-live-map-body">
-                  <div id="transformLiveMap"></div>
-                  <div id="liveMapCoordHud" class="live-map-coord-hud">
-                    📍 Di chuột hoặc nhấp trên Live Map để tra cứu tọa độ tức thời
+
+                <!-- Card 2: Thống kê & Danh sách mốc hiển thị trên bản đồ -->
+                <div class="hero-subcard" style="padding: 12px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                      📊 CÁC MỐC TRÊN BẢN ĐỒ
+                    </span>
+                    <button type="button" class="btn-sm" style="font-size: 11px; padding: 3px 8px; background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);"
+                      onclick="appTransform.fitLiveMapBounds()" title="Thu phóng bao quát các mốc">
+                      🔍 Bao quát mốc
+                    </button>
                   </div>
+                  <div id="boxLiveMapMarkersList" style="max-height: 200px; overflow-y: auto; font-size: 12px; color: #94a3b8;">
+                    Chưa có điểm mốc nào trên bản đồ. Hãy chuyển đổi đơn điểm hoặc đa điểm để xem kết quả trực quan!
+                  </div>
+                </div>
+
+                <!-- Card 3: Thao tác bản đồ nhanh -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <button type="button" class="btn-sm" style="height: 38px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 8px;"
+                    onclick="appTransform.toggleLiveMapLayer()">
+                    🛰️ Đổi Lớp Bản Đồ
+                  </button>
+                  <button type="button" class="btn-sm" style="height: 38px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #fff; border: 1px solid #2dd4bf; border-radius: 8px;"
+                    onclick="appTransform.openFullConvertedMap()">
+                    🗺️ Mở Bản Đồ Lớn
+                  </button>
                 </div>
               </div>
+
+            </div><!-- /transform-content-column -->
+
+          <!-- THANH KÉO THẢ PHÂN CHIA DIỆN TÍCH LINH HOẠT (SPLITTER RESIZER) -->
+          <div class="transform-layout-resizer" id="transformLayoutResizer" title="Kéo thả sang trái/phải (hoặc lên/xuống trên di động) để điều chỉnh tỷ lệ Form và Bản đồ • Nhấp đúp để đặt lại cân bằng 50/50">
+            <div class="resizer-handle-pill">
+              <span class="resizer-grip-icon"></span>
             </div>
-      </section>
+            <button type="button" class="btn-resizer-quick-toggle" id="btnResizerQuickToggle" title="Thu gọn / Mở rộng nhanh (50/50 ⇄ Toàn màn hình)">
+              <span class="resizer-icon">⇄</span>
+            </button>
+          </div>
+
+          <!-- CỘT PHẢI: BẢN ĐỒ LIVE TRỰC QUAN (SIBLING ĐÚNG CẤP VỚI CONTENT COLUMN) -->
+          <div class="transform-map-column" id="boxTransformLiveMapWrap">
+            <div class="transform-live-map-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 14px;">🗺️</span>
+                <span style="font-weight: 800; color: #38bdf8; font-size: 12px; letter-spacing: 0.3px;">BẢN ĐỒ TỌA ĐỘ TRỰC QUAN (LIVE MAP)</span>
+              </div>
+              <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn-sm"
+                  style="height: 26px; padding: 0 8px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);"
+                  onclick="appTransform.toggleLiveMapLayer()" title="Đổi lớp bản đồ (Vệ tinh / Bản đồ đường)">🛰️ Lớp nền</button>
+                <button type="button" class="btn-sm btn-green"
+                  style="height: 26px; padding: 0 8px; font-size: 11px;" onclick="appTransform.fitLiveMapBounds()"
+                  title="Thu phóng nhìn rõ điểm chuyển đổi">🔍 Bao quát</button>
+                <button type="button" id="btnLiveMapExpand" class="btn-sm btn-blue"
+                  style="height: 26px; padding: 0 8px; font-size: 11px;"
+                  onclick="appTransform.toggleLiveMapExpand()" title="Phóng to bản đồ chiếm đa số màn hình">⛶ Phóng to</button>
+                <button type="button" class="btn-sm"
+                  style="height: 26px; padding: 0 8px; font-size: 11px; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #fff; border: 1px solid #2dd4bf;"
+                  onclick="appTransform.openFullConvertedMap()" title="Mở bản đồ lớn toàn màn hình">🗺️ Bản đồ lớn</button>
+              </div>
+            </div>
+            <div class="transform-live-map-body">
+              <div id="transformLiveMap"></div>
+              <div id="liveMapCoordHud" class="live-map-coord-hud">
+                📍 Di chuột hoặc nhấp trên Live Map để tra cứu tọa độ tức thời
+              </div>
+            </div>
+          </div><!-- /transform-map-column -->
+
+        </div><!-- /transformSplitLayout -->
+      </section><!-- /screen-transform -->
 
       <!-- ================= SCREEN 1.3: BẢN ĐỒ CHUYỂN ĐỔI TỌA ĐỘ ĐỘC LẬP ================= -->
       <section id="screen-transform-map" class="screen-view" style="display: none; flex-direction: column; height: 100%; position: relative;">
@@ -1889,7 +1970,7 @@
             <button class="cad-btn"
               style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;"
               onclick="appCadTool.zoomMax()" title="Phóng to cực đại mức 23-24 (Phím tắt: Z)">
-              🔍 Siêu Zoom [Z]
+              🔍 Phóng To Mức 24 [Z]
             </button>
             <button id="btnCadDeleteSelected" class="cad-btn"
               style="display: none; color: #f87171; background: rgba(239, 68, 68, 0.2); border-color: #ef4444;"
@@ -2256,7 +2337,7 @@
             title="Nhấp & kéo giữ để di chuyển thanh nút lên xuống">
             <span>⠿</span>
           </div>
-          <button id="btnMapFabZoomIn" class="btn-map-fab" title="Phóng to bản đồ (Tối đa mức 24 siêu chi tiết)"
+          <button id="btnMapFabZoomIn" class="btn-map-fab" title="Phóng to bản đồ (Mức 24 chi tiết)"
             onclick="AppState.leafletMap && AppState.leafletMap.zoomIn()">
             ➕
           </button>
@@ -2527,60 +2608,146 @@
         </div>
       </section>
 
-      <!-- ================= SCREEN 4: CAMERA ĐÓNG DẤU THỦY ẤN ================= -->
+      <!-- ================= SCREEN 4: CAMERA ĐÓNG DẤU HIỆN TRƯỜNG ================= -->
       <section id="screen-camera" class="screen-view">
-        <!-- Card 1: Chọn thông tin đóng dấu -->
-        <div class="app-card">
+        <!-- Thanh điều hướng 3 tab chức năng -->
+        <div class="camera-tabs-bar">
+          <button id="tabCameraLive" class="camera-tab-btn active" onclick="appCamera.switchTab('live')">
+            📸 Camera Hiện Trường
+          </button>
+          <button id="tabCameraUpload" class="camera-tab-btn" onclick="appCamera.switchTab('upload')">
+            🖼️ Đóng Dấu Ảnh Máy
+          </button>
+          <button id="tabCameraGallery" class="camera-tab-btn" onclick="appCamera.switchTab('gallery')">
+            📂 Quản Lý Ảnh (<span id="txtCameraGalleryCount">0</span>)
+          </button>
+        </div>
+
+        <!-- Thẻ thiết lập mốc & vị trí góc đóng dấu -->
+        <div class="app-card" id="cardCameraSetup">
           <div class="card-header">
-            <span class="card-title">📸 1. Thông Tin Đóng Dấu Thủy Ấn</span>
-            <button class="btn-sm btn-blue" onclick="appCamera.refreshPointsList()"
-              style="height: 28px; padding: 2px 8px;">
-              🔄 Cập nhật
-            </button>
+            <span class="card-title">🏷️ Thiết Lập Mốc & Vị Trí Đóng Dấu</span>
+            <div style="display: flex; gap: 6px; margin-left: auto;">
+              <button class="btn-sm btn-blue" onclick="appCamera.refreshPointsList()"
+                style="height: 28px; padding: 2px 8px; font-size: 11.5px;">
+                🔄 Cập nhật
+              </button>
+              <button id="btnCameraHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('camera')" title="Hướng dẫn Camera đóng dấu">?</button>
+            </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Chọn mốc đo cần gắn vào ảnh:</label>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label class="form-label">Chọn mốc đo gắn vào ảnh:</label>
             <select id="selCameraPoint" class="app-select" onchange="appCamera.onPointSelected()">
               <!-- Nạp danh sách mốc dự án -->
             </select>
           </div>
 
-          <!-- Thông tin in chìm preview -->
-          <div class="camera-tag-preview">
-            <div style="font-weight: 700; color: #fbbf24; margin-bottom: 4px;">🏷️ Nội dung đóng dấu lên góc ảnh:</div>
-            <div>• Mốc: <b id="txtCameraTagMark" style="color: #38bdf8;">Chưa chọn</b> (<span
-                id="txtCameraTagProject">Dự án hiện tại</span>)</div>
-            <div>• VN-2000: <span id="txtCameraTagVn2k">X = -- m | Y = -- m</span></div>
-            <div>• WGS-84: <span id="txtCameraTagWgs">Lat: -- | Lng: --</span></div>
-            <div>• GPS & La bàn: <span id="txtCameraTagGps">Sai số: ±--m | Hướng: --°</span></div>
-            <div>• Thời gian: <span id="txtCameraTagTime">--/--/---- --:--:--</span></div>
+          <!-- Bộ chọn vị trí 4 góc đóng dấu -->
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label class="form-label">Vị trí đóng dấu lên góc ảnh:</label>
+            <div class="camera-corner-group">
+              <button type="button" class="btn-corner-opt active" id="btnCornerBL" onclick="appCamera.setCorner('bottom-left')">
+                ↙️ Dưới - Trái
+              </button>
+              <button type="button" class="btn-corner-opt" id="btnCornerBR" onclick="appCamera.setCorner('bottom-right')">
+                ↘️ Dưới - Phải
+              </button>
+              <button type="button" class="btn-corner-opt" id="btnCornerTL" onclick="appCamera.setCorner('top-left')">
+                ↖️ Trên - Trái
+              </button>
+              <button type="button" class="btn-corner-opt" id="btnCornerTR" onclick="appCamera.setCorner('top-right')">
+                ↗️ Trên - Phải
+              </button>
+            </div>
           </div>
 
-          <!-- Ẩn Input file cho Camera và Gallery -->
-          <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display: none;"
-            onchange="appCamera.onFileSelected(event)">
-          <input type="file" id="galleryFileInput" accept="image/*" style="display: none;"
-            onchange="appCamera.onFileSelected(event)">
-
-          <!-- Nút kích hoạt chụp / chọn ảnh -->
-          <div class="btn-group-row" style="margin-top: 12px;">
-            <button class="btn-convert"
-              style="flex: 1.3; height: 46px; font-size: 13.5px; margin: 0; background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); border: 1.5px solid #f472b6;"
-              onclick="document.getElementById('cameraFileInput').click()">
-              📸 CHỤP ẢNH HIỆN TRƯỜNG
-            </button>
-            <button class="btn-sm btn-blue" style="flex: 1; height: 46px; font-size: 12.5px;"
-              onclick="document.getElementById('galleryFileInput').click()">
-              🖼️ Chọn Từ Máy
-            </button>
+          <!-- Thông tin in chìm preview tóm tắt -->
+          <div class="camera-tag-preview" id="boxCameraTagPreview">
+            <div style="font-weight: 700; color: #fbbf24; margin-bottom: 4px;">📌 Nội dung đóng dấu thực tế:</div>
+            <div>• Mốc: <b id="txtCameraTagMark" style="color: #38bdf8;">Chưa chọn</b> (<span id="txtCameraTagProject">Dự án hiện tại</span>)</div>
+            <div>• VN-2000: <span id="txtCameraTagVn2k">X = -- m | Y = -- m</span></div>
+            <div>• WGS-84: <span id="txtCameraTagWgs">Lat: -- | Lng: --</span></div>
+            <div>• Thực địa: <span id="txtCameraTagGps">Sai số: ±--m | Hướng: --°</span></div>
+            <div>• Thời gian: <span id="txtCameraTagTime">--/--/---- --:--:--</span></div>
           </div>
         </div>
 
-        <!-- Card 2: Xem kết quả ảnh đã đóng dấu -->
+        <!-- TAB 1: CAMERA HIỆN TRƯỜNG TRỰC TIẾP (LIVE VIEWFINDER + OVERLAY REALTIME) -->
+        <div id="cameraTabPaneLive" class="camera-tab-pane">
+          <div class="app-card" style="padding: 10px;">
+            <div class="camera-viewfinder-box" id="cameraViewfinderBox">
+              <!-- Video luồng camera -->
+              <video id="cameraLiveVideo" autoplay playsinline muted></video>
+
+              <!-- Canvas lớp phủ thủy ấn realtime cập nhật từng giây -->
+              <canvas id="cameraRealtimeHudCanvas"></canvas>
+
+              <!-- Badge nhấp nháy khi đang quay video -->
+              <div id="cameraRecordingBadge" class="camera-recording-badge" style="display: none;">
+                <span>🔴 REC</span>
+                <span id="cameraRecordingTimer">00:00</span>
+              </div>
+
+              <!-- Thanh nút thao tác nhanh trên góc camera -->
+              <div class="camera-floating-toolbar">
+                <button type="button" class="camera-icon-btn" id="btnCameraTorch" onclick="appCamera.toggleTorch()" title="Bật/Tắt đèn Flash">
+                  🔦
+                </button>
+                <button type="button" class="camera-icon-btn" id="btnCameraSwitchFacing" onclick="appCamera.switchCameraFacing()" title="Chuyển camera Trước/Sau">
+                  🔄
+                </button>
+                <button type="button" class="camera-icon-btn" id="btnCameraToggleStream" onclick="appCamera.toggleCameraStream()" title="Bật/Tắt Camera">
+                  📹
+                </button>
+              </div>
+            </div>
+
+            <!-- Nút hành động chụp ảnh & quay video -->
+            <div class="btn-group-row" style="margin-top: 12px; gap: 8px;">
+              <button type="button" id="btnCameraCaptureLive" class="btn-convert"
+                style="flex: 1.3; height: 48px; font-size: 13.5px; margin: 0; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1.5px solid #38bdf8;"
+                onclick="appCamera.captureLivePhoto()">
+                📸 CHỤP ẢNH ĐÓNG DẤU
+              </button>
+              <button type="button" id="btnCameraRecordVideo" class="btn-convert"
+                style="flex: 1.1; height: 48px; font-size: 13px; margin: 0; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border: 1.5px solid #f87171;"
+                onclick="appCamera.toggleVideoRecording()">
+                ⏺️ QUAY VIDEO REALTIME
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: ĐÓNG DẤU ẢNH TẢI LÊN CÓ SẴN (FILE INPUT) -->
+        <div id="cameraTabPaneUpload" class="camera-tab-pane" style="display: none;">
+          <div class="app-card">
+            <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display: none;"
+              onchange="appCamera.onFileSelected(event)">
+            <input type="file" id="galleryFileInput" accept="image/*" style="display: none;"
+              onchange="appCamera.onFileSelected(event)">
+
+            <div class="btn-group-row" style="margin-top: 4px;">
+              <button class="btn-convert"
+                style="flex: 1; height: 46px; font-size: 13.5px; margin: 0; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1.5px solid #38bdf8;"
+                onclick="document.getElementById('galleryFileInput').click()">
+                🖼️ Chọn Tệp Ảnh Từ Thiết Bị
+              </button>
+              <button class="btn-sm btn-blue" style="flex: 1; height: 46px; font-size: 12.5px;"
+                onclick="document.getElementById('cameraFileInput').click()">
+                📷 Gọi Camera Mặc Định Máy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Xem kết quả ảnh vừa chụp/đóng dấu xong -->
         <div class="app-card" id="cardCameraResult" style="display: none;">
           <div class="card-header">
-            <span class="card-title" style="color: #34d399;">✅ Ảnh Hiện Trường Đã Đóng Dấu</span>
+            <span class="card-title" style="color: #34d399;">✅ Ảnh Nghiệm Thu Vừa Đóng Dấu</span>
+            <button class="btn-sm btn-blue" onclick="appCamera.closeResultPreview()" style="height: 26px; padding: 2px 8px; font-size: 11px;">
+              ✕ Đóng
+            </button>
           </div>
 
           <div class="camera-preview-box">
@@ -2590,15 +2757,57 @@
           <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
             <button class="btn-convert btn-wgs-to-vn2k" style="height: 44px; font-size: 13.5px; margin: 0;"
               onclick="appCamera.downloadWatermarkedImage()">
-              💾 TẢI ẢNH ĐÃ ĐÓNG DẤU VỀ MÁY (.JPG)
+              💾 TẢI ẢNH NÀY VỀ MÁY (.JPG)
             </button>
-            <div class="btn-group-row" style="margin-top: 6px;">
+            <div class="btn-group-row" style="margin-top: 4px;">
               <button class="btn-sm btn-green" onclick="appCamera.shareImage()">
                 📤 Chia sẻ (Zalo)
               </button>
               <button class="btn-sm btn-amber" onclick="appCamera.attachToCurrentPoint()">
                 📋 Lưu vào sổ đo mốc
               </button>
+              <button class="btn-sm btn-blue" onclick="appCamera.switchTab('gallery')">
+                📂 Mở Quản lý ảnh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: QUẢN LÝ TẬP HỢP CÁC ẢNH & VIDEO ĐÃ ĐÓNG DẤU (GALLERY ARCHIVE) -->
+        <div id="cameraTabPaneGallery" class="camera-tab-pane" style="display: none;">
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title">📂 Bộ Sưu Tập Ảnh Nghiệm Thu Đã Đóng Dấu</span>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-sm btn-blue" onclick="appCamera.loadGalleryFromDb()" style="height: 28px; padding: 2px 8px; font-size: 11.5px;">
+                  🔄 Làm mới
+                </button>
+              </div>
+            </div>
+
+            <!-- Thanh tác vụ quản lý hàng loạt -->
+            <div class="btn-group-row" style="flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+              <button type="button" class="btn-sm btn-green" onclick="appCamera.downloadAllImages()" id="btnCameraDownloadAll">
+                📦 Tải tất cả ảnh về máy
+              </button>
+              <button type="button" class="btn-sm btn-amber" onclick="appCamera.attachAllToSurveyBook()">
+                📋 Đính kèm vào sổ đo dự án
+              </button>
+              <button type="button" class="btn-sm btn-red" onclick="appCamera.confirmClearAllGallery()">
+                🗑️ Xóa toàn bộ
+              </button>
+            </div>
+
+            <!-- Lưới hiển thị danh sách ảnh -->
+            <div id="cameraGalleryGrid" class="camera-gallery-grid">
+              <!-- Nạp danh sách ảnh đã đóng dấu từ IndexedDB -->
+            </div>
+
+            <!-- Empty state -->
+            <div id="cameraGalleryEmptyState" style="text-align: center; padding: 28px 16px; color: #94a3b8; font-size: 12.5px; display: none;">
+              <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+              Chưa có ảnh đóng dấu nào trong bộ nhớ.<br>
+              Hãy dùng <b>Camera hiện trường</b> hoặc <b>Đóng dấu ảnh máy</b> để bắt đầu.
             </div>
           </div>
         </div>
@@ -4091,29 +4300,16 @@
           <div class="form-group" style="margin-bottom: 10px;">
             <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
               <span data-i18n="settings.ktt.quick_label">⚡ Nhập nhanh KTT:</span>
-              <span style="font-size: 11.5px; color: #38bdf8;">VD: 105°45' hoặc 105.75</span>
+              <button type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('settings_ktt')" title="Xem quy tắc KTT chuẩn Việt Nam">?</button>
             </label>
-            <input type="text" id="txtModalKttQuick" class="app-input" placeholder="Gõ nhanh: 105°45', 105O45' hoặc 105.75" oninput="appModal.onQuickKttInput(this.value)">
+            <input type="text" id="txtModalKttQuick" class="app-input" placeholder="VD: 105°45' hoặc 105.75" oninput="appModal.onQuickKttInput(this.value)">
           </div>
 
-          <div class="form-group" style="margin-bottom: 10px;">
+          <div class="form-group" style="margin-bottom: 14px;">
             <label class="form-label" style="margin-bottom: 4px;" data-i18n="settings.ktt.split_label">Tự nhập tách rời (Độ - Phút):</label>
             <div class="input-row">
               <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)" oninput="appModal.updateKttPreview(true)">
               <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)" oninput="appModal.updateKttPreview(true)">
-            </div>
-          </div>
-
-          <!-- Hộp KTT phổ biến -->
-          <div class="ktt-guide-card" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-              <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;" data-i18n="settings.ktt.chips_title">⚡ Bấm nhanh KTT chuẩn Việt Nam:</span>
-              <button type="button" class="btn-sm btn-blue" style="height: 22px; padding: 1px 7px; font-size: 11.5px;" onclick="appGuide.openGuide('settings_ktt')" data-i18n="settings.ktt.btn_rules">
-                Quy tắc (?) ➔
-              </button>
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 5px;" id="kttQuickChipsContainer">
-              <!-- Render tự động -->
             </div>
           </div>
 
@@ -4370,7 +4566,7 @@
             <div class="form-group" style="margin-bottom: 6px;">
               <label class="form-label" style="font-size: 11px;" data-i18n="settings.opt.fmt_label">Định dạng nén ảnh:</label>
               <select id="selOptimizerFormat" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()">
-                <option value="webp" selected>WebP (Khuyên dùng - Siêu nhẹ)</option>
+                <option value="webp" selected>WebP (Khuyên dùng - Nén tối ưu)</option>
                 <option value="jpeg">MozJPEG (Tương thích AutoCAD cũ)</option>
                 <option value="png">PNG (Không nén lossless)</option>
               </select>
@@ -5000,12 +5196,12 @@
             style="background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(56, 189, 248, 0.45); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 15px;">⚡</span>
-              <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">Tùy chọn Xuất Ảnh Siêu Nhẹ (PixOptimizer):</span>
+              <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">Tùy chọn nén ảnh bản vẽ (PixOptimizer):</span>
             </div>
             <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
               <select id="cadExportImgFormat" class="app-select" style="height: 30px; font-size: 11px; padding: 0 8px;"
                 onchange="appCadTool.onExportImgSettingChange()">
-                <option value="webp" selected>WebP (Siêu nhẹ ~300KB, giảm 85%)</option>
+                <option value="webp" selected>WebP (Nén ~300KB, giảm 85%)</option>
                 <option value="jpeg">JPEG (Tương thích Zalo / Word)</option>
                 <option value="png">PNG (Gốc không nén ~4MB)</option>
               </select>
@@ -5013,7 +5209,7 @@
                 onchange="appCadTool.onExportImgSettingChange()">
                 <option value="balanced" selected>Cân bằng (80% - Khuyến nghị)</option>
                 <option value="high">Cao (90% - Sắc nét in ấn)</option>
-                <option value="light">Siêu nhẹ (65% - Gửi 3G/Zalo)</option>
+                <option value="light">Tiết kiệm (65% - Gửi Zalo/3G)</option>
               </select>
             </div>
           </div>
@@ -6459,6 +6655,35 @@
         <button type="button" class="btn-sm btn-green" style="height: 34px; padding: 0 16px; font-size: 12px; font-weight: 700;" onclick="appGuide.closeGuide()">
           ✓ Đã hiểu
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL XEM CHI TIẾT ẢNH / VIDEO NGHIỆM THU ĐÃ ĐÓNG DẤU ================= -->
+  <div id="modalCameraMediaViewer" class="modal-overlay" style="display: none; z-index: 99995;">
+    <div class="modal-box" style="max-width: 640px; width: 95%;">
+      <div class="modal-header">
+        <span class="modal-title" id="txtCameraViewerTitle">📷 Chi Tiết Ảnh Nghiệm Thu</span>
+        <button class="btn-modal-close" onclick="appCamera.closeMediaViewer()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+        <div id="cameraViewerMediaContainer" style="width: 100%; max-height: 55vh; background: #000; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <!-- Ảnh hoặc video hiển thị tại đây -->
+        </div>
+        <div id="cameraViewerMetaInfo" style="font-size: 12px; line-height: 1.6; color: #cbd5e1; background: #0b1329; border: 1px solid #1e293b; border-radius: 8px; padding: 10px;">
+          <!-- Thông số kỹ thuật -->
+        </div>
+        <div class="btn-group-row" style="margin-top: 4px; gap: 8px;">
+          <button type="button" class="btn-convert btn-wgs-to-vn2k" id="btnCameraViewerDownload" style="flex: 1.2; height: 42px; font-size: 13px; margin: 0;" onclick="appCamera.downloadCurrentViewerMedia()">
+            💾 Tải về máy
+          </button>
+          <button type="button" class="btn-sm btn-amber" style="flex: 1; height: 42px; font-size: 12px;" onclick="appCamera.attachCurrentViewerToPoint()">
+            📋 Lưu vào sổ đo
+          </button>
+          <button type="button" class="btn-sm btn-red" style="flex: 0.8; height: 42px; font-size: 12px;" onclick="appCamera.deleteCurrentViewerMedia()">
+            🗑️ Xóa
+          </button>
+        </div>
       </div>
     </div>
   </div>

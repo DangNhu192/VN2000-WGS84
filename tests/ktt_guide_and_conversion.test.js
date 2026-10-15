@@ -82,15 +82,12 @@ test('=== 2. KIỂM THỬ DANH SÁCH MỐC KTT PHỔ BIẾN VIỆT NAM (COMMON_K
 });
 
 test('=== 3. KIỂM THỬ GIAO DIỆN GHI CHÚ VÀ HƯỚNG DẪN QUY ĐỔI KTT (INDEX.HTML & APP.JS) ===', () => {
-    // 3.1 Thẻ ghi chú và Live Preview trong modal cài đặt KTT
+    // 3.1 Thẻ ghi chú và Live Preview trong modal cài đặt KTT (đã tinh gọn loại bỏ chips thừa)
     assert(indexHtml.includes('id="boxModalKttPreview"'), "Phải có boxModalKttPreview xem trước KTT");
     assert(indexHtml.includes('id="lblModalKttPreviewText"'), "Phải có lblModalKttPreviewText hiển thị quy đổi");
     assert(indexHtml.includes('id="txtModalKttQuick"'), "Phải có ô nhập nhanh txtModalKttQuick");
-    assert(indexHtml.includes('id="kttQuickChipsContainer"'), "Phải có container kttQuickChipsContainer");
-    assert(indexHtml.includes('class="ktt-guide-card"'), "Phải có ktt-guide-card giải thích chi tiết");
     assert(indexHtml.includes("105°45'"), "Phải có ví dụ 105°45'");
     assert(indexHtml.includes("105.75°"), "Phải có ví dụ 105.75°");
-    assert(indexHtml.includes("105O45'"), "Phải có ví dụ 105O45'");
 
     // 3.2 Chip hiển thị quy đổi trên màn hình Chuyển đổi tọa độ
     assert(indexHtml.includes('id="lblTransformKttPreview"'), "Phải có lblTransformKttPreview trên màn hình chuyển đổi");

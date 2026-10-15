@@ -125,6 +125,28 @@ const appSettings = {
         }
         if (num(s.provinceIndex) !== null) AppState.provinceIndex = s.provinceIndex;
         if (typeof s.provinceName === 'string' && s.provinceName) AppState.provinceName = s.provinceName;
+
+        // Tự động kiểm tra và đồng bộ toàn vẹn Tỉnh Thành & KTT (chống lệch KTT giữa tên tỉnh và tọa độ)
+        if (typeof VN_PROVINCES !== 'undefined' && Array.isArray(VN_PROVINCES)) {
+            if (AppState.provinceName) {
+                const norm = VN_PROVINCES.find(p => p.name.toLowerCase() === AppState.provinceName.toLowerCase());
+                if (norm) {
+                    AppState.provinceName = norm.name;
+                    AppState.provinceIndex = VN_PROVINCES.indexOf(norm);
+                    // Nếu là tỉnh cụ thể trong danh mục (ví dụ Đồng Tháp phải là 105°00'), đồng bộ KTT
+                    if (s.provinceName && norm.deg === AppState.kttDeg && AppState.kttMin !== norm.min) {
+                        AppState.kttMin = norm.min;
+                        AppState.kttVal = norm.ktt;
+                    }
+                }
+            } else if (AppState.provinceIndex >= 0 && AppState.provinceIndex < VN_PROVINCES.length) {
+                const norm = VN_PROVINCES[AppState.provinceIndex];
+                AppState.provinceName = norm.name;
+                AppState.kttDeg = norm.deg;
+                AppState.kttMin = norm.min;
+                AppState.kttVal = norm.ktt;
+            }
+        }
         if (s.muiVal === 3 || s.muiVal === 6) {
             AppState.muiVal = s.muiVal;
             AppState.scaleFactor = (s.muiVal === 3) ? 0.9999 : 0.9996;
@@ -319,9 +341,10 @@ const appNav = window.appNav = {
             if (customSubVi || customSubEn) {
                 subTitleEl.innerText = isEn ? (customSubEn || (typeof appI18n !== 'undefined' ? appI18n.translateString(customSubVi) : customSubVi)) : customSubVi;
             } else {
-                const pName = isEn ? 'Ho Chi Minh City' : (AppState.provinceName || 'Hồ Chí Minh');
+                const pName = isEn ? (typeof appI18n !== 'undefined' ? appI18n.translateString(AppState.provinceName || 'TP. Hồ Chí Minh') : (AppState.provinceName || 'TP. Hồ Chí Minh')) : (AppState.provinceName || 'TP. Hồ Chí Minh');
                 const kttLabel = isEn ? 'CM' : 'KTT';
-                subTitleEl.innerText = `${pName} (${kttLabel}: ${AppState.kttDeg || 105}°${String(AppState.kttMin || 45).padStart(2, '0')}')`;
+                const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
+                subTitleEl.innerText = `${pName} (${kttLabel}: ${AppState.kttDeg || 105}°${String(minVal).padStart(2, '0')}')`;
             }
         }
     },
@@ -361,6 +384,9 @@ const appNav = window.appNav = {
         if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
             appCadTool.closeToolbar();
         }
+        if (screenName !== 'camera' && typeof appCamera !== 'undefined' && appCamera.stopCameraStream) {
+            appCamera.stopCameraStream();
+        }
 
         const btnBack = document.getElementById('btnHeaderBack');
         const titleEl = document.getElementById('headerTitle');
@@ -399,8 +425,9 @@ const appNav = window.appNav = {
                 customSubVi = "WGS-84 ⇄ VN-2000 • 7 Tham Số BTNMT";
                 customSubEn = "WGS-84 ⇄ VN-2000 • 7-Parameter Bursa-Wolf";
                 targetScreen = document.getElementById('screen-transform');
-                if (typeof appTransform !== 'undefined' && appTransform.init) {
-                    appTransform.init();
+                if (typeof appTransform !== 'undefined') {
+                    if (appTransform.init) appTransform.init();
+                    if (appTransform.onScreenOpen) appTransform.onScreenOpen();
                 }
             } else if (screenName === 'stakeout') {
                 titleText = "3. CẮM MỐC THỰC ĐỊA";
@@ -735,6 +762,7 @@ const appNav = window.appNav = {
         if (typeof appTransform !== 'undefined') {
             if (appTransform.init) appTransform.init();
             if (appTransform.switchTransformSubTab) appTransform.switchTransformSubTab(tab);
+            if (appTransform.onScreenOpen) appTransform.onScreenOpen();
         }
     },
 
@@ -1649,16 +1677,17 @@ const appDashboard = {
             projPoints.textContent = isEn ? (count + ' points') : (count + ' mốc');
         }
         if (kttShort) {
-            const prov = (AppState.provinceIndex >= 0 && typeof VN_PROVINCES !== 'undefined') ? VN_PROVINCES[AppState.provinceIndex] : null;
             const prefix = isEn ? 'CM ' : 'KTT ';
-            kttShort.textContent = prov ? prefix + prov.deg + '°' + String(prov.min).padStart(2,'0') + '\'' : prefix + AppState.kttDeg + '°' + AppState.kttMin + '\'';
+            const minVal = (typeof AppState.kttMin === 'number') ? AppState.kttMin : 0;
+            kttShort.textContent = `${prefix}${AppState.kttDeg || 105}°${String(minVal).padStart(2, '0')}'`;
         }
 
         // Cập nhật 2 chip trạng thái nhanh ở đầu trang chủ
         const chipKtt = document.getElementById('dashChipProvinceKtt');
         if (chipKtt) {
-            const pName = isEn ? 'Ho Chi Minh City' : (AppState.provinceName || 'TP. Hồ Chí Minh');
-            chipKtt.textContent = `${pName} (${AppState.kttDeg || 105}°${String(AppState.kttMin || 45).padStart(2,'0')}')`;
+            const pName = isEn ? (typeof appI18n !== 'undefined' ? appI18n.translateString(AppState.provinceName || 'TP. Hồ Chí Minh') : (AppState.provinceName || 'TP. Hồ Chí Minh')) : (AppState.provinceName || 'TP. Hồ Chí Minh');
+            const minVal = (typeof AppState.kttMin === 'number') ? AppState.kttMin : 0;
+            chipKtt.textContent = `${pName} (${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}')`;
         }
         const chipStorage = document.getElementById('dashChipStorage');
         if (chipStorage) {
@@ -2141,6 +2170,19 @@ const appTransform = {
             });
             sel.value = String(AppState.provinceIndex);
         }
+        if (!this._resizeAttached) {
+            this._resizeAttached = true;
+            window.addEventListener('resize', () => {
+                const scr = document.getElementById('screen-transform');
+                if (scr && scr.style.display !== 'none') {
+                    this.initDesktopLiveMap();
+                    if (this._liveMap) {
+                        setTimeout(() => this._liveMap.invalidateSize(), 100);
+                    }
+                }
+            });
+        }
+        this.initResizer();
     },
 
     setMui(mui) {
@@ -2163,6 +2205,13 @@ const appTransform = {
             AppState.kttDeg = p.deg;
             AppState.kttMin = p.min;
             AppState.kttVal = p.ktt;
+
+            const tfDms = document.getElementById('tfKttDmsText');
+            const tfDec = document.getElementById('tfKttDecText');
+            const dmsStr = `${p.deg}°${String(p.min).padStart(2,'0')}'`;
+            const decStr = p.ktt.toFixed(4).replace(/\.?0+$/, '') + '°';
+            if (tfDms) tfDms.innerText = dmsStr;
+            if (tfDec) tfDec.innerText = decStr;
         } else {
             appModal.openSettings();
         }
@@ -2477,16 +2526,14 @@ const appTransform = {
     onScreenOpen() {
         this.updatePickedMapCountBadge();
         this.populateMultiProjectSelect();
-        if (window.innerWidth >= 1024) {
-            setTimeout(() => {
-                this.initDesktopLiveMap();
-                if (AppState.lastConvertedPoint) {
-                    this.syncSingleToLiveMap(AppState.lastConvertedPoint);
-                } else if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
-                    this.syncMultiToLiveMap(this.multiConvertedResults);
-                }
-            }, 150);
-        }
+        setTimeout(() => {
+            this.initDesktopLiveMap();
+            if (AppState.lastConvertedPoint) {
+                this.syncSingleToLiveMap(AppState.lastConvertedPoint);
+            } else if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
+                this.syncMultiToLiveMap(this.multiConvertedResults);
+            }
+        }, 150);
     },
 
     updatePickedMapCountBadge() {
@@ -2503,6 +2550,7 @@ const appTransform = {
         const btnLiveMap = document.getElementById('tabTransLiveMap');
         const panelSingle = document.getElementById('panelTransSingle');
         const panelMulti = document.getElementById('panelTransMulti');
+        const panelLiveMap = document.getElementById('panelTransLiveMap');
         const mapWrap = document.getElementById('boxTransformLiveMapWrap');
 
         if (btnSingle) btnSingle.classList.toggle('active', tab === 'single');
@@ -2510,73 +2558,52 @@ const appTransform = {
         if (btnLiveMap) btnLiveMap.classList.toggle('active', tab === 'livemap');
 
         if (tab === 'livemap') {
-            // Chế độ Bản đồ lớn trực quan chiếm đa số màn hình
+            // Chế độ Bản đồ lớn trực quan kết hợp bảng tra cứu tọa độ tức thời (Inspector)
             if (panelSingle) panelSingle.style.display = 'none';
             if (panelMulti) panelMulti.style.display = 'none';
+            if (panelLiveMap) panelLiveMap.style.display = 'block';
+            const layout = document.getElementById('transformSplitLayout');
+            if (layout) layout.classList.add('map-full-focus');
             if (mapWrap) {
                 mapWrap.classList.add('large-focus');
-                mapWrap.classList.add('mobile-active');
                 mapWrap.style.display = 'flex';
             }
-            if (typeof this.setTransformViewMode === 'function') {
-                this.setTransformViewMode('map-dominant');
-            }
             this.initDesktopLiveMap();
+            this.renderLiveMapMarkersList();
             setTimeout(() => {
                 if (this._liveMap) {
                     this._liveMap.invalidateSize();
                     this.fitLiveMapBounds();
                 }
             }, 100);
-            showToast("🗺️ Bản đồ lớn trực quan (Chiếm đa số màn hình)!");
+            showToast("🗺️ Bản đồ lớn & Bảng tra cứu tọa độ trực tiếp (Live Inspector)!");
         } else if (tab === 'multi') {
+            const layout = document.getElementById('transformSplitLayout');
+            if (layout) layout.classList.remove('map-full-focus');
             if (panelSingle) panelSingle.style.display = 'none';
             if (panelMulti) panelMulti.style.display = 'block';
+            if (panelLiveMap) panelLiveMap.style.display = 'none';
             if (mapWrap) {
                 mapWrap.classList.remove('large-focus');
-                const layout = document.getElementById('transformSplitLayout');
-                const isFormOnly = layout && layout.classList.contains('mode-form-only');
-                if (isFormOnly) {
-                    mapWrap.style.display = 'none';
-                } else if (window.innerWidth < 1024) {
-                    // Nếu đang ở map-dominant hoặc split
-                    const isMapActive = layout && (layout.classList.contains('mode-map-dominant') || layout.classList.contains('mode-split'));
-                    if (isMapActive) {
-                        mapWrap.classList.add('mobile-active');
-                        mapWrap.style.display = 'flex';
-                    } else {
-                        mapWrap.classList.remove('mobile-active');
-                        mapWrap.style.display = 'none';
-                    }
-                } else {
-                    mapWrap.style.display = 'flex';
-                }
+                mapWrap.style.display = 'flex';
+                this.initDesktopLiveMap();
             }
+            this.applySplitRatio(this._splitRatio, true);
             this.populateMultiProjectSelect();
             this.updatePickedMapCountBadge();
             this.renderMultiTransPoints();
         } else {
+            const layout = document.getElementById('transformSplitLayout');
+            if (layout) layout.classList.remove('map-full-focus');
             if (panelSingle) panelSingle.style.display = 'block';
             if (panelMulti) panelMulti.style.display = 'none';
+            if (panelLiveMap) panelLiveMap.style.display = 'none';
             if (mapWrap) {
                 mapWrap.classList.remove('large-focus');
-                const layout = document.getElementById('transformSplitLayout');
-                const isFormOnly = layout && layout.classList.contains('mode-form-only');
-                if (isFormOnly) {
-                    mapWrap.style.display = 'none';
-                } else if (window.innerWidth < 1024) {
-                    const isMapActive = layout && (layout.classList.contains('mode-map-dominant') || layout.classList.contains('mode-split'));
-                    if (isMapActive) {
-                        mapWrap.classList.add('mobile-active');
-                        mapWrap.style.display = 'flex';
-                    } else {
-                        mapWrap.classList.remove('mobile-active');
-                        mapWrap.style.display = 'none';
-                    }
-                } else {
-                    mapWrap.style.display = 'flex';
-                }
+                mapWrap.style.display = 'flex';
+                this.initDesktopLiveMap();
             }
+            this.applySplitRatio(this._splitRatio, true);
         }
     },
 
@@ -3719,20 +3746,164 @@ const appTransform = {
                 const lng = e.latlng.lng;
                 let vn2k = null;
                 try {
-                    if (typeof geodesy !== 'undefined' && geodesy.wgs84ToVn2000) {
-                        vn2k = geodesy.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                    if (typeof convertWgsToVn2k === 'function') {
+                        const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                        if (pt && pt.X !== undefined && pt.Y !== undefined) {
+                            vn2k = { x: pt.X, y: pt.Y };
+                        }
                     }
                 } catch(err) {}
+                this._lastLivePicked = { lat, lng, x: vn2k ? vn2k.x : null, y: vn2k ? vn2k.y : null };
                 const hud = document.getElementById('liveMapCoordHud');
                 if (hud) {
-                    hud.innerHTML = `🎯 Đã chọn: Lat <b>${lat.toFixed(6)}°</b>, Lng <b>${lng.toFixed(6)}°</b>${vn2k ? ` | VN2000 X: <b>${vn2k.x.toFixed(2)}</b>, Y: <b>${vn2k.y.toFixed(2)}</b>` : ''}`;
+                    hud.innerHTML = `🎯 Đã ghim: Lat <b>${lat.toFixed(6)}°</b>, Lng <b>${lng.toFixed(6)}°</b>${vn2k ? ` | VN2000 X: <b>${vn2k.x.toFixed(2)}</b>, Y: <b>${vn2k.y.toFixed(2)}</b>` : ''}`;
                 }
+                this.updateLiveMapInspectorUI(this._lastLivePicked);
+                this.highlightLiveMapPickedPoint(lat, lng, vn2k);
             });
         }
 
         setTimeout(() => {
             if (this._liveMap) this._liveMap.invalidateSize();
         }, 200);
+    },
+
+    _lastLivePicked: null,
+    _livePickMarkerLayer: null,
+
+    updateLiveMapInspectorUI(pt) {
+        if (!pt) return;
+        const elStatus = document.getElementById('txtLiveMapInspectorStatus');
+        const elLat = document.getElementById('txtLiveMapLat');
+        const elLng = document.getElementById('txtLiveMapLng');
+        const elVnX = document.getElementById('txtLiveMapVnX');
+        const elVnY = document.getElementById('txtLiveMapVnY');
+
+        if (elStatus) elStatus.innerHTML = `📍 Đã ghim lúc ${new Date().toLocaleTimeString()}`;
+        if (elLat) elLat.innerText = pt.lat.toFixed(6) + '°';
+        if (elLng) elLng.innerText = pt.lng.toFixed(6) + '°';
+        if (elVnX) elVnX.innerText = pt.x !== null ? pt.x.toFixed(3) : '--';
+        if (elVnY) elVnY.innerText = pt.y !== null ? pt.y.toFixed(3) : '--';
+    },
+
+    highlightLiveMapPickedPoint(lat, lng, vn2k) {
+        if (!this._liveMap) return;
+        if (!this._livePickMarkerLayer) {
+            this._livePickMarkerLayer = L.layerGroup().addTo(this._liveMap);
+        }
+        this._livePickMarkerLayer.clearLayers();
+
+        const pickIcon = L.divIcon({
+            className: 'live-map-inspect-pin',
+            html: `<div style="background: radial-gradient(circle, #f59e0b 0%, #d97706 100%); color: #fff; border: 2.5px solid #ffffff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 0 16px rgba(245, 158, 11, 0.9), 0 2px 8px rgba(0,0,0,0.6);">🎯</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([lat, lng], { icon: pickIcon }).addTo(this._livePickMarkerLayer);
+        const vnInfo = vn2k ? `<br><b>X:</b> ${vn2k.x.toFixed(3)}m<br><b>Y:</b> ${vn2k.y.toFixed(3)}m` : '';
+        marker.bindPopup(`
+            <div style="font-size: 12px; font-family: sans-serif; line-height: 1.4;">
+                <b style="color: #0284c7;">🎯 Điểm ghim tra cứu</b><br>
+                <b>Lat:</b> ${lat.toFixed(6)}°<br>
+                <b>Lng:</b> ${lng.toFixed(6)}°${vnInfo}
+                <div style="display: flex; gap: 4px; margin-top: 6px;">
+                    <button style="padding: 2px 6px; font-size: 10.5px; background: #0284c7; color: #fff; border: none; border-radius: 4px; cursor: pointer;" onclick="appTransform.applyLivePickedToSingle()">Đơn điểm</button>
+                    <button style="padding: 2px 6px; font-size: 10.5px; background: #10b981; color: #fff; border: none; border-radius: 4px; cursor: pointer;" onclick="appTransform.addLivePickedToMulti()">Đa điểm</button>
+                </div>
+            </div>
+        `).openPopup();
+    },
+
+    applyLivePickedToSingle() {
+        if (!this._lastLivePicked) {
+            showToast("⚠️ Hãy nhấp trên bản đồ để ghim điểm trước!");
+            return;
+        }
+        const { lat, lng } = this._lastLivePicked;
+        const txtLat = document.getElementById('txtWgsLat');
+        const txtLng = document.getElementById('txtWgsLng');
+        if (txtLat) txtLat.value = lat.toFixed(6);
+        if (txtLng) txtLng.value = lng.toFixed(6);
+
+        this.switchTransformSubTab('single');
+        this.wgsToVn2000();
+        showToast(`✅ Đã nạp tọa độ (${lat.toFixed(6)}°, ${lng.toFixed(6)}°) vào Form Đơn Điểm!`);
+    },
+
+    addLivePickedToMulti() {
+        if (!this._lastLivePicked) {
+            showToast("⚠️ Hãy nhấp trên bản đồ để ghim điểm trước!");
+            return;
+        }
+        const { lat, lng, x, y } = this._lastLivePicked;
+        const nextId = `P${this.multiPoints.length + 1}`;
+        let c1 = '', c2 = '';
+        if (this.multiDirection === 'vn2k_to_wgs' && x !== null && y !== null) {
+            c1 = x.toFixed(3);
+            c2 = y.toFixed(3);
+        } else {
+            c1 = lat.toFixed(6);
+            c2 = lng.toFixed(6);
+        }
+        this.addManualMultiPoint(nextId, c1, c2);
+        this.switchTransformSubTab('multi');
+        showToast(`➕ Đã thêm điểm ${nextId} (${c1}, ${c2}) vào bảng Chuyển Đổi Đa Điểm!`);
+    },
+
+    renderLiveMapMarkersList() {
+        const box = document.getElementById('boxLiveMapMarkersList');
+        if (!box) return;
+
+        let html = '';
+        let count = 0;
+
+        if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.lat && AppState.lastConvertedPoint.lng) {
+            count++;
+            const p = AppState.lastConvertedPoint;
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 6px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; cursor: pointer;"
+                     onclick="appTransform.zoomToCoords(${p.lat}, ${p.lng}, '${p.name || 'Mốc Đơn'}')">
+                    <div>
+                        <b style="color: #38bdf8; font-size: 12px;">📍 ${p.name || 'Mốc Đơn Điểm Đã Đổi'}</b><br>
+                        <span style="font-size: 11px; color: #cbd5e1; font-family: monospace;">X: ${typeof p.x === 'number' ? p.x.toFixed(3) : p.x} | Y: ${typeof p.y === 'number' ? p.y.toFixed(3) : p.y}</span>
+                    </div>
+                    <span style="font-size: 11px; color: #38bdf8; font-weight: 700; background: rgba(56,189,248,0.15); padding: 2px 6px; border-radius: 4px;">🔍 Xem</span>
+                </div>
+            `;
+        }
+
+        if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
+            this.multiConvertedResults.forEach((pt, idx) => {
+                count++;
+                const lat = pt.lat !== undefined ? pt.lat : pt.wgsLat;
+                const lng = pt.lng !== undefined ? pt.lng : pt.wgsLng;
+                const x = pt.x !== undefined ? pt.x : pt.vnX;
+                const y = pt.y !== undefined ? pt.y : pt.vnY;
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 6px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; cursor: pointer;"
+                         onclick="appTransform.zoomToCoords(${lat}, ${lng}, '${pt.name || 'Mốc ' + (idx + 1)}')">
+                        <div>
+                            <b style="color: #34d399; font-size: 12px;">🏷️ ${pt.name || 'Mốc ' + (idx + 1)}</b><br>
+                            <span style="font-size: 11px; color: #cbd5e1; font-family: monospace;">X: ${typeof x === 'number' ? x.toFixed(2) : x} | Y: ${typeof y === 'number' ? y.toFixed(2) : y}</span>
+                        </div>
+                        <span style="font-size: 11px; color: #34d399; font-weight: 700; background: rgba(16,185,129,0.15); padding: 2px 6px; border-radius: 4px;">🔍 Xem</span>
+                    </div>
+                `;
+            });
+        }
+
+        if (count === 0) {
+            box.innerHTML = `<div style="padding: 10px; text-align: center; color: #64748b; font-style: italic;">Chưa có điểm mốc nào trên bản đồ.<br>Chuyển đổi đơn điểm hoặc đa điểm để hiển thị tại đây!</div>`;
+        } else {
+            box.innerHTML = html;
+        }
+    },
+
+    zoomToCoords(lat, lng, title) {
+        if (!this._liveMap || isNaN(lat) || isNaN(lng)) return;
+        this._liveMap.setView([lat, lng], 17);
+        showToast(`🔍 Đã thu phóng đến ${title}!`);
     },
 
     toggleLiveMapLayer() {
@@ -3876,6 +4047,123 @@ const appTransform = {
         }, 150);
     },
 
+    _splitRatio: 48,
+
+    applySplitRatio(percent, resizeMap = true) {
+        const layout = document.getElementById('transformSplitLayout');
+        if (!layout) return;
+        const isDesktop = window.innerWidth >= 1024;
+        if (isDesktop) {
+            const clamped = Math.max(32, Math.min(75, percent));
+            layout.style.setProperty('--tf-content-width', `${clamped}%`);
+        } else {
+            const clamped = Math.max(25, Math.min(75, percent));
+            layout.style.setProperty('--tf-content-height', `${clamped}%`);
+        }
+        if (resizeMap && this._liveMap) {
+            this._liveMap.invalidateSize({ debounceMoveend: true });
+        }
+    },
+
+    initResizer() {
+        const resizer = document.getElementById('transformLayoutResizer');
+        const layout = document.getElementById('transformSplitLayout');
+        const btnToggle = document.getElementById('btnResizerQuickToggle');
+        if (!resizer || !layout) return;
+
+        // Tải tỉ lệ đã lưu từ localStorage
+        const savedRatio = parseFloat(localStorage.getItem('vn2k_transform_split_ratio'));
+        if (!isNaN(savedRatio) && savedRatio >= 32 && savedRatio <= 75) {
+            this._splitRatio = savedRatio;
+        } else {
+            this._splitRatio = 48;
+        }
+        this.applySplitRatio(this._splitRatio, false);
+
+        let isDragging = false;
+        let startX = 0, startY = 0;
+
+        const onPointerDown = (e) => {
+            if (e.target && e.target.closest('#btnResizerQuickToggle')) return;
+            isDragging = true;
+            resizer.classList.add('is-dragging');
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+
+            startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+            startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+        };
+
+        const onPointerMove = (e) => {
+            if (!isDragging) return;
+            const isDesktop = window.innerWidth >= 1024;
+            const rect = layout.getBoundingClientRect();
+
+            if (isDesktop) {
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+                const offset = clientX - rect.left;
+                let percent = (offset / rect.width) * 100;
+                percent = Math.max(32, Math.min(75, percent));
+                this._splitRatio = percent;
+                this.applySplitRatio(percent, true);
+            } else {
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+                const offset = clientY - rect.top;
+                let percent = (offset / rect.height) * 100;
+                percent = Math.max(25, Math.min(75, percent));
+                this._splitRatio = percent;
+                this.applySplitRatio(percent, true);
+            }
+        };
+
+        const onPointerUp = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            resizer.classList.remove('is-dragging');
+            document.body.style.userSelect = '';
+            document.body.style.webkitUserSelect = '';
+            localStorage.setItem('vn2k_transform_split_ratio', this._splitRatio.toFixed(1));
+            if (this._liveMap) {
+                setTimeout(() => this._liveMap.invalidateSize(), 60);
+            }
+        };
+
+        resizer.addEventListener('mousedown', onPointerDown);
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        resizer.addEventListener('touchstart', onPointerDown, { passive: true });
+        window.addEventListener('touchmove', onPointerMove, { passive: true });
+        window.addEventListener('touchend', onPointerUp);
+
+        // Nhấp đúp (Double click) để đặt lại 50/50
+        resizer.addEventListener('dblclick', () => {
+            this._splitRatio = 50;
+            this.applySplitRatio(50, true);
+            localStorage.setItem('vn2k_transform_split_ratio', '50');
+            showToast("⚖️ Đã đặt lại tỷ lệ cân bằng 50/50!");
+        });
+
+        // Nút Quick Toggle nhanh giữa Form và Map
+        if (btnToggle) {
+            btnToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this._splitRatio > 60) {
+                    this._splitRatio = 32;
+                    showToast("🗺️ Ưu tiên Bản đồ lớn (68%)");
+                } else if (this._splitRatio < 40) {
+                    this._splitRatio = 50;
+                    showToast("⚖️ Cân bằng Form & Bản đồ (50/50)");
+                } else {
+                    this._splitRatio = 68;
+                    showToast("📋 Ưu tiên Bảng nhập liệu (68%)");
+                }
+                this.applySplitRatio(this._splitRatio, true);
+                localStorage.setItem('vn2k_transform_split_ratio', this._splitRatio.toFixed(1));
+            });
+        }
+    },
+
     setTransformViewMode(mode) {
         const layout = document.getElementById('transformSplitLayout') || document.querySelector('.transform-split-layout');
         const btnMapDom = document.getElementById('btnTfModeMapDominant');
@@ -3896,14 +4184,17 @@ const appTransform = {
             if (mode === 'form-only') {
                 mapWrap.classList.remove('mobile-active', 'large-focus');
                 mapWrap.style.display = 'none';
+                this.applySplitRatio(98, false);
             } else if (mode === 'map-dominant') {
                 mapWrap.classList.add('mobile-active', 'large-focus');
                 mapWrap.style.display = 'flex';
+                this.applySplitRatio(34, true);
                 this.initDesktopLiveMap();
             } else if (mode === 'split') {
                 mapWrap.classList.add('mobile-active');
                 mapWrap.classList.remove('large-focus');
                 mapWrap.style.display = 'flex';
+                this.applySplitRatio(50, true);
                 this.initDesktopLiveMap();
             }
         }
@@ -3916,9 +4207,9 @@ const appTransform = {
         }, 150);
 
         if (mode === 'map-dominant') {
-            showToast("🗺️ Bản đồ lớn trực quan chiếm đa số màn hình (65%)!");
+            showToast("🗺️ Ưu tiên Bản đồ lớn trực quan (66%)!");
         } else if (mode === 'split') {
-            showToast("⚖️ Chế độ chia đôi Form & Bản đồ (50/50)!");
+            showToast("⚖️ Chia đôi cân bằng Form & Bản đồ (50/50)!");
         } else if (mode === 'form-only') {
             showToast("📝 Chế độ chỉ hiển thị Form nhập liệu!");
         }
@@ -4166,13 +4457,13 @@ const appTransformMap = {
 
     populateSheetProvinces() {
         const sel = document.getElementById('sheetTfSelectProvince');
-        if (!sel || typeof PROVINCE_PRESETS === 'undefined') return;
+        if (!sel || typeof VN_PROVINCES === 'undefined') return;
         sel.innerHTML = '';
-        Object.keys(PROVINCE_PRESETS).forEach(pName => {
+        VN_PROVINCES.forEach((p, idx) => {
             const opt = document.createElement('option');
-            opt.value = pName;
-            opt.innerText = `${pName} (${PROVINCE_PRESETS[pName].deg}°${String(PROVINCE_PRESETS[pName].min).padStart(2, '0')}')`;
-            if (pName === AppState.provinceName) opt.selected = true;
+            opt.value = idx;
+            opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')`;
+            if (p.name === AppState.provinceName || (p.deg === AppState.kttDeg && p.min === AppState.kttMin)) opt.selected = true;
             sel.appendChild(opt);
         });
     },
@@ -4201,15 +4492,21 @@ const appTransformMap = {
 
     onProvinceChange() {
         const sel = document.getElementById('sheetTfSelectProvince');
-        if (!sel || !PROVINCE_PRESETS[sel.value]) return;
-        const p = PROVINCE_PRESETS[sel.value];
-        AppState.provinceName = sel.value;
-        AppState.kttDeg = p.deg;
-        AppState.kttMin = p.min;
-        AppState.kttVal = p.deg + p.min / 60.0;
-        showToast(`📍 Đã đổi KTT sang ${sel.value} (${AppState.kttVal.toFixed(4)}°)`);
-        if (this.pickedSinglePoint) {
-            this.executeSingleConvert('auto');
+        if (!sel) return;
+        const idx = parseInt(sel.value, 10);
+        if (idx >= 0 && typeof VN_PROVINCES !== 'undefined' && VN_PROVINCES[idx]) {
+            const p = VN_PROVINCES[idx];
+            AppState.provinceIndex = idx;
+            AppState.provinceName = p.name;
+            AppState.kttDeg = p.deg;
+            AppState.kttMin = p.min;
+            AppState.kttVal = p.ktt;
+            appNav.updateBanner();
+            appSettings.save();
+            showToast(`📍 Đã đổi KTT sang ${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')`);
+            if (this.pickedSinglePoint) {
+                this.executeSingleConvert('auto');
+            }
         }
     },
 
@@ -4792,7 +5089,7 @@ const appTransformMap = {
             if (this.baseLayers['esri_satellite']) {
                 this.baseLayers['esri_satellite'].addTo(this.map);
                 this.activeBaseLayer = 'esri_satellite';
-                showToast("🌍 Lớp Vệ tinh Esri Clarity (Nội suy siêu nét)");
+                showToast("🌍 Lớp Vệ tinh Esri World Imagery");
             } else {
                 this.baseLayers['osm_streets'].addTo(this.map);
                 this.activeBaseLayer = 'osm_streets';
@@ -4807,7 +5104,7 @@ const appTransformMap = {
             this.map.removeLayer(this.baseLayers['osm_streets']);
             this.baseLayers['google_hybrid'].addTo(this.map);
             this.activeBaseLayer = 'google_hybrid';
-            showToast("🛰️ Bản đồ Vệ tinh Google Hybrid (Nội suy siêu nét)");
+            showToast("🛰️ Bản đồ Vệ tinh Google Hybrid");
         }
     },
 
@@ -5704,7 +6001,7 @@ const appMap = {
                 AppState.baseLayers['esri_satellite'].addTo(map);
                 AppState.activeBaseLayerId = 'esri_satellite';
                 appSettings.save();
-                showToast("🌍 Lớp Vệ tinh Esri Clarity (Nội suy siêu nét)");
+                showToast("🌍 Lớp Vệ tinh Esri World Imagery");
             } else {
                 AppState.baseLayers['osm_streets'].addTo(map);
                 AppState.activeBaseLayerId = 'osm_streets';
@@ -5722,7 +6019,7 @@ const appMap = {
             AppState.baseLayers['google_hybrid'].addTo(map);
             AppState.activeBaseLayerId = 'google_hybrid';
             appSettings.save();
-            showToast("🛰️ Bản đồ Vệ tinh Google Hybrid (Nội suy siêu nét)");
+            showToast("🛰️ Bản đồ Vệ tinh Google Hybrid");
         }
     },
 
@@ -9869,6 +10166,11 @@ const appModal = {
                 const minInput = document.getElementById('txtModalMin');
                 if (degInput) degInput.value = parsed.deg;
                 if (minInput) minInput.value = parsed.min;
+                const sel = document.getElementById('modalProvinceSelect');
+                if (sel && typeof VN_PROVINCES !== 'undefined') {
+                    const matchedIdx = VN_PROVINCES.findIndex(p => p.deg === parsed.deg && p.min === parsed.min);
+                    sel.value = matchedIdx;
+                }
                 appModal.updateKttPreview(false);
             }
         }
@@ -9953,17 +10255,29 @@ const appModal = {
         AppState.kttMin = m;
         AppState.kttVal = d + (m / 60.0);
 
-        if (selIdx >= 0 && selIdx < VN_PROVINCES.length) {
-            AppState.provinceIndex = selIdx;
-            AppState.provinceName = VN_PROVINCES[selIdx].name;
-            const tfSel = document.getElementById('tfSelectProvince');
-            if (tfSel) tfSel.value = selIdx;
+        let finalProvIdx = -1;
+        let finalProvName = "KTT Tùy chỉnh";
+
+        if (selIdx >= 0 && selIdx < VN_PROVINCES.length && VN_PROVINCES[selIdx].deg === d && VN_PROVINCES[selIdx].min === m) {
+            finalProvIdx = selIdx;
+            finalProvName = VN_PROVINCES[selIdx].name;
         } else {
-            AppState.provinceIndex = -1;
-            AppState.provinceName = "KTT Tùy chỉnh";
-            const tfSel = document.getElementById('tfSelectProvince');
-            if (tfSel) tfSel.value = -1;
+            const matched = VN_PROVINCES.findIndex(p => p.deg === d && p.min === m);
+            if (matched >= 0) {
+                finalProvIdx = matched;
+                finalProvName = VN_PROVINCES[matched].name;
+            } else {
+                finalProvIdx = -1;
+                finalProvName = "KTT Tùy chỉnh";
+            }
         }
+
+        AppState.provinceIndex = finalProvIdx;
+        AppState.provinceName = finalProvName;
+        const tfSel = document.getElementById('tfSelectProvince');
+        if (tfSel) tfSel.value = finalProvIdx;
+        const modalSel = document.getElementById('modalProvinceSelect');
+        if (modalSel) modalSel.value = finalProvIdx;
 
         const mui3Btn = document.getElementById('btnMui3');
         if (mui3Btn) mui3Btn.classList.toggle('active', AppState.muiVal === 3);
@@ -10419,21 +10733,200 @@ const appStakeout = {
     }
 };
 
-// ================= 12. PHÂN HỆ CAMERA ĐÓNG DẤU THỦY ẤN (GEO-CAMERA) =================
+// ================= 12. PHÂN HỆ CAMERA ĐÓNG DẤU HIỆN TRƯỜNG (GEO-CAMERA PRO) =================
 const appCamera = {
     selectedPoint: null,
     renderedDataUrl: null,
+    currentTab: 'live',
+    watermarkCorner: 'bottom-left',
+    
+    // Live Stream & Recording state
+    videoStream: null,
+    facingMode: 'environment',
+    isTorchOn: false,
+    hudAnimFrameId: null,
+    isRecording: false,
+    mediaRecorder: null,
+    recordedChunks: [],
+    recordingTimerId: null,
+    recordingStartMs: 0,
+    
+    // Media Viewer state
+    currentViewerItem: null,
+
+    // IndexedDB Database helper
+    db: {
+        dbName: 'VN2000_GeoCameraDB',
+        dbVersion: 1,
+        storeName: 'stamped_media',
+        instance: null,
+
+        async open() {
+            if (this.instance) return this.instance;
+            return new Promise((resolve, reject) => {
+                if (typeof indexedDB === 'undefined') {
+                    resolve(null);
+                    return;
+                }
+                const req = indexedDB.open(this.dbName, this.dbVersion);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(this.storeName)) {
+                        const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
+                        store.createIndex('project', 'projectName', { unique: false });
+                        store.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
+                };
+                req.onsuccess = (e) => {
+                    this.instance = e.target.result;
+                    resolve(this.instance);
+                };
+                req.onerror = () => {
+                    resolve(null);
+                };
+            });
+        },
+
+        async saveItem(item) {
+            try {
+                const db = await this.open();
+                if (!db) {
+                    const list = this.getFallback();
+                    list.unshift(item);
+                    localStorage.setItem('vn2k_camera_media_fallback', JSON.stringify(list.slice(0, 30)));
+                    return item.id;
+                }
+                return new Promise((resolve) => {
+                    const tx = db.transaction(this.storeName, 'readwrite');
+                    const store = tx.objectStore(this.storeName);
+                    store.put(item);
+                    tx.oncomplete = () => resolve(item.id);
+                    tx.onerror = () => resolve(item.id);
+                });
+            } catch (err) {
+                console.warn('Lỗi lưu ảnh đóng dấu:', err);
+            }
+        },
+
+        async getAll() {
+            try {
+                const db = await this.open();
+                if (!db) return this.getFallback();
+                return new Promise((resolve) => {
+                    const tx = db.transaction(this.storeName, 'readonly');
+                    const store = tx.objectStore(this.storeName);
+                    const req = store.getAll();
+                    req.onsuccess = () => {
+                        const res = req.result || [];
+                        res.sort((a, b) => b.timestamp - a.timestamp);
+                        resolve(res);
+                    };
+                    req.onerror = () => resolve([]);
+                });
+            } catch (err) {
+                return this.getFallback();
+            }
+        },
+
+        async deleteItem(id) {
+            try {
+                const db = await this.open();
+                if (!db) {
+                    const list = this.getFallback().filter(x => x.id !== id);
+                    localStorage.setItem('vn2k_camera_media_fallback', JSON.stringify(list));
+                    return;
+                }
+                return new Promise((resolve) => {
+                    const tx = db.transaction(this.storeName, 'readwrite');
+                    const store = tx.objectStore(this.storeName);
+                    store.delete(id);
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                });
+            } catch (err) {}
+        },
+
+        async clearAll() {
+            try {
+                const db = await this.open();
+                if (!db) {
+                    localStorage.removeItem('vn2k_camera_media_fallback');
+                    return;
+                }
+                return new Promise((resolve) => {
+                    const tx = db.transaction(this.storeName, 'readwrite');
+                    const store = tx.objectStore(this.storeName);
+                    store.clear();
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                });
+            } catch (err) {}
+        },
+
+        getFallback() {
+            try {
+                const raw = localStorage.getItem('vn2k_camera_media_fallback');
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+    },
 
     init() {
         appCamera.refreshPointsList();
+        appCamera.loadGalleryCount();
+        if (AppState.currentScreen === 'camera') {
+            appCamera.switchTab('live');
+        }
+    },
+
+    // Chuyển đổi giữa 3 tab
+    switchTab(tab) {
+        appCamera.currentTab = tab;
+        const tabs = ['live', 'upload', 'gallery'];
+        tabs.forEach(t => {
+            const btn = document.getElementById('tabCamera' + t.charAt(0).toUpperCase() + t.slice(1));
+            const pane = document.getElementById('cameraTabPane' + t.charAt(0).toUpperCase() + t.slice(1));
+            if (btn) btn.classList.toggle('active', t === tab);
+            if (pane) pane.style.display = (t === tab) ? 'block' : 'none';
+        });
+
+        // Bật/tắt camera tương ứng
+        if (tab === 'live') {
+            appCamera.startCameraStream();
+        } else {
+            appCamera.stopCameraStream();
+        }
+
+        if (tab === 'gallery') {
+            appCamera.loadGalleryFromDb();
+        }
+    },
+
+    // Chọn vị trí góc đóng dấu
+    setCorner(corner) {
+        appCamera.watermarkCorner = corner;
+        const corners = ['bottom-left', 'bottom-right', 'top-left', 'top-right'];
+        const mapIds = {
+            'bottom-left': 'btnCornerBL',
+            'bottom-right': 'btnCornerBR',
+            'top-left': 'btnCornerTL',
+            'top-right': 'btnCornerTR'
+        };
+        corners.forEach(c => {
+            const btn = document.getElementById(mapIds[c]);
+            if (btn) btn.classList.toggle('active', c === corner);
+        });
+        showToast(`📍 Vị trí đóng dấu: ${corner === 'bottom-left' ? 'Dưới - Trái' : (corner === 'bottom-right' ? 'Dưới - Phải' : (corner === 'top-left' ? 'Trên - Trái' : 'Trên - Phải'))}`);
     },
 
     refreshPointsList() {
         const sel = document.getElementById('selCameraPoint');
         if (!sel) return;
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject) : [];
 
-        sel.innerHTML = '<option value="live">📍 Tọa độ GPS Live (Vị trí hiện tại)</option>';
+        sel.innerHTML = '<option value="live">📍 Tọa độ GPS Live (Vị trí thực địa)</option>';
         pts.forEach((p, idx) => {
             const opt = document.createElement('option');
             opt.value = idx;
@@ -10453,13 +10946,15 @@ const appCamera = {
         const gpsEl = document.getElementById('txtCameraTagGps');
         const timeEl = document.getElementById('txtCameraTagTime');
 
-        if (projEl) projEl.innerText = AppState.currentProject.replace(/\.[^/.]+$/, "");
+        if (projEl) projEl.innerText = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án";
 
-        const now = new Date();
+        const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
         const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
         if (timeEl) timeEl.innerText = dateStr;
 
         const val = sel ? sel.value : 'live';
+        const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
+
         if (val === 'live' || !val) {
             appCamera.selectedPoint = null;
             if (markEl) markEl.innerText = "GPS Live";
@@ -10468,13 +10963,13 @@ const appCamera = {
                 if (wgsEl) wgsEl.innerText = `Lat: ${gps.lat.toFixed(6)} | Lng: ${gps.lng.toFixed(6)}`;
                 try {
                     const pt = convertWgsToVn2k(gps.lat, gps.lng, AppState.kttVal, AppState.scaleFactor);
-                    if (vn2kEl) vn2kEl.innerText = `X = ${pt.X.toFixed(3)} m | Y = ${pt.Y.toFixed(3)} m (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+                    if (vn2kEl) vn2kEl.innerText = `X = ${pt.X.toFixed(3)} m | Y = ${pt.Y.toFixed(3)} m (KTT: ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}')`;
                 } catch(e) {}
                 if (gpsEl) gpsEl.innerText = `Sai số: ±${gps.accuracy.toFixed(1)}m | Hướng: ${Math.round(appStakeout.compassHeading || 0)}°`;
             } else {
-                if (wgsEl) wgsEl.innerText = "Chưa có tín hiệu GPS";
-                if (vn2kEl) vn2kEl.innerText = "Chưa có tọa độ VN-2000";
-                if (gpsEl) gpsEl.innerText = "Đang dò tìm vệ tinh...";
+                if (wgsEl) wgsEl.innerText = "Đang kết nối GPS...";
+                if (vn2kEl) vn2kEl.innerText = "Chưa có tọa độ thực địa";
+                if (gpsEl) gpsEl.innerText = "Đang tìm tín hiệu vệ tinh...";
             }
         } else {
             const idx = parseInt(val, 10);
@@ -10483,7 +10978,7 @@ const appCamera = {
                 const p = pts[idx];
                 appCamera.selectedPoint = p;
                 if (markEl) markEl.innerText = p.name;
-                if (vn2kEl) vn2kEl.innerText = `X = ${parseFloat(p.x).toFixed(3)} m | Y = ${parseFloat(p.y).toFixed(3)} m (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')`;
+                if (vn2kEl) vn2kEl.innerText = `X = ${parseFloat(p.x).toFixed(3)} m | Y = ${parseFloat(p.y).toFixed(3)} m (KTT: ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}')`;
                 if (wgsEl) wgsEl.innerText = `Lat: ${parseFloat(p.lat).toFixed(6)} | Lng: ${parseFloat(p.lng).toFixed(6)}`;
                 const gps = AppState.lastGps;
                 const acc = (gps && gps.accuracy) ? `±${gps.accuracy.toFixed(1)}m` : '±--m';
@@ -10492,11 +10987,466 @@ const appCamera = {
         }
     },
 
+    // Trích xuất dữ liệu thẻ đóng dấu
+    getWatermarkData() {
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án";
+        let markName = "Vị trí thực địa";
+        let xStr = "--", yStr = "--", latStr = "--", lngStr = "--";
+
+        if (this.selectedPoint) {
+            markName = this.selectedPoint.name;
+            xStr = parseFloat(this.selectedPoint.x).toFixed(3);
+            yStr = parseFloat(this.selectedPoint.y).toFixed(3);
+            latStr = parseFloat(this.selectedPoint.lat).toFixed(6);
+            lngStr = parseFloat(this.selectedPoint.lng).toFixed(6);
+        } else if (AppState.lastGps && AppState.lastGps.lat) {
+            markName = "GPS Live";
+            latStr = AppState.lastGps.lat.toFixed(6);
+            lngStr = AppState.lastGps.lng.toFixed(6);
+            try {
+                const pt = convertWgsToVn2k(AppState.lastGps.lat, AppState.lastGps.lng, AppState.kttVal, AppState.scaleFactor);
+                xStr = pt.X.toFixed(3);
+                yStr = pt.Y.toFixed(3);
+            } catch(e) {}
+        }
+
+        const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
+        const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        const gpsAcc = (AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m';
+        const compassAz = Math.round(appStakeout.compassHeading || 0);
+
+        const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
+        const lines = [
+            `📍 MỐC: ${markName} | DỰ ÁN: ${projName}`,
+            `• VN-2000: X = ${xStr} m | Y = ${yStr} m (KTT ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}' Múi ${AppState.muiVal || 3}°)`,
+            `• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`,
+            `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
+        ];
+
+        return {
+            markName,
+            projName,
+            xStr,
+            yStr,
+            latStr,
+            lngStr,
+            dateStr,
+            gpsAcc,
+            compassAz,
+            lines
+        };
+    },
+
+    // Hàm vẽ thẻ watermark chung (Dùng cho cả Viewfinder realtime, ảnh chụp và video)
+    drawWatermark(ctx, canvasW, canvasH, corner = 'bottom-left') {
+        const data = this.getWatermarkData();
+        const scale = Math.max(0.65, Math.min(canvasW / 1000, 2.0));
+        const padding = Math.round(12 * scale);
+        const fontSizeHeader = Math.round(14 * scale);
+        const fontSizeBody = Math.round(11.5 * scale);
+        const lineHeight = Math.round(17 * scale);
+
+        const cardW = Math.min(canvasW - padding * 2, Math.round(520 * scale));
+        const cardH = padding * 2 + fontSizeHeader + (data.lines.length * lineHeight) + Math.round(6 * scale);
+
+        let cardX = padding;
+        let cardY = canvasH - cardH - padding;
+
+        if (corner === 'bottom-right') {
+            cardX = canvasW - cardW - padding;
+            cardY = canvasH - cardH - padding;
+        } else if (corner === 'top-left') {
+            cardX = padding;
+            cardY = padding;
+        } else if (corner === 'top-right') {
+            cardX = canvasW - cardW - padding;
+            cardY = padding;
+        }
+
+        ctx.save();
+        ctx.fillStyle = "rgba(10, 18, 32, 0.88)";
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = Math.max(1.5, Math.round(1.5 * scale));
+
+        const r = Math.round(8 * scale);
+        ctx.beginPath();
+        ctx.moveTo(cardX + r, cardY);
+        ctx.lineTo(cardX + cardW - r, cardY);
+        ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
+        ctx.lineTo(cardX + cardW, cardY + cardH - r);
+        ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
+        ctx.lineTo(cardX + r, cardY + cardH);
+        ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
+        ctx.lineTo(cardX, cardY + r);
+        ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Tiêu đề
+        ctx.font = `bold ${fontSizeHeader}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillText("HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG", cardX + padding, cardY + padding + fontSizeHeader * 0.85);
+
+        // Vạch phân cách mạ vàng
+        ctx.strokeStyle = "rgba(251, 191, 36, 0.65)";
+        ctx.lineWidth = Math.max(1, Math.round(1 * scale));
+        ctx.beginPath();
+        ctx.moveTo(cardX + padding, cardY + padding + fontSizeHeader + Math.round(4 * scale));
+        ctx.lineTo(cardX + cardW - padding, cardY + padding + fontSizeHeader + Math.round(4 * scale));
+        ctx.stroke();
+
+        // Dòng thông tin
+        ctx.font = `600 ${fontSizeBody}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        let curY = cardY + padding + fontSizeHeader + Math.round(4 * scale) + lineHeight;
+
+        data.lines.forEach((l, idx) => {
+            ctx.fillStyle = (idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1"));
+            ctx.fillText(l, cardX + padding, curY);
+            curY += lineHeight;
+        });
+
+        ctx.restore();
+    },
+
+    // ================= KHỞI TẠO & ĐIỀU KHIỂN LUỒNG CAMERA TRỰC TIẾP =================
+    async startCameraStream() {
+        const video = document.getElementById('cameraLiveVideo');
+        if (!video) return;
+
+        // Nếu đã có luồng đang chạy thì không mở lại
+        if (this.videoStream && this.videoStream.active) {
+            this.startHudLoop();
+            return;
+        }
+
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast("⚠️ Thiết bị hoặc trình duyệt không hỗ trợ truy cập Camera trực tiếp!", true);
+                return;
+            }
+
+            const constraints = {
+                video: {
+                    facingMode: this.facingMode,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false
+            };
+
+            this.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = this.videoStream;
+            video.onloadedmetadata = () => {
+                video.play();
+                appCamera.startHudLoop();
+            };
+        } catch (err) {
+            console.warn("Không thể mở Camera:", err);
+            showToast("⚠️ Không thể truy cập Camera. Vui lòng cấp quyền trong cài đặt trình duyệt!", true);
+        }
+    },
+
+    stopCameraStream() {
+        if (this.hudAnimFrameId) {
+            cancelAnimationFrame(this.hudAnimFrameId);
+            this.hudAnimFrameId = null;
+        }
+        if (this.videoStream) {
+            this.videoStream.getTracks().forEach(track => track.stop());
+            this.videoStream = null;
+        }
+        const video = document.getElementById('cameraLiveVideo');
+        if (video) video.srcObject = null;
+    },
+
+    toggleCameraStream() {
+        if (this.videoStream && this.videoStream.active) {
+            this.stopCameraStream();
+            showToast("⏹️ Đã tắt camera hiện trường");
+        } else {
+            this.startCameraStream();
+            showToast("📹 Đang bật camera hiện trường...");
+        }
+    },
+
+    async switchCameraFacing() {
+        this.facingMode = (this.facingMode === 'environment') ? 'user' : 'environment';
+        this.stopCameraStream();
+        await this.startCameraStream();
+        showToast(`🔄 Đã chuyển sang Camera ${this.facingMode === 'environment' ? 'Sau' : 'Trước'}`);
+    },
+
+    async toggleTorch() {
+        if (!this.videoStream) return;
+        const track = this.videoStream.getVideoTracks()[0];
+        if (!track) return;
+        const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+        if (!capabilities.torch) {
+            showToast("⚠️ Thiết bị không hỗ trợ bật đèn Flash trực tiếp!", true);
+            return;
+        }
+        try {
+            this.isTorchOn = !this.isTorchOn;
+            await track.applyConstraints({
+                advanced: [{ torch: this.isTorchOn }]
+            });
+            showToast(this.isTorchOn ? "🔦 Đã bật đèn Flash" : "🔦 Đã tắt đèn Flash");
+        } catch (e) {
+            showToast("⚠️ Không thể điều khiển đèn Flash", true);
+        }
+    },
+
+    // Vòng lặp vẽ Watermark Realtime đè lên Viewfinder
+    startHudLoop() {
+        if (this.hudAnimFrameId) cancelAnimationFrame(this.hudAnimFrameId);
+
+        const renderFrame = () => {
+            const canvas = document.getElementById('cameraRealtimeHudCanvas');
+            const video = document.getElementById('cameraLiveVideo');
+            if (canvas && video && video.videoWidth > 0 && video.videoHeight > 0) {
+                // Đồng bộ kích thước canvas với video client rect
+                if (canvas.width !== video.clientWidth || canvas.height !== video.clientHeight) {
+                    canvas.width = video.clientWidth;
+                    canvas.height = video.clientHeight;
+                }
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                appCamera.drawWatermark(ctx, canvas.width, canvas.height, appCamera.watermarkCorner);
+            }
+            appCamera.hudAnimFrameId = requestAnimationFrame(renderFrame);
+        };
+
+        this.hudAnimFrameId = requestAnimationFrame(renderFrame);
+    },
+
+    // ================= CHỤP ẢNH HIỆN TRƯỜNG & LƯU VÀO INDEXEDDB =================
+    captureLivePhoto() {
+        const video = document.getElementById('cameraLiveVideo');
+        if (!video || !this.videoStream || video.videoWidth === 0) {
+            showToast("⚠️ Vui lòng bật camera để chụp ảnh!", true);
+            return;
+        }
+
+        // Tạo canvas độ phân giải gốc của video
+        const canvas = document.getElementById('cameraWatermarkCanvas') || document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+
+        // Vẽ khung hình video hiện tại
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Đóng dấu thủy ấn lên góc đã chọn
+        this.drawWatermark(ctx, canvas.width, canvas.height, this.watermarkCorner);
+
+        // Xuất data URL
+        const qual = (typeof window !== 'undefined' && window.PixOptimizer) ? window.PixOptimizer.getQualityFloat() : 0.85;
+        const dataUrl = canvas.toDataURL('image/jpeg', qual);
+        this.renderedDataUrl = dataUrl;
+
+        // Tạo thumbnail thu nhỏ
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width = 160;
+        thumbCanvas.height = Math.round(160 * (canvas.height / canvas.width));
+        const thumbCtx = thumbCanvas.getContext('2d');
+        thumbCtx.drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+        const thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.65);
+
+        // Lưu vào IndexedDB
+        const markName = this.selectedPoint ? this.selectedPoint.name : "GPS_Live";
+        const meta = this.getWatermarkData();
+        const mediaItem = {
+            id: Date.now(),
+            type: 'image',
+            markName,
+            projectName: AppState.currentProject,
+            dateStr: meta.dateStr,
+            x: meta.xStr,
+            y: meta.yStr,
+            lat: meta.latStr,
+            lng: meta.lngStr,
+            corner: this.watermarkCorner,
+            dataUrl,
+            thumbUrl,
+            timestamp: Date.now()
+        };
+
+        this.db.saveItem(mediaItem).then(() => {
+            appCamera.loadGalleryCount();
+        });
+
+        // Hiển thị khung xem trước kết quả
+        const resultCard = document.getElementById('cardCameraResult');
+        if (resultCard) {
+            resultCard.style.display = 'block';
+            resultCard.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        showToast(`✅ Đã chụp và đóng dấu mốc "${markName}" (Góc ${this.watermarkCorner})!`);
+    },
+
+    closeResultPreview() {
+        const resultCard = document.getElementById('cardCameraResult');
+        if (resultCard) resultCard.style.display = 'none';
+    },
+
+    // ================= QUAY VIDEO NGHIỆM THU HIỆN TRƯỜNG KÈM WATERMARK REALTIME =================
+    toggleVideoRecording() {
+        if (this.isRecording) {
+            this.stopVideoRecording();
+        } else {
+            this.startVideoRecording();
+        }
+    },
+
+    startVideoRecording() {
+        const video = document.getElementById('cameraLiveVideo');
+        if (!video || !this.videoStream || video.videoWidth === 0) {
+            showToast("⚠️ Vui lòng bật camera để quay video!", true);
+            return;
+        }
+
+        if (typeof MediaRecorder === 'undefined') {
+            showToast("⚠️ Trình duyệt không hỗ trợ quay video qua MediaRecorder!", true);
+            return;
+        }
+
+        try {
+            // Tạo offscreen canvas ghép nối video + watermark 30fps
+            const recCanvas = document.createElement('canvas');
+            recCanvas.width = Math.min(video.videoWidth, 1280);
+            recCanvas.height = Math.round(recCanvas.width * (video.videoHeight / video.videoWidth));
+            const recCtx = recCanvas.getContext('2d');
+
+            let isCompRunning = true;
+            const compositeFrame = () => {
+                if (!isCompRunning) return;
+                recCtx.drawImage(video, 0, 0, recCanvas.width, recCanvas.height);
+                appCamera.drawWatermark(recCtx, recCanvas.width, recCanvas.height, appCamera.watermarkCorner);
+                requestAnimationFrame(compositeFrame);
+            };
+            requestAnimationFrame(compositeFrame);
+
+            // Bắt luồng từ canvas
+            const canvasStream = recCanvas.captureStream(30);
+
+            // Chọn định dạng tương thích
+            let mimeType = 'video/webm;codecs=vp8';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'video/webm';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/mp4';
+                }
+            }
+
+            this.recordedChunks = [];
+            this.mediaRecorder = new MediaRecorder(canvasStream, { mimeType: mimeType || undefined });
+
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    appCamera.recordedChunks.push(e.data);
+                }
+            };
+
+            this.mediaRecorder.onstop = () => {
+                isCompRunning = false;
+                const blob = new Blob(appCamera.recordedChunks, { type: mimeType || 'video/webm' });
+                const videoUrl = URL.createObjectURL(blob);
+
+                // Lưu video vào IndexedDB
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64Video = reader.result;
+                    const markName = appCamera.selectedPoint ? appCamera.selectedPoint.name : "GPS_Live";
+                    const meta = appCamera.getWatermarkData();
+                    const mediaItem = {
+                        id: Date.now(),
+                        type: 'video',
+                        markName,
+                        projectName: AppState.currentProject,
+                        dateStr: meta.dateStr,
+                        x: meta.xStr,
+                        y: meta.yStr,
+                        lat: meta.latStr,
+                        lng: meta.lngStr,
+                        corner: appCamera.watermarkCorner,
+                        dataUrl: base64Video,
+                        blobUrl: videoUrl,
+                        timestamp: Date.now()
+                    };
+                    appCamera.db.saveItem(mediaItem).then(() => {
+                        appCamera.loadGalleryCount();
+                        showToast(`✅ Đã quay xong và lưu video mốc "${markName}"!`);
+                    });
+                };
+                reader.readAsDataURL(blob);
+
+                // Tự động tải video về máy
+                const a = document.createElement('a');
+                a.href = videoUrl;
+                a.download = `Video_Moc_${appCamera.selectedPoint ? appCamera.selectedPoint.name : 'GPS'}_VN2000.webm`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            this.mediaRecorder.start(1000);
+            this.isRecording = true;
+            this.recordingStartMs = Date.now();
+
+            // Hiển thị badge quay video
+            const badge = document.getElementById('cameraRecordingBadge');
+            const timerEl = document.getElementById('cameraRecordingTimer');
+            const btnRec = document.getElementById('btnCameraRecordVideo');
+            if (badge) badge.style.display = 'flex';
+            if (btnRec) {
+                btnRec.innerHTML = '⏹️ DỪNG QUAY VIDEO';
+                btnRec.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
+            }
+
+            if (this.recordingTimerId) clearInterval(this.recordingTimerId);
+            this.recordingTimerId = setInterval(() => {
+                const diffSec = Math.floor((Date.now() - appCamera.recordingStartMs) / 1000);
+                const m = String(Math.floor(diffSec / 60)).padStart(2, '0');
+                const s = String(diffSec % 60).padStart(2, '0');
+                if (timerEl) timerEl.innerText = `${m}:${s}`;
+            }, 1000);
+
+            showToast("🔴 Bắt đầu quay video hiện trường có đóng dấu realtime...");
+        } catch (err) {
+            console.warn("Lỗi khởi chạy quay video:", err);
+            showToast("⚠️ Không thể bắt đầu quay video trên thiết bị này!", true);
+        }
+    },
+
+    stopVideoRecording() {
+        if (!this.isRecording) return;
+        this.isRecording = false;
+        if (this.recordingTimerId) {
+            clearInterval(this.recordingTimerId);
+            this.recordingTimerId = null;
+        }
+
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+
+        const badge = document.getElementById('cameraRecordingBadge');
+        const btnRec = document.getElementById('btnCameraRecordVideo');
+        if (badge) badge.style.display = 'none';
+        if (btnRec) {
+            btnRec.innerHTML = '⏺️ QUAY VIDEO REALTIME';
+            btnRec.style.background = 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)';
+        }
+    },
+
+    // ================= XỬ LÝ ẢNH TẢI TỪ MÁY LÊN =================
     onFileSelected(event) {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
 
-        showToast("⏳ Đang xử lý và đóng dấu thủy ấn lên ảnh...");
+        showToast("⏳ Đang xử lý và đóng dấu góc ảnh...");
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
@@ -10531,101 +11481,39 @@ const appCamera = {
         canvas.height = targetH;
         ctx.drawImage(img, 0, 0, targetW, targetH);
 
-        // Tỷ lệ kích thước watermark theo độ phân giải ảnh
-        const scale = Math.max(1, targetW / 1200);
-        const padding = Math.round(18 * scale);
-        const fontSizeHeader = Math.round(18 * scale);
-        const fontSizeBody = Math.round(13.5 * scale);
-        const lineHeight = Math.round(22 * scale);
+        // Đóng dấu theo vị trí góc đã chọn
+        this.drawWatermark(ctx, targetW, targetH, this.watermarkCorner);
 
-        const projName = AppState.currentProject.replace(/\.[^/.]+$/, "");
-        let markName = "Vị trí thực địa";
-        let xStr = "--", yStr = "--", latStr = "--", lngStr = "--";
+        const qual = (typeof window !== 'undefined' && window.PixOptimizer) ? window.PixOptimizer.getQualityFloat() : 0.85;
+        this.renderedDataUrl = canvas.toDataURL('image/jpeg', qual);
 
-        if (appCamera.selectedPoint) {
-            markName = appCamera.selectedPoint.name;
-            xStr = parseFloat(appCamera.selectedPoint.x).toFixed(3);
-            yStr = parseFloat(appCamera.selectedPoint.y).toFixed(3);
-            latStr = parseFloat(appCamera.selectedPoint.lat).toFixed(6);
-            lngStr = parseFloat(appCamera.selectedPoint.lng).toFixed(6);
-        } else if (AppState.lastGps && AppState.lastGps.lat) {
-            markName = "GPS Live";
-            latStr = AppState.lastGps.lat.toFixed(6);
-            lngStr = AppState.lastGps.lng.toFixed(6);
-            try {
-                const pt = convertWgsToVn2k(AppState.lastGps.lat, AppState.lastGps.lng, AppState.kttVal, AppState.scaleFactor);
-                xStr = pt.X.toFixed(3);
-                yStr = pt.Y.toFixed(3);
-            } catch(e) {}
-        }
+        // Lưu vào IndexedDB
+        const markName = this.selectedPoint ? this.selectedPoint.name : "GPS_Live";
+        const meta = this.getWatermarkData();
+        const mediaItem = {
+            id: Date.now(),
+            type: 'image',
+            markName,
+            projectName: AppState.currentProject,
+            dateStr: meta.dateStr,
+            x: meta.xStr,
+            y: meta.yStr,
+            lat: meta.latStr,
+            lng: meta.lngStr,
+            corner: this.watermarkCorner,
+            dataUrl: this.renderedDataUrl,
+            timestamp: Date.now()
+        };
 
-        const now = new Date();
-        const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-        const gpsAcc = (AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m';
-        const compassAz = Math.round(appStakeout.compassHeading || 0);
-
-        const lines = [
-            `📍 MỐC: ${markName} | DỰ ÁN: ${projName}`,
-            `• VN-2000: X = ${xStr} m | Y = ${yStr} m (KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' Múi ${AppState.muiVal}°)`,
-            `• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`,
-            `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
-        ];
-
-        const cardW = Math.min(img.width - padding * 2, Math.round(680 * scale));
-        const cardH = padding * 2 + fontSizeHeader + (lines.length * lineHeight) + Math.round(10 * scale);
-        const cardX = padding;
-        const cardY = img.height - cardH - padding;
-
-        // Vẽ hộp nền thủy ấn (Dark glassmorphism card)
-        ctx.save();
-        ctx.fillStyle = "rgba(10, 18, 32, 0.88)";
-        ctx.strokeStyle = "#38bdf8";
-        ctx.lineWidth = Math.max(2, Math.round(2 * scale));
-        
-        const r = Math.round(12 * scale);
-        ctx.beginPath();
-        ctx.moveTo(cardX + r, cardY);
-        ctx.lineTo(cardX + cardW - r, cardY);
-        ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + r);
-        ctx.lineTo(cardX + cardW, cardY + cardH - r);
-        ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - r, cardY + cardH);
-        ctx.lineTo(cardX + r, cardY + cardH);
-        ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - r);
-        ctx.lineTo(cardX, cardY + r);
-        ctx.quadraticCurveTo(cardX, cardY, cardX + r, cardY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Tiêu đề
-        ctx.font = `bold ${fontSizeHeader}px -apple-system, sans-serif`;
-        ctx.fillStyle = "#38bdf8";
-        ctx.fillText("WGS-84 ⇄ VN-2000 PRO | ẢNH NGHIỆM THU HIỆN TRƯỜNG", cardX + padding, cardY + padding + fontSizeHeader * 0.85);
-
-        // Vạch phân cách mạ vàng
-        ctx.strokeStyle = "rgba(251, 191, 36, 0.6)";
-        ctx.lineWidth = 1 * scale;
-        ctx.beginPath();
-        ctx.moveTo(cardX + padding, cardY + padding + fontSizeHeader + Math.round(6 * scale));
-        ctx.lineTo(cardX + cardW - padding, cardY + padding + fontSizeHeader + Math.round(6 * scale));
-        ctx.stroke();
-
-        // Dòng thông tin
-        ctx.font = `600 ${fontSizeBody}px ui-monospace, SFMono-Regular, monospace`;
-        let curY = cardY + padding + fontSizeHeader + Math.round(6 * scale) + lineHeight;
-
-        lines.forEach((l, idx) => {
-            ctx.fillStyle = (idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1"));
-            ctx.fillText(l, cardX + padding, curY);
-            curY += lineHeight;
+        this.db.saveItem(mediaItem).then(() => {
+            appCamera.loadGalleryCount();
         });
 
-        ctx.restore();
-
         const resultCard = document.getElementById('cardCameraResult');
-        if (resultCard) resultCard.style.display = 'block';
-        const qual = (typeof window !== 'undefined' && window.PixOptimizer) ? window.PixOptimizer.getQualityFloat() : 0.82;
-        appCamera.renderedDataUrl = canvas.toDataURL('image/jpeg', qual);
+        if (resultCard) {
+            resultCard.style.display = 'block';
+            resultCard.scrollIntoView({ behavior: 'smooth' });
+        }
         showToast("✅ Đã hoàn tất đóng dấu mốc tọa độ lên ảnh!");
     },
 
@@ -10662,7 +11550,7 @@ const appCamera = {
                 });
         } else {
             appCamera.downloadWatermarkedImage();
-            showToast("💡 Thiết bị không hỗ trợ share trực tiếp, đã tự động tải ảnh về máy!");
+            showToast("💡 Thiết bị không hỗ trợ chia sẻ trực tiếp, đã tự động tải ảnh về máy!");
         }
     },
 
@@ -10671,7 +11559,7 @@ const appCamera = {
             showToast("⚠️ Vui lòng chọn mốc trong dự án để lưu ghi chú!", true);
             return;
         }
-        const now = new Date();
+        const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
         const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
         const pts = appData.getPoints(AppState.currentProject);
         const idx = pts.findIndex(pt => pt.name === appCamera.selectedPoint.name);
@@ -10680,6 +11568,201 @@ const appCamera = {
             appData.savePoints(AppState.currentProject, pts);
             showToast(`✓ Đã cập nhật ghi chú ảnh vào mốc "${appCamera.selectedPoint.name}"!`);
         }
+    },
+
+    // ================= QUẢN LÝ BỘ SƯU TẬP ẢNH & VIDEO NGHIỆM THU (GALLERY) =================
+    async loadGalleryCount() {
+        const list = await this.db.getAll();
+        const countEl = document.getElementById('txtCameraGalleryCount');
+        if (countEl) countEl.innerText = list.length;
+    },
+
+    async loadGalleryFromDb() {
+        const list = await this.db.getAll();
+        const countEl = document.getElementById('txtCameraGalleryCount');
+        if (countEl) countEl.innerText = list.length;
+
+        const grid = document.getElementById('cameraGalleryGrid');
+        const emptyEl = document.getElementById('cameraGalleryEmptyState');
+        if (!grid) return;
+
+        if (list.length === 0) {
+            grid.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = 'block';
+            return;
+        }
+
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        grid.innerHTML = list.map(item => {
+            const isVideo = item.type === 'video';
+            const thumbSrc = item.thumbUrl || item.dataUrl;
+            return `
+              <div class="camera-gallery-card" id="camCard_${item.id}">
+                <div class="camera-thumb-wrap" onclick="appCamera.openMediaViewer(${item.id})">
+                  ${isVideo ? `<video src="${item.dataUrl}#t=0.5" preload="metadata"></video>` : `<img src="${thumbSrc}" alt="${item.markName}" loading="lazy">`}
+                  <span class="camera-thumb-badge">${isVideo ? '🎥 VIDEO' : '📸 ẢNH'}</span>
+                </div>
+                <div class="camera-card-info">
+                  <div style="font-weight: 700; color: #38bdf8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📍 ${item.markName}</div>
+                  <div style="font-size: 10px; color: #94a3b8;">${item.dateStr || ''}</div>
+                  <div style="font-size: 10px; color: #34d399; font-family: monospace;">X: ${item.x || '--'}</div>
+                </div>
+                <div class="camera-card-actions">
+                  <button type="button" class="camera-card-btn" title="Xem chi tiết" onclick="appCamera.openMediaViewer(${item.id})">👁️</button>
+                  <button type="button" class="camera-card-btn" title="Tải về máy" onclick="appCamera.downloadSingleMedia(${item.id})">💾</button>
+                  <button type="button" class="camera-card-btn btn-del" title="Xóa" onclick="appCamera.deleteSingleMedia(${item.id})">🗑️</button>
+                </div>
+              </div>
+            `;
+        }).join('');
+    },
+
+    async openMediaViewer(id) {
+        const list = await this.db.getAll();
+        const item = list.find(x => x.id === id);
+        if (!item) return;
+
+        this.currentViewerItem = item;
+        const modal = document.getElementById('modalCameraMediaViewer');
+        const container = document.getElementById('cameraViewerMediaContainer');
+        const metaEl = document.getElementById('cameraViewerMetaInfo');
+        const titleEl = document.getElementById('txtCameraViewerTitle');
+
+        if (titleEl) titleEl.innerText = `${item.type === 'video' ? '🎥 Video' : '📸 Ảnh'} Nghiệm Thu: ${item.markName}`;
+
+        if (container) {
+            if (item.type === 'video') {
+                container.innerHTML = `<video src="${item.dataUrl}" controls autoplay style="width: 100%; max-height: 50vh; object-fit: contain;"></video>`;
+            } else {
+                container.innerHTML = `<img src="${item.dataUrl}" alt="${item.markName}" style="width: 100%; max-height: 50vh; object-fit: contain;">`;
+            }
+        }
+
+        if (metaEl) {
+            metaEl.innerHTML = `
+              <div>• <b>Mốc đo:</b> <span style="color:#38bdf8;">${item.markName}</span> | <b>Dự án:</b> ${item.projectName || AppState.currentProject}</div>
+              <div>• <b>Tọa độ VN-2000:</b> X = ${item.x || '--'} m | Y = ${item.y || '--'} m</div>
+              <div>• <b>Tọa độ WGS-84:</b> Lat: ${item.lat || '--'} | Lng: ${item.lng || '--'}</div>
+              <div>• <b>Góc đóng dấu:</b> ${item.corner || 'Dưới - Trái'} | <b>Thời gian:</b> ${item.dateStr || '--'}</div>
+            `;
+        }
+
+        if (modal) modal.style.display = 'flex';
+    },
+
+    closeMediaViewer() {
+        const modal = document.getElementById('modalCameraMediaViewer');
+        if (modal) modal.style.display = 'none';
+        const container = document.getElementById('cameraViewerMediaContainer');
+        if (container) container.innerHTML = '';
+        this.currentViewerItem = null;
+    },
+
+    downloadCurrentViewerMedia() {
+        if (!this.currentViewerItem) return;
+        this.downloadSingleMedia(this.currentViewerItem.id);
+    },
+
+    attachCurrentViewerToPoint() {
+        if (!this.currentViewerItem) return;
+        const item = this.currentViewerItem;
+        const pts = appData.getPoints(AppState.currentProject);
+        const idx = pts.findIndex(pt => pt.name === item.markName);
+        if (idx >= 0) {
+            pts[idx].note = (pts[idx].note ? pts[idx].note + " | " : "") + `Ảnh nghiệm thu ${item.dateStr}`;
+            appData.savePoints(AppState.currentProject, pts);
+            showToast(`✓ Đã lưu thông tin ảnh vào mốc "${item.markName}"!`);
+        } else {
+            showToast(`⚠️ Không tìm thấy mốc "${item.markName}" trong dự án hiện tại!`, true);
+        }
+    },
+
+    deleteCurrentViewerMedia() {
+        if (!this.currentViewerItem) return;
+        const id = this.currentViewerItem.id;
+        this.closeMediaViewer();
+        this.deleteSingleMedia(id);
+    },
+
+    async downloadSingleMedia(id) {
+        const list = await this.db.getAll();
+        const item = list.find(x => x.id === id);
+        if (!item) return;
+
+        const link = document.createElement("a");
+        const ext = item.type === 'video' ? 'webm' : 'jpg';
+        link.download = `${item.type === 'video' ? 'Video' : 'Anh'}_Moc_${item.markName}_${item.id}.${ext}`;
+        link.href = item.dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast(`✓ Đã tải ${item.type === 'video' ? 'video' : 'ảnh'} về thiết bị!`);
+    },
+
+    async deleteSingleMedia(id) {
+        if (!confirm("Bạn có chắc chắn muốn xóa ảnh/video này khỏi thư viện?")) return;
+        await this.db.deleteItem(id);
+        const card = document.getElementById('camCard_' + id);
+        if (card) card.remove();
+        this.loadGalleryFromDb();
+        showToast("✓ Đã xóa ảnh khỏi bộ sưu tập!");
+    },
+
+    async downloadAllImages() {
+        const list = await this.db.getAll();
+        if (list.length === 0) {
+            showToast("⚠️ Thư viện ảnh đang trống!", true);
+            return;
+        }
+
+        showToast(`⏳ Đang tải toàn bộ ${list.length} ảnh/video về máy...`);
+        let delay = 0;
+        list.forEach((item, index) => {
+            setTimeout(() => {
+                const link = document.createElement("a");
+                const ext = item.type === 'video' ? 'webm' : 'jpg';
+                link.download = `${index + 1}_${item.type === 'video' ? 'Video' : 'Anh'}_${item.markName}.${ext}`;
+                link.href = item.dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, delay);
+            delay += 350;
+        });
+    },
+
+    async attachAllToSurveyBook() {
+        const list = await this.db.getAll();
+        if (list.length === 0) {
+            showToast("⚠️ Thư viện ảnh đang trống!", true);
+            return;
+        }
+        const pts = appData.getPoints(AppState.currentProject);
+        let updatedCount = 0;
+        list.forEach(item => {
+            const idx = pts.findIndex(pt => pt.name === item.markName);
+            if (idx >= 0) {
+                const noteTag = `Ảnh nghiệm thu (${item.dateStr})`;
+                if (!pts[idx].note || !pts[idx].note.includes(noteTag)) {
+                    pts[idx].note = (pts[idx].note ? pts[idx].note + " | " : "") + noteTag;
+                    updatedCount++;
+                }
+            }
+        });
+        if (updatedCount > 0) {
+            appData.savePoints(AppState.currentProject, pts);
+            showToast(`✓ Đã cập nhật ghi chú ảnh vào ${updatedCount} mốc dự án!`);
+        } else {
+            showToast("💡 Các mốc đã có ghi chú ảnh trước đó.");
+        }
+    },
+
+    async confirmClearAllGallery() {
+        if (!confirm("⚠️ Bạn có chắc chắn muốn XÓA TOÀN BỘ ảnh và video nghiệm thu trong bộ nhớ thiết bị? Thao tác này không thể hoàn tác!")) return;
+        await this.db.clearAll();
+        this.loadGalleryFromDb();
+        showToast("✓ Đã xóa sạch toàn bộ ảnh nghiệm thu!");
     }
 };
 
@@ -27732,7 +28815,7 @@ const appI18n = {
         "Thu nhỏ bản đồ": "Thu nho Map",
         "Đổi lớp bản đồ (Vệ tinh / Đường phố)": "Doi lop Map (satellite / Duong pho)",
         "Bật/tắt ranh giới 34 tỉnh thành": "enable/disable ranh gioi 34 province",
-        "Bật/tắt ranh giới xã Đồng Tháp": "enable/disable ranh gioi xa Close Thap",
+        "Bật/tắt ranh giới xã Đồng Tháp": "Toggle Dong Thap commune boundaries",
         "Định vị GPS vị trí hiện tại": "Dinh vi GPS vi tri show at",
         "Thu phóng nhìn cả 2 điểm (Vị trí đứng & Điểm chọn/chuyển)": "Thu phong nhin ca 2 diem (Vi tri dung & Diem select/chuyen)",
         "Diện tích tức thời": "area tuc thoi",
@@ -28574,6 +29657,33 @@ const appGuide = {
             proTip: {
                 vi: 'Kết quả tính toán có thể lưu trực tiếp vào sổ đo mốc chỉ với 1 chạm nút "Lưu mốc".',
                 en: 'Calculation results can be appended straight into your project survey book with 1 tap.'
+            }
+        },
+        'camera': {
+            icon: '📸',
+            title: { vi: 'Camera Hiện Trường Đóng Dấu Thủy Ấn', en: 'Field Survey Watermark Camera' },
+            category: { vi: 'NGHIỆM THU HIỆN TRƯỜNG', en: 'FIELD INSPECTION' },
+            purpose: {
+                vi: 'Chụp ảnh và quay video hiện trường có đóng dấu tọa độ VN-2000, WGS-84, KTT, GPS và thời gian thực tế phục vụ hồ sơ nghiệm thu kỹ thuật.',
+                en: 'Capture field photos and videos stamped with real-time VN-2000, WGS-84 coordinates, CM, GPS, and timestamp for technical inspection dossiers.'
+            },
+            steps: [
+                {
+                    title: { vi: '1. Chọn mốc đo & Vị trí đóng dấu', en: '1. Select mark and watermark corner' },
+                    desc: { vi: 'Chọn mốc trong dự án (hoặc tọa độ GPS Live thực địa). Chọn 1 trong 4 góc đóng dấu (Dưới-Trái, Dưới-Phải, Trên-Trái, Trên-Phải).', en: 'Pick a project point or live GPS. Select one of 4 corners (Bottom-Left, Bottom-Right, Top-Left, Top-Right).' }
+                },
+                {
+                    title: { vi: '2. Chụp ảnh hoặc Quay video trực tiếp', en: '2. Capture photo or Record live video' },
+                    desc: { vi: 'Bấm "CHỤP ẢNH ĐÓNG DẤU" để lưu ảnh tức thời, hoặc bấm "QUAY VIDEO REALTIME" để ghi hình hiện trường với thủy ấn chạy từng giây.', en: 'Click "Capture Photo" for instant stamped photo, or "Record Video" for live video with updating HUD.' }
+                },
+                {
+                    title: { vi: '3. Quản lý bộ sưu tập ảnh đã đóng dấu', en: '3. Manage stamped media collection' },
+                    desc: { vi: 'Mở tab "Quản Lý Ảnh" để xem lại ảnh phóng to, tải từng ảnh hoặc tải toàn bộ về máy, đính kèm ghi chú vào sổ đo mốc.', en: 'Open "Media Gallery" to view, download single/batch files, or attach photo logs to project survey marks.' }
+                }
+            ],
+            proTip: {
+                vi: 'Góc Dưới - Trái là vị trí chuẩn mực trong hồ sơ nghiệm thu trắc địa và địa chính công trình.',
+                en: 'Bottom-Left corner is the standard placement for cadastral and engineering survey inspection dossiers.'
             }
         }
     },

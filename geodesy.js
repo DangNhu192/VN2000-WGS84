@@ -561,10 +561,10 @@ function checkPolygonSelfIntersection(vertices) {
 
 // Danh sách các mốc Kinh tuyến trục phổ biến nhất tại Việt Nam kèm quy đổi độ thập phân
 const COMMON_KTT_PRESETS = [
-    { deg: 105, min: 0, decimal: 105.0, label: "105°00' (105.0°)", provinces: "Lai Châu, Điện Biên" },
+    { deg: 105, min: 0, decimal: 105.0, label: "105°00' (105.0°)", provinces: "Hà Nội, Cần Thơ, Đồng Tháp, Lai Châu, Điện Biên" },
     { deg: 105, min: 30, decimal: 105.5, label: "105°30' (105.5°)", provinces: "Hà Giang, Tuyên Quang" },
-    { deg: 105, min: 45, decimal: 105.75, label: "105°45' (105.75°)", provinces: "TP.HCM, Tây Ninh, Bình Phước" },
-    { deg: 106, min: 0, decimal: 106.0, label: "106°00' (106.0°)", provinces: "Đồng Nai, Bình Dương, Long An" },
+    { deg: 105, min: 45, decimal: 105.75, label: "105°45' (105.75°)", provinces: "TP.HCM, Bình Dương, Long An, Tây Ninh, Bình Phước" },
+    { deg: 106, min: 0, decimal: 106.0, label: "106°00' (106.0°)", provinces: "Đồng Nai, Tiền Giang, Bến Tre" },
     { deg: 106, min: 30, decimal: 106.5, label: "106°30' (106.5°)", provinces: "Bà Rịa - Vũng Tàu, Tiền Giang" },
     { deg: 107, min: 0, decimal: 107.0, label: "107°00' (107.0°)", provinces: "Lâm Đồng, Đắk Lắk" },
     { deg: 107, min: 45, decimal: 107.75, label: "107°45' (107.75°)", provinces: "Bình Thuận" },

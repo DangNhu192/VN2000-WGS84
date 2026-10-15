@@ -2180,17 +2180,25 @@
 
     .transform-subtabs {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 12px;
       background: #0b1329;
       padding: 4px;
       border-radius: 10px;
       border: 1px solid #1e293b;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+
+    .transform-subtabs::-webkit-scrollbar {
+      display: none;
     }
 
     .btn-subtab {
-      flex: 1;
+      flex: 1 1 auto;
       height: 38px;
+      padding: 0 10px;
       border-radius: 8px;
       border: none;
       background: transparent;
@@ -2203,12 +2211,20 @@
       justify-content: center;
       gap: 6px;
       transition: all 0.2s ease;
+      white-space: nowrap;
+      min-width: fit-content;
     }
 
     .btn-subtab.active {
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       color: #ffffff;
       box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+
+    /* KHẮC PHỤC TRIỆT ĐỂ LỖI QUÁ NHIỀU THANH CUỘN LỒNG NHAU: KHÔNG CHO SCREEN CHUYỂN ĐỔI CUỘN NGOÀI */
+    #screen-transform {
+      overflow: hidden !important;
+      padding: 6px 10px 4px 10px !important;
     }
 
     /* BỐ CỤC CHIA ĐÔI MÀN HÌNH CHUYỂN ĐỔI TỌA ĐỘ KHI MÀN HÌNH LỚN (>= 1024px) */
@@ -2231,143 +2247,216 @@
       min-width: 0;
     }
 
-    /* ================= 2026 HERO LIVE MAP & SPLIT CONTROLS ================= */
-    .transform-view-mode-bar {
-      display: flex;
-      gap: 6px;
-      padding: 6px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(56, 189, 248, 0.28);
-      border-radius: 12px;
-      margin-bottom: 10px;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-      flex-shrink: 0;
-    }
-
-    .btn-tf-view-mode {
-      flex: 1;
-      padding: 7px 8px;
-      font-size: 11.5px;
-      font-weight: 700;
-      color: #94a3b8;
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 8px;
-      cursor: pointer;
+    /* ================= 2026 INTERACTIVE SPLITTER RESIZER ================= */
+    .transform-layout-resizer {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-      white-space: nowrap;
+      background: rgba(15, 23, 42, 0.4);
+      position: relative;
+      z-index: 25;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      flex-shrink: 0;
     }
 
-    .btn-tf-view-mode.active {
-      background: linear-gradient(135deg, rgba(2, 132, 199, 0.4) 0%, rgba(14, 165, 233, 0.25) 100%);
+    .transform-layout-resizer:hover,
+    .transform-layout-resizer.is-dragging {
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    .resizer-handle-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 9999px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .transform-layout-resizer:hover .resizer-handle-pill,
+    .transform-layout-resizer.is-dragging .resizer-handle-pill {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      border-color: #38bdf8;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
+      transform: scale(1.1);
+    }
+
+    .resizer-grip-icon {
+      display: block;
+      background: #94a3b8;
+      border-radius: 2px;
+      transition: background 0.15s ease;
+    }
+
+    .transform-layout-resizer:hover .resizer-grip-icon,
+    .transform-layout-resizer.is-dragging .resizer-grip-icon {
+      background: #ffffff;
+    }
+
+    .btn-resizer-quick-toggle {
+      display: none;
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.55);
       color: #38bdf8;
-      border-color: rgba(56, 189, 248, 0.55);
-      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 26;
     }
 
-    .btn-tf-view-mode:hover:not(.active) {
-      color: #f8fafc;
-      background: rgba(255, 255, 255, 0.05);
+    .btn-resizer-quick-toggle:hover {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #38bdf8;
+      transform: scale(1.15);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
     }
 
-    /* MAP DOMINANT (Bản đồ lớn chiếm đa số màn hình) */
-    .transform-split-layout.mode-map-dominant {
-      flex-direction: column !important;
+    /* TRÊN MÀN HÌNH NHỎ (< 1024px): Bố cục linh hoạt có thanh kéo thả Resizer dạng thanh ngang */
+    @media (max-width: 1023px) {
+      .transform-split-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        height: calc(100vh - var(--sat-safe-top) - 120px) !important;
+        max-height: calc(100vh - var(--sat-safe-top) - 120px) !important;
+        overflow: hidden !important;
+        gap: 0 !important;
+      }
+      .transform-content-column {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: var(--tf-content-height, 54%) !important;
+        min-height: 140px !important;
+        max-height: calc(100% - 130px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding-right: 4px !important;
+        scrollbar-width: thin;
+        flex: none !important;
+      }
+      .transform-layout-resizer {
+        width: 100% !important;
+        height: 18px !important;
+        cursor: row-resize !important;
+        margin: 3px 0 !important;
+        border-top: 1px solid rgba(56, 189, 248, 0.25);
+        border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 6px;
+      }
+      .transform-layout-resizer .resizer-handle-pill {
+        width: 48px !important;
+        height: 7px !important;
+      }
+      .transform-layout-resizer .resizer-grip-icon {
+        width: 24px !important;
+        height: 3px !important;
+      }
+      .transform-layout-resizer .btn-resizer-quick-toggle {
+        display: flex !important;
+        right: 12px !important;
+        top: -4px !important;
+      }
+      .transform-map-column {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 1 0% !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 180px !important;
+        margin-top: 2px !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+      }
+      .transform-subtabs {
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+      }
+      .transform-subtabs .btn-subtab {
+        flex: 0 0 auto !important;
+        padding: 0 12px !important;
+        min-width: auto !important;
+      }
     }
 
-    .transform-split-layout.mode-map-dominant .transform-map-column {
-      order: 1 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      flex: 1.8 !important;
-      height: 60vh !important;
-      min-height: 320px;
+    /* Chế độ Bản đồ lớn trực quan khi người dùng chọn tab Bản Đồ Lớn Trực Quan */
+    .transform-split-layout.map-full-focus {
+      --tf-content-width: 34% !important;
+      --tf-content-height: 36% !important;
     }
 
-    .transform-split-layout.mode-map-dominant .transform-content-column {
-      order: 2 !important;
-      flex: 1 !important;
-      height: 40vh !important;
-      overflow-y: auto !important;
-      scrollbar-width: thin;
-    }
-
-    /* SPLIT 50/50 */
-    .transform-split-layout.mode-split {
-      flex-direction: column !important;
-    }
-
-    .transform-split-layout.mode-split .transform-map-column {
-      order: 1 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      flex: 1 !important;
-      height: 45vh !important;
-      min-height: 260px;
-    }
-
-    .transform-split-layout.mode-split .transform-content-column {
-      order: 2 !important;
-      flex: 1.2 !important;
-      height: 55vh !important;
-      overflow-y: auto !important;
-      scrollbar-width: thin;
-    }
-
-    /* FORM ONLY */
-    .transform-split-layout.mode-form-only .transform-map-column {
-      display: none !important;
-    }
-
-    .transform-split-layout.mode-form-only .transform-content-column {
-      flex: 1 !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      height: 100% !important;
-      overflow-y: auto !important;
-    }
-
-    /* Chế độ Bản đồ lớn trực quan chiếm đa số màn hình hoặc Toàn màn hình */
-    .transform-map-column.mobile-active,
     .transform-map-column.large-focus {
       display: flex !important;
+      border-radius: 14px !important;
+    }
+
+    .transform-map-column {
+      display: flex !important;
       flex-direction: column !important;
-      width: 100% !important;
-      height: calc(100vh - var(--sat-safe-top) - 130px) !important;
-      min-height: 480px !important;
-      background: #0b1329;
-      border: 1.5px solid rgba(56, 189, 248, 0.45);
-      border-radius: 16px;
       overflow: hidden !important;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
-      margin-top: 6px;
     }
 
-    .transform-map-column.large-focus .transform-live-map-body,
-    .transform-map-column.mobile-active .transform-live-map-body {
-      flex: 1;
-      width: 100%;
-      height: 100%;
-      min-height: 420px;
-      position: relative;
+    .transform-live-map-header {
+      width: 100% !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 6px 10px !important;
+      background: rgba(15, 23, 42, 0.95) !important;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.25) !important;
+      flex-shrink: 0 !important;
+      box-sizing: border-box !important;
+      gap: 6px !important;
     }
 
-    .transform-map-column.large-focus #transformLiveMap,
-    .transform-map-column.mobile-active #transformLiveMap {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 1;
+    .transform-live-map-header .map-header-title {
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
+      color: #38bdf8 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    .transform-live-map-body {
+      flex: 1 1 0% !important;
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 140px !important;
+      position: relative !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
+    }
+
+    #transformLiveMap {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      z-index: 1 !important;
     }
 
     .transform-map-column.fullscreen-mode,
@@ -2422,66 +2511,77 @@
         height: calc(100vh - var(--sat-safe-top) - 85px) !important;
         max-height: calc(100vh - var(--sat-safe-top) - 85px) !important;
         overflow: hidden !important;
-      }
-
-      .transform-split-layout.mode-map-dominant {
-        flex-direction: row !important;
-      }
-
-      .transform-split-layout.mode-map-dominant .transform-map-column {
-        order: 2 !important;
-        flex: 2 !important;
-        max-width: 66% !important;
-        height: 100% !important;
-        display: flex !important;
-      }
-
-      .transform-split-layout.mode-map-dominant .transform-content-column {
-        order: 1 !important;
-        flex: 1 !important;
-        max-width: 34% !important;
-        height: 100% !important;
-      }
-
-      .transform-split-layout.mode-split {
-        flex-direction: row !important;
-      }
-
-      .transform-split-layout.mode-split .transform-map-column {
-        order: 2 !important;
-        flex: 1.2 !important;
-        max-width: 55% !important;
-        height: 100% !important;
-        display: flex !important;
-      }
-
-      .transform-split-layout.mode-split .transform-content-column {
-        order: 1 !important;
-        flex: 1 !important;
-        max-width: 45% !important;
-        height: 100% !important;
+        gap: 0 !important;
       }
 
       .transform-content-column {
-        flex: 1 !important;
-        max-width: 50% !important;
+        width: var(--tf-content-width, 50%) !important;
+        min-width: 380px !important;
+        max-width: calc(100% - 300px) !important;
+        flex: none !important;
         height: 100% !important;
         overflow-y: auto !important;
-        padding-right: 8px !important;
+        overflow-x: hidden !important;
+        padding-right: 12px !important;
         scrollbar-width: thin;
+      }
+
+      .transform-layout-resizer {
+        width: 14px !important;
+        height: 100% !important;
+        cursor: col-resize !important;
+        margin: 0 4px !important;
+        border-left: 1px solid rgba(56, 189, 248, 0.2);
+        border-right: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 6px;
+      }
+
+      .transform-layout-resizer .resizer-handle-pill {
+        width: 8px !important;
+        height: 48px !important;
+      }
+
+      .transform-layout-resizer .resizer-grip-icon {
+        width: 3px !important;
+        height: 20px !important;
+      }
+
+      .transform-layout-resizer .btn-resizer-quick-toggle {
+        display: flex !important;
+        bottom: 24px !important;
       }
 
       .transform-map-column {
         display: flex !important;
         flex-direction: column !important;
-        flex: 1.2 !important;
-        max-width: 55% !important;
+        flex: 1 1 0% !important;
+        min-width: 300px !important;
+        max-width: none !important;
         height: 100% !important;
         background: #0b1329;
         border: 1px solid rgba(56, 189, 248, 0.35);
         border-radius: 14px;
         overflow: hidden !important;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      }
+
+      /* TƯƠNG THÍCH NGƯỢC CÁC CHẾ ĐỘ NẾU ĐƯỢC GỌI TỪ MÃ LỆNH CŨ */
+      .transform-split-layout.mode-map-dominant {
+        --tf-content-width: 34% !important;
+      }
+
+      .transform-split-layout.mode-split {
+        --tf-content-width: 50% !important;
+      }
+
+      .transform-split-layout.mode-form-only .transform-map-column,
+      .transform-split-layout.mode-form-only .transform-layout-resizer {
+        display: none !important;
+      }
+
+      .transform-split-layout.mode-form-only .transform-content-column {
+        width: 100% !important;
+        max-width: 100% !important;
       }
 
       .transform-live-map-header {
@@ -3879,7 +3979,254 @@
       }
     }
 
-    /* CAMERA WATERMARK STYLING */
+    /* CAMERA WATERMARK & LIVE VIEWFINDER STYLING */
+    .camera-tabs-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: #0b1329;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .camera-tab-btn {
+      flex: 1 1 auto;
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .camera-tab-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+
+    .camera-viewfinder-box {
+      position: relative;
+      background: #000000;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1.5px solid #334155;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      max-height: 60vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    #cameraLiveVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    #cameraRealtimeHudCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .camera-floating-toolbar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .camera-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .camera-icon-btn:hover {
+      background: rgba(2, 132, 199, 0.9);
+      border-color: #38bdf8;
+      transform: scale(1.05);
+    }
+
+    .camera-recording-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(239, 68, 68, 0.9);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+      animation: pulse-recording 1.2s infinite;
+    }
+
+    @keyframes pulse-recording {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.04); }
+    }
+
+    /* Bộ chọn vị trí 4 góc đóng dấu */
+    .camera-corner-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .btn-corner-opt {
+      height: 34px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-corner-opt.active {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      font-weight: 700;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+    }
+
+    /* Lưới thư viện ảnh nghiệm thu */
+    .camera-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .camera-gallery-card {
+      background: #0b1329;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .camera-gallery-card:hover {
+      border-color: #38bdf8;
+      transform: translateY(-2px);
+    }
+
+    .camera-thumb-wrap {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #020617;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .camera-thumb-wrap img, .camera-thumb-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .camera-thumb-badge {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fde047;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .camera-card-info {
+      padding: 6px 8px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      color: #cbd5e1;
+    }
+
+    .camera-card-actions {
+      display: flex;
+      border-top: 1px solid #1e293b;
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .camera-card-btn {
+      flex: 1;
+      height: 28px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .camera-card-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+    }
+
+    .camera-card-btn.btn-del:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
     .camera-preview-box {
       position: relative;
       background: #000;

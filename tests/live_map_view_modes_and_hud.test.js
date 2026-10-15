@@ -7,23 +7,19 @@ const stylePath = path.join(__dirname, '../style.css');
 const indexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf-8') + (fs.existsSync(stylePath) ? fs.readFileSync(stylePath, 'utf-8') : '');
 const appJs = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf-8');
 
-test('=== 1. KIỂM THỬ THANH ĐIỀU KHIỂN 3 CHẾ ĐỘ XEM LIVE MAP (DOMINANT, SPLIT, FORM-ONLY) ===', () => {
-    // 1.1 Thanh điều khiển chế độ xem
-    assert.match(indexHtml, /id="transformViewModeBar"/, 'Phải có thanh điều khiển chế độ xem transformViewModeBar');
-    assert.match(indexHtml, /id="btnTfModeMapDominant"/, 'Phải có nút chọn Bản đồ lớn (65%)');
-    assert.match(indexHtml, /id="btnTfModeSplit"/, 'Phải có nút chọn Chia đôi (50/50)');
-    assert.match(indexHtml, /id="btnTfModeFormOnly"/, 'Phải có nút chọn Chỉ Form');
+test('=== 1. KIỂM THỬ THANH KÉO THẢ LINH HOẠT DIỆN TÍCH FORM VÀ BẢN ĐỒ (RESIZER SPLITTER) ===', () => {
+    // 1.1 DOM element thanh kéo thả phân chia diện tích
+    assert.match(indexHtml, /id="transformLayoutResizer"/, 'Phải có thanh kéo thả phân chia diện tích transformLayoutResizer');
+    assert.match(indexHtml, /id="btnResizerQuickToggle"/, 'Phải có nút thu gọn / mở rộng nhanh btnResizerQuickToggle');
 
-    // 1.2 CSS rules cho 3 chế độ xem
-    assert.match(indexHtml, /\.transform-split-layout\.mode-map-dominant/, 'Phải có CSS rule cho mode-map-dominant');
-    assert.match(indexHtml, /\.transform-split-layout\.mode-split/, 'Phải có CSS rule cho mode-split');
-    assert.match(indexHtml, /\.transform-split-layout\.mode-form-only/, 'Phải có CSS rule cho mode-form-only');
+    // 1.2 CSS rules cho resizer splitter
+    assert.match(indexHtml, /\.transform-layout-resizer/, 'Phải có CSS rule cho transform-layout-resizer');
+    assert.match(indexHtml, /\.resizer-handle-pill/, 'Phải có CSS rule cho resizer-handle-pill');
 
-    // 1.3 JavaScript logic điều khiển chế độ xem
-    assert.match(appJs, /setTransformViewMode\s*\(\s*mode\s*\)\s*\{/, 'appTransform phải có hàm setTransformViewMode(mode)');
-    assert.match(appJs, /mode-map-dominant/, 'setTransformViewMode phải quản lý class mode-map-dominant');
-    assert.match(appJs, /mode-split/, 'setTransformViewMode phải quản lý class mode-split');
-    assert.match(appJs, /mode-form-only/, 'setTransformViewMode phải quản lý class mode-form-only');
+    // 1.3 JavaScript logic điều khiển kéo thả diện tích
+    assert.match(appJs, /initResizer\s*\(/, 'appTransform phải có hàm initResizer() để điều khiển kéo thả diện tích');
+    assert.match(appJs, /applySplitRatio\s*\(/, 'appTransform phải có hàm applySplitRatio() áp dụng tỷ lệ');
+    assert.match(appJs, /setTransformViewMode\s*\(\s*mode\s*\)\s*\{/, 'appTransform phải giữ tương thích hàm setTransformViewMode(mode)');
 });
 
 test('=== 2. KIỂM THỬ FLOATING HUD TỌA ĐỘ TRỰC QUAN TRÊN LIVE MAP ===', () => {
