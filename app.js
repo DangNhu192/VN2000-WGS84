@@ -30391,6 +30391,475 @@ const appGuide = {
     }
 };
 
+// ================= 3.10 PHÂN HỆ NHẬN DẠNG ẢNH TỌA ĐỘ (OCR AI & SCREENSHOT SCANNER) =================
+const appOcr = {
+    currentImage: null,
+    zoomLevel: 1.0,
+    rotation: 0,
+    isBinarized: false,
+    detectedKtt: null,
+    ocrPoints: [],
+    tesseractWorker: null,
+
+    init() {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('paste', (e) => {
+                if (typeof AppState !== 'undefined' && AppState.currentScreen !== 'transform') return;
+                const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+                if (!items) return;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type && items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        if (blob) {
+                            appOcr.openOcrModal();
+                            appOcr.handleImageBlob(blob);
+                            e.preventDefault();
+                            break;
+                        }
+                    }
+                }
+            });
+        }
+    },
+
+    openOcrModal() {
+        if (typeof triggerHaptic === 'function') triggerHaptic('light');
+        const modal = document.getElementById('modalOcrCoordReview');
+        if (!modal) return;
+        modal.classList.add('active');
+        if (this.ocrPoints.length === 0) {
+            this.renderOcrTable();
+        }
+    },
+
+    closeOcrModal() {
+        if (typeof triggerHaptic === 'function') triggerHaptic('light');
+        const modal = document.getElementById('modalOcrCoordReview');
+        if (modal) modal.classList.remove('active');
+    },
+
+    openCamera() {
+        const input = document.getElementById('fileOcrImageInput');
+        if (input) {
+            input.setAttribute('capture', 'environment');
+            input.click();
+            setTimeout(() => input.removeAttribute('capture'), 1000);
+        }
+    },
+
+    onFileSelected(file) {
+        if (!file) return;
+        this.handleImageBlob(file);
+    },
+
+    handleImageBlob(blob) {
+        if (typeof triggerHaptic === 'function') triggerHaptic('light');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            const img = document.getElementById('ocrPreviewImg');
+            const placeholder = document.getElementById('ocrEmptyPlaceholder');
+            if (img && placeholder) {
+                img.src = dataUrl;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                this.currentImage = img;
+                this.zoomLevel = 1.0;
+                this.rotation = 0;
+                this.applyImageTransform();
+
+                img.onload = () => {
+                    this.startOcrProcessing(img);
+                };
+            }
+        };
+        reader.readAsDataURL(blob);
+    },
+
+    applyImageTransform() {
+        const img = document.getElementById('ocrPreviewImg');
+        if (img) {
+            img.style.transform = `scale(${this.zoomLevel}) rotate(${this.rotation}deg)`;
+        }
+    },
+
+    zoomImage(delta) {
+        this.zoomLevel = Math.max(0.4, Math.min(3.0, this.zoomLevel + delta));
+        this.applyImageTransform();
+    },
+
+    rotateImage() {
+        this.rotation = (this.rotation + 90) % 360;
+        this.applyImageTransform();
+    },
+
+    toggleBinarize() {
+        this.isBinarized = !this.isBinarized;
+        const btn = document.getElementById('btnToggleBinarize');
+        if (btn) btn.style.background = this.isBinarized ? '#0284c7' : 'rgba(15, 23, 42, 0.6)';
+        if (this.currentImage) {
+            this.startOcrProcessing(this.currentImage);
+        }
+    },
+
+    preprocessImageToCanvas(img) {
+        const canvas = document.getElementById('ocrCanvasPreprocess') || document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width || 800;
+        canvas.height = img.naturalHeight || img.height || 600;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return canvas;
+
+        ctx.drawImage(img, 0, 0);
+        if (!this.isBinarized) return canvas;
+
+        try {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                const threshold = 140;
+                const val = gray < threshold ? 0 : 255;
+                data[i] = val;
+                data[i + 1] = val;
+                data[i + 2] = val;
+            }
+            ctx.putImageData(imgData, 0, 0);
+        } catch (e) {
+            console.warn('Canvas binarization skipped:', e);
+        }
+        return canvas;
+    },
+
+    async loadTesseractLibrary() {
+        if (typeof Tesseract !== 'undefined') return window.Tesseract;
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+            script.onload = () => resolve(window.Tesseract);
+            script.onerror = () => reject(new Error('Không thể tải Tesseract OCR từ CDN. Vui lòng kiểm tra Internet!'));
+            document.head.appendChild(script);
+        });
+    },
+
+    async startOcrProcessing(img) {
+        const spinner = document.getElementById('ocrLoadingSpinner');
+        const statusText = document.getElementById('ocrStatusText');
+        if (spinner) spinner.style.display = 'flex';
+        if (statusText) statusText.innerText = 'Đang nạp bộ nhận dạng OCR...';
+
+        try {
+            const T = await this.loadTesseractLibrary();
+            if (statusText) statusText.innerText = 'Đang tiền xử lý ảnh...';
+            const canvas = this.preprocessImageToCanvas(img);
+
+            if (statusText) statusText.innerText = 'Đang quét văn bản và số liệu...';
+
+            const worker = await T.createWorker('vie+eng', 1, {
+                logger: m => {
+                    if (m.status === 'recognizing text' && statusText) {
+                        statusText.innerText = `Đang quét: ${Math.round((m.progress || 0) * 100)}%`;
+                    }
+                }
+            });
+
+            await worker.setParameters({
+                tessedit_char_whitelist: "0123456789.,-+°'\"/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđĐ \t\n\r"
+            });
+
+            const ret = await worker.recognize(canvas);
+            await worker.terminate();
+
+            if (statusText) statusText.innerText = 'Đang phân tích bảng tọa độ...';
+            const recognizedText = ret.data.text;
+            this.processExtractedText(recognizedText);
+
+            if (spinner) spinner.style.display = 'none';
+            if (typeof triggerHaptic === 'function') triggerHaptic('success');
+            if (typeof showToast === 'function') showToast(`🎉 Đã quét xong! Nhận diện được ${this.ocrPoints.length} điểm mốc.`);
+        } catch (err) {
+            console.error('OCR Error:', err);
+            if (spinner) spinner.style.display = 'none';
+            if (typeof showToast === 'function') showToast(`⚠️ Lỗi nhận dạng ảnh: ${err.message || 'Không thể quét ảnh'}`, true);
+        }
+    },
+
+    cleanNumStr(s) {
+        if (!s) return '';
+        let str = String(s).trim().replace(/^"|"$/g, '');
+        str = str.replace(/[oO]/g, '0')
+                 .replace(/[lI]/g, '1')
+                 .replace(/[S]/g, '5')
+                 .replace(/[B]/g, '8');
+        if (str.includes('.') && str.includes(',')) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else {
+                str = str.replace(/,/g, '');
+            }
+        } else if (str.includes(',')) {
+            str = str.replace(',', '.');
+        }
+        return str;
+    },
+
+    parseOcrText(rawText) {
+        if (!rawText || !rawText.trim()) return { detectedKtt: null, points: [] };
+        const lines = rawText.split(/\r?\n/);
+        let detectedKtt = null;
+        const points = [];
+
+        // 1. Quét tìm Kinh tuyến trục & Múi chiếu
+        const kttRegex1 = /(?:ktt|kinh\s*tuyến\s*trục)[^\d]*(\d{2,3})[°\s]+(\d{1,2})['’]/i;
+        const kttRegex2 = /(?:ktt|kinh\s*tuyến\s*trục)[^\d]*(\d{2,3}\.\d+)/i;
+        const muiRegex = /(?:múi|múi\s*chiếu)[^\d]*([36])[°\s]*/i;
+
+        let foundKtt = null;
+        let foundMui = null;
+
+        lines.forEach(line => {
+            const clean = line.trim();
+            if (!foundKtt) {
+                const m1 = clean.match(kttRegex1);
+                if (m1) {
+                    const deg = parseInt(m1[1], 10);
+                    const min = parseInt(m1[2], 10);
+                    foundKtt = { deg, min, val: +(deg + min / 60).toFixed(4), raw: `${deg}°${min}'` };
+                } else {
+                    const m2 = clean.match(kttRegex2);
+                    if (m2) {
+                        const val = parseFloat(m2[1]);
+                        const deg = Math.floor(val);
+                        const min = Math.round((val - deg) * 60);
+                        foundKtt = { deg, min, val, raw: `${deg}°${min}'` };
+                    }
+                }
+            }
+            if (!foundMui) {
+                const mm = clean.match(muiRegex);
+                if (mm) {
+                    foundMui = parseInt(mm[1], 10);
+                }
+            }
+        });
+
+        if (foundKtt) {
+            detectedKtt = {
+                deg: foundKtt.deg,
+                min: foundKtt.min,
+                val: foundKtt.val,
+                mui: foundMui || 3,
+                raw: foundKtt.raw
+            };
+        }
+
+        // 2. Quét tìm bảng điểm tọa độ (STT, Tên mốc, X, Y)
+        lines.forEach(line => {
+            const clean = line.trim();
+            if (!clean) return;
+            const lower = clean.toLowerCase();
+            if (lower.startsWith('stt') || lower.startsWith('tên') || lower.startsWith('name') || 
+                lower.startsWith('toạ độ') || lower.startsWith('tọa độ') || lower.startsWith('kinh độ') || 
+                lower.startsWith('vĩ độ') || lower.startsWith('điểm') || lower.startsWith('ktt') ||
+                lower.startsWith('kinh tuyến') || lower.startsWith('múi')) {
+                return;
+            }
+
+            let tokens = [];
+            if (clean.includes('\t')) {
+                tokens = clean.split('\t').map(t => t.trim()).filter(Boolean);
+            } else if (clean.includes(';')) {
+                tokens = clean.split(';').map(t => t.trim()).filter(Boolean);
+            } else {
+                tokens = clean.split(/\s+/).map(t => t.trim()).filter(Boolean);
+            }
+            if (tokens.length < 2) return;
+
+            let name = `M${points.length + 1}`;
+            let c1Str = '', c2Str = '';
+
+            const num0 = parseFloat(this.cleanNumStr(tokens[0]));
+
+            if (tokens.length >= 4 && !isNaN(parseFloat(this.cleanNumStr(tokens[2]))) && !isNaN(parseFloat(this.cleanNumStr(tokens[3])))) {
+                name = isNaN(parseFloat(this.cleanNumStr(tokens[1]))) ? tokens[1] : (isNaN(parseFloat(this.cleanNumStr(tokens[0]))) ? tokens[0] : `M${tokens[0]}`);
+                c1Str = this.cleanNumStr(tokens[2]);
+                c2Str = this.cleanNumStr(tokens[3]);
+            } else if (tokens.length >= 3) {
+                if (isNaN(num0)) {
+                    name = tokens[0];
+                    c1Str = this.cleanNumStr(tokens[1]);
+                    c2Str = this.cleanNumStr(tokens[2]);
+                } else if (!isNaN(parseFloat(this.cleanNumStr(tokens[1]))) && !isNaN(parseFloat(this.cleanNumStr(tokens[2])))) {
+                    name = `M${tokens[0]}`;
+                    c1Str = this.cleanNumStr(tokens[1]);
+                    c2Str = this.cleanNumStr(tokens[2]);
+                } else {
+                    name = tokens[0];
+                    c1Str = this.cleanNumStr(tokens[1]);
+                    c2Str = this.cleanNumStr(tokens[2]);
+                }
+            } else if (tokens.length === 2) {
+                c1Str = this.cleanNumStr(tokens[0]);
+                c2Str = this.cleanNumStr(tokens[1]);
+            }
+
+            const n1 = parseFloat(c1Str);
+            const n2 = parseFloat(c2Str);
+            if (!isNaN(n1) && !isNaN(n2)) {
+                points.push({
+                    id: Date.now() + Math.random() + points.length,
+                    name: name,
+                    c1: c1Str,
+                    c2: c2Str
+                });
+            }
+        });
+
+        return { detectedKtt, points };
+    },
+
+    processExtractedText(rawText) {
+        const { detectedKtt, points } = this.parseOcrText(rawText);
+        this.detectedKtt = detectedKtt;
+        this.ocrPoints = points;
+
+        const boxKtt = document.getElementById('boxOcrDetectedKtt');
+        const descKtt = document.getElementById('lblOcrDetectedKttDesc');
+        if (boxKtt && descKtt) {
+            if (detectedKtt) {
+                boxKtt.style.display = 'flex';
+                descKtt.innerHTML = `Kinh tuyến trục: <b>${detectedKtt.raw} (${detectedKtt.val}°)</b> • Múi chiếu: <b>${detectedKtt.mui}°</b>`;
+            } else {
+                boxKtt.style.display = 'none';
+            }
+        }
+
+        this.renderOcrTable();
+    },
+
+    applyDetectedKtt() {
+        if (!this.detectedKtt) return;
+        if (typeof triggerHaptic === 'function') triggerHaptic('success');
+        const { deg, min, mui } = this.detectedKtt;
+
+        if (typeof AppState !== 'undefined') {
+            AppState.kttDeg = deg;
+            AppState.kttMin = min;
+            AppState.kttVal = +(deg + min / 60).toFixed(4);
+            AppState.zone = mui;
+            AppState.scaleFactor = mui === 3 ? 0.9999 : 0.9996;
+        }
+
+        const selDeg = document.getElementById('selKttDeg');
+        const selMin = document.getElementById('selKttMin');
+        const selZone = document.getElementById('selZone');
+        if (selDeg) selDeg.value = deg;
+        if (selMin) selMin.value = min;
+        if (selZone) selZone.value = mui;
+
+        if (typeof appTransform !== 'undefined' && appTransform.updateKttLabel) {
+            appTransform.updateKttLabel();
+        }
+
+        const boxKtt = document.getElementById('boxOcrDetectedKtt');
+        if (boxKtt) boxKtt.style.display = 'none';
+        if (typeof showToast === 'function') showToast(`✨ Đã áp dụng KTT ${deg}°${min}' (Múi ${mui}°) vào hệ thống!`);
+    },
+
+    renderOcrTable() {
+        const tbody = document.getElementById('tblOcrPointsBody');
+        const countLbl = document.getElementById('lblOcrPointsCount');
+        if (countLbl) countLbl.innerText = this.ocrPoints.length;
+        if (!tbody) return;
+
+        if (this.ocrPoints.length === 0) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="5" style="text-align: center; color: #64748b; padding: 24px 10px;">
+                  Chưa có số liệu. Hãy chọn hoặc dán ảnh vào khung bên cạnh để quét tự động.
+                </td>
+              </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = this.ocrPoints.map((p, idx) => `
+          <tr>
+            <td style="text-align: center; color: #94a3b8; font-size: 11px;">${idx + 1}</td>
+            <td>
+              <input type="text" class="ocr-edit-cell" value="${p.name}" onchange="appOcr.updatePointField(${idx}, 'name', this.value)">
+            </td>
+            <td>
+              <input type="text" class="ocr-edit-cell" value="${p.c1}" onchange="appOcr.updatePointField(${idx}, 'c1', this.value)">
+            </td>
+            <td>
+              <input type="text" class="ocr-edit-cell" value="${p.c2}" onchange="appOcr.updatePointField(${idx}, 'c2', this.value)">
+            </td>
+            <td style="text-align: center;">
+              <button type="button" class="btn-micro" style="color: #f87171; border-color: rgba(248, 113, 113, 0.3);" onclick="appOcr.removeRow(${idx})">✕</button>
+            </td>
+          </tr>
+        `).join('');
+    },
+
+    updatePointField(idx, field, val) {
+        if (this.ocrPoints[idx]) {
+            this.ocrPoints[idx][field] = val.trim();
+        }
+    },
+
+    addNewEmptyRow() {
+        this.ocrPoints.push({
+            id: Date.now() + Math.random(),
+            name: `M${this.ocrPoints.length + 1}`,
+            c1: '',
+            c2: ''
+        });
+        this.renderOcrTable();
+    },
+
+    removeRow(idx) {
+        if (typeof triggerHaptic === 'function') triggerHaptic('light');
+        this.ocrPoints.splice(idx, 1);
+        this.renderOcrTable();
+    },
+
+    confirmPointsToTransform() {
+        if (this.ocrPoints.length === 0) {
+            if (typeof showToast === 'function') showToast("⚠️ Không có điểm mốc nào để nạp!", true);
+            return;
+        }
+
+        let validCount = 0;
+        this.ocrPoints.forEach(p => {
+            const n1 = parseFloat(p.c1);
+            const n2 = parseFloat(p.c2);
+            if (!isNaN(n1) && !isNaN(n2)) {
+                if (typeof appTransform !== 'undefined' && appTransform.multiPoints) {
+                    appTransform.multiPoints.push({
+                        id: Date.now() + Math.random() + validCount,
+                        name: p.name || `M${appTransform.multiPoints.length + 1}`,
+                        c1: p.c1,
+                        c2: p.c2,
+                        x: (n1 > 500000 || n2 > 500000) ? n1.toFixed(3) : null,
+                        y: (n1 > 500000 || n2 > 500000) ? n2.toFixed(3) : null,
+                        lat: (n1 <= 90 && n2 <= 180) ? n1.toFixed(6) : null,
+                        lng: (n1 <= 90 && n2 <= 180) ? n2.toFixed(6) : null
+                    });
+                    validCount++;
+                }
+            }
+        });
+
+        if (typeof appTransform !== 'undefined') {
+            if (appTransform.renderMultiPointsTable) appTransform.renderMultiPointsTable();
+            if (appTransform.updateMultiSummary) appTransform.updateMultiSummary();
+        }
+
+        this.closeOcrModal();
+        if (typeof triggerHaptic === 'function') triggerHaptic('success');
+        if (typeof showToast === 'function') showToast(`🎉 Đã nạp thành công ${validCount} điểm mốc vào Bảng chuyển đổi đa điểm!`);
+    }
+};
 
 // ================= GLOBAL WINDOW EXPORTS FOR RELIABLE BROWSER / WEBVIEW COMPATIBILITY =================
 if (typeof window !== 'undefined') {
@@ -30412,6 +30881,8 @@ if (typeof window !== 'undefined') {
     window.appTheme = appTheme;
     window.appI18n = appI18n;
     window.appGuide = appGuide;
+    window.appOcr = appOcr;
+    appOcr.init();
     if (typeof getAppEffectiveDate !== 'undefined') window.getAppEffectiveDate = getAppEffectiveDate;
     window.triggerHaptic = triggerHaptic;
     window.showToast = showToast;
@@ -30421,12 +30892,15 @@ if (typeof window !== 'undefined') {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
+        AppState,
+        appTransform,
         appDonate,
         appTheme,
         appDateTime,
         appI18n,
         appGuide,
-        appModal
+        appModal,
+        appOcr
     };
 }
 

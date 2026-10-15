@@ -1082,6 +1082,12 @@
                       title="Dán nhanh tọa độ từ Excel, Zalo hoặc Clipboard">
                       📋 Dán text nhanh
                     </button>
+                    <button type="button" class="btn-sm" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; font-weight: 700;"
+                      onclick="appOcr.openOcrModal()"
+                      title="Quét ảnh chụp màn hình / Sổ đỏ / Bản vẽ tọa độ (OCR)">
+                      📸 Quét Ảnh (OCR)
+                    </button>
+                    <input type="file" id="fileOcrImageInput" accept="image/*" style="display: none;" onchange="appOcr.onFileSelected(this.files[0])">
                     <button type="button" class="btn-sm" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #6ee7b7;"
                       onclick="document.getElementById('fileMultiBatchInput').click()"
                       title="Nhập danh sách mốc từ file CSV hoặc Excel">
@@ -6526,6 +6532,106 @@
         <button type="button" class="btn-convert btn-wgs-to-vn2k"
           style="flex: 1.5; min-width: 150px; height: 40px; margin: 0;" onclick="appDashboard.savePinSelection()">💾 LƯU
           THAY ĐỔI</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL QUÉT ẢNH TỌA ĐỘ OCR & ĐỐI SOÁT TRỰC QUAN (DUAL-PANE) ================= -->
+  <div id="modalOcrCoordReview" class="modal-overlay">
+    <div class="modal-box modal-ocr-box" style="max-width: 920px; width: 95%; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-title">
+        <span style="color: #fbbf24;">📸 Quét Ảnh Tọa Độ & Đối Soát Trực Quan (OCR AI)</span>
+        <button class="btn-modal-close" onclick="appOcr.closeOcrModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 12px 16px;">
+        <!-- Thanh công cụ chọn ảnh / Dán ảnh -->
+        <div class="ocr-upload-bar">
+          <button type="button" class="btn-sm btn-blue" onclick="document.getElementById('fileOcrImageInput').click()">
+            📁 Chọn file ảnh từ máy
+          </button>
+          <span style="font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
+            💡 Hoặc bấm <b>Ctrl + V</b> để dán ảnh chụp màn hình từ Clipboard
+          </span>
+          <div id="ocrLoadingSpinner" style="display: none; align-items: center; gap: 8px; margin-left: auto;">
+            <div class="spinner-sm"></div>
+            <span id="ocrStatusText" style="font-size: 11.5px; color: #38bdf8; font-weight: 700;">Đang xử lý OCR...</span>
+          </div>
+        </div>
+
+        <!-- Thẻ thông báo phát hiện Kinh tuyến trục & Múi chiếu -->
+        <div id="boxOcrDetectedKtt" style="display: none; background: rgba(56, 189, 248, 0.12); border: 1.5px solid #0284c7; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 22px;">📍</span>
+            <div>
+              <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">Phát hiện thông tin Hệ tọa độ từ ảnh:</div>
+              <div id="lblOcrDetectedKttDesc" style="font-size: 12px; color: #e2e8f0;">Kinh tuyến trục: <b>105°45'</b> • Múi chiếu: <b>3°</b></div>
+            </div>
+          </div>
+          <button type="button" class="btn-sm btn-blue" onclick="appOcr.applyDetectedKtt()" style="height: 34px; font-weight: 700;">
+            ✓ Áp dụng ngay vào Hệ Thống
+          </button>
+        </div>
+
+        <!-- Dual-Pane Container: Ảnh bên trái/trên - Bảng số liệu bên phải/dưới -->
+        <div class="ocr-dual-pane-container">
+          <!-- Pane 1: Khung xem ảnh gốc (Zoom, pan, rotate, contrast) -->
+          <div class="ocr-image-pane">
+            <div class="ocr-pane-header">
+              <span class="ocr-pane-title">🖼️ Ảnh chụp màn hình / Bảng số liệu</span>
+              <div class="ocr-image-tools">
+                <button type="button" class="btn-micro" onclick="appOcr.zoomImage(0.15)" title="Thu phóng to">+</button>
+                <button type="button" class="btn-micro" onclick="appOcr.zoomImage(-0.15)" title="Thu nhỏ">-</button>
+                <button type="button" class="btn-micro" onclick="appOcr.rotateImage()" title="Xoay ảnh 90°">🔄</button>
+                <button type="button" class="btn-micro" id="btnToggleBinarize" onclick="appOcr.toggleBinarize()" title="Bật/Tắt tăng tương phản khử nhiễu">🌓 Lọc nét</button>
+              </div>
+            </div>
+            <div class="ocr-image-viewport" id="ocrImageViewport">
+              <div id="ocrEmptyPlaceholder" class="ocr-empty-dropzone" onclick="document.getElementById('fileOcrImageInput').click()">
+                <div style="font-size: 40px; margin-bottom: 8px;">📸</div>
+                <div style="font-weight: 700; color: #38bdf8;">Chạm để chọn ảnh hoặc dán ảnh (Ctrl+V)</div>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Hỗ trợ ảnh sổ đỏ, ảnh bảng vẽ CAD, ảnh Excel, Zalo...</div>
+              </div>
+              <img id="ocrPreviewImg" style="display: none; max-width: 100%; transition: transform 0.2s ease;" alt="Ảnh quét OCR">
+              <canvas id="ocrCanvasPreprocess" style="display: none;"></canvas>
+            </div>
+          </div>
+
+          <!-- Pane 2: Bảng kết quả nhận dạng đối soát -->
+          <div class="ocr-data-pane">
+            <div class="ocr-pane-header">
+              <span class="ocr-pane-title">📋 Bảng số liệu đối soát (<span id="lblOcrPointsCount">0</span> điểm)</span>
+              <button type="button" class="btn-micro" onclick="appOcr.addNewEmptyRow()" title="Thêm dòng mốc">+ Thêm dòng</button>
+            </div>
+            <div class="ocr-table-wrap">
+              <table class="table-selectable" id="tblOcrPoints">
+                <thead>
+                  <tr>
+                    <th style="width: 32px; text-align: center;">STT</th>
+                    <th style="min-width: 75px;">Tên mốc</th>
+                    <th style="min-width: 105px;">X (m) / Lat</th>
+                    <th style="min-width: 105px;">Y (m) / Lng</th>
+                    <th style="width: 40px; text-align: center;">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody id="tblOcrPointsBody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: #64748b; padding: 24px 10px;">
+                      Chưa có số liệu. Hãy chọn hoặc dán ảnh vào khung bên cạnh để quét tự động.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid rgba(56, 189, 248, 0.15); flex-wrap: wrap;">
+        <button type="button" class="btn-sm" style="flex: 1; min-width: 100px; height: 42px;" onclick="appOcr.closeOcrModal()">Đóng</button>
+        <button type="button" class="btn-convert btn-wgs-to-vn2k" id="btnConfirmOcrPoints" style="flex: 2; min-width: 180px; height: 42px; margin: 0; font-weight: 800;" onclick="appOcr.confirmPointsToTransform()">
+          ✓ NẠP VÀO BẢNG CHUYỂN ĐỔI ĐA ĐIỂM
+        </button>
       </div>
     </div>
   </div>
