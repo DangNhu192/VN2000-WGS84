@@ -1965,11 +1965,13 @@ const appCoordPicker = {
         const ptIndex = this.multiPoints.length + 1;
         const ptName = `P${ptIndex}`;
 
-        const icon = L.divIcon({
-            className: 'multipoint-map-pin',
-            html: `<div style="background: #0284c7; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">${ptIndex}</div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+        const icon = createSharpPinIcon({
+            color: '#0284c7',
+            secondaryColor: '#0369a1',
+            text: `P${ptIndex}`,
+            width: 26,
+            height: 35,
+            className: 'multipoint-map-pin'
         });
 
         const marker = L.marker([lat, lng], { icon }).addTo(this.multiMarkersGroup);
@@ -2138,11 +2140,13 @@ const appCoordPicker = {
             this.multiPoints.forEach((pt, i) => {
                 pt.name = `P${i + 1}`;
                 if (pt.marker) {
-                    const icon = L.divIcon({
-                        className: 'multipoint-map-pin',
-                        html: `<div style="background: #0284c7; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">${i + 1}</div>`,
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
+                    const icon = createSharpPinIcon({
+                        color: '#0284c7',
+                        secondaryColor: '#0369a1',
+                        text: `P${i + 1}`,
+                        width: 26,
+                        height: 35,
+                        className: 'multipoint-map-pin'
                     });
                     pt.marker.setIcon(icon);
                 }
@@ -3793,11 +3797,14 @@ const appTransform = {
         }
         this._livePickMarkerLayer.clearLayers();
 
-        const pickIcon = L.divIcon({
-            className: 'live-map-inspect-pin',
-            html: `<div style="background: radial-gradient(circle, #f59e0b 0%, #d97706 100%); color: #fff; border: 2.5px solid #ffffff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 0 16px rgba(245, 158, 11, 0.9), 0 2px 8px rgba(0,0,0,0.6);">🎯</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
+        const pickIcon = createSharpPinIcon({
+            color: '#f59e0b',
+            secondaryColor: '#d97706',
+            symbol: 'inspect',
+            width: 30,
+            height: 40,
+            pulse: true,
+            className: 'live-map-inspect-pin'
         });
 
         const marker = L.marker([lat, lng], { icon: pickIcon }).addTo(this._livePickMarkerLayer);
@@ -3932,11 +3939,14 @@ const appTransform = {
         const fLng = parseFloat(pt.lng);
         if (isNaN(fLat) || isNaN(fLng) || fLat === 0 || fLng === 0) return;
 
-        const icon = L.divIcon({
-            className: 'live-map-single-pin',
-            html: `<div style="background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%); color: #fff; border: 2.5px solid #ffffff; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 0 14px rgba(2, 132, 199, 0.8), 0 2px 8px rgba(0,0,0,0.6);">📍</div>`,
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
+        const icon = createSharpPinIcon({
+            color: '#0284c7',
+            secondaryColor: '#0369a1',
+            symbol: 'target',
+            width: 30,
+            height: 40,
+            pulse: true,
+            className: 'live-map-single-pin'
         });
 
         const xStr = parseFloat(pt.x).toFixed(3);
@@ -3976,11 +3986,13 @@ const appTransform = {
             const fLng = parseFloat(r.lng);
             if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
                 latlngs.push([fLat, fLng]);
-                const icon = L.divIcon({
-                    className: 'live-map-multi-pin',
-                    html: `<div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; border: 2px solid #ffffff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">${r.stt || (idx + 1)}</div>`,
-                    iconSize: [26, 26],
-                    iconAnchor: [13, 13]
+                const icon = createSharpPinIcon({
+                    color: '#059669',
+                    secondaryColor: '#047857',
+                    text: r.stt || (idx + 1),
+                    width: 26,
+                    height: 35,
+                    className: 'live-map-multi-pin'
                 });
                 const marker = L.marker([fLat, fLng], { icon }).addTo(this._liveMapLayer);
                 marker.bindPopup(`
@@ -4580,11 +4592,14 @@ const appTransformMap = {
         // Cập nhật marker đơn điểm
         if (this.singleMarkersLayer) {
             this.singleMarkersLayer.clearLayers();
-            const icon = L.divIcon({
-                className: 'single-point-pin',
-                html: `<div style="background: #2563eb; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">🎯</div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
+            const icon = createSharpPinIcon({
+                color: '#2563eb',
+                secondaryColor: '#1d4ed8',
+                symbol: 'target',
+                width: 30,
+                height: 40,
+                pulse: true,
+                className: 'single-point-pin'
             });
             const marker = L.marker([lat, lng], { icon }).addTo(this.singleMarkersLayer);
             marker.bindPopup(`<b>Điểm Đã Chọn</b><br>VN-2000 X: <b>${vn.X.toFixed(3)}</b> m<br>VN-2000 Y: <b>${vn.Y.toFixed(3)}</b> m<br>WGS-84: ${lat.toFixed(6)}°, ${lng.toFixed(6)}°`).openPopup();
@@ -5018,11 +5033,14 @@ const appTransformMap = {
                 const fX = parseFloat(p.x);
                 const fY = parseFloat(p.y);
                 bounds.push([fLat, fLng]);
-                const icon = L.divIcon({
-                    className: 'single-converted-pin',
-                    html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">📍</div>`,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
+                const icon = createSharpPinIcon({
+                    color: '#10b981',
+                    secondaryColor: '#059669',
+                    symbol: 'target',
+                    width: 30,
+                    height: 40,
+                    pulse: true,
+                    className: 'single-converted-pin'
                 });
                 L.marker([fLat, fLng], { icon })
                     .addTo(this.singleConvertedLayer)
@@ -5034,11 +5052,14 @@ const appTransformMap = {
             } else if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.lat && AppState.lastConvertedPoint.lng) {
                 const p = AppState.lastConvertedPoint;
                 bounds.push([p.lat, p.lng]);
-                const icon = L.divIcon({
-                    className: 'single-converted-pin',
-                    html: `<div style="background: #10b981; color: #fff; border: 2.5px solid #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">📍</div>`,
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14]
+                const icon = createSharpPinIcon({
+                    color: '#10b981',
+                    secondaryColor: '#059669',
+                    symbol: 'target',
+                    width: 28,
+                    height: 37,
+                    pulse: true,
+                    className: 'single-converted-pin'
                 });
                 L.marker([p.lat, p.lng], { icon })
                     .addTo(this.singleConvertedLayer)
@@ -5056,11 +5077,13 @@ const appTransformMap = {
                     const fLng = parseFloat(r.lng);
                     if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
                         bounds.push([fLat, fLng]);
-                        const icon = L.divIcon({
-                            className: 'multipoint-converted-pin',
-                            html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.6);">${r.stt}</div>`,
-                            iconSize: [26, 26],
-                            iconAnchor: [13, 13]
+                        const icon = createSharpPinIcon({
+                            color: '#0d9488',
+                            secondaryColor: '#0f766e',
+                            text: r.stt,
+                            width: 26,
+                            height: 35,
+                            className: 'multipoint-converted-pin'
                         });
                         L.marker([fLat, fLng], { icon })
                             .addTo(this.multiConvertedLayer)
@@ -5116,11 +5139,13 @@ const appTransformMap = {
 
         this.updateActiveLayers();
         if (this.multiMarkersLayer) {
-            const icon = L.divIcon({
-                className: 'multipoint-pin',
-                html: `<div style="background: #f59e0b; color: #000; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${idx}</div>`,
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
+            const icon = createSharpPinIcon({
+                color: '#f59e0b',
+                secondaryColor: '#d97706',
+                text: idx,
+                width: 26,
+                height: 35,
+                className: 'multipoint-pin'
             });
             L.marker([lat, lng], { icon }).addTo(this.multiMarkersLayer).bindPopup(`<b>Điểm P${idx}</b><br>X: ${vn.X.toFixed(3)} m | Y: ${vn.Y.toFixed(3)} m`);
         }
@@ -5186,11 +5211,13 @@ const appTransformMap = {
         if (!this.multiMarkersLayer) return;
         this.multiMarkersLayer.clearLayers();
         this.pickedMultiPoints.forEach(p => {
-            const icon = L.divIcon({
-                className: 'multipoint-pin',
-                html: `<div style="background: #f59e0b; color: #000; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${p.stt}</div>`,
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
+            const icon = createSharpPinIcon({
+                color: '#f59e0b',
+                secondaryColor: '#d97706',
+                text: p.stt,
+                width: 26,
+                height: 35,
+                className: 'multipoint-pin'
             });
             L.marker([p.lat, p.lng], { icon }).addTo(this.multiMarkersLayer).bindPopup(`<b>Điểm P${p.stt}</b><br>X: ${p.x.toFixed(3)} m | Y: ${p.y.toFixed(3)} m`);
         });
@@ -5323,11 +5350,13 @@ const appTransformMap = {
 
             if (pLat !== 0 && pLng !== 0) {
                 bounds.push([pLat, pLng]);
-                const icon = L.divIcon({
-                    className: 'multipoint-pin',
-                    html: `<div style="background: #0d9488; color: #fff; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5);">${p.stt || (idx+1)}</div>`,
-                    iconSize: [26, 26],
-                    iconAnchor: [13, 13]
+                const icon = createSharpPinIcon({
+                    color: '#0d9488',
+                    secondaryColor: '#0f766e',
+                    text: p.stt || (idx+1),
+                    width: 26,
+                    height: 35,
+                    className: 'multipoint-pin'
                 });
                 L.marker([pLat, pLng], { icon })
                     .addTo(this.multiConvertedLayer)
@@ -5682,25 +5711,103 @@ const appGps = {
 };
 
 // ================= 6. CÁC HÀM TIỆN ÍCH BIỂU TƯỢNG VÀ TRẮC ĐỊA BẢN ĐỒ =================
+function createSharpPinIcon({
+    color = '#0284c7',
+    secondaryColor = null,
+    text = '',
+    symbol = '',
+    width = 26,
+    height = 35,
+    pulse = false,
+    className = ''
+} = {}) {
+    const cx = width / 2;
+    const rHead = (width - 4) / 2;
+    const cyHead = rHead + 2;
+    const tipY = height - 1;
+    const id = 'pin_' + Math.random().toString(36).substr(2, 6);
+    const col2 = secondaryColor || color;
+
+    let contentHtml = '';
+    if (symbol === 'target' || symbol === '🎯') {
+        const rInner = Math.max(4, rHead - 5);
+        contentHtml = `
+            <circle cx="${cx}" cy="${cyHead}" r="${rHead - 2.5}" fill="rgba(15,23,42,0.88)" stroke="#ffffff" stroke-width="0.8"/>
+            <circle cx="${cx}" cy="${cyHead}" r="${rInner}" fill="none" stroke="#ffffff" stroke-width="1.2"/>
+            <circle cx="${cx}" cy="${cyHead}" r="2.2" fill="#fde047"/>
+            <line x1="${cx}" y1="${cyHead - (rHead - 3)}" x2="${cx}" y2="${cyHead + (rHead - 3)}" stroke="#ffffff" stroke-width="1.2"/>
+            <line x1="${cx - (rHead - 3)}" y1="${cyHead}" x2="${cx + (rHead - 3)}" y2="${cyHead}" stroke="#ffffff" stroke-width="1.2"/>
+        `;
+    } else if (symbol === 'inspect' || symbol === '📍') {
+        contentHtml = `
+            <circle cx="${cx}" cy="${cyHead}" r="${rHead - 2.5}" fill="rgba(15,23,42,0.88)" stroke="#ffffff" stroke-width="0.8"/>
+            <circle cx="${cx}" cy="${cyHead}" r="${Math.max(3.5, rHead - 6.5)}" fill="#fde047" stroke="#ffffff" stroke-width="1"/>
+            <circle cx="${cx}" cy="${cyHead}" r="1.6" fill="#0f172a"/>
+        `;
+    } else if (text !== undefined && text !== null && text !== '') {
+        const textStr = String(text);
+        const fontSize = textStr.length > 2 ? Math.round(rHead * 0.75) : Math.round(rHead * 0.95);
+        contentHtml = `
+            <circle cx="${cx}" cy="${cyHead}" r="${rHead - 2.5}" fill="rgba(15,23,42,0.88)" stroke="#ffffff" stroke-width="0.8"/>
+            <text x="${cx}" y="${cyHead + 0.5}" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-size="${fontSize}" font-weight="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${textStr}</text>
+        `;
+    } else {
+        contentHtml = `
+            <circle cx="${cx}" cy="${cyHead}" r="${rHead - 3}" fill="#ffffff" />
+            <circle cx="${cx}" cy="${cyHead}" r="3" fill="${color}" />
+        `;
+    }
+
+    const pulseHtml = pulse ? `
+        <div class="sharp-pin-pulse-ring" style="position: absolute; left: 50%; bottom: 0; width: 22px; height: 22px; transform: translate(-50%, 50%); border-radius: 50%; border: 2px solid ${color}; pointer-events: none; animation: pinPulse 1.8s infinite ease-out;"></div>
+        <div class="sharp-pin-ground-dot" style="position: absolute; left: 50%; bottom: 0; width: 4px; height: 4px; transform: translate(-50%, 50%); border-radius: 50%; background: #ffffff; box-shadow: 0 0 6px ${color}; pointer-events: none;"></div>
+    ` : '';
+
+    const html = `<div class="sharp-pin-marker-container ${className}" style="position: relative; width: ${width}px; height: ${height}px; pointer-events: auto;">
+        ${pulseHtml}
+        <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); overflow: visible; display: block;">
+            <defs>
+                <linearGradient id="${id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="${color}"/>
+                    <stop offset="100%" stop-color="${col2}"/>
+                </linearGradient>
+            </defs>
+            <path d="M ${cx},2 C ${cx - rHead * 0.55},2 2,${cyHead - rHead * 0.45} 2,${cyHead} C 2,${cyHead + rHead * 0.65} ${cx - 2.5},${tipY - 5} ${cx - 0.4},${tipY - 0.6} C ${cx - 0.2},${tipY} ${cx + 0.2},${tipY} ${cx + 0.4},${tipY - 0.6} C ${cx + 2.5},${tipY - 5} ${width - 2},${cyHead + rHead * 0.65} ${width - 2},${cyHead} C ${width - 2},${cyHead - rHead * 0.45} ${cx + rHead * 0.55},2 ${cx},2 Z" fill="url(#${id})" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/>
+            <circle cx="${cx}" cy="${tipY}" r="1.2" fill="#ffffff"/>
+            ${contentHtml}
+        </svg>
+    </div>`;
+
+    if (typeof L !== 'undefined' && L.divIcon) {
+        return L.divIcon({
+            className: 'sharp-pin-divicon ' + className,
+            html: html,
+            iconSize: [width, height],
+            iconAnchor: [cx, height],
+            popupAnchor: [0, -height]
+        });
+    }
+
+    return {
+        className: 'sharp-pin-divicon ' + className,
+        html: html,
+        iconSize: [width, height],
+        iconAnchor: [cx, height],
+        popupAnchor: [0, -height]
+    };
+}
+if (typeof window !== 'undefined') window.createSharpPinIcon = createSharpPinIcon;
+if (typeof global !== 'undefined') global.createSharpPinIcon = createSharpPinIcon;
+
 function createOpticalCrosshairIcon() {
-    const cursorSvgHtml = 
-        '<div class="concentric-marker-container">' +
-            '<div class="concentric-pulse-ring" style="border:2px solid #ef4444; background:rgba(239, 68, 68, 0.16);"></div>' +
-            '<svg width="48" height="48" viewBox="0 0 48 48" style="position:absolute; top:0; left:0; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); pointer-events:none;">' +
-                '<circle cx="24" cy="24" r="16" fill="none" stroke="#ef4444" stroke-width="2.5"/>' +
-                '<circle cx="24" cy="24" r="7" fill="#ef4444" fill-opacity="0.35" stroke="#ffffff" stroke-width="2"/>' +
-                '<line x1="24" y1="2" x2="24" y2="12" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>' +
-                '<line x1="24" y1="36" x2="24" y2="46" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>' +
-                '<line x1="2" y1="24" x2="12" y2="24" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>' +
-                '<line x1="36" y1="24" x2="46" y2="24" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>' +
-                '<circle cx="24" cy="24" r="3" fill="#ffffff"/>' +
-            '</svg>' +
-        '</div>';
-    return L.divIcon({
-        className: 'optical-crosshair-icon',
-        html: cursorSvgHtml,
-        iconSize: [48, 48],
-        iconAnchor: [24, 24]
+    return createSharpPinIcon({
+        color: '#ef4444',
+        secondaryColor: '#b91c1c',
+        symbol: 'target',
+        width: 32,
+        height: 42,
+        pulse: true,
+        className: 'optical-crosshair-icon'
     });
 }
 
@@ -6406,22 +6513,25 @@ const appMap = {
             const ptKey = lat.toFixed(6) + '_' + lng.toFixed(6);
             if (cadPointKeys.has(ptKey)) return;
 
-            // Chấm mốc định vị tinh gọn (8px), rê chuột vào bung badge hiển thị tên & số thứ tự
+            // Ghim mốc định vị đầu nhọn chuẩn xác, hiển thị số thứ tự và chấm kim định vị
             const pointName = p.name || ('M' + (idx + 1));
-            const iconHtml = `<div class="map-proj-point-dot" title="${idx + 1}. ${pointName} (X: ${p.x || '--'}, Y: ${p.y || '--'}) - Rê chuột để xem, bấm để chọn">${idx + 1}</div>`;
-            const customIcon = L.divIcon({
-                html: iconHtml,
-                className: '',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
+            const customIcon = createSharpPinIcon({
+                color: '#ef4444',
+                secondaryColor: '#b91c1c',
+                text: idx + 1,
+                width: 24,
+                height: 33,
+                className: 'project-landmark-pin map-proj-point-dot'
             });
 
             const marker = L.marker([lat, lng], { icon: customIcon, zIndexOffset: 1500 });
 
             marker.on('mouseover', () => {
+                marker.getElement()?.querySelector('.project-landmark-pin')?.classList.add('expanded');
                 marker.getElement()?.querySelector('.map-proj-point-dot')?.classList.add('expanded');
             });
             marker.on('mouseout', () => {
+                marker.getElement()?.querySelector('.project-landmark-pin')?.classList.remove('expanded');
                 marker.getElement()?.querySelector('.map-proj-point-dot')?.classList.remove('expanded');
             });
 
@@ -7077,19 +7187,14 @@ const appMap = {
         }
 
         // Tạo marker với hiệu ứng sóng radar đồng tâm (concentric-pulse-ring) và tâm ngắm quang học SVG
-        const pinIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: '<div class="concentric-marker-container" style="pointer-events:none;">' +
-                    '<div class="concentric-pulse-ring" style="border:2.5px solid #0d9488; background:rgba(13, 148, 136, 0.25);"></div>' +
-                    '<svg width="48" height="48" viewBox="0 0 48 48" style="position:absolute; top:0; left:0; filter: drop-shadow(0 0 6px rgba(0,0,0,0.6)); pointer-events:none;">' +
-                        '<circle cx="24" cy="24" r="14" fill="#0f766e" stroke="#ffffff" stroke-width="2.5"/>' +
-                        '<line x1="24" y1="13" x2="24" y2="35" stroke="#a7f3d0" stroke-width="2"/>' +
-                        '<line x1="13" y1="24" x2="35" y2="24" stroke="#a7f3d0" stroke-width="2"/>' +
-                        '<circle cx="24" cy="24" r="4.5" fill="#fde047" stroke="#ffffff" stroke-width="1.5"/>' +
-                    '</svg>' +
-                  '</div>',
-            iconSize: [48, 48],
-            iconAnchor: [24, 24]
+        const pinIcon = createSharpPinIcon({
+            color: '#0d9488',
+            secondaryColor: '#047857',
+            symbol: 'target',
+            width: 32,
+            height: 42,
+            pulse: true,
+            className: 'preview-converted-pin custom-div-icon'
         });
 
         if (!AppState.convertedMarker) {
@@ -7110,7 +7215,7 @@ const appMap = {
             permanent: true,
             direction: 'top',
             className: 'point-label',
-            offset: [0, -18]
+            offset: [0, -42]
         });
 
         const popupContent = '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; min-width:220px; padding:2px;">' +
@@ -10455,20 +10560,19 @@ const appStakeout = {
                 const targetLatLng = [tLat, tLng];
                 bounds.push(targetLatLng);
 
-                const targetIconHtml = `
-                    <div style="width: 26px; height: 26px; background: #ef4444; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 12px rgba(239,68,68,0.9); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #ffffff;">
-                        🎯
-                    </div>
-                `;
-                const targetIcon = L.divIcon({
-                    className: 'stakeout-target-icon',
-                    html: targetIconHtml,
-                    iconSize: [26, 26],
-                    iconAnchor: [13, 13]
+                const targetIcon = createSharpPinIcon({
+                    color: '#ef4444',
+                    secondaryColor: '#b91c1c',
+                    symbol: 'target',
+                    width: 30,
+                    height: 40,
+                    pulse: true,
+                    className: 'stakeout-target-icon'
                 });
 
                 if (this.targetMarker) {
                     this.targetMarker.setLatLng(targetLatLng);
+                    this.targetMarker.setIcon(targetIcon);
                 } else {
                     this.targetMarker = L.marker(targetLatLng, { icon: targetIcon, zIndexOffset: 900 }).addTo(this.miniMap);
                 }
