@@ -26,11 +26,11 @@ if not exist ".git" (
 git config user.name >nul 2>&1
 if errorlevel 1 (
     git config user.name "Dang Nhu"
-    git config user.email "contact@vn2000pro.vn"
+    git config user.email "dnpn.ttqt@gmail.com"
 )
 git config user.email >nul 2>&1
 if errorlevel 1 (
-    git config user.email "contact@vn2000pro.vn"
+    git config user.email "dnpn.ttqt@gmail.com"
 )
 
 :: 3. Kiem tra link remote origin

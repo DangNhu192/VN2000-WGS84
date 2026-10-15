@@ -4,10 +4,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8');
 
 test('=== 1. KIỂM THỬ CẤU TRÚC GIAO DIỆN CỬA SỔ CHỜ DONATE & 4 KÊNH (INDEX.HTML) ===', () => {
-    const htmlPath = path.join(ROOT_DIR, 'index.html');
-    const html = fs.readFileSync(htmlPath, 'utf8');
 
     // 1. Kiểm tra tồn tại Modal Donate
     assert.ok(html.includes('id="modalDonateCountdown"'), 'Phải có modalDonateCountdown trong index.html');
@@ -100,11 +99,19 @@ test('=== 4. KIỂM THỬ ĐỔI KÊNH & LOGIC 1 LẦN/NGÀY TRONG MÔI TRƯỜN
     appDonate.setChannel('momo');
     assert.equal(appDonate.activeChannel, 'momo');
     assert.equal(appDonate.config.accountNumber, '0839656568');
+    assert.ok(appDonate.config.qrUrl.includes('momo-0839656568'), 'MoMo phải dùng mã QR MoMo Napas chính xác, không dùng ICB');
+    assert.ok(appDonate.config.openAppUrl.includes('momo.vn'), 'MoMo phải có link mở ứng dụng');
 
     // Chuyển sang kênh ZaloPay
     appDonate.setChannel('zalopay');
     assert.equal(appDonate.activeChannel, 'zalopay');
     assert.equal(appDonate.config.accountNumber, '0839656568');
+    assert.ok(appDonate.config.qrUrl.includes('zalo.me%2F0839656568') || appDonate.config.qrUrl.includes('zalo.me/0839656568'), 'ZaloPay phải dùng mã QR ZaloPay chính xác, không dùng BIDV');
+    assert.ok(appDonate.config.openAppUrl.includes('zalo.me'), 'ZaloPay phải có link mở ứng dụng Zalo/ZaloPay');
+
+    // Kiểm tra email phản hồi mới
+    assert.ok(html.includes('dnpn.ttqt@gmail.com'), 'index.html phải hiển thị email dnpn.ttqt@gmail.com');
+    assert.ok(!html.includes('contact@vn2000pro.vn'), 'index.html không còn email cũ contact@vn2000pro.vn');
 
     // Kiểm tra logic 1 lần / ngày
     const today = new Date().toLocaleDateString('en-CA');

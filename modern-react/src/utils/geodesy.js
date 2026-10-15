@@ -1,6 +1,6 @@
 /**
  * THƯ VIỆN TOÁN TRẮC ĐỊA VN-2000 & WGS-84 (CHUẨN HÓA 100% THEO APP GỐC)
- * Tác giả gốc: Đặng Như (contact@vn2000pro.vn)
+ * Tác giả gốc: Đặng Như (dnpn.ttqt@gmail.com)
  * Chuẩn mô hình 7 tham số Bursa-Wolf & Phép chiếu Gauss-Krüger / Transverse Mercator
  */
 

@@ -1,7 +1,7 @@
 /**
  * =========================================================================
  * GOOGLE APPS SCRIPT ĐỒNG BỘ SỔ ĐO TỌA ĐỘ TRẮC ĐỊA VN-2000 & WGS-84 PRO
- * Tác giả: Đặng Như (contact@vn2000pro.vn) - Phiên bản Tối Ưu v3.0 (Hỗ trợ MiniCAD & AppSheet)
+ * Tác giả: Đặng Như (dnpn.ttqt@gmail.com) - Phiên bản Tối Ưu v3.0 (Hỗ trợ MiniCAD & AppSheet)
  * =========================================================================
  * Tính năng tự động hóa vượt trội:
  * 1. Lưu TẬP TRUNG tất cả dự án vào 1 Sheet (Tab) duy nhất "Sổ Đo Tọa Độ",

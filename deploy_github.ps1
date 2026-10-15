@@ -92,11 +92,11 @@ if (-not (Test-Path -Path ".git" -PathType Container)) {
 $currentName = & git config --get user.name 2>$null
 if ([string]::IsNullOrWhiteSpace($currentName)) {
     & git config user.name "Dang Nhu"
-    & git config user.email "contact@vn2000pro.vn"
+    & git config user.email "dnpn.ttqt@gmail.com"
 }
 $currentEmail = & git config --get user.email 2>$null
 if ([string]::IsNullOrWhiteSpace($currentEmail)) {
-    & git config user.email "contact@vn2000pro.vn"
+    & git config user.email "dnpn.ttqt@gmail.com"
 }
 
 # 8. Xác định link remote mặc định
