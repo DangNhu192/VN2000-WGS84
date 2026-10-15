@@ -482,6 +482,9 @@ const appNav = window.appNav = {
             void targetScreen.offsetHeight;
         }
         this.syncBottomNav(screenName);
+        if (typeof appGuide !== 'undefined' && appGuide.checkFirstTimeGuide) {
+            appGuide.checkFirstTimeGuide(screenName);
+        }
         if (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en' && typeof document !== 'undefined') {
             appI18n.walkAndTranslate(document.body);
         }
@@ -1155,6 +1158,9 @@ const appNav = window.appNav = {
         if (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en' && typeof document !== 'undefined') {
             appI18n.walkAndTranslate(document.body);
         }
+        if (typeof appGuide !== 'undefined' && appGuide.checkFirstTimeGuide) {
+            appGuide.checkFirstTimeGuide('gps_map');
+        }
     },
 
     openCadMap(options = {}) { // openCadMap()
@@ -1205,6 +1211,9 @@ const appNav = window.appNav = {
         }
         if (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en' && typeof document !== 'undefined') {
             appI18n.walkAndTranslate(document.body);
+        }
+        if (typeof appGuide !== 'undefined' && appGuide.checkFirstTimeGuide) {
+            appGuide.checkFirstTimeGuide('cad');
         }
     },
 
@@ -29914,7 +29923,77 @@ const appGuide = {
                 vi: 'Góc Dưới - Trái là vị trí chuẩn mực trong hồ sơ nghiệm thu trắc địa và địa chính công trình.',
                 en: 'Bottom-Left corner is the standard placement for cadastral and engineering survey inspection dossiers.'
             }
+        },
+        'profile': {
+            icon: '🛣️',
+            title: { vi: 'Trắc Dọc Địa Hình & Đào Đắp TCVN 4447', en: 'Topographic Profile & Earthwork TCVN 4447' },
+            category: { vi: 'TRẮC DỌC & THIẾT KẾ ĐÀO ĐẮP', en: 'PROFILE & EARTHWORK DESIGN' },
+            purpose: {
+                vi: 'Thiết kế trắc dọc địa hình tự nhiên, đường đỏ thiết kế, cọc chi tiết và tính khối lượng đào đắp theo tiêu chuẩn TCVN 4447:2012.',
+                en: 'Design ground surface profiles, design grade lines, station pegs, and compute cut/fill earthwork volumes compliant with TCVN 4447:2012.'
+            },
+            steps: [
+                {
+                    title: { vi: '1. Chọn tim tuyến đo đạc', en: '1. Select road centerline' },
+                    desc: { vi: 'Chọn tuyến từ danh sách cọc trong sổ đo hoặc lấy trực tiếp từ bản vẽ tuyến MiniCAD liên thông.', en: 'Choose route from survey pegs or import from linked MiniCAD polyline.' }
+                },
+                {
+                    title: { vi: '2. Nhập cao độ tự nhiên & Thiết kế', en: '2. Natural & Design elevation' },
+                    desc: { vi: 'Điền cao độ H (m) từng cọc. Thiết kế độ dốc dọc i (%) và cao độ khống chế đầu/cuối tuyến.', en: 'Input ground H (m) for stations. Set longitudinal slope i (%) and control grade elevations.' }
+                },
+                {
+                    title: { vi: '3. Tính khối lượng đào đắp & Xuất biểu mẫu', en: '3. Compute cut/fill & Export' },
+                    desc: { vi: 'Bấm tính toán để nhận bảng khối lượng đào đắp m³ từng đoạn cọc và xuất biểu mẫu nghiệm thu.', en: 'Click calculate to generate station cut/fill volumes (m³) and export official reports.' }
+                }
+            ],
+            proTip: {
+                vi: 'Hệ thống tự động liên thông dữ liệu hai chiều giữa MiniCAD và Trắc dọc.',
+                en: 'System automatically provides seamless 2-way data bridge between MiniCAD and Profile modules.'
+            }
         }
+    },
+
+    openCurrentScreenGuide() {
+        // 1. Kiểm tra nếu modal cài đặt đang mở
+        const modalSettings = document.getElementById('modalSettings');
+        if (modalSettings && (modalSettings.classList.contains('active') || modalSettings.style.display === 'flex' || modalSettings.style.display === 'block')) {
+            this.openSettingsTabGuide();
+            return;
+        }
+
+        // 2. Kiểm tra nếu đang mở bản đồ CAD
+        if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
+            this.openGuide('cad');
+            return;
+        }
+
+        // 3. Kiểm tra nếu đang mở màn hình bản đồ dự án
+        const mapView = document.getElementById('map-view-container');
+        if (mapView && (mapView.classList.contains('active') || mapView.style.display === 'block')) {
+            this.openGuide('gps_map');
+            return;
+        }
+
+        // 4. Kiểm tra nếu đang mở bản đồ chuyển đổi
+        const tfMapView = document.getElementById('screen-transform-map');
+        if (tfMapView && (tfMapView.classList.contains('active') || tfMapView.style.display === 'flex')) {
+            this.openGuide('transform');
+            return;
+        }
+
+        // 5. Kiểm tra màn hình hiện tại
+        const cur = (typeof AppState !== 'undefined' && AppState.currentScreen) ? AppState.currentScreen : 'menu';
+        const guideKeyMap = {
+            'menu': 'settings_welcome',
+            'transform': 'transform',
+            'datamgmt': 'datamgmt',
+            'stakeout': 'stakeout',
+            'geodesy': 'geodesy',
+            'camera': 'camera',
+            'profile': 'profile'
+        };
+        const targetKey = guideKeyMap[cur] || cur;
+        this.openGuide(targetKey);
     },
 
     openGuide(guideKey) {

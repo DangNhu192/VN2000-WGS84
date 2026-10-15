@@ -113,6 +113,10 @@
             title="Cài đặt hệ thống (Lưu dữ liệu & KTT)">
             <span class="header-action-icon">⚙️</span><span class="header-action-text" data-i18n="header.settings"> Cài đặt</span>
           </button>
+          <button id="btnHeaderHelpGuide" class="btn-header-action mac-ctrl-btn btn-header-help" onclick="appGuide.openCurrentScreenGuide()"
+            title="Hướng dẫn sử dụng chức năng hiện tại (?)">
+            <span style="font-size: 14.5px; font-weight: 800; font-family: ui-monospace, monospace; color: #38bdf8;">?</span>
+          </button>
         </div>
       </div>
     </header>
@@ -1836,6 +1840,8 @@
           <button class="btn-map-action" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
             🔍 Bao quát
           </button>
+          <button id="btnMapHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('gps_map')"
+            title="Hướng dẫn sử dụng Bản đồ & GPS" style="margin-left: 2px;">?</button>
         </div>
 
         <!-- HUD Đo Đạc Khoảng Cách & Đa Giác Tuyến Mốc -->
@@ -2696,16 +2702,6 @@
                 ↗️ Trên - Phải
               </button>
             </div>
-          </div>
-
-          <!-- Thông tin in chìm preview tóm tắt -->
-          <div class="camera-tag-preview" id="boxCameraTagPreview">
-            <div style="font-weight: 700; color: #fbbf24; margin-bottom: 4px;">📌 Nội dung đóng dấu thực tế:</div>
-            <div>• Mốc: <b id="txtCameraTagMark" style="color: #38bdf8;">Chưa chọn</b> (<span id="txtCameraTagProject">Dự án hiện tại</span>)</div>
-            <div>• VN-2000: <span id="txtCameraTagVn2k">X = -- m | Y = -- m</span></div>
-            <div>• WGS-84: <span id="txtCameraTagWgs">Lat: -- | Lng: --</span></div>
-            <div>• Thực địa: <span id="txtCameraTagGps">Sai số: ±--m | Hướng: --°</span></div>
-            <div>• Thời gian: <span id="txtCameraTagTime">--/--/---- --:--:--</span></div>
           </div>
         </div>
 
