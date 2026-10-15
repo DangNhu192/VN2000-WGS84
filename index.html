@@ -3560,6 +3560,49 @@
                       ✕ Xóa
                     </button>
                   </div>
+
+                  <!-- Bảng quản lý & biên tập cọc tuyến đầu vào -->
+                  <div class="profile-table-scroll" style="max-height: 180px; margin-top: 8px; margin-bottom: 8px;">
+                    <table style="min-width: 360px;">
+                      <thead>
+                        <tr>
+                          <th style="min-width: 70px;">Tên Cọc</th>
+                          <th>X (Bắc - m)</th>
+                          <th>Y (Đông - m)</th>
+                          <th style="color: #4ade80; min-width: 90px;">Z_TN (m)</th>
+                          <th style="width: 36px; text-align: center;">Xóa</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tableAlignBody" style="color: #e2e8f0;">
+                        <tr>
+                          <td colspan="5" style="padding: 10px; color: #94a3b8; text-align: center;">
+                            Chưa có cọc tuyến. Bấm [📁 Chọn mốc Dự án] hoặc [➕ Thêm cọc] để bắt đầu.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 30px; font-size: 11px; font-weight: 700;" onclick="appElevationProfile.addManualAlignPoint()">
+                      ➕ Thêm Cọc Mới
+                    </button>
+                    <button type="button" class="btn-sm" style="flex: 1; height: 30px; font-size: 11px; background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; font-weight: 700;" onclick="appElevationProfile.togglePasteAlignModal(true)">
+                      📋 Dán Tọa Độ Cọc
+                    </button>
+                  </div>
+
+                  <!-- Khung Dán Nhanh Cọc Tuyến -->
+                  <div id="boxPasteAlignStakes" style="display: none; background: #0f172a; border: 1px dashed #38bdf8; border-radius: 8px; padding: 10px; margin-top: 8px;">
+                    <label class="form-label" style="color: #38bdf8; font-weight: 700; font-size: 11px;">
+                      Dán danh sách cọc (Tên [Tab/Cách] X [Tab] Y [Tab] Z_TN hoặc Tên [Tab] Cự_ly [Tab] Z_TN):
+                    </label>
+                    <textarea id="txtPasteAlignArea" class="app-input" rows="3" style="height: auto; font-family: monospace; font-size: 11.5px;" placeholder="Ví dụ:&#10;C1  1144000.0  585000.0  12.00&#10;C2  1144004.4  585000.0  12.00&#10;&#10;Hoặc theo cự ly:&#10;C1  0.0  12.00&#10;C2  4.4  12.00"></textarea>
+                    <div style="display: flex; gap: 6px; margin-top: 6px;">
+                      <button class="btn-sm btn-blue" onclick="appElevationProfile.parsePasteAlignText()">✓ Nạp Cọc</button>
+                      <button class="btn-sm" onclick="appElevationProfile.togglePasteAlignModal(false)">Đóng</button>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Cấu hình thông số đường đỏ & taluy -->
@@ -3680,8 +3723,8 @@
                         <th>Cọc</th>
                         <th>Lý trình (m)</th>
                         <th>Z_Tự nhiên</th>
-                        <th>Z_Thiết kế</th>
-                        <th>Độ cao TC (m)</th>
+                        <th>Z_Thiết kế (m)</th>
+                        <th title="Chênh cao thi công = Z_Thiết kế - Z_Tự nhiên. Giá trị dương (+) là ĐẮP, giá trị âm (-) là ĐÀO">Chênh cao TC Δh (m)</th>
                         <th>V_Đào (m³)</th>
                         <th>V_Đắp (m³)</th>
                       </tr>

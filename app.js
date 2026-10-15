@@ -13005,8 +13005,195 @@ const appElevationProfile = {
         triggerHaptic('light');
         this.alignPoints = [];
         this.profileData = [];
+        this.renderAlignPointsTable();
         this.calculateAndRender();
         showToast("Đã xóa danh sách cọc tuyến trắc dọc.");
+    },
+
+    renderAlignPointsTable() {
+        const tbody = document.getElementById('tableAlignBody');
+        const badgeCount = document.getElementById('badgeProfilePointCount');
+        const count = (this.alignPoints && Array.isArray(this.alignPoints)) ? this.alignPoints.length : 0;
+        if (badgeCount) badgeCount.innerText = `${count} cọc`;
+
+        if (!tbody) return;
+        if (!this.alignPoints || this.alignPoints.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="padding: 10px; color: #94a3b8; text-align: center;">Chưa có cọc tuyến. Bấm [📁 Chọn mốc Dự án] hoặc [➕ Thêm cọc] để bắt đầu.</td></tr>';
+            return;
+        }
+
+        let html = '';
+        this.alignPoints.forEach((pt, idx) => {
+            const zVal = (typeof pt.z === 'number') ? pt.z : (parseFloat(pt.z) || 0.0);
+            html += `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <td style="padding: 6px 6px; font-weight: 700; color: #38bdf8; text-align: left;">
+                    <input type="text" class="ocr-edit-cell" style="width: 70px; font-weight: 700; color: #38bdf8;" value="${pt.name || 'C' + (idx+1)}" onchange="appElevationProfile.updateAlignPointName(${idx}, this.value)">
+                </td>
+                <td style="padding: 6px 6px; font-family: ui-monospace, monospace; text-align: right; font-variant-numeric: tabular-nums;">
+                    <input type="number" step="0.001" class="ocr-edit-cell" style="width: 85px; text-align: right;" value="${(pt.x || 0).toFixed(3)}" onchange="appElevationProfile.updateAlignPointCoord(${idx}, 'x', this.value)">
+                </td>
+                <td style="padding: 6px 6px; font-family: ui-monospace, monospace; text-align: right; font-variant-numeric: tabular-nums;">
+                    <input type="number" step="0.001" class="ocr-edit-cell" style="width: 85px; text-align: right;" value="${(pt.y || 0).toFixed(3)}" onchange="appElevationProfile.updateAlignPointCoord(${idx}, 'y', this.value)">
+                </td>
+                <td style="padding: 6px 6px; color: #4ade80; font-family: ui-monospace, monospace; text-align: right; font-variant-numeric: tabular-nums;">
+                    <input type="number" step="0.01" class="ocr-edit-cell" style="width: 75px; text-align: right; color: #4ade80; font-weight: 700; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3);" value="${zVal.toFixed(2)}" onchange="appElevationProfile.updateAlignPointZ(${idx}, this.value)" title="Nhập/sửa cao độ tự nhiên Z_TN của cọc">
+                </td>
+                <td style="padding: 6px 6px; text-align: center;">
+                    <button class="btn-sm btn-red" style="padding: 2px 7px; font-size: 11px;" onclick="appElevationProfile.removeAlignPoint(${idx})">✕</button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    },
+
+    updateAlignPointName(idx, name) {
+        if (this.alignPoints && this.alignPoints[idx]) {
+            this.alignPoints[idx].name = name.trim();
+            this.calculateAndRender();
+        }
+    },
+
+    updateAlignPointCoord(idx, field, val) {
+        if (this.alignPoints && this.alignPoints[idx]) {
+            this.alignPoints[idx][field] = parseFloat(val) || 0;
+            this.calculateAndRender();
+        }
+    },
+
+    updateAlignPointZ(idx, val) {
+        if (this.alignPoints && this.alignPoints[idx]) {
+            const zNum = parseFloat(val);
+            this.alignPoints[idx].z = isNaN(zNum) ? 0.0 : zNum;
+            this.calculateAndRender();
+        }
+    },
+
+    addManualAlignPoint() {
+        triggerHaptic('light');
+        if (!this.alignPoints) this.alignPoints = [];
+        const n = this.alignPoints.length;
+        let lastX = 1144000.0, lastY = 585000.0, lastZ = 12.0;
+        if (n > 0) {
+            const prev = this.alignPoints[n - 1];
+            lastX = (prev.x || 0) + 20.0;
+            lastY = (prev.y || 0);
+            lastZ = (typeof prev.z === 'number') ? prev.z : 12.0;
+        }
+        this.alignPoints.push({
+            id: `C${n + 1}`,
+            name: `C${n + 1}`,
+            x: lastX,
+            y: lastY,
+            z: lastZ
+        });
+        this.renderAlignPointsTable();
+        this.calculateAndRender();
+        showToast(`Đã thêm cọc C${n + 1}. Hãy chỉnh sửa tọa độ và cao độ Z_TN nếu cần!`);
+    },
+
+    removeAlignPoint(idx) {
+        triggerHaptic('light');
+        if (this.alignPoints && this.alignPoints[idx]) {
+            this.alignPoints.splice(idx, 1);
+            this.renderAlignPointsTable();
+            this.calculateAndRender();
+        }
+    },
+
+    togglePasteAlignModal(show) {
+        const box = document.getElementById('boxPasteAlignStakes');
+        if (box) box.style.display = show ? 'block' : 'none';
+        if (show) {
+            const ta = document.getElementById('txtPasteAlignArea');
+            if (ta) ta.focus();
+        }
+    },
+
+    parsePasteAlignText() {
+        const ta = document.getElementById('txtPasteAlignArea');
+        if (!ta || !ta.value.trim()) {
+            showToast("⚠️ Vui lòng dán danh sách cọc trước khi nạp!", true);
+            return;
+        }
+        const lines = ta.value.trim().split(/\r?\n/);
+        const newPoints = [];
+        let cumX = 1144000.0;
+        let cumY = 585000.0;
+
+        lines.forEach((line, i) => {
+            const clean = line.trim();
+            if (!clean) return;
+            const tokens = clean.split(/[\t\s;,]+/).map(t => t.trim().replace(',', '.')).filter(Boolean);
+            if (tokens.length < 2) return;
+            const firstLower = tokens[0].toLowerCase();
+            if (firstLower === 'tên' || firstLower === 'cọc' || firstLower === 'name' || firstLower === 'stt' || firstLower === 'point' || firstLower === 'id') return;
+
+            let name = `C${(this.alignPoints ? this.alignPoints.length : 0) + newPoints.length + 1}`;
+            let x = 0, y = 0, z = 12.0;
+
+            if (tokens.length >= 4) {
+                name = tokens[0];
+                x = parseFloat(tokens[1]) || 0;
+                y = parseFloat(tokens[2]) || 0;
+                z = parseFloat(tokens[3]) || 0;
+            } else if (tokens.length === 3) {
+                const num0 = parseFloat(tokens[0]);
+                const num1 = parseFloat(tokens[1]);
+                const num2 = parseFloat(tokens[2]);
+
+                if (isNaN(num0)) {
+                    name = tokens[0];
+                    if (num1 > 10000) {
+                        x = num1;
+                        y = num2;
+                        z = 12.0;
+                    } else {
+                        x = cumX + num1;
+                        y = cumY;
+                        z = num2;
+                    }
+                } else {
+                    x = num0;
+                    y = num1;
+                    z = num2;
+                }
+            } else if (tokens.length === 2) {
+                const num0 = parseFloat(tokens[0]);
+                const num1 = parseFloat(tokens[1]);
+                if (isNaN(num0)) {
+                    name = tokens[0];
+                    z = num1;
+                    x = cumX + (newPoints.length * 20);
+                    y = cumY;
+                } else {
+                    x = cumX + num0;
+                    y = cumY;
+                    z = num1;
+                }
+            }
+
+            newPoints.push({
+                id: `C_${Date.now()}_${i}`,
+                name: name,
+                x: x,
+                y: y,
+                z: z
+            });
+        });
+
+        if (newPoints.length === 0) {
+            showToast("⚠️ Không nhận dạng được cọc nào. Vui lòng kiểm tra lại định dạng!", true);
+            return;
+        }
+
+        if (!this.alignPoints) this.alignPoints = [];
+        this.alignPoints.push(...newPoints);
+        this.togglePasteAlignModal(false);
+        this.renderAlignPointsTable();
+        this.calculateAndRender();
+        triggerHaptic('success');
+        showToast(`✓ Đã nạp thành công ${newPoints.length} cọc vào Tuyến trắc dọc!`);
     },
 
     loadSampleAlignment() {
@@ -13023,6 +13210,7 @@ const appElevationProfile = {
         const slopeInput = document.getElementById('txtProfileSlope');
         if (z0Input) z0Input.value = '12.00';
         if (slopeInput) slopeInput.value = '0.00';
+        this.renderAlignPointsTable();
         this.calculateAndRender();
         showToast("✓ Đã nạp 5 cọc trắc dọc mẫu TCVN (KM0+00 -> KM0+100)!");
     },
@@ -14289,10 +14477,9 @@ const appElevationProfile = {
 
     // --- CÁC HÀM CHO TRẮC DỌC TUYẾN (PROFILE ALIGNMENT) ---
     calculateAndRender() {
-        // Lấy danh sách điểm từ alignPoints nếu đã chọn, hoặc từ toàn bộ mốc dự án
-        const pts = (this.alignPoints && this.alignPoints.length >= 2)
-            ? this.alignPoints
-            : ((typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject) : []);
+        // CHỈ lấy danh sách điểm từ alignPoints do người dùng chủ động nạp / thêm,
+        // TUYỆT ĐỐI KHÔNG tự ý ngầm lấy mốc từ AppState.currentProject!
+        const pts = (this.alignPoints && Array.isArray(this.alignPoints)) ? this.alignPoints : [];
         const canvas = document.getElementById('elevationProfileCanvas');
         const tbody = document.getElementById('tableVolumeBody');
         const resCut = document.getElementById('resTotalCutVol');
@@ -14300,10 +14487,14 @@ const appElevationProfile = {
         const resBal = document.getElementById('resBalanceVol');
         const badgeCount = document.getElementById('badgeProfilePointCount');
 
-        if (badgeCount) badgeCount.innerText = `${pts ? pts.length : 0} cọc`;
+        if (badgeCount) badgeCount.innerText = `${pts.length} cọc`;
 
         if (!pts || pts.length < 2) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding: 14px; color: #94a3b8; text-align: center;">Dự án cần tối thiểu 2 điểm mốc để vẽ trắc dọc tuyến. Bấm [Nạp Tuyến Mẫu (5 Cọc)] để thử nghiệm!</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding: 16px; color: #94a3b8; text-align: center;">Chưa có đủ cọc tuyến (cần tối thiểu 2 cọc). Hãy bấm <b>[📁 Chọn mốc Dự án]</b>, <b>[➕ Thêm Cọc Mới]</b> hoặc <b>[🛣️ Tuyến Mẫu]</b> để tính toán trắc dọc.</td></tr>';
+            if (resCut) resCut.innerText = '0.0 m³';
+            if (resFill) resFill.innerText = '0.0 m³';
+            if (resBal) resBal.innerText = '0.0 m³';
+            this.renderAlignPointsTable();
             this.drawCanvas([]);
             return;
         }
@@ -14313,7 +14504,7 @@ const appElevationProfile = {
         const widthBInput = document.getElementById('txtProfileWidthB');
         const taluyMInput = document.getElementById('txtProfileTaluyM');
 
-        const z0 = z0Input ? (parseFloat(z0Input.value) || pts[0].z || 10.0) : 10.0;
+        const z0 = z0Input ? (parseFloat(z0Input.value) || pts[0].z || 12.0) : 12.0;
         const slope = slopeInput ? ((parseFloat(slopeInput.value) || 0) / 100.0) : 0.0;
         const widthB = widthBInput ? (parseFloat(widthBInput.value) || 6.0) : 6.0;
         const taluyM = taluyMInput ? (parseFloat(taluyMInput.value) || 1.0) : 1.0;
@@ -14331,14 +14522,15 @@ const appElevationProfile = {
                 cumDist += d;
             }
 
-            const zNat = (typeof p.z === 'number') ? p.z : (parseFloat(p.z) || 10.0);
+            const zNat = (typeof p.z === 'number') ? p.z : (parseFloat(p.z) || 0.0);
             const zDesign = z0 + cumDist * slope;
-            const deltaH = zDesign - zNat; // > 0: Đắp, < 0: Đào
+            const deltaH = +(zDesign - zNat).toFixed(3); // > 0: Đắp, < 0: Đào
 
-            // Diện tích mặt cắt ngang ước tính F = B*|h| + m*h^2
-            const absH = Math.abs(deltaH);
-            const area = widthB * absH + taluyM * absH * absH;
-            const isCut = deltaH < 0;
+            // Nếu chênh cao |deltaH| < 0.001m (gần bằng 0), xem như bằng 0
+            const absH = Math.abs(deltaH) < 0.001 ? 0 : Math.abs(deltaH);
+            // Diện tích mặt cắt ngang hình thang chuẩn TCVN: F = B*|h| + m*h^2
+            const area = absH > 0 ? (widthB * absH + taluyM * absH * absH) : 0;
+            const isCut = deltaH < -0.001;
 
             items.push({
                 idx: i + 1,
@@ -14359,6 +14551,14 @@ const appElevationProfile = {
             const p1 = items[i - 1];
             const p2 = items[i];
             const segL = p2.dist - p1.dist;
+            if (segL <= 0) continue;
+
+            // Nếu cả 2 cọc đều có chênh cao = 0 -> không đào không đắp
+            if (p1.area === 0 && p2.area === 0) {
+                p2.cutVol = 0;
+                p2.fillVol = 0;
+                continue;
+            }
 
             if (p1.isCut === p2.isCut) {
                 const vol = ((p1.area + p2.area) / 2.0) * segL;
@@ -14371,7 +14571,8 @@ const appElevationProfile = {
                 }
             } else {
                 // Đổi dấu từ đào sang đắp hoặc ngược lại
-                const l1 = segL * (Math.abs(p1.deltaH) / (Math.abs(p1.deltaH) + Math.abs(p2.deltaH) || 1));
+                const sumH = Math.abs(p1.deltaH) + Math.abs(p2.deltaH);
+                const l1 = sumH > 0 ? segL * (Math.abs(p1.deltaH) / sumH) : (segL / 2);
                 const l2 = segL - l1;
                 const v1 = (p1.area / 2.0) * l1;
                 const v2 = (p2.area / 2.0) * l2;
@@ -14390,6 +14591,7 @@ const appElevationProfile = {
         }
 
         this.profileData = items;
+        this.renderAlignPointsTable();
 
         // Cập nhật DOM
         if (resCut) resCut.innerText = totalCut.toFixed(1) + ' m³';
@@ -14594,7 +14796,7 @@ const appElevationProfile = {
         // 7. Bảng trích yếu chuẩn trắc địa ở dưới (Data Band)
         const tableTop = plotBottom;
         const rowTitles = [
-            "Độ cao thi công (m)",
+            "Chênh cao TC h (m)",
             "Cao độ thiết kế (m)",
             "Cao độ tự nhiên (m)",
             "Lý trình dồn (m)",
@@ -30900,7 +31102,8 @@ if (typeof module !== 'undefined' && module.exports) {
         appI18n,
         appGuide,
         appModal,
-        appOcr
+        appOcr,
+        appElevationProfile
     };
 }
 
