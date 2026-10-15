@@ -3708,9 +3708,13 @@ const appTransform = {
 
             const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
                 ? window.PixOptimizer.getTileLayerOptions() 
-                : { maxZoom: 24, maxNativeZoom: 19, keepBuffer: 3, updateWhenIdle: true };
+                : { maxZoom: 24, maxNativeZoom: 20, keepBuffer: 3, updateWhenIdle: true };
 
-            const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            const satUrl = (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.getSatelliteUrlTemplate)
+                ? window.PixOptimizer.getSatelliteUrlTemplate()
+                : 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+            const googleHybrid = L.tileLayer(satUrl, {
                 ...tileOpt,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
                 className: 'leaflet-layer-satellite'
@@ -3723,6 +3727,10 @@ const appTransform = {
             this._liveMapTileLayers['google_hybrid'] = googleHybrid;
             this._liveMapTileLayers['osm_streets'] = osmStreets;
             googleHybrid.addTo(this._liveMap);
+
+            if (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.applyMapEnhancement) {
+                window.PixOptimizer.applyMapEnhancement(this._liveMap);
+            }
 
             this._liveMapLayer = L.layerGroup().addTo(this._liveMap);
 
@@ -4377,9 +4385,13 @@ const appTransformMap = {
 
         const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
             ? window.PixOptimizer.getTileLayerOptions() 
-            : { maxZoom: 24, maxNativeZoom: 19, keepBuffer: 3, updateWhenIdle: true };
+            : { maxZoom: 24, maxNativeZoom: 20, keepBuffer: 3, updateWhenIdle: true };
 
-        const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        const satUrl = (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.getSatelliteUrlTemplate)
+            ? window.PixOptimizer.getSatelliteUrlTemplate()
+            : 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+        const googleHybrid = L.tileLayer(satUrl, {
             ...tileOpt,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
             className: 'leaflet-layer-satellite'
@@ -4392,6 +4404,10 @@ const appTransformMap = {
             ...tileOpt
         });
         googleHybrid.addTo(this.map);
+
+        if (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.applyMapEnhancement) {
+            window.PixOptimizer.applyMapEnhancement(this.map);
+        }
         this.baseLayers = {
             'google_hybrid': googleHybrid,
             'esri_satellite': esriSatellite,
@@ -5970,10 +5986,14 @@ const appMap = {
 
         const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
             ? window.PixOptimizer.getTileLayerOptions() 
-            : { maxZoom: 24, maxNativeZoom: 19, keepBuffer: 3, updateWhenIdle: true };
+            : { maxZoom: 24, maxNativeZoom: 20, keepBuffer: 3, updateWhenIdle: true };
+
+        const satUrl = (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.getSatelliteUrlTemplate)
+            ? window.PixOptimizer.getSatelliteUrlTemplate()
+            : 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
 
         // Lớp vệ tinh Google Hybrid (chuẩn sắc nét ngoài thực địa, nội suy siêu nét lên mức 24, chống đen màn hình)
-        const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        const googleHybrid = L.tileLayer(satUrl, {
             ...tileOpt,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
             className: 'leaflet-layer-satellite'
@@ -5994,6 +6014,10 @@ const appMap = {
         AppState.baseLayers['google_hybrid'] = googleHybrid;
         AppState.baseLayers['esri_satellite'] = esriSatellite;
         AppState.baseLayers['osm_streets'] = osmStreets;
+
+        if (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.applyMapEnhancement) {
+            window.PixOptimizer.applyMapEnhancement(map);
+        }
 
         AppState.projectMarkersGroup = L.layerGroup().addTo(map);
         AppState.projectDistanceLabelsGroup = L.layerGroup().addTo(map);
@@ -10146,12 +10170,40 @@ const appModal = {
         const selEdge = document.getElementById('selOptimizerMaxEdge');
         if (selEdge && s.maxEdge) selEdge.value = String(s.maxEdge);
 
+        const selEnhance = document.getElementById('selOptimizerMapEnhance');
+        if (selEnhance && s.mapEnhanceMode) selEnhance.value = s.mapEnhanceMode;
+
+        const chkHiDpi = document.getElementById('chkOptimizerHiDpi');
+        if (chkHiDpi) chkHiDpi.checked = s.highResTiles === true;
+        const sliderHiDpi = document.getElementById('sliderOptimizerHiDpi');
+        if (sliderHiDpi) {
+            sliderHiDpi.style.backgroundColor = (s.highResTiles === true) ? '#0284c7' : '#475569';
+        }
+
         const chkSmooth = document.getElementById('chkOptimizerSmoothMap');
         if (chkSmooth) chkSmooth.checked = s.smoothMap !== false;
+        const sliderSmooth = document.getElementById('sliderOptimizerSmooth');
+        if (sliderSmooth) {
+            sliderSmooth.style.backgroundColor = (s.smoothMap !== false) ? '#0284c7' : '#475569';
+        }
 
         const txtCache = document.getElementById('txtTileCacheStatus');
         if (txtCache) {
             txtCache.innerText = 'Đang sẵn sàng';
+        }
+    },
+
+    onOptimizerSettingChange() {
+        const chkSmooth = document.getElementById('chkOptimizerSmoothMap');
+        const sliderSmooth = document.getElementById('sliderOptimizerSmooth');
+        if (chkSmooth && sliderSmooth) {
+            sliderSmooth.style.backgroundColor = chkSmooth.checked ? '#0284c7' : '#475569';
+        }
+
+        const chkHiDpi = document.getElementById('chkOptimizerHiDpi');
+        const sliderHiDpi = document.getElementById('sliderOptimizerHiDpi');
+        if (chkHiDpi && sliderHiDpi) {
+            sliderHiDpi.style.backgroundColor = chkHiDpi.checked ? '#0284c7' : '#475569';
         }
     },
 
@@ -10161,13 +10213,22 @@ const appModal = {
         const quality = document.getElementById('selOptimizerQuality')?.value || 'balanced';
         const maxEdge = parseInt(document.getElementById('selOptimizerMaxEdge')?.value, 10) || 2048;
         const smoothMap = document.getElementById('chkOptimizerSmoothMap')?.checked !== false;
+        const mapEnhanceMode = document.getElementById('selOptimizerMapEnhance')?.value || 'gaussian_hd';
+        const highResTiles = document.getElementById('chkOptimizerHiDpi')?.checked === true;
 
         window.PixOptimizer.saveSettings({
             format: fmt,
             qualityPreset: quality,
             maxEdge: maxEdge,
-            smoothMap: smoothMap
+            smoothMap: smoothMap,
+            mapEnhanceMode: mapEnhanceMode,
+            highResTiles: highResTiles
         });
+
+        // Áp dụng tức thì cho tất cả bản đồ đang mở mà không cần reload
+        if (typeof window.PixOptimizer.updateAllRegisteredMaps === 'function') {
+            window.PixOptimizer.updateAllRegisteredMaps();
+        }
 
         // Đồng bộ sang MiniCAD export modal nếu đang mở
         const cadFmt = document.getElementById('cadExportImgFormat');
@@ -10473,13 +10534,22 @@ const appStakeout = {
                     touchZoom: true
                 }).setView([10.762622, 106.660172], 18);
 
-                L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                    maxZoom: 24,
-                    maxNativeZoom: 19,
+                const miniOpt = (typeof window !== 'undefined' && window.PixOptimizer)
+                    ? window.PixOptimizer.getTileLayerOptions({ keepBuffer: 4 })
+                    : { maxZoom: 24, maxNativeZoom: 20, keepBuffer: 4, updateWhenIdle: true };
+                const satUrl = (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.getSatelliteUrlTemplate)
+                    ? window.PixOptimizer.getSatelliteUrlTemplate()
+                    : 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+                L.tileLayer(satUrl, {
+                    ...miniOpt,
                     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                    keepBuffer: 8,
                     className: 'leaflet-layer-satellite'
                 }).addTo(this.miniMap);
+
+                if (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.applyMapEnhancement) {
+                    window.PixOptimizer.applyMapEnhancement(this.miniMap);
+                }
 
                 L.control.zoom({ position: 'topright' }).addTo(this.miniMap);
             } catch (err) {
@@ -20095,13 +20165,22 @@ const appCadTool = {
                 boxZoom: false
             }).setView([10.5, 106.0], 18);
 
-            L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                maxZoom: 24,
-                maxNativeZoom: 19,
+            const loupeOpt = (typeof window !== 'undefined' && window.PixOptimizer)
+                ? window.PixOptimizer.getTileLayerOptions({ keepBuffer: 4 })
+                : { maxZoom: 24, maxNativeZoom: 20, keepBuffer: 4, updateWhenIdle: true };
+            const satUrl = (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.getSatelliteUrlTemplate)
+                ? window.PixOptimizer.getSatelliteUrlTemplate()
+                : 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+            L.tileLayer(satUrl, {
+                ...loupeOpt,
                 subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                keepBuffer: 8,
                 className: 'leaflet-layer-satellite'
             }).addTo(loupe);
+
+            if (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.applyMapEnhancement) {
+                window.PixOptimizer.applyMapEnhancement(loupe);
+            }
 
             this._loupeMap = loupe;
             this._loupeMapInitialized = true;

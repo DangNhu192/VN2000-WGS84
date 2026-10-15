@@ -4277,17 +4277,47 @@
       background: #1e293b url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h48v48H0V0zm1 1h46v46H1V1z' fill='%23334155' fill-opacity='0.18' fill-rule='evenodd'/%3E%3Ccircle cx='24' cy='24' r='1.5' fill='%2338bdf8' fill-opacity='0.25'/%3E%3C/svg%3E");
     }
 
-    /* ================= LÀM NÉT HÌNH ẢNH BẢN ĐỒ VỆ TINH KHI PHÓNG TO SÂU (HD CRISP SHARPENING) ================= */
+    /* ================= LÀM NÉT & KHỬ VỠ HẠT Ô VUÔNG PIXEL BẢN ĐỒ KHI PHÓNG TO SÂU ================= */
+    /* Căn cứ tài liệu: lequocdien/XuLyHinhAnh (Chương 3) & jrvansuita/GaussianBlur */
     .leaflet-tile-container img.leaflet-tile {
+      /* Gỡ bỏ crisp-edges (nearest-neighbor) - Sử dụng nội suy bilinear/bicubic mượt mà từ GPU */
+      image-rendering: auto;
       image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      transform: translateZ(0);
     }
 
-    /* Tối ưu hóa màu sắc, độ tương phản mốc ranh giới và độ sắc cạnh của ảnh vệ tinh */
+    /* Tối ưu hóa màu sắc, độ tương phản mốc ranh giới và độ sắc cạnh của ảnh vệ tinh tiêu chuẩn */
     .leaflet-layer-satellite img.leaflet-tile,
     img.leaflet-tile.leaflet-tile-loaded {
       filter: contrast(1.08) saturate(1.1) brightness(1.02);
-      transition: opacity 0.2s ease-in-out;
+      transition: filter 0.25s ease-out, opacity 0.2s ease-in-out;
+    }
+
+    /* 1. Khi phóng to sâu (zoom >= 19 tới 24): Tự động khử ô vuông pixel Gaussian + Làm sắc nét Laplacian */
+    .map-deep-zoom-enhanced .leaflet-tile-container img.leaflet-tile,
+    .map-enhance-gaussian .leaflet-tile-container img.leaflet-tile {
+      filter: url(#mapTileEnhancer) contrast(1.12) saturate(1.12) brightness(1.02);
+      image-rendering: auto !important;
+    }
+
+    /* 2. Chế độ Tương phản cao sắc nét viền mốc */
+    .map-enhance-contrast .leaflet-tile-container img.leaflet-tile {
+      filter: url(#mapTileHighContrast) contrast(1.18) saturate(1.15) brightness(1.03);
+      image-rendering: auto !important;
+    }
+
+    /* 3. Chế độ Mượt mà tự nhiên (GPU Bicubic Interpolation) */
+    .map-enhance-natural .leaflet-tile-container img.leaflet-tile {
+      filter: contrast(1.06) saturate(1.08) brightness(1.02);
+      image-rendering: auto !important;
+    }
+
+    /* 4. Chế độ Nguyên bản không áp bộ lọc */
+    .map-enhance-none .leaflet-tile-container img.leaflet-tile {
+      filter: none !important;
+      image-rendering: auto !important;
     }
 
     /* Nền lưới tọa độ trắc địa công nghệ cao chống đen màn hình trên tất cả container Leaflet */

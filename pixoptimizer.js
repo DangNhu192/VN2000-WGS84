@@ -22,6 +22,8 @@
         qualityPreset: 'balanced', // 'high' (0.90) | 'balanced' (0.80) | 'light' (0.65)
         maxEdge: 2048,            // 3840 | 2048 | 1440
         smoothMap: true,          // Bật tải bản đồ mượt mà (updateWhenIdle, keepBuffer = 3)
+        mapEnhanceMode: 'gaussian_hd', // 'gaussian_hd' | 'contrast' | 'natural' | 'none'
+        highResTiles: false,      // Nạp tile Google scale=2x siêu nét Retina
         compressOfflineTiles: true
     };
 
@@ -182,19 +184,100 @@
 
         /**
          * Cung cấp tùy chọn cấu hình tối ưu cho các lớp Leaflet tileLayer
-         * Chống giật lag khi cuộn / pan và giảm 75% áp lực bộ nhớ DOM/RAM
+         * Chống giật lag khi cuộn / pan, tải ảnh gốc native zoom 20 không bị kéo dãn vỡ hạt
          */
         getTileLayerOptions(custom = {}) {
             const isSmooth = this.settings.smoothMap !== false;
+            // Nâng native zoom lên 20 (Google Maps tại VN hỗ trợ native tile đến zoom 20, chống phóng to cưỡng bức)
+            const defaultNativeZoom = (custom && custom.maxNativeZoom !== undefined) ? custom.maxNativeZoom : 20;
             return {
                 maxZoom: 24,
-                maxNativeZoom: 19,
+                maxNativeZoom: defaultNativeZoom,
                 updateWhenIdle: isSmooth,         // Chỉ nạp tile khi người dùng dừng di chuyển
                 updateWhenZooming: false,         // Giữ khung hình mượt mà khi zoom
                 keepBuffer: isSmooth ? 3 : 6,     // Giảm từ 8 xuống 3 để tiết kiệm bộ nhớ RAM tile
                 crossOrigin: true,
                 ...custom
             };
+        },
+
+        /**
+         * Cung cấp URL Template ảnh vệ tinh Google Hybrid
+         * Tự động thêm &scale=2 khi bật nạp ô siêu nét Retina 2x hoặc màn hình High-DPI
+         */
+        getSatelliteUrlTemplate() {
+            const isRetina = (typeof window !== 'undefined' && window.devicePixelRatio > 1.5);
+            const useScale2 = this.settings.highResTiles || (this.settings.highResTiles !== false && isRetina);
+            return useScale2 
+                ? 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&scale=2'
+                : 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+        },
+
+        /**
+         * Gắn bộ lọc xử lý ảnh không gian & Gaussian Blur lên bản đồ Leaflet
+         * Tự động kích hoạt khi phóng to sâu (zoom >= 19 tới 24)
+         * Căn cứ tài liệu: lequocdien/XuLyHinhAnh & jrvansuita/GaussianBlur
+         */
+        applyMapEnhancement(map) {
+            if (!map || !map.getContainer) return;
+            const container = map.getContainer();
+            if (!container) return;
+
+            const updateClasses = () => {
+                const zoom = (typeof map.getZoom === 'function') ? map.getZoom() : 0;
+                const mode = this.settings.mapEnhanceMode || 'gaussian_hd';
+
+                // Xóa các class trạng thái cũ
+                container.classList.remove('map-deep-zoom-enhanced', 'map-enhance-gaussian', 'map-enhance-contrast', 'map-enhance-natural', 'map-enhance-none');
+
+                if (mode === 'none') {
+                    container.classList.add('map-enhance-none');
+                    return;
+                }
+
+                if (zoom >= 19) {
+                    container.classList.add('map-deep-zoom-enhanced');
+                    if (mode === 'gaussian_hd') container.classList.add('map-enhance-gaussian');
+                    else if (mode === 'contrast') container.classList.add('map-enhance-contrast');
+                    else if (mode === 'natural') container.classList.add('map-enhance-natural');
+                } else {
+                    if (mode === 'contrast') container.classList.add('map-enhance-contrast');
+                    else if (mode === 'natural') container.classList.add('map-enhance-natural');
+                }
+            };
+
+            map.on('zoomend', updateClasses);
+            updateClasses();
+
+            if (!this._registeredMaps) this._registeredMaps = new Set();
+            this._registeredMaps.add(map);
+        },
+
+        /**
+         * Cập nhật tức thì tất cả bản đồ đang mở khi người dùng đổi cấu hình
+         */
+        updateAllRegisteredMaps() {
+            if (!this._registeredMaps) return;
+            for (const map of this._registeredMaps) {
+                try {
+                    if (map && map.getContainer && map.getContainer()) {
+                        const zoom = (typeof map.getZoom === 'function') ? map.getZoom() : 0;
+                        const mode = this.settings.mapEnhanceMode || 'gaussian_hd';
+                        const container = map.getContainer();
+                        container.classList.remove('map-deep-zoom-enhanced', 'map-enhance-gaussian', 'map-enhance-contrast', 'map-enhance-natural', 'map-enhance-none');
+                        if (mode === 'none') {
+                            container.classList.add('map-enhance-none');
+                        } else if (zoom >= 19) {
+                            container.classList.add('map-deep-zoom-enhanced');
+                            if (mode === 'gaussian_hd') container.classList.add('map-enhance-gaussian');
+                            else if (mode === 'contrast') container.classList.add('map-enhance-contrast');
+                            else if (mode === 'natural') container.classList.add('map-enhance-natural');
+                        }
+                    }
+                } catch (e) {
+                    // Bỏ qua lỗi nếu map đã hủy
+                }
+            }
         },
 
         /**

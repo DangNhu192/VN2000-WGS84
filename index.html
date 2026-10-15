@@ -37,6 +37,42 @@
 </head>
 
 <body>
+  <!-- ================= BỘ LỌC XỬ LÝ ẢNH MIỀN KHÔNG GIAN (GAUSSIAN BLUR & LAPLACIAN SHARPENING KERNEL) ================= -->
+  <!-- Căn cứ tài liệu: lequocdien/XuLyHinhAnh (Chương 3) & jrvansuita/GaussianBlur -->
+  <svg id="mapFiltersDef" style="position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none;" aria-hidden="true">
+    <defs>
+      <!-- 1. Bộ lọc Khử vỡ hạt Gaussian + Làm sắc nét Laplacian + Cân bằng tương phản miền không gian -->
+      <filter id="mapTileEnhancer" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+        <!-- Bước 1: Khử ô pixel bậc thang vuông vức bằng Gaussian Blur (jrvansuita/GaussianBlur) -->
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.4" result="gaussianSmoothed" />
+        <!-- Bước 2: Làm sắc nét biên ranh & mốc trắc địa bằng ma trận tích chập Laplacian (XuLyHinhAnh Chương 3) -->
+        <!-- Kernel: Tâm = 3.6, 4 lân cận = -0.65. Tổng trọng số = 1.0 (Bảo toàn độ sáng trung bình) -->
+        <feConvolveMatrix in="gaussianSmoothed" order="3"
+          kernelMatrix="0 -0.65 0  -0.65 3.6 -0.65  0 -0.65 0"
+          preserveAlpha="true" result="laplacianSharpened" />
+        <!-- Bước 3: Biến đổi mức xám & Cân bằng tương phản miền không gian s = T(r) (XuLyHinhAnh Chương 3) -->
+        <feComponentTransfer in="laplacianSharpened" result="finalEnhanced">
+          <feFuncR type="linear" slope="1.08" intercept="-0.02" />
+          <feFuncG type="linear" slope="1.08" intercept="-0.02" />
+          <feFuncB type="linear" slope="1.08" intercept="-0.02" />
+        </feComponentTransfer>
+      </filter>
+
+      <!-- 2. Bộ lọc Tương phản cao chuyên dụng cho ranh mốc trắc địa & công trình -->
+      <filter id="mapTileHighContrast" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.32" result="smooth" />
+        <feConvolveMatrix in="smooth" order="3"
+          kernelMatrix="0 -0.8 0  -0.8 4.2 -0.8  0 -0.8 0"
+          preserveAlpha="true" result="edges" />
+        <feComponentTransfer in="edges">
+          <feFuncR type="linear" slope="1.15" intercept="-0.05" />
+          <feFuncG type="linear" slope="1.15" intercept="-0.05" />
+          <feFuncB type="linear" slope="1.15" intercept="-0.05" />
+        </feComponentTransfer>
+      </filter>
+    </defs>
+  </svg>
+
   <div id="app-container">
     <!-- TOP HEADER (macOS Menu Bar & iOS 21 Dynamic Island Control Center) -->
     <header class="app-header mac-top-bar">
@@ -4589,18 +4625,38 @@
             </div>
           </div>
 
-          <!-- Tối ưu Bản đồ Vệ tinh -->
+          <!-- Tối ưu Bản đồ Vệ tinh & Xử lý Nâng cao khi Phóng to -->
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;">
             <div style="font-weight: 700; color: #4ade80; font-size: 12px; margin-bottom: 8px;" data-i18n="settings.opt.map_title">
-              🗺️ 2. TỐI ƯU BẢN ĐỒ VỆ TINH OFFLINE:
+              🗺️ 2. TỐI ƯU & NÂNG CAO ẢNH BẢN ĐỒ VỆ TINH:
             </div>
+            
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label class="form-label" style="font-size: 11px; color: #cbd5e1;" data-i18n="settings.opt.enhance_mode_label">Chế độ xử lý ảnh khi phóng to sâu (Zoom 19-24):</label>
+              <select id="selOptimizerMapEnhance" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" onchange="appModal.onOptimizerSettingChange()">
+                <option value="gaussian_hd" selected>✨ Khử vỡ hạt Gaussian & Làm nét viền (Chuẩn)</option>
+                <option value="contrast">🔍 Sắc nét viền & Tương phản cao</option>
+                <option value="natural">🌊 Mượt mà tự nhiên (GPU Bicubic)</option>
+                <option value="none">⚪ Mặc định của nhà cung cấp</option>
+              </select>
+            </div>
+
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span style="font-size: 11.5px; color: #f8fafc;" data-i18n="settings.opt.smooth_label">Làm mịn ảnh bản đồ vệ tinh</span>
+              <span style="font-size: 11.5px; color: #f8fafc;" data-i18n="settings.opt.hidpi_label">Nạp ô bản đồ siêu nét 2x (Retina HD Scale)</span>
+              <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
+                <input type="checkbox" id="chkOptimizerHiDpi" onchange="appModal.onOptimizerSettingChange()" style="opacity: 0; width: 0; height: 0;">
+                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .3s; border-radius: 24px;" id="sliderOptimizerHiDpi"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 11.5px; color: #f8fafc;" data-i18n="settings.opt.smooth_label">Tải bản đồ mượt mà (Smooth Update)</span>
               <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
                 <input type="checkbox" id="chkOptimizerSmoothMap" checked onchange="appModal.onOptimizerSettingChange()" style="opacity: 0; width: 0; height: 0;">
                 <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0284c7; transition: .3s; border-radius: 24px;" id="sliderOptimizerSmooth"></span>
               </label>
             </div>
+
             <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 6px; border-top: 1px dashed rgba(51,65,85,0.7);">
               <div style="font-size: 11px; color: #94a3b8;">
                 <span data-i18n="settings.opt.cache_status">Bộ nhớ đệm ô bản đồ:</span> <span id="txtTileCacheStatus" style="color: #38bdf8;">Đang hoạt động</span>

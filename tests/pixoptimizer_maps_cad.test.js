@@ -40,7 +40,7 @@ test('=== 1. KIỂM THỬ ĐỘNG CƠ PIXOPTIMIZER CLIENT-SIDE (PIXOPTIMIZER.JS)
     assert.equal(tileOpts.updateWhenZooming, false, 'updateWhenZooming phải là false');
     assert.equal(tileOpts.keepBuffer, 3, 'keepBuffer phải giảm xuống 3 để tiết kiệm 75% RAM');
     assert.equal(tileOpts.maxZoom, 24);
-    assert.equal(tileOpts.maxNativeZoom, 19);
+    assert.ok(tileOpts.maxNativeZoom >= 20, 'maxNativeZoom phải nâng lên 20 để tải ảnh gốc native từ Google Maps chống vỡ hạt');
 });
 
 test('=== 2. KIỂM THỬ TÍCH HỢP GIAO DIỆN INDEX.HTML (SETTINGS & MINICAD EXPORT) ===', () => {
