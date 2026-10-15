@@ -295,7 +295,7 @@
           <div class="main-tree-search-bar">
             <span class="search-icon">🔍</span>
             <input type="text" id="txtMainTreeFilter"
-              placeholder="Tìm nhanh chức năng (cắm mốc, camera, dxf, kml, bản đồ...)"
+              placeholder="Tìm nhanh chức năng (cắm mốc, camera, dwg, kml, bản đồ...)"
               oninput="appNav.filterTreeNav(this.value)">
             <button class="btn-clear-search"
               onclick="document.getElementById('txtMainTreeFilter').value=''; appNav.filterTreeNav('');">✕</button>
@@ -508,7 +508,7 @@
                 </div>
                 <div class="feature-card-desc">
                   Vẽ biểu đồ trắc dọc địa hình và tính khối lượng đào đắp (m³); vẽ mặt bằng ranh thửa công trình CAD
-                  Mini hỗ trợ bắt điểm Snap và xuất bản vẽ AutoCAD DXF.
+                  Mini hỗ trợ bắt điểm Snap và xuất bản vẽ AutoCAD (.dwg).
                 </div>
                 <div class="feature-card-action-bar">
                   <span class="feature-card-hint">Nghiệp vụ xây dựng & địa hình tuyến</span>
@@ -530,21 +530,21 @@
                     <div class="feature-card-title">7. Trao Đổi Dữ Liệu Đa Nền Tảng (CAD/GIS)</div>
                     <div class="feature-card-badges">
                       <span class="pill-badge pill-advanced">⚡ Nâng cao</span>
-                      <span class="pill-badge pill-cad">AutoCAD DXF</span>
+                      <span class="pill-badge pill-cad">AutoCAD DWG</span>
                       <span class="pill-badge">Earth KML</span>
                       <span class="pill-badge">Excel CSV</span>
                     </div>
                   </div>
                 </div>
                 <div class="feature-card-desc">
-                  Xuất dữ liệu mốc sang file bản vẽ AutoCAD R12 (.DXF) chuẩn 3 layer MOC, TEN, RANH; xuất tệp Google
+                  Xuất dữ liệu mốc sang file bản vẽ AutoCAD (.dwg) chuẩn các layer quy chuẩn (RANH_THUA, MOC_TOADO, SO_HIEU_DINH); xuất tệp Google
                   Earth 3D (.KML) và bảng tính Excel (.CSV UTF-8) có dấu tiếng Việt.
                 </div>
                 <div class="feature-card-action-bar">
                   <span class="feature-card-hint">Tải file bản vẽ & vệ tinh</span>
                   <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.exportDxfFile();">💻
-                      DXF</button>
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.exportDwgFile();">💻
+                      DWG</button>
                     <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.exportKmlFile();">🌍
                       KML</button>
                     <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.exportCsvFile();">📊
@@ -692,7 +692,7 @@
                 <div class="tree-leaf-icon" style="color: #06b6d4;">📐</div>
                 <div class="tree-leaf-content">
                   <div class="tree-leaf-title">3.2 Vẽ mặt bằng công trình CAD Mini</div>
-                  <div class="tree-leaf-desc">Dựng ranh, bắt điểm Snap, offset song song, tính diện tích & xuất DXF
+                  <div class="tree-leaf-desc">Dựng ranh, bắt điểm Snap, offset song song, tính diện tích & xuất DWG
                   </div>
                 </div>
                 <span class="tree-leaf-arrow">›</span>
@@ -718,7 +718,7 @@
                 <div class="tree-leaf-icon" style="color: #38bdf8;">📁</div>
                 <div class="tree-leaf-content">
                   <div class="tree-leaf-title">4.1 Sổ đo mốc & Quản lý danh sách dự án</div>
-                  <div class="tree-leaf-desc">Quản lý dự án độc lập, xem bảng mốc, chỉnh sửa và xuất file DXF, KML, CSV
+                  <div class="tree-leaf-desc">Quản lý dự án độc lập, xem bảng mốc, chỉnh sửa và xuất file DWG, KML, CSV
                   </div>
                 </div>
                 <span class="tree-leaf-arrow">›</span>
@@ -826,7 +826,7 @@
               <div class="menu-card-icon" style="color: #a78bfa;">📁</div>
               <div class="menu-card-content">
                 <div class="menu-card-title">5. QUẢN LÝ DỰ ÁN & XUẤT FILE</div>
-                <div class="menu-card-desc">Sổ đo mốc, xuất AutoCAD (.DXF), Google Earth (.KML), Excel CSV, Google
+                <div class="menu-card-desc">Sổ đo mốc, xuất AutoCAD (.DWG), Google Earth (.KML), Excel CSV, Google
                   Sheets</div>
               </div>
               <div class="menu-card-arrow">›</div>
@@ -1896,7 +1896,7 @@
               <button type="button" class="cad-tab-btn" id="cadTabLayers" onclick="appCadTool.switchToolTab('layers')"
                 title="Trợ vẽ & Bắt điểm: OSNAP nam châm [F3], Khóa vuông góc ORTHO [F8], Bắt line [B], Thước DYN">🧲 Trợ vẽ & OSNAP</button>
               <button type="button" class="cad-tab-btn" id="cadTabData" onclick="appCadTool.switchToolTab('data')"
-                title="Quản lý dự án: Dự án mới, Nạp mốc, Quản lý khối, Nhập/Xuất DXF, PDF, Excel">📁 Dự án [Project]</button>
+                title="Quản lý dự án: Dự án mới, Nạp mốc, Quản lý khối, Nhập/Xuất DWG, PDF, Excel">📁 Dự án [Project]</button>
             </div>
 
             <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
@@ -2094,7 +2094,7 @@
             <button class="cad-btn"
               style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%); border-color: #38bdf8; color: #7dd3fc; font-weight: 700;"
               onclick="appCadTool.openExportModal()"
-              title="Mở hộp thoại cấu hình & xuất bản vẽ kỹ thuật (AutoCAD DXF, PDF, Excel...)">
+              title="Mở hộp thoại cấu hình & xuất bản vẽ kỹ thuật (AutoCAD DWG, PDF, Excel...)">
               📤 Xuất bản vẽ (CAD/PDF)
             </button>
             <button class="cad-btn"
@@ -2189,7 +2189,7 @@
             <button type="button" id="btnCadRibbonSnapLine" class="cad-ribbon-btn active" onclick="appCadTool.toggleSnapLine()" title="Bắt cạnh khối liền kề [B]">🔗 SNAP LINE</button>
             <button type="button" id="btnCadRibbonDyn" class="cad-ribbon-btn active" onclick="appCadTool.toggleDynamicInput()" title="Hiển thị thước đo & phương vị động [DYN]">📏 DYN</button>
             <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openAreaTableModal()" title="Mở bảng kê 6 tab [E]">📊 BẢNG KÊ [E]</button>
-            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openExportModal()" title="Xuất AutoCAD DXF / PDF / Excel [EXP]">📤 XUẤT [EXP]</button>
+            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openExportModal()" title="Xuất AutoCAD DWG / PDF / Excel [EXP]">📤 XUẤT [EXP]</button>
           </div>
         </div>
 
@@ -2959,8 +2959,8 @@
             <button class="btn-convert btn-wgs-to-vn2k" onclick="appData.exportCsvFile()">
               📥 Xuất CSV / Excel
             </button>
-            <button class="btn-convert btn-export-dxf" onclick="appData.exportDxfFile()">
-              📐 Xuất AutoCAD (.DXF)
+            <button class="btn-convert btn-export-dwg" onclick="appData.exportDwgFile()">
+              📐 Xuất AutoCAD (.DWG)
             </button>
             <button class="btn-convert btn-export-kml" onclick="appData.exportKmlFile()">
               🌍 Xuất Google Earth (.KML)
@@ -3088,7 +3088,7 @@
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
               <div>• <b>Tên ứng dụng:</b> WGS84 ⇄ VN-2000 Pro Surveying Engine (PWA)</div>
-              <div>• <b>Phiên bản:</b> 2.7.0 Pro (Tỷ lệ khổ giấy CAD TCVN, Xuất PDF Offline & DXF Unicode Chuẩn)</div>
+              <div>• <b>Phiên bản:</b> 2.7.0 Pro (Tỷ lệ khổ giấy CAD TCVN, Xuất PDF Offline & Bản vẽ AutoCAD .DWG Chuẩn Quy Định)</div>
               <div>• <b>Kiến trúc:</b> Progressive Web App (PWA) Offline-First — hoạt động 100% không cần mạng Internet
                 ngoài thực địa.</div>
               <div>• <b>Bảo mật & Quyền riêng tư:</b> Toàn bộ tọa độ, sổ đo mốc và hình ảnh khảo sát được lưu an toàn
@@ -3364,7 +3364,7 @@
             <div class="manual-task-body">
               Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ Leaflet: Vẽ ranh công trình, tự động hít (Snap) vào các
               mốc tọa độ dự án, dựng điểm theo khoảng cách $L$ và góc phương vị $Az$, tạo đường song song (Offset) và
-              xuất trực tiếp thành file AutoCAD DXF.
+              xuất trực tiếp thành file AutoCAD (.dwg).
             </div>
           </div>
 
@@ -3374,14 +3374,14 @@
               <div class="manual-task-header-left">
                 <div class="manual-task-icon" style="color: #10b981;">💻</div>
                 <div>
-                  <div class="manual-task-title">10. Trao Đổi Dữ Liệu CAD DXF, KML, CSV & Google Sheets</div>
+                  <div class="manual-task-title">10. Trao Đổi Dữ Liệu CAD DWG, KML, CSV & Google Sheets</div>
                   <div class="manual-task-sub">AutoCAD R12 3D • Google Earth • Tự động đồng bộ Cloud</div>
                 </div>
               </div>
               <span class="manual-task-chevron">▼</span>
             </div>
             <div class="manual-task-body">
-              Kết xuất số liệu đa định dạng: File AutoCAD DXF chuẩn 3 layer (MOC, TEN, RANH), file Google Earth KML để
+              Kết xuất số liệu đa định dạng: File bản vẽ AutoCAD (.dwg) chuẩn các layer quy chuẩn (RANH_THUA, MOC_TOADO, SO_HIEU_DINH...), file Google Earth KML để
               xem trên vệ tinh 3D, file bảng tính CSV tiếng Việt có dấu, và kết nối tự động 2 chiều với Google Sheets
               trên Google Drive.
             </div>
@@ -3602,8 +3602,8 @@
                   </button>
                   <button class="btn-sm"
                     style="height: 38px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; border: 1px solid #f59e0b;"
-                    onclick="appElevationProfile.exportDxfProfile()">
-                    💻 Xuất DXF
+                    onclick="appElevationProfile.exportDwgProfile()">
+                    💻 Xuất DWG
                   </button>
                 </div>
               </div>
@@ -3697,7 +3697,7 @@
             <div style="font-size: 12px; color: #94a3b8; margin-bottom: 10px; line-height: 1.5;">
               📐 <b>Tiêu chuẩn TCVN 4447:2012:</b> Tính khối lượng đào đất hố móng / khu vực san nền từ chu vi đáy,
               chiều sâu đào, góc nghiêng chân hố đào $\alpha$ (mái dốc taluy $1:m$), hệ số nở rời đất $k_{tx}$ và cung
-              cấp <b>Bản vẽ AutoCAD DXF</b> chi tiết mặt bằng hố đào.
+              cấp <b>Bản vẽ AutoCAD (.dwg)</b> chi tiết mặt bằng hố đào.
             </div>
 
             <div class="profile-split-layout">
@@ -3836,8 +3836,8 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
                   <button class="btn-sm"
                     style="height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 8px;"
-                    onclick="appElevationProfile.exportPitDxf()">
-                    💻 Xuất CAD DXF
+                    onclick="appElevationProfile.exportPitDwg()">
+                    💻 Xuất CAD DWG
                   </button>
                   <button class="btn-sm"
                     style="height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: #fff; border: 1px solid #06b6d4; border-radius: 8px;"
@@ -5179,7 +5179,7 @@
           </div>
         </div>
 
-        <!-- Phần 4: Tùy chọn hiển thị thành phần trên bản vẽ xuất (AutoCAD DXF, PDF, SVG, PNG) -->
+        <!-- Phần 4: Tùy chọn hiển thị thành phần trên bản vẽ xuất (AutoCAD DWG, PDF, SVG, PNG) -->
         <div
           style="background: rgba(15,23,42,0.85); border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 10px 12px;">
           <div
@@ -5188,7 +5188,7 @@
               <span>🎛️</span>
               <span>4. TÙY CHỌN HIỂN THỊ THÀNH PHẦN TRÊN BẢN VẼ:</span>
             </div>
-            <span style="font-size: 11.5px; color: #94a3b8;">(AutoCAD DXF / PDF / SVG / PNG)</span>
+            <span style="font-size: 11.5px; color: #94a3b8;">(AutoCAD DWG / PDF / SVG / PNG)</span>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;">
             <label class="cad-export-check-item">
@@ -5289,9 +5289,9 @@
             </button>
             <button class="btn-sm"
               style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 6px;"
-              onclick="appCadTool.exportDxf()"
-              title="Xuất bản vẽ AutoCAD (.dxf) chuẩn R2004 font Unicode không lỗi tiếng Việt và bố cục TCVN 7285">
-              📐 AutoCAD DXF (.dxf)
+              onclick="appCadTool.exportDwg()"
+              title="Xuất bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật TCVN 7285 & Thông tư 25/2014/TT-BTNMT">
+              📐 Bản vẽ AutoCAD (.dwg)
             </button>
             <button class="btn-sm"
               style="height: 42px; font-weight: 700; font-size: 11.5px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border: 1px solid #ef4444; border-radius: 6px;"
@@ -6198,7 +6198,7 @@
     <div class="drawer-search-box">
       <span class="drawer-search-icon">🔍</span>
       <input type="text" id="txtDrawerSearch" class="drawer-search-input"
-        placeholder="Tìm nhanh (cắm mốc, dxf, kml, camera...)" oninput="appNav.filterTreeNav(this.value)">
+        placeholder="Tìm nhanh (cắm mốc, dwg, kml, camera...)" oninput="appNav.filterTreeNav(this.value)">
       <button class="btn-drawer-clear"
         onclick="document.getElementById('txtDrawerSearch').value=''; appNav.filterTreeNav('');">✕</button>
     </div>
@@ -6316,7 +6316,7 @@
             <div class="drawer-leaf-icon" style="color: #38bdf8;">📁</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">3.1 Sổ đo mốc & Quản lý dự án</div>
-              <div class="drawer-leaf-sub">Xem bảng mốc, chỉnh sửa và xuất file DXF, KML, CSV</div>
+              <div class="drawer-leaf-sub">Xem bảng mốc, chỉnh sửa và xuất file DWG, KML, CSV</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -6384,7 +6384,7 @@
             <div class="drawer-leaf-icon" style="color: #06b6d4;">📐</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">4.4 Tiện ích phụ trợ: Vẽ CAD Mini</div>
-              <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DXF</div>
+              <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DWG</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>

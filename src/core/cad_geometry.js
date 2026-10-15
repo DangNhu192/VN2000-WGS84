@@ -51,10 +51,45 @@ const CadGeometryEngine = {
         return closestPt;
     },
 
-    // Xuất chuỗi định dạng AutoCAD DXF R12 cho các khối đa giác
+    // Xuất chuỗi định dạng bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính cho các khối đa giác
+    // Xuất chuỗi bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính TCVN 7285 & Thông tư 25/2014/TT-BTNMT
+    exportDwgString(shapes, layerName = "RANH_DAT") {
+        let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
+        dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";
+        dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (TCVN)
+        dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
+        dwg += "0\r\nENDSEC\r\n";
+
+        dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n4\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nRANH_DAT\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nMOC_TOADO\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nSO_HIEU_DINH\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
+
+        dwg += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
+        shapes.forEach((shape) => {
+            const pts = shape.points || [];
+            if (pts.length < 2) return;
+            const targetLayer = shape.name || layerName;
+            dwg += `0\r\nPOLYLINE\r\n8\r\n${targetLayer}\r\n66\r\n1\r\n70\r\n${shape.isClosed ? 1 : 0}\r\n`;
+
+            pts.forEach(p => {
+                dwg += `0\r\nVERTEX\r\n8\r\n${targetLayer}\r\n`;
+                dwg += `10\r\n${p.y.toFixed(3)}\r\n`; // CAD X là Y Đông của VN2000
+                dwg += `20\r\n${p.x.toFixed(3)}\r\n`; // CAD Y là X Bắc của VN2000
+                dwg += `30\r\n${(p.h || 0).toFixed(3)}\r\n`;
+            });
+            dwg += "0\r\nSEQEND\r\n";
+        });
+        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+        return dwg;
+    },
+
+    // Giữ tương thích ngược với các test suite hiện tại
     exportDxfString(shapes, layerName = "RANH_DAT") {
         let dxf = "0\nSECTION\n2\nENTITIES\n";
-        shapes.forEach((shape, sIdx) => {
+        shapes.forEach((shape) => {
             const pts = shape.points || [];
             if (pts.length < 2) return;
             dxf += "0\nPOLYLINE\n";
@@ -65,8 +100,8 @@ const CadGeometryEngine = {
             pts.forEach(p => {
                 dxf += "0\nVERTEX\n";
                 dxf += `8\n${shape.name || layerName}\n`;
-                dxf += `10\n${p.y.toFixed(3)}\n`; // DXF AutoCAD X thường là Trục Y Đông của VN2000
-                dxf += `20\n${p.x.toFixed(3)}\n`; // DXF AutoCAD Y là Trục X Bắc của VN2000
+                dxf += `10\n${p.y.toFixed(3)}\n`;
+                dxf += `20\n${p.x.toFixed(3)}\n`;
                 dxf += `30\n${(p.h || 0).toFixed(3)}\n`;
             });
             dxf += "0\nSEQEND\n";

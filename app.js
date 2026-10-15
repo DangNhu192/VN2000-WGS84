@@ -815,9 +815,9 @@ const appNav = window.appNav = {
                 appMap.togglePolygonClose();
             }
             showToast("📐 Chế độ khép góc đa giác (Bản đồ mới). Chọn dự án từ menu nếu muốn nạp mốc có sẵn.");
-        } else if (action === 'export_dxf') {
-            appNav.setActiveMenuItem('drawerItem_export_dxf');
-            appData.exportDxfFile();
+        } else if (action === 'export_dwg') {
+            appNav.setActiveMenuItem('drawerItem_export_dwg');
+            appData.exportDwgFile();
         } else if (action === 'export_kml') {
             appNav.setActiveMenuItem('drawerItem_export_kml');
             appData.exportKmlFile();
@@ -1421,13 +1421,13 @@ const appDashboard = {
         { id: 'transform', name: '1. Chuyển Đổi Tọa Độ Hai Chiều', short: 'Chuyển Đổi Tọa Độ', icon: '🔄', color: 'cyan', tag: '7 Tham số BTNMT', sub: 'WGS-84 ⇄ VN-2000 (Múi 3°/6°)', metric: '63 Tỉnh Thành', action: () => appNav.showScreen('transform') },
         { id: 'map', name: '2. Bản Đồ Khảo Sát & Vệ Tinh', short: 'Bản Đồ Trắc Địa', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
         { id: 'stakeout', name: '3. Cắm Mốc Thực Địa (Stakeout)', short: 'Cắm Mốc Thực Địa', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
-        { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DXF • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
+        { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DWG • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
         { id: 'camera', name: '5. Camera Khảo Sát Đóng Dấu', short: 'Camera Khảo Sát', icon: '📸', color: 'pink', tag: 'Thủy ấn pháp lý', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
         { id: 'resection', name: '6. Tính Toán Geodesy & Giao Hội', short: 'Tính Toán Geodesy', icon: '📐', color: 'yellow', tag: 'Định vị hầm/tán cây', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Geodesy Pro', action: () => appModal.openUnifiedSettings('resection') },
         { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
         { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
         { id: 'about', name: '9. Thông Tin & Hướng Dẫn', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: '3 Tab Chuyên Nghiệp', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
-        { id: 'cad_tool', name: 'Tiện Ích: Vẽ Mặt Bằng CAD Mini', short: 'MiniCAD Độc Lập', icon: '📐', color: 'cyan', tag: 'Tiện ích phụ trợ', sub: 'Đa giác • Tuyến • Bảng diện tích & DXF', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
+        { id: 'cad_tool', name: 'Tiện Ích: Vẽ Mặt Bằng CAD Mini', short: 'MiniCAD Độc Lập', icon: '📐', color: 'cyan', tag: 'Tiện ích phụ trợ', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
     ],
 
     toolFilterQuery: '',
@@ -8963,56 +8963,91 @@ function doGet(e) {
         }
     },
 
-    exportDxfFile() {
+    // Xuất Bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính TCVN & Thông tư 25/2014/TT-BTNMT
+    exportDwgFile() {
         const pts = appData.getPoints(AppState.currentProject);
         if (pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file DXF!", true);
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file bản vẽ AutoCAD (.dwg)!", true);
             return;
         }
 
-        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n";
-        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nMOC_TOADO\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dxf += "LAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dxf += "LAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
-        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc";
 
-        // Ghi các POINT và TEXT mốc (Trong CAD: X là Easting/Y VN2000, Y là Northing/X VN2000)
-        pts.forEach(p => {
+        let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
+        dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";     // AutoCAD 2000/2004 DWG engine tương thích tối đa
+        dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (Đơn vị đo chuẩn Việt Nam)
+        dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Hệ mét Metric
+        dwg += "0\r\nENDSEC\r\n";
+
+        // TABLES SECTION - Khai báo hệ thống Layer chuẩn Thông tư 25/2014/TT-BTNMT
+        dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n8\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";      // Màu 1: Đỏ
+        dwg += "0\r\nLAYER\r\n2\r\nMOC_TOADO\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";      // Màu 3: Xanh lá
+        dwg += "0\r\nLAYER\r\n2\r\nSO_HIEU_DINH\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";   // Màu 2: Vàng
+        dwg += "0\r\nLAYER\r\n2\r\nCHIEU_DAI_CANH\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n"; // Màu 4: Cyan
+        dwg += "0\r\nLAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";        // Layer phụ tương thích
+        dwg += "0\r\nLAYER\r\n2\r\nDINH_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";       // Layer phụ tương thích
+        dwg += "0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
+
+        dwg += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
+
+        // Ghi các đối tượng mốc: POINT, CIRCLE và TEXT (Tọa độ CAD: X = Easting/Y VN2000, Y = Northing/X VN2000)
+        pts.forEach((p, idx) => {
             const easting = parseFloat(p.y) || 0;
             const northing = parseFloat(p.x) || 0;
             const elev = parseFloat(p.h || 0);
 
-            dxf += `0\r\nPOINT\r\n8\r\nMOC_TOADO\r\n10\r\n${easting}\r\n20\r\n${northing}\r\n30\r\n${elev}\r\n`;
-            const cleanName = (p.name || 'Moc').replace(/[\r\n]/g, '');
-            dxf += `0\r\nTEXT\r\n8\r\nTEN_MOC\r\n10\r\n${easting + 1.2}\r\n20\r\n${northing + 1.2}\r\n30\r\n${elev}\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
+            // Điểm mốc và vòng tròn ký hiệu tâm mốc
+            dwg += `0\r\nPOINT\r\n8\r\nMOC_TOADO\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n`;
+            dwg += `0\r\nCIRCLE\r\n8\r\nMOC_TOADO\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n0.5\r\n`;
+
+            const cleanName = (p.name || `D${idx + 1}`).replace(/[\r\n]/g, '');
+            dwg += `0\r\nTEXT\r\n8\r\nSO_HIEU_DINH\r\n10\r\n${(easting + 1.2).toFixed(3)}\r\n20\r\n${(northing + 1.2).toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
         });
 
-        // Nối đường ranh POLYLINE nếu có từ 2 mốc trở lên
+        // Nối đường ranh ranh thửa POLYLINE nếu có từ 2 mốc trở lên
         if (pts.length >= 2) {
-            dxf += "0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n1\r\n";
+            dwg += "0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n1\r\n";
             pts.forEach(p => {
                 const easting = parseFloat(p.y) || 0;
                 const northing = parseFloat(p.x) || 0;
                 const elev = parseFloat(p.h || 0);
-                dxf += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${easting}\r\n20\r\n${northing}\r\n30\r\n${elev}\r\n`;
+                dwg += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n`;
             });
-            dxf += "0\r\nSEQEND\r\n";
+            dwg += "0\r\nSEQEND\r\n";
+
+            // Ghi kích thước các cạnh ranh đất
+            for (let i = 0; i < pts.length; i++) {
+                const p1 = pts[i];
+                const p2 = pts[(i + 1) % pts.length];
+                const x1 = parseFloat(p1.y) || 0;
+                const y1 = parseFloat(p1.x) || 0;
+                const x2 = parseFloat(p2.y) || 0;
+                const y2 = parseFloat(p2.x) || 0;
+                const dist = Math.hypot(x2 - x1, y2 - y1);
+                if (dist > 0.05) {
+                    const midX = (x1 + x2) / 2;
+                    const midY = (y1 + y2) / 2;
+                    dwg += `0\r\nTEXT\r\n8\r\nCHIEU_DAI_CANH\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${midY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.2\r\n1\r\n${dist.toFixed(2)}m\r\n`;
+                }
+            }
         }
 
-        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
+        // Xuất file định dạng .dwg chuẩn MIME application/acad
+        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const filename = (AppState.currentProject.replace(/\.[^/.]+$/, "")) + ".dxf";
+        const filename = `${projName}.dwg`;
         a.setAttribute("href", url);
         a.setAttribute("download", filename);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất file AutoCAD: ${filename}`);
+        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg): ${filename}`);
     },
 
     exportKmlFile() {
@@ -13528,7 +13563,7 @@ const appElevationProfile = {
         const vTruck = truckVEl ? (parseFloat(truckVEl.value) || 10) : 10;
         const numTrucks = Math.ceil(vNo / (vTruck > 0 ? vTruck : 10));
 
-        // Lưu thông số vào object để xuất DXF / CSV
+        // Lưu thông số vào object để xuất DWG / CSV
         this.lastPitStats = {
             f1, f2, p1, hBar, deltaD, m, alpha, kTx, vDao, vNo, vTruck, numTrucks,
             designH, avgNatH, bottomPts: pts, topPts
@@ -13818,11 +13853,11 @@ const appElevationProfile = {
         }, 300);
     },
 
-    // --- XUẤT BẢN VẼ AUTOCAD DXF HỐ ĐÀO KỸ THUẬT (6 LAYER CHUYÊN NGHIỆP) ---
-    exportPitDxf() {
+    // --- XUẤT BẢN VẼ AUTOCAD (.DWG) HỐ ĐÀO KỸ THUẬT (6 LAYER CHUYÊN NGHIỆP TCVN 4447:2012) ---
+    exportPitDwg() {
         triggerHaptic('medium');
         if (!this.lastPitStats || !this.pitPoints || this.pitPoints.length < 3) {
-            showToast("⚠️ Chưa có số liệu hố đào để xuất file AutoCAD DXF!", true);
+            showToast("⚠️ Chưa có số liệu hố đào để xuất file AutoCAD (.dwg)!", true);
             return;
         }
 
@@ -13832,31 +13867,36 @@ const appElevationProfile = {
         const n = bPts.length;
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project_Pit";
 
-        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n";
-        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nHODAO_DAY\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\n";       // 2: Yellow
-        dxf += "LAYER\r\n2\r\nHODAO_MIENG\r\n70\r\n0\r\n62\r\n4\r\n6\r\nDASHED\r\n0\r\n";           // 4: Cyan
-        dxf += "LAYER\r\n2\r\nHODAO_TALUY\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";       // 1: Red
-        dxf += "LAYER\r\n2\r\nHODAO_DINH_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";    // 3: Green
-        dxf += "LAYER\r\n2\r\nHODAO_KICH_THUOC\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n0\r\n";  // 6: Magenta
-        dxf += "LAYER\r\n2\r\nHODAO_BANG_KHOILUONG\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n"; // 7: White
+        let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
+        dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";
+        dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters
+        dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
+        dwg += "0\r\nENDSEC\r\n";
 
-        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
+        dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n7\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nHODAO_DAY\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";       // 2: Yellow
+        dwg += "0\r\nLAYER\r\n2\r\nHODAO_MIENG\r\n70\r\n0\r\n62\r\n4\r\n6\r\nDASHED\r\n";           // 4: Cyan
+        dwg += "0\r\nLAYER\r\n2\r\nHODAO_TALUY\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";       // 1: Red
+        dwg += "0\r\nLAYER\r\n2\r\nHODAO_DINH_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";    // 3: Green
+        dwg += "0\r\nLAYER\r\n2\r\nHODAO_KICH_THUOC\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n";  // 6: Magenta
+        dwg += "0\r\nLAYER\r\n2\r\nHODAO_BANG_KHOILUONG\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n"; // 7: White
+
+        dwg += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
         // 1. Closed Polyline Đáy Hố Đào (X: Đông/Y, Y: Bắc/X)
-        dxf += "0\r\nPOLYLINE\r\n8\r\nHODAO_DAY\r\n66\r\n1\r\n70\r\n1\r\n";
+        dwg += "0\r\nPOLYLINE\r\n8\r\nHODAO_DAY\r\n66\r\n1\r\n70\r\n1\r\n";
         bPts.forEach(p => {
-            // Tọa độ CAD: X = Y_Đông, Y = X_Bắc
-            dxf += `0\r\nVERTEX\r\n8\r\nHODAO_DAY\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${stats.designH.toFixed(3)}\r\n`;
+            dwg += `0\r\nVERTEX\r\n8\r\nHODAO_DAY\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${stats.designH.toFixed(3)}\r\n`;
         });
-        dxf += "0\r\nSEQEND\r\n";
+        dwg += "0\r\nSEQEND\r\n";
 
         // 2. Closed Polyline Miệng Hố Đào
-        dxf += "0\r\nPOLYLINE\r\n8\r\nHODAO_MIENG\r\n66\r\n1\r\n70\r\n1\r\n";
+        dwg += "0\r\nPOLYLINE\r\n8\r\nHODAO_MIENG\r\n66\r\n1\r\n70\r\n1\r\n";
         tPts.forEach(p => {
-            dxf += `0\r\nVERTEX\r\n8\r\nHODAO_MIENG\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${p.z.toFixed(3)}\r\n`;
+            dwg += `0\r\nVERTEX\r\n8\r\nHODAO_MIENG\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${p.z.toFixed(3)}\r\n`;
         });
-        dxf += "0\r\nSEQEND\r\n";
+        dwg += "0\r\nSEQEND\r\n";
 
         // 3. Các vạch Taluy dốc
         for (let i = 0; i < n; i++) {
@@ -13866,7 +13906,7 @@ const appElevationProfile = {
             const bB = bPts[(i + 1) % n];
 
             const segLen = Math.hypot(tB.x - tA.x, tB.y - tA.y);
-            const numTicks = Math.max(3, Math.floor(segLen / 2.5)); // Cứ 2.5m 1 vạch taluy
+            const numTicks = Math.max(3, Math.floor(segLen / 2.5));
 
             for (let k = 1; k < numTicks; k++) {
                 const t = k / numTicks;
@@ -13879,7 +13919,7 @@ const appElevationProfile = {
                 const pxEnd = pxTop + (pxBot - pxTop) * fraction;
                 const pyEnd = pyTop + (pyBot - pyTop) * fraction;
 
-                dxf += `0\r\nLINE\r\n8\r\nHODAO_TALUY\r\n10\r\n${pxTop.toFixed(3)}\r\n20\r\n${pyTop.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${pxEnd.toFixed(3)}\r\n21\r\n${pyEnd.toFixed(3)}\r\n31\r\n0.0\r\n`;
+                dwg += `0\r\nLINE\r\n8\r\nHODAO_TALUY\r\n10\r\n${pxTop.toFixed(3)}\r\n20\r\n${pyTop.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${pxEnd.toFixed(3)}\r\n21\r\n${pyEnd.toFixed(3)}\r\n31\r\n0.0\r\n`;
             }
         }
 
@@ -13887,8 +13927,8 @@ const appElevationProfile = {
         bPts.forEach((p, idx) => {
             const pName = (p.name || `M${idx+1}`).replace(/[\r\n]/g, '');
             const depth = (p.z - stats.designH).toFixed(2);
-            dxf += `0\r\nPOINT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${stats.designH.toFixed(3)}\r\n`;
-            dxf += `0\r\nTEXT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${(p.y + 0.6).toFixed(3)}\r\n20\r\n${(p.x + 0.6).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.5\r\n1\r\n${pName} (H_day=${stats.designH.toFixed(2)}m, h=${depth}m)\r\n`;
+            dwg += `0\r\nPOINT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n${stats.designH.toFixed(3)}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nHODAO_DINH_MOC\r\n10\r\n${(p.y + 0.6).toFixed(3)}\r\n20\r\n${(p.x + 0.6).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.5\r\n1\r\n${pName} (H_day=${stats.designH.toFixed(2)}m, h=${depth}m)\r\n`;
         });
 
         // 5. Đường kích thước cạnh đáy
@@ -13898,7 +13938,7 @@ const appElevationProfile = {
             const dist = Math.hypot(pB.x - pA.x, pB.y - pA.y);
             const midY = (pA.x + pB.x) / 2;
             const midX = (pA.y + pB.y) / 2;
-            dxf += `0\r\nTEXT\r\n8\r\nHODAO_KICH_THUOC\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${midY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.2\r\n1\r\nL=${dist.toFixed(2)}m\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nHODAO_KICH_THUOC\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${midY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.2\r\n1\r\nL=${dist.toFixed(2)}m\r\n`;
         }
 
         // 6. Bảng Kê Khối Lượng TCVN 4447 đặt bên cạnh hố đào
@@ -13928,23 +13968,23 @@ const appElevationProfile = {
         tableLines.forEach(line => {
             const isHeader = line.startsWith('BAN VE') || line.startsWith('*');
             const txtH = isHeader ? 2.2 : 1.6;
-            dxf += `0\r\nTEXT\r\n8\r\nHODAO_BANG_KHOILUONG\r\n10\r\n${tbX.toFixed(3)}\r\n20\r\n${tbY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${txtH}\r\n1\r\n${line}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nHODAO_BANG_KHOILUONG\r\n10\r\n${tbX.toFixed(3)}\r\n20\r\n${tbY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${txtH}\r\n1\r\n${line}\r\n`;
             tbY -= lineH;
         });
 
-        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
+        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const filename = `MatBang_HoDao_${projName}.dxf`;
+        const filename = `MatBang_HoDao_${projName}.dwg`;
         a.setAttribute("href", url);
         a.setAttribute("download", filename);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất bản vẽ AutoCAD DXF hố đào: ${filename}!`);
+        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) hố đào: ${filename}!`);
     },
 
     // --- XUẤT BÁO CÁO CSV CHI TIẾT ---
@@ -14425,9 +14465,10 @@ const appElevationProfile = {
         showToast("✓ Đã tải ảnh bản vẽ trắc dọc PNG!");
     },
 
-    exportDxfProfile() {
+    // --- XUẤT BẢN VẼ AUTOCAD (.DWG) TRẮC DỌC TỰ NHIÊN & THIẾT KẾ (6 LAYER QUY CHUẨN) ---
+    exportDwgProfile() {
         if (!this.profileData || this.profileData.length === 0) {
-            showToast("⚠️ Chưa có dữ liệu trắc dọc để xuất file DXF!", true);
+            showToast("⚠️ Chưa có dữ liệu trắc dọc để xuất file AutoCAD (.dwg)!", true);
             return;
         }
 
@@ -14435,16 +14476,22 @@ const appElevationProfile = {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
         const scaleV = 5.0; // Phóng đại đứng 5x
 
-        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n0\r\nENDSEC\r\n";
-        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nTRACDOC_TUNHIEN\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dxf += "LAYER\r\n2\r\nTRACDOC_THIETKE\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dxf += "LAYER\r\n2\r\nTRACDOC_GIONG\r\n70\r\n0\r\n62\r\n8\r\n6\r\nDASHED\r\n0\r\n";
-        dxf += "LAYER\r\n2\r\nTRACDOC_BANG_SO_LIEU\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dxf += "LAYER\r\n2\r\nTRACDOC_TEXT_TIEUDE\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dxf += "LAYER\r\n2\r\nTRACDOC_TEXT_SOLIEU\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
+        let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
+        dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";
+        dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters
+        dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
+        dwg += "0\r\nENDSEC\r\n";
 
-        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
+        dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n7\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nTRACDOC_TUNHIEN\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dwg += "LAYER\r\n2\r\nTRACDOC_THIETKE\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dwg += "LAYER\r\n2\r\nTRACDOC_GIONG\r\n70\r\n0\r\n62\r\n8\r\n6\r\nDASHED\r\n0\r\n";
+        dwg += "LAYER\r\n2\r\nTRACDOC_BANG_SO_LIEU\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dwg += "LAYER\r\n2\r\nTRACDOC_TEXT_TIEUDE\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\n";
+        dwg += "LAYER\r\n2\r\nTRACDOC_TEXT_SOLIEU\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
+
+        dwg += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
         const allZ = items.flatMap(p => [p.zNat, p.zDesign]);
         const minZ = Math.floor(Math.min(...allZ) - 1.0);
@@ -14455,49 +14502,49 @@ const appElevationProfile = {
         const leftHeaderX = -35.0;
 
         // 1. Polyline Tự Nhiên
-        dxf += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_TUNHIEN\r\n66\r\n1\r\n70\r\n0\r\n";
+        dwg += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_TUNHIEN\r\n66\r\n1\r\n70\r\n0\r\n";
         items.forEach(p => {
             const xCad = p.dist;
             const yCad = datumY + (p.zNat - minZ) * scaleV;
-            dxf += `0\r\nVERTEX\r\n8\r\nTRACDOC_TUNHIEN\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
+            dwg += `0\r\nVERTEX\r\n8\r\nTRACDOC_TUNHIEN\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
         });
-        dxf += "0\r\nSEQEND\r\n";
+        dwg += "0\r\nSEQEND\r\n";
 
         // 2. Polyline Thiết Kế
-        dxf += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_THIETKE\r\n66\r\n1\r\n70\r\n0\r\n";
+        dwg += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_THIETKE\r\n66\r\n1\r\n70\r\n0\r\n";
         items.forEach(p => {
             const xCad = p.dist;
             const yCad = datumY + (p.zDesign - minZ) * scaleV;
-            dxf += `0\r\nVERTEX\r\n8\r\nTRACDOC_THIETKE\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
+            dwg += `0\r\nVERTEX\r\n8\r\nTRACDOC_THIETKE\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
         });
-        dxf += "0\r\nSEQEND\r\n";
+        dwg += "0\r\nSEQEND\r\n";
 
         // 3. Đường gióng và text
         items.forEach((p, idx) => {
             const xCad = p.dist;
             const yMax = datumY + Math.max(p.zNat - minZ, p.zDesign - minZ) * scaleV + 2.0;
 
-            dxf += `0\r\nLINE\r\n8\r\nTRACDOC_GIONG\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yMax.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${xCad.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nTRACDOC_GIONG\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yMax.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${xCad.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
             const cleanName = (p.name || `C${idx + 1}`).replace(/[\r\n]/g, '');
-            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${(yMax + 1.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${(yMax + 1.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
 
             // Hàng 1
             const yRow1 = datumY - 0.6 * rowH;
             const deltaStr = (p.deltaH > 0 ? "+" : "") + p.deltaH.toFixed(2);
-            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${deltaStr}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${deltaStr}\r\n`;
 
             // Hàng 2
             const yRow2 = datumY - 1.6 * rowH;
-            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zDesign.toFixed(2)}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zDesign.toFixed(2)}\r\n`;
 
             // Hàng 3
             const yRow3 = datumY - 2.6 * rowH;
-            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zNat.toFixed(2)}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zNat.toFixed(2)}\r\n`;
 
             // Hàng 4
             const yRow4 = datumY - 3.6 * rowH;
-            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow4.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.dist.toFixed(1)}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow4.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.dist.toFixed(1)}\r\n`;
 
             // Hàng 5
             if (idx > 0) {
@@ -14505,49 +14552,49 @@ const appElevationProfile = {
                 const midX = (prevX + xCad) / 2;
                 const interD = p.dist - items[idx - 1].dist;
                 const yRow5 = datumY - 4.6 * rowH;
-                dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${yRow5.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${interD.toFixed(1)}\r\n`;
+                dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${yRow5.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${interD.toFixed(1)}\r\n`;
             }
         });
 
         // Khung bảng số liệu
         for (let r = 0; r <= 5; r++) {
             const yLine = datumY - r * rowH;
-            dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${yLine.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${yLine.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${yLine.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${yLine.toFixed(3)}\r\n31\r\n0.0\r\n`;
         }
-        dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${leftHeaderX.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n0.0\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n0.0\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${maxDist.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${leftHeaderX.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n0.0\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n0.0\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${maxDist.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
-        const rowTitlesDxf = [
+        const rowTitlesDwg = [
             "DO CAO THI CONG (+DAP/-DAO)",
             "CAO DO THIET KE (Z_TK)",
             "CAO DO TU NHIEN (Z_TN)",
             "LY TRINH DONG (m)",
             "KHOANG CACH LE (m)"
         ];
-        rowTitlesDxf.forEach((title, idx) => {
+        rowTitlesDwg.forEach((title, idx) => {
             const yT = datumY - (idx + 0.6) * rowH;
-            dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n${(leftHeaderX + 1.5).toFixed(3)}\r\n20\r\n${yT.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${title}\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n${(leftHeaderX + 1.5).toFixed(3)}\r\n20\r\n${yT.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${title}\r\n`;
         });
 
         const titleY = datumY + (Math.max(...allZ) - minZ) * scaleV + 8.0;
-        dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n0.0\r\n20\r\n${titleY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n3.2\r\n1\r\nBAN VE TRAC DOC THIET KE & DAO DAP - DU AN: ${projName.toUpperCase()}\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n0.0\r\n20\r\n${(titleY - 4.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\nTY LE NGANG: 1/1000  -  TY LE DUNG: 1/200 (Phong dai 5x)  -  CAO DO CHUAN DATUM = ${minZ.toFixed(2)}m\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n0.0\r\n20\r\n${titleY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n3.2\r\n1\r\nBAN VE TRAC DOC THIET KE & DAO DAP - DU AN: ${projName.toUpperCase()}\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n0.0\r\n20\r\n${(titleY - 4.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\nTY LE NGANG: 1/1000  -  TY LE DUNG: 1/200 (Phong dai 5x)  -  CAO DO CHUAN DATUM = ${minZ.toFixed(2)}m\r\n`;
 
-        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        const blob = new Blob([dxf], { type: "application/dxf;charset=utf-8;" });
+        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const filename = `TracDoc_ThietKe_${projName}.dxf`;
+        const filename = `TracDoc_ThietKe_${projName}.dwg`;
         a.setAttribute("href", url);
         a.setAttribute("download", filename);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất bản vẽ AutoCAD DXF trắc dọc: ${filename}!`);
-    }
+        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) trắc dọc: ${filename}!`);
+    },
 };
 
 // ================= 9.4 QUY ĐỔI CAO ĐỘ (ĐÃ GỠ BỎ GEOID THEO YÊU CẦU) =================
@@ -21709,11 +21756,11 @@ const appCadTool = {
         const modal = document.getElementById('modalCadAreaTable');
         if (modal) {
             modal.style.display = 'flex';
-            if (action === 'dxf') {
+            if (action === 'dwg') {
                 setTimeout(() => {
                     const exportSec = document.getElementById('cadExportDrawingName');
                     if (exportSec) exportSec.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    showToast("ℹ️ Vui lòng kiểm tra thông tin bản vẽ và nhấn 'AutoCAD DXF' để tải file.");
+                    showToast("ℹ️ Vui lòng kiểm tra thông tin bản vẽ và nhấn 'Bản vẽ AutoCAD (.dwg)' để tải file.");
                 }, 150);
             }
         }
@@ -22910,7 +22957,7 @@ const appCadTool = {
         { cmd: 'CL', desc: 'Nối đỉnh cuối về đỉnh đầu để khép góc [Close]' },
         { cmd: 'V', desc: 'Bật con trỏ chọn đối tượng [Select]' },
         { cmd: 'E', desc: 'Mở bảng kê diện tích & tọa độ 6 tab [Table]' },
-        { cmd: 'EXP', desc: 'Mở xuất bản vẽ AutoCAD DXF, PDF, Excel [Export]' },
+        { cmd: 'EXP', desc: 'Mở xuất bản vẽ AutoCAD DWG, PDF, Excel [Export]' },
         { cmd: 'Z', desc: 'Phóng to cực đại mức 23-24 [Zoom Max]' },
         { cmd: 'DEL', desc: 'Xóa đối tượng đang chọn [Delete]' },
         { cmd: 'N', desc: 'Lưu khối hiện tại và vẽ khối mới [New/Save]' },
@@ -25259,12 +25306,12 @@ const appCadTool = {
         }
     },
 
-    // === 2. XUẤT BẢN VẼ AUTOCAD (.DXF) CHUẨN KỸ THUẬT ĐỊA CHÍNH TCVN 7285 & THÔNG TƯ 25/2014 ===
-    exportDxf() {
+    // === 2. XUẤT BẢN VẼ AUTOCAD (.DWG) CHUẨN KỸ THUẬT ĐỊA CHÍNH TCVN 7285 & THÔNG TƯ 25/2014 ===
+    exportDwg() {
         const allShapes = this._getAllExportShapes();
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         if (selectedShapes.length === 0) {
-            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất bản vẽ AutoCAD DXF!", true);
+            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất Bản vẽ AutoCAD (.dwg)!", true);
             return;
         }
 
@@ -25286,94 +25333,94 @@ const appCadTool = {
         const baseProjectArea = (meta.customTotalArea && meta.customTotalArea > 0) ? meta.customTotalArea : measuredTotalArea;
         const showPercent = meta.showPercent !== false;
 
-        // KHỞI TẠO FILE DXF AC1009 (AutoCAD R12/2000+) - TƯƠNG THÍCH 100% TẤT CẢ PHẦN MỀM CAD
+        // KHỞI TẠO FILE BẢN VẼ AUTOCAD (.DWG) AC1015 - TƯƠNG THÍCH 100% TẤT CẢ PHẦN MỀM CAD
         // Tùy chọn showBlockInfo: true = hiện đầy đủ S, P, cạnh; false (mặc định) = chỉ hiện số thứ tự/ký hiệu khối tại tâm
         const showBlockInfo = meta.showBlockInfo === true;
-        let dxf = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
-        dxf += "9\r\n$ACADVER\r\n1\r\nAC1009\r\n";
-        dxf += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (TCVN)
-        dxf += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
-        dxf += "9\r\n$LTSCALE\r\n40\r\n" + S.toFixed(4) + "\r\n";
-        dxf += "9\r\n$TEXTSIZE\r\n40\r\n" + (2.5 * S).toFixed(4) + "\r\n";
-        dxf += "9\r\n$VIEWCTR\r\n10\r\n" + L.Cx.toFixed(3) + "\r\n20\r\n" + L.Cy.toFixed(3) + "\r\n";
-        dxf += "9\r\n$VIEWSIZE\r\n40\r\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\r\n";
-        dxf += "9\r\n$EXTMIN\r\n10\r\n" + L.X0.toFixed(3) + "\r\n20\r\n" + L.Y0.toFixed(3) + "\r\n30\r\n0.0\r\n";
-        dxf += "9\r\n$EXTMAX\r\n10\r\n" + (L.X0 + L.W_sheet).toFixed(3) + "\r\n20\r\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\r\n30\r\n0.0\r\n";
-        dxf += "9\r\n$LIMMIN\r\n10\r\n" + L.X0.toFixed(3) + "\r\n20\r\n" + L.Y0.toFixed(3) + "\r\n";
-        dxf += "9\r\n$LIMMAX\r\n10\r\n" + (L.X0 + L.W_sheet).toFixed(3) + "\r\n20\r\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\r\n";
-        dxf += "0\r\nENDSEC\r\n";
+        let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
+        dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";
+        dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (TCVN)
+        dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
+        dwg += "9\r\n$LTSCALE\r\n40\r\n" + S.toFixed(4) + "\r\n";
+        dwg += "9\r\n$TEXTSIZE\r\n40\r\n" + (2.5 * S).toFixed(4) + "\r\n";
+        dwg += "9\r\n$VIEWCTR\r\n10\r\n" + L.Cx.toFixed(3) + "\r\n20\r\n" + L.Cy.toFixed(3) + "\r\n";
+        dwg += "9\r\n$VIEWSIZE\r\n40\r\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\r\n";
+        dwg += "9\r\n$EXTMIN\r\n10\r\n" + L.X0.toFixed(3) + "\r\n20\r\n" + L.Y0.toFixed(3) + "\r\n30\r\n0.0\r\n";
+        dwg += "9\r\n$EXTMAX\r\n10\r\n" + (L.X0 + L.W_sheet).toFixed(3) + "\r\n20\r\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\r\n30\r\n0.0\r\n";
+        dwg += "9\r\n$LIMMIN\r\n10\r\n" + L.X0.toFixed(3) + "\r\n20\r\n" + L.Y0.toFixed(3) + "\r\n";
+        dwg += "9\r\n$LIMMAX\r\n10\r\n" + (L.X0 + L.W_sheet).toFixed(3) + "\r\n20\r\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\r\n";
+        dwg += "0\r\nENDSEC\r\n";
 
         // TABLES SECTION
-        dxf += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
+        dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
 
         // 1. Viewport: Camera tự động zoom lớn trực diện vào trung tâm bản vẽ thửa đất khi mở trong AutoCAD
-        dxf += "0\r\nTABLE\r\n2\r\nVPORT\r\n70\r\n1\r\n";
-        dxf += "0\r\nVPORT\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n";
-        dxf += "10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
-        dxf += "12\r\n" + L.Cx.toFixed(3) + "\r\n22\r\n" + L.Cy.toFixed(3) + "\r\n";
-        dxf += "40\r\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\r\n";
-        dxf += "41\r\n" + (L.W_sheet / L.H_sheet).toFixed(4) + "\r\n";
-        dxf += "0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nVPORT\r\n70\r\n1\r\n";
+        dwg += "0\r\nVPORT\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n";
+        dwg += "10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
+        dwg += "12\r\n" + L.Cx.toFixed(3) + "\r\n22\r\n" + L.Cy.toFixed(3) + "\r\n";
+        dwg += "40\r\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\r\n";
+        dwg += "41\r\n" + (L.W_sheet / L.H_sheet).toFixed(4) + "\r\n";
+        dwg += "0\r\nENDTAB\r\n";
 
         // 2. Line types
-        dxf += "0\r\nTABLE\r\n2\r\nLTYPE\r\n70\r\n3\r\n";
-        dxf += "0\r\nLTYPE\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
-        dxf += "0\r\nLTYPE\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (0.6 * S).toFixed(4) + "\r\n49\r\n" + (-0.4 * S).toFixed(4) + "\r\n";
-        dxf += "0\r\nLTYPE\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
-        dxf += "0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nLTYPE\r\n70\r\n3\r\n";
+        dwg += "0\r\nLTYPE\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (0.6 * S).toFixed(4) + "\r\n49\r\n" + (-0.4 * S).toFixed(4) + "\r\n";
+        dwg += "0\r\nLTYPE\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
+        dwg += "0\r\nENDTAB\r\n";
 
         // 3. Layer table chuẩn kỹ thuật địa chính (R12 chuẩn không dùng handle)
-        dxf += "0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n18\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nCAD_MUITEN\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nCAD_TEXT\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nCAD_HINHKHOI\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nCAD_TEMNHAN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nKHUNG_NGOAI\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nKHUNG_TRONG\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nKHUNG_TEN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nBANG_BIEU\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n5\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nDINH_MOC\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nKICH_THUOC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nDIEN_TICH\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nLUOI_TOADO\r\n70\r\n0\r\n62\r\n8\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nTEXT_CHINH\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nTEXT_SO_LIEU\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nLAYER\r\n2\r\nHUONG_BAC\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
-        dxf += "0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n18\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nCAD_MUITEN\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nCAD_TEXT\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nCAD_HINHKHOI\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nCAD_TEMNHAN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_NGOAI\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_TRONG\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_TEN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nBANG_BIEU\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n5\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nDINH_MOC\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nKICH_THUOC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nDIEN_TICH\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nDIEN_TICH_THUA\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nKHUNG_BAN_VE\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nBANG_TOA_DO\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nMOC_TOADO\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nSO_HIEU_DINH\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nCHIEU_DAI_CANH\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nMUI_TEN_BAC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nLUOI_TOADO\r\n70\r\n0\r\n62\r\n8\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nTEXT_CHINH\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nTEXT_SO_LIEU\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nLAYER\r\n2\r\nHUONG_BAC\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        dwg += "0\r\nENDTAB\r\n";
 
         // 4. Style table: Khai báo STANDARD và VN_ARIAL
-        dxf += "0\r\nTABLE\r\n2\r\nSTYLE\r\n70\r\n2\r\n";
-        dxf += "0\r\nSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n";
-        dxf += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n";
-        dxf += "0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nSTYLE\r\n70\r\n2\r\n";
+        dwg += "0\r\nSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n";
+        dwg += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n";
+        dwg += "0\r\nENDTAB\r\n";
 
-        dxf += "0\r\nENDSEC\r\n";
+        dwg += "0\r\nENDSEC\r\n";
 
         // ENTITIES SECTION
-        dxf += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
+        dwg += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
         // === A. KHUNG BẢN VẼ CHUẨN XÁC THEO KHỔ GIẤY (A3/A4) ===
         // 1. Khung Ngoài (Mép cắt khổ giấy A3/A4 chuẩn mm)
-        dxf += `0\r\nPOLYLINE\r\n8\r\nKHUNG_NGOAI\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nSEQEND\r\n8\r\nKHUNG_NGOAI\r\n`;
+        dwg += `0\r\nPOLYLINE\r\n8\r\nKHUNG_NGOAI\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nSEQEND\r\n8\r\nKHUNG_NGOAI\r\n`;
 
         // 2. Khung Trong (Đậm nét 0.50mm, cách lề trái 20mm, lề phải/trên/dưới 10mm)
-        dxf += `0\r\nPOLYLINE\r\n8\r\nKHUNG_TRONG\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dxf += `0\r\nSEQEND\r\n8\r\nKHUNG_TRONG\r\n`;
+        dwg += `0\r\nPOLYLINE\r\n8\r\nKHUNG_TRONG\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
+        dwg += `0\r\nSEQEND\r\n8\r\nKHUNG_TRONG\r\n`;
 
         // 3. Đường phân cách giữa Vùng Bản Đồ và Cột Bảng Kê Bên Phải
-        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xpanel0.toFixed(3)}\r\n21\r\n${L.Yin1.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xpanel0.toFixed(3)}\r\n21\r\n${L.Yin1.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // === B. LƯỚI TỌA ĐỘ CHUẨN TRẮC ĐỊA: DẤU CHỮ THẬP (+) & TỌA ĐỘ BIÊN ===
         const crossArm = 3.5 * S; // Cánh chữ thập dài 3.5mm trên giấy
@@ -25388,19 +25435,19 @@ const appCadTool = {
             for (let gy = startGy; gy <= endGy; gy += L.gridInterval) {
                 // Dấu chữ thập tọa độ trong lòng bản đồ
                 if (gx > L.Xin0 + 8 * S && gx < L.Xpanel0 - 8 * S && gy > L.Yin0 + 8 * S && gy < L.Yin1 - 8 * S) {
-                    dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx - crossArm).toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(gx + crossArm).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
-                    dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${(gy - crossArm).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(gy + crossArm).toFixed(3)}\r\n31\r\n0.0\r\n`;
+                    dwg += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx - crossArm).toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(gx + crossArm).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
+                    dwg += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${(gy - crossArm).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(gy + crossArm).toFixed(3)}\r\n31\r\n0.0\r\n`;
                 }
             }
             // Vạch chia & Tọa độ cạnh dưới
-            dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(L.Yin0 + tickLen).toFixed(3)}\r\n31\r\n0.0\r\n`;
-            dxf += `0\r\nTEXT\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx - 8 * S).toFixed(3)}\r\n20\r\n${(L.Yin0 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nY=${gx.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(L.Yin0 + tickLen).toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx - 8 * S).toFixed(3)}\r\n20\r\n${(L.Yin0 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nY=${gx.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
         }
 
         for (let gy = startGy; gy <= endGy; gy += L.gridInterval) {
             // Vạch chia & Tọa độ cạnh trái
-            dxf += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(L.Xin0 + tickLen).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
-            dxf += `0\r\nTEXT\r\n8\r\nLUOI_TOADO\r\n10\r\n${(L.Xin0 - 16 * S).toFixed(3)}\r\n20\r\n${(gy - 0.9 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nX=${gy.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(L.Xin0 + tickLen).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nLUOI_TOADO\r\n10\r\n${(L.Xin0 - 16 * S).toFixed(3)}\r\n20\r\n${(gy - 0.9 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nX=${gy.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
         }
 
         // === C. KIM CHỈ HƯỚNG BẮC (NORTH ARROW CHUẨN ĐỊA CHÍNH TCVN) ===
@@ -25409,11 +25456,11 @@ const appCadTool = {
         const naR = 4.5 * S;
         const naH = 14.0 * S;
 
-        dxf += `0\r\nCIRCLE\r\n8\r\nHUONG_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${naR.toFixed(4)}\r\n`;
-        dxf += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${(naY - naR).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX - naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX + naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX - 1.2 * S).toFixed(3)}\r\n20\r\n${(naY + naH + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.2 * S).toFixed(4)}\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nCIRCLE\r\n8\r\nHUONG_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${naR.toFixed(4)}\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${(naY - naR).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX - naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX + naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nHUONG_BAC\r\n10\r\n${(naX - 1.2 * S).toFixed(3)}\r\n20\r\n${(naY + naH + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.2 * S).toFixed(4)}\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n`;
 
         // === D. CÁC ĐỐI TƯỢNG ĐỒ HỌA THỬA ĐẤT (VÙNG TRỌNG TÂM BẢN ĐỒ) ===
         selectedShapes.forEach((shape, shapeIdx) => {
@@ -25426,11 +25473,11 @@ const appCadTool = {
 
             // Đường ranh thửa nét đậm 0.50mm
             if (meta.showBoundaries !== false) {
-                dxf += `0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n${isClosed ? 1 : 0}\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
+                dwg += `0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n${isClosed ? 1 : 0}\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
                 pts.forEach(p => {
-                    dxf += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n0.0\r\n`;
+                    dwg += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n0.0\r\n`;
                 });
-                dxf += `0\r\nSEQEND\r\n8\r\nRANH_THUA\r\n`;
+                dwg += `0\r\nSEQEND\r\n8\r\nRANH_THUA\r\n`;
             }
 
             // Điểm đỉnh mốc & Nhãn tên mốc (Hiển thị khi meta.showVertices !== false)
@@ -25439,11 +25486,11 @@ const appCadTool = {
                 pts.forEach((p, idx) => {
                     const cadX = p.y;
                     const cadY = p.x;
-                    dxf += `0\r\nCIRCLE\r\n8\r\nDINH_MOC\r\n10\r\n${cadX.toFixed(3)}\r\n20\r\n${cadY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${mRadius.toFixed(4)}\r\n`;
-                    dxf += `0\r\nPOINT\r\n8\r\nDINH_MOC\r\n10\r\n${cadX.toFixed(3)}\r\n20\r\n${cadY.toFixed(3)}\r\n30\r\n0.0\r\n`;
+                    dwg += `0\r\nCIRCLE\r\n8\r\nDINH_MOC\r\n10\r\n${cadX.toFixed(3)}\r\n20\r\n${cadY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${mRadius.toFixed(4)}\r\n`;
+                    dwg += `0\r\nPOINT\r\n8\r\nDINH_MOC\r\n10\r\n${cadX.toFixed(3)}\r\n20\r\n${cadY.toFixed(3)}\r\n30\r\n0.0\r\n`;
 
                     const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
-                    dxf += `0\r\nTEXT\r\n8\r\nTEN_MOC\r\n10\r\n${(cadX + 1.5 * S).toFixed(3)}\r\n20\r\n${(cadY + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\n${cleanName}\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n8\r\nTEN_MOC\r\n10\r\n${(cadX + 1.5 * S).toFixed(3)}\r\n20\r\n${(cadY + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\n${cleanName}\r\n7\r\nVN_ARIAL\r\n`;
                 });
             }
 
@@ -25468,7 +25515,7 @@ const appCadTool = {
                     let textRot = angDeg;
                     if (angDeg > 90 && angDeg < 270) textRot = (angDeg + 180) % 360;
 
-                    dxf += `0\r\nTEXT\r\n8\r\nKICH_THUOC\r\n10\r\n${(midX + perpX).toFixed(3)}\r\n20\r\n${(midY + perpY).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n50\r\n${textRot.toFixed(2)}\r\n1\r\n${edge.lengthFormatted}m\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n8\r\nKICH_THUOC\r\n10\r\n${(midX + perpX).toFixed(3)}\r\n20\r\n${(midY + perpY).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n50\r\n${textRot.toFixed(2)}\r\n1\r\n${edge.lengthFormatted}m\r\n7\r\nVN_ARIAL\r\n`;
                 });
             }
 
@@ -25486,18 +25533,18 @@ const appCadTool = {
                     if (showPercent && baseProjectArea > 0) {
                         pctStr = ` (${((stats.area / baseProjectArea) * 100).toFixed(2)}%)`;
                     }
-                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${(cY + 3.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\n[${cleanSymbol}] ${this.toCadAscii(shape.name || '')}${pctStr}\r\n7\r\nVN_ARIAL\r\n`;
-                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${cY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\nS=${stats.areaFormatted}m2 (${stats.haFormatted}ha)\r\n7\r\nVN_ARIAL\r\n`;
-                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${(cY - 2.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nP=${stats.perimeterFormatted}m\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${(cY + 3.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\n[${cleanSymbol}] ${this.toCadAscii(shape.name || '')}${pctStr}\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${cY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\nS=${stats.areaFormatted}m2 (${stats.haFormatted}ha)\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 8 * S).toFixed(3)}\r\n20\r\n${(cY - 2.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nP=${stats.perimeterFormatted}m\r\n7\r\nVN_ARIAL\r\n`;
                 } else {
                     // Chế độ mặc định (Bắt buộc theo yêu cầu): CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI TẠI TÂM
-                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 2.5 * S).toFixed(3)}\r\n20\r\n${(cY - 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.5 * S).toFixed(4)}\r\n1\r\n${cleanSymbol}\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(cX - 2.5 * S).toFixed(3)}\r\n20\r\n${(cY - 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.5 * S).toFixed(4)}\r\n1\r\n${cleanSymbol}\r\n7\r\nVN_ARIAL\r\n`;
                 }
             } else if (!isClosed && shape.mode !== 'polygon') {
                 if (!showBlockInfo) {
                     const midIdx = Math.floor(pts.length / 2);
                     const mp = pts[midIdx] || pts[0];
-                    dxf += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(mp.y + 1.5 * S).toFixed(3)}\r\n20\r\n${(mp.x + 1.5 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.6 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(shape.name)}\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n8\r\nDIEN_TICH\r\n10\r\n${(mp.y + 1.5 * S).toFixed(3)}\r\n20\r\n${(mp.x + 1.5 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.6 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(shape.name)}\r\n7\r\nVN_ARIAL\r\n`;
                 }
             }
         });
@@ -25512,7 +25559,7 @@ const appCadTool = {
                         const x1 = vnStart.Y, y1 = vnStart.X;
                         const x2 = vnEnd.Y, y2 = vnEnd.X;
 
-                        dxf += "0\r\nLINE\r\n8\r\nCAD_MUITEN\r\n10\r\n" + x1.toFixed(3) + "\r\n20\r\n" + y1.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + x2.toFixed(3) + "\r\n21\r\n" + y2.toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dwg += "0\r\nLINE\r\n8\r\nCAD_MUITEN\r\n10\r\n" + x1.toFixed(3) + "\r\n20\r\n" + y1.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + x2.toFixed(3) + "\r\n21\r\n" + y2.toFixed(3) + "\r\n31\r\n0.0\r\n";
 
                         const dx = x1 - x2, dy = y1 - y2;
                         const len = Math.hypot(dx, dy) || 1;
@@ -25523,10 +25570,10 @@ const appCadTool = {
                         const px1 = ax - uy * aWid, py1 = ay + ux * aWid;
                         const px2 = ax + uy * aWid, py2 = ay - ux * aWid;
 
-                        dxf += "0\r\nSOLID\r\n8\r\nCAD_MUITEN\r\n10\r\n" + x1.toFixed(3) + "\r\n20\r\n" + y1.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + px1.toFixed(3) + "\r\n21\r\n" + py1.toFixed(3) + "\r\n31\r\n0.0\r\n12\r\n" + px2.toFixed(3) + "\r\n22\r\n" + py2.toFixed(3) + "\r\n32\r\n0.0\r\n13\r\n" + x1.toFixed(3) + "\r\n23\r\n" + y1.toFixed(3) + "\r\n33\r\n0.0\r\n";
+                        dwg += "0\r\nSOLID\r\n8\r\nCAD_MUITEN\r\n10\r\n" + x1.toFixed(3) + "\r\n20\r\n" + y1.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + px1.toFixed(3) + "\r\n21\r\n" + py1.toFixed(3) + "\r\n31\r\n0.0\r\n12\r\n" + px2.toFixed(3) + "\r\n22\r\n" + py2.toFixed(3) + "\r\n32\r\n0.0\r\n13\r\n" + x1.toFixed(3) + "\r\n23\r\n" + y1.toFixed(3) + "\r\n33\r\n0.0\r\n";
 
                         const textStr = this.toCadAscii(ann.arrowText || 'Ghi chu');
-                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (x2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (y2 + 0.8 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + (((ann.fontSize || 12) * 0.22 * S).toFixed(4)) + "\r\n1\r\n" + textStr + "\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (x2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (y2 + 0.8 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + (((ann.fontSize || 12) * 0.22 * S).toFixed(4)) + "\r\n1\r\n" + textStr + "\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
@@ -25535,28 +25582,28 @@ const appCadTool = {
                         const cX = vn.Y, cY = vn.X;
                         const nR = 4.0 * S;
                         const nH = 12.0 * S;
-                        dxf += "0\r\nCIRCLE\r\n8\r\nHUONG_BAC\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + nR.toFixed(4) + "\r\n";
-                        dxf += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + (cY - nR).toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
-                        dxf += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX - nR * 0.7).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
-                        dxf += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX + nR * 0.7).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
-                        dxf += "0\r\nTEXT\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX - 1.0 * S).toFixed(3) + "\r\n20\r\n" + (cY + nH + 1.2 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((2.8 * S).toFixed(4)) + "\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nCIRCLE\r\n8\r\nHUONG_BAC\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + nR.toFixed(4) + "\r\n";
+                        dwg += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + (cY - nR).toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dwg += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX - nR * 0.7).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dwg += "0\r\nLINE\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX + nR * 0.7).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + cX.toFixed(3) + "\r\n21\r\n" + (cY + nH).toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nHUONG_BAC\r\n10\r\n" + (cX - 1.0 * S).toFixed(3) + "\r\n20\r\n" + (cY + nH + 1.2 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((2.8 * S).toFixed(4)) + "\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
                     case 'rect': {
                         if (ann.corners && ann.corners.length >= 4) {
                             const vnPts = ann.corners.map(c => convertWgsToVn2k(c[0], c[1], AppState.kttVal, AppState.scaleFactor));
-                            dxf += "0\r\nPOLYLINE\r\n8\r\nCAD_HINHKHOI\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n";
+                            dwg += "0\r\nPOLYLINE\r\n8\r\nCAD_HINHKHOI\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n";
                             vnPts.forEach(p => {
-                                dxf += "0\r\nVERTEX\r\n8\r\nCAD_HINHKHOI\r\n10\r\n" + p.Y.toFixed(3) + "\r\n20\r\n" + p.X.toFixed(3) + "\r\n30\r\n0.0\r\n";
+                                dwg += "0\r\nVERTEX\r\n8\r\nCAD_HINHKHOI\r\n10\r\n" + p.Y.toFixed(3) + "\r\n20\r\n" + p.X.toFixed(3) + "\r\n30\r\n0.0\r\n";
                             });
-                            dxf += "0\r\nSEQEND\r\n8\r\nCAD_HINHKHOI\r\n";
+                            dwg += "0\r\nSEQEND\r\n8\r\nCAD_HINHKHOI\r\n";
 
                             const vnCenter = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                             const nameStr = this.toCadAscii(ann.rectName || 'Khoi nha');
                             const dimStr = ann.widthM + "x" + ann.lengthM + "m (" + ann.rectArea + "m2)";
-                            dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\r\n20\r\n" + (vnCenter.X + 1 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((2.0 * S).toFixed(4)) + "\r\n1\r\n" + nameStr + "\r\n7\r\nVN_ARIAL\r\n";
-                            dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\r\n20\r\n" + (vnCenter.X - 2 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.6 * S).toFixed(4)) + "\r\n1\r\n" + dimStr + "\r\n7\r\nVN_ARIAL\r\n";
+                            dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\r\n20\r\n" + (vnCenter.X + 1 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((2.0 * S).toFixed(4)) + "\r\n1\r\n" + nameStr + "\r\n7\r\nVN_ARIAL\r\n";
+                            dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (vnCenter.Y - 5 * S).toFixed(3) + "\r\n20\r\n" + (vnCenter.X - 2 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.6 * S).toFixed(4)) + "\r\n1\r\n" + dimStr + "\r\n7\r\nVN_ARIAL\r\n";
                         }
                         break;
                     }
@@ -25565,9 +25612,9 @@ const appCadTool = {
                         const vn = convertWgsToVn2k(ann.lat, ann.lng, AppState.kttVal, AppState.scaleFactor);
                         const cX = vn.Y, cY = vn.X;
                         const r = ann.radiusM || 10;
-                        dxf += "0\r\nCIRCLE\r\n8\r\nCAD_HINHKHOI\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + r.toFixed(4) + "\r\n";
+                        dwg += "0\r\nCIRCLE\r\n8\r\nCAD_HINHKHOI\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + r.toFixed(4) + "\r\n";
                         const nameStr = this.toCadAscii(ann.circleName || 'Vung bao ve');
-                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - 6 * S).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.8 * S).toFixed(4)) + "\r\n1\r\n" + nameStr + " (R=" + r + "m)\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - 6 * S).toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.8 * S).toFixed(4)) + "\r\n1\r\n" + nameStr + " (R=" + r + "m)\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
@@ -25576,24 +25623,24 @@ const appCadTool = {
                         const cX = vn.Y, cY = vn.X;
                         const stampW = 24.0 * S;
                         const stampH = 14.0 * S;
-                        dxf += "0\r\nPOLYLINE\r\n8\r\nCAD_TEMNHAN\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n";
-                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY - stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
-                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY - stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
-                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
-                        dxf += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
-                        dxf += "0\r\nSEQEND\r\n8\r\nCAD_TEMNHAN\r\n";
+                        dwg += "0\r\nPOLYLINE\r\n8\r\nCAD_TEMNHAN\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n";
+                        dwg += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY - stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dwg += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY - stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dwg += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dwg += "0\r\nVERTEX\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2).toFixed(3) + "\r\n30\r\n0.0\r\n";
+                        dwg += "0\r\nSEQEND\r\n8\r\nCAD_TEMNHAN\r\n";
 
-                        dxf += "0\r\nLINE\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n21\r\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\r\n31\r\n0.0\r\n";
+                        dwg += "0\r\nLINE\r\n8\r\nCAD_TEMNHAN\r\n10\r\n" + (cX - stampW / 2).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\r\n30\r\n0.0\r\n11\r\n" + (cX + stampW / 2).toFixed(3) + "\r\n21\r\n" + (cY + stampH / 2 - 4 * S).toFixed(3) + "\r\n31\r\n0.0\r\n";
 
                         const h1 = "To: " + (ann.sheetNo || '01') + " - Thua: " + (ann.parcelNo || '01');
                         const h2 = "DT: " + this.toCadAscii(ann.area || '--');
                         const h3 = "Chu: " + this.toCadAscii(ann.owner || '--');
                         const h4 = "Loai: " + this.toCadAscii(ann.landType || '--');
 
-                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 3.0 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.8 * S).toFixed(4)) + "\r\n1\r\n" + h1 + "\r\n7\r\nVN_ARIAL\r\n";
-                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 6.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h2 + "\r\n7\r\nVN_ARIAL\r\n";
-                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 9.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h3 + "\r\n7\r\nVN_ARIAL\r\n";
-                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 12.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h4 + "\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 3.0 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.8 * S).toFixed(4)) + "\r\n1\r\n" + h1 + "\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 6.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h2 + "\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 9.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h3 + "\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + (cX - stampW / 2 + 1.2 * S).toFixed(3) + "\r\n20\r\n" + (cY + stampH / 2 - 12.5 * S).toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + ((1.5 * S).toFixed(4)) + "\r\n1\r\n" + h4 + "\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
 
@@ -25602,7 +25649,7 @@ const appCadTool = {
                         const cX = vn.Y, cY = vn.X;
                         const txt = this.toCadAscii(ann.text || 'Ghi chu');
                         const fSize = (ann.fontSize || 12) * 0.22 * S;
-                        dxf += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + fSize.toFixed(4) + "\r\n1\r\n" + txt + "\r\n7\r\nVN_ARIAL\r\n";
+                        dwg += "0\r\nTEXT\r\n8\r\nCAD_TEXT\r\n10\r\n" + cX.toFixed(3) + "\r\n20\r\n" + cY.toFixed(3) + "\r\n30\r\n0.0\r\n40\r\n" + fSize.toFixed(4) + "\r\n1\r\n" + txt + "\r\n7\r\nVN_ARIAL\r\n";
                         break;
                     }
                 }
@@ -25624,23 +25671,23 @@ const appCadTool = {
         ];
 
         // Tiêu đề bảng tổng hợp
-        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\r\n20\r\n${(curTableY - 4.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\nBANG TONG HOP DIEN TICH\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\r\n20\r\n${(curTableY - 4.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\nBANG TONG HOP DIEN TICH\r\n7\r\nVN_ARIAL\r\n`;
         curTableY -= 6.0 * S;
-        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         const sumHeaders = ["STT", "Ten thua", "Dien tich(m2)", "Ti le(%)"];
         let shX = L.Xpanel0;
         sumHeaders.forEach((h, idx) => {
-            dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(shX + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.6 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${h}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(shX + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.6 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${h}\r\n7\r\nVN_ARIAL\r\n`;
             shX += colWSum[idx];
         });
 
         const sumTopY = curTableY;
         curTableY -= sumRowH;
-        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
-        function wrapDxfLines(txt, maxLen = 18) {
+        function wrapCadLines(txt, maxLen = 18) {
             if (!txt) return [''];
             const words = String(txt).trim().split(/\s+/);
             const lines = [];
@@ -25667,22 +25714,22 @@ const appCadTool = {
             const cleanName = this.toCadAscii(s.name || `Thua ${idx + 1}`);
             const rowSymbol = s.symbol ? `[${this.toCadAscii(s.symbol)}] ` : '';
             const fullLabel = rowSymbol + cleanName;
-            const nameLines = wrapDxfLines(fullLabel, 18);
+            const nameLines = wrapCadLines(fullLabel, 18);
             const dynamicRowH = (Math.max(1, nameLines.length) * 2.8 + 2.2) * S;
 
             // STT, Area, Pct hiển thị tại dòng đầu tiên
-            dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${idx + 1}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${idx + 1}\r\n7\r\nVN_ARIAL\r\n`;
             
             // Xuống dòng tên khối/thửa không xóa mất ký tự hay thay bằng ".."
             nameLines.forEach((line, lIdx) => {
-                dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - (3.4 + lIdx * 2.8) * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${line}\r\n7\r\nVN_ARIAL\r\n`;
+                dwg += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - (3.4 + lIdx * 2.8) * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${line}\r\n7\r\nVN_ARIAL\r\n`;
             });
 
-            dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${isPoly ? area.toFixed(2) : '--'}\r\n7\r\nVN_ARIAL\r\n`;
-            dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + colWSum[2] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${pctStr}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${isPoly ? area.toFixed(2) : '--'}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(L.Xpanel0 + colWSum[0] + colWSum[1] + colWSum[2] + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.4 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${pctStr}\r\n7\r\nVN_ARIAL\r\n`;
 
             curTableY -= dynamicRowH;
-            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
         });
 
         // Dòng tổng cộng bảng tổng hợp
@@ -25690,20 +25737,20 @@ const appCadTool = {
         const sumTotalRow = ['--', 'TONG CONG', measuredTotalArea.toFixed(2), totalPctVal];
         let strX = L.Xpanel0;
         sumTotalRow.forEach((val, cIdx) => {
-            dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(strX + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.6 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${val}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(strX + 1.2 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.6 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.7 * S).toFixed(4)}\r\n1\r\n${val}\r\n7\r\nVN_ARIAL\r\n`;
             strX += colWSum[cIdx];
         });
 
         curTableY -= sumRowH;
-        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // Kẻ dọc bảng tổng hợp (chuẩn khít tuyệt đối với colWPanel)
         const sumBottomY = curTableY;
         let svLineX = L.Xpanel0;
-        dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${svLineX.toFixed(3)}\r\n20\r\n${sumTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${svLineX.toFixed(3)}\r\n21\r\n${sumBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${svLineX.toFixed(3)}\r\n20\r\n${sumTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${svLineX.toFixed(3)}\r\n21\r\n${sumBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
         colWSum.forEach(w => {
             svLineX += w;
-            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${svLineX.toFixed(3)}\r\n20\r\n${sumTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${svLineX.toFixed(3)}\r\n21\r\n${sumBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${svLineX.toFixed(3)}\r\n20\r\n${sumTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${svLineX.toFixed(3)}\r\n21\r\n${sumBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
         });
 
         // --- 2. BẢNG KÊ TỌA ĐỘ RANH THỬA (TCVN 7285) ---
@@ -25721,21 +25768,21 @@ const appCadTool = {
 
         // Chỉ vẽ bảng kê nếu còn đủ chỗ phía trên khung tên
         if (curTableY > L.YtitleTop + 20 * S) {
-            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
-            dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.2 * S).toFixed(4)}\r\n1\r\nBANG KE TOA DO RANH THUA\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(L.Xpanel0 + colWPanel / 2 - 24 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.2 * S).toFixed(4)}\r\n1\r\nBANG KE TOA DO RANH THUA\r\n7\r\nVN_ARIAL\r\n`;
             curTableY -= 5.0 * S;
-            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
             const coordHeaders = ["STT", "Diem", "X(Bac)", "Y(Dong)", "Canh", "Az"];
             let chX = L.Xpanel0;
             coordHeaders.forEach((h, idx) => {
-                dxf += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(chX + 1.0 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\n${h}\r\n7\r\nVN_ARIAL\r\n`;
+                dwg += `0\r\nTEXT\r\n8\r\nTEXT_CHINH\r\n10\r\n${(chX + 1.0 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\n${h}\r\n7\r\nVN_ARIAL\r\n`;
                 chX += colWCoord[idx];
             });
 
             const coordTopY = curTableY;
             curTableY -= coordRowH;
-            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
             // Lấy danh sách điểm ranh
             selectedShapes.forEach(shape => {
@@ -25752,22 +25799,22 @@ const appCadTool = {
                     const row = [String(pIdx + 1), cleanName, p.x.toFixed(3), p.y.toFixed(3), edgeStr, azStr];
                     let rx = L.Xpanel0;
                     row.forEach((v, cIdx) => {
-                        dxf += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(rx + 1.0 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.5 * S).toFixed(4)}\r\n1\r\n${v}\r\n7\r\nVN_ARIAL\r\n`;
+                        dwg += `0\r\nTEXT\r\n8\r\nTEXT_SO_LIEU\r\n10\r\n${(rx + 1.0 * S).toFixed(3)}\r\n20\r\n${(curTableY - 3.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.5 * S).toFixed(4)}\r\n1\r\n${v}\r\n7\r\nVN_ARIAL\r\n`;
                         rx += colWCoord[cIdx];
                     });
 
                     curTableY -= coordRowH;
-                    dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+                    dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${curTableY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xin1.toFixed(3)}\r\n21\r\n${curTableY.toFixed(3)}\r\n31\r\n0.0\r\n`;
                 });
             });
 
             // Kẻ dọc bảng kê tọa độ (vừa khít colWPanel)
             const coordBottomY = curTableY;
             let cvLineX = L.Xpanel0;
-            dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${cvLineX.toFixed(3)}\r\n20\r\n${coordTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${cvLineX.toFixed(3)}\r\n21\r\n${coordBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${cvLineX.toFixed(3)}\r\n20\r\n${coordTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${cvLineX.toFixed(3)}\r\n21\r\n${coordBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
             colWCoord.forEach(w => {
                 cvLineX += w;
-                dxf += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${cvLineX.toFixed(3)}\r\n20\r\n${coordTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${cvLineX.toFixed(3)}\r\n21\r\n${coordBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
+                dwg += `0\r\nLINE\r\n8\r\nBANG_BIEU\r\n10\r\n${cvLineX.toFixed(3)}\r\n20\r\n${coordTopY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${cvLineX.toFixed(3)}\r\n21\r\n${coordBottomY.toFixed(3)}\r\n31\r\n0.0\r\n`;
             });
         }
 
@@ -25779,50 +25826,50 @@ const appCadTool = {
         const tX1 = L.Xin1;
 
         // Khung bao quanh khung tên
-        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${tY_top.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${tY_top.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${tY_top.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${tY_top.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // Hàng 1 (Đơn vị đo vẽ - cao 8.5mm)
         const yRow1 = tY_top - 8.5 * S;
-        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow1.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tY_top - 5.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(meta.organization || 'TRUNG TAM KHAO SAT & DO DAC DIA CHINH').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow1.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tY_top - 5.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.4 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(meta.organization || 'TRUNG TAM KHAO SAT & DO DAC DIA CHINH').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Hàng 2 (Tên bản vẽ - cao 9.5mm)
         const yRow2 = yRow1 - 9.5 * S;
-        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow2.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(yRow1 - 6.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(meta.drawingName || 'BAN DO HIEN TRANG VI TRI THUA DAT').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow2.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(yRow1 - 6.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\n${this.toCadAscii(meta.drawingName || 'BAN DO HIEN TRANG VI TRI THUA DAT').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Hàng 3 (Tên công trình / dự án - cao 6.0mm)
         const yRow3 = yRow2 - 6.0 * S;
-        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow3.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(yRow2 - 4.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nDU AN: ${this.toCadAscii(meta.projectName || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${tX0.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${tX1.toFixed(3)}\r\n21\r\n${yRow3.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(yRow2 - 4.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nDU AN: ${this.toCadAscii(meta.projectName || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Hàng 4 (Thông tin chi tiết chia 2 cột - cao 12.0mm)
         const midColX = tX0 + colWPanel * 0.52;
-        dxf += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${midColX.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${midColX.toFixed(3)}\r\n21\r\n${tY0.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n8\r\nKHUNG_TEN\r\n10\r\n${midColX.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${midColX.toFixed(3)}\r\n21\r\n${tY0.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         // Cột trái hàng 4
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nHe VN2k: ${this.toCadAscii(AppState.provinceName || 'Tinh')} KTT:${AppState.kttDeg}\r\n7\r\nVN_ARIAL\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 6.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nNguoi do: ${this.toCadAscii(meta.surveyor || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 10.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nKiem tra: ${this.toCadAscii(meta.checker || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nHe VN2k: ${this.toCadAscii(AppState.provinceName || 'Tinh')} KTT:${AppState.kttDeg}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 6.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nNguoi do: ${this.toCadAscii(meta.surveyor || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tX0 + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 10.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nKiem tra: ${this.toCadAscii(meta.checker || '').toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
 
         // Cột phải hàng 4
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nTy le: 1:${L.scaleVal}\r\n7\r\nVN_ARIAL\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 6.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nSo to/thua: ${this.toCadAscii(meta.parcelNo || '01')}\r\n7\r\nVN_ARIAL\r\n`;
-        dxf += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 10.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nNgay lap: ${this.toCadAscii(meta.drawingDate)}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 3.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nTy le: 1:${L.scaleVal}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 6.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nSo to/thua: ${this.toCadAscii(meta.parcelNo || '01')}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 10.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nNgay lap: ${this.toCadAscii(meta.drawingDate)}\r\n7\r\nVN_ARIAL\r\n`;
 
-        dxf += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        const blob = new Blob([dxf], { type: "application/dxf" });
+        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        const filename = `${projName}_BanDo_${meta.paper}_1-${L.scaleVal}.dxf`;
+        const filename = `${projName}_BanDo_${meta.paper}_1-${L.scaleVal}.dwg`;
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất AutoCAD DXF chuẩn kỹ thuật khổ ${meta.paper} tỷ lệ 1:${L.scaleVal}: ${filename}`);
+        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật khổ ${meta.paper} tỷ lệ 1:${L.scaleVal}: ${filename}`);
     },
 
     // === 3. XUẤT BẢN VẼ PDF CHUẨN IN ẤN ĐỘ PHÂN GIẢI CAO (A3/A4 CHUẨN TỶ LỆ) ===
@@ -27873,11 +27920,11 @@ const appI18n = {
         "6. Khảo Sát Tuyến & Trắc Dọc Thực Địa": "6. Alignment Survey & Ground Profile",
         "📈 Trắc dọc đào đắp": "📈 Cut/Fill Profile",
         "📐 Vẽ CAD Mini": "📐 MiniCAD Drawing",
-        "Vẽ biểu đồ trắc dọc địa hình và tính khối lượng đào đắp (m³); vẽ mặt bằng ranh thửa công trình CAD Mini hỗ trợ bắt điểm Snap và xuất bản vẽ AutoCAD DXF.": "Plot terrain profile charts and compute cut/fill volumes (m³); draw parcel boundaries in MiniCAD with Snap point support and AutoCAD DXF export.",
+        "Vẽ biểu đồ trắc dọc địa hình và tính khối lượng đào đắp (m³); vẽ mặt bằng ranh thửa công trình CAD Mini hỗ trợ bắt điểm Snap và xuất bản vẽ AutoCAD DWG.": "Plot terrain profile charts and compute cut/fill volumes (m³); draw parcel boundaries in MiniCAD with Snap point support and AutoCAD DWG export.",
         "Nghiệp vụ xây dựng & địa hình tuyến": "Construction & alignment topography",
         "📈 Trắc dọc & Đào đắp": "📈 Profile & Cut/Fill",
         "7. Trao Đổi Dữ Liệu Đa Nền Tảng (CAD/GIS)": "7. Multi-platform Data Exchange (CAD/GIS)",
-        "Xuất dữ liệu mốc sang file bản vẽ AutoCAD R12 (.DXF) chuẩn 3 layer MOC, TEN, RANH; xuất tệp Google Earth 3D (.KML) và bảng tính Excel (.CSV UTF-8) có dấu tiếng Việt.": "Export survey points to AutoCAD R12 (.DXF) with 3 standard layers MOC, TEN, RANH; export Google Earth 3D (.KML) and Excel spreadsheet (.CSV UTF-8) with Vietnamese characters.",
+        "Xuất dữ liệu mốc sang file bản vẽ AutoCAD (.DWG) chuẩn các layer MOC, TEN, RANH; xuất tệp Google Earth 3D (.KML) và bảng tính Excel (.CSV UTF-8) có dấu tiếng Việt.": "Export survey points to AutoCAD (.DWG) with standard layers MOC, TEN, RANH; export Google Earth 3D (.KML) and Excel spreadsheet (.CSV UTF-8) with Vietnamese characters.",
         "Tải file bản vẽ & vệ tinh": "Download CAD & GIS files",
         "🗂️ Danh Mục Thẻ": "🗂️ Card Categories",
         "🌳 Cây Thư Mục Chi Tiết": "🌳 Detailed Operations Tree",
@@ -27901,10 +27948,10 @@ const appI18n = {
         "3.1 Trắc dọc địa hình & Đào đắp": "3.1 Ground Profile & Cut/Fill Calculations",
         "Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp theo tuyến hoặc diện tích": "Natural ground profile, design grade, cut/fill m³ volumes",
         "3.2 Vẽ mặt bằng công trình CAD Mini": "3.2 MiniCAD Site Plan Drawing",
-        "Dựng ranh, bắt điểm Snap, offset song song, tính diện tích & xuất DXF": "Boundary lines, snap cursor, parallel offset, area calc, export DXF",
+        "Dựng ranh, bắt điểm Snap, offset song song, tính diện tích & xuất DWG": "Boundary lines, snap cursor, parallel offset, area calc, export DWG",
         "NHÓM 4: TRAO ĐỔI DỮ LIỆU (CAD / GIS)": "GROUP 4: DATA EXCHANGE (CAD / GIS)",
         "4.1 Sổ đo mốc & Quản lý danh sách dự án": "4.1 Survey Book & Project Management",
-        "Quản lý dự án độc lập, xem bảng mốc, chỉnh sửa và xuất file DXF, KML, CSV": "Manage projects, inspect points table, edit and export DXF, KML, CSV",
+        "Quản lý dự án độc lập, xem bảng mốc, chỉnh sửa và xuất file DWG, KML, CSV": "Manage projects, inspect points table, edit and export DWG, KML, CSV",
         "4.2 Cấu hình đồng bộ Google Sheets / AppSheet": "4.2 Google Sheets / AppSheet Cloud Sync",
         "Lưu mốc tự động lên trang tính cá nhân và Google Drive": "Auto backup points to personal Google Sheets & Drive",
         "HỆ THỐNG & CÀI ĐẶT": "SYSTEM & SETTINGS",
@@ -27923,7 +27970,7 @@ const appI18n = {
         "4. CAMERA ĐÓNG DẤU THỦY ẤN": "4. FIELD GEOTAG CAMERA",
         "Chụp ảnh hiện trường in nổi tọa độ VN-2000, WGS-84, sai số GPS, la bàn, ngày giờ": "Capture field photo stamped with VN-2000, WGS-84, GPS accuracy, compass, timestamp",
         "5. QUẢN LÝ DỰ ÁN & XUẤT FILE": "5. PROJECT MANAGER & FILE EXPORT",
-        "Sổ đo mốc, xuất AutoCAD (.DXF), Google Earth (.KML), Excel CSV, Google Sheets": "Survey book, export AutoCAD (.DXF), Google Earth (.KML), Excel CSV, Google Sheets",
+        "Sổ đo mốc, xuất AutoCAD (.DWG), Google Earth (.KML), Excel CSV, Google Sheets": "Survey book, export AutoCAD (.DWG), Google Earth (.KML), Excel CSV, Google Sheets",
         "6. THÔNG TIN & HƯỚNG DẪN": "6. HANDBOOK & GUIDES",
         "Cẩm nang 10 nghiệp vụ, cài PWA đa nền tảng & căn cứ pháp lý QĐ 05/2007/QĐ-BTNMT": "10 surveying operations handbook, cross-platform PWA & legal basis BTNMT Decision 05/2007",
         "🗺️ Bản đồ lớn (65%)": "🗺️ Large Map (65%)",
@@ -28229,7 +28276,7 @@ const appI18n = {
         "Kinh độ (Long)": "Longitude (Long)",
         "Thao tác": "Thao tac",
         "📥 Xuất CSV / Excel": "📥 export CSV / Excel",
-        "📐 Xuất AutoCAD (.DXF)": "📐 export AutoCAD (.DXF)",
+        "📐 Bản vẽ AutoCAD (.dwg)": "📐 AutoCAD Drawing (.dwg)",
         "🌍 Xuất Google Earth (.KML)": "🌍 export Google Earth (.KML)",
         "📏 1. Tính Cự Ly & Góc Phương Vị (A ➔ B)": "📏 1. calculate distance & angle Phuong Vi (A ➔ B)",
         "Chọn Mốc A (hoặc nhập X, Y):": "select point A (or import X, Y):",
@@ -28252,7 +28299,7 @@ const appI18n = {
         "📱 Thông Tin Ứng Dụng & Nền Tảng": "📱 Thong Tin Ung Dung & Nen Tang",
         "Tên ứng dụng:": "name ung dung:",
         "Phiên bản:": "version:",
-        "2.7.0 Pro (Tỷ lệ khổ giấy CAD TCVN, Xuất PDF Offline & DXF Unicode Chuẩn)": "2.7.0 Pro (Ty le kho giay CAD TCVN, export PDF Offline & DXF Unicode Chuhide)",
+        "2.7.0 Pro (Tỷ lệ khổ giấy CAD TCVN, Xuất PDF Offline & DWG Unicode Chuẩn)": "2.7.0 Pro (Ty le kho giay CAD TCVN, export PDF Offline & DWG Unicode Chuhide)",
         "Kiến trúc:": "Kien truc:",
         "Progressive Web App (PWA) Offline-First — hoạt động 100% không cần mạng Internet ngoài thực địa.": "Progressive Web App (PWA) Offline-First — 100% functional without Internet in the field.",
         "Bảo mật & Quyền riêng tư:": "Bao mat & Quyen rieng tu:",
@@ -28315,10 +28362,10 @@ const appI18n = {
         "Vẽ mặt cắt trắc dọc địa hình tự nhiên và đường đỏ thiết kế theo lý trình cọc. Nâng cấp tính năng tính khối lượng đào đắp san nền trên toàn bộ diện tích dự án ($m^3$), hiển thị trực quan vùng đào/đắp trên bản đồ và xuất file báo cáo khối lượng.": "Plot terrain cross-sections and design grade lines along station stakes. Calculate cut/fill earthwork volume ($m^3$) across the project, visualize cut/fill zones on map, and export volume reports.",
         "9. Vẽ Mặt Bằng CAD Mini Trên Bản Đồ (3.5)": "9. MiniCAD Plan Drawing on Map (3.5)",
         "Bắt điểm Snap mốc • Dựng L/Azimuth • Offset song song": "Bat diem Snap point • Dung L/Azimuth • Offset song song",
-        "Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ Leaflet: Vẽ ranh công trình, tự động hít (Snap) vào các mốc tọa độ dự án, dựng điểm theo khoảng cách $L$ và góc phương vị $Az$, tạo đường song song (Offset) và xuất trực tiếp thành file AutoCAD DXF.": "Professional CAD tools directly on Leaflet map: Draw site boundaries, snap to benchmarks, construct points by distance $L$ and azimuth $Az$, offset lines, and export directly to AutoCAD DXF.",
-        "10. Trao Đổi Dữ Liệu CAD DXF, KML, CSV & Google Sheets": "10. Trao Doi Du Lieu CAD DXF, KML, CSV & Google Sheets",
-        "AutoCAD R12 3D • Google Earth • Tự động đồng bộ Cloud": "AutoCAD R12 3D • Google Earth • Auto Cloud Sync",
-        "Kết xuất số liệu đa định dạng: File AutoCAD DXF chuẩn 3 layer (MOC, TEN, RANH), file Google Earth KML để xem trên vệ tinh 3D, file bảng tính CSV tiếng Việt có dấu, và kết nối tự động 2 chiều với Google Sheets trên Google Drive.": "Ket export so lieu da dinh dang: File AutoCAD DXF chuhide 3 layer (MOC, TEN, RANH), file Google Earth KML de view on satellite 3D, file table calculate CSV tieng Viet co dau, va connect automatically 2 chieu with Google Sheets on Google Drive.",
+        "Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ Leaflet: Vẽ ranh công trình, tự động hít (Snap) vào các mốc tọa độ dự án, dựng điểm theo khoảng cách $L$ và góc phương vị $Az$, tạo đường song song (Offset) và xuất trực tiếp thành file AutoCAD DWG.": "Professional CAD tools directly on Leaflet map: Draw site boundaries, snap to benchmarks, construct points by distance $L$ and azimuth $Az$, offset lines, and export directly to AutoCAD DWG.",
+        "10. Trao Đổi Dữ Liệu CAD DWG, KML, CSV & Google Sheets": "10. Data Exchange CAD DWG, KML, CSV & Google Sheets",
+        "AutoCAD 2004 DWG • Google Earth • Tự động đồng bộ Cloud": "AutoCAD 2004 DWG • Google Earth • Auto Cloud Sync",
+        "Kết xuất số liệu đa định dạng: File AutoCAD DWG chuẩn các layer (MOC, TEN, RANH), file Google Earth KML để xem trên vệ tinh 3D, file bảng tính CSV tiếng Việt có dấu, và kết nối tự động 2 chiều với Google Sheets trên Google Drive.": "Multi-format data export: AutoCAD DWG file with standard layers (MOC, TEN, RANH), Google Earth KML for 3D satellite view, Vietnamese CSV table, and two-way Google Sheets sync.",
         "⚖️ Căn Cứ Pháp Lý Hệ Tọa Độ Quốc Gia": "⚖️ Legal Basis of National Coordinate System",
         "Quyết định số 05/2007/QĐ-BTNMT:": "decision so 05/2007/QD-BTNMT:",
         "Ngày 27/02/2007 của Bộ trưởng Bộ Tài nguyên và Môi trường về việc ban hành sử dụng hệ quy chiếu và hệ tọa độ quốc gia VN-2000.": "February 27, 2007 Decision by MONRE Minister on the promulgation and use of the VN-2000 national coordinate reference system.",
@@ -28364,7 +28411,7 @@ const appI18n = {
         "Mái dốc Taluy m (1:m):": "Mai doc Taluy m (1:m):",
         "⚡ TÍNH TOÁN & CẬP NHẬT TRẮC DỌC": "⚡ calculate & CAP NHAT profile",
         "🖼️ Tải PNG": "🖼️ Tai PNG",
-        "💻 Xuất DXF": "💻 export DXF",
+        "💻 Xuất DWG": "💻 export DWG",
         "📈 Mặt Cắt Trắc Dọc Kỹ Thuật:": "📈 cross section profile Ky Thuat:",
         "🎨 Tô Đào/Đắp": "🎨 To Dao/Dap",
         "Chữ trong bảng trích yếu tự xoay dọc chống đè chữ khi cọc gần nhau": "Chu in table trich yeu tu xoay doc chong de chu khi coc gan nhau",
@@ -28382,7 +28429,7 @@ const appI18n = {
         "Chưa có dữ liệu trắc dọc. Bấm tính toán để hiển thị.": "not yet co du lieu profile. Bam calculate de hien thi.",
         "Tiêu chuẩn TCVN 4447:2012:": "Tieu chuhide TCVN 4447:2012:",
         "Tính khối lượng đào đất hố móng / khu vực san nền từ chu vi đáy, chiều sâu đào, góc nghiêng chân hố đào $\\alpha$ (mái dốc taluy $1:m$), hệ số nở rời đất $k_{tx}$ và cung cấp": "calculate volume dao dat ho mong / regional san nen tu chu vi day, chieu sau dao, angle nghieng chan ho dao $\\alpha$ (mai doc taluy $1:m$), he so no roi dat $k_{tx}$ va cung cap",
-        "Bản vẽ AutoCAD DXF": "Ban ve AutoCAD DXF",
+        "Bản vẽ AutoCAD (.dwg)": "AutoCAD Drawing (.dwg)",
         "chi tiết mặt bằng hố đào.": "chi tiet mat bang ho dao.",
         "📍 Chọn mốc đáy hố đào dự kiến:": "📍 select point day ho dao du kien:",
         "📐 Vẽ Đáy Hố trên MiniCAD": "📐 Ve Day Ho on MiniCAD",
@@ -28406,7 +28453,7 @@ const appI18n = {
         "Hệ số nở rời đất k_tx:": "He so no roi dat k_tx:",
         "Dung tích xe ben vận chuyển (m³):": "Dung tich xe ben van chuyen (m³):",
         "⚡ TÍNH TOÁN KHỐI LƯỢNG ĐÀO ĐẮP (TCVN 4447)": "⚡ calculate volume DAO DAP (TCVN 4447)",
-        "💻 Xuất CAD DXF": "💻 export CAD DXF",
+        "💻 Xuất CAD DWG": "💻 export CAD DWG",
         "📊 Xuất Excel CSV": "📊 export Excel CSV",
         "📊 Báo Cáo Khối Lượng Đào Đắp TCVN 4447:": "📊 Bao Cao volume Dao Dap TCVN 4447:",
         "Công thức Chóp cụt": "Cong thuc Chop cut",
@@ -28844,7 +28891,7 @@ const appI18n = {
         "La bàn số 360°, radar dẫn hướng, bíp đích": "compass so 360°, radar dan direction, bip dich",
         "Sổ Đo & Quản Lý Dự Án": "survey book & Quan Ly project",
         "3.1 Sổ đo mốc & Quản lý dự án": "3.1 survey book point & Quan ly project",
-        "Xem bảng mốc, chỉnh sửa và xuất file DXF, KML, CSV": "view table point, edit va export file DXF, KML, CSV",
+        "Xem bảng mốc, chỉnh sửa và xuất file DWG, KML, CSV": "view table point, edit va export file DWG, KML, CSV",
         "3.2 Cấu hình Google Sheets / Cloud": "3.2 configure Google Sheets / Cloud",
         "Đồng bộ tự động lên Google Drive": "Close bo automatically on Google Drive",
         "Tiện Ích Nghiệp Vụ Mở Rộng": "Tien Ich Nghiep Vu Expand",
@@ -28855,7 +28902,7 @@ const appI18n = {
         "4.3 Trắc dọc địa hình & Đào đắp": "4.3 profile dia hinh & Dao dap",
         "Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp": "cross section tu nhien, duong do, calculate m³ dao dap",
         "4.4 Tiện ích phụ trợ: Vẽ CAD Mini": "4.4 Tien ich phu tro: Ve CAD Mini",
-        "Dựng ranh, bắt điểm Snap, tính diện tích & xuất DXF": "Dung ranh, bat diem Snap, calculate area & export DXF",
+        "Dựng ranh, bắt điểm Snap, tính diện tích & xuất DWG": "Dung ranh, bat diem Snap, calculate area & export DWG",
         "Hệ Thống & Cài Đặt": "system & settings",
         "5 mục": "5 item",
         "5.1 Cài đặt Kinh tuyến trục (KTT)": "5.1 settings central meridian (KTT)",
@@ -29021,7 +29068,7 @@ const appI18n = {
         "Khởi tạo dự án mới độc lập với bản vẽ trắng sạch ngay trong MiniCAD": "Khoi create project moi doc lap with ban ve trang sach ngay in MiniCAD",
         "Xem bảng kê tọa độ ranh góc và bảng tính diện tích (Phím tắt: E)": "view table ke Coordinates ranh angle va table calculate area (Phim disable: E)",
         "Hiển thị/Ẩn bảng thống kê các khối đã vẽ": "Hien thi/An table thong ke the khoi da ve",
-        "Mở hộp thoại cấu hình & xuất bản vẽ kỹ thuật (AutoCAD DXF, PDF, Excel...)": "Mo hop thoai configure & export ban ve ky thuat (AutoCAD DXF, PDF, Excel...)",
+        "Mở hộp thoại cấu hình & xuất bản vẽ kỹ thuật (AutoCAD DWG, PDF, Excel...)": "Mo hop thoai configure & export ban ve ky thuat (AutoCAD DWG, PDF, Excel...)",
         "Nạp mốc tọa độ từ các dự án đã lưu vào MiniCAD": "Nap Points Coordinates from the project da save into MiniCAD",
         "Lưu tất cả các khối hiện tại thành một file dự án mới độc lập": "save tat ca the khoi show at thanh mot file project moi doc lap",
         "Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xlsx, .xls) hoặc CSV": "import du lieu hinh ve / thua dat tu file Excel (.xlsx, .xls) or CSV",
@@ -29110,7 +29157,7 @@ const appI18n = {
         "Xuất dữ liệu thô CSV": "export du lieu tho CSV",
         "Mở hộp thoại cấu hình tỷ lệ, khổ giấy và thông tin khung tên xuất bản vẽ CAD/PDF": "Mo hop thoai configure ty le, kho giay va thong tin khung name export ban ve CAD/PDF",
         "Xuất ảnh bản vẽ mặt bằng tối ưu dung lượng (WebP/JPEG/PNG), chia sẻ tức thì qua Zalo": "export anh ban ve mat bang toi uu dung luong (WebP/JPEG/PNG), chia se tuc thi qua Zalo",
-        "Xuất bản vẽ AutoCAD (.dxf) chuẩn R2004 font Unicode không lỗi tiếng Việt và bố cục TCVN 7285": "export ban ve AutoCAD (.dxf) chuhide R2004 font Unicode no error tieng Viet va bo cuc TCVN 7285",
+        "Xuất bản vẽ AutoCAD (.dwg) chuẩn Unicode không lỗi tiếng Việt và bố cục TCVN 7285": "export ban ve AutoCAD (.dwg) chuhide Unicode no error tieng Viet va bo cuc TCVN 7285",
         "Xuất bản vẽ kỹ thuật trực tiếp ra file PDF (.pdf) chuẩn kích thước khổ giấy và tỷ lệ in ấn": "export ban ve ky thuat truc tiep to file PDF (.pdf) chuhide kich thuoc kho giay va ty le in an",
         "Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp chuẩn TCVN": "export table calculate Excel (.xls) co dinh dang va mau sac chuyen nghiep chuhide TCVN",
         "Xuất đồ họa vector SVG sắc nét": "export do hoa vector SVG sac net",
@@ -29128,7 +29175,7 @@ const appI18n = {
         "Mở cây thư mục chức năng (Chuyển nhanh)": "Mo cay thu item feature (Chuyen nhanh)",
         "Đóng hướng dẫn": "Close direction dan",
         "Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)": "Quick search (cad, rtk, cut/fill, stakeout, camera...)",
-        "Tìm nhanh chức năng (cắm mốc, camera, dxf, kml, bản đồ...)": "Quick search tools (stakeout, camera, dxf, kml, map...)",
+        "Tìm nhanh chức năng (cắm mốc, camera, dwg, kml, bản đồ...)": "Quick search tools (stakeout, camera, dwg, kml, map...)",
         "VD: 10.345211 hoặc 10° 20.7127'": "VD: 10.345211 or 10° 20.7127'",
         "VD: 106.113617 hoặc 106° 06.8170'": "VD: 106.113617 or 106° 06.8170'",
         "VD: Mốc 1, Ranh thửa 02...": "e.g. BM 1, Boundary 02...",
@@ -29181,7 +29228,7 @@ const appI18n = {
         "Mốc M1, Ranh thửa, L=15.5m...": "point M1, parcel boundary, L=15.5m...",
         "Tên file dự án mới (ví dụ: DoDac_KhuA.csv)": "name file project moi (vi du: DoDac_KhuA.csv)",
         "Ví dụ dán tọa độ VN-2000:&#10;M1, 1144058.623, 539624.574, Ranh phía Tây&#10;M2, 1144120.350, 539680.120, Góc phía Bắc&#10;&#10;Hoặc dán không có tên (chỉ 2 cột số):&#10;1144058.623 539624.574&#10;1144120.350 539680.120&#10;&#10;Hoặc dán tọa độ GPS / WGS-84 (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200": "Vi du paste Coordinates VN-2000:&#10;M1, 1144058.623, 539624.574, Ranh phia Tay&#10;M2, 1144120.350, 539680.120, angle phia Bac&#10;&#10;or paste no have name (chi 2 column so):&#10;1144058.623 539624.574&#10;1144120.350 539680.120&#10;&#10;or paste Coordinates GPS / WGS-84 (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200",
-        "Tìm nhanh (cắm mốc, dxf, kml, camera...)": "search nhanh (stakeout, dxf, kml, camera...)"
+        "Tìm nhanh (cắm mốc, dwg, kml, camera...)": "search nhanh (stakeout, dwg, kml, camera...)"
 },
     observer: null,
 
@@ -29212,7 +29259,7 @@ const appI18n = {
         [/3 Tab Chuyên Nghiệp/gi, "3 Professional Tabs"],
         [/Cẩm nang 10 nghiệp vụ • Cài PWA • Toán BTNMT/gi, "10 Operations Handbook • PWA • BTNMT Math"],
         [/Tiện ích phụ trợ/gi, "Auxiliary Utility"],
-        [/Đa giác • Tuyến • Bảng diện tích & DXF/gi, "Polygon • Alignment • Area Table & DXF"],
+        [/Đa giác • Tuyến • Bảng diện tích & DWG/gi, "Polygon • Alignment • Area Table & DWG"],
         [/63 Tỉnh Thành/gi, "63 Provinces"],
         [/Bản Đồ Mốc/gi, "Points Map"],
         [/La Bàn HUD/gi, "Compass HUD"],
@@ -29754,7 +29801,7 @@ const appGuide = {
                 },
                 {
                     title: { vi: '3. Xuất file báo cáo & CAD', en: '3. Export reports and CAD' },
-                    desc: { vi: 'Xuất dữ liệu sang Excel (.xlsx, .csv), Google Earth (.kml) và bản vẽ AutoCAD (.dxf) chuẩn tỷ lệ.', en: 'Export to Excel (.xlsx, .csv), Google Earth (.kml), and scaled AutoCAD (.dxf) drawings.' }
+                    desc: { vi: 'Xuất dữ liệu sang Excel (.xlsx, .csv), Google Earth (.kml) và bản vẽ AutoCAD (.dwg) chuẩn tỷ lệ.', en: 'Export to Excel (.xlsx, .csv), Google Earth (.kml), and scaled AutoCAD (.dwg) drawings.' }
                 }
             ],
             proTip: {
@@ -29794,8 +29841,8 @@ const appGuide = {
             title: { vi: '3.5 Vẽ Mặt Bằng & Bảng Kê MiniCAD', en: '3.5 MiniCAD Boundary Survey & Schedules' },
             category: { vi: 'THIẾT KẾ BẢN VẼ', en: 'CADASTRAL CAD DRAFTING' },
             purpose: {
-                vi: 'Vẽ mặt bằng ranh đất, tuyến tim đường, khối công trình nhà ở, mũi tên hướng/kích thước và xuất bản vẽ DXF/Excel.',
-                en: 'Draft cadastral parcel boundaries, road centerlines, building footprints, dimension arrows, and export to DXF/Excel.'
+                vi: 'Vẽ mặt bằng ranh đất, tuyến tim đường, khối công trình nhà ở, mũi tên hướng/kích thước và xuất bản vẽ DWG/Excel.',
+                en: 'Draft cadastral parcel boundaries, road centerlines, building footprints, dimension arrows, and export to DWG/Excel.'
             },
             steps: [
                 {
