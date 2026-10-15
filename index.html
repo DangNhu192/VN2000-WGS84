@@ -2176,20 +2176,76 @@
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 12px;">⌨️</span>
               <b style="font-size: 11px; color: #38bdf8; letter-spacing: 0.5px;">CADCraft 2D CLI</b>
-              <span id="cadCmdCoordsLive" style="font-family: monospace; font-size: 11.5px; color: #94a3b8; margin-left: 6px;">X: — | Y: —</span>
+              <span id="cadCmdCoordsLive" style="font-family: monospace; font-size: 11px; color: #94a3b8; margin-left: 4px;">X: — | Y: —</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
+              <!-- Nút Drawer / Lưới tất cả công cụ CAD -->
+              <button type="button" id="btnCadCmdToolsGrid" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdToolsGrid()" title="Xem tất cả công cụ CAD (Lưới phím tắt)">🎛️</button>
+              <!-- Nút chuyển đổi [Bung rộng đầy đủ ⤢ / Thu gọn chỉ Icon ⤡] -->
+              <button type="button" id="btnCadCmdExpandToggle" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdRibbonExpand()" title="Bung rộng đầy đủ chức năng / Thu gọn chỉ hiện Icon">⤢</button>
+              <!-- Nút thu nhỏ _ -->
               <button type="button" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdBarCollapse()" title="Thu nhỏ / Mở rộng thanh lệnh">_</button>
+              <!-- Nút ẩn ✕ -->
               <button type="button" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdBarVisibility()" title="Ẩn thanh lệnh">✕</button>
             </div>
           </div>
+
+          <!-- POPOVER LƯỚI TẤT CẢ CÔNG CỤ CAD (FULL CAD SHORTCUTS & TOOLS) -->
+          <div id="cadCmdAllToolsGrid" class="cad-cmd-all-tools-grid" style="display: none;">
+            <div class="cad-tools-group-title">📐 VẼ ĐỐI TƯỢNG (DRAW)</div>
+            <div class="cad-tools-btn-row">
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('P')" title="Vẽ đa giác khép kín tính diện tích [P]">📐 Đa giác [P]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('L')" title="Vẽ tuyến / ranh hở [L]">📏 Tuyến [L]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('REC')" title="Vẽ khối nhà [REC]">🏠 Nhà [REC]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('C')" title="Vẽ vùng đệm bán kính [C]">⭕ Bán kính [C]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('CL')" title="Nối đỉnh đầu và cuối [CL]">🔒 Khép góc [CL]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('N')" title="Lưu khối hiện tại [N]">➕ Lưu [N]</button>
+            </div>
+            <div class="cad-tools-group-title">✂️ BIÊN TẬP & NHÃN (EDIT & MARKUP)</div>
+            <div class="cad-tools-btn-row">
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('V')" title="Con trỏ chọn đối tượng [V]">↖️ Chọn [V]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('RO')" title="Xoay nhãn / đối tượng [RO]">🔄 Xoay [RO]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('O')" title="Tạo đường song song [O]">↔ Offset [O]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('DIM')" title="Mũi tên ghi chú [DIM]">🏹 Mũi tên [DIM]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('T')" title="Chữ ghi chú [T]">🔤 Chữ [T]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('STAMP')" title="Tem khung tên [STAMP]">🏷️ Tem [STAMP]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('DEL')" title="Xóa đối tượng đang chọn [Del]">🗑️ Xóa chọn [Del]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('X')" title="Xóa toàn bộ bản vẽ [X]">🗑️ Xóa hết [X]</button>
+            </div>
+            <div class="cad-tools-group-title">📊 TIỆN ÍCH & TRỢ VẼ (AIDS & DATA)</div>
+            <div class="cad-tools-btn-row">
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('E')" title="Mở bảng kê diện tích & tọa độ [E]">📊 Bảng kê [E]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('EXP')" title="Xuất AutoCAD DWG / PDF [EXP]">📤 Xuất [EXP]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('Z')" title="Phóng to cực đại mức 24 [Z]">🔍 Zoom 24 [Z]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('OSNAP')" title="Bắt điểm nam châm [F3/S]">🧲 Snap [F3]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('ORTHO')" title="Khóa vuông góc 90° [F8]">📐 Ortho [F8]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('SNAPLINE')" title="Bắt cạnh khối liền kề [B]">🔗 Cạnh [B]</button>
+              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('DYN')" title="Thước đo động [DYN]">📏 Thước [DYN]</button>
+            </div>
+          </div>
+
           <div class="cad-cmd-input-wrap" id="cadCmdInputWrap">
             <span class="cad-cmd-prompt-label">Command:</span>
             <input type="text" id="txtCadCommandLine" class="cad-cmd-input" placeholder="Gõ lệnh (L, P, REC, C, DIM, RO, O, E, EXP...)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="appCadTool.handleCmdKeyDown(event)" oninput="appCadTool.onCmdInputChange(this.value)">
             <button type="button" class="cad-cmd-submit-btn" onclick="appCadTool.executeCommandLine()" title="Thực thi lệnh [Enter]">↵</button>
             <div id="cadCmdAutocomplete" class="cad-cmd-autocomplete" style="display: none;"></div>
           </div>
+
           <div class="cad-cmd-status-ribbon" id="cadCmdStatusRibbon">
+            <!-- Nút vẽ chính -->
+            <button type="button" id="btnCadRibbonPoly" class="cad-ribbon-btn active" onclick="appCadTool.quickExecCmd('P')" title="Vẽ đa giác khép kín thửa đất [P]">
+              <span class="ribbon-btn-icon">📐</span><span class="ribbon-btn-text"> Đa giác [P]</span>
+            </button>
+            <button type="button" id="btnCadRibbonLine" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('L')" title="Vẽ tuyến / ranh hở [L]">
+              <span class="ribbon-btn-icon">📏</span><span class="ribbon-btn-text"> Tuyến [L]</span>
+            </button>
+            <button type="button" id="btnCadRibbonRect" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('REC')" title="Vẽ khối công trình / Nhà ở [REC]">
+              <span class="ribbon-btn-icon">🏠</span><span class="ribbon-btn-text"> Nhà [REC]</span>
+            </button>
+            <button type="button" id="btnCadRibbonSelect" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('V')" title="Con trỏ chọn & sửa đối tượng [V]">
+              <span class="ribbon-btn-icon">↖️</span><span class="ribbon-btn-text"> Chọn [V]</span>
+            </button>
+            <!-- Nút trợ vẽ -->
             <button type="button" id="btnCadRibbonOsnap" class="cad-ribbon-btn active" onclick="appCadTool.toggleSnap()" title="Bắt điểm nam châm mốc [F3 hoặc S]">
               <span class="ribbon-btn-icon">🧲</span><span class="ribbon-btn-text"> Snap</span>
             </button>

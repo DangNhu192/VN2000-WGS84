@@ -9885,8 +9885,94 @@
     padding: 0 !important;
   }
   .cad-ribbon-btn .ribbon-btn-icon {
-    font-size: 14px !important;
-  }
+}
+
+/* POPOVER LƯỚI TẤT CẢ CÔNG CỤ CAD (FULL SHORTCUTS DRAWER) */
+.cad-cmd-all-tools-grid {
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
+  padding: 8px 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+  scrollbar-width: thin;
+}
+
+.cad-tools-group-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  margin: 6px 0 4px;
+}
+.cad-tools-group-title:first-child {
+  margin-top: 0;
+}
+
+.cad-tools-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.cad-tool-grid-btn {
+  height: 24px;
+  padding: 0 7px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  color: #f1f5f9;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cad-tool-grid-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+/* CHẾ ĐỘ BUNG RỘNG ĐẦY ĐỦ CÁC NÚT (EXPANDED RIBBON) */
+.cad-floating-cmd-bar.expanded-ribbon {
+  width: 440px;
+  max-width: calc(100vw - 20px);
+}
+.cad-floating-cmd-bar.expanded-ribbon .cad-cmd-status-ribbon {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cad-floating-cmd-bar.expanded-ribbon .cad-ribbon-btn {
+  flex: none;
+  padding: 0 7px;
+  font-size: 11px;
+}
+.cad-floating-cmd-bar.expanded-ribbon .cad-ribbon-btn .ribbon-btn-text {
+  display: inline !important;
+}
+
+/* CHẾ ĐỘ THU GỌN CHỈ HIỆN ICON (COMPACT ICON MODE) */
+.cad-floating-cmd-bar.compact-icon-mode .cad-ribbon-btn .ribbon-btn-text {
+  display: none !important;
+}
+.cad-floating-cmd-bar.compact-icon-mode .cad-ribbon-btn {
+  flex: 1;
+  padding: 0 !important;
+  height: 26px;
+  font-size: 13px;
+  justify-content: center;
+}
+.cad-floating-cmd-bar.compact-icon-mode .cad-ribbon-btn .ribbon-btn-icon {
+  font-size: 13.5px;
 }
 
 /* Light Theme support cho Floating HUD */

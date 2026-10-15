@@ -16417,6 +16417,7 @@ const appCadTool = {
         this.syncDisplayCheckboxes();
         this.renderGeometry();
         this.updateUi();
+        if (this.updateCmdRibbonActiveStates) this.updateCmdRibbonActiveStates();
         if (this.renderBlocksPanel) this.renderBlocksPanel();
         this.updateCurrentProjectBadge();
         this.loadAnnotations();
@@ -16911,6 +16912,7 @@ const appCadTool = {
         this.syncToolButtons();
         this.renderGeometry();
         this.updateUi();
+        if (this.updateCmdRibbonActiveStates) this.updateCmdRibbonActiveStates();
     },
 
     togglePercentRatio(checked) {
@@ -18269,6 +18271,9 @@ const appCadTool = {
 
         if (this.syncToolButtons) {
             this.syncToolButtons();
+        }
+        if (this.updateCmdRibbonActiveStates) {
+            this.updateCmdRibbonActiveStates();
         }
     },
 
@@ -23376,28 +23381,31 @@ const appCadTool = {
     },
 
     cadCommandList: [
-        { cmd: 'L', desc: 'Vẽ tuyến / ranh hở [Line]' },
-        { cmd: 'PL', desc: 'Vẽ đường polyline đa đoạn [Polyline]' },
-        { cmd: 'P', desc: 'Vẽ đa giác khép kín thửa đất [Polygon]' },
-        { cmd: 'REC', desc: 'Vẽ khối công trình / Nhà ở [Rectangle]' },
-        { cmd: 'C', desc: 'Vẽ vùng đệm / Bán kính bảo vệ [Circle]' },
-        { cmd: 'DIM', desc: 'Vẽ mũi tên đo khoảng cách / ghi chú [Dimension]' },
-        { cmd: 'ARR', desc: 'Vẽ mũi tên chỉ dẫn CAD [Arrow]' },
-        { cmd: 'STAMP', desc: 'Đặt tem khung tên kỹ thuật [Stamp]' },
-        { cmd: 'T', desc: 'Đặt chữ ghi chú tùy biến [Text]' },
-        { cmd: 'RO', desc: 'Xoay nhãn / đối tượng 0° - 360° [Rotate]' },
-        { cmd: 'O', desc: 'Tạo đường song song cách khoảng [Offset]' },
-        { cmd: 'CL', desc: 'Nối đỉnh cuối về đỉnh đầu để khép góc [Close]' },
-        { cmd: 'V', desc: 'Bật con trỏ chọn đối tượng [Select]' },
-        { cmd: 'E', desc: 'Mở bảng kê diện tích & tọa độ 6 tab [Table]' },
-        { cmd: 'EXP', desc: 'Mở xuất bản vẽ AutoCAD DWG, PDF, Excel [Export]' },
-        { cmd: 'Z', desc: 'Phóng to cực đại mức 23-24 [Zoom Max]' },
-        { cmd: 'DEL', desc: 'Xóa đối tượng đang chọn [Delete]' },
-        { cmd: 'N', desc: 'Lưu khối hiện tại và vẽ khối mới [New/Save]' },
-        { cmd: 'CLEAR', desc: 'Xóa toàn bộ bản vẽ MiniCAD [Clear All]' },
-        { cmd: 'ORTHO', desc: 'Bật/Tắt khóa vẽ vuông góc 90° [F8]' },
-        { cmd: 'OSNAP', desc: 'Bật/Tắt tự động bắt điểm nam châm [F3/S]' },
-        { cmd: 'SNAPLINE', desc: 'Bật/Tắt bắt cạnh khối liền kề [B]' }
+        { cmd: 'P', desc: '📐 Vẽ đa giác khép kín thửa đất [Polygon]' },
+        { cmd: 'L', desc: '📏 Vẽ tuyến / ranh hở [Line]' },
+        { cmd: 'PL', desc: '📏 Vẽ đường polyline đa đoạn [Polyline]' },
+        { cmd: 'REC', desc: '🏠 Vẽ khối công trình / Nhà ở [Rectangle]' },
+        { cmd: 'C', desc: '⭕ Vẽ vùng đệm / Bán kính bảo vệ [Circle]' },
+        { cmd: 'DIM', desc: '🏹 Vẽ mũi tên đo khoảng cách / ghi chú [Dimension]' },
+        { cmd: 'ARR', desc: '🏹 Vẽ mũi tên chỉ dẫn CAD [Arrow]' },
+        { cmd: 'STAMP', desc: '🏷️ Đặt tem khung tên kỹ thuật [Stamp]' },
+        { cmd: 'T', desc: '🔤 Đặt chữ ghi chú tùy biến [Text]' },
+        { cmd: 'RO', desc: '🔄 Xoay nhãn / đối tượng 0° - 360° [Rotate]' },
+        { cmd: 'O', desc: '↔ Tạo đường song song cách khoảng [Offset]' },
+        { cmd: 'CL', desc: '🔒 Nối đỉnh cuối về đỉnh đầu để khép góc [Close]' },
+        { cmd: 'V', desc: '↖️ Bật con trỏ chọn đối tượng [Select]' },
+        { cmd: 'E', desc: '📊 Mở bảng kê diện tích & tọa độ 6 tab [Table]' },
+        { cmd: 'EXP', desc: '📤 Mở xuất bản vẽ AutoCAD DWG, PDF, Excel [Export]' },
+        { cmd: 'Z', desc: '🔍 Phóng to cực đại mức 23-24 [Zoom Max]' },
+        { cmd: 'DEL', desc: '🗑️ Xóa đối tượng đang chọn [Delete]' },
+        { cmd: 'N', desc: '➕ Lưu khối hiện tại và vẽ khối mới [New/Save]' },
+        { cmd: 'CLEAR', desc: '🗑️ Xóa toàn bộ bản vẽ MiniCAD [Clear All]' },
+        { cmd: 'X', desc: '🗑️ Xóa toàn bộ bản vẽ [Clear]' },
+        { cmd: 'ORTHO', desc: '📐 Bật/Tắt khóa vẽ vuông góc 90° [F8]' },
+        { cmd: 'OSNAP', desc: '🧲 Bật/Tắt tự động bắt điểm nam châm [F3/S]' },
+        { cmd: 'SNAPLINE', desc: '🔗 Bật/Tắt bắt cạnh khối liền kề [B]' },
+        { cmd: 'DYN', desc: '📏 Bật/Tắt thước đo cự ly & góc động [DYN]' },
+        { cmd: 'ESC', desc: '✖ Thoát công cụ hiện tại / Bỏ chọn [Escape]' }
     ],
 
     executeCommandLine() {
@@ -23416,51 +23424,75 @@ const appCadTool = {
         input.value = '';
         this.hideCmdAutocomplete();
 
+        // Đảm bảo MiniCAD toolbar đang mở và active
+        if (!this.isActive) {
+            this.openToolbar();
+        }
+
         switch (cmd) {
             case 'L':
             case 'LINE':
             case 'PL':
             case 'PLINE':
+            case 'TUYEN':
                 this.setMode('polyline');
-                showToast('📏 Đã chuyển sang chế độ Vẽ Tuyến [Line]');
+                this.switchToolTab('draw');
+                showToast('📏 Đã kích hoạt Vẽ Tuyến / Ranh hở [Line]');
                 break;
             case 'P':
             case 'POL':
             case 'PG':
             case 'POLYGON':
+            case 'VE':
+            case 'DAGIAC':
                 this.setMode('polygon');
-                showToast('📐 Đã chuyển sang chế độ Vẽ Đa Giác [Polygon]');
+                this.switchToolTab('draw');
+                showToast('📐 Đã kích hoạt Vẽ Đa Giác khép kín [Polygon]');
                 break;
             case 'REC':
             case 'RECT':
             case 'RECTANGLE':
+            case 'NHA':
                 this.setMarkupMode('rect');
+                this.switchToolTab('markup');
                 showToast('🏠 Đã chọn công cụ Vẽ Khối Nhà [Rectangle]');
                 break;
             case 'C':
             case 'CIR':
             case 'CIRCLE':
+            case 'TRON':
+            case 'BANKINH':
                 this.setMarkupMode('circle');
-                showToast('⭕ Đã chọn công cụ Vẽ Bán Kính [Circle]');
+                this.switchToolTab('markup');
+                showToast('⭕ Đã chọn công cụ Vẽ Bán Kính / Vùng đệm [Circle]');
                 break;
             case 'DIM':
             case 'ARR':
             case 'ARROW':
+            case 'NHAN':
+            case 'MUITEN':
                 this.setMarkupMode('arrow');
+                this.switchToolTab('markup');
                 showToast('🏹 Đã chọn công cụ Mũi Tên CAD [Dimension]');
                 break;
             case 'STAMP':
+            case 'TEM':
                 this.setMarkupMode('stamp');
-                showToast('📋 Đã chọn công cụ Tem Khung Tên [Stamp]');
+                this.switchToolTab('markup');
+                showToast('🏷️ Đã chọn công cụ Tem Khung Tên [Stamp]');
                 break;
             case 'T':
             case 'TEXT':
             case 'DT':
+            case 'CHU':
                 this.setMarkupMode('text');
+                this.switchToolTab('markup');
                 showToast('🔤 Đã chọn công cụ Chữ Ghi Chú [Text]');
                 break;
             case 'RO':
             case 'ROTATE':
+            case 'XOAY':
+                this.switchToolTab('select');
                 if (typeof arg !== 'undefined') {
                     this.promptRotateSelected(parseInt(arg, 10));
                 } else {
@@ -23472,23 +23504,29 @@ const appCadTool = {
             case 'MOVE':
             case 'SEL':
             case 'SELECT':
+            case 'CHON':
                 this.setMode('select');
-                showToast('↖️ Đã bật con trỏ Chọn Đối Tượng [Select]');
+                this.switchToolTab('select');
+                showToast('↖️ Đã bật con trỏ Chọn & Sửa Đối Tượng [Select]');
                 break;
             case 'O':
             case 'OFFSET':
+                this.switchToolTab('select');
                 this.promptOffset();
                 break;
             case 'CL':
             case 'CLOSE':
+            case 'KHEP':
                 this.closeLoop();
                 break;
             case 'E':
             case 'TABLE':
+            case 'BANG':
                 this.openAreaTableModal();
                 break;
             case 'EXP':
             case 'EXPORT':
+            case 'XUAT':
                 this.openExportModal();
                 break;
             case 'Z':
@@ -23501,10 +23539,12 @@ const appCadTool = {
                 break;
             case 'N':
             case 'SAVE':
+            case 'LUU':
                 this.saveAndStartNewShape();
                 break;
             case 'CLEAR':
             case 'X':
+            case 'XOA':
                 this.clearDrawing();
                 break;
             case 'ORTHO':
@@ -23520,34 +23560,146 @@ const appCadTool = {
             case 'DYN':
                 this.toggleDynamicInput();
                 break;
+            case 'ESC':
+            case 'THOAT':
+                if (this.selectedItem) this.deselectCurrent();
+                if (this.mode === 'select') this.setMode('polygon');
+                showToast('✖ Đã thoát công cụ');
+                break;
             default:
                 showToast(`⚠️ Không nhận diện lệnh CAD: "${cmd}". Gõ L, P, REC, C, DIM, RO, O, E, EXP...`);
                 break;
         }
+
+        this.updateCmdRibbonActiveStates();
+    },
+
+    updateCmdRibbonActiveStates() {
+        const rPoly = document.getElementById('btnCadRibbonPoly');
+        const rLine = document.getElementById('btnCadRibbonLine');
+        const rRect = document.getElementById('btnCadRibbonRect');
+        const rSel = document.getElementById('btnCadRibbonSelect');
+        const rOsnap = document.getElementById('btnCadRibbonOsnap');
+        const rOrtho = document.getElementById('btnCadRibbonOrtho');
+        const rSnapLine = document.getElementById('btnCadRibbonSnapLine');
+        const rDyn = document.getElementById('btnCadRibbonDyn');
+
+        if (rPoly) rPoly.classList.toggle('active', this.mode === 'polygon');
+        if (rLine) rLine.classList.toggle('active', this.mode === 'polyline');
+        if (rRect) rRect.classList.toggle('active', this.markupMode === 'rect');
+        if (rSel) rSel.classList.toggle('active', this.mode === 'select');
+        if (rOsnap) rOsnap.classList.toggle('active', !!this.snapEnabled);
+        if (rOrtho) rOrtho.classList.toggle('active', !!this.orthoMode);
+        if (rSnapLine) rSnapLine.classList.toggle('active', !!this.snapLineEnabled);
+        if (rDyn) rDyn.classList.toggle('active', !!this.dynamicInputEnabled);
+    },
+
+    quickExecCmd(cmdStr) {
+        const input = document.getElementById('txtCadCommandLine');
+        if (input) input.value = cmdStr;
+        const grid = document.getElementById('cadCmdAllToolsGrid');
+        if (grid) grid.style.display = 'none';
+        this.executeCommandLine();
+    },
+
+    toggleCmdToolsGrid() {
+        const grid = document.getElementById('cadCmdAllToolsGrid');
+        if (!grid) return;
+        const isHidden = grid.style.display === 'none' || !grid.style.display;
+        grid.style.display = isHidden ? 'block' : 'none';
+        const btn = document.getElementById('btnCadCmdToolsGrid');
+        if (btn) btn.classList.toggle('active', isHidden);
+    },
+
+    toggleCmdRibbonExpand() {
+        const bar = document.getElementById('cadFloatingCmdBar');
+        const btn = document.getElementById('btnCadCmdExpandToggle');
+        if (!bar) return;
+
+        if (bar.classList.contains('expanded-ribbon')) {
+            // Đang mở rộng -> chuyển sang thu gọn icon
+            bar.classList.remove('expanded-ribbon');
+            bar.classList.add('compact-icon-mode');
+            if (btn) {
+                btn.innerHTML = '⤢';
+                btn.title = 'Bung rộng đầy đủ chức năng [Expanded Mode]';
+            }
+            showToast('📐 CADCraft CLI: Chế độ Thu Gọn (Chỉ hiện Icon)');
+        } else {
+            // Đang thu gọn -> chuyển sang bung rộng
+            bar.classList.remove('compact-icon-mode');
+            bar.classList.add('expanded-ribbon');
+            if (btn) {
+                btn.innerHTML = '⤡';
+                btn.title = 'Thu gọn chỉ hiển thị Icon [Compact Mode]';
+            }
+            showToast('📐 CADCraft CLI: Chế độ Bung Rộng (Đầy đủ chức năng)');
+        }
     },
 
     handleCmdKeyDown(e) {
-        if (e.key === 'Enter' || e.key === ' ') {
+        const autoBox = document.getElementById('cadCmdAutocomplete');
+        const isAutoVisible = autoBox && autoBox.style.display === 'block';
+
+        if (e.key === 'ArrowDown') {
             e.preventDefault();
+            if (isAutoVisible) {
+                const items = autoBox.querySelectorAll('.cad-cmd-suggest-item');
+                if (items.length > 0) {
+                    this.cadCmdSuggestIndex = ((this.cadCmdSuggestIndex || 0) + 1) % items.length;
+                    items.forEach((it, i) => it.classList.toggle('active', i === this.cadCmdSuggestIndex));
+                    items[this.cadCmdSuggestIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (this.cadCmdHistory.length > 0) {
+                this.cadCmdHistoryIndex = Math.min(this.cadCmdHistory.length, (this.cadCmdHistoryIndex || 0) + 1);
+                const input = document.getElementById('txtCadCommandLine');
+                if (input) input.value = this.cadCmdHistory[this.cadCmdHistoryIndex] || '';
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (isAutoVisible) {
+                const items = autoBox.querySelectorAll('.cad-cmd-suggest-item');
+                if (items.length > 0) {
+                    this.cadCmdSuggestIndex = ((this.cadCmdSuggestIndex || 0) - 1 + items.length) % items.length;
+                    items.forEach((it, i) => it.classList.toggle('active', i === this.cadCmdSuggestIndex));
+                    items[this.cadCmdSuggestIndex].scrollIntoView({ block: 'nearest' });
+                }
+            } else if (this.cadCmdHistory.length > 0) {
+                this.cadCmdHistoryIndex = Math.max(0, (this.cadCmdHistoryIndex || 0) - 1);
+                const input = document.getElementById('txtCadCommandLine');
+                if (input) input.value = this.cadCmdHistory[this.cadCmdHistoryIndex] || '';
+            }
+        } else if (e.key === 'Tab') {
+            if (isAutoVisible) {
+                e.preventDefault();
+                const activeItem = autoBox.querySelector('.cad-cmd-suggest-item.active');
+                if (activeItem) {
+                    const cmdKey = activeItem.getAttribute('data-cmd');
+                    if (cmdKey) {
+                        const input = document.getElementById('txtCadCommandLine');
+                        if (input) input.value = cmdKey;
+                    }
+                }
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (isAutoVisible) {
+                const activeItem = autoBox.querySelector('.cad-cmd-suggest-item.active');
+                if (activeItem) {
+                    const cmdKey = activeItem.getAttribute('data-cmd');
+                    if (cmdKey) {
+                        this.selectCmdSuggestion(cmdKey);
+                        return;
+                    }
+                }
+            }
             this.executeCommandLine();
         } else if (e.key === 'Escape') {
             const input = document.getElementById('txtCadCommandLine');
             if (input) input.value = '';
             this.hideCmdAutocomplete();
-        } else if (e.key === 'ArrowUp') {
-            if (this.cadCmdHistory.length > 0) {
-                e.preventDefault();
-                this.cadCmdHistoryIndex = Math.max(0, this.cadCmdHistoryIndex - 1);
-                const input = document.getElementById('txtCadCommandLine');
-                if (input) input.value = this.cadCmdHistory[this.cadCmdHistoryIndex] || '';
-            }
-        } else if (e.key === 'ArrowDown') {
-            if (this.cadCmdHistory.length > 0) {
-                e.preventDefault();
-                this.cadCmdHistoryIndex = Math.min(this.cadCmdHistory.length, this.cadCmdHistoryIndex + 1);
-                const input = document.getElementById('txtCadCommandLine');
-                if (input) input.value = this.cadCmdHistory[this.cadCmdHistoryIndex] || '';
-            }
+            const grid = document.getElementById('cadCmdAllToolsGrid');
+            if (grid) grid.style.display = 'none';
         }
     },
 
@@ -23561,18 +23713,23 @@ const appCadTool = {
             return;
         }
 
-        const matches = this.cadCommandList.filter(item => item.cmd.startsWith(query) || item.desc.toUpperCase().includes(query));
+        const matches = this.cadCommandList.filter(item => 
+            item.cmd.startsWith(query) || 
+            item.desc.toUpperCase().includes(query)
+        );
+
         if (matches.length === 0) {
             this.hideCmdAutocomplete();
             return;
         }
 
+        this.cadCmdSuggestIndex = 0;
         let html = '';
-        matches.slice(0, 7).forEach((m, idx) => {
+        matches.slice(0, 8).forEach((m, idx) => {
             html += `
-                <div class="cad-cmd-suggest-item ${idx === 0 ? 'active' : ''}" onclick="appCadTool.selectCmdSuggestion('${m.cmd}')">
-                    <b style="color:#38bdf8; font-family:monospace;">${m.cmd}</b>
-                    <span style="color:#94a3b8; font-size:10px;">${m.desc}</span>
+                <div class="cad-cmd-suggest-item ${idx === 0 ? 'active' : ''}" data-cmd="${m.cmd}" onclick="appCadTool.selectCmdSuggestion('${m.cmd}')">
+                    <b style="color:#38bdf8; font-family:monospace; min-width: 45px;">${m.cmd}</b>
+                    <span style="color:#e2e8f0; font-size:10.5px;">${m.desc}</span>
                 </div>
             `;
         });
@@ -23584,8 +23741,8 @@ const appCadTool = {
         const input = document.getElementById('txtCadCommandLine');
         if (input) {
             input.value = cmd;
-            input.focus();
         }
+        this.hideCmdAutocomplete();
         this.executeCommandLine();
     },
 
@@ -23597,6 +23754,8 @@ const appCadTool = {
     toggleCmdBarCollapse() {
         const wrap = document.getElementById('cadCmdInputWrap');
         const rib = document.getElementById('cadCmdStatusRibbon');
+        const grid = document.getElementById('cadCmdAllToolsGrid');
+        if (grid) grid.style.display = 'none';
         const isCollapsed = wrap && wrap.style.display === 'none';
         if (wrap) wrap.style.display = isCollapsed ? 'flex' : 'none';
         if (rib) rib.style.display = isCollapsed ? 'flex' : 'none';
@@ -23607,6 +23766,9 @@ const appCadTool = {
         if (!bar) return;
         const isHidden = bar.style.display === 'none';
         bar.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            this.updateCmdRibbonActiveStates();
+        }
         showToast(isHidden ? '⌨️ Đã hiển thị thanh lệnh CADCraft CLI' : '⌨️ Đã ẩn thanh lệnh CADCraft CLI');
     },
 
