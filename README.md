@@ -22,7 +22,7 @@
 **WGS84 - VN2000 Pro PWA** là giải pháp công nghệ trắc địa hiện đại chạy trực tiếp trên nền tảng Web và Progressive Web App (PWA). Ứng dụng được thiết kế tối ưu hóa cho kỹ sư trắc địa, địa chính, quy hoạch công trình và người dùng thực địa cần tra cứu, chuyển đổi tọa độ nhanh chóng, chính xác tuyệt đối ngay trên điện thoại iPhone (Safari) và Android mà **không cần kết nối mạng 4G/Wi-Fi**.
 
 - **Tác giả:** Đặng Như
-- **Email:** [contact@vn2000pro.vn](mailto:contact@vn2000pro.vn)
+- **Email:** [contact@vn2000pro.vn](mailto:dnpn.ttqt@gmail.com)
 - **Phiên bản:** v2.5.4 Pro (Nâng Cấp Màn Hình Thông Tin 3 Tab: Về App & Cài Đặt PWA Đa Nền Tảng, Cẩm Nang 10 Nghiệp Vụ Thực Địa, Pháp Lý & Toán BTNMT Bursa-Wolf)
 
 ---
@@ -145,5 +145,5 @@ Dự án đã được cấu hình sẵn tệp [vercel.json](vercel.json) tươn
 
 ## 📄 Bản quyền & Tác giả
 
-Phát triển và duy trì bởi **Đặng Như** ([contact@vn2000pro.vn](mailto:contact@vn2000pro.vn)).  
+Phát triển và duy trì bởi **Đặng Như** ([dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)).  
 Mã nguồn được phân phối theo giấy phép tự do [MIT License](LICENSE).
