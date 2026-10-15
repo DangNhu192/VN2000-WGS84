@@ -1568,20 +1568,33 @@
       text-overflow: ellipsis;
     }
 
-    .compact-tool-tag {
-      font-size: 11px;
-      font-weight: 700;
-      color: #38bdf8;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      padding: 1px 5px;
-      border-radius: 4px;
-      flex-shrink: 0;
+    /* TỐI ƯU GIAO DIỆN: TRIỆT TIÊU RÁC CHỮ, PHỤ ĐỀ MÔ TẢ & CÁC NÚT MỞ RƯỜM RÀ */
+    .compact-tool-tag,
+    .compact-tool-desc,
+    .compact-tool-sub,
+    .btn-compact-launch,
+    .drawer-leaf-sub,
+    .tree-leaf-desc,
+    .feature-card-desc,
+    .feature-card-hint,
+    .menu-card-desc,
+    .toggle-btn-sub,
+    .accordion-title-sub,
+    .btn-card-launch {
+      display: none !important;
     }
 
-    .compact-tool-desc {
-      font-size: 11.5px;
-      color: var(--text-muted, #94a3b8);
+    .compact-tool-info {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .compact-tool-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1600,8 +1613,8 @@
       border: 1px solid rgba(251, 191, 36, 0.2);
       color: #64748b;
       font-size: 12px;
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1615,24 +1628,6 @@
       border-color: rgba(251, 191, 36, 0.6);
       background: rgba(251, 191, 36, 0.1);
       transform: scale(1.15);
-    }
-
-    .btn-compact-launch {
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      color: var(--accent-cyan, #38bdf8);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-      transition: all 0.2s ease;
-    }
-
-    .compact-tool-card:hover .btn-compact-launch {
-      background: rgba(56, 189, 248, 0.22);
-      border-color: rgba(56, 189, 248, 0.5);
-      color: #f8fafc;
     }
 
     /* MODAL TÙY CHỈNH 4 TÍNH NĂNG GHIM */

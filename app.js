@@ -1623,23 +1623,16 @@ const appDashboard = {
             compactList.innerHTML = unpinnedFeatures.map(f => {
                 const fNameClean = f.name.replace(/^\d+\.\s*/, '');
                 const toolTitle = isEn ? (appI18n.t('feature.' + f.id) || appI18n.translateString(fNameClean)) : f.name;
-                const toolTag = isEn ? appI18n.translateString(f.tag) : f.tag;
-                const toolSub = isEn ? appI18n.translateString(f.sub) : f.sub;
                 return `
                   <div class="compact-tool-card" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="${isEn ? 'Open ' + toolTitle : 'Mở ' + f.name}">
                     <div class="compact-tool-left">
                       <div class="compact-tool-icon icon-box-${f.color}">${f.icon}</div>
                       <div class="compact-tool-info">
-                        <div class="compact-tool-title-row">
-                          <span class="compact-tool-title">${toolTitle}</span>
-                          ${toolTag ? `<span class="compact-tool-tag">${toolTag}</span>` : ''}
-                        </div>
-                        <div class="compact-tool-desc">${toolSub}</div>
+                        <span class="compact-tool-title">${toolTitle}</span>
                       </div>
                     </div>
                     <div class="compact-tool-right">
                       <button type="button" class="btn-compact-pin" onclick="event.stopPropagation(); appDashboard.quickSwapPin('${f.id}')" title="${isEn ? 'Pin to home screen' : 'Ghim lên màn hình chính'}">⭐</button>
-                      <span class="btn-compact-launch">${isEn ? 'Open ➔' : 'Mở ➔'}</span>
                     </div>
                   </div>
                 `;
@@ -1668,16 +1661,16 @@ const appDashboard = {
 
         // 1. Render 4 Big Action Tiles (Bento Grid Lovable 2026 - De-cluttered)
         grid.innerHTML = pinnedFeatures.map(f => {
-            let metricVal = typeof f.metric === 'function' ? f.metric() : f.metric;
+            let metricVal = typeof f.metric === 'function' ? f.metric() : null;
             if (isEn && typeof metricVal === 'string') {
                 metricVal = appI18n.translateString(metricVal);
             }
             const tileTitle = isEn ? appI18n.t('feature.' + f.id) : f.short;
             return `
-              <div class="big-action-tile tile-${f.color}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="${isEn ? ('Open ' + tileTitle) : ('Mở ' + f.name + ': ' + f.sub)}">
+              <div class="big-action-tile tile-${f.color}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="${isEn ? ('Open ' + tileTitle) : ('Mở ' + f.name)}">
                 <div class="big-tile-top">
                   <div class="big-tile-icon-box icon-box-${f.color}">${f.icon}</div>
-                  <span class="tile-metric-pill metric-${f.color}">${metricVal || f.tag || 'Mở ➔'}</span>
+                  ${metricVal ? `<span class="tile-metric-pill metric-${f.color}">${metricVal}</span>` : ''}
                 </div>
                 <div class="big-tile-bottom">
                   <div class="big-tile-title">${tileTitle}</div>
@@ -1863,10 +1856,7 @@ const appDashboard = {
                   <div class="pin-picker-item ${isChecked ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
                     <div style="display: flex; align-items: center; gap: 10px;">
                       <span style="font-size: 20px;">${f.icon}</span>
-                      <div>
-                        <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
-                        <div style="font-size: 11px; color: #94a3b8;">${f.sub}</div>
-                      </div>
+                      <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
                     </div>
                     <input type="checkbox" class="pin-picker-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
                   </div>
@@ -1885,10 +1875,7 @@ const appDashboard = {
                   <div class="pin-picker-item ${isChecked ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
                     <div style="display: flex; align-items: center; gap: 10px;">
                       <span style="font-size: 20px;">${f.icon}</span>
-                      <div>
-                        <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
-                        <div style="font-size: 11px; color: #94a3b8;">${f.sub}</div>
-                      </div>
+                      <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
                     </div>
                     <input type="checkbox" class="pin-picker-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
                   </div>
