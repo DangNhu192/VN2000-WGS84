@@ -14,10 +14,11 @@ test('=== 1. KIỂM THỬ TÙY CHỌN CHẾ ĐỘ BIỂU TƯỢNG LỚN TRONG C�
     const htmlPath = path.join(ROOT_DIR, 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    // 1.1 Kiểm tra các nút chọn chế độ Icon Pro trong Tab Cài đặt chung
-    assert.ok(html.includes('id="btnUiModeIconPro"'), 'index.html phải có nút btnUiModeIconPro');
-    assert.ok(html.includes('id="btnUiModeDetailed"'), 'index.html phải có nút btnUiModeDetailed');
-    assert.ok(html.includes('setUiIconMode'), 'Phải gọi hàm setUiIconMode');
+    // 1.1 Kiểm tra đã loại bỏ mục "Mật độ biểu tượng & chữ (di động)" không có tác dụng khỏi Tab Cài đặt chung
+    assert.ok(!html.includes('id="btnUiModeIconPro"'), 'index.html đã loại bỏ nút không tác dụng btnUiModeIconPro');
+    assert.ok(!html.includes('id="btnUiModeDetailed"'), 'index.html đã loại bỏ nút không tác dụng btnUiModeDetailed');
+    assert.ok(!html.includes('data-i18n="settings.general.icon_mode_label"'), 'Đã loại bỏ nhãn Mật độ Biểu tượng');
+    assert.ok(!html.includes('id="btnFloatingQuickNav"'), 'index.html đã loại bỏ nút chết btnFloatingQuickNav');
 
     // 1.2 Kiểm tra logic JavaScript trong app.js
     const appPath = path.join(ROOT_DIR, 'app.js');

@@ -10249,12 +10249,6 @@ const appModal = {
         if (chkTips) chkTips.checked = tipsEnabled;
         if (sliderTips) sliderTips.style.backgroundColor = tipsEnabled ? '#0284c7' : '#334155';
 
-        // Cập nhật Chế độ Biểu tượng lớn (Icon Pro - Ít chữ)
-        const uiIconMode = (typeof localStorage !== 'undefined' && localStorage.getItem('vn2k_ui_icon_mode')) || 'icon_pro';
-        const btnIconPro = document.getElementById('btnUiModeIconPro');
-        const btnDetailed = document.getElementById('btnUiModeDetailed');
-        if (btnIconPro) btnIconPro.classList.toggle('active', uiIconMode === 'icon_pro');
-        if (btnDetailed) btnDetailed.classList.toggle('active', uiIconMode === 'detailed');
     },
 
     initUiIconMode() {
