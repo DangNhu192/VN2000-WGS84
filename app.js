@@ -19738,11 +19738,12 @@ const appCadTool = {
     scheduleToolbarCollapse(delay) {
         clearTimeout(this._toolbarTimer);
         if (!this.isActive) return;
+        if (this._userHoldOpen) return;
         this._toolbarTimer = setTimeout(() => {
             const active = document.activeElement;
             const bar = document.getElementById('mapCadToolbar');
             const typing = bar && active && bar.contains(active) && /INPUT|SELECT|TEXTAREA/.test(active.tagName);
-            if (this._toolbarHover || typing) return;
+            if (this._toolbarHover || typing || this._userHoldOpen) return;
             this.setToolbarCollapsed(true);
         }, delay || this.toolbarIdleMs);
     },
@@ -19751,8 +19752,14 @@ const appCadTool = {
         const bar = document.getElementById('mapCadToolbar');
         if (!bar) return;
         const willCollapse = !bar.classList.contains('collapsed');
-        this.setToolbarCollapsed(willCollapse);
-        if (!willCollapse) this.scheduleToolbarCollapse(this.toolbarIdleMs * 2);
+        if (!willCollapse) {
+            this._userHoldOpen = true;
+            this.setToolbarCollapsed(false);
+            showToast('📐 Đã mở rộng thanh công cụ MiniCAD');
+        } else {
+            this._userHoldOpen = false;
+            this.setToolbarCollapsed(true);
+        }
     },
 
     renderGeometry() {
@@ -23578,7 +23585,9 @@ const appCadTool = {
         const rPoly = document.getElementById('btnCadRibbonPoly');
         const rLine = document.getElementById('btnCadRibbonLine');
         const rRect = document.getElementById('btnCadRibbonRect');
-        const rSel = document.getElementById('btnCadRibbonSelect');
+        const rCircle = document.getElementById('btnCadRibbonCircle');
+        const rSelect = document.getElementById('btnCadRibbonSelect');
+        const rArrow = document.getElementById('btnCadRibbonArrow');
         const rOsnap = document.getElementById('btnCadRibbonOsnap');
         const rOrtho = document.getElementById('btnCadRibbonOrtho');
         const rSnapLine = document.getElementById('btnCadRibbonSnapLine');
@@ -23587,7 +23596,9 @@ const appCadTool = {
         if (rPoly) rPoly.classList.toggle('active', this.mode === 'polygon');
         if (rLine) rLine.classList.toggle('active', this.mode === 'polyline');
         if (rRect) rRect.classList.toggle('active', this.markupMode === 'rect');
-        if (rSel) rSel.classList.toggle('active', this.mode === 'select');
+        if (rCircle) rCircle.classList.toggle('active', this.markupMode === 'circle');
+        if (rSelect) rSelect.classList.toggle('active', this.mode === 'select');
+        if (rArrow) rArrow.classList.toggle('active', this.markupMode === 'arrow');
         if (rOsnap) rOsnap.classList.toggle('active', !!this.snapEnabled);
         if (rOrtho) rOrtho.classList.toggle('active', !!this.orthoMode);
         if (rSnapLine) rSnapLine.classList.toggle('active', !!this.snapLineEnabled);
@@ -23599,6 +23610,8 @@ const appCadTool = {
         if (input) input.value = cmdStr;
         const grid = document.getElementById('cadCmdAllToolsGrid');
         if (grid) grid.style.display = 'none';
+        const gridBtn = document.getElementById('btnCadCmdToolsGrid');
+        if (gridBtn) gridBtn.classList.remove('active');
         this.executeCommandLine();
     },
 
@@ -23609,31 +23622,58 @@ const appCadTool = {
         grid.style.display = isHidden ? 'block' : 'none';
         const btn = document.getElementById('btnCadCmdToolsGrid');
         if (btn) btn.classList.toggle('active', isHidden);
+
+        // Nếu thân thanh lệnh đang bị thu nhỏ, tự động bung mở ra
+        const wrap = document.getElementById('cadCmdInputWrap');
+        const rib = document.getElementById('cadCmdStatusRibbon');
+        const collBtn = document.getElementById('btnCadCmdCollapseToggle');
+        if (isHidden) {
+            if (wrap) wrap.style.display = 'flex';
+            if (rib) rib.style.display = 'flex';
+            if (collBtn) collBtn.innerHTML = '_';
+            showToast('🎛️ Đã mở lưới tất cả công cụ CAD (21 phím tắt)');
+        }
     },
 
     toggleCmdRibbonExpand() {
         const bar = document.getElementById('cadFloatingCmdBar');
         const btn = document.getElementById('btnCadCmdExpandToggle');
+        const grid = document.getElementById('cadCmdAllToolsGrid');
+        const gridBtn = document.getElementById('btnCadCmdToolsGrid');
+        const wrap = document.getElementById('cadCmdInputWrap');
+        const rib = document.getElementById('cadCmdStatusRibbon');
+        const collBtn = document.getElementById('btnCadCmdCollapseToggle');
         if (!bar) return;
 
+        // Nếu thân thanh lệnh đang bị thu nhỏ bởi _, tự động bung mở ra
+        if (wrap) wrap.style.display = 'flex';
+        if (rib) rib.style.display = 'flex';
+        if (collBtn) collBtn.innerHTML = '_';
+
         if (bar.classList.contains('expanded-ribbon')) {
-            // Đang mở rộng -> chuyển sang thu gọn icon
+            // Đang mở rộng -> thu gọn về kích thước chuẩn
             bar.classList.remove('expanded-ribbon');
-            bar.classList.add('compact-icon-mode');
+            bar.classList.remove('compact-icon-mode');
+            if (grid) grid.style.display = 'none';
+            if (gridBtn) gridBtn.classList.remove('active');
             if (btn) {
                 btn.innerHTML = '⤢';
-                btn.title = 'Bung rộng đầy đủ chức năng [Expanded Mode]';
+                btn.title = 'Bung rộng toàn bộ công cụ CADCraft CLI [Expand]';
             }
-            showToast('📐 CADCraft CLI: Chế độ Thu Gọn (Chỉ hiện Icon)');
+            showToast('📐 CADCraft CLI: Đã thu gọn về kích thước chuẩn');
         } else {
-            // Đang thu gọn -> chuyển sang bung rộng
+            // BUNG RỘNG TOÀN DIỆN
             bar.classList.remove('compact-icon-mode');
             bar.classList.add('expanded-ribbon');
+            // Bung luôn bảng lưới tất cả công cụ CAD
+            if (grid) grid.style.display = 'block';
+            if (gridBtn) gridBtn.classList.add('active');
             if (btn) {
                 btn.innerHTML = '⤡';
-                btn.title = 'Thu gọn chỉ hiển thị Icon [Compact Mode]';
+                btn.title = 'Thu gọn thanh công cụ CADCraft CLI [Compact]';
             }
-            showToast('📐 CADCraft CLI: Chế độ Bung Rộng (Đầy đủ chức năng)');
+            this.updateCmdRibbonActiveStates();
+            showToast('⤢ Đã bung rộng toàn bộ công cụ & phím tắt CADCraft CLI!');
         }
     },
 
@@ -23755,10 +23795,16 @@ const appCadTool = {
         const wrap = document.getElementById('cadCmdInputWrap');
         const rib = document.getElementById('cadCmdStatusRibbon');
         const grid = document.getElementById('cadCmdAllToolsGrid');
+        const btn = document.getElementById('btnCadCmdCollapseToggle');
         if (grid) grid.style.display = 'none';
         const isCollapsed = wrap && wrap.style.display === 'none';
         if (wrap) wrap.style.display = isCollapsed ? 'flex' : 'none';
         if (rib) rib.style.display = isCollapsed ? 'flex' : 'none';
+        if (btn) {
+            btn.innerHTML = isCollapsed ? '_' : '+';
+            btn.title = isCollapsed ? 'Thu nhỏ thanh lệnh [_]' : 'Bung rộng thanh lệnh [+]';
+        }
+        showToast(isCollapsed ? '📐 Đã bung rộng thanh lệnh CADCraft CLI' : '📐 Đã thu nhỏ thanh lệnh (Bấm + để bung ra)');
     },
 
     toggleCmdBarVisibility() {

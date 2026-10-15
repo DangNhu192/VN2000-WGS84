@@ -4,6 +4,7 @@
  * 2. Lưới tất cả công cụ CAD (Drawer / Popover Shortcuts Grid)
  * 3. Thực thi lệnh chính xác: đồng bộ tab con MiniCAD, con trỏ vẽ và hỗ trợ lệnh phím tắt/tiếng Việt
  * 4. Autocomplete thông minh và hỗ trợ phím mũi tên/Tab/Enter
+ * 5. Cải tiến giữ mở (Hold Open) chống tự động thu nhỏ bất ngờ
  */
 
 const { test } = require('node:test');
@@ -20,6 +21,7 @@ test('=== 1. KIỂM THỬ GIAO DIỆN BUNG RỘNG / THU GỌN VÀ LƯỚI CÔNG 
     // 1.1 Header CLI có nút lưới công cụ và nút chuyển đổi chế độ bung rộng/thu gọn
     assert.ok(html.includes('id="btnCadCmdToolsGrid"'), 'Header phải có nút bật/tắt lưới công cụ 🎛️');
     assert.ok(html.includes('id="btnCadCmdExpandToggle"'), 'Header phải có nút bung rộng/thu gọn ⤢');
+    assert.ok(html.includes('id="btnCadCmdCollapseToggle"'), 'Header phải có nút thu nhỏ/mở rộng _');
 
     // 1.2 Có popup lưới tất cả công cụ CAD (#cadCmdAllToolsGrid)
     assert.ok(html.includes('id="cadCmdAllToolsGrid"'), 'Phải có bảng lưới tất cả công cụ CAD');
@@ -31,7 +33,11 @@ test('=== 1. KIỂM THỬ GIAO DIỆN BUNG RỘNG / THU GỌN VÀ LƯỚI CÔNG 
     assert.ok(html.includes('id="btnCadRibbonPoly"'), 'Ribbon có nút Đa giác [P]');
     assert.ok(html.includes('id="btnCadRibbonLine"'), 'Ribbon có nút Tuyến [L]');
     assert.ok(html.includes('id="btnCadRibbonRect"'), 'Ribbon có nút Nhà [REC]');
+    assert.ok(html.includes('id="btnCadRibbonCircle"'), 'Ribbon có nút Bán kính [C]');
     assert.ok(html.includes('id="btnCadRibbonSelect"'), 'Ribbon có nút Chọn [V]');
+    assert.ok(html.includes('id="btnCadRibbonArrow"'), 'Ribbon có nút Mũi tên [DIM]');
+    assert.ok(html.includes('id="btnCadRibbonClose"'), 'Ribbon có nút Khép [CL]');
+    assert.ok(html.includes('id="btnCadRibbonNew"'), 'Ribbon có nút Lưu [N]');
     assert.ok(html.includes('id="btnCadRibbonOsnap"'), 'Ribbon có nút Snap [F3]');
     assert.ok(html.includes('id="btnCadRibbonOrtho"'), 'Ribbon có nút Ortho [F8]');
     assert.ok(html.includes('id="btnCadRibbonSnapLine"'), 'Ribbon có nút Bắt cạnh [B]');
@@ -43,12 +49,16 @@ test('=== 2. KIỂM THỬ CSS CHẾ ĐỘ EXPANDED RIBBON & COMPACT ICON MODE ==
     assert.ok(css.includes('.cad-cmd-all-tools-grid'), 'Có CSS cho .cad-cmd-all-tools-grid');
     assert.ok(css.includes('.cad-tool-grid-btn'), 'Có CSS cho .cad-tool-grid-btn');
 
-    // 2.2 Chế độ expanded-ribbon: mở rộng bề ngang và hiển thị text
+    // 2.2 Chế độ expanded-ribbon: mở rộng bề ngang tới 660px và hiển thị text
     assert.ok(css.includes('.cad-floating-cmd-bar.expanded-ribbon'), 'Có CSS cho chế độ expanded-ribbon');
     assert.match(
         css,
         /\.cad-floating-cmd-bar\.expanded-ribbon\s+\.cad-ribbon-btn\s+\.ribbon-btn-text\s*\{\s*display:\s*inline\s*!important;/,
         'Chế độ expanded-ribbon phải hiển thị đầy đủ tên nút'
+    );
+    assert.ok(
+        css.includes('width: min(660px, calc(100vw - 20px)) !important;'),
+        'Chế độ expanded-ribbon phải bung rộng tới 660px'
     );
 
     // 2.3 Chế độ compact-icon-mode: thu gọn và chỉ hiện icon
@@ -109,4 +119,9 @@ test('=== 4. KIỂM THỬ AUTOCOMPLETE & ĐIỀU HƯỚNG BẰNG PHÍM MŨI TÊN
     // 4.2 Hỗ trợ phím Tab và Enter chọn gợi ý
     assert.ok(js.includes("} else if (e.key === 'Tab')"), 'Có xử lý phím Tab chọn gợi ý autocomplete');
     assert.ok(js.includes("} else if (e.key === 'Enter')"), 'Có xử lý phím Enter chọn gợi ý và thực thi');
+});
+
+test('=== 5. KIỂM THỬ GIỮ MỞ (HOLD OPEN) CHO THANH MINICAD TOOLBAR ===', () => {
+    assert.ok(js.includes('this._userHoldOpen = true;'), 'toggleToolbarCollapse gán _userHoldOpen khi mở rộng');
+    assert.ok(js.includes('if (this._userHoldOpen) return;'), 'scheduleToolbarCollapse không tự thu nhỏ khi _userHoldOpen');
 });

@@ -2184,7 +2184,7 @@
               <!-- Nút chuyển đổi [Bung rộng đầy đủ ⤢ / Thu gọn chỉ Icon ⤡] -->
               <button type="button" id="btnCadCmdExpandToggle" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdRibbonExpand()" title="Bung rộng đầy đủ chức năng / Thu gọn chỉ hiện Icon">⤢</button>
               <!-- Nút thu nhỏ _ -->
-              <button type="button" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdBarCollapse()" title="Thu nhỏ / Mở rộng thanh lệnh">_</button>
+              <button type="button" id="btnCadCmdCollapseToggle" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdBarCollapse()" title="Thu nhỏ / Mở rộng thanh lệnh">_</button>
               <!-- Nút ẩn ✕ -->
               <button type="button" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdBarVisibility()" title="Ẩn thanh lệnh">✕</button>
             </div>
@@ -2242,27 +2242,42 @@
             <button type="button" id="btnCadRibbonRect" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('REC')" title="Vẽ khối công trình / Nhà ở [REC]">
               <span class="ribbon-btn-icon">🏠</span><span class="ribbon-btn-text"> Nhà [REC]</span>
             </button>
+            <button type="button" id="btnCadRibbonCircle" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('C')" title="Vẽ vùng đệm / Bán kính bảo vệ [C]">
+              <span class="ribbon-btn-icon">⭕</span><span class="ribbon-btn-text"> Bán kính [C]</span>
+            </button>
             <button type="button" id="btnCadRibbonSelect" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('V')" title="Con trỏ chọn & sửa đối tượng [V]">
               <span class="ribbon-btn-icon">↖️</span><span class="ribbon-btn-text"> Chọn [V]</span>
             </button>
+            <button type="button" id="btnCadRibbonArrow" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('DIM')" title="Mũi tên đo & ghi chú [DIM]">
+              <span class="ribbon-btn-icon">🏹</span><span class="ribbon-btn-text"> Mũi tên [DIM]</span>
+            </button>
+            <button type="button" id="btnCadRibbonClose" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('CL')" title="Nối đỉnh đầu và cuối khép góc [CL]">
+              <span class="ribbon-btn-icon">🔒</span><span class="ribbon-btn-text"> Khép [CL]</span>
+            </button>
+            <button type="button" id="btnCadRibbonNew" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('N')" title="Lưu khối hiện tại và vẽ khối mới [N]">
+              <span class="ribbon-btn-icon">➕</span><span class="ribbon-btn-text"> Lưu [N]</span>
+            </button>
             <!-- Nút trợ vẽ -->
             <button type="button" id="btnCadRibbonOsnap" class="cad-ribbon-btn active" onclick="appCadTool.toggleSnap()" title="Bắt điểm nam châm mốc [F3 hoặc S]">
-              <span class="ribbon-btn-icon">🧲</span><span class="ribbon-btn-text"> Snap</span>
+              <span class="ribbon-btn-icon">🧲</span><span class="ribbon-btn-text"> Snap [F3]</span>
             </button>
             <button type="button" id="btnCadRibbonOrtho" class="cad-ribbon-btn" onclick="appCadTool.toggleOrthoMode()" title="Khóa vẽ vuông góc 90° [F8]">
-              <span class="ribbon-btn-icon">📐</span><span class="ribbon-btn-text"> Ortho</span>
+              <span class="ribbon-btn-icon">📐</span><span class="ribbon-btn-text"> Ortho [F8]</span>
             </button>
             <button type="button" id="btnCadRibbonSnapLine" class="cad-ribbon-btn active" onclick="appCadTool.toggleSnapLine()" title="Bắt cạnh khối liền kề [B]">
-              <span class="ribbon-btn-icon">🔗</span><span class="ribbon-btn-text"> Cạnh</span>
+              <span class="ribbon-btn-icon">🔗</span><span class="ribbon-btn-text"> Cạnh [B]</span>
             </button>
             <button type="button" id="btnCadRibbonDyn" class="cad-ribbon-btn active" onclick="appCadTool.toggleDynamicInput()" title="Hiển thị thước đo & phương vị động [DYN]">
-              <span class="ribbon-btn-icon">📏</span><span class="ribbon-btn-text"> Thước</span>
+              <span class="ribbon-btn-icon">📏</span><span class="ribbon-btn-text"> Thước [DYN]</span>
             </button>
             <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openAreaTableModal()" title="Mở bảng kê 6 tab [E]">
-              <span class="ribbon-btn-icon">📊</span><span class="ribbon-btn-text"> Bảng kê</span>
+              <span class="ribbon-btn-icon">📊</span><span class="ribbon-btn-text"> Bảng kê [E]</span>
             </button>
             <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openExportModal()" title="Xuất AutoCAD DWG / PDF / Excel [EXP]">
-              <span class="ribbon-btn-icon">📤</span><span class="ribbon-btn-text"> Xuất</span>
+              <span class="ribbon-btn-icon">📤</span><span class="ribbon-btn-text"> Xuất [EXP]</span>
+            </button>
+            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('X')" title="Xóa toàn bộ bản vẽ [X]" style="color: #f87171;">
+              <span class="ribbon-btn-icon">🗑️</span><span class="ribbon-btn-text"> Xóa [X]</span>
             </button>
           </div>
         </div>

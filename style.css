@@ -9884,7 +9884,6 @@
     font-size: 13px !important;
     padding: 0 !important;
   }
-  .cad-ribbon-btn .ribbon-btn-icon {
 }
 
 /* POPOVER LƯỚI TẤT CẢ CÔNG CỤ CAD (FULL SHORTCUTS DRAWER) */
@@ -9894,7 +9893,7 @@
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
   padding: 8px 10px;
-  max-height: 240px;
+  max-height: 260px;
   overflow-y: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
   scrollbar-width: thin;
@@ -9944,20 +9943,42 @@
 
 /* CHẾ ĐỘ BUNG RỘNG ĐẦY ĐỦ CÁC NÚT (EXPANDED RIBBON) */
 .cad-floating-cmd-bar.expanded-ribbon {
-  width: 440px;
-  max-width: calc(100vw - 20px);
+  width: min(660px, calc(100vw - 20px)) !important;
+  max-width: calc(100vw - 20px) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.3) !important;
 }
 .cad-floating-cmd-bar.expanded-ribbon .cad-cmd-status-ribbon {
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+  padding: 8px 10px !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 .cad-floating-cmd-bar.expanded-ribbon .cad-ribbon-btn {
-  flex: none;
-  padding: 0 7px;
-  font-size: 11px;
+  flex: none !important;
+  height: 28px !important;
+  padding: 0 9px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  background: rgba(30, 41, 59, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  color: #f1f5f9 !important;
+}
+.cad-floating-cmd-bar.expanded-ribbon .cad-ribbon-btn:hover {
+  background: rgba(56, 189, 248, 0.25) !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+.cad-floating-cmd-bar.expanded-ribbon .cad-ribbon-btn.active {
+  background: rgba(14, 165, 233, 0.35) !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4) !important;
 }
 .cad-floating-cmd-bar.expanded-ribbon .cad-ribbon-btn .ribbon-btn-text {
   display: inline !important;
+  font-size: 11.5px !important;
 }
 
 /* CHẾ ĐỘ THU GỌN CHỈ HIỆN ICON (COMPACT ICON MODE) */
@@ -9965,14 +9986,14 @@
   display: none !important;
 }
 .cad-floating-cmd-bar.compact-icon-mode .cad-ribbon-btn {
-  flex: 1;
+  flex: 1 !important;
   padding: 0 !important;
-  height: 26px;
-  font-size: 13px;
-  justify-content: center;
+  height: 26px !important;
+  font-size: 13px !important;
+  justify-content: center !important;
 }
 .cad-floating-cmd-bar.compact-icon-mode .cad-ribbon-btn .ribbon-btn-icon {
-  font-size: 13.5px;
+  font-size: 13.5px !important;
 }
 
 /* Light Theme support cho Floating HUD */
