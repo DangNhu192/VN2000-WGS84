@@ -1774,11 +1774,11 @@
           <div class="picker-mode-switch">
             <button type="button" id="btnPickModeSingle" class="btn-picker-mode active"
               onclick="appCoordPicker.setMode('single')">
-              🎯 Đơn điểm
+              <span class="picker-mode-icon">🎯</span><span class="btn-text"> Đơn điểm</span>
             </button>
             <button type="button" id="btnPickModeMulti" class="btn-picker-mode"
               onclick="appCoordPicker.setMode('multi')">
-              📍 Đa điểm
+              <span class="picker-mode-icon">📍</span><span class="btn-text"> Đa điểm</span>
             </button>
           </div>
 
@@ -1790,11 +1790,11 @@
             <span class="picker-badge" id="pickerMultiCountBadge">0 điểm</span>
             <button type="button" class="btn-picker-sub" onclick="appCoordPicker.openMultiPointsModal()"
               title="Xem danh sách điểm đã chấm">
-              📋 Danh sách
+              <span class="picker-sub-icon">📋</span><span class="btn-text"> Danh sách</span>
             </button>
             <button type="button" class="btn-picker-sub btn-picker-danger" onclick="appCoordPicker.clearMultiPoints()"
               title="Xóa danh sách điểm">
-              🗑️ Xóa
+              <span class="picker-sub-icon">🗑️</span><span class="btn-text"> Xóa</span>
             </button>
           </div>
 
@@ -1802,12 +1802,12 @@
             <!-- Nút cho Đơn điểm -->
             <button type="button" id="btnPickerApplySingle" class="btn-picker-apply"
               onclick="appCoordPicker.applySinglePoint()">
-              ✓ Lấy tọa độ
+              <span class="picker-apply-icon">✓</span><span class="btn-text"> Lấy tọa độ</span>
             </button>
             <!-- Nút cho Đa điểm -->
             <button type="button" id="btnPickerApplyMulti" class="btn-picker-apply btn-picker-batch"
               style="display: none;" onclick="appCoordPicker.applyMultiToBatch()">
-              ⚡ Nạp chuyển đổi hàng loạt
+              <span class="picker-apply-icon">⚡</span><span class="btn-text"> Nạp chuyển đổi</span>
             </button>
             <!-- Nút đóng/quay lại -->
             <button type="button" class="btn-picker-close" onclick="appCoordPicker.closePicker()"
@@ -1827,18 +1827,18 @@
           </div>
           <button id="btnMapNewProject" class="btn-map-action btn-map-new-proj" title="Thêm nhanh dự án mới trên bản đồ"
             onclick="appMap.quickCreateProject()">
-            ➕ Dự án mới
+            <span class="map-action-icon">➕</span><span class="btn-text"> Dự án mới</span>
           </button>
           <button class="btn-map-action" title="Nhập file dự án / Tải file mẫu"
             onclick="appModal.openImportProjectModal()">
-            📥 Nhập File
+            <span class="map-action-icon">📥</span><span class="btn-text"> Nhập File</span>
           </button>
           <button class="btn-map-action" title="Xem danh sách mốc & Bảng kê thông tin khối dự án (Chỉ xem)"
             onclick="appModal.openPointsListModal()">
-            📋 Xem mốc
+            <span class="map-action-icon">📋</span><span class="btn-text"> Xem mốc</span>
           </button>
           <button class="btn-map-action" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
-            🔍 Bao quát
+            <span class="map-action-icon">🔍</span><span class="btn-text"> Bao quát</span>
           </button>
           <button id="btnMapHelpGuide" type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('gps_map')"
             title="Hướng dẫn sử dụng Bản đồ & GPS" style="margin-left: 2px;">?</button>
@@ -1888,15 +1888,15 @@
             <!-- Segmented Tool Switcher Tabs: 5 Nhóm Tab Chuẩn AutoCAD / CADCraft -->
             <div class="cad-tab-group" id="cadTabGroup">
               <button type="button" class="cad-tab-btn active" id="cadTabDraw"
-                onclick="appCadTool.switchToolTab('draw')" title="Công cụ vẽ đối tượng: Đa giác [P], Tuyến [L], Khối nhà [REC], Bán kính [C]">📐 Vẽ [Draw]</button>
+                onclick="appCadTool.switchToolTab('draw')" title="Công cụ vẽ đối tượng: Đa giác [P], Tuyến [L], Khối nhà [REC], Bán kính [C]"><span class="cad-tab-icon">📐</span><span class="cad-tab-text"> Vẽ</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabSelect" onclick="appCadTool.switchToolTab('select')"
-                title="Biên tập: Chọn [V], Xoay nhãn [RO], Offset ranh [O], Đổi màu, Xóa [Del]">✂️ Biên tập [Modify]</button>
+                title="Biên tập: Chọn [V], Xoay nhãn [RO], Offset ranh [O], Đổi màu, Xóa [Del]"><span class="cad-tab-icon">✂️</span><span class="cad-tab-text"> Sửa</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabMarkup" onclick="appCadTool.switchToolTab('markup')"
-                title="Ghi chú kỹ thuật: Mũi tên CAD [DIM], Tem khung tên, Chữ [T], Bảng kê [E]">🏹 Ghi chú [Annotate]</button>
+                title="Ghi chú kỹ thuật: Mũi tên CAD [DIM], Tem khung tên, Chữ [T], Bảng kê [E]"><span class="cad-tab-icon">🏹</span><span class="cad-tab-text"> Nhãn</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabLayers" onclick="appCadTool.switchToolTab('layers')"
-                title="Trợ vẽ & Bắt điểm: OSNAP nam châm [F3], Khóa vuông góc ORTHO [F8], Bắt line [B], Thước DYN">🧲 Trợ vẽ & OSNAP</button>
+                title="Trợ vẽ & Bắt điểm: OSNAP nam châm [F3], Khóa vuông góc ORTHO [F8], Bắt line [B], Thước DYN"><span class="cad-tab-icon">🧲</span><span class="cad-tab-text"> Snap</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabData" onclick="appCadTool.switchToolTab('data')"
-                title="Quản lý dự án: Dự án mới, Nạp mốc, Quản lý khối, Nhập/Xuất DWG, PDF, Excel">📁 Dự án [Project]</button>
+                title="Quản lý dự án: Dự án mới, Nạp mốc, Quản lý khối, Nhập/Xuất DWG, PDF, Excel"><span class="cad-tab-icon">📁</span><span class="cad-tab-text"> File</span></button>
             </div>
 
             <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
@@ -3942,31 +3942,36 @@
         title="Trang chủ tính năng">
         <span class="nav-indicator"></span>
         <span class="bottom-nav-icon">🏠</span>
-        <span data-i18n="bnav.menu">Trang Chủ</span>
+        <span class="bottom-nav-text" data-i18n="bnav.menu">Trang Chủ</span>
+        <span class="dock-active-dot"></span>
       </button>
       <button type="button" class="bottom-nav-item" id="bnavTransform" onclick="appNav.showScreen('transform')"
         title="Chuyển đổi tọa độ WGS84 - VN2000">
         <span class="nav-indicator"></span>
         <span class="bottom-nav-icon">🔄</span>
-        <span data-i18n="bnav.transform">Chuyển Đổi</span>
+        <span class="bottom-nav-text" data-i18n="bnav.transform">Chuyển Đổi</span>
+        <span class="dock-active-dot"></span>
       </button>
       <button type="button" class="bottom-nav-item" id="bnavMap" onclick="appNav.openProjectMap()"
         title="Bản đồ trắc địa vệ tinh">
         <span class="nav-indicator"></span>
         <span class="bottom-nav-icon">🗺️</span>
-        <span data-i18n="bnav.map">Bản Đồ</span>
+        <span class="bottom-nav-text" data-i18n="bnav.map">Bản Đồ</span>
+        <span class="dock-active-dot"></span>
       </button>
       <button type="button" class="bottom-nav-item" id="bnavStakeout" onclick="appNav.showScreen('stakeout')"
         title="Cắm mốc thực địa & GPS">
         <span class="nav-indicator"></span>
         <span class="bottom-nav-icon">🎯</span>
-        <span data-i18n="bnav.stakeout">Cắm Mốc</span>
+        <span class="bottom-nav-text" data-i18n="bnav.stakeout">Cắm Mốc</span>
+        <span class="dock-active-dot"></span>
       </button>
       <button type="button" class="bottom-nav-item" id="bnavDataMgmt" onclick="appNav.showScreen('datamgmt')"
         title="Sổ đo & Quản lý dự án mốc">
         <span class="nav-indicator"></span>
         <span class="bottom-nav-icon">📁</span>
-        <span data-i18n="bnav.datamgmt">Sổ Đo</span>
+        <span class="bottom-nav-text" data-i18n="bnav.datamgmt">Sổ Đo</span>
+        <span class="dock-active-dot"></span>
       </button>
     </nav>
   </div>
