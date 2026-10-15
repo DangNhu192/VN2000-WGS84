@@ -668,22 +668,121 @@ const appNav = window.appNav = {
         }
     },
 
+    getTaskbarPinnedIds() {
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const raw = localStorage.getItem('vn2k_taskbar_pinned_ids');
+                if (raw) {
+                    const arr = JSON.parse(raw);
+                    if (Array.isArray(arr) && arr.length === 3) return arr;
+                }
+            }
+        } catch (e) {}
+        return ['transform', 'map', 'stakeout'];
+    },
+
+    saveTaskbarPinnedIds(ids) {
+        if (Array.isArray(ids) && ids.length === 3) {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('vn2k_taskbar_pinned_ids', JSON.stringify(ids));
+            }
+            this.renderTaskbarDock();
+        }
+    },
+
+    renderTaskbarDock() {
+        const nav = document.getElementById('mobileBottomNav');
+        if (!nav) return;
+
+        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+        const pinnedMiddleIds = this.getTaskbarPinnedIds();
+
+        // 1. Nút 1: Trang Chủ (Cố định ở đầu trái)
+        const homeLabel = isEn ? 'Home' : 'Trang Chủ';
+        let html = `
+          <button type="button" class="bottom-nav-item" id="bnavMenu" onclick="appNav.goToMenu()"
+            title="${isEn ? 'Home Features Hub' : 'Trang chủ tính năng'}" data-feature-id="menu">
+            <span class="nav-indicator"></span>
+            <span class="bottom-nav-icon">🏠</span>
+            <span class="bottom-nav-text" data-i18n="bnav.menu">${homeLabel}</span>
+            <span class="dock-active-dot"></span>
+          </button>
+        `;
+
+        // 2. Nút 2, 3, 4: 3 tính năng linh hoạt ở giữa (Mặc định: Chuyển đổi, Bản đồ, Cắm mốc)
+        pinnedMiddleIds.forEach((featId) => {
+            const f = (typeof appDashboard !== 'undefined' && appDashboard.allFeatures)
+                ? appDashboard.allFeatures.find(item => item.id === featId)
+                : null;
+
+            let btnId = `bnav_${featId}`;
+            if (featId === 'transform') btnId = 'bnavTransform';
+            else if (featId === 'map') btnId = 'bnavMap';
+            else if (featId === 'stakeout') btnId = 'bnavStakeout';
+
+            const icon = f ? f.icon : (featId === 'transform' ? '🔄' : (featId === 'map' ? '🗺️' : '🎯'));
+            let shortName = f ? (f.short || f.name) : featId;
+            if (isEn && typeof appI18n !== 'undefined') {
+                shortName = appI18n.t('bnav.' + featId) || appI18n.translateString(shortName);
+            }
+
+            const i18nAttr = ['transform', 'map', 'stakeout'].includes(featId) ? `data-i18n="bnav.${featId}"` : '';
+
+            html += `
+              <button type="button" class="bottom-nav-item" id="${btnId}" onclick="appDashboard.launchFeature('${featId}')"
+                title="${f ? (isEn ? 'Open ' + shortName : f.name) : shortName}" data-feature-id="${featId}">
+                <span class="nav-indicator"></span>
+                <span class="bottom-nav-icon">${icon}</span>
+                <span class="bottom-nav-text" ${i18nAttr}>${shortName}</span>
+                <span class="dock-active-dot"></span>
+              </button>
+            `;
+        });
+
+        // 3. Nút 5: Sổ Đo (Cố định ở đầu phải)
+        const dataMgmtLabel = isEn ? 'Field Book' : 'Sổ Đo';
+        html += `
+          <button type="button" class="bottom-nav-item" id="bnavDataMgmt" onclick="appNav.showScreen('datamgmt')"
+            title="${isEn ? 'Field Book & Project Management' : 'Sổ đo & Quản lý dự án mốc'}" data-feature-id="datamgmt">
+            <span class="nav-indicator"></span>
+            <span class="bottom-nav-icon">📁</span>
+            <span class="bottom-nav-text" data-i18n="bnav.datamgmt">${dataMgmtLabel}</span>
+            <span class="dock-active-dot"></span>
+          </button>
+        `;
+
+        nav.innerHTML = html;
+        this.syncBottomNav(AppState.currentScreen || 'menu');
+    },
+
     syncBottomNav(screenName) {
         const itemMap = {
             'menu': 'bnavMenu',
             'transform': 'bnavTransform',
             'map': 'bnavMap',
             'stakeout': 'bnavStakeout',
-            'camera': 'bnavStakeout',
+            'camera': 'bnav_camera',
             'gps': 'bnavStakeout',
             'datamgmt': 'bnavDataMgmt',
             'data': 'bnavDataMgmt'
         };
-        const activeId = itemMap[screenName] || (screenName === 'map' ? 'bnavMap' : 'bnavMenu');
-        ['bnavMenu', 'bnavTransform', 'bnavMap', 'bnavStakeout', 'bnavDataMgmt'].forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) btn.classList.toggle('active', id === activeId);
-        });
+        const nav = document.getElementById('mobileBottomNav');
+        if (!nav) return;
+
+        const current = screenName || AppState.currentScreen || 'menu';
+        nav.querySelectorAll('.bottom-nav-item').forEach(btn => btn.classList.remove('active'));
+
+        const activeId = itemMap[current] || (current === 'map' ? 'bnavMap' : (current === 'menu' ? 'bnavMenu' : null));
+        let activeBtn = activeId ? document.getElementById(activeId) : null;
+        if (!activeBtn) {
+            activeBtn = nav.querySelector(`[data-feature-id="${current}"]`);
+        }
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        } else {
+            const homeBtn = document.getElementById('bnavMenu');
+            if (homeBtn && current === 'menu') homeBtn.classList.add('active');
+        }
     },
 
     filterMainCategories(category) {
@@ -1438,6 +1537,9 @@ const appDashboard = {
             : 'big_tiles';
         appNav.switchMainMenuView(viewMode);
         appDashboard.renderDashboard();
+        if (typeof appNav !== 'undefined' && appNav.renderTaskbarDock) {
+            appNav.renderTaskbarDock();
+        }
     },
 
     getPinnedFeatureIds() {
@@ -1611,11 +1713,43 @@ const appDashboard = {
         }
     },
 
-    openPinModal() {
+    currentPinTab: 'home', // 'home' | 'taskbar'
+    tempSelectedPins: [],
+    tempSelectedTaskbarPins: ['transform', 'map', 'stakeout'],
+
+    switchPinModalTab(tab) {
+        triggerHaptic('light');
+        appDashboard.currentPinTab = tab;
+        const btnHome = document.getElementById('btnPinTabHome');
+        const btnTaskbar = document.getElementById('btnPinTabTaskbar');
+        if (btnHome) btnHome.classList.toggle('active', tab === 'home');
+        if (btnTaskbar) btnTaskbar.classList.toggle('active', tab === 'taskbar');
+
+        const titleEl = document.getElementById('pinModalMainTitle');
+        if (titleEl) {
+            titleEl.innerHTML = tab === 'home'
+                ? '⭐ 4 Tính Năng Ghim Màn Hình Chính'
+                : '📱 Tùy Chỉnh 3 Nút Taskbar Đáy Di Động';
+        }
+        appDashboard.updatePinPickerUi();
+    },
+
+    openPinModal(initialTab = 'home') {
         triggerHaptic('light');
         const modal = document.getElementById('modalCustomizePinned');
         if (!modal) return;
         modal.classList.add('active');
+        appDashboard.currentPinTab = initialTab;
+        const btnHome = document.getElementById('btnPinTabHome');
+        const btnTaskbar = document.getElementById('btnPinTabTaskbar');
+        if (btnHome) btnHome.classList.toggle('active', initialTab === 'home');
+        if (btnTaskbar) btnTaskbar.classList.toggle('active', initialTab === 'taskbar');
+        const titleEl = document.getElementById('pinModalMainTitle');
+        if (titleEl) {
+            titleEl.innerHTML = initialTab === 'home'
+                ? '⭐ 4 Tính Năng Ghim Màn Hình Chính'
+                : '📱 Tùy Chỉnh 3 Nút Taskbar Đáy Di Động';
+        }
         appDashboard.renderPinPicker();
     },
 
@@ -1625,15 +1759,22 @@ const appDashboard = {
         if (modal) modal.classList.remove('active');
     },
 
-    tempSelectedPins: [],
-
     renderPinPicker() {
         appDashboard.tempSelectedPins = [...appDashboard.getPinnedFeatureIds()];
+        if (typeof appNav !== 'undefined' && appNav.getTaskbarPinnedIds) {
+            appDashboard.tempSelectedTaskbarPins = [...appNav.getTaskbarPinnedIds()];
+        } else {
+            appDashboard.tempSelectedTaskbarPins = ['transform', 'map', 'stakeout'];
+        }
         appDashboard.updatePinPickerUi();
     },
 
     togglePinSelection(id) {
         triggerHaptic('light');
+        if (appDashboard.currentPinTab === 'taskbar') {
+            appDashboard.toggleTaskbarPinSelection(id);
+            return;
+        }
         const idx = appDashboard.tempSelectedPins.indexOf(id);
         if (idx !== -1) {
             if (appDashboard.tempSelectedPins.length <= 1) {
@@ -1651,27 +1792,109 @@ const appDashboard = {
         appDashboard.updatePinPickerUi();
     },
 
+    toggleTaskbarPinSelection(id) {
+        triggerHaptic('light');
+        if (id === 'menu' || id === 'datamgmt') {
+            showToast("ℹ️ 'Trang chủ' và 'Sổ đo' là 2 nút cố định ở hai đầu Taskbar!", true);
+            return;
+        }
+        const idx = appDashboard.tempSelectedTaskbarPins.indexOf(id);
+        if (idx !== -1) {
+            if (appDashboard.tempSelectedTaskbarPins.length <= 1) {
+                showToast("⚠️ Cần giữ lại ít nhất 1 tính năng trên thanh Taskbar!", true);
+                return;
+            }
+            appDashboard.tempSelectedTaskbarPins.splice(idx, 1);
+        } else {
+            if (appDashboard.tempSelectedTaskbarPins.length >= 3) {
+                showToast("⚠️ Tối đa 3 tính năng linh hoạt ở giữa Taskbar! Hãy bỏ chọn bớt 1 mục trước.", true);
+                return;
+            }
+            appDashboard.tempSelectedTaskbarPins.push(id);
+        }
+        appDashboard.updatePinPickerUi();
+    },
+
     updatePinPickerUi() {
         const container = document.getElementById('pinPickerList');
         const counter = document.getElementById('pinPickerCounter');
-        if (counter) counter.innerText = `Đã chọn: ${appDashboard.tempSelectedPins.length}/4 mục`;
+        const instruction = document.getElementById('pinPickerInstruction');
+        const previewContainer = document.getElementById('pinTaskbarPreviewContainer');
 
-        if (!container) return;
-        container.innerHTML = appDashboard.allFeatures.map(f => {
-            const isChecked = appDashboard.tempSelectedPins.includes(f.id);
-            return `
-              <div class="pin-picker-item ${isChecked ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <span style="font-size: 20px;">${f.icon}</span>
-                  <div>
-                    <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
-                    <div style="font-size: 11px; color: #94a3b8;">${f.sub}</div>
+        if (appDashboard.currentPinTab === 'taskbar') {
+            if (counter) counter.innerText = `Đã chọn: ${appDashboard.tempSelectedTaskbarPins.length}/3 mục`;
+            if (instruction) instruction.innerText = "Cố định: 🏠 Trang chủ & 📁 Sổ đo. Chọn đúng 3 tính năng linh hoạt ở giữa:";
+            
+            // Render thanh mô phỏng trực quan Taskbar Preview
+            if (previewContainer) {
+                previewContainer.style.display = 'block';
+                const midItemsHtml = appDashboard.tempSelectedTaskbarPins.map((featId) => {
+                    const f = appDashboard.allFeatures.find(item => item.id === featId);
+                    return `
+                      <div class="taskbar-preview-item dynamic">
+                        <span class="taskbar-preview-icon">${f ? f.icon : '⭐'}</span>
+                        <span class="taskbar-preview-title">${f ? (f.short || f.name) : featId}</span>
+                      </div>
+                    `;
+                }).join('');
+
+                previewContainer.innerHTML = `
+                  <div class="taskbar-preview-bar">
+                    <div class="taskbar-preview-item fixed" title="Cố định bên trái">
+                      <span class="taskbar-preview-icon">🏠</span>
+                      <span class="taskbar-preview-title">Trang Chủ (Cố định)</span>
+                    </div>
+                    ${midItemsHtml}
+                    ${appDashboard.tempSelectedTaskbarPins.length < 3 ? '<div class="taskbar-preview-item" style="border-style: dotted; color: #64748b;"><span>+ Chọn thêm</span></div>' : ''}
+                    <div class="taskbar-preview-item fixed" title="Cố định bên phải">
+                      <span class="taskbar-preview-icon">📁</span>
+                      <span class="taskbar-preview-title">Sổ Đo (Cố định)</span>
+                    </div>
                   </div>
-                </div>
-                <input type="checkbox" class="pin-picker-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
-              </div>
-            `;
-        }).join('');
+                `;
+            }
+
+            if (!container) return;
+            // Ẩn Sổ Đo khỏi danh sách chọn của Taskbar vì đã là nút 5 cố định
+            container.innerHTML = appDashboard.allFeatures.map(f => {
+                if (f.id === 'datamgmt') return '';
+                const isChecked = appDashboard.tempSelectedTaskbarPins.includes(f.id);
+                return `
+                  <div class="pin-picker-item ${isChecked ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 20px;">${f.icon}</span>
+                      <div>
+                        <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
+                        <div style="font-size: 11px; color: #94a3b8;">${f.sub}</div>
+                      </div>
+                    </div>
+                    <input type="checkbox" class="pin-picker-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
+                  </div>
+                `;
+            }).join('');
+        } else {
+            // Tab 'home' (Màn hình chính 4 Khối lớn)
+            if (counter) counter.innerText = `Đã chọn: ${appDashboard.tempSelectedPins.length}/4 mục`;
+            if (instruction) instruction.innerText = "Chọn đúng 4 tính năng đưa lên 4 Khối lớn 2x2:";
+            if (previewContainer) previewContainer.style.display = 'none';
+
+            if (!container) return;
+            container.innerHTML = appDashboard.allFeatures.map(f => {
+                const isChecked = appDashboard.tempSelectedPins.includes(f.id);
+                return `
+                  <div class="pin-picker-item ${isChecked ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 20px;">${f.icon}</span>
+                      <div>
+                        <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
+                        <div style="font-size: 11px; color: #94a3b8;">${f.sub}</div>
+                      </div>
+                    </div>
+                    <input type="checkbox" class="pin-picker-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
+                  </div>
+                `;
+            }).join('');
+        }
     },
 
     updateDashboardInfoRow() {
@@ -1820,12 +2043,32 @@ const appDashboard = {
     },
 
     savePinSelection() {
-        if (appDashboard.tempSelectedPins.length !== 4) {
-            showToast("⚠️ Vui lòng chọn đủ 4 tính năng trước khi lưu!", true);
+        if (appDashboard.tempSelectedPins && appDashboard.tempSelectedPins.length !== 4) {
+            showToast("⚠️ Vui lòng chọn đủ 4 tính năng cho Trang chủ trước khi lưu!", true);
+            if (appDashboard.currentPinTab !== 'home') appDashboard.switchPinModalTab('home');
             return;
         }
-        appDashboard.savePinnedFeatureIds(appDashboard.tempSelectedPins);
+        if (appDashboard.tempSelectedTaskbarPins && appDashboard.tempSelectedTaskbarPins.length !== 3) {
+            showToast("⚠️ Vui lòng chọn đủ 3 tính năng cho Taskbar di động trước khi lưu!", true);
+            if (appDashboard.currentPinTab !== 'taskbar') appDashboard.switchPinModalTab('taskbar');
+            return;
+        }
+
+        // 1. Lưu 4 tính năng ghim Trang chủ
+        if (appDashboard.tempSelectedPins && appDashboard.tempSelectedPins.length === 4) {
+            appDashboard.savePinnedFeatureIds(appDashboard.tempSelectedPins);
+        }
+
+        // 2. Lưu 3 tính năng linh hoạt Taskbar di động
+        if (appDashboard.tempSelectedTaskbarPins && appDashboard.tempSelectedTaskbarPins.length === 3) {
+            if (typeof appNav !== 'undefined' && appNav.saveTaskbarPinnedIds) {
+                appNav.saveTaskbarPinnedIds(appDashboard.tempSelectedTaskbarPins);
+            }
+        }
+
         appDashboard.closePinModal();
+        triggerHaptic('success');
+        showToast("⭐ Đã lưu thành công cài đặt ghim Trang chủ & Taskbar di động!");
     }
 };
 
@@ -10062,6 +10305,12 @@ const appModal = {
             } else {
                 document.body.classList.remove('ui-mode-icon-pro');
             }
+        }
+        if (typeof appDashboard !== 'undefined' && appDashboard.renderDashboard) {
+            appDashboard.renderDashboard();
+        }
+        if (typeof appNav !== 'undefined' && appNav.renderTaskbarDock) {
+            appNav.renderTaskbarDock();
         }
     },
 

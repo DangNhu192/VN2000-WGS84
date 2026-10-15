@@ -6488,17 +6488,36 @@
 
   <!-- ================= MODAL TÙY CHỈNH 4 TÍNH NĂNG GHIM (UI/UX PRO MAX) ================= -->
   <div id="modalCustomizePinned" class="modal-overlay">
-    <div class="modal-box" style="max-width: 480px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="modal-box" style="max-width: 500px; max-height: 88vh; display: flex; flex-direction: column;">
       <div class="modal-title">
-        <span style="color: #fbbf24;">⭐ 4 Tính Năng Ghim Màn Hình Chính</span>
+        <span style="color: #fbbf24;" id="pinModalMainTitle">⭐ Cài Đặt Ghim Nhanh</span>
         <button class="btn-modal-close" onclick="appDashboard.closePinModal()">✕</button>
       </div>
-      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 12px 14px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <span style="font-size: 12px; color: #94a3b8;">Chọn đúng 4 tính năng đưa lên 4 Khối lớn:</span>
-          <span id="pinPickerCounter" style="font-size: 12px; font-weight: 700; color: #fbbf24;">Đã chọn: 4/4 mục</span>
+
+      <!-- Segmented Tab: Ghim Trang Chủ vs Ghim Taskbar -->
+      <div style="padding: 10px 14px 0 14px;">
+        <div class="pin-modal-tabs">
+          <button type="button" id="btnPinTabHome" class="pin-tab-btn active" onclick="appDashboard.switchPinModalTab('home')">
+            <span>⭐ 4 Khối Trang Chủ</span>
+          </button>
+          <button type="button" id="btnPinTabTaskbar" class="pin-tab-btn" onclick="appDashboard.switchPinModalTab('taskbar')">
+            <span>📱 3 Nút Taskbar Đáy</span>
+          </button>
         </div>
-        <div id="pinPickerList" style="max-height: 62vh; overflow-y: auto; padding-right: 2px;"></div>
+      </div>
+
+      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 10px 14px;">
+        <!-- Khung mô tả & Preview -->
+        <div id="pinPickerHeaderDesc" style="margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span id="pinPickerInstruction" style="font-size: 12px; color: #94a3b8;">Chọn đúng 4 tính năng đưa lên 4 Khối lớn:</span>
+            <span id="pinPickerCounter" style="font-size: 12px; font-weight: 700; color: #fbbf24;">Đã chọn: 4/4 mục</span>
+          </div>
+          <!-- Vùng mô phỏng Taskbar di động (chỉ hiện khi ở tab taskbar) -->
+          <div id="pinTaskbarPreviewContainer" style="display: none;"></div>
+        </div>
+
+        <div id="pinPickerList" style="max-height: 52vh; overflow-y: auto; padding-right: 2px;"></div>
       </div>
       <div class="modal-footer"
         style="display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid rgba(56, 189, 248, 0.15); flex-wrap: wrap;">
