@@ -155,4 +155,123 @@ test('=== 5. KIỂM THỬ TÍCH HỢP NẠP ĐIỂM VÀO BẢNG CHUYỂN ĐỔI 
     assert.strictEqual(appTransform.multiPoints[0].name, 'M1');
     assert.strictEqual(appTransform.multiPoints[0].x, '1144058.623');
     assert.strictEqual(appTransform.multiPoints[0].y, '539624.571');
+    assert.strictEqual(appTransform.multiPoints[0].selected, true, 'Điểm nạp có selected: true');
+    assert.strictEqual(appTransform.multiDirection, 'vn2k2wgs', 'Tự động chuyển chiều sang vn2k2wgs khi nạp VN2000');
+});
+
+test('=== 6. KIỂM THỬ BÓC TÁCH BẢNG SỔ ĐỎ 5 CỘT CÓ KÝ TỰ VIỀN | VÀ CỘT CẠNH (S) ===', () => {
+    const soDoText = `
+        BẢNG LIỆT KÊ TỌA ĐỘ VÀ KÍCH THƯỚC THỬA ĐẤT
+        Hệ tọa độ: VN-2000, Kinh tuyến trục 105°45', múi chiếu 3°
+        | Số hiệu | Tên điểm | Tọa độ X (m) | Tọa độ Y (m) | Cạnh s (m) |
+        |---|---|---|---|---|
+        | 1 | 1 | 1144058.62 | 539624.57 | 15.20 |
+        | 2 | 2 | 1144070.15 | 539635.80 | 22.45 |
+        | 3 | 3 | 1144050.20 | 539660.10 | 18.20 |
+        | 4 | 4 | 1144035.80 | 539640.30 | 16.50 |
+    `;
+    const res = appOcr.parseOcrText(soDoText);
+    assert.strictEqual(res.points.length, 4, 'Bóc tách chuẩn xác 4 điểm từ bảng Sổ đỏ');
+    assert.strictEqual(res.coordType, 'vn2000', 'Tự động nhận diện hệ tọa độ VN-2000');
+    assert.strictEqual(res.points[0].name, '1');
+    assert.strictEqual(res.points[0].c1, '1144058.62');
+    assert.strictEqual(res.points[0].c2, '539624.57');
+    assert.strictEqual(res.points[1].name, '2');
+    assert.strictEqual(res.points[1].c1, '1144070.15');
+    assert.strictEqual(res.points[1].c2, '539635.80');
+    assert.strictEqual(res.points[2].c1, '1144050.20');
+    assert.strictEqual(res.points[2].c2, '539660.10');
+});
+
+test('=== 7. KIỂM THỬ BÓC TÁCH TỌA ĐỘ WGS-84 DECIMAL (LAT, LNG) ===', () => {
+    const wgsText = `
+        DANH SÁCH TỌA ĐỘ GPS KHẢO SÁT
+        ĐIỂM 1: Lat 10.536789, Long 105.789123
+        ĐIỂM 2: 10.537100, 105.789500
+        ĐIỂM 3: 10.538250  105.790110
+    `;
+    const res = appOcr.parseOcrText(wgsText);
+    assert.strictEqual(res.points.length, 3, 'Nhận diện đủ 3 điểm WGS-84 Decimal');
+    assert.strictEqual(res.coordType, 'wgs84', 'Tự động nhận diện hệ tọa độ WGS-84');
+    assert.strictEqual(res.points[0].c1, '10.536789');
+    assert.strictEqual(res.points[0].c2, '105.789123');
+    assert.strictEqual(res.points[1].c1, '10.537100');
+    assert.strictEqual(res.points[1].c2, '105.789500');
+});
+
+test('=== 8. KIỂM THỬ BÓC TÁCH TỌA ĐỘ WGS-84 ĐỘ PHÚT GIÂY (DMS) SANG THẬP PHÂN ===', () => {
+    const dmsText = `
+        BẢNG TỌA ĐỘ MỐC QUỐC GIA (DMS)
+        M1: 10°32'15.42"N   105°45'20.18"E
+        M2: 10°32'18.50"N   105°45'25.30"E
+    `;
+    const res = appOcr.parseOcrText(dmsText);
+    assert.strictEqual(res.points.length, 2, 'Bóc tách thành công 2 điểm DMS');
+    assert.strictEqual(res.coordType, 'wgs84', 'Nhận diện loại WGS-84');
+    // 10 + 32/60 + 15.42/3600 = 10.5376167
+    assert.ok(Math.abs(parseFloat(res.points[0].c1) - 10.5376167) < 0.0001, 'Chuyển đổi Lat DMS chuẩn xác');
+    // 105 + 45/60 + 20.18/3600 = 105.7556056
+    assert.ok(Math.abs(parseFloat(res.points[0].c2) - 105.7556056) < 0.0001, 'Chuyển đổi Lng DMS chuẩn xác');
+});
+
+test('=== 9. KIỂM THỬ BÓC TÁCH TỌA ĐỘ GHI ĐA DÒNG (MULTI-LINE PAIRING) ===', () => {
+    const multiLineText = `
+        Mốc GPS-01:
+        X = 1144058.62
+        Y = 539624.57
+
+        Mốc GPS-02:
+        X: 1144080.15
+        Y: 539650.22
+    `;
+    const res = appOcr.parseOcrText(multiLineText);
+    assert.strictEqual(res.points.length, 2, 'Ghép cặp thành công 2 mốc từ các dòng riêng biệt');
+    assert.strictEqual(res.points[0].name, 'GPS-01');
+    assert.strictEqual(res.points[0].c1, '1144058.62');
+    assert.strictEqual(res.points[0].c2, '539624.57');
+    assert.strictEqual(res.points[1].name, 'GPS-02');
+    assert.strictEqual(res.points[1].c1, '1144080.15');
+    assert.strictEqual(res.points[1].c2, '539650.22');
+});
+
+test('=== 10. KIỂM THỬ CHỨC NĂNG 1-CHẠM ĐẢO TRỤC (SWAP X ⇄ Y) ===', () => {
+    appOcr.ocrPoints = [
+        { name: 'M1', c1: '539624.57', c2: '1144058.62' },
+        { name: 'M2', c1: '539650.22', c2: '1144080.15' }
+    ];
+    appOcr.swapOcrCoordinates();
+    assert.strictEqual(appOcr.ocrPoints[0].c1, '1144058.62', 'Cột 1 đã nhận giá trị X sau khi đảo');
+    assert.strictEqual(appOcr.ocrPoints[0].c2, '539624.57', 'Cột 2 đã nhận giá trị Y sau khi đảo');
+    assert.strictEqual(appOcr.ocrPoints[1].c1, '1144080.15');
+    assert.strictEqual(appOcr.ocrPoints[1].c2, '539650.22');
+});
+
+test('=== 11. KIỂM THỬ DÁN TEXT OCR TRỰC TIẾP & SAO CHÉP BẢNG ===', () => {
+    const rawClipboardText = `
+        1   P1   1144058.62   539624.57
+        2   P2   1144080.15   539650.22
+    `;
+    appOcr.parseAndLoadFromText(rawClipboardText);
+    assert.strictEqual(appOcr.ocrPoints.length, 2, 'Nạp thành công từ chuỗi dán trực tiếp');
+    assert.strictEqual(appOcr.ocrPoints[0].name, 'P1');
+    assert.strictEqual(appOcr.ocrPoints[0].c1, '1144058.62');
+
+    // Kiểm thử xóa sạch
+    appOcr.clearOcrTable();
+    assert.strictEqual(appOcr.ocrPoints.length, 0, 'Đã xóa sạch bảng đối soát');
+});
+
+test('=== 12. KIỂM THỬ ĐỒNG BỘ TỰ ĐỘNG HỆ WGS-84 VÀO BẢNG CHUYỂN ĐỔI ===', () => {
+    appTransform.multiPoints = [];
+    appTransform.multiDirection = 'vn2k2wgs'; // Khởi đầu là VN2000
+
+    appOcr.ocrPoints = [
+        { name: 'W1', c1: '10.536789', c2: '105.789123' }
+    ];
+    appOcr.confirmPointsToTransform();
+
+    assert.strictEqual(appTransform.multiPoints.length, 1, 'Đã nạp 1 điểm WGS84');
+    assert.strictEqual(appTransform.multiDirection, 'wgs2vn2k', 'Tự động đảo sang wgs2vn2k khi nạp điểm WGS84');
+    assert.strictEqual(appTransform.multiPoints[0].lat, '10.536789');
+    assert.strictEqual(appTransform.multiPoints[0].lng, '105.789123');
 });

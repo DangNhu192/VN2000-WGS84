@@ -30588,6 +30588,7 @@ const appOcr = {
     isBinarized: false,
     detectedKtt: null,
     ocrPoints: [],
+    detectedCoordType: 'unknown', // 'vn2000' | 'wgs84' | 'unknown'
     tesseractWorker: null,
 
     init() {
@@ -30693,28 +30694,45 @@ const appOcr = {
 
     preprocessImageToCanvas(img) {
         const canvas = document.getElementById('ocrCanvasPreprocess') || document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width || 800;
-        canvas.height = img.naturalHeight || img.height || 600;
+        const origW = img.naturalWidth || img.width || 800;
+        const origH = img.naturalHeight || img.height || 600;
+
+        let scale = 1.0;
+        const maxDim = 2400;
+        if (Math.max(origW, origH) > maxDim) {
+            scale = maxDim / Math.max(origW, origH);
+        }
+        canvas.width = Math.round(origW * scale);
+        canvas.height = Math.round(origH * scale);
         const ctx = canvas.getContext('2d');
         if (!ctx) return canvas;
 
-        ctx.drawImage(img, 0, 0);
-        if (!this.isBinarized) return canvas;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         try {
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const threshold = 140;
-                const val = gray < threshold ? 0 : 255;
-                data[i] = val;
-                data[i + 1] = val;
-                data[i + 2] = val;
+
+            if (this.isBinarized) {
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                    const val = gray < 145 ? 0 : 255;
+                    data[i] = val;
+                    data[i + 1] = val;
+                    data[i + 2] = val;
+                }
+                ctx.putImageData(imgData, 0, 0);
+            } else {
+                const factor = 1.25;
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] = Math.min(255, Math.max(0, ((data[i] - 128) * factor) + 128));
+                    data[i + 1] = Math.min(255, Math.max(0, ((data[i + 1] - 128) * factor) + 128));
+                    data[i + 2] = Math.min(255, Math.max(0, ((data[i + 2] - 128) * factor) + 128));
+                }
+                ctx.putImageData(imgData, 0, 0);
             }
-            ctx.putImageData(imgData, 0, 0);
         } catch (e) {
-            console.warn('Canvas binarization skipped:', e);
+            console.warn('Canvas preprocess skipped:', e);
         }
         return canvas;
     },
@@ -30722,10 +30740,19 @@ const appOcr = {
     async loadTesseractLibrary() {
         if (typeof Tesseract !== 'undefined') return window.Tesseract;
         return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error('Tải thư viện OCR từ CDN bị quá thời gian. Bạn có thể sử dụng khung "Dán text nhanh" ngay bên dưới!'));
+            }, 12000);
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-            script.onload = () => resolve(window.Tesseract);
-            script.onerror = () => reject(new Error('Không thể tải Tesseract OCR từ CDN. Vui lòng kiểm tra Internet!'));
+            script.onload = () => {
+                clearTimeout(timeout);
+                resolve(window.Tesseract);
+            };
+            script.onerror = () => {
+                clearTimeout(timeout);
+                reject(new Error('Không thể tải Tesseract OCR từ CDN. Vui lòng kiểm tra Internet hoặc dùng tính năng Dán text nhanh!'));
+            };
             document.head.appendChild(script);
         });
     },
@@ -30734,73 +30761,138 @@ const appOcr = {
         const spinner = document.getElementById('ocrLoadingSpinner');
         const statusText = document.getElementById('ocrStatusText');
         if (spinner) spinner.style.display = 'flex';
-        if (statusText) statusText.innerText = 'Đang nạp bộ nhận dạng OCR...';
+        if (statusText) statusText.innerText = 'Đang nạp bộ nhận dạng OCR AI...';
 
         try {
             const T = await this.loadTesseractLibrary();
-            if (statusText) statusText.innerText = 'Đang tiền xử lý ảnh...';
+            if (statusText) statusText.innerText = 'Đang tiền xử lý ảnh và nâng nét...';
             const canvas = this.preprocessImageToCanvas(img);
 
             if (statusText) statusText.innerText = 'Đang quét văn bản và số liệu...';
 
-            const worker = await T.createWorker('vie+eng', 1, {
-                logger: m => {
-                    if (m.status === 'recognizing text' && statusText) {
-                        statusText.innerText = `Đang quét: ${Math.round((m.progress || 0) * 100)}%`;
+            let worker;
+            try {
+                worker = await T.createWorker('eng', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text' && statusText) {
+                            statusText.innerText = `Đang quét: ${Math.round((m.progress || 0) * 100)}%`;
+                        }
                     }
-                }
-            });
+                });
+            } catch (errEng) {
+                console.warn('Fallback sang vie+eng:', errEng);
+                worker = await T.createWorker('vie+eng', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text' && statusText) {
+                            statusText.innerText = `Đang quét: ${Math.round((m.progress || 0) * 100)}%`;
+                        }
+                    }
+                });
+            }
 
             await worker.setParameters({
-                tessedit_char_whitelist: "0123456789.,-+°'\"/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđĐ \t\n\r"
+                tessedit_char_whitelist: "0123456789.,-+°'\"/:|;()[]{}ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjklmnpqrstuvwxyzáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđĐ \t\n\r"
             });
 
             const ret = await worker.recognize(canvas);
             await worker.terminate();
 
-            if (statusText) statusText.innerText = 'Đang phân tích bảng tọa độ...';
+            if (statusText) statusText.innerText = 'Đang bóc tách tọa độ thông minh...';
             const recognizedText = ret.data.text;
             this.processExtractedText(recognizedText);
 
             if (spinner) spinner.style.display = 'none';
             if (typeof triggerHaptic === 'function') triggerHaptic('success');
-            if (typeof showToast === 'function') showToast(`🎉 Đã quét xong! Nhận diện được ${this.ocrPoints.length} điểm mốc.`);
+            if (typeof showToast === 'function') {
+                const typeStr = this.detectedCoordType === 'vn2000' ? 'VN-2000' : (this.detectedCoordType === 'wgs84' ? 'WGS-84' : 'Tọa độ');
+                showToast(`🎉 Đã quét xong! Nhận diện ${this.ocrPoints.length} điểm (${typeStr}).`);
+            }
         } catch (err) {
             console.error('OCR Error:', err);
             if (spinner) spinner.style.display = 'none';
-            if (typeof showToast === 'function') showToast(`⚠️ Lỗi nhận dạng ảnh: ${err.message || 'Không thể quét ảnh'}`, true);
+            if (typeof showToast === 'function') showToast(`⚠️ ${err.message || 'Không thể quét ảnh'}`, true);
+            this.toggleQuickPasteBox(true);
         }
     },
 
     cleanNumStr(s) {
         if (!s) return '';
-        let str = String(s).trim().replace(/^"|"$/g, '');
+        let str = String(s).trim().replace(/^["']|["']$/g, '');
         str = str.replace(/[oO]/g, '0')
-                 .replace(/[lI]/g, '1')
+                 .replace(/[lI|!]/g, '1')
                  .replace(/[S]/g, '5')
                  .replace(/[B]/g, '8');
-        if (str.includes('.') && str.includes(',')) {
+        str = str.replace(/[^\d.,\-+]/g, '');
+        str = str.replace(/^[.,]+|[.,]+$/g, '');
+        if (!str) return '';
+
+        const dots = (str.match(/\./g) || []).length;
+        const commas = (str.match(/,/g) || []).length;
+
+        if (dots > 0 && commas > 0) {
             if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
                 str = str.replace(/\./g, '').replace(',', '.');
             } else {
                 str = str.replace(/,/g, '');
             }
-        } else if (str.includes(',')) {
+        } else if (dots > 1) {
+            const lastIdx = str.lastIndexOf('.');
+            const intPart = str.substring(0, lastIdx).replace(/\./g, '');
+            const decPart = str.substring(lastIdx + 1);
+            str = intPart + '.' + decPart;
+        } else if (commas > 1) {
+            const lastIdx = str.lastIndexOf(',');
+            const intPart = str.substring(0, lastIdx).replace(/,/g, '');
+            const decPart = str.substring(lastIdx + 1);
+            str = intPart + '.' + decPart;
+        } else if (commas === 1) {
             str = str.replace(',', '.');
         }
         return str;
     },
 
+    parseDmsString(str) {
+        if (!str) return null;
+        const regex = /(\d{1,3})[°\s_dD]+(\d{1,2})['’\s_mM]+(\d{1,2}(?:[.,]\d+)?)[″"”\s_sS]*([NSEWnsew]?)/i;
+        const m = str.match(regex);
+        if (!m) return null;
+        const deg = parseFloat(m[1]);
+        const min = parseFloat(m[2]);
+        const sec = parseFloat(m[3].replace(',', '.'));
+        const dir = m[4] ? m[4].toUpperCase() : '';
+        if (isNaN(deg) || isNaN(min) || isNaN(sec)) return null;
+        let val = deg + min / 60 + sec / 3600;
+        if (dir === 'S' || dir === 'W') val = -val;
+        return +(val.toFixed(7));
+    },
+
+    extractDmsFromLine(line) {
+        if (!line) return null;
+        const dmsGlobalRegex = /(\d{1,3}[°\s_dD]+\d{1,2}['’\s_mM]+\d{1,2}(?:[.,]\d+)?[″"”\s_sS]*[NSEWnsew]?)/gi;
+        const matches = line.match(dmsGlobalRegex);
+        if (matches && matches.length >= 2) {
+            const v1 = this.parseDmsString(matches[0]);
+            const v2 = this.parseDmsString(matches[1]);
+            if (v1 !== null && v2 !== null) {
+                const prefix = line.substring(0, line.indexOf(matches[0])).trim();
+                let name = prefix.replace(/^[:\-=\s|]+|[:\-=\s|]+$/g, '').trim();
+                return { name, v1, v2 };
+            }
+        }
+        return null;
+    },
+
     parseOcrText(rawText) {
-        if (!rawText || !rawText.trim()) return { detectedKtt: null, points: [] };
+        if (!rawText || !rawText.trim()) return { detectedKtt: null, points: [], coordType: 'unknown' };
         const lines = rawText.split(/\r?\n/);
         let detectedKtt = null;
         const points = [];
+        let detectedCoordType = 'unknown';
 
         // 1. Quét tìm Kinh tuyến trục & Múi chiếu
         const kttRegex1 = /(?:ktt|kinh\s*tuyến\s*trục)[^\d]*(\d{2,3})[°\s]+(\d{1,2})['’]/i;
         const kttRegex2 = /(?:ktt|kinh\s*tuyến\s*trục)[^\d]*(\d{2,3}\.\d+)/i;
-        const muiRegex = /(?:múi|múi\s*chiếu)[^\d]*([36])[°\s]*/i;
+        const muiRegex = /(?:múi|múi\s*chiếu|zone)[^\d]*([36])[°\s]*/i;
 
         let foundKtt = null;
         let foundMui = null;
@@ -30841,54 +30933,194 @@ const appOcr = {
             };
         }
 
-        // 2. Quét tìm bảng điểm tọa độ (STT, Tên mốc, X, Y)
-        lines.forEach(line => {
-            const clean = line.trim();
+        // 2. Quét tìm bảng điểm tọa độ (Hỗ trợ VN-2000, WGS-84 Decimal, WGS-84 DMS, Bảng Sổ đỏ có Cột Cạnh)
+        let potentialYFirstCount = 0;
+        let vn2000Count = 0;
+        let wgs84Count = 0;
+
+        lines.forEach((line) => {
+            let clean = line.trim();
             if (!clean) return;
+
+            if (/^[\s\-_+=|│├┤┼┌┐└┘*~#.]+$/.test(clean)) return;
+
             const lower = clean.toLowerCase();
-            if (lower.startsWith('stt') || lower.startsWith('tên') || lower.startsWith('name') || 
+            if ((lower.startsWith('stt') || lower.startsWith('tên') || lower.startsWith('name') || 
                 lower.startsWith('toạ độ') || lower.startsWith('tọa độ') || lower.startsWith('kinh độ') || 
-                lower.startsWith('vĩ độ') || lower.startsWith('điểm') || lower.startsWith('ktt') ||
-                lower.startsWith('kinh tuyến') || lower.startsWith('múi')) {
+                lower.startsWith('vĩ độ') || lower.startsWith('ktt') || lower.startsWith('kinh tuyến') || 
+                lower.startsWith('múi') || lower.startsWith('hệ quy chiếu') || lower.startsWith('bảng liệt kê')) && 
+                !/\d{4,}/.test(clean)) {
                 return;
             }
 
+            // A. Kiểm tra dạng DMS (Độ Phút Giây): 10°32'15.4"N 105°45'20.1"E
+            const dmsMatch = this.extractDmsFromLine(clean);
+            if (dmsMatch) {
+                let name = dmsMatch.name || `M${points.length + 1}`;
+                let c1 = dmsMatch.v1;
+                let c2 = dmsMatch.v2;
+                if (c1 > 90 && c2 <= 90) {
+                    const temp = c1; c1 = c2; c2 = temp;
+                }
+                points.push({
+                    id: Date.now() + Math.random() + points.length,
+                    name: name,
+                    c1: c1.toFixed(7),
+                    c2: c2.toFixed(7)
+                });
+                wgs84Count++;
+                return;
+            }
+
+            // B. Kiểm tra dạng nhãn rõ ràng: X: ... Y: ... hoặc Lat: ... Lng: ... hoặc B: ... L: ...
+            const labeledVn2k = clean.match(/(?:^|[^\w])X\s*[:=\s]\s*([0-9.,]+)\s*[,;\s|/]+\s*Y\s*[:=\s]\s*([0-9.,]+)/i);
+            const labeledVn2kRev = clean.match(/(?:^|[^\w])Y\s*[:=\s]\s*([0-9.,]+)\s*[,;\s|/]+\s*X\s*[:=\s]\s*([0-9.,]+)/i);
+            const labeledWgs = clean.match(/(?:^|[^\w])(?:lat|b|φ)\s*[:=\s]\s*([0-9.,]+)\s*[,;\s|/]+\s*(?:l(?:on|ng)?|λ)\s*[:=\s]\s*([0-9.,]+)/i);
+            const labeledWgsRev = clean.match(/(?:^|[^\w])(?:l(?:on|ng)?|λ)\s*[:=\s]\s*([0-9.,]+)\s*[,;\s|/]+\s*(?:lat|b|φ)\s*[:=\s]\s*([0-9.,]+)/i);
+
+            if (labeledVn2k) {
+                const c1 = this.cleanNumStr(labeledVn2k[1]);
+                const c2 = this.cleanNumStr(labeledVn2k[2]);
+                if (!isNaN(parseFloat(c1)) && !isNaN(parseFloat(c2))) {
+                    points.push({ id: Date.now() + Math.random() + points.length, name: `M${points.length + 1}`, c1, c2 });
+                    vn2000Count++;
+                    return;
+                }
+            } else if (labeledVn2kRev) {
+                const c2 = this.cleanNumStr(labeledVn2kRev[1]);
+                const c1 = this.cleanNumStr(labeledVn2kRev[2]);
+                if (!isNaN(parseFloat(c1)) && !isNaN(parseFloat(c2))) {
+                    points.push({ id: Date.now() + Math.random() + points.length, name: `M${points.length + 1}`, c1, c2 });
+                    vn2000Count++;
+                    return;
+                }
+            } else if (labeledWgs) {
+                const c1 = this.cleanNumStr(labeledWgs[1]);
+                const c2 = this.cleanNumStr(labeledWgs[2]);
+                if (!isNaN(parseFloat(c1)) && !isNaN(parseFloat(c2))) {
+                    points.push({ id: Date.now() + Math.random() + points.length, name: `M${points.length + 1}`, c1, c2 });
+                    wgs84Count++;
+                    return;
+                }
+            } else if (labeledWgsRev) {
+                const c2 = this.cleanNumStr(labeledWgsRev[1]);
+                const c1 = this.cleanNumStr(labeledWgsRev[2]);
+                if (!isNaN(parseFloat(c1)) && !isNaN(parseFloat(c2))) {
+                    points.push({ id: Date.now() + Math.random() + points.length, name: `M${points.length + 1}`, c1, c2 });
+                    wgs84Count++;
+                    return;
+                }
+            }
+
+            // C. Bóc tách phân tích hàng (Row Analysis) - Lọc sạch viền bảng
+            const normLine = clean.replace(/[|¦│├┤┼┌┐└┘]/g, ' ');
             let tokens = [];
-            if (clean.includes('\t')) {
-                tokens = clean.split('\t').map(t => t.trim()).filter(Boolean);
-            } else if (clean.includes(';')) {
-                tokens = clean.split(';').map(t => t.trim()).filter(Boolean);
+            if (normLine.includes('\t')) {
+                tokens = normLine.split('\t').map(t => t.trim().replace(/^[,;:]+|[,;:]+$/g, '')).filter(Boolean);
+            } else if (normLine.includes(';')) {
+                tokens = normLine.split(';').map(t => t.trim().replace(/^[,;:]+|[,;:]+$/g, '')).filter(Boolean);
             } else {
-                tokens = clean.split(/\s+/).map(t => t.trim()).filter(Boolean);
+                tokens = normLine.split(/\s+/).map(t => t.trim().replace(/^[,;:]+|[,;:]+$/g, '')).filter(Boolean);
             }
             if (tokens.length < 2) return;
+
+            const parsedNums = [];
+            const textTokens = [];
+
+            tokens.forEach((t, idx) => {
+                // Kiểm tra nếu là tên mốc có chữ cái (như M1, Đ1, P1, BM, A, ĐC...)
+                const isExplicitName = /^[A-Za-zÀ-ỹ][A-Za-z0-9_\-]{0,7}$/i.test(t) && !/^[SB]\d{5,}/i.test(t);
+                if (isExplicitName) {
+                    textTokens.push({ text: t, idx });
+                    return;
+                }
+
+                const cleaned = this.cleanNumStr(t);
+                const n = parseFloat(cleaned);
+                if (!isNaN(n) && cleaned.length > 0) {
+                    parsedNums.push({ val: n, raw: cleaned, token: t, idx });
+                } else {
+                    textTokens.push({ text: t, idx });
+                }
+            });
+
+            if (parsedNums.length < 2) return;
 
             let name = `M${points.length + 1}`;
             let c1Str = '', c2Str = '';
 
-            const num0 = parseFloat(this.cleanNumStr(tokens[0]));
+            // C1. Kiểm tra cặp tọa độ VN-2000: X (khoảng 800,000 - 2,700,000) và Y (khoảng 150,000 - 900,000 hoặc có tiền tố múi 17-19.5 triệu)
+            const vn2kXIdx = parsedNums.findIndex(p => p.val >= 800000 && p.val <= 2700000);
+            const vn2kYIdx = parsedNums.findIndex(p => (p.val >= 150000 && p.val < 800000) || (p.val >= 17000000 && p.val <= 19500000));
 
-            if (tokens.length >= 4 && !isNaN(parseFloat(this.cleanNumStr(tokens[2]))) && !isNaN(parseFloat(this.cleanNumStr(tokens[3])))) {
-                name = isNaN(parseFloat(this.cleanNumStr(tokens[1]))) ? tokens[1] : (isNaN(parseFloat(this.cleanNumStr(tokens[0]))) ? tokens[0] : `M${tokens[0]}`);
-                c1Str = this.cleanNumStr(tokens[2]);
-                c2Str = this.cleanNumStr(tokens[3]);
-            } else if (tokens.length >= 3) {
-                if (isNaN(num0)) {
-                    name = tokens[0];
-                    c1Str = this.cleanNumStr(tokens[1]);
-                    c2Str = this.cleanNumStr(tokens[2]);
-                } else if (!isNaN(parseFloat(this.cleanNumStr(tokens[1]))) && !isNaN(parseFloat(this.cleanNumStr(tokens[2])))) {
-                    name = `M${tokens[0]}`;
-                    c1Str = this.cleanNumStr(tokens[1]);
-                    c2Str = this.cleanNumStr(tokens[2]);
+            if (vn2kXIdx !== -1 && vn2kYIdx !== -1 && vn2kXIdx !== vn2kYIdx) {
+                const pX = parsedNums[vn2kXIdx];
+                const pY = parsedNums[vn2kYIdx];
+
+                if (textTokens.length > 0) {
+                    name = textTokens[0].text;
                 } else {
-                    name = tokens[0];
-                    c1Str = this.cleanNumStr(tokens[1]);
-                    c2Str = this.cleanNumStr(tokens[2]);
+                    const sttCandidate = parsedNums.find(p => p.idx < Math.min(pX.idx, pY.idx) && p.val < 1000);
+                    if (sttCandidate) {
+                        name = String(sttCandidate.token);
+                    }
                 }
-            } else if (tokens.length === 2) {
-                c1Str = this.cleanNumStr(tokens[0]);
-                c2Str = this.cleanNumStr(tokens[1]);
+
+                if (pY.idx < pX.idx) {
+                    potentialYFirstCount++;
+                }
+
+                c1Str = pX.raw;
+                c2Str = pY.raw;
+                vn2000Count++;
+            }
+            // C2. Kiểm tra cặp tọa độ WGS-84 Decimal: Lat (8.0 - 24.5) và Lng (102.0 - 111.0)
+            else {
+                const wgsLatIdx = parsedNums.findIndex(p => p.val >= 8.0 && p.val <= 24.5);
+                const wgsLngIdx = parsedNums.findIndex(p => p.val >= 102.0 && p.val <= 111.0);
+
+                if (wgsLatIdx !== -1 && wgsLngIdx !== -1 && wgsLatIdx !== wgsLngIdx) {
+                    const pLat = parsedNums[wgsLatIdx];
+                    const pLng = parsedNums[wgsLngIdx];
+
+                    if (textTokens.length > 0) {
+                        name = textTokens[0].text;
+                    } else {
+                        const sttCandidate = parsedNums.find(p => p.idx < Math.min(pLat.idx, pLng.idx) && p.val < 1000);
+                        if (sttCandidate) name = String(sttCandidate.token);
+                    }
+
+                    c1Str = pLat.raw;
+                    c2Str = pLng.raw;
+                    wgs84Count++;
+                }
+                // C3. Fallback vị trí cột truyền thống
+                else {
+                    const num0 = parseFloat(this.cleanNumStr(tokens[0]));
+
+                    if (tokens.length >= 4 && !isNaN(parseFloat(this.cleanNumStr(tokens[2]))) && !isNaN(parseFloat(this.cleanNumStr(tokens[3])))) {
+                        name = isNaN(parseFloat(this.cleanNumStr(tokens[1]))) ? tokens[1] : (isNaN(parseFloat(this.cleanNumStr(tokens[0]))) ? tokens[0] : `M${tokens[0]}`);
+                        c1Str = this.cleanNumStr(tokens[2]);
+                        c2Str = this.cleanNumStr(tokens[3]);
+                    } else if (tokens.length >= 3) {
+                        if (isNaN(num0)) {
+                            name = tokens[0];
+                            c1Str = this.cleanNumStr(tokens[1]);
+                            c2Str = this.cleanNumStr(tokens[2]);
+                        } else if (!isNaN(parseFloat(this.cleanNumStr(tokens[1]))) && !isNaN(parseFloat(this.cleanNumStr(tokens[2])))) {
+                            name = `M${tokens[0]}`;
+                            c1Str = this.cleanNumStr(tokens[1]);
+                            c2Str = this.cleanNumStr(tokens[2]);
+                        } else {
+                            name = tokens[0];
+                            c1Str = this.cleanNumStr(tokens[1]);
+                            c2Str = this.cleanNumStr(tokens[2]);
+                        }
+                    } else if (tokens.length === 2) {
+                        c1Str = this.cleanNumStr(tokens[0]);
+                        c2Str = this.cleanNumStr(tokens[1]);
+                    }
+                }
             }
 
             const n1 = parseFloat(c1Str);
@@ -30903,13 +31135,84 @@ const appOcr = {
             }
         });
 
-        return { detectedKtt, points };
+        // 3. Quét đa dòng (Multi-line Pairing) nếu không tìm thấy điểm mốc đơn dòng
+        if (points.length === 0) {
+            let pendingName = '';
+            let pendingX = null;
+            let pendingY = null;
+
+            lines.forEach((line) => {
+                const clean = line.trim();
+                if (!clean) return;
+
+                const nameMatch = clean.match(/^(?:điểm|mốc|point|pt|m)\s*([A-Za-z0-9_\-]+)[:.]?$/i);
+                if (nameMatch) {
+                    if (pendingX !== null && pendingY !== null) {
+                        points.push({
+                            id: Date.now() + Math.random() + points.length,
+                            name: pendingName || `M${points.length + 1}`,
+                            c1: pendingX,
+                            c2: pendingY
+                        });
+                        pendingX = null;
+                        pendingY = null;
+                    }
+                    pendingName = nameMatch[1];
+                    return;
+                }
+
+                const mX = clean.match(/(?:^|[^\w])X\s*[:=]\s*([0-9.,]+)/i);
+                const mY = clean.match(/(?:^|[^\w])Y\s*[:=]\s*([0-9.,]+)/i);
+                const mLat = clean.match(/(?:^|[^\w])(?:lat|b)\s*[:=]\s*([0-9.,]+)/i);
+                const mLng = clean.match(/(?:^|[^\w])(?:lng|lon|l)\s*[:=]\s*([0-9.,]+)/i);
+
+                if (mX) {
+                    pendingX = this.cleanNumStr(mX[1]);
+                    vn2000Count++;
+                } else if (mY) {
+                    pendingY = this.cleanNumStr(mY[1]);
+                    vn2000Count++;
+                } else if (mLat) {
+                    pendingX = this.cleanNumStr(mLat[1]);
+                    wgs84Count++;
+                } else if (mLng) {
+                    pendingY = this.cleanNumStr(mLng[1]);
+                    wgs84Count++;
+                }
+
+                if (pendingX !== null && pendingY !== null) {
+                    points.push({
+                        id: Date.now() + Math.random() + points.length,
+                        name: pendingName || `M${points.length + 1}`,
+                        c1: pendingX,
+                        c2: pendingY
+                    });
+                    pendingName = '';
+                    pendingX = null;
+                    pendingY = null;
+                }
+            });
+        }
+
+        if (vn2000Count > wgs84Count) {
+            detectedCoordType = 'vn2000';
+        } else if (wgs84Count > 0) {
+            detectedCoordType = 'wgs84';
+        }
+
+        return {
+            detectedKtt,
+            points,
+            coordType: detectedCoordType,
+            potentialYFirst: potentialYFirstCount > (points.length / 2)
+        };
     },
 
     processExtractedText(rawText) {
-        const { detectedKtt, points } = this.parseOcrText(rawText);
+        const { detectedKtt, points, coordType, potentialYFirst } = this.parseOcrText(rawText);
         this.detectedKtt = detectedKtt;
         this.ocrPoints = points;
+        this.detectedCoordType = coordType;
 
         const boxKtt = document.getElementById('boxOcrDetectedKtt');
         const descKtt = document.getElementById('lblOcrDetectedKttDesc');
@@ -30922,7 +31225,120 @@ const appOcr = {
             }
         }
 
+        const typeBadge = document.getElementById('lblOcrCoordTypeBadge');
+        if (typeBadge) {
+            if (coordType === 'vn2000') {
+                typeBadge.style.display = 'inline-block';
+                typeBadge.innerText = '🗺️ VN-2000';
+                typeBadge.style.background = 'rgba(56, 189, 248, 0.2)';
+                typeBadge.style.color = '#38bdf8';
+                typeBadge.style.border = '1px solid #38bdf8';
+            } else if (coordType === 'wgs84') {
+                typeBadge.style.display = 'inline-block';
+                typeBadge.innerText = '🌐 WGS-84';
+                typeBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+                typeBadge.style.color = '#34d399';
+                typeBadge.style.border = '1px solid #10b981';
+            } else {
+                typeBadge.style.display = 'none';
+            }
+        }
+
+        const alertSwap = document.getElementById('boxOcrSwapNotice');
+        if (alertSwap) {
+            alertSwap.style.display = potentialYFirst ? 'flex' : 'none';
+        }
+
         this.renderOcrTable();
+    },
+
+    swapOcrCoordinates() {
+        if (this.ocrPoints.length === 0) {
+            if (typeof showToast === 'function') showToast("⚠️ Không có điểm nào để đảo trục!", true);
+            return;
+        }
+        if (typeof triggerHaptic === 'function') triggerHaptic('light');
+        this.ocrPoints.forEach(p => {
+            const temp = p.c1;
+            p.c1 = p.c2;
+            p.c2 = temp;
+        });
+        const alertSwap = document.getElementById('boxOcrSwapNotice');
+        if (alertSwap) alertSwap.style.display = 'none';
+        this.renderOcrTable();
+        if (typeof showToast === 'function') showToast("🔄 Đã đảo trục cột 1 ⇄ cột 2 cho toàn bộ danh sách!");
+    },
+
+    clearOcrTable() {
+        if (this.ocrPoints.length === 0) return;
+        this.ocrPoints = [];
+        this.renderOcrTable();
+        if (typeof showToast === 'function') showToast("🗑️ Đã xóa sạch bảng đối soát.");
+    },
+
+    copyOcrTable() {
+        if (this.ocrPoints.length === 0) {
+            if (typeof showToast === 'function') showToast("⚠️ Bảng chưa có số liệu để sao chép!", true);
+            return;
+        }
+        const text = this.ocrPoints.map(p => `${p.name}\t${p.c1}\t${p.c2}`).join('\n');
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (typeof showToast === 'function') showToast(`📋 Đã sao chép ${this.ocrPoints.length} điểm vào Clipboard!`);
+            }).catch(() => {
+                this.fallbackCopy(text);
+            });
+        } else {
+            this.fallbackCopy(text);
+        }
+    },
+
+    fallbackCopy(text) {
+        if (typeof document === 'undefined') return;
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            if (typeof showToast === 'function') showToast(`📋 Đã sao chép ${this.ocrPoints.length} điểm!`);
+        } catch (e) {
+            if (typeof showToast === 'function') showToast("⚠️ Không thể tự động sao chép!", true);
+        }
+        document.body.removeChild(ta);
+    },
+
+    toggleQuickPasteBox(forceOpen) {
+        const box = document.getElementById('boxOcrQuickPaste');
+        if (!box) return;
+        const isShow = (forceOpen !== undefined) ? forceOpen : (box.style.display === 'none');
+        box.style.display = isShow ? 'block' : 'none';
+        if (isShow) {
+            const ta = document.getElementById('txtOcrQuickPaste');
+            if (ta) ta.focus();
+        }
+    },
+
+    parseAndLoadFromText(text) {
+        const ta = document.getElementById('txtOcrQuickPaste');
+        const raw = text || (ta ? ta.value : '');
+        if (!raw.trim()) {
+            if (typeof showToast === 'function') showToast("⚠️ Vui lòng dán văn bản tọa độ vào khung!", true);
+            return;
+        }
+        this.processExtractedText(raw);
+        if (this.ocrPoints.length > 0) {
+            this.toggleQuickPasteBox(false);
+            if (ta) ta.value = '';
+            if (typeof showToast === 'function') {
+                const typeStr = this.detectedCoordType === 'vn2000' ? 'VN-2000' : (this.detectedCoordType === 'wgs84' ? 'WGS-84' : 'Tọa độ');
+                showToast(`⚡ Đã bóc tách thành công ${this.ocrPoints.length} điểm (${typeStr})!`);
+            }
+        } else {
+            if (typeof showToast === 'function') showToast("⚠️ Không tìm thấy tọa độ hợp lệ trong văn bản dán!", true);
+        }
     },
 
     applyDetectedKtt() {
@@ -30964,7 +31380,7 @@ const appOcr = {
             tbody.innerHTML = `
               <tr>
                 <td colspan="5" style="text-align: center; color: #64748b; padding: 24px 10px;">
-                  Chưa có số liệu. Hãy chọn hoặc dán ảnh vào khung bên cạnh để quét tự động.
+                  Chưa có số liệu. Hãy chọn/dán ảnh hoặc bấm <b>📋 Dán text OCR</b> để bóc tách ngay.
                 </td>
               </tr>
             `;
@@ -31019,20 +31435,27 @@ const appOcr = {
         }
 
         let validCount = 0;
+        let isVn2000Data = false;
+        let isWgs84Data = false;
+
         this.ocrPoints.forEach(p => {
             const n1 = parseFloat(p.c1);
             const n2 = parseFloat(p.c2);
             if (!isNaN(n1) && !isNaN(n2)) {
+                if (n1 > 500000 || n2 > 500000 || n1 > 1000) isVn2000Data = true;
+                if (n1 <= 90 && n2 <= 180) isWgs84Data = true;
+
                 if (typeof appTransform !== 'undefined' && appTransform.multiPoints) {
                     appTransform.multiPoints.push({
                         id: Date.now() + Math.random() + validCount,
                         name: p.name || `M${appTransform.multiPoints.length + 1}`,
                         c1: p.c1,
                         c2: p.c2,
-                        x: (n1 > 500000 || n2 > 500000) ? n1.toFixed(3) : null,
-                        y: (n1 > 500000 || n2 > 500000) ? n2.toFixed(3) : null,
+                        x: (n1 > 500000 || n2 > 500000) ? n1.toFixed(3) : p.c1,
+                        y: (n1 > 500000 || n2 > 500000) ? n2.toFixed(3) : p.c2,
                         lat: (n1 <= 90 && n2 <= 180) ? n1.toFixed(6) : null,
-                        lng: (n1 <= 90 && n2 <= 180) ? n2.toFixed(6) : null
+                        lng: (n1 <= 90 && n2 <= 180) ? n2.toFixed(6) : null,
+                        selected: true
                     });
                     validCount++;
                 }
@@ -31040,8 +31463,30 @@ const appOcr = {
         });
 
         if (typeof appTransform !== 'undefined') {
-            if (appTransform.renderMultiPointsTable) appTransform.renderMultiPointsTable();
-            if (appTransform.updateMultiSummary) appTransform.updateMultiSummary();
+            if (isVn2000Data && appTransform.multiDirection !== 'vn2k2wgs') {
+                appTransform.multiDirection = 'vn2k2wgs';
+                const btn = document.getElementById('btnToggleMultiDirection');
+                const th1 = document.getElementById('thMultiCol1');
+                const th2 = document.getElementById('thMultiCol2');
+                if (btn) btn.innerText = '🔄 Nguồn: VN-2000 ➔ WGS-84';
+                if (th1) th1.innerText = 'Tọa độ 1: X Bắc (m)';
+                if (th2) th2.innerText = 'Tọa độ 2: Y Đông (m)';
+            } else if (isWgs84Data && !isVn2000Data && appTransform.multiDirection !== 'wgs2vn2k') {
+                appTransform.multiDirection = 'wgs2vn2k';
+                const btn = document.getElementById('btnToggleMultiDirection');
+                const th1 = document.getElementById('thMultiCol1');
+                const th2 = document.getElementById('thMultiCol2');
+                if (btn) btn.innerText = '🔄 Nguồn: WGS-84 ➔ VN-2000';
+                if (th1) th1.innerText = 'Tọa độ 1: Vĩ độ Lat (B)';
+                if (th2) th2.innerText = 'Tọa độ 2: Kinh độ Lng (L)';
+            }
+
+            if (typeof appTransform.renderMultiTransPoints === 'function') {
+                appTransform.renderMultiTransPoints();
+            }
+            if (typeof appTransform.updatePickedMapCountBadge === 'function') {
+                appTransform.updatePickedMapCountBadge();
+            }
         }
 
         this.closeOcrModal();
