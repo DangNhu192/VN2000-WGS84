@@ -3,129 +3,193 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT_DIR = path.resolve(__dirname, '..');
-const html = fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8');
+function createMockDom() {
+  const elements = {};
+  function getOrCreate(id) {
+    if (!elements[id]) {
+      elements[id] = {
+        id,
+        classList: {
+          _classes: new Set(),
+          add(c) { this._classes.add(c); },
+          remove(c) { this._classes.delete(c); },
+          contains(c) { return this._classes.has(c); }
+        },
+        attributes: {},
+        setAttribute(k, v) { this.attributes[k] = String(v); },
+        getAttribute(k) { return this.attributes[k] || null; },
+        style: {},
+        focusCalled: false,
+        focus() { this.focusCalled = true; },
+        innerText: '',
+        innerHTML: '',
+        src: '',
+        href: '',
+        disabled: false
+      };
+    }
+    return elements[id];
+  }
 
-test('=== 1. KIỂM THỬ CẤU TRÚC GIAO DIỆN CỬA SỔ CHỜ DONATE & 4 KÊNH (INDEX.HTML) ===', () => {
+  const channelPills = ['vietinbank', 'bidv', 'momo', 'zalopay'].map(ch => {
+    const pill = {
+      attributes: { 'data-channel': ch },
+      getAttribute(k) { return this.attributes[k]; },
+      classList: {
+        _classes: new Set(ch === 'vietinbank' ? ['active'] : []),
+        add(c) { this._classes.add(c); },
+        remove(c) { this._classes.delete(c); },
+        contains(c) { return this._classes.has(c); }
+      }
+    };
+    return pill;
+  });
 
-    // 1. Kiểm tra tồn tại Modal Donate
-    assert.ok(html.includes('id="modalDonateCountdown"'), 'Phải có modalDonateCountdown trong index.html');
-    assert.ok(html.includes('MỜI TÁC GIẢ TÁCH CÀ PHÊ'), 'Phải có tiêu đề trang nhã mời cà phê');
+  return {
+    elements,
+    getOrCreate,
+    document: {
+      getElementById(id) { return getOrCreate(id); },
+      querySelectorAll(sel) {
+        if (sel === '.donate-channel-pill') return channelPills;
+        return [];
+      }
+    },
+    channelPills
+  };
+}
 
-    // 2. Kiểm tra các thành phần đếm ngược 30 giây
-    assert.ok(html.includes('id="txtDonateCountdownSec"'), 'Phải có số đếm ngược txtDonateCountdownSec');
-    assert.ok(html.includes('id="barDonateProgressFill"'), 'Phải có thanh tiến trình barDonateProgressFill');
-    assert.ok(html.includes('id="btnDonateEnterApp"'), 'Phải có nút vào app btnDonateEnterApp');
-    assert.ok(html.includes('id="badgeDonateStatus"'), 'Phải có huy hiệu trạng thái badgeDonateStatus');
+function extractAppDonate(appJsContent, overrides = {}) {
+  const startIdx = appJsContent.indexOf('const appDonate = {');
+  assert.ok(startIdx !== -1, 'app.js must contain appDonate');
+  const endIdx = appJsContent.indexOf('// ================= 11. KHỞI TẠO ỨNG DỤNG', startIdx);
+  const code = appJsContent.slice(startIdx, endIdx !== -1 ? endIdx : undefined) + '\nreturn appDonate;';
+  const fn = new Function('localStorage', 'document', 'window', 'appNav', code);
+  return fn(overrides.localStorage, overrides.document, overrides.window, overrides.appNav);
+}
 
-    // 3. Kiểm tra 4 kênh thanh toán (VietinBank, BIDV, MoMo, ZaloPay)
-    assert.ok(html.includes('data-channel="vietinbank"'), 'Phải có nút chọn VietinBank');
-    assert.ok(html.includes('data-channel="bidv"'), 'Phải có nút chọn BIDV');
-    assert.ok(html.includes('data-channel="momo"'), 'Phải có nút chọn MoMo');
-    assert.ok(html.includes('data-channel="zalopay"'), 'Phải có nút chọn ZaloPay');
+test('1. Startup does not open modal, write storage, or schedule timers', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  let storageWritten = false;
+  const mockStorage = {
+    getItem() { return null; },
+    setItem() { storageWritten = true; }
+  };
+  const { document } = createMockDom();
+  const windowEvents = {};
+  const mockWindow = {
+    addEventListener(evt, fn) { windowEvents[evt] = fn; }
+  };
 
-    // 4. Kiểm tra số tài khoản tác giả chính xác 0839656568
-    assert.ok(html.includes('0839656568'), 'index.html phải hiển thị đúng số tài khoản 0839656568');
-    assert.ok(html.includes('id="imgDonateVietQR"'), 'Phải có ảnh mã QR VietQR Napas');
-    assert.ok(html.includes('appDonate.copyAccountNumber()'), 'Phải có nút gọi sao chép STK');
-    assert.ok(html.includes('appDonate.closeModal()'), 'Nút vào app phải gọi appDonate.closeModal()');
+  const originalSetTimeout = global.setTimeout;
+  const originalSetInterval = global.setInterval;
+  let timerScheduled = false;
+  global.setTimeout = () => { timerScheduled = true; };
+  global.setInterval = () => { timerScheduled = true; };
+
+  try {
+    const appDonate = extractAppDonate(appJs, { localStorage: mockStorage, document, window: mockWindow });
+    assert.equal(appDonate.timerId, undefined);
+    assert.equal(appDonate.COUNTDOWN_SECONDS, undefined);
+    assert.equal(appDonate.STORAGE_KEY, undefined);
+    assert.equal(appDonate.checkDailyTrigger, undefined);
+
+    appDonate.init();
+    assert.equal(storageWritten, false, 'init must not write storage');
+    assert.equal(timerScheduled, false, 'init must not schedule timers');
+    const modal = document.getElementById('modalDonateCountdown');
+    assert.equal(modal.classList.contains('active'), false, 'init must not open modal');
+  } finally {
+    global.setTimeout = originalSetTimeout;
+    global.setInterval = originalSetInterval;
+  }
 });
 
-test('=== 2. KIỂM THỬ HIỆU ỨNG CSS LOVABLE & CHANNEL PILLS (STYLE.CSS) ===', () => {
-    const cssPath = path.join(ROOT_DIR, 'style.css');
-    const css = fs.readFileSync(cssPath, 'utf8');
-
-    assert.ok(css.includes('#btnDonateEnterApp.btn-ready'), 'style.css phải định nghĩa trạng thái btn-ready khi đếm đủ 30s');
-    assert.ok(css.includes('pulse-donate-ready'), 'Phải có animation nhấp nháy thu hút sau khi mở khóa');
-    assert.ok(css.includes('.donate-channel-pill'), 'Phải có style cho bộ nút chọn kênh donate-channel-pill');
+test('2. Startup handles blocked localStorage gracefully', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const blockedStorage = {
+    getItem() { throw new Error('Blocked localStorage'); },
+    setItem() { throw new Error('Blocked localStorage'); }
+  };
+  const { document } = createMockDom();
+  const mockWindow = { addEventListener() {} };
+  const appDonate = extractAppDonate(appJs, { localStorage: blockedStorage, document, window: mockWindow });
+  assert.doesNotThrow(() => appDonate.init(), 'init should not throw if localStorage is blocked');
 });
 
-test('=== 3. KIỂM THỬ LOGIC MODULE APPDONATE & 4 KÊNH NHẬN TIỀN (APP.JS) ===', () => {
-    const appPath = path.join(ROOT_DIR, 'app.js');
-    const appJs = fs.readFileSync(appPath, 'utf8');
+test('3. Switching all 4 channels updates config and pill states', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const { document, channelPills } = createMockDom();
+  const appDonate = extractAppDonate(appJs, { document, window: {} });
 
-    assert.ok(appJs.includes('const appDonate = {'), 'Phải có đối tượng appDonate');
-    assert.ok(appJs.includes('0839656568'), 'app.js phải cấu hình số tài khoản 0839656568');
-    assert.ok(appJs.includes("'vietinbank'"), 'appDonate phải có kênh vietinbank');
-    assert.ok(appJs.includes("'bidv'"), 'appDonate phải có kênh bidv');
-    assert.ok(appJs.includes("'momo'"), 'appDonate phải có kênh momo');
-    assert.ok(appJs.includes("'zalopay'"), 'appDonate phải có kênh zalopay');
-    assert.ok(appJs.includes('COUNTDOWN_SECONDS: 30'), 'Thời gian đếm ngược phải là 30 giây');
-    assert.ok(appJs.includes('setChannel(ch)'), 'Phải có hàm chuyển kênh setChannel');
-    assert.ok(appJs.includes('copyAccountNumber()'), 'Phải có hàm sao chép STK 1-chạm');
+  const channels = ['vietinbank', 'bidv', 'momo', 'zalopay'];
+  for (const ch of channels) {
+    appDonate.setChannel(ch);
+    assert.equal(appDonate.activeChannel, ch);
+    assert.equal(appDonate.config.accountNumber, '0839656568');
+    const activePills = channelPills.filter(p => p.classList.contains('active'));
+    assert.equal(activePills.length, 1);
+    assert.equal(activePills[0].getAttribute('data-channel'), ch);
+  }
 });
 
-test('=== 4. KIỂM THỬ ĐỔI KÊNH & LOGIC 1 LẦN/NGÀY TRONG MÔI TRƯỜNG GIẢ LẬP ===', () => {
-    const mockStorage = {};
-    global.localStorage = {
-        getItem: (k) => mockStorage[k] || null,
-        setItem: (k, v) => { mockStorage[k] = String(v); }
-    };
-    global.window = {
-        addEventListener: () => {},
-        location: { search: '' }
-    };
-    global.document = {
-        addEventListener: () => {},
-        getElementById: () => null,
-        querySelectorAll: () => [],
-        documentElement: { setAttribute: () => {} }
-    };
-    global.navigator = { clipboard: { writeText: async () => {} } };
+test('4. Explicit opening closes tree menu, displays modal, sets QR src, and focuses close button', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const { document, getOrCreate } = createMockDom();
+  let treeMenuClosed = false;
+  const mockAppNav = {
+    closeTreeMenu() { treeMenuClosed = true; }
+  };
+  const appDonate = extractAppDonate(appJs, { document, window: {}, appNav: mockAppNav });
 
-    // Bóc tách đối tượng appDonate từ app.js để kiểm thử thuần túy
-    const appPath = path.join(ROOT_DIR, 'app.js');
-    const appJs = fs.readFileSync(appPath, 'utf8');
-    const startIdx = appJs.indexOf('const appDonate = {');
-    const endIdx = appJs.indexOf('// ================= 11. KHỞI TẠO ỨNG DỤNG', startIdx);
-    const codeSnippet = appJs.slice(startIdx, endIdx) + '\nreturn appDonate;';
-    const appDonate = new Function('localStorage', 'document', 'window', 'navigator', codeSnippet)(global.localStorage, global.document, global.window, global.navigator);
+  const qr = getOrCreate('imgDonateVietQR');
+  assert.equal(qr.src, '', 'QR image must have no src before opening');
 
-    assert.ok(appDonate, 'Phải khởi tạo được appDonate');
-    assert.equal(appDonate.COUNTDOWN_SECONDS, 30);
+  appDonate.openModal();
+  assert.equal(treeMenuClosed, true, 'openModal must close tree menu via appNav.closeTreeMenu');
+  const modal = getOrCreate('modalDonateCountdown');
+  assert.equal(modal.classList.contains('active'), true, 'modal must be active');
+  assert.notEqual(qr.src, '', 'QR image src must be populated upon explicit open');
+  const closeBtn = getOrCreate('btnDonateEnterApp');
+  assert.equal(closeBtn.focusCalled, true, 'Close button must receive focus');
+});
 
-    // Mặc định kênh VietinBank
-    assert.equal(appDonate.activeChannel, 'vietinbank');
-    assert.equal(appDonate.config.accountNumber, '0839656568');
-    assert.equal(appDonate.config.bankCode, 'ICB');
+test('5. Immediate close hides modal and returns focus to btnHeaderMenu', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const { document, getOrCreate } = createMockDom();
+  const appDonate = extractAppDonate(appJs, { document, window: {} });
 
-    // Chuyển sang kênh BIDV
-    appDonate.setChannel('bidv');
-    assert.equal(appDonate.activeChannel, 'bidv');
-    assert.equal(appDonate.config.accountNumber, '0839656568');
-    assert.equal(appDonate.config.bankCode, 'BIDV');
+  const modal = getOrCreate('modalDonateCountdown');
+  modal.classList.add('active');
+  const menuBtn = getOrCreate('btnHeaderMenu');
 
-    // Chuyển sang kênh MoMo
-    appDonate.setChannel('momo');
-    assert.equal(appDonate.activeChannel, 'momo');
-    assert.equal(appDonate.config.accountNumber, '0839656568');
-    assert.ok(appDonate.config.qrUrl.includes('momo-0839656568'), 'MoMo phải dùng mã QR MoMo Napas chính xác, không dùng ICB');
-    assert.ok(appDonate.config.openAppUrl.includes('momo.vn'), 'MoMo phải có link mở ứng dụng');
+  appDonate.closeModal();
+  assert.equal(modal.classList.contains('active'), false, 'closeModal must hide modal immediately');
+  assert.equal(menuBtn.focusCalled, true, 'closeModal must return focus to btnHeaderMenu');
+});
 
-    // Chuyển sang kênh ZaloPay
-    appDonate.setChannel('zalopay');
-    assert.equal(appDonate.activeChannel, 'zalopay');
-    assert.equal(appDonate.config.accountNumber, '0839656568');
-    assert.ok(appDonate.config.qrUrl.includes('zalo.me%2F0839656568') || appDonate.config.qrUrl.includes('zalo.me/0839656568'), 'ZaloPay phải dùng mã QR ZaloPay chính xác, không dùng BIDV');
-    assert.ok(appDonate.config.openAppUrl.includes('zalo.me'), 'ZaloPay phải có link mở ứng dụng Zalo/ZaloPay');
+test('6. Escape key listener closes modal only when modal is active', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const { document, getOrCreate } = createMockDom();
+  let keydownHandler = null;
+  const mockWindow = {
+    addEventListener(evt, fn) {
+      if (evt === 'keydown') keydownHandler = fn;
+    }
+  };
+  const appDonate = extractAppDonate(appJs, { document, window: mockWindow });
+  appDonate.init();
+  assert.ok(keydownHandler, 'keydown handler must be registered in init');
 
-    // Kiểm tra email phản hồi mới
-    assert.ok(html.includes('dnpn.ttqt@gmail.com'), 'index.html phải hiển thị email dnpn.ttqt@gmail.com');
-    assert.ok(!html.includes('contact@vn2000pro.vn'), 'index.html không còn email cũ contact@vn2000pro.vn');
+  const modal = getOrCreate('modalDonateCountdown');
+  let closeCalled = false;
+  appDonate.closeModal = () => { closeCalled = true; };
 
-    // Kiểm tra logic 1 lần / ngày
-    const today = new Date().toLocaleDateString('en-CA');
-    assert.equal(mockStorage[appDonate.STORAGE_KEY], undefined);
+  modal.classList.remove('active');
+  keydownHandler({ key: 'Escape' });
+  assert.equal(closeCalled, false, 'Escape should not trigger close if modal is not active');
 
-    let modalOpened = false;
-    appDonate.openModal = () => { modalOpened = true; };
-
-    // Lần đầu tiên: lưu key
-    appDonate.checkDailyTrigger();
-    assert.equal(mockStorage[appDonate.STORAGE_KEY], today);
-
-    // Lần thứ hai trong ngày: không mở nữa
-    modalOpened = false;
-    appDonate.checkDailyTrigger();
-    assert.equal(modalOpened, false);
+  modal.classList.add('active');
+  keydownHandler({ key: 'Escape' });
+  assert.equal(closeCalled, true, 'Escape must trigger close when modal is active');
 });

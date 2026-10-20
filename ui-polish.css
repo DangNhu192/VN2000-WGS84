@@ -1,0 +1,624 @@
+/* ui-polish.css: Production Polish for VN2000 PWA (Anti-slop, Swiss-precision, Non-destructive) */
+
+/* 1. Shared Dock: Geometry & layout owned by core styles, scoped touch sizing & clean semantics */
+nav#mobileBottomNav.mobile-bottom-nav {
+  height: auto !important;
+  min-height: 48px !important;
+  max-height: 64px !important;
+  max-width: 520px !important;
+  margin: 0 auto 6px auto !important;
+  padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px)) 6px !important;
+}
+
+body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav {
+  background: var(--bg-card, #0f172a) !important;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25)) !important;
+  border-radius: 18px !important;
+  box-shadow: none !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  padding: 4px 2px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-icon {
+  font-size: 19px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-text {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item:active .bottom-nav-icon,
+nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.active .bottom-nav-icon {
+  transform: none !important;
+  filter: none !important;
+}
+
+/* Active indicator without glow; keep field-mode active untouched */
+body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.active {
+  color: var(--accent, #0284c7) !important;
+  background: rgba(2, 132, 199, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item:not(.active) {
+  color: var(--text-muted, #94a3b8) !important;
+}
+
+/* Dock clearance: Screen-menu, screen-datamgmt and mobile normal converter only */
+#screen-menu, #screen-datamgmt {
+  padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+@media (max-width: 767px) {
+  #screen-transform:not(.fullscreen-mode) {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* 2. Normal Transform Layout <=767px: Scoped height preserving split, resizer, and toggle modes */
+@media (max-width: 767px) {
+  .transform-split-layout:not(.map-full-focus):not(.mode-map-dominant):not(.mode-form-only) {
+    min-height: 680px !important;
+    height: max(680px, calc(100dvh - 140px)) !important;
+    max-height: none !important;
+  }
+  .transform-subtabs {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .transform-subtabs .btn-subtab {
+    flex: 1 1 calc(50% - 6px) !important;
+    min-height: 38px !important;
+    text-align: center !important;
+  }
+}
+
+/* 3. Map Picker Toolbar & Sheet <=767px: Wrap without forcing display, explicit hidden override */
+#tfMapActionsView[style*="display: none"],
+#tfMapActionsPick[style*="display: none"] {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  #transformMapToolbar.transform-map-toolbar {
+    height: auto !important;
+    min-height: 44px !important;
+    max-height: none !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
+  }
+  #transformMapToolbar.transform-map-toolbar > div {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    align-items: center !important;
+  }
+  #transformMapToolbar.transform-map-toolbar .btn-sm,
+  #tfMapActionsPick button,
+  #tfMapActionsView button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 0 8px !important;
+    font-size: 12px !important;
+  }
+  .transform-bottom-sheet:not(.sheet-peek) {
+    bottom: 66px !important;
+    min-height: 0 !important;
+    max-height: min(50dvh, calc(100dvh - 280px)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .transform-bottom-sheet.sheet-peek {
+    bottom: 66px !important;
+    max-height: 52px !important;
+    overflow: hidden !important;
+  }
+}
+
+/* 4. Surfaces & Semantic Controls (Excluded from field-mode) */
+body:not(.field-mode) :is(#screen-transform, #screen-datamgmt) .app-card {
+  background: var(--bg-card, #0f172a) !important;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.2)) !important;
+  box-shadow: none !important;
+}
+
+body:not(.field-mode) :is(#screen-transform, #screen-datamgmt, #screen-menu) button {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body:not(.field-mode) :is(#screen-transform .btn-convert, #fwSubmit) {
+  background: var(--accent, #0284c7) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600 !important;
+}
+
+body:not(.field-mode) :is(#screen-transform .btn-convert, #fwSubmit):hover {
+  background: var(--accent-hover, #0369a1) !important;
+}
+
+body:not(.field-mode) :is(#btnSyncCurrentProject, #btnSyncAllProjects) {
+  background: var(--bg-card, #1e293b) !important;
+  color: var(--text-main, #cbd5e1) !important;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25)) !important;
+}
+
+body:not(.field-mode) :is(#screen-transform, #screen-datamgmt) .btn-red {
+  background: #991b1b !important;
+  color: #fee2e2 !important;
+  border: 1px solid #dc2626 !important;
+}
+
+/* 5. Home Density & Accessible Scoped Focus */
+#fieldWorkspace {
+  padding-top: 12px !important;
+  padding-bottom: 20px !important;
+}
+
+#fwToolbar {
+  margin-bottom: 16px !important;
+}
+
+#fwQuick {
+  padding: 18px 16px !important;
+}
+
+#fwQuick h1 {
+  margin-bottom: 8px !important;
+  font-size: 24px !important;
+}
+
+@media (max-width: 767px) {
+  #fwQuick h1 {
+    font-size: 22px !important;
+  }
+}
+
+#fwContextRow {
+  margin-bottom: 16px !important;
+}
+
+#fwForm {
+  gap: 14px !important;
+}
+
+#fwValues {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  letter-spacing: 0.02em !important;
+}
+
+body:not(.field-mode) :is(#screen-transform, #screen-datamgmt, #mobileBottomNav, #fieldWorkspace) :is(button, input, select, a):focus-visible {
+  outline: 2px solid var(--accent, #38bdf8) !important;
+  outline-offset: 2px !important;
+}
+
+/* 6. Scoped Reduced Motion (Targeted UI components only, preserving CAD) */
+@media (prefers-reduced-motion: reduce) {
+  #mobileBottomNav,
+  #screen-transform,
+  #screen-datamgmt,
+  #fieldWorkspace,
+  .transform-bottom-sheet {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Reviewed QA corrections */
+#transformMapToolbar #tfMapActionsView[style*="display: none"],
+#transformMapToolbar #tfMapActionsPick[style*="display: none"] {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  nav#mobileBottomNav.mobile-bottom-nav {
+    max-height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .transform-bottom-sheet {
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .dock-active-dot {
+  box-shadow: none !important;
+}
+
+body:not(.field-mode) :is(#screen-transform .btn-convert, #fwSubmit) {
+  background: #0369a1 !important;
+  color: #ffffff !important;
+}
+
+body:not(.field-mode) :is(#screen-transform .btn-convert, #fwSubmit):hover {
+  background: #075985 !important;
+}
+
+body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.active {
+  color: var(--text-accent) !important;
+}
+
+/* Voluntary support */
+#drawerItem_donate{width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font:inherit;color:var(--text-main,inherit);padding:10px 14px;border-radius:8px;display:flex;align-items:center;min-height:44px;-webkit-tap-highlight-color:transparent}
+#drawerItem_donate:hover{background:var(--hover-bg,rgba(255,255,255,.06))}
+#drawerItem_donate:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
+#modalDonateCountdown.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.68);display:flex;align-items:center;justify-content:center;z-index:99999;padding:12px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility .2s ease}
+#modalDonateCountdown.modal-overlay.active,#modalDonateCountdown.modal-overlay[style*="display: flex"],#modalDonateCountdown.modal-overlay[style*="display:flex"]{opacity:1;visibility:visible;pointer-events:auto}
+#modalDonateCountdown .modal-donate-box.support-modal{max-width:420px!important;width:calc(100% - 24px)!important;max-height:calc(100dvh - 32px)!important;background:var(--bg-card,#111827)!important;color:var(--text-main,#f3f4f6)!important;border:1px solid var(--border-color,rgba(255,255,255,.14))!important;border-radius:14px;box-shadow:none;display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important}
+#modalDonateCountdown .support-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border-color,rgba(255,255,255,.12));background:inherit}
+#modalDonateCountdown .support-title-wrap{min-width:0;flex:1}
+#modalDonateCountdown .support-title{margin:0;font-size:15px;font-weight:700;line-height:1.3;color:var(--text-main,#f3f4f6);letter-spacing:.2px}
+#modalDonateCountdown .support-subtitle{margin:2px 0 0;font-size:11.5px;color:var(--text-muted,#9ca3af);line-height:1.35}
+#modalDonateCountdown #btnDonateEnterApp.support-close-btn{min-width:44px!important;min-height:44px!important;width:44px!important;height:44px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid var(--border-color,rgba(255,255,255,.14))!important;border-radius:8px!important;background:transparent!important;color:var(--text-main,#f3f4f6)!important;font-size:16px!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent}
+#modalDonateCountdown #btnDonateEnterApp.support-close-btn:hover{background:var(--hover-bg,rgba(255,255,255,.08))!important}
+#modalDonateCountdown #btnDonateEnterApp.support-close-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
+#modalDonateCountdown .support-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+#modalDonateCountdown .support-intro{margin:0;font-size:12px;line-height:1.55;color:var(--text-muted,#9ca3af)}
+#modalDonateCountdown .support-channels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#modalDonateCountdown .donate-channel-pill.support-channel-btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;font-size:12.5px;font-weight:600;border-radius:8px;border:1px solid var(--border-color,rgba(255,255,255,.14));background:transparent;color:var(--text-main,#f3f4f6);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+#modalDonateCountdown .donate-channel-pill.support-channel-btn:hover{background:var(--hover-bg,rgba(255,255,255,.06))}
+#modalDonateCountdown .donate-channel-pill.support-channel-btn.active{border-color:var(--accent,#38bdf8);background:var(--accent-glow,rgba(56,189,248,.14));color:var(--text-main,#f3f4f6)}
+#modalDonateCountdown .donate-channel-pill.support-channel-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
+#modalDonateCountdown .support-qr-panel{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:4px}
+#modalDonateCountdown .support-qr-box{width:180px;height:180px;background:#fff;border-radius:8px;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;padding:6px;overflow:hidden}
+#modalDonateCountdown .support-qr-image{width:100%;height:100%;object-fit:contain;border-radius:4px;display:block}
+#modalDonateCountdown .support-qr-image:not([src]){display:none}
+#modalDonateCountdown .support-qr-image[src]{display:block}
+#modalDonateCountdown .support-hint{margin:0;font-size:11.5px;text-align:center;color:var(--text-muted,#9ca3af);line-height:1.4}
+#modalDonateCountdown .support-app-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 14px;border-radius:8px;text-decoration:none;font-size:12.5px;font-weight:600;background:var(--support-action,#0369a1);color:#fff;border:none}
+#modalDonateCountdown .support-meta-list{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+#modalDonateCountdown .support-meta-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;min-height:28px}
+#modalDonateCountdown .support-meta-label{color:var(--text-muted,#9ca3af);flex-shrink:0}
+#modalDonateCountdown .support-meta-value{color:var(--text-main,#f3f4f6);text-align:right;font-weight:600;word-break:break-word}
+#modalDonateCountdown .support-acc-group{display:flex;align-items:center;gap:8px}
+#modalDonateCountdown .support-acc-number{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13.5px;font-weight:700;color:var(--text-main,#f3f4f6);letter-spacing:.3px}
+#modalDonateCountdown .support-inline-copy{min-height:44px;min-width:54px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;font-size:11.5px;font-weight:600;border-radius:6px;border:1px solid var(--border-color,rgba(255,255,255,.16));background:transparent;color:var(--text-main,#f3f4f6);cursor:pointer}
+#modalDonateCountdown .support-inline-copy:hover{background:var(--hover-bg,rgba(255,255,255,.08))}
+#modalDonateCountdown .support-inline-copy:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
+#modalDonateCountdown .support-memo-value{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;color:var(--text-main,#f3f4f6);text-align:right}
+#modalDonateCountdown .support-footer{flex-shrink:0;padding:12px 16px;border-top:1px solid var(--border-color,rgba(255,255,255,.12));background:inherit}
+#modalDonateCountdown .support-primary-action{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-color,rgba(255,255,255,.18));background:var(--support-action,#0369a1);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+#modalDonateCountdown .support-primary-action:hover{filter:brightness(1.08)}
+#modalDonateCountdown .support-primary-action:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
+
+body.field-mode #modalDonateCountdown {
+  --bg-card: #000;
+  --text-main: #fff;
+  --text-muted: #eee;
+  --border-color: #aaa;
+  --accent: #ffdf00;
+  --hover-bg: #222;
+  --support-action: #ffdf00;
+}
+
+body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-link) {
+  color: #000;
+}
+
+/* ==========================================================================
+   STUDIO-GRADE POLISH 2026: OVERFLOW ELIMINATION, TOUCH TARGETS & HIGH-CONTRAST
+   ========================================================================== */
+
+/* 1. LIGHT MODE CONTRAST & READABILITY (Fix white-on-white & low-contrast sky blue) */
+[data-theme="light"] .quick-chip-pill {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] .quick-chip-pill .chip-label {
+  color: #0f172a !important; /* High-contrast slate-900: 12.8:1 ratio */
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .quick-chip-pill .chip-arrow {
+  color: #475569 !important;
+}
+
+[data-theme="light"] :is(.dash-card-action-link, .dash-chip-badge.cyan, .accordion-badge) {
+  color: #0369a1 !important; /* Deep sky blue: >5.5:1 ratio */
+  background: rgba(2, 132, 199, 0.12) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .bar-title-text {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] :is(#fwResult, .conversion-result-card, .app-card, .result-card) {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* 2. TOUCH TARGETS (WCAG 2.5.5 / 2.5.8: Min 40-44px on mobile) */
+.btn-header-action,
+.mac-ctrl-btn,
+.mac-pill-btn,
+#btnHeaderMenu,
+#btnHeaderThemeToggle,
+#btnHeaderGpsToggle,
+.mac-settings-btn,
+#btnHeaderHelpGuide {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+}
+
+/* Modal close buttons across ALL modals */
+:is(.btn-modal-close, .btn-sheet-close, .mac-window-close, .btn-drawer-close) {
+  min-width: 40px !important;
+  min-height: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+  border-radius: 8px !important;
+}
+
+/* Help circle buttons */
+.btn-help-circle-sm {
+  min-width: 36px !important;
+  min-height: 36px !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+}
+
+/* 3. BUTTON OVERFLOW ELIMINATION (Zero Content Clipping) */
+#btnSyncCurrentProject,
+#btnSyncAllProjects {
+  min-height: 48px !important;
+  height: auto !important;
+  padding: 10px 14px !important;
+  white-space: normal !important;
+  line-height: 1.35 !important;
+  word-break: break-word !important;
+}
+
+.export-actions-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.export-actions-grid .btn-convert {
+  flex: none !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  height: auto !important;
+  padding: 8px 10px !important;
+  white-space: normal !important;
+  line-height: 1.3 !important;
+  font-size: 12.5px !important;
+}
+
+/* Button sheet clear icon button */
+.btn-sheet-clear {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  flex-shrink: 0 !important;
+  border-radius: 8px !important;
+}
+
+/* 4. VIEWPORT SPILLING FIXES (Zero Overflow on 360px) */
+/* Stakeout Card Header Tools */
+#screen-stakeout .card-header {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+#screen-stakeout .card-header .card-title {
+  flex: 1 1 200px !important;
+}
+
+#screen-stakeout .card-header .card-tools {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 4px !important;
+}
+
+#screen-stakeout .card-header .card-tools .btn-sm {
+  min-height: 36px !important;
+  padding: 6px 10px !important;
+}
+
+/* Project Marks Blocks Panel Header */
+#projectMarksBlocksPanel .pmb-header {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+}
+
+#projectMarksBlocksPanel .pmb-header > div:last-child {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-left: auto !important;
+}
+
+#projectMarksBlocksPanel .pmb-header button {
+  min-height: 32px !important;
+}
+
+/* Profile Alignment and Pit Action Rows */
+#screen-profile .profile-panel div[style*="display: flex; gap: 6px;"] {
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+#screen-profile div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+  gap: 6px !important;
+}
+
+/* 5. MINICAD RESPONSIVENESS (Touch Horizontal Scroll & 38px Buttons) */
+#mapCadToolbar .cad-collapsible-row {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+  padding: 4px 6px 6px 6px !important;
+}
+
+#mapCadToolbar .cad-tab-btn {
+  min-width: 38px !important;
+  min-height: 38px !important;
+  font-size: 16px !important;
+}
+
+#mapCadToolbar .cad-btn,
+#mapCadToolbar .cad-actions-row button {
+  min-height: 38px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+/* 6. SURVEYOR GPS DISCLAIMER BANNER */
+.surveyor-gps-disclaimer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #fef3c7;
+}
+
+[data-theme="light"] .surveyor-gps-disclaimer {
+  background: #fffbeb !important;
+  border-color: #f59e0b !important;
+  color: #78350f !important;
+}
+
+.surveyor-gps-disclaimer .disclaimer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.surveyor-gps-disclaimer .disclaimer-badge {
+  font-weight: 800;
+  font-size: 11.5px;
+  color: #fbbf24;
+  letter-spacing: 0.3px;
+}
+
+[data-theme="light"] .surveyor-gps-disclaimer .disclaimer-badge {
+  color: #b45309 !important;
+}
+
+.surveyor-gps-disclaimer .disclaimer-chip {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fde68a;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+[data-theme="light"] .surveyor-gps-disclaimer .disclaimer-chip {
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  color: #92400e !important;
+}
+
+.surveyor-gps-disclaimer .disclaimer-text {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+[data-theme="light"] .surveyor-gps-disclaimer .disclaimer-text {
+  color: #451a03 !important;
+}
+
+.surveyor-gps-disclaimer strong {
+  color: #fbbf24;
+}
+
+[data-theme="light"] .surveyor-gps-disclaimer strong {
+  color: #b45309 !important;
+}
+
+@media (max-width: 480px) {
+  #projectMarksBlocksPanel .pmb-header .pmb-scale-group {
+    display: none !important;
+  }
+}
+

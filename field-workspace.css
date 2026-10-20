@@ -1,0 +1,94 @@
+/* Home workspace, scoped to keep the conversion, project and CAD screens isolated. */
+#fieldWorkspace {
+  --fw-surface: #111c30; --fw-input: #0b1424; --fw-ink: #f8fafc; --fw-muted: #a9b8cc;
+  --fw-line: #3b4c63; --fw-accent: #75d3f4; --fw-on-accent: #082132; --fw-error: #ffb4ab;
+  width: 100%; max-width: 880px; margin: 0 auto; padding: 20px 16px 28px;
+  color: var(--fw-ink);
+}
+body[data-theme="light"] #fieldWorkspace {
+  --fw-surface: #fff; --fw-input: #f7f9fc; --fw-ink: #102137; --fw-muted: #465871;
+  --fw-line: #8393a7; --fw-accent: #075985; --fw-on-accent: #fff; --fw-error: #a92020;
+}
+#fwToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+#fwModes { display: inline-flex; gap: 4px; padding: 4px; background: var(--fw-input); border-radius: 10px; }
+#fieldWorkspace button { font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; padding: 10px 14px; border-radius: 8px; transition: color .15s ease, background-color .15s ease; }
+#fwModes button { border: 0; background: transparent; color: var(--fw-muted); }
+#fwModes button[aria-pressed="true"] { background: var(--fw-surface); color: var(--fw-ink); box-shadow: 0 2px 4px #0002; }
+#fieldWorkspace #fwField { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--fw-line); color: var(--fw-ink); }
+#fieldWorkspace #fwField[aria-pressed="true"] { background: var(--fw-accent); color: var(--fw-on-accent); border-color: transparent; }
+#fwQuick { padding: 28px; background: var(--fw-surface); border-radius: 14px; }
+#fwQuick h1 { margin: 0 0 12px; font-size: 24px; line-height: 1.35; letter-spacing: -.02em; font-weight: 700; }
+#fwContextRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; color: var(--fw-muted); font-size: 13px; }
+#fieldWorkspace #fwKtt { background: transparent; color: var(--fw-accent); border: 0; padding: 8px 4px; }
+#fwForm { display: grid; gap: 20px; }
+#fwForm label { display: block; margin-bottom: 8px; color: var(--fw-muted); font-size: 14px; font-weight: 500; }
+#fieldWorkspace :is(input, select) { width: 100%; min-width: 0; height: 52px; padding: 12px; border: 1px solid var(--fw-line); border-radius: 8px; background: var(--fw-input); color: var(--fw-ink); font-size: 16px; }
+#fieldWorkspace input { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+#fieldWorkspace input::placeholder { color: var(--fw-muted); opacity: 1; }
+#fwInputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+#fieldWorkspace #fwSubmit { min-height: 52px; width: 100%; border: 0; background: var(--fw-accent); color: var(--fw-on-accent); font-size: 16px; }
+#fwSecondary { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+#fieldWorkspace #fwMap { flex: 1 1 240px; min-height: 48px; background: transparent; color: var(--fw-ink); border: 1px solid var(--fw-line); }
+#fieldWorkspace #fwFull { flex: 1 1 240px; border: 0; background: transparent; color: var(--fw-accent); }
+#fieldWorkspace button:hover { filter: brightness(1.12); }
+#fieldWorkspace :is(button, input, select):focus-visible { outline: 3px solid var(--fw-accent); outline-offset: 3px; }
+#fieldWorkspace input[aria-invalid="true"] { border-color: var(--fw-error); }
+#fwError { color: var(--fw-error); font-size: 14px; line-height: 1.6; }
+#fwResult { padding-top: 24px; margin-top: 24px; border-top: 1px solid var(--fw-line); }
+#fwResult h2 { font-size: 16px; margin-bottom: 12px; }
+#fwValues { font: 500 18px/1.8 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; font-variant-numeric: tabular-nums; }
+#fwResultContext { color: var(--fw-muted); margin-top: 8px; font-size: 13px; }
+#fwWarning { color: var(--fw-muted); font-size: 13px; line-height: 1.6; margin-top: 12px; }
+#fieldWorkspace [hidden] { display: none !important; }
+#accordionToolsContent[hidden] { display: none !important; }
+.fw-gps-note { font-size: 13px; line-height: 1.6; padding: 12px; margin-top: 12px; background: #262317; color: #ffdf8a; border-radius: 8px; }
+body[data-theme="light"] .fw-gps-note { background: #fff3cc; color: #634200; }
+#screen-stakeout > .fw-gps-note { margin: 12px; }
+body[data-workspace="simple"] #screen-menu > :is(#dashboardModernHub, #mainCardsHub, #mainTreeContainer, #mainGridContainer, #treeQuickTools) { display: none !important; }
+body[data-workspace="advanced"] #dashboardModernHub { max-width: 1080px; margin-inline: auto; }
+body[data-workspace="advanced"] #dashboardModernHub .big-action-tile { background: var(--bg-card) !important; box-shadow: none !important; }
+
+/* Outdoor mode leaves the saved light/dark preference and CAD sunlight setting intact. */
+body.field-mode #fieldWorkspace {
+  --fw-surface: #000; --fw-input: #101010; --fw-ink: #fff; --fw-muted: #eee;
+  --fw-line: #ccc; --fw-accent: #ffdf00; --fw-on-accent: #000; --fw-error: #ffb4ab;
+}
+body.field-mode :is(#app-container, main.app-viewport, #screen-menu) { background: #000 !important; }
+body.field-mode #fieldWorkspace button { min-height: 48px; }
+body.field-mode #fieldWorkspace :is(input, select) { background: #101010 !important; color: #fff !important; border-color: #ccc !important; }
+body.field-mode header.app-header { background: #000 !important; border-bottom: 1px solid #aaa !important; height: auto !important; min-height: calc(var(--sat-safe-top) + 52px) !important; max-height: none !important; flex-shrink: 0 !important; }
+body.field-mode header.app-header button { min-height: 48px !important; }
+body.field-mode header.app-header button { min-width: 48px !important; color: #fff !important; background: #161616 !important; transition: color .15s ease, background-color .15s ease !important; }
+body.field-mode header.app-header .mac-control-center-capsule { height: auto !important; min-height: 48px; padding: 0 !important; }
+body.field-mode nav#mobileBottomNav.mobile-bottom-nav { background: #000 !important; border-color: #ccc !important; }
+body.field-mode nav#mobileBottomNav .bottom-nav-item { min-height: 48px !important; color: #fff !important; }
+body.field-mode nav#mobileBottomNav .bottom-nav-item.active { background: #282500 !important; color: #ffdf00 !important; }
+body.field-mode #dashboardModernHub :is(.quick-chip-pill, .btn-customize-pins, .btn-hud-action, .accordion-header-btn, .btn-compact-pin) { min-height: 48px !important; }
+body.field-mode #dashboardModernHub .btn-compact-pin { min-width: 48px !important; }
+body.field-mode :is(#screen-transform, #screen-stakeout, #screen-datamgmt) { background: #000 !important; color: #fff !important; }
+body.field-mode :is(#screen-transform, #screen-stakeout, #screen-datamgmt) :is(button, input, select) { min-height: 48px !important; font-size: 16px !important; }
+body.field-mode :is(#screen-transform, #screen-stakeout, #screen-datamgmt) .app-card { background: #101010 !important; border-color: #aaa !important; color: #fff !important; }
+body.field-mode :is(#screen-transform, #screen-stakeout, #screen-datamgmt) :is(.form-label, .card-title) { color: #fff !important; }
+body.field-mode .fw-gps-note { background: #211d00; color: #ffe76b; }
+body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #ffdf00 !important; outline-offset: 3px; }
+@media (max-width: 600px) {
+  #fieldWorkspace { padding: 16px 12px 28px; }
+  #fwToolbar { margin-bottom: 20px; gap: 8px; }
+  #fieldWorkspace #fwModes button { padding: 10px 8px; white-space: nowrap; }
+  #fwModes { flex-shrink: 0; }
+  #fieldWorkspace #fwField { padding: 10px; gap: 6px; }
+  #fieldWorkspace #fwField span { white-space: nowrap; }
+  #fwQuick { padding: 20px 16px; }
+  #fwQuick h1 { font-size: 22px; }
+  #fwContextRow { margin-bottom: 16px; }
+  #fwInputs { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  #fwForm { gap: 16px; }
+  #fwSecondary { gap: 8px; }
+  body.field-mode header.app-header { padding: calc(var(--sat-safe-top) + 2px) 8px 2px !important; gap: 6px !important; }
+  body.field-mode header.app-header .header-left { width: auto !important; min-width: 0; flex: 0 0 auto !important; }
+  body.field-mode header.app-header .header-right { width: auto !important; flex: 0 1 auto !important; min-width: 0; }
+  body.field-mode header.app-header .mac-control-center-capsule { justify-content: space-between; gap: 6px !important; }
+  body.field-mode header.app-header .app-title-group { display: none !important; }
+  body.field-mode #btnHeaderBack { width: 48px !important; padding: 0 !important; font-size: 0 !important; }
+  body.field-mode #btnHeaderBack::after { content: '←'; font-size: 22px; }
+}

@@ -34,6 +34,8 @@
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
   <link rel="stylesheet" href="style.css?v=2.8.1">
+  <link rel="stylesheet" href="field-workspace.css">
+  <link rel="stylesheet" href="ui-polish.css">
 </head>
 
 <body>
@@ -126,6 +128,56 @@
 
       <!-- ================= SCREEN 0: MENU CHÍNH ================= -->
       <section id="screen-menu" class="screen-view active">
+        <div id="fieldWorkspace">
+          <div id="fwToolbar" role="group" aria-label="Chế độ giao diện và thực địa">
+            <div id="fwModes" role="group" aria-label="Chế độ giao diện">
+              <button type="button" id="fwSimple" aria-pressed="true" data-fw-text="simple">Đơn giản</button>
+              <button type="button" id="fwAdvanced" aria-pressed="false" data-fw-text="advanced">Nâng cao</button>
+            </div>
+            <button type="button" id="fwField" aria-pressed="false">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+              <span data-fw-text="field">Thực địa</span>
+            </button>
+          </div>
+          <section id="fwQuick" aria-labelledby="fwTitle">
+            <h1 id="fwTitle" data-fw-text="title">Chuyển đổi tọa độ</h1>
+            <div id="fwContextRow">
+              <span id="fwContext"></span>
+              <button type="button" id="fwKtt" data-fw-text="change">Đổi KTT</button>
+            </div>
+            <form id="fwForm" novalidate>
+              <div>
+                <label for="fwDirection" data-fw-text="direction">Chiều chuyển đổi</label>
+                <select id="fwDirection">
+                  <option value="wgs2vn">WGS-84 → VN-2000</option>
+                  <option value="vn2wgs">VN-2000 → WGS-84</option>
+                </select>
+              </div>
+              <div id="fwInputs">
+                <div>
+                  <label for="fwInput1" id="fwLabel1">Vĩ độ (°)</label>
+                  <input id="fwInput1" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="fwError">
+                </div>
+                <div>
+                  <label for="fwInput2" id="fwLabel2">Kinh độ (°)</label>
+                  <input id="fwInput2" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="fwError">
+                </div>
+              </div>
+              <p id="fwError" role="alert" hidden></p>
+              <button type="submit" id="fwSubmit" data-fw-text="convert">Chuyển đổi</button>
+            </form>
+            <section id="fwResult" aria-live="polite" aria-atomic="true" hidden>
+              <h2 data-fw-text="result">Kết quả</h2>
+              <div id="fwValues"></div>
+              <p id="fwResultContext"></p>
+              <p id="fwWarning" hidden></p>
+            </section>
+            <div id="fwSecondary">
+              <button type="button" id="fwMap" data-fw-text="map">Chấm tọa độ trên bản đồ</button>
+              <button type="button" id="fwFull" data-fw-text="full">Mở bộ chuyển đổi đầy đủ</button>
+            </div>
+          </section>
+        </div>
         <!-- Status Banner (Ẩn để nhường không gian cho 4 Khối lớn, giữ DOM cho các hàm cập nhật dữ liệu) -->
         <div class="status-banner" style="display: none !important;">
           <div class="status-row">
@@ -186,6 +238,13 @@
 
           <!-- HERO LIVE HUD CARD (QUAN TRẮC THỜI GIAN THỰC BENTO SURVEY HUD 2026) -->
           <div class="hero-live-hud-card" id="heroLiveHudCard">
+            <div class="fw-gps-note surveyor-gps-disclaimer" data-fw-gps role="note" aria-label="Khuyến cáo sai số GPS">
+              <span class="gps-disclaimer-icon">⚠️</span>
+              <div class="gps-disclaimer-content">
+                <strong>Khuyến cáo nghiệp vụ trắc địa:</strong>
+                <span>GPS điện thoại chỉ có độ chính xác sơ bộ (sai số ±3m ~ 10m). Không dùng thay thế máy đo RTK GNSS 2 tần số trong đo đạc địa chính và cấp mốc pháp lý chính thức.</span>
+              </div>
+            </div>
             <div class="hero-hud-head">
               <div class="hero-hud-title-wrap">
                 <span class="hud-satellite-pulse" id="dashGpsPulseDot"></span>
@@ -258,7 +317,7 @@
 
           <!-- Khối Accordion Kỹ thuật Nâng cao & Tiện ích -->
           <div class="accordion-advanced-wrapper">
-            <button type="button" id="btnAccordionTools" class="accordion-header-btn"
+            <button type="button" id="btnAccordionTools" class="accordion-header-btn" aria-expanded="false" aria-controls="accordionToolsContent"
               onclick="appDashboard.toggleAccordion()" title="Nhấp để hiển thị hoặc ẩn các công cụ nâng cao">
               <div class="accordion-header-left">
                 <div class="accordion-header-icon-box">🛠️</div>
@@ -269,10 +328,10 @@
               </div>
               <div class="accordion-header-right">
                 <span class="accordion-badge" id="accordionToolsCount">7 công cụ</span>
-                <span id="accordionChevronIcon" class="accordion-chevron expanded">▼</span>
+                <span id="accordionChevronIcon" class="accordion-chevron">▼</span>
               </div>
             </button>
-            <div id="accordionToolsContent" class="accordion-content expanded">
+            <div id="accordionToolsContent" class="accordion-content" hidden>
               <!-- Thanh tìm kiếm lọc nhanh công cụ -->
               <div class="accordion-search-bar">
                 <span class="acc-search-icon">🔍</span>
@@ -1585,7 +1644,7 @@
                   VN2K ➔ WGS ▲
                 </button>
                 <button type="button" class="btn-sheet-clear" onclick="appTransformMap.clearInputs()" title="Xóa điểm và xóa trắng ô nhập" style="padding: 10px 12px; border-radius: 8px;">
-                  🗑️ Xóa điểm
+                  🗑️
                 </button>
               </div>
 
@@ -2285,36 +2344,35 @@
         <!-- Bảng Kê Thông Tin Dự Án & Các Khối CAD Trên Bản Đồ (Chế độ CHỈ ĐỌC / Read-only - Hỗ trợ phóng to, thu nhỏ, điều chỉnh tỉ lệ khung) -->
         <div id="projectMarksBlocksPanel" class="project-marks-blocks-panel" style="display: none;">
           <div class="pmb-header" id="pmbHeader" title="Kéo giữ để di chuyển bảng">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="color: #38bdf8; font-size: 14px;">📋</span>
-              <div>
-                <div style="font-weight: 800; color: #38bdf8; font-size: 12px; letter-spacing: 0.3px;">BẢNG KÊ THÔNG TIN
-                  KHỐI & MỐC DỰ ÁN</div>
-                <div style="font-size: 11.5px; color: #fbbf24; font-weight: 700;" id="pmbProjectNameLabel">Dự án: --
+            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; overflow: hidden;">
+              <span style="color: #38bdf8; font-size: 14px; flex-shrink: 0;">📋</span>
+              <div style="min-width: 0; overflow: hidden;">
+                <div style="font-weight: 800; color: #38bdf8; font-size: 12px; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">BẢNG KÊ KHỐI & MỐC</div>
+                <div style="font-size: 11.5px; color: #fbbf24; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="pmbProjectNameLabel">Dự án: --
                 </div>
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
               <!-- Nút điều chỉnh tỉ lệ khung -->
-              <div
+              <div class="pmb-scale-group"
                 style="display: flex; background: rgba(15,23,42,0.8); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px; padding: 1px;">
                 <button type="button" class="btn-sm"
-                  style="height: 20px; padding: 0 4px; font-size: 11px; background: transparent; color: #94a3b8;"
+                  style="height: 22px; padding: 0 4px; font-size: 11px; background: transparent; color: #94a3b8;"
                   onclick="appMap.setProjectBlocksPanelScale('50')" title="Tỉ lệ 50% (Gọn)">50%</button>
                 <button type="button" class="btn-sm"
-                  style="height: 20px; padding: 0 4px; font-size: 11px; background: transparent; color: #94a3b8;"
+                  style="height: 22px; padding: 0 4px; font-size: 11px; background: transparent; color: #94a3b8;"
                   onclick="appMap.setProjectBlocksPanelScale('75')" title="Tỉ lệ 75% (Vừa)">75%</button>
                 <button type="button" class="btn-sm"
-                  style="height: 20px; padding: 0 4px; font-size: 11px; background: transparent; color: #94a3b8;"
+                  style="height: 22px; padding: 0 4px; font-size: 11px; background: transparent; color: #94a3b8;"
                   onclick="appMap.setProjectBlocksPanelScale('100')" title="Tỉ lệ 100% (Rộng)">100%</button>
               </div>
               <button id="btnPmbMaximize" class="btn-sm"
-                style="height: 22px; padding: 0 6px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);"
+                style="height: 24px; min-width: 24px; padding: 0 6px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);"
                 onclick="appMap.toggleMaximizeProjectBlocksPanel()" title="Phóng to toàn màn hình / Thu nhỏ">⤢</button>
               <button id="btnPmbMinimize" class="btn-sm"
-                style="height: 22px; padding: 0 6px; font-size: 11px; background: rgba(255,255,255,0.1); color: #94a3b8;"
+                style="height: 24px; min-width: 24px; padding: 0 6px; font-size: 11px; background: rgba(255,255,255,0.1); color: #94a3b8;"
                 onclick="appMap.toggleMinimizeProjectBlocksPanel()" title="Thu gọn thành thanh dock">▾</button>
-              <button class="btn-sm btn-red" style="height: 22px; padding: 0 6px; font-size: 11px;"
+              <button class="btn-sm btn-red" style="height: 24px; min-width: 24px; padding: 0 6px; font-size: 11px;"
                 onclick="appMap.closeProjectBlocksPanel()" title="Đóng bảng kê">✕</button>
             </div>
           </div>
@@ -2605,6 +2663,15 @@
 
       <!-- ================= SCREEN 3: CẮM MỐC THỰC ĐỊA (STAKEOUT) ================= -->
       <section id="screen-stakeout" class="screen-view">
+        <div class="fw-gps-note surveyor-gps-disclaimer" data-fw-gps style="margin-bottom: 12px;">
+          <div class="disclaimer-header">
+            <span class="disclaimer-badge">⚠️ LƯU Ý THỰC ĐỊA & PHÁP LÝ</span>
+            <span class="disclaimer-chip">Sai số di động: ±3m ~ 10m</span>
+          </div>
+          <p class="disclaimer-text">
+            Chip GPS trên điện thoại/máy tính bảng chỉ phục vụ <strong>tìm kiếm sơ bộ vị trí và dẫn hướng định tính ngoài thực địa</strong>. Kết quả <strong>không có giá trị pháp lý</strong> và tuyệt đối <strong>không thay thế máy đo RTK/toàn đạc điện tử</strong> trong nghiệm thu, cắm ranh mốc hoặc bàn giao công trình.
+          </p>
+        </div>
         <!-- Card 1: Chọn hoặc nhập mốc mục tiêu -->
         <div class="app-card">
           <div class="card-header">
@@ -2637,19 +2704,19 @@
 
         <!-- Card 1.5: Khung Bản Đồ Theo Dõi Vị Trí & Cắm Mốc (Live Map) -->
         <div class="app-card" style="padding: 10px;">
-          <div class="card-header" style="margin-bottom: 8px;">
-            <span class="card-title">🗺️ Bản Đồ Theo Dõi Dẫn Đường & Cắm Mốc</span>
-            <div class="card-tools" style="display: flex; gap: 4px;">
+          <div class="card-header" style="margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+            <span class="card-title" style="flex: 1 1 100%;">🗺️ Bản Đồ Dẫn Đường & Cắm Mốc</span>
+            <div class="card-tools" style="display: flex; gap: 4px; flex-wrap: wrap; width: 100%; justify-content: flex-end;">
               <button class="btn-sm btn-blue" id="stakeoutMapToggleBtn" onclick="appStakeout.toggleMiniMap()"
-                style="height: 26px; padding: 2px 8px; font-size: 11px;">
+                style="min-height: 32px; padding: 4px 8px; font-size: 11px;">
                 ⤢ Phóng to
               </button>
               <button class="btn-sm btn-blue" onclick="appStakeout.recenterMiniMap()"
-                style="height: 26px; padding: 2px 8px; font-size: 11px;" title="Căn giữa cả vị trí người dùng và mốc">
+                style="min-height: 32px; padding: 4px 8px; font-size: 11px;" title="Căn giữa cả vị trí người dùng và mốc">
                 🎯 Bao quát 2 điểm
               </button>
               <button class="btn-sm" id="btnToggleStakeoutMapLayer" onclick="appStakeout.toggleMapLayer()"
-                style="height: 26px; padding: 2px 8px; font-size: 11px;">
+                style="min-height: 32px; padding: 4px 8px; font-size: 11px;">
                 🛰️ Vệ tinh
               </button>
             </div>
@@ -2743,14 +2810,14 @@
       <section id="screen-camera" class="screen-view">
         <!-- Thanh điều hướng 3 tab chức năng -->
         <div class="camera-tabs-bar">
-          <button id="tabCameraLive" class="camera-tab-btn active" onclick="appCamera.switchTab('live')">
-            📸 Camera Hiện Trường
+          <button id="tabCameraLive" class="camera-tab-btn active" onclick="appCamera.switchTab('live')" title="Camera Hiện Trường">
+            📸 Chụp ảnh
           </button>
-          <button id="tabCameraUpload" class="camera-tab-btn" onclick="appCamera.switchTab('upload')">
-            🖼️ Đóng Dấu Ảnh Máy
+          <button id="tabCameraUpload" class="camera-tab-btn" onclick="appCamera.switchTab('upload')" title="Đóng Dấu Ảnh Máy">
+            🖼️ Đóng dấu
           </button>
-          <button id="tabCameraGallery" class="camera-tab-btn" onclick="appCamera.switchTab('gallery')">
-            📂 Quản Lý Ảnh (<span id="txtCameraGalleryCount">0</span>)
+          <button id="tabCameraGallery" class="camera-tab-btn" onclick="appCamera.switchTab('gallery')" title="Quản Lý Thư Viện Ảnh">
+            📂 Thư viện (<span id="txtCameraGalleryCount">0</span>)
           </button>
         </div>
 
@@ -2987,14 +3054,14 @@
           <div style="display: flex; flex-direction: column; gap: 8px;">
             <!-- Nút 1: Đồng bộ Dự án Hiện Tại -->
             <button id="btnSyncCurrentProject" class="btn-convert"
-              style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; height: 42px; font-size: 13px;"
+              style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; min-height: 44px; padding: 10px 12px; font-size: 13px;"
               onclick="appData.syncCurrentProjectToGoogle()">
               ☁️ ĐỒNG BỘ DỰ ÁN HIỆN TẠI LÊN GOOGLE SHEETS
             </button>
 
             <!-- Nút 2: Đồng bộ Toàn Bộ Các Dự Án -->
             <button id="btnSyncAllProjects" class="btn-convert"
-              style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #34d399; height: 40px; font-size: 12.5px;"
+              style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #34d399; min-height: 44px; padding: 10px 12px; font-size: 12.5px;"
               onclick="appData.syncAllProjectsToGoogle()">
               🌐 ĐỒNG BỘ TẤT CẢ DỰ ÁN LÊN CHUNG 1 SHEET
             </button>
@@ -3049,10 +3116,10 @@
               📥 Xuất CSV / Excel
             </button>
             <button class="btn-convert btn-export-dwg" onclick="appData.exportDwgFile()">
-              📐 Xuất AutoCAD (.DWG)
+              📐 Xuất CAD (.DWG)
             </button>
             <button class="btn-convert btn-export-kml" onclick="appData.exportKmlFile()">
-              🌍 Xuất Google Earth (.KML)
+              🌍 Xuất Earth (.KML)
             </button>
             <button class="btn-convert btn-vn2k-to-wgs" onclick="appData.shareCsvFile()">
               📤 Chia sẻ (Zalo)
@@ -3627,18 +3694,18 @@
                       📐 Vẽ Tuyến trên MiniCAD
                     </button>
                   </div>
-                  <div style="display: flex; gap: 6px;">
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                     <button type="button" class="btn-sm"
-                      style="flex: 1; height: 30px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #7dd3fc; font-weight: 700;"
+                      style="flex: 1 1 110px; min-height: 34px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #7dd3fc; font-weight: 700;"
                       onclick="appElevationProfile.loadAlignmentFromCad()" title="Nạp nhanh tim tuyến đã vẽ trên MiniCAD">
                       📂 Nạp từ MiniCAD
                     </button>
                     <button type="button" class="btn-sm"
-                      style="height: 30px; font-size: 11px; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 600;"
+                      style="flex: 1 1 120px; min-height: 34px; font-size: 11px; background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 600;"
                       onclick="appElevationProfile.loadSampleAlignment()" title="Nạp nhanh 5 cọc mẫu thử nghiệm">
                       🛣️ Tuyến Mẫu (5 Cọc)
                     </button>
-                    <button type="button" class="btn-sm btn-red" style="height: 30px; padding: 0 8px; font-size: 11px;"
+                    <button type="button" class="btn-sm btn-red" style="min-height: 34px; padding: 0 10px; font-size: 11px;"
                       onclick="appElevationProfile.clearAlignmentPoints()" title="Xóa danh sách cọc hiện tại">
                       ✕ Xóa
                     </button>
@@ -3965,19 +4032,19 @@
                 </div>
 
                 <!-- Nút Hành Động Xuất File CAD & Báo Cáo Khối Lượng -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
                   <button class="btn-sm"
-                    style="height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 8px;"
+                    style="flex: 1 1 95px; min-height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 8px; padding: 6px 4px;"
                     onclick="appElevationProfile.exportPitDwg()">
                     💻 Xuất CAD DWG
                   </button>
                   <button class="btn-sm"
-                    style="height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: #fff; border: 1px solid #06b6d4; border-radius: 8px;"
+                    style="flex: 1 1 95px; min-height: 40px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%); color: #fff; border: 1px solid #06b6d4; border-radius: 8px; padding: 6px 4px;"
                     onclick="appElevationProfile.sendPitToCadMini()">
                     📐 Xem CAD Mini
                   </button>
                   <button class="btn-sm btn-green"
-                    style="height: 40px; font-size: 11px; font-weight: 700; border-radius: 8px;"
+                    style="flex: 1 1 95px; min-height: 40px; font-size: 11px; font-weight: 700; border-radius: 8px; padding: 6px 4px;"
                     onclick="appElevationProfile.exportPitCsv()">
                     📊 Xuất Excel CSV
                   </button>
@@ -6572,6 +6639,7 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
+          <button type="button" id="drawerItem_donate" class="drawer-leaf-item" onclick="appDonate.openModal()">Ủng hộ tác giả</button>
           <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.navigateTo('about')">
             <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
             <div class="drawer-leaf-text">
@@ -6793,6 +6861,7 @@
   <!-- APPLICATION CORE SCRIPT -->
   <script src="pixoptimizer.js"></script>
   <script src="app.js?v=2.8.1"></script>
+  <script src="field-workspace.js"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
@@ -6862,113 +6931,58 @@
     </div>
   </div>
 
-  <!-- ================= MODAL CỬA SỔ CHỜ 30S XIN DONATE CHO TÁC GIẢ (1 LẦN/NGÀY) ================= -->
-  <div id="modalDonateCountdown" class="modal-overlay" style="z-index: 99999; backdrop-filter: blur(8px);">
-    <div class="modal-box modal-donate-box" style="max-width: 480px; width: 92%; max-height: 92vh; display: flex; flex-direction: column; background: #091322; border: 1.5px solid rgba(56, 189, 248, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.85); border-radius: 16px; overflow: hidden; padding: 0;">
-      
-      <!-- Header Trang Nhã -->
-      <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%); padding: 14px 18px; border-bottom: 1px solid rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 22px;">☕</span>
-          <div>
-            <div style="color: #38bdf8; font-weight: 800; font-size: 14.5px; letter-spacing: 0.3px;">MỜI TÁC GIẢ TÁCH CÀ PHÊ</div>
-            <div style="font-size: 11px; color: #94a3b8;">Cùng chung tay duy trì & phát triển WGS-84 ⇄ VN-2000 PRO</div>
-          </div>
-        </div>
-        <span id="badgeDonateStatus" style="font-size: 11.5px; font-weight: 700; color: #facc15; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 12px; border: 1px solid rgba(250, 204, 21, 0.3);">Đang chờ 30s</span>
-      </div>
-
-      <!-- Nội dung Cuộn Thân Thiện -->
-      <div class="modal-body" style="padding: 14px 18px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
-        
-        <!-- Tâm thư ngắn gọn -->
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.55; color: #cbd5e1;">
-          👋 Chào bạn, ứng dụng <b style="color: #38bdf8;">WGS-84 ⇄ VN-2000 PRO</b> được tác giả phát triển hoàn toàn <b style="color: #4ade80;">miễn phí</b> nhằm phục vụ cộng đồng kỹ sư trắc địa, địa chính toàn quốc. Mọi đóng góp nhỏ của bạn là nguồn động viên to lớn để duy trì hệ thống và cập nhật tính năng mới!
-        </div>
-
-        <!-- Chọn Kênh Chuyển Khoản & Ví Điện Tử (0839656568) -->
-        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-          <button type="button" class="donate-channel-pill active" data-channel="vietinbank" onclick="appDonate.setChannel('vietinbank')">
-            🏦 VietinBank
-          </button>
-          <button type="button" class="donate-channel-pill" data-channel="bidv" onclick="appDonate.setChannel('bidv')">
-            🏦 BIDV
-          </button>
-          <button type="button" class="donate-channel-pill" data-channel="momo" onclick="appDonate.setChannel('momo')">
-            📱 MoMo
-          </button>
-          <button type="button" class="donate-channel-pill" data-channel="zalopay" onclick="appDonate.setChannel('zalopay')">
-            📱 ZaloPay
-          </button>
-        </div>
-
-        <!-- Khung Mã QR VietQR Napas -->
-        <div style="background: #0f172a; border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-          <div style="position: relative; width: 180px; height: 180px; background: #ffffff; border-radius: 10px; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
-            <img id="imgDonateVietQR" alt="Mã VietQR Donate" style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;"
-              src="https://img.vietqr.io/image/ICB-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU">
-          </div>
-          <div id="txtDonateInstruction" style="font-size: 11px; color: #94a3b8; text-align: center;">
-            📱 Mở ứng dụng ngân hàng bất kỳ để quét mã VietQR tự động
-          </div>
-          <a id="btnDonateOpenApp" href="#" target="_blank" rel="noopener noreferrer" class="btn-sm btn-blue"
-            style="display: none; align-items: center; justify-content: center; height: 28px; padding: 0 14px; font-size: 12px; font-weight: 700; text-decoration: none; border-radius: 6px; margin-top: 2px;">
-            📲 Mở App chuyển ngay ➔
-          </a>
-
-          <!-- Chi tiết Số Tài Khoản -->
-          <div style="width: 100%; background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.6;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span style="color: #94a3b8;">Ngân hàng:</span>
-              <b id="txtDonateBankName" style="color: #f8fafc;">VietinBank (Ngân hàng Công Thương)</b>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span style="color: #94a3b8;">Số tài khoản / SĐT:</span>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <b id="txtDonateAccountNo" style="color: #4ade80; font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: 1px;">0839656568</b>
-                <button type="button" class="btn-sm btn-blue" style="height: 22px; padding: 0 8px; font-size: 11.5px;" onclick="appDonate.copyAccountNumber()">📋 Chép</button>
-              </div>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span style="color: #94a3b8;">Chủ tài khoản:</span>
-              <b id="txtDonateAccountName" style="color: #38bdf8;">ĐẶNG NHƯ</b>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="color: #94a3b8;">Nội dung CK:</span>
-              <span id="txtDonateMemo" style="color: #fbbf24; font-family: ui-monospace, monospace; font-size: 11.5px;">Ung ho VN2000 Pro</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Thanh Đếm Ngược 30 Giây -->
-        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px;">
-            <span style="color: #94a3b8;">⏳ Thời gian chờ mở khóa:</span>
-            <span style="font-weight: 800; color: #facc15;"><span id="txtDonateCountdownSec">30</span> giây</span>
-          </div>
-          <div style="width: 100%; height: 8px; background: #1e293b; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
-            <div id="barDonateProgressFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #4ade80); transition: width 1s linear;"></div>
-          </div>
-          <div style="font-size: 11.5px; color: #64748b; text-align: center;">
-            🛡️ Cửa sổ này chỉ xuất hiện duy nhất 1 lần đầu tiên trong ngày (1 lần/ngày).
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Footer với 2 Nút Hành Động Rõ Ràng (Mobile-first Ergonomics) -->
-      <div style="padding: 12px 18px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; gap: 8px;">
-        <button type="button" id="btnDonateEnterApp" disabled style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 13.5px; font-weight: 700; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: #1e293b; color: #94a3b8; opacity: 0.65; cursor: not-allowed; transition: all 0.3s ease;" onclick="appDonate.closeModal()">
-          ⏳ Chờ <b>30s</b> để vào ứng dụng...
-        </button>
-        <button type="button" class="btn-sm btn-blue" style="width: 100%; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 600;" onclick="appDonate.copyAccountNumber()">
-          📋 Sao chép Số Tài Khoản Ngân Hàng
-        </button>
-      </div>
-
-    </div>
-  </div>
-
+  <!-- Voluntary author support; opened from menu only. -->
+<div id="modalDonateCountdown" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalDonateTitle" aria-hidden="true">
+<div class="modal-box modal-donate-box support-modal">
+<div class="support-header">
+<div class="support-title-wrap">
+<h2 id="modalDonateTitle" class="support-title">Ủng hộ tác giả</h2>
+<p class="support-subtitle">Đồng hành cùng dự án WGS-84 ⇄ VN-2000 PRO</p>
+</div>
+<button type="button" id="btnDonateEnterApp" class="support-close-btn" aria-label="Đóng cửa sổ" onclick="appDonate.closeModal()">✕</button>
+</div>
+<div class="modal-body support-body">
+<p class="support-intro">Ứng dụng hoàn toàn miễn phí. Mọi sự ủng hộ tùy tâm là nguồn động viên quý giá để tác giả tiếp tục nâng cấp và duy trì hệ thống.</p>
+<div class="support-channels" role="group" aria-label="Chọn kênh chuyển khoản">
+<button type="button" class="donate-channel-pill support-channel-btn active" data-channel="vietinbank" onclick="appDonate.setChannel('vietinbank')">VietinBank</button>
+<button type="button" class="donate-channel-pill support-channel-btn" data-channel="bidv" onclick="appDonate.setChannel('bidv')">BIDV</button>
+<button type="button" class="donate-channel-pill support-channel-btn" data-channel="momo" onclick="appDonate.setChannel('momo')">MoMo</button>
+<button type="button" class="donate-channel-pill support-channel-btn" data-channel="zalopay" onclick="appDonate.setChannel('zalopay')">ZaloPay</button>
+</div>
+<div class="support-qr-panel">
+<div class="support-qr-box">
+<img id="imgDonateVietQR" class="support-qr-image" alt="Mã VietQR Donate" />
+</div>
+<p id="txtDonateInstruction" class="support-hint">Mở ứng dụng ngân hàng hoặc ví điện tử để quét mã VietQR tự động</p>
+<a id="btnDonateOpenApp" href="#" target="_blank" rel="noopener noreferrer" class="support-app-link" style="display: none;">Mở ứng dụng chuyển khoản</a>
+</div>
+<div class="support-meta-list">
+<div class="support-meta-row">
+<span class="support-meta-label">Ngân hàng</span>
+<strong id="txtDonateBankName" class="support-meta-value">VietinBank (Ngân hàng Công Thương)</strong>
+</div>
+<div class="support-meta-row">
+<span class="support-meta-label">Số tài khoản</span>
+<div class="support-acc-group">
+<strong id="txtDonateAccountNo" class="support-acc-number">0839656568</strong>
+<button type="button" class="support-inline-copy" aria-label="Sao chép số tài khoản" onclick="appDonate.copyAccountNumber()">Chép</button>
+</div>
+</div>
+<div class="support-meta-row">
+<span class="support-meta-label">Chủ tài khoản</span>
+<strong id="txtDonateAccountName" class="support-meta-value">ĐẶNG NHƯ</strong>
+</div>
+<div class="support-meta-row">
+<span class="support-meta-label">Nội dung CK</span>
+<strong id="txtDonateMemo" class="support-memo-value">Ung ho VN2000 Pro</strong>
+</div>
+</div>
+</div>
+<div class="support-footer">
+<button type="button" class="support-primary-action" onclick="appDonate.copyAccountNumber()">Sao chép số tài khoản</button>
+</div>
+</div>
+</div>
 
   <!-- ================= MODAL HƯỚNG DẪN NGỮ CẢNH CHUYÊN SÂU TỪNG CHỨC NĂNG (LOVABLE PRO 2026) ================= -->
   <div id="modalFeatureHelpGuide" class="modal-overlay" style="display: none; z-index: 99990;">

@@ -1,7 +1,7 @@
 {
   "project": "VN2000-PWA",
-  "version": "2.6.4",
-  "active_feature": null,
+  "version": "2.7.0",
+  "active_feature": "F-011",
   "features": [
     {
       "id": "F-001",
@@ -72,6 +72,13 @@
       "description": "Quản trị KTT, giao diện Lovable 2026, chuyển đổi Light/Dark theme",
       "status": "done",
       "dependencies": []
+    },
+    {
+      "id": "F-011",
+      "name": "Kiểm thử chuyên sâu & Tối ưu hóa chức năng, thao tác toàn bộ ứng dụng",
+      "description": "Rà soát toàn diện từng nút bấm, thao tác, chức năng và giao diện của 11 phân hệ nghiệp vụ theo chuẩn Harness-Kit và Vibe Design",
+      "status": "done",
+      "dependencies": ["F-001", "F-002", "F-003", "F-004", "F-005", "F-006", "F-007", "F-008", "F-009", "F-010"]
     }
   ]
 }

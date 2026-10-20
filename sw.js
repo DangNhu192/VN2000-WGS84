@@ -1,9 +1,12 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.2';
+const CACHE_NAME = 'vn2000-pro-v2.8.5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './field-workspace.js',
+  './field-workspace.css',
+  './ui-polish.css',
   './geodesy.js',
   './leaflet.js',
   './leaflet.css',

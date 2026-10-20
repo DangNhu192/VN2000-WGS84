@@ -1459,6 +1459,9 @@ const appNav = window.appNav = {
     },
 
     updateBanner() {
+        if (typeof document.dispatchEvent === 'function' && typeof Event === 'function') {
+            document.dispatchEvent(new Event('vn2000:contextchange'));
+        }
         const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
         const provEl = document.getElementById('bannerProvinceKtt');
         const muiEl = document.getElementById('bannerMui');
@@ -1566,15 +1569,18 @@ const appDashboard = {
         }
     },
 
-    isAccordionExpanded: true,
+    isAccordionExpanded: false,
 
     toggleAccordion() {
         triggerHaptic('light');
         appDashboard.isAccordionExpanded = !appDashboard.isAccordionExpanded;
         const content = document.getElementById('accordionToolsContent');
         const chevron = document.getElementById('accordionChevronIcon');
+        if (content) content.hidden = !appDashboard.isAccordionExpanded;
         if (content) content.classList.toggle('expanded', appDashboard.isAccordionExpanded);
         if (chevron) chevron.classList.toggle('expanded', appDashboard.isAccordionExpanded);
+        const button = document.getElementById('btnAccordionTools');
+        if (button) button.setAttribute('aria-expanded', String(appDashboard.isAccordionExpanded));
     },
 
     filterTools(query) {
@@ -4507,6 +4513,8 @@ const appTransformMap = {
         const subMode = options.subMode || 'single';
         this.mode = mode;
         this.pickSubMode = subMode;
+        // A return handler belongs only to this opening of the picker.
+        this.onApplyPoint = mode === 'pick' && typeof options.onApplyPoint === 'function' ? options.onApplyPoint : null;
         this.viewSinglePoint = options.singlePoint || (mode === 'view' ? AppState.lastConvertedPoint : null);
 
         this.ensureMap();
@@ -5257,6 +5265,12 @@ const appTransformMap = {
                 return;
             }
             const p = this.pickedSinglePoint;
+            if (this.onApplyPoint) {
+                const onApplyPoint = this.onApplyPoint;
+                this.onApplyPoint = null;
+                onApplyPoint({ lat: p.lat, lng: p.lng });
+                return;
+            }
             this.syncSinglePointToSheet(p);
             const sheet = document.getElementById('transformBottomSheet');
             if (sheet) sheet.classList.remove('sheet-peek');
@@ -6220,7 +6234,8 @@ const appMap = {
             zoomControl: false,
             attributionControl: false,
             maxZoom: 24,
-            minZoom: 4
+            minZoom: 4,
+            preferCanvas: true
         }).setView([10.5, 106.0], 12);
 
         const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
@@ -7639,7 +7654,9 @@ const appData = {
     },
 
     getPoints(projectName) {
-        const proj = projectName || AppState.currentProject;
+        const proj = (typeof projectName === 'string' && projectName.trim()) 
+            ? projectName.trim() 
+            : (typeof AppState !== 'undefined' && typeof AppState.currentProject === 'string' ? AppState.currentProject : 'default.csv');
         const key = `vn2k_pts_${proj}`;
         let raw = localStorage.getItem(key);
         let list = [];
@@ -7671,7 +7688,7 @@ const appData = {
         }
 
         // Kiểm tra biến thể có hoặc không có đuôi .csv
-        if (list.length === 0) {
+        if (list.length === 0 && typeof proj === 'string') {
             const altName = proj.endsWith('.csv') ? proj.slice(0, -4) : (proj + '.csv');
             const altKey = `vn2k_pts_${altName}`;
             const altRaw = localStorage.getItem(altKey) || localStorage.getItem(`vn2k_proj_${altName}`);
@@ -7701,19 +7718,31 @@ const appData = {
     },
 
     addPoint(projectName, point) {
-        const proj = projectName || AppState.currentProject;
-        point.project = proj;
+        let proj, pt;
+        if (projectName && typeof projectName === 'object' && !point) {
+            pt = projectName;
+            proj = (typeof AppState !== 'undefined' && AppState.currentProject) ? AppState.currentProject : 'default.csv';
+        } else if (projectName && typeof projectName === 'object' && typeof point === 'string') {
+            pt = projectName;
+            proj = point;
+        } else {
+            proj = (typeof projectName === 'string' && projectName.trim()) ? projectName.trim() : ((typeof AppState !== 'undefined' && AppState.currentProject) ? AppState.currentProject : 'default.csv');
+            pt = point;
+        }
+        if (!pt || typeof pt !== 'object') return false;
+        pt.project = proj;
         const pts = appData.getPoints(proj);
-        pts.push(point);
+        pts.push(pt);
         appData.savePoints(proj, pts);
         appNav.updateBanner();
         if (AppState.currentScreen === 'datamgmt') {
             appData.refreshTable();
         }
         if (AppState.storageMode === 'auto_google' && AppState.googleScriptUrl) {
-            appData.syncSinglePointToGoogle(point, proj);
+            appData.syncSinglePointToGoogle(pt, proj);
         }
         appData.updateSyncUI();
+        return true;
     },
 
     updateSyncUI() {
@@ -27830,10 +27859,6 @@ const appTheme = {
 
 // ================= 10.10 CỬA SỔ CHỜ 30S XIN DONATE TÁC GIẢ (1 LẦN/NGÀY) =================
 const appDonate = {
-    STORAGE_KEY: 'vn2k_donate_last_shown_date_v1',
-    COUNTDOWN_SECONDS: 30,
-    timerId: null,
-    remainingSeconds: 30,
 
     // Cấu hình 4 kênh nhận donate của tác giả Đặng Như: STK 0839656568
     activeChannel: 'vietinbank',
@@ -27895,9 +27920,18 @@ const appDonate = {
     },
 
     init() {
-        this.loadCustomConfig();
-        // Kiểm tra điều kiện mở cửa sổ chờ (chỉ 1 lần/ngày vào lần mở app đầu tiên)
-        this.checkDailyTrigger();
+      this.loadCustomConfig();
+      if (typeof window !== 'undefined' && !this._escapeBound) {
+        this._escapeBound = true;
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+            if (modal && modal.classList && modal.classList.contains('active')) {
+              this.closeModal();
+            }
+          }
+        });
+      }
     },
 
     loadCustomConfig() {
@@ -27942,48 +27976,22 @@ const appDonate = {
         this.renderBankInfo();
     },
 
-    checkDailyTrigger() {
-        try {
-            if (typeof localStorage === 'undefined') return;
-            const today = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
-            const lastShown = localStorage.getItem(this.STORAGE_KEY);
-            if (lastShown !== today) {
-                // Đánh dấu ngay lập tức để không lặp lại nếu refresh trang
-                localStorage.setItem(this.STORAGE_KEY, today);
-                // Mở cửa sổ sau khi UI đã nạp ổn định
-                setTimeout(() => {
-                    this.openModal();
-                }, 800);
-            }
-        } catch(e) {
-            console.warn('[appDonate] Lỗi kiểm tra ngày:', e);
-        }
-    },
+
 
     openModal() {
-        const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
-        if (modal) modal.classList.add('active');
-        this.renderBankInfo();
-
-        const badge = (typeof document !== 'undefined') ? document.getElementById('badgeDonateStatus') : null;
-        if (badge) {
-            badge.innerText = `Đang chờ ${this.COUNTDOWN_SECONDS}s`;
-            badge.style.color = '#facc15';
-        }
-
-        this.remainingSeconds = this.COUNTDOWN_SECONDS;
-        this.updateCountdownUi();
-
-        clearInterval(this.timerId);
-        this.timerId = setInterval(() => {
-            this.remainingSeconds--;
-            this.updateCountdownUi();
-            if (this.remainingSeconds <= 0) {
-                clearInterval(this.timerId);
-                this.timerId = null;
-                this.unlockCloseButton();
-            }
-        }, 1000);
+      if (typeof appNav !== 'undefined' && typeof appNav.closeTreeMenu === 'function') {
+        appNav.closeTreeMenu();
+      }
+      const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+      if (modal) {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+      this.renderBankInfo();
+      const closeBtn = (typeof document !== 'undefined') ? document.getElementById('btnDonateEnterApp') : null;
+      if (closeBtn && typeof closeBtn.focus === 'function') {
+        closeBtn.focus();
+      }
     },
 
     renderBankInfo() {
@@ -28037,57 +28045,20 @@ const appDonate = {
         }
     },
 
-    updateCountdownUi() {
-        if (typeof document === 'undefined') return;
-        const txtTimer = document.getElementById('txtDonateCountdownSec');
-        const barProgress = document.getElementById('barDonateProgressFill');
-        const btnClose = document.getElementById('btnDonateEnterApp');
 
-        if (txtTimer) txtTimer.innerText = Math.max(0, this.remainingSeconds);
 
-        const pct = Math.min(100, Math.round(((this.COUNTDOWN_SECONDS - this.remainingSeconds) / this.COUNTDOWN_SECONDS) * 100));
-        if (barProgress) barProgress.style.width = pct + '%';
 
-        if (btnClose) {
-            if (this.remainingSeconds > 0) {
-                btnClose.disabled = true;
-                btnClose.classList.remove('btn-ready');
-                btnClose.innerHTML = `⏳ Chờ <b>${this.remainingSeconds}s</b> để vào ứng dụng...`;
-            } else {
-                this.unlockCloseButton();
-            }
-        }
-    },
-
-    unlockCloseButton() {
-        if (typeof document === 'undefined') return;
-        const btnClose = document.getElementById('btnDonateEnterApp');
-        if (btnClose) {
-            btnClose.disabled = false;
-            btnClose.classList.add('btn-ready');
-            btnClose.innerHTML = `✓ Cảm ơn bạn! Bấm để Vào Ứng Dụng ngay 🚀`;
-        }
-        const badge = document.getElementById('badgeDonateStatus');
-        if (badge) {
-            badge.innerText = 'Đã mở khóa (Sẵn sàng)';
-            badge.style.color = '#4ade80';
-        }
-    },
 
     closeModal() {
-        if (this.remainingSeconds > 0) {
-            if (typeof showToast === 'function') {
-                showToast(`⏳ Vui lòng đợi thêm ${this.remainingSeconds} giây trước khi đóng cửa sổ!`, true);
-            }
-            return;
-        }
-        const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
-        if (modal) modal.classList.remove('active');
-        clearInterval(this.timerId);
-        this.timerId = null;
-        if (typeof showToast === 'function') {
-            showToast("✨ Chúc bạn một ngày làm việc thực địa hiệu quả!");
-        }
+      const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+      if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+      const btnMenu = (typeof document !== 'undefined') ? document.getElementById('btnHeaderMenu') : null;
+      if (btnMenu && typeof btnMenu.focus === 'function') {
+        btnMenu.focus();
+      }
     },
 
     copyAccountNumber() {
@@ -30032,6 +30003,9 @@ const appI18n = {
             if (btnVi) btnVi.classList.toggle('active', this.currentLang === 'vi');
             if (btnEn) btnEn.classList.toggle('active', this.currentLang === 'en');
             this.applyTranslations();
+            if (typeof document.dispatchEvent === 'function' && typeof Event === 'function') {
+                document.dispatchEvent(new Event('vn2000:languagechange'));
+            }
         }
         if (showNotification && typeof showToast === 'function') {
             showToast(this.t(this.currentLang === 'en' ? 'toast.lang_en' : 'toast.lang_vi'));
@@ -31752,6 +31726,13 @@ if (typeof window !== 'undefined') {
     window.appI18n = appI18n;
     window.appGuide = appGuide;
     window.appOcr = appOcr;
+    if (typeof appCoordPicker !== 'undefined') window.appCoordPicker = appCoordPicker;
+    if (typeof appBluetoothRtk !== 'undefined') window.appBluetoothRtk = appBluetoothRtk;
+    if (typeof appResection !== 'undefined') window.appResection = appResection;
+    if (typeof appProfile !== 'undefined') window.appProfile = appProfile;
+    if (typeof appTrenches !== 'undefined') window.appTrenches = appTrenches;
+    if (typeof appGeoid !== 'undefined') window.appGeoid = appGeoid;
+    if (typeof appProject !== 'undefined') window.appProject = appProject;
     appOcr.init();
     if (typeof getAppEffectiveDate !== 'undefined') window.getAppEffectiveDate = getAppEffectiveDate;
     window.triggerHaptic = triggerHaptic;
