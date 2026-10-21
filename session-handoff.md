@@ -1,12 +1,12 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Khôi Phục Cửa Sổ 20s Ủng Hộ Gói Xôi, Ly Trà Đá & Khắc Phục Lỗi Cấp Quyền GPS
+## Phiên hiện tại — 2026-10-21: Chuẩn Hóa Cửa Sổ Đồng Hành Cùng Dự Án & Bảo Vệ Cấp Quyền GPS
 - **Đã hoàn tất**:
-  1. **Bổ sung lại Cửa sổ Chờ 20s Ủng Hộ Tác Giả (Gói Xôi, Ly Trà Đá - 1 lần/ngày)**:
-     - Kích hoạt lại `COUNTDOWN_SECONDS: 20` và `checkDailyTrigger()` hiển thị 1 lần / ngày cho người dùng khi mở ứng dụng.
-     - Thanh tiến trình đếm ngược gradient 20s mượt mà, khóa nút vào app trong 20s và tự động mở khóa xanh ngọc `🚀 Vào Ứng Dụng Ngay (Cảm ơn bạn!)` khi kết thúc.
-     - Cho phép mở thủ công tự do từ menu Drawer bất cứ lúc nào mà không ép buộc đếm ngược.
-     - Cập nhật bộ test `tests/donate_modal_30s.test.js` đạt 6/6 test PASS.
+  1. **Chuẩn hóa Văn Phong Sang Trọng & Tinh Tế: Cửa sổ 20s Đồng Hành Cùng Dự Án (1 lần/ngày)**:
+     - Loại bỏ toàn bộ các từ ngữ dân dã, con số định sẵn (bỏ "gói xôi, trà đá, 10k, 20k"), nâng tầm sang trọng, văn minh và tôn trọng người dùng.
+     - Tiêu đề: `Đồng Hành Cùng Dự Án ☕` - Thông điệp: *"Tiếp sức phát triển: Ứng dụng hoạt động phi lợi nhuận phục vụ cộng đồng kỹ sư trắc địa. Mọi sự đồng hành tùy tâm là nguồn động lực quý giá..."*.
+     - Giữ nguyên cơ chế đếm ngược 20s (`COUNTDOWN_SECONDS: 20`) mở 1 lần / ngày (`checkDailyTrigger`), mở khóa xanh ngọc khi hết giờ, và mở thủ công tự do từ menu Drawer.
+     - Bộ test `tests/donate_modal_30s.test.js` PASS 6/6 test.
   2. **Khắc phục lỗi chặn lớp phủ / chú giải (Tapjacking Protection) của Android**:
      - Tích hợp Lazy Permissions Check: chỉ kích hoạt GPS khi đã cấp quyền hoặc khi người dùng chạm ngón tay có chủ đích (`User Gesture`), không tự bung popup đột ngột khi tải trang.
      - Tích hợp Modal `#modalGpsPermissionGuide` giải thích nguyên nhân và hướng dẫn xử lý bong bóng chat Messenger/Zalo hoặc cấp quyền trực tiếp trong Chrome.

@@ -28062,7 +28062,7 @@ const appTheme = {
     }
 };
 
-// ================= 10.10 CỬA SỔ CHỜ 20S ỦNG HỘ GÓI XÔI, LY TRÀ ĐÁ TÁC GIẢ (1 LẦN/NGÀY) =================
+// ================= 10.10 CỬA SỔ CHỜ 20S ĐỒNG HÀNH CÙNG DỰ ÁN (1 LẦN/NGÀY) =================
 const appDonate = {
     STORAGE_KEY: 'vn2k_donate_last_shown_date_v1',
     COUNTDOWN_SECONDS: 20,
@@ -28349,7 +28349,7 @@ const appDonate = {
     closeModal() {
         if (this.isCountingDown && this.remainingSeconds > 0) {
             if (typeof showToast === 'function') {
-                showToast('⏳ Vui lòng chờ thêm ' + this.remainingSeconds + 's ủng hộ gói xôi, ly trà đá nhé!', true);
+                showToast('⏳ Vui lòng đợi thêm ' + this.remainingSeconds + 's trước khi vào ứng dụng nhé!', true);
             }
             return;
         }
@@ -28362,7 +28362,7 @@ const appDonate = {
         this.timerId = null;
         this.isCountingDown = false;
         if (typeof showToast === 'function') {
-            showToast('☕ Cảm ơn bạn đã đồng hành! Chúc bạn ngày mới làm việc hiệu quả!');
+            showToast('☕ Cảm ơn bạn đã đồng hành cùng VN2000 PRO!');
         }
         const btnMenu = (typeof document !== 'undefined') ? document.getElementById('btnHeaderMenu') : null;
         if (btnMenu && typeof btnMenu.focus === 'function') {

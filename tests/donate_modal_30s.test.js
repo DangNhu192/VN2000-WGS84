@@ -68,7 +68,7 @@ function extractAppDonate(appJsContent, overrides = {}) {
   return fn(overrides.localStorage, overrides.document, overrides.window, overrides.appNav, overrides.showToast);
 }
 
-test('1. Startup checks daily trigger and configures 20s countdown support (gói xôi, ly trà đá)', () => {
+test('1. Startup checks daily trigger and configures 20s countdown support (Đồng hành cùng dự án)', () => {
   const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   let storageWrittenKey = null;
   let storageWrittenValue = null;
@@ -179,7 +179,7 @@ test('5. Auto countdown mode prevents early close until 20s finished', () => {
   // Thử đóng trước khi hết 20s -> bị chặn và toast nhắc nhở
   appDonate.closeModal();
   assert.equal(modal.classList.contains('active'), true, 'Không cho phép đóng khi còn thời gian đếm ngược');
-  assert.ok(toastMsg.includes('gói xôi, ly trà đá'), 'Thông báo nhắc nhở ủng hộ gói xôi trà đá');
+  assert.ok(toastMsg.includes('trước khi vào ứng dụng'), 'Thông báo lịch sự nhắc nhở chờ trước khi vào ứng dụng');
 
   // Giả lập hết 20s
   appDonate.remainingSeconds = 0;

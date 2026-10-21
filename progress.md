@@ -9,25 +9,21 @@
 
 ## Nhật ký tiến độ gần nhất
 
-### [2026-10-21] Khôi Phục Cửa Sổ Chờ 20s Ủng Hộ Gói Xôi, Ly Trà Đá Duy Trì Ứng Dụng (1 Lần/Ngày)
-- **Yêu cầu**: Khôi phục lại cửa sổ đếm ngược 20s ủng hộ tác giả (gói xôi, ly trà đá 10k - 20k) để duy trì máy chủ và phát triển tính năng, kích hoạt 1 lần / ngày lúc mở ứng dụng.
-- **Triển khai kỹ thuật**:
-  1. **Thông điệp & Giao diện Lovable Pro**:
-     - Tiêu đề: `Ủng Hộ Tác Giả (Gói Xôi, Ly Trà Đá) ☕`.
-     - Phụ đề: `Đồng hành cùng dự án WGS-84 ⇄ VN-2000 PRO • 1 lần / ngày`.
-     - Thông điệp kêu gọi ủng hộ tùy tâm 10k - 20k (gói xôi, ly trà đá) hỗ trợ máy chủ và phát triển công cụ thực địa.
-     - Tích hợp thanh tiến trình đếm ngược 20s (`#barDonateProgressFill`), thời gian thực (`#txtDonateCountdownSec`), và huy hiệu trạng thái (`#badgeDonateStatus`).
-  2. **Cơ chế Khóa & Mở Khóa Đếm Ngược 20s (`COUNTDOWN_SECONDS: 20`)**:
-     - Trong 20s: Nút chính `#btnDonateEnterApp` bị vô hiệu hóa, đếm ngược `⏳ Chờ {n}s để vào ứng dụng...`. Nếu người dùng chạm đóng sẽ nhắc nhở toast nhẹ nhàng.
-     - Hết 20s: Nút mở khóa chuyển sang màu xanh ngọc phát quang `🚀 Vào Ứng Dụng Ngay (Cảm ơn bạn!)` cho phép vào ứng dụng ngay lập tức.
-     - Có nút phụ `📋 Sao chép số tài khoản chuyển khoản` để tiện thao tác.
-  3. **Tần suất 1 lần / ngày (`checkDailyTrigger`)**:
-     - Lưu ngày hiển thị vào `localStorage` với key `vn2k_donate_last_shown_date_v1`.
-     - Nếu mở ứng dụng lần đầu trong ngày ➔ Tự động mở cửa sổ đếm ngược 20s sau 1 giây khi UI đã nạp ổn định.
-     - Nếu người dùng chủ động mở từ Menu Drawer (`openModal(false)`) ➔ Không bắt buộc đếm ngược, cho phép đóng tự do bất cứ lúc nào.
-  4. **Kiểm thử tự động**:
-     - Cập nhật toàn diện `tests/donate_modal_30s.test.js` kiểm thử 6/6 kịch bản (khởi tạo, đếm ngược, chặn đóng sớm, mở khóa, chuyển kênh, escape).
-     - **229 / 229 bài test PASS 100%**.
+### [2026-10-21] Chuẩn Hóa Văn Phong Sang Trọng & Tinh Tế: Cửa Sổ Đồng Hành Cùng Dự Án (20s - 1 Lần/Ngày)
+- **Cải tiến theo phản hồi**:
+  - Triệt tiêu toàn bộ các từ ngữ dân dã hoặc con số áp đặt (bỏ chữ "gói xôi", "ly trà đá", "10k", "20k").
+  - Nâng tầm văn phong sang trọng, chuyên nghiệp và đầy tôn trọng:
+    - **Tiêu đề**: `Đồng Hành Cùng Dự Án ☕`.
+    - **Phụ đề**: `Duy trì nền tảng VN-2000 PRO miễn phí cho cộng đồng trắc địa`.
+    - **Thông điệp**: *"☕ Tiếp sức phát triển: Ứng dụng hoạt động phi lợi nhuận phục vụ cộng đồng kỹ sư trắc địa. Mọi sự đồng hành tùy tâm là nguồn động lực quý giá giúp tác giả duy trì máy chủ tốc độ cao và phát triển các tiện ích mới."*
+    - **Hộp thông điệp**: Tone màu xanh dương Cyan dịu mắt (`rgba(56, 189, 248, 0.08)`), viền tinh tế, chuẩn công thái học trắc địa hiện đại.
+    - **Toast lịch sự**: *"⏳ Vui lòng đợi thêm {n}s trước khi vào ứng dụng nhé!"* và *"☕ Cảm ơn bạn đã đồng hành cùng VN2000 PRO!"*.
+- **Bảo toàn 100% cơ chế kỹ thuật**:
+  - Đếm ngược 20 giây (`COUNTDOWN_SECONDS: 20`), thanh tiến trình gradient mượt mà.
+  - Tần suất 1 lần / ngày (`checkDailyTrigger`) qua `localStorage`.
+  - Mở thủ công từ Menu Drawer không bắt buộc chờ.
+  - 100% test `node --test tests/*.test.js` PASS (229/229).
+
 
 ### [2026-10-21] Khắc Phục Lỗi Chặn Lớp Phủ Android / Bong Bóng Chat & Bảo Vệ Cấp Quyền GPS Thông Minh
 - **Nguyên nhân**: Cơ chế Tapjacking Protection của Android chặn hộp thoại cấp quyền (Permission Dialog) của Chrome khi máy có bong bóng chat Messenger/Zalo, nút ảo hoặc app lọc màn hình đang nổi trong lúc webapp tự động dò GPS ngay lúc tải trang (`DOMContentLoaded`).
