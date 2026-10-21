@@ -1,23 +1,27 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Sửa Dứt Điểm Lỗi Thanh Menu Không Thể Vuốt Lên & Chức Năng Bị Che Khuất
+## Phiên hiện tại — 2026-10-21: Xây Dựng Hệ Thống Video Hướng Dẫn Thao Tác Bằng Quay Chụp Màn Hình (1 Chức Năng / 1 Video)
 - **Đã hoàn tất**:
-  1. **Khắc phục lỗi Menu Drawer không thể vuốt lên & bị Bottom Dock đè**:
-     - **Nguyên nhân**: `.nav-tree-drawer` có `z-index: 2200`, `.nav-tree-backdrop` có `z-index: 2100`, trong khi thanh dock nổi `#mobileBottomNav` có `z-index: 2400` và header có `z-index: 2500`. Do đó khi Drawer mở, thanh dock nổi vẫn nằm đè chình ình lên trên Drawer ở đáy màn hình, che toàn bộ các mục 5.1 đến 5.7 và nuốt cử chỉ vuốt chạm. Đồng thời `body.drawer-open` có `touch-action: none !important;` chặn cử chỉ cuộn dọc trên mọi phần tử con trên Safari iOS / Chrome Android.
-     - **Giải pháp**:
-       + Đưa `.nav-tree-drawer` lên `z-index: 9999 !important;`, `.nav-tree-backdrop` lên `z-index: 9998 !important;`.
-       + Ẩn hoàn toàn thanh Bottom Navigation khi mở Drawer (`body.drawer-open #mobileBottomNav { display: none !important; ... }`) trong cả CSS và JS (`openTreeMenu`/`closeTreeMenu`).
-       + Sửa `body.drawer-open` thành `touch-action: pan-y !important;` (bỏ `touch-action: none`), cho phép vuốt cuộn 100% trơn tru, nhẹ nhàng.
-  2. **Tăng khoảng đệm đáy (Dock Clearance) cho Trang Chủ & Các Màn Hình**:
-     - **Nguyên nhân**: `#screen-menu` có `padding-bottom: calc(68px + ...)`, khiến khi cuộn xuống dưới cùng của trang chủ, các thẻ chức năng ở đáy (như Tiện ích CAD Mini, Camera, v.v.) bị thanh dock che khuất phân nửa và không thể vuốt lên cao hơn được.
-     - **Giải pháp**: Tăng padding-bottom cho `#screen-menu`, `#screen-datamgmt`, `#screen-about`, v.v. lên `calc(130px + env(safe-area-inset-bottom, 20px)) !important;`. Toàn bộ các thẻ ở đáy có thể vuốt lên cao vượt hẳn qua thanh dock nổi với khoảng thở rộng rãi.
-  3. **Tối ưu Bottom Sheet Chuyển Đổi Trên Bản Đồ (`#transformBottomSheet`)**:
-     - Bổ sung sự kiện 1-chạm tap/click vào drag handle để tự động thu gọn/mở rộng.
-     - Hạ ngưỡng kéo vuốt xuống 15px để phản hồi cử chỉ vuốt nhạy hơn.
-  4. **Kiểm thử tự động & Nghiệm thu trực quan**:
-     - Viết bài test bảo vệ `tests/menu_scroll_and_touch_fix.test.js` (3/3 tests PASS).
-     - Toàn bộ **237 / 237 bài test PASS 100%** (`node --test tests/*.test.js`).
-     - Nghiệm thu trực quan qua Chrome DevTools MCP: Cả 3 màn hình đều cuộn vuốt 100% không còn bất kỳ chi tiết nào bị che khuất.
+  1. **Bãi bỏ hoàn toàn định dạng MV ca nhạc / hát vè vần**:
+     - Loại bỏ toàn bộ ca từ hát rhyme, beat trống dồn dập, chuyển đổi sang **Screen Walkthrough Video Studio** chuyên nghiệp.
+  2. **Quay chụp màn hình thực tế từng chức năng (`assets/tutorial_screens/`)**:
+     - Sử dụng Chrome DevTools MCP trực tiếp chụp 11 frame ảnh thực tế của ứng dụng VN2000-PWA với độ nét cao, bao quát 7 phân hệ chính (Chuyển đổi đơn điểm, Chuyển đổi hàng loạt, Bản đồ Live GPS, Cắm mốc thực địa, Sổ đo dự án & xuất file, MiniCAD, Camera đóng dấu).
+  3. **Tách riêng 1 chức năng / 1 video độc lập (7 Videos Dedicated)**:
+     - 7 video riêng biệt tương ứng 7 chức năng. Không gom chung, người dùng chọn chức năng nào sẽ xem video hướng dẫn của đúng chức năng đó.
+     - Canvas Full HD 1920×1080 với mockup điện thoại hiển thị ảnh chụp màn hình thật, hiệu ứng Ken Burns zoom, con trỏ cảm ứng chạm phát quang, spotlight khoanh vùng nút bấm/ô nhập liệu đang được nói đến.
+     - Thẻ chỉ dẫn từng bước (Step Badge, Tiêu đề bước tiếng Việt, Lời thuyết minh, Subtitle tiếng Anh, Mẹo thực địa, Thanh tiến trình).
+  4. **Nhạc nền Piano Ambient Lo-Fi êm dịu & Giọng đọc Tiếng Việt chuẩn**:
+     - Nhạc nền: Hợp âm Piano Ambient Lo-Fi (`Cmaj7 → Am7 → Fmaj7 → G6`) êm đềm, du dương, âm lượng nhỏ nhẹ không át tiếng thuyết minh.
+     - Giọng đọc: Web Speech API TTS tiếng Việt tự động đọc to, rõ ràng lời hướng dẫn khi chuyển sang từng bước thao tác. Có nút Tắt/Bật, thanh trượt âm lượng và nút "Đọc lại".
+  5. **Tính năng Xuất Video Client-Side (MediaRecorder)**:
+     - Nút "Xuất Video MP4" xuất file clip hướng dẫn của chức năng đó về thiết bị người dùng.
+  6. **Đồng bộ hóa Menu & Kiểm thử**:
+     - Cập nhật mục 5.7 trong `index.html` Side Drawer thành *"5.7 Video Hướng Dẫn Thao Tác Chức Năng (Quay chụp màn hình • Giọng đọc & Nhạc nhẹ)"*.
+     - Cập nhật bài test [tests/pdoom_video_engine.test.js](file:///d:/Nhu/APP/VN2000-PWA/tests/pdoom_video_engine.test.js).
+     - Toàn bộ **237 / 237 bài test PASS 100%**.
+     - Nghiệm thu trực tiếp trên Chrome DevTools cả trên Mobile Viewport (390×844) và Desktop Viewport (1280×800).
+
+## Phiên trước — 2026-10-21: Sửa Dứt Điểm Lỗi Thanh Menu Không Thể Vuốt Lên & Chức Năng Bị Che Khuất
 
 ## Phiên trước — 2026-10-21: Nâng Cấp Hệ Thống Âm Nhạc Polyphonic Lo-Fi Studio
      - **Phản hồi người dùng**: *"nhạc bạn làm nghe chán quá."* do phiên bản trước chỉ dùng oscillator bíp đơn điệu cùng giọng đọc Web Speech robot khô cứng.

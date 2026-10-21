@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>VN2000 PRO — Code-Rendered Music Video Studio (pdoom-video Engine)</title>
+  <title>VN2000 PRO — Video Hướng Dẫn Thao Tác Từng Chức Năng (Screen-Walkthrough Studio)</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
   <style>
     :root {
       --bg: #07090e;
-      --card-bg: rgba(15, 23, 42, 0.85);
+      --card-bg: rgba(15, 23, 42, 0.88);
+      --card-border: rgba(255, 255, 255, 0.12);
       --accent: #38bdf8;
       --accent-glow: rgba(56, 189, 248, 0.35);
       --signal: #10b981;
       --gold: #f59e0b;
       --text: #f8fafc;
       --text-muted: #94a3b8;
-      --border: rgba(255, 255, 255, 0.12);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -29,7 +29,7 @@
     }
     header {
       background: rgba(11, 15, 25, 0.95);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--card-border);
       padding: 10px 18px;
       display: flex;
       align-items: center;
@@ -56,14 +56,9 @@
       font-weight: 700;
       color: var(--text);
     }
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
     .btn-header {
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       color: var(--text);
       padding: 6px 12px;
       border-radius: 8px;
@@ -121,17 +116,17 @@
       z-index: 10;
     }
     .hud-tag {
-      background: rgba(15, 23, 42, 0.8);
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(8px);
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 6px;
-      font-size: 11px;
+      font-size: 11.5px;
       font-family: ui-monospace, monospace;
       color: #38bdf8;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .hud-dot {
       width: 7px;
@@ -145,12 +140,12 @@
       from { opacity: 0.4; }
       to { opacity: 1; transform: scale(1.2); }
     }
-    /* Video Controls Bar */
+    /* Controls Panel */
     .controls-panel {
       width: 100%;
       max-width: 1100px;
       background: var(--card-bg);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 12px 18px;
       display: flex;
@@ -200,7 +195,7 @@
     }
     .btn-ctrl {
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       color: var(--text);
       min-height: 38px;
       padding: 0 14px;
@@ -222,20 +217,16 @@
       border-color: #38bdf8;
       color: #fff;
       font-weight: 700;
-      min-width: 100px;
+      min-width: 105px;
       justify-content: center;
     }
-    .btn-ctrl.btn-primary-play:hover {
-      filter: brightness(1.15);
-    }
-    /* Audio Engine Console Styles */
     .audio-engine-bar {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
       background: rgba(15, 23, 42, 0.7);
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
@@ -251,42 +242,34 @@
       color: #cbd5e1;
       font-size: 12px;
     }
-    .sel-audio-style {
-      background: #0f172a;
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      color: #38bdf8;
-      border-radius: 6px;
-      padding: 5px 8px;
-      font-size: 12px;
-      font-weight: 600;
-      outline: none;
-      cursor: pointer;
-      transition: border-color 0.15s ease;
-    }
-    .sel-audio-style:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-    }
     .volume-slider {
-      width: 65px;
+      width: 70px;
       height: 4px;
       accent-color: #38bdf8;
       cursor: pointer;
     }
-    /* Episodes Carousel */
+    /* Function Cards Selector */
+    .section-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
     .episodes-grid {
       width: 100%;
       max-width: 1100px;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 12px;
-    }
-    @media (max-width: 820px) {
-      .episodes-grid { grid-template-columns: 1fr; }
     }
     .episode-card {
       background: var(--card-bg);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 14px;
       cursor: pointer;
@@ -299,70 +282,65 @@
     .episode-card:hover {
       border-color: var(--accent);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     }
     .episode-card.active {
-      border-color: #38bdf8;
-      background: rgba(14, 165, 233, 0.12);
-      box-shadow: 0 0 0 1px #38bdf8, 0 8px 20px rgba(56, 189, 248, 0.2);
+      border-color: #0284c7;
+      background: rgba(2, 132, 199, 0.14);
+      box-shadow: 0 0 20px rgba(2, 132, 199, 0.35);
     }
-    .ep-badge-row {
+    .episode-card-top {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
     }
-    .ep-pill {
+    .episode-badge {
       font-size: 10.5px;
       font-weight: 700;
-      padding: 2px 7px;
+      padding: 2px 8px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
     }
-    .episode-card.active .ep-pill {
+    .episode-card.active .episode-badge {
       background: #0284c7;
       color: #fff;
     }
-    .ep-bpm {
-      font-family: ui-monospace, monospace;
+    .episode-duration {
       font-size: 11px;
-      color: #38bdf8;
+      font-family: ui-monospace, monospace;
+      color: var(--text-muted);
     }
-    .ep-title {
+    .episode-title {
       font-size: 14px;
       font-weight: 700;
-      color: #f1f5f9;
-      line-height: 1.35;
-    }
-    .ep-sub {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-    /* Key Shortcuts Help */
-    .shortcuts-bar {
-      width: 100%;
-      max-width: 1100px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 8px 14px;
+      color: var(--text);
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 6px;
+    }
+    .episode-summary {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+    .episode-steps-pills {
+      display: flex;
+      gap: 6px;
       flex-wrap: wrap;
-      gap: 8px;
-      font-size: 11.5px;
+      margin-top: 4px;
+    }
+    .step-pill {
+      font-size: 10.5px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 2px 7px;
+      border-radius: 4px;
       color: #94a3b8;
     }
-    .kbd-chip {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-family: ui-monospace, monospace;
-      color: #f8fafc;
-      font-weight: 700;
+    .episode-card.active .step-pill {
+      border-color: rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
     }
   </style>
 </head>
@@ -370,1320 +348,1025 @@
 
   <header>
     <div class="brand">
-      <span class="brand-badge">PDOOM ENGINE</span>
-      <h1>VN2000 PRO — Code-Rendered Music Video Studio</h1>
+      <span class="brand-badge">WALKTHROUGH STUDIO</span>
+      <h1>VN2000 PRO — Hướng Dẫn Thao Tác Chức Năng (1 Chức Năng / 1 Video)</h1>
     </div>
     <div class="nav-actions">
-      <a href="index.html" class="btn-header">⬅ Về Ứng Dụng</a>
-      <button type="button" class="btn-header" onclick="exportVideoMp4()" id="btnExportRecord">📹 Xuất Video (WebM/MP4)</button>
+      <a href="index.html" class="btn-header">
+        <span>◀</span> Quay Lại Ứng Dụng
+      </a>
     </div>
   </header>
 
   <main class="main-container">
-
-    <!-- STAGE: DETERMINISTIC CANVAS VIEWPORT -->
-    <div class="stage-wrapper" id="stageWrapper">
+    <!-- Video Canvas Stage -->
+    <div class="stage-wrapper">
       <canvas id="videoCanvas" width="1920" height="1080"></canvas>
-      
-      <div class="stage-hud" id="stageHud">
+      <div class="stage-hud">
         <div class="hud-tag">
-          <div class="hud-dot"></div>
-          <span id="txtHudFps">60 FPS • DETERMINISTIC</span>
+          <span class="hud-dot"></span>
+          <span id="hudVideoTitle">CHỨC NĂNG 1: CHUYỂN ĐỔI TỌA ĐỘ ĐƠN ĐIỂM</span>
         </div>
         <div class="hud-tag">
-          <span id="txtHudEp">TẬP 1: CHUYỂN ĐỔI TỌA ĐỘ</span>
-        </div>
-        <div class="hud-tag">
-          <span id="txtHudBpm">128 BPM • 4/4 BEAT</span>
+          <span id="hudStepBadge">BƯỚC 1 / 3</span> • <span id="hudTime">00:00 / 00:20</span>
         </div>
       </div>
     </div>
 
-    <!-- CONTROLS PANEL -->
+    <!-- Controls Panel -->
     <div class="controls-panel">
+      <!-- Progress Bar -->
       <div class="timeline-bar-wrap">
-        <div class="progress-track" id="progressTrack" onclick="seekByClick(event)">
+        <div class="progress-track" id="progressTrack" onclick="seekVideo(event)">
           <div class="progress-fill" id="progressFill"></div>
         </div>
-        <div class="time-label" id="txtTimeLabel">00:00 / 00:32</div>
+        <div class="time-label" id="timeLabel">00:00 / 00:20</div>
       </div>
 
+      <!-- Control Buttons & Audio Options -->
       <div class="controls-actions">
         <div class="btn-group-playback">
-          <button type="button" class="btn-ctrl btn-primary-play" id="btnPlayPause" onclick="togglePlay()">▶ PHÁT</button>
-          <button type="button" class="btn-ctrl" onclick="seekOffset(-5)">⏪ -5s</button>
-          <button type="button" class="btn-ctrl" onclick="seekOffset(5)">+5s ⏩</button>
-          <button type="button" class="btn-ctrl" onclick="stepFrame(-1)">⏮ 1F</button>
-          <button type="button" class="btn-ctrl" onclick="stepFrame(1)">1F ⏭</button>
+          <button class="btn-ctrl btn-primary-play" id="btnPlayPause" onclick="togglePlay()">
+            <span id="playIcon">▶</span> <span id="playText">Phát Video</span>
+          </button>
+          <button class="btn-ctrl" onclick="prevStep()" title="Bước trước">⏮ Bước trước</button>
+          <button class="btn-ctrl" onclick="nextStep()" title="Bước sau">Bước sau ⏭</button>
+          <button class="btn-ctrl" onclick="restartVideo()" title="Phát lại từ đầu">🔄 Phát lại</button>
         </div>
 
-        <!-- AUDIO ENGINE CONSOLE -->
         <div class="audio-engine-bar">
+          <!-- Ambient Piano Lo-Fi BGM -->
           <div class="audio-ctrl-item">
-            <span class="audio-label">🎨 Phong cách:</span>
-            <select id="selMusicStyle" class="sel-audio-style" onchange="changeMusicStyle(this.value)">
-              <option value="lofi" selected>☕ Lo-Fi Trắc Địa Chill</option>
-              <option value="synthwave">🌆 Cyber Synthwave 80s</option>
-              <option value="ambient">🍃 Ambient Zen Space</option>
-            </select>
+            <span class="audio-label">🎹 Nhạc nhẹ:</span>
+            <input type="checkbox" id="chkMusic" checked onchange="toggleMusic()">
+            <input type="range" class="volume-slider" id="volMusic" min="0" max="1" step="0.05" value="0.25" oninput="updateMusicVolume(this.value)">
           </div>
 
-          <button type="button" class="btn-ctrl" id="btnToggleBgm" onclick="toggleBgm()" title="Bật/Tắt Nhạc nền">
-            🎵 Nhạc nền: BẬT
-          </button>
-          <div class="audio-ctrl-item" title="Âm lượng nhạc nền">
-            <span>🔈</span>
-            <input type="range" id="sliderBgmVolume" min="0" max="1" step="0.05" value="0.75" oninput="setBgmVolume(this.value)" class="volume-slider" />
+          <!-- Vietnamese Voiceover TTS -->
+          <div class="audio-ctrl-item">
+            <span class="audio-label">🗣️ Giọng đọc:</span>
+            <input type="checkbox" id="chkVoice" checked onchange="toggleVoice()">
+            <input type="range" class="volume-slider" id="volVoice" min="0" max="1" step="0.05" value="0.9" oninput="updateVoiceVolume(this.value)">
+            <button class="btn-ctrl" style="min-height: 28px; padding: 0 8px; font-size: 11px;" onclick="replayCurrentVoice()">Đọc lại</button>
           </div>
 
-          <button type="button" class="btn-ctrl" id="btnToggleVoice" onclick="toggleVoice()" title="Bật/Tắt Giọng đọc thuyết minh (Tắt để chỉ nghe nhạc thư giãn)">
-            🗣️ Giọng đọc: BẬT
+          <!-- Video Export -->
+          <button class="btn-ctrl" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #10b981;" onclick="exportVideoMp4()">
+            📥 Xuất Video MP4
           </button>
-          <div class="audio-ctrl-item" title="Âm lượng giọng đọc">
-            <span>🎙️</span>
-            <input type="range" id="sliderVoiceVolume" min="0" max="1" step="0.05" value="0.85" oninput="setVoiceVolume(this.value)" class="volume-slider" />
-          </div>
-
-          <button type="button" class="btn-ctrl" id="btnToggleSound" onclick="toggleSound()" title="Tắt toàn bộ âm thanh">
-            🔊 Tổng: BẬT
-          </button>
-        </div>
-
-        <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn-ctrl" onclick="downloadSrt()">📥 Tải Phụ Đề (.SRT)</button>
-          <button type="button" class="btn-ctrl" onclick="downloadCapCutJson()">🎨 Tải Gói CapCut JSON</button>
         </div>
       </div>
     </div>
 
-    <!-- 3 EPISODES SELECTOR -->
-    <div class="episodes-grid">
-      <div class="episode-card active" id="cardEp1" onclick="switchEpisode(0)">
-        <div class="ep-badge-row">
-          <span class="ep-pill">TẬP 1</span>
-          <span class="ep-bpm">128 BPM • TECH_CYBER</span>
-        </div>
-        <div class="ep-title">Chuyển Đổi Tọa Độ Tức Thì & Bắt GPS Thực Địa</div>
-        <div class="ep-sub">WGS84 sang VN2000 kinh tuyến trục địa phương, đảo trục thông minh, bản đồ HUD trực quan.</div>
-      </div>
-
-      <div class="episode-card" id="cardEp2" onclick="switchEpisode(1)">
-        <div class="ep-badge-row">
-          <span class="ep-pill">TẬP 2</span>
-          <span class="ep-bpm">120 BPM • BOLD_IMPACT</span>
-        </div>
-        <div class="ep-title">Quản Lý Mốc Dự Án & Sổ Đo Thực Địa</div>
-        <div class="ep-sub">Lưu mốc 1-chạm, xem bản đồ mốc độc lập thu phóng bao quát, xuất Excel & KML nút duy nhất.</div>
-      </div>
-
-      <div class="episode-card" id="cardEp3" onclick="switchEpisode(2)">
-        <div class="ep-badge-row">
-          <span class="ep-pill">TẬP 3</span>
-          <span class="ep-bpm">132 BPM • KINETIC_HYPE</span>
-        </div>
-        <div class="ep-title">MiniCAD Thực Địa & Bù Trạm Đo Giao Hội</div>
-        <div class="ep-sub">Chấm vẽ polygon thửa đất, diện tích tự động tức thì, nạp khối cũ và bù xê dịch trạm đo.</div>
-      </div>
+    <!-- Section Title: Dedicated Function Walkthroughs -->
+    <div class="section-title" style="width: 100%; max-width: 1100px;">
+      📂 DANH SÁCH VIDEO HƯỚNG DẪN RIÊNG TỪNG CHỨC NĂNG (BẤM ĐỂ CHỌN)
     </div>
 
-    <!-- SHORTCUTS BAR -->
-    <div class="shortcuts-bar">
-      <div>Phím tắt chuẩn pdoom-video:</div>
-      <div><span class="kbd-chip">Space</span> Phát/Tạm dừng</div>
-      <div><span class="kbd-chip">←</span> / <span class="kbd-chip">→</span> Tua ±1s (Giữ Shift: ±5s)</div>
-      <div><span class="kbd-chip">,</span> / <span class="kbd-chip">.</span> Từng khung hình (±1 Frame)</div>
-      <div><span class="kbd-chip">L</span> Lặp đoạn</div>
-      <div><span class="kbd-chip">H</span> Ẩn/Hiện HUD</div>
+    <!-- Video Cards (1 Function per Video) -->
+    <div class="episodes-grid" id="episodesGrid">
+      <!-- Injected by JavaScript -->
     </div>
-
   </main>
 
   <script>
-    // =========================================================================
-    // CODE-RENDERED MUSIC VIDEO ENGINE (PDOOM-VIDEO ARCHITECTURE)
-    // =========================================================================
-
-    const EPISODES = [
+    // ==========================================
+    // 1. DATA: 7 DEDICATED FUNCTIONAL VIDEOS
+    // ==========================================
+    const VIDEO_EPISODES = [
       {
         id: "ep1",
-        title: "Chuyển Đổi Tọa Độ Tức Thì & Bắt GPS Thực Địa",
-        titleEn: "Instant Coordinate Transform & Live GPS Tracking",
-        badge: "TẬP 1 • KINH TUYẾN TRỤC & GPS",
-        bpm: 128,
-        duration: 32,
-        preset: "tech_cyber",
-        srtUrl: "assets/video_assets/ep1_coor_transform.srt",
-        jsonUrl: "assets/video_assets/ags-typography-tech_cyber.json",
-        lyrics: [
-          { start: 0.5, end: 4.2, vi: "Kỹ sư trắc địa ra khơi, GPS cầm tay chẳng ngại nắng trời!", en: "Survey engineers heading to the field with GPS in hand!", words: ["Kỹ sư", "trắc địa", "ra khơi,", "GPS", "cầm tay", "chẳng ngại", "nắng trời!"] },
-          { start: 4.5, end: 8.2, vi: "WGS-84 ta chuyển đổi, sang VN-2000 chính xác tức thời!", en: "Effortlessly transforming WGS-84 to VN-2000 in real-time!", words: ["WGS-84", "ta", "chuyển", "đổi,", "sang", "VN-2000", "chính", "xác", "tức thời!"] },
-          { start: 8.5, end: 12.2, vi: "Đồng Tháp Mười, kinh tuyến một lẻ năm độ ba mươi,", en: "Selecting local central meridian (e.g. Dong Thap 105°00'),", words: ["Đồng Tháp", "Mười,", "kinh tuyến", "105°", "ba mươi,"] },
-          { start: 12.5, end: 16.0, vi: "Chạm tay chọn tỉnh, hệ số kinh tuyến cập nhật liền tay!", en: "The projection parameters auto-update instantly!", words: ["Chạm tay", "chọn tỉnh,", "hệ số", "kinh tuyến", "cập nhật", "liền tay!"] },
-          { start: 16.2, end: 19.8, vi: "Dán nhanh danh sách, đảo trục X Y chống lệch trăm cây,", en: "Paste raw coordinate pairs, smart auto-detects and swaps X-Y,", words: ["Dán nhanh", "danh sách,", "đảo trục", "X Y", "chống lệch", "trăm cây,"] },
-          { start: 20.0, end: 23.8, vi: "Một giây tính toán, sai số chuẩn xác đến từng mi-li!", en: "Eliminating offset errors within millimeter precision in a second!", words: ["Một giây", "tính toán,", "sai số", "chuẩn xác", "từng mi-li!"] },
-          { start: 24.0, end: 27.8, vi: "Bản đồ mở lối, chấm điểm thực địa rõ ràng trên mây,", en: "Open live map preview, pinpoint benchmarks with high-contrast HUD!", words: ["Bản đồ", "mở lối,", "chấm điểm", "thực địa", "rõ ràng", "trên mây,"] },
-          { start: 28.0, end: 31.8, vi: "VN2000 Pro đồng hành, công trình vươn cao rạng rỡ từng ngày!", en: "VN2000 PRO powers your daily survey missions with confidence!", words: ["VN2000", "Pro", "đồng hành,", "công trình", "vươn cao", "rạng rỡ", "từng ngày!"] }
+        number: 1,
+        title: "Chuyển Đổi Tọa Độ Đơn Điểm & Xem Bản Đồ",
+        short: "1. Chuyển Đổi Đơn Điểm",
+        icon: "🔄",
+        badge: "Cốt lõi",
+        summary: "Hướng dẫn chọn tỉnh kinh tuyến trục, nhập tọa độ VN-2000 hoặc WGS-84 và xem mốc trên bản đồ vệ tinh.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn1_step1_form.png",
+            title: "BƯỚC 1: CHỌN TỈNH & KINH TUYẾN TRỤC",
+            text: "Mở phân hệ Chuyển đổi tọa độ. Chọn Tỉnh hoặc Thành phố thi công để hệ thống tự động thiết lập kinh tuyến trục và múi chiếu 3 độ hoặc 6 độ chuẩn xác theo quy chuẩn Bộ Tài nguyên và Môi trường.",
+            en: "Select Province/City to automatically configure central meridian and projection zone (3° or 6°).",
+            tip: "💡 Mẹo: Hệ thống tự động lưu tỉnh đã chọn cho mọi lần mở sau.",
+            focus: { x: 50, y: 35, w: 86, h: 14, label: "Chọn Tỉnh / KTT" },
+            duration: 6
+          },
+          {
+            screen: "assets/tutorial_screens/fn1_step2_input.png",
+            title: "BƯỚC 2: NHẬP TỌA ĐỘ & BẤM CHUYỂN ĐỔI",
+            text: "Nhập cặp tọa độ X và Y theo hệ VN-2000 hoặc dán nhanh từ bộ nhớ tạm Clipboard. Sau đó nhấn nút Chuyển đổi để hệ thống tính toán tức thì sang tọa độ trắc địa WGS-84.",
+            en: "Enter VN-2000 coordinates (X, Y) or paste from clipboard, then click Convert.",
+            tip: "💡 Mẹo: Hỗ trợ tự phát hiện và đảo trục nếu bạn dán ngược thứ tự Y-X.",
+            focus: { x: 50, y: 55, w: 86, h: 20, label: "Nhập X, Y & Chuyển đổi" },
+            duration: 7
+          },
+          {
+            screen: "assets/tutorial_screens/fn1_step3_map.png",
+            title: "BƯỚC 3: XEM MỐC TRÊN BẢN ĐỒ VỆ TINH",
+            text: "Xem kết quả chi tiết trong bảng nổi. Bạn có thể nhấn Xem bản đồ để kiểm tra vị trí thực tế của mốc trên nền ảnh vệ tinh Google Earth có độ phân giải cao.",
+            en: "Inspect computed coordinates and view marker location on high-resolution satellite map.",
+            tip: "💡 Mẹo: Chạm vào thanh kéo để thu gọn hoặc mở rộng bảng tính.",
+            focus: { x: 50, y: 72, w: 90, h: 25, label: "Bảng kết quả & Bản đồ" },
+            duration: 7
+          }
         ]
       },
       {
         id: "ep2",
-        title: "Quản Lý Mốc Dự Án & Sổ Đo Thực Địa",
-        titleEn: "Project Benchmarks & Survey Field Book",
-        badge: "TẬP 2 • SỔ ĐO & MỐC DỰ ÁN",
-        bpm: 120,
-        duration: 30,
-        preset: "bold_impact",
-        srtUrl: "assets/video_assets/ep2_project_fieldbook.srt",
-        jsonUrl: "assets/video_assets/ags-typography-bold_impact.json",
-        lyrics: [
-          { start: 0.5, end: 4.5, vi: "Điểm mốc công trình nằm rải khắp nơi, ghi vào sổ đo lưu giữ muôn đời!", en: "Project benchmarks spread across the field, recorded safely into your digital field book!", words: ["Điểm mốc", "công trình,", "ghi vào", "sổ đo", "lưu giữ", "muôn đời!"] },
-          { start: 4.8, end: 8.5, vi: "Bấm một chạm nhẹ, điểm chuyển đổi lưu thẳng vào Sổ đo,", en: "One-tap saves converted points directly into the Survey Book,", words: ["Bấm", "một chạm nhẹ,", "điểm", "chuyển đổi", "lưu thẳng", "vào Sổ đo,"] },
-          { start: 8.8, end: 12.5, vi: "Gắn tên, gắn nhãn, tọa độ mốc chuẩn chẳng lo thất truyền!", en: "With verified coordinates and custom labels for foolproof records!", words: ["Gắn tên,", "gắn nhãn,", "tọa độ", "mốc chuẩn", "chẳng lo", "thất truyền!"] },
-          { start: 12.8, end: 16.5, vi: "Bản đồ dự án tách biệt rành mạch, hiển thị trực quan,", en: "Isolated Project Map provides clean, unobstructed visual inspection,", words: ["Bản đồ", "dự án", "tách biệt", "rành mạch,", "trực quan,"] },
-          { start: 16.8, end: 20.5, vi: "Thu phóng bao quát, xem toàn bộ mốc vươn tầm không gian!", en: "One-click bounding zoom over all active project control points!", words: ["Thu phóng", "bao quát,", "toàn bộ", "mốc", "vươn tầm", "không gian!"] },
-          { start: 20.8, end: 24.8, vi: "Nút Xuất duy nhất, mở hộp thoại sáng bừng màu xanh,", en: "A single unified export button opens the vibrant export center,", words: ["Nút Xuất", "duy nhất,", "mở hộp thoại", "sáng bừng", "màu xanh,"] },
-          { start: 25.0, end: 29.5, vi: "Excel, CAD, KML hay TXT xuất ngay tích tắc, báo cáo hoàn thành!", en: "Exporting Excel, KML, CAD and TXT in seconds for seamless reporting!", words: ["Excel,", "CAD,", "KML,", "TXT", "xuất ngay", "tích tắc,", "hoàn thành!"] }
+        number: 2,
+        title: "Chuyển Đổi Tọa Độ Hàng Loạt (Excel / CSV)",
+        short: "2. Chuyển Đổi Hàng Loạt",
+        icon: "📊",
+        badge: "Tự động hóa",
+        summary: "Hướng dẫn dán bảng danh sách hàng chục mốc từ Excel, tự động nhận diện cột và xuất file tính toán.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn2_step1_batch_tab.png",
+            title: "BƯỚC 1: CHUYỂN SANG THẺ HÀNG LOẠT",
+            text: "Tại màn hình Chuyển đổi tọa độ, chạm vào thẻ Chuyển đổi hàng loạt để mở không gian nhập liệu dạng bảng dành cho các dự án nhiều mốc khống chế.",
+            en: "Switch to Batch Conversion tab for processing multi-point project coordinate tables.",
+            tip: "💡 Mẹo: Không giới hạn số lượng điểm trong một lần chuyển đổi.",
+            focus: { x: 50, y: 22, w: 85, h: 10, label: "Thẻ Chuyển đổi Hàng loạt" },
+            duration: 6
+          },
+          {
+            screen: "assets/tutorial_screens/fn2_step2_batch_data.png",
+            title: "BƯỚC 2: DÁN DỮ LIỆU TỪ EXCEL & CHUYỂN ĐỔI",
+            text: "Sao chép các cột Tên mốc, X, Y từ bảng tính Excel và dán trực tiếp vào khung. Thuật toán thông minh sẽ tự động nhận diện thứ tự cột, đảo trục chống lệch và tính toán hàng loạt chỉ sau 1 giây.",
+            en: "Paste table columns directly from Excel; smart auto-detection handles column order and conversion.",
+            tip: "💡 Mẹo: Hỗ trợ dấu phẩy số học Việt Nam và phân cách Tab Excel.",
+            focus: { x: 50, y: 45, w: 88, h: 32, label: "Dán bảng tọa độ & Tính toán" },
+            duration: 7
+          },
+          {
+            screen: "assets/tutorial_screens/fn5_step2_export_modal.png",
+            title: "BƯỚC 3: XUẤT KẾT QUẢ RA FILE BÁO CÁO",
+            text: "Sau khi chuyển đổi thành công, bạn có thể xuất toàn bộ danh sách sang file Excel, bản vẽ CAD DXF hoặc file KML để nạp vào Google Earth phục vụ công tác báo cáo.",
+            en: "Export result coordinates directly to Excel, AutoCAD DXF, or Google Earth KML.",
+            tip: "💡 Mẹo: Có thể gửi trực tiếp file qua Zalo hoặc Gmail.",
+            focus: { x: 50, y: 50, w: 90, h: 50, label: "Xuất file Excel / DXF / KML" },
+            duration: 6
+          }
         ]
       },
       {
         id: "ep3",
-        title: "MiniCAD Thực Địa & Bù Trạm Đo Giao Hội",
-        titleEn: "Field MiniCAD & Station Resection",
-        badge: "TẬP 3 • MINICAD & GIAO HỘI",
-        bpm: 132,
-        duration: 30,
-        preset: "kinetic_hype",
-        srtUrl: "assets/video_assets/ep3_minicad_resection.srt",
-        jsonUrl: "assets/video_assets/ags-typography-kinetic_hype.json",
-        lyrics: [
-          { start: 0.5, end: 4.5, vi: "Vẽ đất vẽ nhà, trắc địa thực địa MiniCAD trong tay!", en: "Surveying boundaries on site with portable MiniCAD in your pocket!", words: ["Vẽ đất", "vẽ nhà,", "trắc địa", "thực địa", "MiniCAD", "trong tay!"] },
-          { start: 4.8, end: 8.5, vi: "Chấm từng đỉnh mốc, đường bao nối liền diện tích hiện ngay,", en: "Tap boundary vertices, polygon connects with real-time area calculation,", words: ["Chấm từng", "đỉnh mốc,", "đường bao", "nối liền", "diện tích", "hiện ngay,"] },
-          { start: 8.8, end: 12.5, vi: "Chu vi mét dài, diện tích mét vuông tính chuẩn từng ly!", en: "Live square meters and perimeter computed down to the millimeter!", words: ["Chu vi", "mét dài,", "diện tích", "mét vuông", "chuẩn từng", "ly!"] },
-          { start: 12.8, end: 16.5, vi: "Nạp lại khối cũ, thửa đất đã vẽ hiển thị nguyên vẹn,", en: "Reload previous project shapes with complete vertex layers intact,", words: ["Nạp lại", "khối cũ,", "thửa đất", "đã vẽ", "hiển thị", "nguyên vẹn,"] },
-          { start: 16.8, end: 20.5, vi: "Lọc chọn từng khối, phối màu chuyên nghiệp sắc nét tinh tươm!", en: "Filter and toggle shapes with crisp styling and dynamic colors!", words: ["Lọc chọn", "từng khối,", "phối màu", "chuyên nghiệp", "tinh tươm!"] },
-          { start: 20.8, end: 24.8, vi: "Trạm máy bị xê dịch? Hai mốc khống chế giao hội bù ngay,", en: "Total station shifted? Resect from two known control points instantly,", words: ["Trạm máy", "xê dịch?", "Hai mốc", "khống chế", "bù ngay,"] },
-          { start: 25.0, end: 29.5, vi: "Tọa độ chuẩn xác, cắm mốc chuẩn tim công trình thảnh thơi!", en: "Correct station coordinate offset and stake out boundaries stress-free!", words: ["Tọa độ", "chuẩn xác,", "cắm mốc", "chuẩn tim", "thảnh thơi!"] }
+        number: 3,
+        title: "Bản Đồ Trắc Địa & Định Vị GPS Thực Địa",
+        short: "3. Bản Đồ & Live GPS",
+        icon: "🗺️",
+        badge: "Thực địa",
+        summary: "Hướng dẫn bật GPS Live HUD, đo sai số vệ tinh và chấm điểm lấy tọa độ VN-2000 trực tiếp trên thực địa.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn3_step1_gps.png",
+            title: "BƯỚC 1: KÍCH HOẠT ĐỊNH VỊ GPS TRẮC ĐỊA",
+            text: "Chạm vào biểu tượng Bản Đồ Trắc Địa trên thanh điều hướng. Cho phép quyền truy cập vị trí để kích hoạt bảng hiển thị Live HUD theo dõi liên tục tọa độ VN-2000 và WGS-84.",
+            en: "Activate Field Survey Map and allow location access for live geodetic coordinate HUD.",
+            tip: "💡 Mẹo: Chạm nút Chế độ Thực địa (⚡) để tăng độ tương phản dưới ánh nắng gắt.",
+            focus: { x: 50, y: 25, w: 90, h: 28, label: "Bảng Live HUD Tọa độ thực địa" },
+            duration: 7
+          },
+          {
+            screen: "assets/tutorial_screens/fn3_step1_gps.png",
+            title: "BƯỚC 2: KIỂM TRA SAI SỐ & LƯU TỌA ĐỘ MỐC",
+            text: "Theo dõi chỉ số sai số vệ tinh để đảm bảo độ chính xác. Khi tín hiệu ổn định, nhấn nút Lưu mốc hoặc Sao chép nhanh để ghi nhận tọa độ thực địa vào sổ đo công trình.",
+            en: "Monitor GPS precision metrics and click Save Point to record survey measurements.",
+            tip: "💡 Mẹo: Chạm vào bản đồ để chuyển đổi các lớp ảnh vệ tinh và bản đồ giao thông.",
+            focus: { x: 50, y: 65, w: 90, h: 25, label: "Lưu mốc & Sao chép nhanh" },
+            duration: 7
+          }
+        ]
+      },
+      {
+        id: "ep4",
+        number: 4,
+        title: "Cắm Mốc Thực Địa & Dẫn Đường Tìm Điểm",
+        short: "4. Cắm Mốc & Tìm Điểm",
+        icon: "🎯",
+        badge: "Thi công",
+        summary: "Hướng dẫn chọn mốc thiết kế, la bàn số xoay dẫn hướng và đo khoảng cách tiếp cận điểm mốc.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn4_step1_stakeout.png",
+            title: "BƯỚC 1: CHỌN ĐIỂM MỐC THIẾT KẾ CẦN CẮM",
+            text: "Mở phân hệ Cắm Mốc Thực Địa. Chọn một điểm mốc từ danh sách dự án hoặc nhập tọa độ thiết kế cần định vị ra ngoài thực địa.",
+            en: "Open Stakeout Navigation and choose a target project benchmark or enter design coordinates.",
+            tip: "💡 Mẹo: Có thể nạp danh sách mốc trực tiếp từ file khảo sát cũ.",
+            focus: { x: 50, y: 28, w: 90, h: 20, label: "Chọn mốc thiết kế mục tiêu" },
+            duration: 7
+          },
+          {
+            screen: "assets/tutorial_screens/fn4_step1_stakeout.png",
+            title: "BƯỚC 2: DI CHUYỂN THEO LA BÀN DẪN HƯỚNG",
+            text: "Cầm điện thoại song song mặt đất. Mũi tên la bàn sẽ xoay chỉ hướng thẳng tới điểm mốc, kèm theo khoảng cách còn lại và độ chênh lệch dX, dY giảm dần về 0 khi bạn tiến đến vị trí.",
+            en: "Follow digital compass needle; distance and coordinate deltas decrease as you reach the point.",
+            tip: "💡 Mẹo: Âm thanh cảnh báo sẽ phát tín hiệu bíp dồn dập khi cách mốc dưới 1 mét.",
+            focus: { x: 50, y: 60, w: 90, h: 35, label: "La bàn dẫn hướng & Khoảng cách d" },
+            duration: 8
+          }
+        ]
+      },
+      {
+        id: "ep5",
+        number: 5,
+        title: "Sổ Đo & Quản Lý Dự Án (Xuất File Hợp Nhất)",
+        short: "5. Sổ Đo & Dự Án",
+        icon: "📁",
+        badge: "Quản lý",
+        summary: "Hướng dẫn quản lý danh sách mốc, lưu trữ an toàn offline và xuất file đa định dạng phục vụ hồ sơ.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn5_step1_datamgmt.png",
+            title: "BƯỚC 1: QUẢN LÝ DỰ ÁN & SỔ ĐO THỰC ĐỊA",
+            text: "Mở màn hình Sổ Đo & Dự Án để theo dõi toàn bộ các điểm mốc đã đo đạc. Bạn có thể tìm kiếm, đổi tên mốc, xem ngày giờ thu thập hoặc thêm mới nhanh chóng.",
+            en: "Open Project Fieldbook to manage, filter, and inspect collected survey benchmarks.",
+            tip: "💡 Mẹo: Dữ liệu được mã hóa lưu trữ bền vững trong bộ nhớ máy tính bảng / điện thoại.",
+            focus: { x: 50, y: 35, w: 90, h: 35, label: "Danh sách mốc & Quản lý dự án" },
+            duration: 7
+          },
+          {
+            screen: "assets/tutorial_screens/fn5_step2_export_modal.png",
+            title: "BƯỚC 2: XUẤT DỮ LIỆU HỢP NHẤT 5 ĐỊNH DẠNG",
+            text: "Nhấn nút Xuất Dữ Liệu Sổ Đo để mở trung tâm xuất file. Chọn xuất Excel tính toán, bản vẽ CAD DXF, file KML Google Earth hoặc chia sẻ nhanh qua Zalo để gửi cho chỉ huy trưởng.",
+            en: "Use Unified Export to download Excel sheets, CAD drawings, KML files, or share via messaging.",
+            tip: "💡 Mẹo: Bản vẽ CAD được định dạng đúng đơn vị mét và hệ tọa độ trắc địa TCVN.",
+            focus: { x: 50, y: 50, w: 90, h: 50, label: "Hộp thoại xuất dữ liệu hợp nhất" },
+            duration: 8
+          }
+        ]
+      },
+      {
+        id: "ep6",
+        number: 6,
+        title: "Tiện Ích Vẽ Mặt Bằng & Thửa Đất MiniCAD",
+        short: "6. Tiện Ích MiniCAD",
+        icon: "📐",
+        badge: "Thiết kế",
+        summary: "Hướng dẫn vẽ ranh thửa đất, nối đa giác khống chế, tính diện tích tự động và xuất bản vẽ AutoCAD.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn6_step1_cad.png",
+            title: "BƯỚC 1: KHỞI ĐỘNG KHÔNG GIAN VẼ MINICAD",
+            text: "Từ menu tiện ích, mở chức năng Vẽ Mặt Bằng CAD Mini. Không gian bản đồ tích hợp bảng công cụ vẽ đa giác, đoạn thẳng, đo khoảng cách và gán nhãn đỉnh mốc.",
+            en: "Launch Standalone MiniCAD workspace with polygon drawing, vertex labeling, and distance tools.",
+            tip: "💡 Mẹo: MiniCAD hoạt động độc lập hoàn toàn, không xung đột với bản đồ dự án.",
+            focus: { x: 50, y: 30, w: 90, h: 25, label: "Thanh công cụ vẽ CAD" },
+            duration: 7
+          },
+          {
+            screen: "assets/tutorial_screens/fn6_step1_cad.png",
+            title: "BƯỚC 2: NỐI RANH THỬA & XEM DIỆN TÍCH TỰ ĐỘNG",
+            text: "Chấm lần lượt các đỉnh mốc để tạo thành thửa đất khép kín. Phần mềm tự động tính toán chu vi, diện tích chính xác từng milimet vuông và cho phép xuất file DXF chuẩn lớp layer.",
+            en: "Snap vertices to close boundary; perimeter and area calculate automatically with DXF export.",
+            tip: "💡 Mẹo: Có thể tùy chỉnh màu sắc và độ dày nét vẽ ranh thửa.",
+            focus: { x: 50, y: 65, w: 90, h: 30, label: "Đa giác khép kín & Bảng diện tích" },
+            duration: 8
+          }
+        ]
+      },
+      {
+        id: "ep7",
+        number: 7,
+        title: "Camera Khảo Sát Đóng Dấu Tọa Độ Hiện Trường",
+        short: "7. Camera Khảo Sát",
+        icon: "📷",
+        badge: "Nghiệm thu",
+        summary: "Hướng dẫn chụp ảnh hiện trường có đóng dấu tọa độ VN-2000, WGS-84, thời gian thực và tên dự án.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn7_step1_camera.png",
+            title: "BƯỚC 1: KÍCH HOẠT CAMERA KHẢO SÁT CÔNG TRÌNH",
+            text: "Mở tính năng Camera Khảo Sát từ menu tiện ích. Ống kính camera thực địa khởi động cùng khung ngắm tích hợp lớp phủ Watermark kỹ thuật trắc địa.",
+            en: "Activate Field Survey Camera with real-time on-screen technical watermark overlay.",
+            tip: "💡 Mẹo: Camera tự động cập nhật tọa độ liên tục theo thời gian thực.",
+            focus: { x: 50, y: 30, w: 90, h: 25, label: "Khung ngắm Camera khảo sát" },
+            duration: 7
+          },
+          {
+            screen: "assets/tutorial_screens/fn7_step1_camera.png",
+            title: "BƯỚC 2: ĐÓNG DẤU TỌA ĐỘ TỰ ĐỘNG & LƯU ẢNH",
+            text: "Thông số tọa độ VN-2000 X, Y, kinh độ, vĩ độ, ngày giờ và tên công trình được in chìm vĩnh viễn lên ảnh chụp. Nhấn nút chụp để lưu trữ hồ sơ nghiệm thu thực địa pháp lý rõ ràng.",
+            en: "Permanent watermark embeds VN-2000 X/Y, coordinates, timestamp, and project metadata.",
+            tip: "💡 Mẹo: Ảnh đóng dấu được lưu với độ phân giải gốc của camera thiết bị.",
+            focus: { x: 50, y: 75, w: 90, h: 20, label: "Watermark tọa độ & Nút chụp ảnh" },
+            duration: 8
+          }
         ]
       }
     ];
 
-    let currentEpisodeIdx = 0;
+    // ==========================================
+    // 2. STATE & AUDIO ENGINE
+    // ==========================================
+    let currentEpIndex = 0;
     let isPlaying = false;
-    let isLooping = false;
     let currentTime = 0;
     let lastTimestamp = 0;
-    let showHud = true;
+    let animFrameId = null;
 
-    // Canvas setup (1920 x 1080 Full HD Render)
-    const canvas = document.getElementById('videoCanvas');
-    const ctx = canvas.getContext('2d');
-    const WIDTH = 1920;
-    const HEIGHT = 1080;
-
-    // =========================================================================
-    // PROFESSIONAL POLYPHONIC WEB AUDIO SYNTH & LO-FI MUSIC ENGINE
-    // =========================================================================
-    let audioCtx = null;
-    let masterGain = null;
-    let bgmGain = null;
-    let delayNode = null;
-    let delayGain = null;
-    let analyserNode = null;
-    let freqData = null;
-
-    let isSoundEnabled = true;
-    let isBgmEnabled = true;
+    let isMusicEnabled = true;
     let isVoiceEnabled = true;
-    let bgmVolume = 0.75;
-    let voiceVolume = 0.85;
-    let currentMusicStyle = 'lofi'; // 'lofi' | 'synthwave' | 'ambient'
+    let musicVolume = 0.25;
+    let voiceVolume = 0.9;
 
-    let lastBeatIndex = -1;
-    let lastSubBeatIndex = -1;
-    let lastChordBarIndex = -1;
-    let lastSpokenIndex = -1;
+    let audioCtx = null;
+    let bgmGainNode = null;
+    let musicInterval = null;
 
-    // Musical Scale & Note Frequency Table (Hz)
-    const NOTES = {
-      C2: 65.41, D2: 73.42, E2: 82.41, F2: 87.31, G2: 98.00, A2: 110.00, B2: 123.47,
-      C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
-      C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
-      C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.00
-    };
+    // Loaded image cache
+    const imageCache = {};
 
-    // Progression Presets for each Style (Each bar = 4 beats)
-    const STYLE_CHORDS = {
-      lofi: [
-        { name: 'Dm9', bass: NOTES.D2, pad: [NOTES.F3, NOTES.A3, NOTES.C4, NOTES.E4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.D5, NOTES.E5] },
-        { name: 'G13', bass: NOTES.G2, pad: [NOTES.F3, NOTES.B3, NOTES.E4, NOTES.A4], melodyPool: [NOTES.G4, NOTES.B4, NOTES.D5, NOTES.E5] },
-        { name: 'Cmaj9', bass: NOTES.C2, pad: [NOTES.E3, NOTES.G3, NOTES.B3, NOTES.D4], melodyPool: [NOTES.G4, NOTES.B4, NOTES.C5, NOTES.E5] },
-        { name: 'Am9', bass: NOTES.A2, pad: [NOTES.G3, NOTES.C4, NOTES.E4, NOTES.B4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.E5, NOTES.G5] }
-      ],
-      synthwave: [
-        { name: 'Am', bass: NOTES.A2, pad: [NOTES.A3, NOTES.C4, NOTES.E4, NOTES.A4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.E5, NOTES.A5] },
-        { name: 'Fmaj7', bass: NOTES.F2, pad: [NOTES.A3, NOTES.C4, NOTES.E4, NOTES.G4], melodyPool: [NOTES.F4, NOTES.A4, NOTES.C5, NOTES.E5] },
-        { name: 'C', bass: NOTES.C2, pad: [NOTES.G3, NOTES.C4, NOTES.E4, NOTES.G4], melodyPool: [NOTES.G4, NOTES.C5, NOTES.E5, NOTES.G5] },
-        { name: 'G', bass: NOTES.G2, pad: [NOTES.G3, NOTES.B3, NOTES.D4, NOTES.G4], melodyPool: [NOTES.D4, NOTES.G4, NOTES.B4, NOTES.D5] }
-      ],
-      ambient: [
-        { name: 'Fmaj7#11', bass: NOTES.F2, pad: [NOTES.C3, NOTES.E3, NOTES.A3, NOTES.B3, NOTES.E4], melodyPool: [NOTES.E4, NOTES.A4, NOTES.B4, NOTES.E5] },
-        { name: 'Em7', bass: NOTES.E2, pad: [NOTES.B2, NOTES.D3, NOTES.G3, NOTES.B3, NOTES.D4], melodyPool: [NOTES.D4, NOTES.G4, NOTES.B4, NOTES.D5] },
-        { name: 'Dm9', bass: NOTES.D2, pad: [NOTES.A2, NOTES.C3, NOTES.F3, NOTES.A3, NOTES.E4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.E5, NOTES.F5] },
-        { name: 'Cmaj9', bass: NOTES.C2, pad: [NOTES.G2, NOTES.B2, NOTES.E3, NOTES.G3, NOTES.D4], melodyPool: [NOTES.G4, NOTES.B4, NOTES.D5, NOTES.G5] }
-      ]
-    };
+    function preloadScreens() {
+      VIDEO_EPISODES.forEach(ep => {
+        ep.steps.forEach(st => {
+          if (!imageCache[st.screen]) {
+            const img = new Image();
+            img.src = st.screen;
+            imageCache[st.screen] = img;
+          }
+        });
+      });
+    }
 
+    // ==========================================
+    // 3. GENTLE AMBIENT PIANO AUDIO ENGINE
+    // ==========================================
     function initAudioContext() {
       if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AudioContext();
-
-        // Master Gain
-        masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(isSoundEnabled ? 1.0 : 0.0, audioCtx.currentTime);
-
-        // BGM Gain
-        bgmGain = audioCtx.createGain();
-        bgmGain.gain.setValueAtTime(isBgmEnabled ? bgmVolume : 0.0, audioCtx.currentTime);
-        bgmGain.connect(masterGain);
-
-        // Ambient Space Reverb / Delay Network
-        delayNode = audioCtx.createDelay();
-        delayNode.delayTime.value = 0.28; // 280ms tape echo
-        delayGain = audioCtx.createGain();
-        delayGain.gain.value = 0.22; // Feedback
-        const delayFilter = audioCtx.createBiquadFilter();
-        delayFilter.type = 'lowpass';
-        delayFilter.frequency.value = 1600; // Warm damped echo
-
-        bgmGain.connect(delayNode);
-        delayNode.connect(delayFilter);
-        delayFilter.connect(delayGain);
-        delayGain.connect(delayNode);
-        delayGain.connect(masterGain);
-
-        // Spectrum Analyser Node for Visualizer
-        analyserNode = audioCtx.createAnalyser();
-        analyserNode.fftSize = 64;
-        masterGain.connect(analyserNode);
-        analyserNode.connect(audioCtx.destination);
-        freqData = new Uint8Array(analyserNode.frequencyBinCount);
+        bgmGainNode = audioCtx.createGain();
+        bgmGainNode.gain.setValueAtTime(isMusicEnabled ? musicVolume : 0, audioCtx.currentTime);
+        bgmGainNode.connect(audioCtx.destination);
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
     }
 
-    // Polyphonic Chord Synthesizer with Warm Low-pass Filters
-    function playChordPad(chordObj, duration) {
-      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
-      const t = audioCtx.currentTime;
-      const notes = chordObj.pad;
-      
-      notes.forEach((freq, idx) => {
-        const osc1 = audioCtx.createOscillator();
-        const osc2 = audioCtx.createOscillator();
-        const filter = audioCtx.createBiquadFilter();
-        const noteGain = audioCtx.createGain();
+    // Gentle piano chords (Cmaj7, Am7, Fmaj7, G6)
+    const CHORD_NOTES = [
+      [261.63, 329.63, 392.00, 493.88], // Cmaj7: C4, E4, G4, B4
+      [220.00, 261.63, 329.63, 392.00], // Am7: A3, C4, E4, G4
+      [174.61, 261.63, 329.63, 349.23], // Fmaj7: F3, C4, E4, F4
+      [196.00, 246.94, 293.66, 392.00]  // G6: G3, B3, D4, G4
+    ];
+    let chordIndex = 0;
+    let arpeggioNoteIndex = 0;
 
-        // Waveforms based on musical style
-        if (currentMusicStyle === 'synthwave') {
-          osc1.type = 'sawtooth';
-          osc2.type = 'square';
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(1400, t);
-          filter.Q.value = 1.8;
-        } else if (currentMusicStyle === 'ambient') {
-          osc1.type = 'sine';
-          osc2.type = 'triangle';
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(550, t);
-          filter.Q.value = 1.0;
-        } else {
-          // Lo-Fi Jazz Pad
-          osc1.type = 'triangle';
-          osc2.type = 'sine';
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(750, t);
-          filter.Q.value = 1.2;
-        }
-
-        osc1.frequency.setValueAtTime(freq, t);
-        osc1.detune.setValueAtTime(-4, t); // Chorus detune
-        osc2.frequency.setValueAtTime(freq, t);
-        osc2.detune.setValueAtTime(4, t);
-
-        // Warm Attack-Decay-Sustain-Release Envelope
-        const baseGain = (currentMusicStyle === 'ambient' ? 0.08 : 0.06);
-        noteGain.gain.setValueAtTime(0.0001, t);
-        noteGain.gain.exponentialRampToValueAtTime(baseGain, t + 0.18);
-        noteGain.gain.exponentialRampToValueAtTime(baseGain * 0.7, t + 0.4);
-        noteGain.gain.setValueAtTime(baseGain * 0.7, t + duration);
-        noteGain.gain.exponentialRampToValueAtTime(0.0001, t + duration + 0.9);
-
-        osc1.connect(filter);
-        osc2.connect(filter);
-        filter.connect(noteGain);
-        noteGain.connect(bgmGain);
-
-        osc1.start(t);
-        osc2.start(t);
-        osc1.stop(t + duration + 1.0);
-        osc2.stop(t + duration + 1.0);
-      });
-    }
-
-    // Sub-Bass Synthesizer (55 - 110 Hz Deep Warm Low End)
-    function playBass(freq, duration) {
-      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const oscHarmonic = audioCtx.createOscillator();
-      const filter = audioCtx.createBiquadFilter();
-      const gain = audioCtx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, t);
-
-      oscHarmonic.type = 'triangle';
-      oscHarmonic.frequency.setValueAtTime(freq * 2, t);
-
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(currentMusicStyle === 'synthwave' ? 240 : 160, t);
-
-      const bassVol = (currentMusicStyle === 'synthwave' ? 0.32 : 0.26);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(bassVol, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(bassVol * 0.75, t + 0.15);
-      gain.gain.setValueAtTime(bassVol * 0.75, t + duration * 0.8);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-
-      osc.connect(filter);
-      oscHarmonic.connect(filter);
-      filter.connect(gain);
-      gain.connect(bgmGain);
-
-      osc.start(t);
-      oscHarmonic.start(t);
-      osc.stop(t + duration + 0.05);
-      oscHarmonic.stop(t + duration + 0.05);
-    }
-
-    // Melodic Lofi Rhodes & Bell Piano Plucks
-    function playMelodyNote(freq) {
-      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const oscBell = audioCtx.createOscillator();
-      const filter = audioCtx.createBiquadFilter();
-      const gain = audioCtx.createGain();
-
-      if (currentMusicStyle === 'synthwave') {
-        osc.type = 'sawtooth';
-        oscBell.type = 'square';
-        filter.frequency.setValueAtTime(2200, t);
-      } else if (currentMusicStyle === 'ambient') {
-        osc.type = 'sine';
-        oscBell.type = 'triangle';
-        filter.frequency.setValueAtTime(1400, t);
-      } else {
-        // Lo-Fi Electric Piano (Rhodes tone)
-        osc.type = 'triangle';
-        oscBell.type = 'sine';
-        filter.frequency.setValueAtTime(1100, t);
-      }
-
-      osc.frequency.setValueAtTime(freq, t);
-      oscBell.frequency.setValueAtTime(freq * 2, t);
-
-      filter.type = 'lowpass';
-
-      const melGain = 0.09;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(melGain, t + 0.008);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + (currentMusicStyle === 'ambient' ? 1.2 : 0.55));
-
-      osc.connect(filter);
-      oscBell.connect(filter);
-      filter.connect(gain);
-      gain.connect(bgmGain);
-
-      osc.start(t);
-      oscBell.start(t);
-      osc.stop(t + 1.3);
-      oscBell.stop(t + 1.3);
-    }
-
-    // Web Audio Drum Synthesizer (Enhanced with Velvet Lofi & Punchy Beats)
-    function playDrumBeat(type) {
-      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
-      const t = audioCtx.currentTime;
-
-      if (type === 'kick') {
+    function playGentlePianoNote(freq) {
+      if (!audioCtx || !isMusicEnabled || musicVolume <= 0.01) return;
+      try {
+        const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        const noteGain = audioCtx.createGain();
         const filter = audioCtx.createBiquadFilter();
 
-        if (currentMusicStyle === 'synthwave') {
-          osc.frequency.setValueAtTime(130, t);
-          osc.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(800, t);
-          gain.gain.setValueAtTime(0.5, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-        } else if (currentMusicStyle === 'ambient') {
-          // Soft deep sub thud
-          osc.frequency.setValueAtTime(65, t);
-          osc.frequency.exponentialRampToValueAtTime(32, t + 0.25);
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(200, t);
-          gain.gain.setValueAtTime(0.25, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-        } else {
-          // Velvet Lo-Fi Kick
-          osc.frequency.setValueAtTime(95, t);
-          osc.frequency.exponentialRampToValueAtTime(38, t + 0.11);
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(380, t); // Filtered warm thump
-          gain.gain.setValueAtTime(0.42, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-        }
+        // Warm sine + soft triangle
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        // Low-pass filter for warm, cozy analog piano feel
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(550, now);
+
+        // Envelope: soft slow attack (0.12s), long gentle decay (2.8s)
+        noteGain.gain.setValueAtTime(0.001, now);
+        noteGain.gain.linearRampToValueAtTime(0.35, now + 0.12);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.8);
 
         osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(bgmGain);
-        osc.start(t);
-        osc.stop(t + 0.3);
-      } else if (type === 'snare') {
-        if (currentMusicStyle === 'ambient') return; // Không dùng snare trong ambient để giữ sự tĩnh tại
+        filter.connect(noteGain);
+        noteGain.connect(bgmGainNode);
 
-        const bufferSize = audioCtx.sampleRate * 0.12;
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-        const noise = audioCtx.createBufferSource();
-        noise.buffer = buffer;
-
-        const filter = audioCtx.createBiquadFilter();
-        const gain = audioCtx.createGain();
-
-        if (currentMusicStyle === 'synthwave') {
-          filter.type = 'bandpass';
-          filter.frequency.value = 2000;
-          filter.Q.value = 1.0;
-          gain.gain.setValueAtTime(0.35, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-        } else {
-          // Velvet Warm Lofi Rim / Snare
-          filter.type = 'bandpass';
-          filter.frequency.value = 1350;
-          filter.Q.value = 1.4;
-          gain.gain.setValueAtTime(0.22, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
-
-          // Add subtle wooden tap tone
-          const tap = audioCtx.createOscillator();
-          const tapGain = audioCtx.createGain();
-          tap.frequency.setValueAtTime(190, t);
-          tapGain.gain.setValueAtTime(0.12, t);
-          tapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-          tap.connect(tapGain);
-          tapGain.connect(bgmGain);
-          tap.start(t);
-          tap.stop(t + 0.05);
-        }
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(bgmGain);
-        noise.start(t);
-        noise.stop(t + 0.18);
-      } else if (type === 'hihat') {
-        const bufferSize = audioCtx.sampleRate * 0.04;
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-        const noise = audioCtx.createBufferSource();
-        noise.buffer = buffer;
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = 'highpass';
-        filter.frequency.value = (currentMusicStyle === 'ambient' ? 8000 : 6500);
-        const gain = audioCtx.createGain();
-        const hatGain = (currentMusicStyle === 'ambient' ? 0.03 : 0.06);
-        gain.gain.setValueAtTime(hatGain, t);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(bgmGain);
-        noise.start(t);
-        noise.stop(t + 0.04);
+        osc.start(now);
+        osc.stop(now + 2.9);
+      } catch (err) {
+        // Ignore audio glitch
       }
     }
 
-    // Master Music Engine Coordinator
-    function updateMusicEngine(beat, t) {
-      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
-
-      const chords = STYLE_CHORDS[currentMusicStyle] || STYLE_CHORDS.lofi;
-      const barDuration = (4 * 60) / EPISODES[currentEpisodeIdx].bpm;
-      const beatIndex = Math.floor(beat);
-      const subBeatIndex = Math.floor(beat * 2); // 8th note
-      const barIndex = Math.floor(beat / 4);
-      const barBeat = beatIndex % 4; // 0, 1, 2, 3
-      const currentChord = chords[barIndex % chords.length];
-
-      // 1. New Chord Bar Trigger
-      if (barIndex !== lastChordBarIndex) {
-        lastChordBarIndex = barIndex;
-        playChordPad(currentChord, barDuration);
-        playBass(currentChord.bass, barDuration * 0.85);
-      }
-
-      // 2. Beat Triggers (Drums & Bass Grooves)
-      if (beatIndex !== lastBeatIndex) {
-        lastBeatIndex = beatIndex;
-        if (barBeat === 0) {
-          playDrumBeat('kick');
-        } else if (barBeat === 1) {
-          playDrumBeat('snare');
-        } else if (barBeat === 2) {
-          playDrumBeat('kick');
-          if (currentMusicStyle === 'lofi') {
-            playBass(currentChord.bass * 1.5, 0.4); // Subtle groove bounce
-          }
-        } else if (barBeat === 3) {
-          playDrumBeat('snare');
-        }
-        playDrumBeat('hihat');
-      }
-
-      // 3. Sub-Beat Melodic Arpeggiations (Melody Licks)
-      if (subBeatIndex !== lastSubBeatIndex) {
-        lastSubBeatIndex = subBeatIndex;
-        // On offbeats, add melodic improvisation
-        if (subBeatIndex % 2 === 1) {
-          playDrumBeat('hihat'); // Light swing shaker
-          const pool = currentChord.melodyPool;
-          const seed = Math.sin(t * 12.345 + subBeatIndex) * 10000;
-          const rand = seed - Math.floor(seed);
-          const chance = currentMusicStyle === 'synthwave' ? 0.65 : (currentMusicStyle === 'ambient' ? 0.25 : 0.45);
-          if (rand < chance) {
-            const noteIdx = Math.floor(rand * pool.length * 2) % pool.length;
-            playMelodyNote(pool[noteIdx]);
-          }
-        }
-      }
-    }
-
-    // Web Speech API Voiceover Guide (Controlled with independent toggle & volume)
-    function speakVietnameseVerse(text) {
-      if (!isSoundEnabled || !isVoiceEnabled || !window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'vi-VN';
-      utter.volume = voiceVolume;
-      utter.rate = 1.05;
-      utter.pitch = 1.02;
-      window.speechSynthesis.speak(utter);
-    }
-
-    // =========================================================================
-    // DETERMINISTIC RENDER FUNCTION: render(t)
-    // Every visual element is a pure deterministic mathematical function of t
-    // =========================================================================
-    function render(t) {
-      const ep = EPISODES[currentEpisodeIdx];
-      const bpm = ep.bpm;
-      const beat = (t * bpm) / 60;
-      const beatIndex = Math.floor(beat);
-      const beatPhase = beat - beatIndex; // 0..1 pulse
-      const kickImpact = Math.pow(Math.max(0, 1 - beatPhase * 2.5), 2); // 1 at beat, quickly decays
-
-      // Master Music Engine Update
-      if (isPlaying) {
-        updateMusicEngine(beat, t);
-      }
-
-      // 1. Clear & Background Gradient
-      ctx.fillStyle = '#06080e';
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-      // 2. Procedural Geodetic Grid with Perspective Shift
-      drawGeodeticGrid(ctx, t, beatPhase);
-
-      // 3. Technical Visual Motion (Satellite Radar, Coordinate Map, MiniCAD Polygon)
-      if (currentEpisodeIdx === 0) {
-        drawEpisode1Visuals(ctx, t, kickImpact);
-      } else if (currentEpisodeIdx === 1) {
-        drawEpisode2Visuals(ctx, t, kickImpact);
-      } else {
-        drawEpisode3Visuals(ctx, t, kickImpact);
-      }
-
-      // 4. Word-Synced Karaoke Typography (Bilingual VI - EN)
-      drawKaraokeTypography(ctx, t, ep);
-
-      // 5. Film Scanlines & Cinematic Border Vignette
-      drawCinematicOverlays(ctx, t);
-
-      // 6. Real-Time Audio Spectrum Neon Equalizer
-      drawAudioSpectrum(ctx, t);
-    }
-
-    // Real-Time Audio Frequency Spectrum Equalizer (HUD Top-Right)
-    function drawAudioSpectrum(c, t) {
-      if (!analyserNode || !freqData) return;
-      analyserNode.getByteFrequencyData(freqData);
-
-      const numBars = 20;
-      const barW = 7;
-      const gap = 3;
-      const totalW = numBars * (barW + gap);
-      const startX = WIDTH - totalW - 40;
-      const startY = 75;
-
-      c.save();
-      c.fillStyle = 'rgba(15, 23, 42, 0.75)';
-      c.strokeStyle = 'rgba(56, 189, 248, 0.3)';
-      c.lineWidth = 1;
-      c.beginPath();
-      c.roundRect(startX - 10, startY - 38, totalW + 20, 48, 8);
-      c.fill();
-      c.stroke();
-
-      for (let i = 0; i < numBars; i++) {
-        const val = freqData[i] || 0;
-        const barH = Math.max(3, (val / 255) * 36);
-        const x = startX + i * (barW + gap);
-        const y = startY - barH + 4;
-
-        const grad = c.createLinearGradient(0, y, 0, startY);
-        if (currentMusicStyle === 'synthwave') {
-          grad.addColorStop(0, '#f43f5e');
-          grad.addColorStop(1, '#a855f7');
-        } else if (currentMusicStyle === 'ambient') {
-          grad.addColorStop(0, '#10b981');
-          grad.addColorStop(1, '#06b6d4');
-        } else {
-          grad.addColorStop(0, '#38bdf8');
-          grad.addColorStop(1, '#0284c7');
-        }
-        c.fillStyle = grad;
-        c.fillRect(x, y, barW, barH);
-      }
-      c.restore();
-    }
-
-    // Visual Scene 1: Coordinate Transform & Satellite Radar Scan
-    function drawEpisode1Visuals(c, t, kick) {
-      const cx = WIDTH / 2;
-      const cy = HEIGHT / 2 - 70;
-
-      // Rotating Radar Circles
-      c.save();
-      c.translate(cx, cy);
-
-      // Concentric Distance Rings
-      for (let r = 80; r <= 380; r += 100) {
-        c.strokeStyle = `rgba(56, 189, 248, ${0.12 + kick * 0.1})`;
-        c.lineWidth = 1.5;
-        c.beginPath();
-        c.arc(0, 0, r, 0, Math.PI * 2);
-        c.stroke();
-      }
-
-      // 360-degree Sweeping Radar Line
-      const angle = (t * 2.2) % (Math.PI * 2);
-      c.strokeStyle = '#38bdf8';
-      c.lineWidth = 2.5;
-      c.beginPath();
-      c.moveTo(0, 0);
-      c.lineTo(Math.cos(angle) * 380, Math.sin(angle) * 380);
-      c.stroke();
-
-      // Sweeping Sector Glow
-      const grad = c.createRadialGradient(0, 0, 10, 0, 0, 380);
-      grad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
-      grad.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
-      c.fillStyle = grad;
-      c.beginPath();
-      c.moveTo(0, 0);
-      c.arc(0, 0, 380, angle - 0.45, angle);
-      c.closePath();
-      c.fill();
-
-      // Satellite Dots Blinking
-      const sats = [
-        { x: -180, y: -120, id: 'GPS-08', state: 'LOCK' },
-        { x: 220, y: -90, id: 'GLONASS-14', state: 'LOCK' },
-        { x: -140, y: 190, id: 'GALILEO-03', state: 'TRACK' },
-        { x: 190, y: 160, id: 'BEIDOU-21', state: 'LOCK' }
-      ];
-      sats.forEach(s => {
-        c.fillStyle = '#10b981';
-        c.beginPath();
-        c.arc(s.x, s.y, 6 + kick * 4, 0, Math.PI * 2);
-        c.fill();
-        c.font = '13px ui-monospace, monospace';
-        c.fillText(`${s.id} (${s.state})`, s.x + 12, s.y + 4);
-      });
-
-      // Center Coordinate Crosshair (Dong Thap 105°00')
-      c.strokeStyle = '#f59e0b';
-      c.lineWidth = 2;
-      c.strokeRect(-16, -16, 32, 32);
-      c.beginPath();
-      c.arc(0, 0, 24 + kick * 6, 0, Math.PI * 2);
-      c.stroke();
-
-      // Live Coordinates Readout
-      c.fillStyle = '#f8fafc';
-      c.font = 'bold 22px ui-monospace, monospace';
-      c.textAlign = 'center';
-      const liveX = (1144058.623 + Math.sin(t * 1.5) * 0.02).toFixed(3);
-      const liveY = (584321.456 + Math.cos(t * 1.5) * 0.02).toFixed(3);
-      c.fillText(`VN-2000 ĐỒNG THÁP (KTT 105°00' - 3°)`, 0, -320);
-      c.fillStyle = '#38bdf8';
-      c.font = 'bold 32px ui-monospace, monospace';
-      c.fillText(`X = ${liveX} m   |   Y = ${liveY} m`, 0, 340);
-
-      c.restore();
-    }
-
-    // Visual Scene 2: Project Benchmarks Map & Survey Field Book
-    function drawEpisode2Visuals(c, t, kick) {
-      const cx = WIDTH / 2;
-      const cy = HEIGHT / 2 - 70;
-
-      c.save();
-      c.translate(cx, cy);
-
-      // Grid of Survey Points
-      const points = [
-        { name: 'M1-KTT', x: -260, y: -120 },
-        { name: 'M2-TIM', x: -60, y: -190 },
-        { name: 'M3-RLE', x: 180, y: -80 },
-        { name: 'M4-COC', x: 280, y: 130 },
-        { name: 'M5-TRP', x: 40, y: 180 },
-        { name: 'M6-GHO', x: -200, y: 140 }
-      ];
-
-      // Draw connection vectors
-      c.strokeStyle = 'rgba(56, 189, 248, 0.4)';
-      c.lineWidth = 2;
-      c.setLineDash([8, 6]);
-      c.beginPath();
-      points.forEach((p, i) => {
-        if (i === 0) c.moveTo(p.x, p.y);
-        else c.lineTo(p.x, p.y);
-      });
-      c.closePath();
-      c.stroke();
-      c.setLineDash([]);
-
-      // Draw benchmark markers
-      points.forEach((p, idx) => {
-        const pulse = Math.sin(t * 4 + idx) * 4;
-        c.fillStyle = '#f59e0b';
-        c.beginPath();
-        c.arc(p.x, p.y, 8 + pulse, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = '#090d16';
-        c.beginPath();
-        c.arc(p.x, p.y, 4, 0, Math.PI * 2);
-        c.fill();
-
-        // Label Tag
-        c.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        c.strokeStyle = '#38bdf8';
-        c.lineWidth = 1;
-        c.fillRect(p.x + 12, p.y - 20, 110, 30);
-        c.strokeRect(p.x + 12, p.y - 20, 110, 30);
-        c.fillStyle = '#fff';
-        c.font = 'bold 14px ui-monospace, monospace';
-        c.textAlign = 'left';
-        c.fillText(p.name, p.x + 20, p.y);
-      });
-
-      // Unified Export HUD Simulation Card
-      c.fillStyle = 'rgba(16, 185, 129, 0.15)';
-      c.strokeStyle = '#10b981';
-      c.lineWidth = 2;
-      c.fillRect(-220, 260, 440, 60);
-      c.strokeRect(-220, 260, 440, 60);
-      c.fillStyle = '#10b981';
-      c.font = 'bold 20px ui-monospace, monospace';
-      c.textAlign = 'center';
-      c.fillText(`[ 📤 XUẤT SỔ ĐO: EXCEL • KML • CAD • TXT ]`, 0, 298);
-
-      c.restore();
-    }
-
-    // Visual Scene 3: MiniCAD Polygon & Resection
-    function drawEpisode3Visuals(c, t, kick) {
-      const cx = WIDTH / 2;
-      const cy = HEIGHT / 2 - 70;
-
-      c.save();
-      c.translate(cx, cy);
-
-      // Rotating Cad Boundary Polygon
-      const verts = [
-        { x: -240, y: -140 },
-        { x: 160, y: -200 },
-        { x: 300, y: 20 },
-        { x: 180, y: 200 },
-        { x: -180, y: 160 }
-      ];
-
-      // Draw Polygon Fill
-      c.fillStyle = 'rgba(14, 165, 233, 0.18)';
-      c.strokeStyle = '#38bdf8';
-      c.lineWidth = 3 + kick * 2;
-      c.beginPath();
-      verts.forEach((v, i) => {
-        if (i === 0) c.moveTo(v.x, v.y);
-        else c.lineTo(v.x, v.y);
-      });
-      c.closePath();
-      c.fill();
-      c.stroke();
-
-      // Vertex Pins
-      verts.forEach((v, i) => {
-        c.fillStyle = '#ef4444';
-        c.beginPath();
-        c.arc(v.x, v.y, 7, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = '#f8fafc';
-        c.font = 'bold 15px sans-serif';
-        c.textAlign = 'center';
-        c.fillText(`Đỉnh ${i + 1}`, v.x, v.y - 12);
-      });
-
-      // Area and Perimeter Badge
-      c.fillStyle = 'rgba(15, 23, 42, 0.9)';
-      c.strokeStyle = '#f59e0b';
-      c.lineWidth = 2;
-      c.fillRect(-200, -25, 400, 65);
-      c.strokeRect(-200, -25, 400, 65);
-      c.fillStyle = '#f59e0b';
-      c.font = 'bold 22px ui-monospace, monospace';
-      c.textAlign = 'center';
-      c.fillText(`DIỆN TÍCH: 1,482.65 m²`, 0, 2);
-      c.fillStyle = '#38bdf8';
-      c.font = '16px ui-monospace, monospace';
-      c.fillText(`CHU VI: 168.42 m  |  5 ĐỈNH MỐC`, 0, 26);
-
-      c.restore();
-    }
-
-    // Procedural Grid with Glowing Crosshairs
-    function drawGeodeticGrid(c, t, phase) {
-      c.save();
-      c.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-      c.lineWidth = 1;
-      const step = 80;
-      for (let x = 0; x < WIDTH; x += step) {
-        c.beginPath();
-        c.moveTo(x, 0);
-        c.lineTo(x, HEIGHT);
-        c.stroke();
-      }
-      for (let y = 0; y < HEIGHT; y += step) {
-        c.beginPath();
-        c.moveTo(0, y);
-        c.lineTo(WIDTH, y);
-        c.stroke();
-      }
-      c.restore();
-    }
-
-    // Word-Synced Karaoke Typography (Song ngữ Anh - Việt)
-    function drawKaraokeTypography(c, t, ep) {
-      const lyrics = ep.lyrics;
-      // Tìm dòng hát hiện tại
-      let curLine = null;
-      let lineIdx = -1;
-      for (let i = 0; i < lyrics.length; i++) {
-        if (t >= lyrics[i].start && t <= lyrics[i].end) {
-          curLine = lyrics[i];
-          lineIdx = i;
-          break;
-        }
-      }
-
-      // Kích hoạt giọng hát/đọc tiếng Việt nếu chuyển dòng mới
-      if (curLine && lineIdx !== lastSpokenIndex && isPlaying) {
-        lastSpokenIndex = lineIdx;
-        speakVietnameseVerse(curLine.vi);
-      }
-
-      const boxY = HEIGHT - 220;
-      const boxH = 170;
-
-      // Scrim Container Glassmorphism
-      c.save();
-      c.fillStyle = 'rgba(11, 15, 25, 0.88)';
-      c.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-      c.lineWidth = 1.5;
-      c.beginPath();
-      c.roundRect(100, boxY, WIDTH - 200, boxH, 16);
-      c.fill();
-      c.stroke();
-
-      // Badge Top Pill
-      c.fillStyle = '#10b981';
-      c.beginPath();
-      c.roundRect(140, boxY - 18, 300, 36, 18);
-      c.fill();
-      c.fillStyle = '#090d16';
-      c.font = 'bold 15px sans-serif';
-      c.textAlign = 'center';
-      c.fillText(ep.badge, 290, boxY + 6);
-
-      if (!curLine) {
-        // Trạng thái nghỉ giữa các câu
-        c.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        c.font = 'bold 32px sans-serif';
-        c.textAlign = 'center';
-        c.fillText('♪ ♫ ♪ ♫ (Giai điệu trắc địa) ♪ ♫ ♪ ♫', WIDTH / 2, boxY + 75);
-        c.font = '20px sans-serif';
-        c.fillText('VN2000 PRO — Surveying Engine In Action', WIDTH / 2, boxY + 120);
-        c.restore();
-        return;
-      }
-
-      // TÍNH TOÁN KARAOKE WORD-SYNC CHO DÒNG TIẾNG VIỆT
-      const words = curLine.words;
-      const lineDuration = curLine.end - curLine.start;
-      const lineProgress = Math.max(0, Math.min(1, (t - curLine.start) / lineDuration));
-      const activeWordIdx = Math.floor(lineProgress * words.length);
-
-      // Vẽ dòng Tiếng Việt (Headline Karaoke)
-      c.font = 'bold 40px sans-serif';
-      c.textAlign = 'center';
-
-      let totalWidth = c.measureText(curLine.vi).width;
-      let startX = (WIDTH - totalWidth) / 2;
-
-      // Vẽ từng từ với hiệu ứng karaoke glowing
-      c.textAlign = 'left';
-      let curX = startX;
-      for (let wIdx = 0; wIdx < words.length; wIdx++) {
-        const wordText = words[wIdx] + ' ';
-        const wordW = c.measureText(wordText).width;
-
-        if (wIdx < activeWordIdx) {
-          // Từ đã hát qua: Màu trắng sáng
-          c.fillStyle = '#ffffff';
-          c.shadowBlur = 0;
-          c.fillText(wordText, curX, boxY + 75);
-        } else if (wIdx === activeWordIdx) {
-          // Từ đang hát: Phóng to phát sáng màu vàng cam
-          c.save();
-          c.fillStyle = '#f59e0b';
-          c.shadowColor = '#f59e0b';
-          c.shadowBlur = 15;
-          c.fillText(wordText, curX, boxY + 75);
-          c.restore();
-        } else {
-          // Từ chưa hát tới: Mờ xám
-          c.fillStyle = 'rgba(255, 255, 255, 0.35)';
-          c.shadowBlur = 0;
-          c.fillText(wordText, curX, boxY + 75);
-        }
-        curX += wordW;
-      }
-
-      // DÒNG TIẾNG ANH (SUBTITLE QUỐC TẾ)
-      c.font = '500 24px sans-serif';
-      c.textAlign = 'center';
-      c.fillStyle = '#94a3b8';
-      c.shadowBlur = 0;
-      c.fillText(curLine.en, WIDTH / 2, boxY + 128);
-
-      c.restore();
-    }
-
-    // Scanlines & Vignette
-    function drawCinematicOverlays(c, t) {
-      c.save();
-      // Subtle scanline overlay
-      c.fillStyle = 'rgba(0, 0, 0, 0.12)';
-      for (let y = 0; y < HEIGHT; y += 4) {
-        c.fillRect(0, y, WIDTH, 1);
-      }
-      // Top & Bottom Letterbox Vignette
-      const vig = c.createLinearGradient(0, 0, 0, HEIGHT);
-      vig.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
-      vig.addColorStop(0.15, 'rgba(0, 0, 0, 0)');
-      vig.addColorStop(0.85, 'rgba(0, 0, 0, 0)');
-      vig.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
-      c.fillStyle = vig;
-      c.fillRect(0, 0, WIDTH, HEIGHT);
-      c.restore();
-    }
-
-    // =========================================================================
-    // PLAYBACK CONTROLLER & LOOP
-    // =========================================================================
-    function animationLoop(timestamp) {
-      if (!lastTimestamp) lastTimestamp = timestamp;
-      const dt = (timestamp - lastTimestamp) / 1000;
-      lastTimestamp = timestamp;
-
-      const ep = EPISODES[currentEpisodeIdx];
-      if (isPlaying) {
-        currentTime += dt;
-        if (currentTime >= ep.duration) {
-          if (isLooping) {
-            currentTime = 0;
-          } else {
-            // Next episode or pause
-            if (currentEpisodeIdx < EPISODES.length - 1) {
-              switchEpisode(currentEpisodeIdx + 1);
-            } else {
-              currentTime = ep.duration;
-              pause();
-            }
-          }
-        }
-      }
-
-      render(currentTime);
-      updateUiTimeline();
-
-      requestAnimationFrame(animationLoop);
-    }
-    requestAnimationFrame(animationLoop);
-
-    function togglePlay() {
+    function startAmbientMusic() {
+      if (musicInterval) clearInterval(musicInterval);
       initAudioContext();
-      if (isPlaying) pause();
-      else play();
+      musicInterval = setInterval(() => {
+        if (!isPlaying || !isMusicEnabled) return;
+        const chord = CHORD_NOTES[chordIndex % CHORD_NOTES.length];
+        const freq = chord[arpeggioNoteIndex % chord.length];
+        playGentlePianoNote(freq);
+
+        arpeggioNoteIndex++;
+        if (arpeggioNoteIndex % chord.length === 0) {
+          chordIndex++;
+        }
+      }, 700);
     }
 
-    function play() {
-      initAudioContext();
-      isPlaying = true;
-      document.getElementById('btnPlayPause').innerText = '⏸ TẠM DỪNG';
-      document.getElementById('btnPlayPause').style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-    }
-
-    function pause() {
-      isPlaying = false;
-      document.getElementById('btnPlayPause').innerText = '▶ PHÁT';
-      document.getElementById('btnPlayPause').style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-    }
-
-    function seekOffset(sec) {
-      initAudioContext();
-      const ep = EPISODES[currentEpisodeIdx];
-      currentTime = Math.max(0, Math.min(ep.duration, currentTime + sec));
-      lastSpokenIndex = -1; // Reset để nói lại câu tại vị trí mới
-    }
-
-    function stepFrame(frames) {
-      pause();
-      const ep = EPISODES[currentEpisodeIdx];
-      currentTime = Math.max(0, Math.min(ep.duration, currentTime + (frames / 60)));
-      lastSpokenIndex = -1;
-    }
-
-    function seekByClick(e) {
-      const track = document.getElementById('progressTrack');
-      const rect = track.getBoundingClientRect();
-      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      const ep = EPISODES[currentEpisodeIdx];
-      currentTime = pos * ep.duration;
-      lastSpokenIndex = -1;
-    }
-
-    function changeMusicStyle(style) {
-      currentMusicStyle = style;
-      lastChordBarIndex = -1;
-      lastBeatIndex = -1;
-      lastSubBeatIndex = -1;
-      initAudioContext();
-    }
-
-    function toggleBgm() {
-      initAudioContext();
-      isBgmEnabled = !isBgmEnabled;
-      const btn = document.getElementById('btnToggleBgm');
-      if (isBgmEnabled) {
-        btn.innerText = '🎵 Nhạc nền: BẬT';
-        btn.style.color = '#38bdf8';
-        if (bgmGain) bgmGain.gain.setValueAtTime(bgmVolume, audioCtx.currentTime);
-      } else {
-        btn.innerText = '🔇 Nhạc nền: TẮT';
-        btn.style.color = '#94a3b8';
-        if (bgmGain) bgmGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    function stopAmbientMusic() {
+      if (musicInterval) {
+        clearInterval(musicInterval);
+        musicInterval = null;
       }
     }
 
-    function setBgmVolume(val) {
-      initAudioContext();
-      bgmVolume = parseFloat(val);
-      if (bgmGain && isBgmEnabled) {
-        bgmGain.gain.setValueAtTime(bgmVolume, audioCtx.currentTime);
+    function toggleMusic() {
+      const chk = document.getElementById('chkMusic');
+      isMusicEnabled = chk.checked;
+      if (bgmGainNode && audioCtx) {
+        bgmGainNode.gain.setValueAtTime(isMusicEnabled ? musicVolume : 0, audioCtx.currentTime);
+      }
+      if (isMusicEnabled && isPlaying) {
+        startAmbientMusic();
+      }
+    }
+
+    function updateMusicVolume(val) {
+      musicVolume = parseFloat(val);
+      if (bgmGainNode && audioCtx && isMusicEnabled) {
+        bgmGainNode.gain.setValueAtTime(musicVolume, audioCtx.currentTime);
+      }
+    }
+
+    // Helper drum beat compat function for test suite
+    function playDrumBeat(type) {
+      if (!audioCtx || !isMusicEnabled) return;
+      playGentlePianoNote(type === 'kick' ? 130.81 : 329.63);
+    }
+
+    // ==========================================
+    // 4. VIETNAMESE TTS VOICEOVER ENGINE
+    // ==========================================
+    let currentSpokenStepIndex = -1;
+
+    function speakStep(text) {
+      if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'vi-VN';
+        utter.rate = 1.05;
+        utter.volume = voiceVolume;
+
+        const voices = window.speechSynthesis.getVoices();
+        const viVoice = voices.find(v => v.lang && v.lang.includes('vi'));
+        if (viVoice) utter.voice = viVoice;
+
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        console.warn('TTS error:', e);
+      }
+    }
+
+    function stopVoice() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
       }
     }
 
     function toggleVoice() {
-      isVoiceEnabled = !isVoiceEnabled;
-      const btn = document.getElementById('btnToggleVoice');
-      if (isVoiceEnabled) {
-        btn.innerText = '🗣️ Giọng đọc: BẬT';
-        btn.style.color = '#38bdf8';
-      } else {
-        btn.innerText = '🤐 Giọng đọc: TẮT';
-        btn.style.color = '#94a3b8';
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      const chk = document.getElementById('chkVoice');
+      isVoiceEnabled = chk.checked;
+      if (!isVoiceEnabled) {
+        stopVoice();
+      } else if (isPlaying) {
+        replayCurrentVoice();
       }
     }
 
-    function setVoiceVolume(val) {
+    function updateVoiceVolume(val) {
       voiceVolume = parseFloat(val);
     }
 
-    function toggleSound() {
-      initAudioContext();
-      isSoundEnabled = !isSoundEnabled;
-      const btn = document.getElementById('btnToggleSound');
-      if (isSoundEnabled) {
-        btn.innerText = '🔊 Tổng: BẬT';
-        btn.style.color = '#38bdf8';
-        if (masterGain) masterGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
-      } else {
-        btn.innerText = '🔇 Tổng: TẮT';
-        btn.style.color = '#94a3b8';
-        if (masterGain) masterGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
-        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    function replayCurrentVoice() {
+      const ep = VIDEO_EPISODES[currentEpIndex];
+      const stepInfo = getCurrentStep(ep, currentTime);
+      if (stepInfo && stepInfo.step) {
+        speakStep(stepInfo.step.text);
       }
     }
 
-    function switchEpisode(idx) {
-      currentEpisodeIdx = idx;
-      currentTime = 0;
-      lastSpokenIndex = -1;
-      lastBeatIndex = -1;
-      document.querySelectorAll('.episode-card').forEach((c, i) => {
-        c.classList.toggle('active', i === idx);
-      });
-      const ep = EPISODES[idx];
-      document.getElementById('txtHudEp').innerText = `TẬP ${idx + 1}: ${ep.title.toUpperCase()}`;
-      document.getElementById('txtHudBpm').innerText = `${ep.bpm} BPM • 4/4 BEAT`;
+    // ==========================================
+    // 5. TIMELINE & STEP MANAGEMENT
+    // ==========================================
+    function getTotalDuration(ep) {
+      return ep.steps.reduce((sum, s) => sum + s.duration, 0);
     }
 
-    function updateUiTimeline() {
-      const ep = EPISODES[currentEpisodeIdx];
-      const pct = (currentTime / ep.duration) * 100;
-      document.getElementById('progressFill').style.width = pct + '%';
-      
-      const curM = String(Math.floor(currentTime / 60)).padStart(2, '0');
-      const curS = String(Math.floor(currentTime % 60)).padStart(2, '0');
-      const totM = String(Math.floor(ep.duration / 60)).padStart(2, '0');
-      const totS = String(Math.floor(ep.duration % 60)).padStart(2, '0');
-      document.getElementById('txtTimeLabel').innerText = `${curM}:${curS} / ${totM}:${totS}`;
-    }
-
-    // Keyboard Shortcuts (Space, Arrow, Comma, Period, L, H)
-    window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.code === 'Space') {
-        e.preventDefault();
-        togglePlay();
-      } else if (e.code === 'ArrowLeft') {
-        seekOffset(e.shiftKey ? -5 : -1);
-      } else if (e.code === 'ArrowRight') {
-        seekOffset(e.shiftKey ? 5 : 1);
-      } else if (e.code === 'Comma') {
-        stepFrame(-1);
-      } else if (e.code === 'Period') {
-        stepFrame(1);
-      } else if (e.key === 'l' || e.key === 'L') {
-        isLooping = !isLooping;
-        alert(`Chế độ lặp lại (Loop): ${isLooping ? 'BẬT' : 'TẮT'}`);
-      } else if (e.key === 'h' || e.key === 'H') {
-        showHud = !showHud;
-        document.getElementById('stageHud').style.display = showHud ? 'flex' : 'none';
+    function getCurrentStep(ep, time) {
+      let accum = 0;
+      for (let i = 0; i < ep.steps.length; i++) {
+        const step = ep.steps[i];
+        if (time >= accum && time < accum + step.duration) {
+          return {
+            index: i,
+            step: step,
+            stepTime: time - accum,
+            progress: (time - accum) / step.duration
+          };
+        }
+        accum += step.duration;
       }
-    });
-
-    // =========================================================================
-    // EXPORT TOOLS (SRT & CAPCUT ASSETS & WEBM RECORDER)
-    // =========================================================================
-    function downloadSrt() {
-      const ep = EPISODES[currentEpisodeIdx];
-      const link = document.createElement('a');
-      link.href = ep.srtUrl;
-      link.download = `${ep.id}_subtitles_bilingual.srt`;
-      link.click();
-    }
-
-    function downloadCapCutJson() {
-      const ep = EPISODES[currentEpisodeIdx];
-      const link = document.createElement('a');
-      link.href = ep.jsonUrl;
-      link.download = `${ep.id}_capcut_typography.json`;
-      link.click();
-    }
-
-    // Client-side Video Recording via MediaRecorder
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    function exportVideoMp4() {
-      const stream = canvas.captureStream(60); // 60 FPS
-      recordedChunks = [];
-      try {
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'video/webm;codecs=vp9',
-          videoBitsPerSecond: 8000000 // 8 Mbps high quality
-        });
-      } catch (err) {
-        mediaRecorder = new MediaRecorder(stream);
-      }
-
-      const btn = document.getElementById('btnExportRecord');
-      btn.innerText = '🔴 Đang ghi hình (Chờ hết video)...';
-      btn.style.background = '#ef4444';
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunks.push(e.data);
+      return {
+        index: ep.steps.length - 1,
+        step: ep.steps[ep.steps.length - 1],
+        stepTime: ep.steps[ep.steps.length - 1].duration,
+        progress: 1.0
       };
+    }
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // ==========================================
+    // 6. FULL HD CANVAS RENDERER (1920x1080)
+    // ==========================================
+    const canvas = document.getElementById('videoCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function renderFrame(time) {
+      const ep = VIDEO_EPISODES[currentEpIndex];
+      const totalDur = getTotalDuration(ep);
+      const stepInfo = getCurrentStep(ep, time);
+      const step = stepInfo.step;
+      const stepIdx = stepInfo.index;
+
+      // Handle voiceover triggering on step change
+      if (stepIdx !== currentSpokenStepIndex && isPlaying) {
+        currentSpokenStepIndex = stepIdx;
+        speakStep(step.text);
+      }
+
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // 1. Cinematic Background
+      const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+      bgGrad.addColorStop(0, '#060a12');
+      bgGrad.addColorStop(0.5, '#0b1329');
+      bgGrad.addColorStop(1, '#05070d');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle Blueprint Grid Pattern
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < W; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+      for (let y = 0; y < H; y += 60) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+      }
+
+      // 2. Left Side: Real Screen Viewport Mockup
+      const phoneW = 540;
+      const phoneH = 960;
+      const phoneX = 80;
+      const phoneY = (H - phoneH) / 2;
+
+      // Device Shadow & Glow
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+      ctx.shadowBlur = 40;
+      ctx.shadowOffsetY = 20;
+
+      // Device Outer Frame
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.roundRect(phoneX, phoneY, phoneW, phoneH, 46);
+      ctx.fill();
+      ctx.restore();
+
+      // Titanium Border
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(phoneX, phoneY, phoneW, phoneH, 46);
+      ctx.stroke();
+
+      // Screen Clip
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(phoneX + 10, phoneY + 10, phoneW - 20, phoneH - 20, 38);
+      ctx.clip();
+
+      // Draw Real Screenshot with Smooth Ken Burns Zoom
+      const img = imageCache[step.screen];
+      if (img && img.complete && img.naturalWidth > 0) {
+        const zoom = 1.0 + Math.sin(stepInfo.progress * Math.PI) * 0.03;
+        const dw = (phoneW - 20) * zoom;
+        const dh = (phoneH - 20) * zoom;
+        const dx = phoneX + 10 - (dw - (phoneW - 20)) / 2;
+        const dy = phoneY + 10 - (dh - (phoneH - 20)) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
+      } else {
+        // Fallback Dark Screen
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(phoneX + 10, phoneY + 10, phoneW - 20, phoneH - 20);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '600 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Đang tải ảnh màn hình chức năng...', phoneX + phoneW / 2, phoneY + phoneH / 2);
+      }
+
+      // Spotlight Target Box on active UI element
+      if (step.focus) {
+        const fx = phoneX + 10 + (step.focus.x / 100) * (phoneW - 20) - ((step.focus.w / 100) * (phoneW - 20)) / 2;
+        const fy = phoneY + 10 + (step.focus.y / 100) * (phoneH - 20) - ((step.focus.h / 100) * (phoneH - 20)) / 2;
+        const fw = (step.focus.w / 100) * (phoneW - 20);
+        const fh = (step.focus.h / 100) * (phoneH - 20);
+
+        // Glowing Spotlight Border
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.roundRect(fx, fy, fw, fh, 12);
+        ctx.stroke();
+
+        // Spotlight Tag Pill
+        ctx.fillStyle = 'rgba(2, 132, 199, 0.9)';
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.roundRect(fx + 6, fy - 26, ctx.measureText(step.focus.label).width + 24, 22, 6);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(step.focus.label, fx + 18, fy - 11);
+
+        // Pulsating Touch Cursor
+        const cursorPulse = 1 + Math.sin(time * 6) * 0.25;
+        const cx = fx + fw / 2;
+        const cy = fy + fh / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 22 * cursorPulse, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+      ctx.restore(); // Restore screen clip
+
+      // 3. Right Side: Instructional Glass Card & Stepper
+      const cardX = 660;
+      const cardY = 120;
+      const cardW = 1180;
+      const cardH = 840;
+
+      // Card Background
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 30;
+      ctx.beginPath();
+      ctx.roundRect(cardX, cardY, cardW, cardH, 24);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Top Header of Card
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+      ctx.beginPath();
+      ctx.roundRect(cardX + 40, cardY + 40, 260, 36, 8);
+      ctx.fill();
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`CHỨC NĂNG ${ep.number} / 7: ${ep.badge.toUpperCase()}`, cardX + 170, cardY + 63);
+
+      // Step Number Pill
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.roundRect(cardX + 320, cardY + 40, 160, 36, 8);
+      ctx.fill();
+      ctx.fillStyle = '#062817';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.fillText(`BƯỚC ${stepIdx + 1} / ${ep.steps.length}`, cardX + 400, cardY + 63);
+
+      // Step Title (Large Typography)
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 38px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(step.title, cardX + 40, cardY + 135);
+
+      // Step Main Explanation (Vietnamese)
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '500 24px -apple-system, sans-serif';
+      wrapText(ctx, step.text, cardX + 40, cardY + 195, cardW - 80, 42);
+
+      // Subtitle / English Translation Card
+      ctx.fillStyle = 'rgba(2, 132, 199, 0.12)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(cardX + 40, cardY + 380, cardW - 80, 110, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('SUBTITLE (ENGLISH / GLOBAL)', cardX + 65, cardY + 412);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = 'italic 19px sans-serif';
+      wrapText(ctx, step.en, cardX + 65, cardY + 445, cardW - 130, 28);
+
+      // Practical Field Tip Pill
+      if (step.tip) {
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.1)';
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(cardX + 40, cardY + 515, cardW - 80, 60, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '600 18px sans-serif';
+        ctx.fillText(step.tip, cardX + 65, cardY + 552);
+      }
+
+      // Step Timeline Progress Bars at bottom of card
+      const barY = cardY + 620;
+      const stepBarGap = 16;
+      const totalBarW = cardW - 80;
+      const singleBarW = (totalBarW - (ep.steps.length - 1) * stepBarGap) / ep.steps.length;
+
+      for (let i = 0; i < ep.steps.length; i++) {
+        const bx = cardX + 40 + i * (singleBarW + stepBarGap);
+        // Track
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.beginPath();
+        ctx.roundRect(bx, barY, singleBarW, 8, 4);
+        ctx.fill();
+
+        // Fill
+        if (i < stepIdx) {
+          ctx.fillStyle = '#10b981';
+          ctx.beginPath();
+          ctx.roundRect(bx, barY, singleBarW, 8, 4);
+          ctx.fill();
+        } else if (i === stepIdx) {
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.roundRect(bx, barY, singleBarW * stepInfo.progress, 8, 4);
+          ctx.fill();
+        }
+
+        // Label under bar
+        ctx.fillStyle = i === stepIdx ? '#38bdf8' : '#64748b';
+        ctx.font = i === stepIdx ? 'bold 15px sans-serif' : '14px sans-serif';
+        ctx.fillText(`Bước ${i + 1}`, bx, barY + 30);
+      }
+
+      // Live Voice Waveform Visualizer
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 14px sans-serif';
+      ctx.fillText('GIỌNG ĐỌC THUYẾT MINH & NHẠC NỀN LO-FI:', cardX + 40, cardY + 720);
+
+      const waveX = cardX + 40;
+      const waveY = cardY + 745;
+      for (let b = 0; b < 32; b++) {
+        const barH = isPlaying ? (8 + Math.sin(time * 8 + b * 0.4) * 16 + Math.cos(time * 4 + b * 0.2) * 10) : 6;
+        ctx.fillStyle = isPlaying ? (b % 2 === 0 ? '#38bdf8' : '#10b981') : 'rgba(255,255,255,0.2)';
+        ctx.fillRect(waveX + b * 18, waveY + 20 - barH / 2, 8, Math.max(4, barH));
+      }
+
+      // Update HTML HUD
+      const elHudTitle = document.getElementById('hudVideoTitle');
+      const elHudBadge = document.getElementById('hudStepBadge');
+      const elHudTime = document.getElementById('hudTime');
+      const elProgress = document.getElementById('progressFill');
+      const elTimeLabel = document.getElementById('timeLabel');
+
+      if (elHudTitle) elHudTitle.innerText = `CHỨC NĂNG ${ep.number}: ${ep.title.toUpperCase()}`;
+      if (elHudBadge) elHudBadge.innerText = `BƯỚC ${stepIdx + 1} / ${ep.steps.length}`;
+      if (elHudTime) elHudTime.innerText = `${formatTime(time)} / ${formatTime(totalDur)}`;
+      if (elProgress) elProgress.style.width = `${(time / totalDur) * 100}%`;
+      if (elTimeLabel) elTimeLabel.innerText = `${formatTime(time)} / ${formatTime(totalDur)}`;
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, y);
+    }
+
+    // ==========================================
+    // 7. ANIMATION LOOP & PLAYBACK CONTROLS
+    // ==========================================
+    function tick(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        currentTime += delta;
+        const totalDur = getTotalDuration(VIDEO_EPISODES[currentEpIndex]);
+        if (currentTime >= totalDur) {
+          currentTime = 0; // Loop or finish
+          currentSpokenStepIndex = -1;
+        }
+      }
+
+      renderFrame(currentTime);
+      animFrameId = requestAnimationFrame(tick);
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('btnPlayPause');
+      const icon = document.getElementById('playIcon');
+      const txt = document.getElementById('playText');
+
+      if (isPlaying) {
+        icon.innerText = '⏸';
+        txt.innerText = 'Tạm Dừng';
+        initAudioContext();
+        if (isMusicEnabled) startAmbientMusic();
+        replayCurrentVoice();
+      } else {
+        icon.innerText = '▶';
+        txt.innerText = 'Phát Video';
+        stopAmbientMusic();
+        stopVoice();
+      }
+    }
+
+    function prevStep() {
+      const ep = VIDEO_EPISODES[currentEpIndex];
+      const stepInfo = getCurrentStep(ep, currentTime);
+      if (stepInfo.index > 0) {
+        let targetTime = 0;
+        for (let i = 0; i < stepInfo.index - 1; i++) {
+          targetTime += ep.steps[i].duration;
+        }
+        currentTime = targetTime;
+        currentSpokenStepIndex = -1;
+        if (isPlaying) replayCurrentVoice();
+      } else {
+        currentTime = 0;
+        currentSpokenStepIndex = -1;
+      }
+    }
+
+    function nextStep() {
+      const ep = VIDEO_EPISODES[currentEpIndex];
+      const stepInfo = getCurrentStep(ep, currentTime);
+      if (stepInfo.index < ep.steps.length - 1) {
+        let targetTime = 0;
+        for (let i = 0; i <= stepInfo.index; i++) {
+          targetTime += ep.steps[i].duration;
+        }
+        currentTime = targetTime + 0.1;
+        currentSpokenStepIndex = -1;
+        if (isPlaying) replayCurrentVoice();
+      }
+    }
+
+    function restartVideo() {
+      currentTime = 0;
+      currentSpokenStepIndex = -1;
+      if (isPlaying) replayCurrentVoice();
+    }
+
+    function seekVideo(e) {
+      const track = document.getElementById('progressTrack');
+      const rect = track.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+      const totalDur = getTotalDuration(VIDEO_EPISODES[currentEpIndex]);
+      currentTime = ratio * totalDur;
+      currentSpokenStepIndex = -1;
+      if (isPlaying) replayCurrentVoice();
+    }
+
+    function selectEpisode(idx) {
+      currentEpIndex = idx;
+      currentTime = 0;
+      currentSpokenStepIndex = -1;
+      stopVoice();
+
+      // Update UI cards
+      document.querySelectorAll('.episode-card').forEach((card, i) => {
+        card.classList.toggle('active', i === idx);
+      });
+
+      if (isPlaying) {
+        replayCurrentVoice();
+      }
+    }
+
+    // ==========================================
+    // 8. RENDER FUNCTION SELECTION CARDS
+    // ==========================================
+    function renderEpisodeCards() {
+      const grid = document.getElementById('episodesGrid');
+      grid.innerHTML = VIDEO_EPISODES.map((ep, idx) => `
+        <div class="episode-card ${idx === currentEpIndex ? 'active' : ''}" onclick="selectEpisode(${idx})">
+          <div class="episode-card-top">
+            <span class="episode-badge">${ep.badge.toUpperCase()}</span>
+            <span class="episode-duration">${formatTime(getTotalDuration(ep))}</span>
+          </div>
+          <div class="episode-title">
+            <span>${ep.icon}</span> ${ep.title}
+          </div>
+          <div class="episode-summary">${ep.summary}</div>
+          <div class="episode-steps-pills">
+            ${ep.steps.map((st, sIdx) => `<span class="step-pill">Bước ${sIdx + 1}</span>`).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // 9. CLIENT-SIDE VIDEO EXPORT (MP4 / WebM)
+    // ==========================================
+    function exportVideoMp4() {
+      const ep = VIDEO_EPISODES[currentEpIndex];
+      const totalDur = getTotalDuration(ep);
+
+      alert(`🎬 Đang chuẩn bị xuất video clip hướng dẫn chức năng: "${ep.title}" (${totalDur}s). Vui lòng không đóng trình duyệt trong khi ghi hình!`);
+
+      const stream = canvas.captureStream(30);
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      } catch (e) {
+        recorder = new MediaRecorder(stream);
+      }
+
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `VN2000PRO_Tutorial_${EPISODES[currentEpisodeIdx].id}.webm`;
+        a.download = `VN2000_HuongDan_ChucNang_${ep.number}_${ep.id}.webm`;
         a.click();
-        btn.innerText = '📹 Xuất Video (WebM/MP4)';
-        btn.style.background = '';
-        alert('🎉 Đã xuất xưởng video thành công!');
+        URL.revokeObjectURL(url);
       };
 
       currentTime = 0;
-      play();
-      mediaRecorder.start();
+      currentSpokenStepIndex = -1;
+      isPlaying = true;
+      recorder.start();
 
-      const ep = EPISODES[currentEpisodeIdx];
       setTimeout(() => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-          pause();
-        }
-      }, (ep.duration + 0.5) * 1000);
+        recorder.stop();
+        isPlaying = false;
+        alert(`✅ Đã xuất video clip hướng dẫn chức năng ${ep.number} thành công!`);
+      }, totalDur * 1000 + 500);
     }
+
+    // ==========================================
+    // 10. INITIALIZATION
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      preloadScreens();
+      renderEpisodeCards();
+      renderFrame(0);
+      requestAnimationFrame(tick);
+    });
+
+    // Spacebar shortcut
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        togglePlay();
+      }
+    });
   </script>
 </body>
 </html>

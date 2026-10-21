@@ -9,6 +9,35 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-21] Xây Dựng Hệ Thống Video Hướng Dẫn Thao Tác Bằng Quay Chụp Màn Hình (1 Chức Năng / 1 Video)
+- **Yêu cầu**: "video hướng dẫn bằng âm nhạc của bạn làm chán quá, hãy bỏ đi, thực hiện sử dụng quay chụp màn hình để hướng dẫn thao tác cho từng chức năng đi, chỉ cần thêm nhạc nhẹ nhàng và giọng đọc hướng dẫn từng chức năng thôi (không gom hướng dẫn nhiều chức năng trong cùng 1 video - tách riêng 1 chức năng/1 video)"
+- **Triển khai kỹ thuật toàn diện**:
+  1. **Bãi bỏ hoàn toàn định dạng MV ca nhạc / hát vè vần**:
+     - Loại bỏ toàn bộ ca từ hát rhyme, beat dồn dập, chuyển sang định dạng **Screen Walkthrough Video Studio** chuyên nghiệp.
+  2. **Quay chụp màn hình thực tế từng chức năng (`assets/tutorial_screens/`)**:
+     - Sử dụng Chrome DevTools MCP trực tiếp chụp ảnh màn hình giao diện thực tế của ứng dụng VN2000-PWA với 11 frame độ nét cao:
+       + Chức năng 1: Form chuyển đổi, nạp tọa độ, xem bản đồ vệ tinh (`fn1_step1_form.png`, `fn1_step2_input.png`, `fn1_step3_map.png`).
+       + Chức năng 2: Thẻ chuyển đổi hàng loạt, dán bảng Excel tự nhận diện cột (`fn2_step1_batch_tab.png`, `fn2_step2_batch_data.png`).
+       + Chức năng 3: Màn hình Bản đồ GPS thực địa & Live HUD (`fn3_step1_gps.png`).
+       + Chức năng 4: Cắm mốc thực địa & La bàn dẫn hướng (`fn4_step1_stakeout.png`).
+       + Chức năng 5: Sổ đo dự án & Hộp thoại xuất 5 định dạng (`fn5_step1_datamgmt.png`, `fn5_step2_export_modal.png`).
+       + Chức năng 6: Tiện ích Vẽ mặt bằng MiniCAD độc lập (`fn6_step1_cad.png`).
+       + Chức năng 7: Camera khảo sát đóng dấu tọa độ watermark (`fn7_step1_camera.png`).
+  3. **Tách riêng 1 chức năng / 1 video độc lập (7 Videos Dedicated)**:
+     - Không gom chung: người dùng chọn chức năng nào sẽ xem đúng video hướng dẫn chức năng đó.
+     - Canvas Full HD 1920×1080 hiển thị khung điện thoại di động mô phỏng thao tác vuốt chạm (Ken Burns pan/zoom, spotlight highlight vùng UI đang thao tác, con trỏ cảm ứng ripple phát quang).
+     - Bảng thẻ chỉ dẫn từng bước rõ ràng (Step Badge, Tiêu đề bước, Lời hướng dẫn, Subtitle tiếng Anh, Mẹo thực địa, Thanh tiến trình từng bước).
+  4. **Nhạc nền Piano Ambient Lo-Fi cực kỳ nhẹ nhàng & Giọng đọc Tiếng Việt chuẩn**:
+     - Nhạc nền: Hợp âm Piano Ambient Lo-Fi (`Cmaj7 → Am7 → Fmaj7 → G6`) êm dịu, du dương, âm lượng nhẹ nhàng (mặc định 25%) không lấn át thuyết minh.
+     - Giọng đọc: Web Speech API TTS tiếng Việt tự động đọc to, rõ ràng lời hướng dẫn khi chuyển sang từng bước thao tác. Có nút Tắt/Bật, thanh trượt âm lượng và nút "Đọc lại".
+  5. **Tính năng Xuất Video Client-Side (MediaRecorder)**:
+     - Nút "Xuất Video MP4" xuất file clip hướng dẫn của chức năng đó về thiết bị người dùng.
+  6. **Đồng bộ hóa Menu & Kiểm thử**:
+     - Cập nhật mục 5.7 trong `index.html` Side Drawer thành *"5.7 Video Hướng Dẫn Thao Tác Chức Năng (Quay chụp màn hình • Giọng đọc & Nhạc nhẹ)"*.
+     - Cập nhật bài test [tests/pdoom_video_engine.test.js](file:///d:/Nhu/APP/VN2000-PWA/tests/pdoom_video_engine.test.js).
+     - Toàn bộ **237 / 237 bài test PASS 100%**.
+     - Nghiệm thu trực tiếp trên Chrome DevTools cả trên Mobile Viewport (390×844) và Desktop Viewport (1280×800).
+
 ### [2026-10-21] Sửa Dứt Điểm Lỗi Thanh Menu Không Thể Vuốt Lên & Chức Năng Bị Che Khuất
 - **Yêu cầu**: "thanh menu không thể vuốt lên để chọn các chức năng bị che khuất"
 - **Phân tích nguyên nhân gốc rễ (Root Cause)**:

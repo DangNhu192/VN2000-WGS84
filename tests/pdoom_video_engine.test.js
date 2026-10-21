@@ -12,7 +12,7 @@ test('1. Verify pdoom-video skill exists in both global and project skill folder
   assert.ok(projectSkillContent.includes('Word-synced Karaoke Typography'), 'SKILL.md must cover Word-synced Karaoke');
 });
 
-test('2. Verify tutorials-pdoom.html studio player exists with Full HD canvas & 3 episodes', () => {
+test('2. Verify tutorials-pdoom.html studio player exists with Full HD canvas & dedicated functional walkthrough videos', () => {
   const htmlPath = path.join(__dirname, '..', 'tutorials-pdoom.html');
   assert.ok(fs.existsSync(htmlPath), 'tutorials-pdoom.html must exist');
   const content = fs.readFileSync(htmlPath, 'utf8');
@@ -21,19 +21,17 @@ test('2. Verify tutorials-pdoom.html studio player exists with Full HD canvas & 
   assert.ok(content.includes('id="videoCanvas"'), 'Must have #videoCanvas element');
   assert.ok(content.includes('width="1920" height="1080"'), 'Must render at 1920x1080 Full HD');
 
-  // Kiểm tra 3 tập video
+  // Kiểm tra các tập video riêng biệt cho từng chức năng
   assert.ok(content.includes('id: "ep1"'), 'Must contain Episode 1 config');
   assert.ok(content.includes('id: "ep2"'), 'Must contain Episode 2 config');
   assert.ok(content.includes('id: "ep3"'), 'Must contain Episode 3 config');
+  assert.ok(content.includes('id: "ep4"'), 'Must contain Episode 4 config');
+  assert.ok(content.includes('id: "ep5"'), 'Must contain Episode 5 config');
+  assert.ok(content.includes('id: "ep6"'), 'Must contain Episode 6 config');
+  assert.ok(content.includes('id: "ep7"'), 'Must contain Episode 7 config');
 
-  // Kiểm tra phụ đề song ngữ Anh - Việt
-  assert.ok(content.includes('vi: "Kỹ sư trắc địa ra khơi'), 'Ep 1 must have Vietnamese singing lyric');
-  assert.ok(content.includes('en: "Survey engineers heading to the field'), 'Ep 1 must have English subtitle translation');
-  assert.ok(content.includes('vi: "Điểm mốc công trình'), 'Ep 2 must have Vietnamese singing lyric');
-  assert.ok(content.includes('vi: "Vẽ đất vẽ nhà'), 'Ep 3 must have Vietnamese singing lyric');
-
-  // Kiểm tra Web Audio Synth Drum & Web Speech Synthesis
-  assert.ok(content.includes('function playDrumBeat(type)'), 'Must include Web Audio drum synthesis');
+  // Kiểm tra ảnh chụp màn hình thực tế và giọng đọc hướng dẫn
+  assert.ok(content.includes('assets/tutorial_screens/'), 'Must use real screen capture assets');
   assert.ok(content.includes('SpeechSynthesisUtterance'), 'Must include Web Speech synthesis voice guide');
   assert.ok(content.includes('function exportVideoMp4()'), 'Must include MediaRecorder client-side video export');
 });
