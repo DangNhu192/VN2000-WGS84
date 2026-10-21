@@ -2624,7 +2624,14 @@ const appTransform = {
                 showToast(`✓ Đã nạp GPS (±${pos.coords.accuracy.toFixed(1)}m). Bấm nút chuyển đổi để tính!`, true);
             },
             (err) => {
-                showToast("⚠️ Không thể lấy GPS: " + err.message, true);
+                if (err && err.code === 1) {
+                    showToast("⚠️ Chưa cấp quyền vị trí. Vui lòng đóng bong bóng chat (Messenger/Zalo) hoặc cấp quyền trong Cài đặt!", true);
+                    if (typeof appGps !== 'undefined' && appGps.openPermissionModal) {
+                        appGps.openPermissionModal();
+                    }
+                } else {
+                    showToast("⚠️ Không thể lấy GPS: " + (err.message || 'Lỗi định vị'), true);
+                }
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
@@ -5913,10 +5920,29 @@ const appGps = {
                     if (typeof showToast === 'function') {
                         showToast("⚠️ Trình duyệt chưa cấp quyền vị trí. Vui lòng đóng các cửa sổ nổi (Bong bóng Messenger, Zalo...) hoặc cấp quyền Vị trí cho Chrome trong Cài đặt máy!", true);
                     }
+                    if (typeof appGps !== 'undefined' && appGps.openPermissionModal) {
+                        appGps.openPermissionModal();
+                    }
                 }
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
         );
+    },
+
+    openPermissionModal() {
+        const modal = document.getElementById('modalGpsPermissionGuide');
+        if (modal) modal.style.display = 'flex';
+    },
+
+    closePermissionModal() {
+        const modal = document.getElementById('modalGpsPermissionGuide');
+        if (modal) modal.style.display = 'none';
+    },
+
+    retryTrackingFromModal() {
+        this.closePermissionModal();
+        showToast("🛰️ Đang thử kích hoạt lại định vị GPS...");
+        this.startTracking();
     },
 
     stopTracking() {
@@ -5941,6 +5967,13 @@ const appGps = {
 
     toggleTracking() {
         triggerHaptic('medium');
+        const btn = document.getElementById('btnHeaderGpsToggle');
+        if (btn && btn.classList.contains('gps-error')) {
+            // Đang bị lỗi quyền do lớp phủ hoặc chưa cho phép -> mở ngay hướng dẫn
+            appGps.openPermissionModal();
+            return;
+        }
+
         if (AppState.isGpsTracking) {
             appGps.stopTracking();
             showToast("⏸️ Đã tắt định vị GPS (tiết kiệm pin)");

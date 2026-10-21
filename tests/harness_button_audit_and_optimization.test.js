@@ -142,3 +142,26 @@ test('=== 7. KIỂM THỬ TỐI ƯU 1 NÚT XUẤT DỮ LIỆU & MODAL CHỌN Đ�
     assert.ok(polishCss.includes('.export-format-tile'), 'Phải có CSS cho các thẻ định dạng trong modal');
 });
 
+test('=== 8. KIỂM THỬ XỬ LÝ LỖI LỚP PHỦ ANDROID & BẢO VỆ CẤP QUYỀN GPS THÔNG MINH ===', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
+
+    // 1. Kiểm tra logic lazy check permissions trong appGps.init chống kích hoạt popup đột ngột
+    assert.ok(appJs.includes('navigator.permissions.query({ name: \'geolocation\' })'), 'Phải kiểm tra quyền Permissions API trước khi bật GPS');
+    assert.ok(appJs.includes("result.state === 'prompt'"), 'Xử lý trạng thái prompt để standby');
+
+    // 2. Kiểm tra các phương thức điều khiển Modal trợ giúp quyền trong appGps
+    assert.ok(appJs.includes('openPermissionModal()'), 'appGps phải có openPermissionModal');
+    assert.ok(appJs.includes('closePermissionModal()'), 'appGps phải có closePermissionModal');
+    assert.ok(appJs.includes('retryTrackingFromModal()'), 'appGps phải có retryTrackingFromModal');
+
+    // 3. Kiểm tra Modal #modalGpsPermissionGuide tồn tại trong index.html
+    assert.ok(html.includes('id="modalGpsPermissionGuide"'), 'Phải có Modal #modalGpsPermissionGuide trong index.html');
+    assert.ok(html.includes('appGps.closePermissionModal()'), 'Modal có nút đóng');
+    assert.ok(html.includes('appGps.retryTrackingFromModal()'), 'Modal có nút thử lại');
+
+    // 4. Kiểm tra nút Header GPS tự động mở Modal khi đang bị lỗi
+    assert.ok(appJs.includes("btn.classList.contains('gps-error')"), 'Chạm nút GPS khi lỗi phải mở ngay hướng dẫn');
+});
+
+
