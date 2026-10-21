@@ -69,3 +69,39 @@ test('=== 5. KIỂM THỬ GOVERNANCE THEO CHUẨN HARNESS-KIT (FEATURE F-011) ==
     assert.ok(f011, 'Phải có tính năng F-011 trong feature_list.json');
     assert.strictEqual(f011.status, 'done', 'F-011 phải đạt trạng thái done');
 });
+
+test('=== 5. KIỂM THỬ ĐỒNG BỘ 2 CHIỀU & TRIỆT TIÊU XUNG ĐỘT THỰC ĐỊA VS THEME SÁNG/TỐI ===', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
+    const fwJs = fs.readFileSync(path.join(__dirname, '../field-workspace.js'), 'utf8');
+    const polishCss = fs.readFileSync(path.join(__dirname, '../ui-polish.css'), 'utf8');
+
+    // 1. Kiểm tra fwField dùng icon tia chớp không xung đột với icon mặt trời của Theme
+    assert.ok(html.includes('id="fwField"'), 'Phải có nút #fwField');
+    assert.ok(html.includes('polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"'), 'Nút #fwField phải dùng biểu tượng tia chớp/tương phản cao');
+
+    // 2. Kiểm tra appTheme có hàm syncFieldMode
+    assert.ok(appJs.includes('syncFieldMode(isFieldMode)'), 'appTheme phải có hàm syncFieldMode');
+    assert.ok(appJs.includes("classList.remove('field-mode')"), 'toggleTheme phải tự động thoát field-mode khi chuyển theme');
+
+    // 3. Kiểm tra field-workspace gọi root.appTheme.syncFieldMode
+    assert.ok(fwJs.includes('root.appTheme.syncFieldMode(enabled)'), 'field-workspace.setField phải gọi appTheme.syncFieldMode');
+
+    // 4. Kiểm tra CSS active-field-theme trong ui-polish.css
+    assert.ok(polishCss.includes('#btnHeaderThemeToggle.active-field-theme'), 'ui-polish.css phải định nghĩa style active-field-theme');
+});
+
+test('=== 6. KIỂM THỬ KHẮC PHỤC LỖI HIỂN THỊ ĐA MÀN HÌNH & BADGE SỔ ĐO ===', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    const polishCss = fs.readFileSync(path.join(__dirname, '../ui-polish.css'), 'utf8');
+
+    // 1. Kiểm tra badge số lượng mốc trong card header Sổ Đo không bị ngắt dòng xấu
+    assert.ok(html.includes('badge-count'), 'Phải có span badge-count trong tiêu đề danh sách mốc');
+    assert.ok(html.includes('id="txtPointsCount"'), 'Phải giữ nguyên id txtPointsCount');
+
+    // 2. Kiểm tra responsive rules cho header và toolbar
+    assert.ok(polishCss.includes('@media (max-width: 480px)'), 'Có media query max-width 480px');
+    assert.ok(polishCss.includes('@media (max-width: 420px)'), 'Có media query max-width 420px');
+    assert.ok(polishCss.includes('@media (max-width: 380px)'), 'Có media query max-width 380px');
+    assert.ok(polishCss.includes('#fwToolbar'), 'Có responsive styling cho #fwToolbar');
+});

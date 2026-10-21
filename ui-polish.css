@@ -458,16 +458,21 @@ body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-
 }
 
 /* 4. VIEWPORT SPILLING FIXES (Zero Overflow on 360px) */
-/* Stakeout Card Header Tools */
-#screen-stakeout .card-header {
+/* Stakeout & Data Management Card Header Tools */
+:is(#screen-stakeout, #screen-datamgmt) .card-header {
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: center !important;
+  justify-content: space-between !important;
   gap: 8px !important;
 }
 
-#screen-stakeout .card-header .card-title {
-  flex: 1 1 200px !important;
+:is(#screen-stakeout, #screen-datamgmt) .card-header .card-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 #screen-stakeout .card-header .card-tools {
@@ -477,9 +482,12 @@ body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-
   margin-top: 4px !important;
 }
 
-#screen-stakeout .card-header .card-tools .btn-sm {
+:is(#screen-stakeout, #screen-datamgmt) .card-header .card-tools .btn-sm {
   min-height: 36px !important;
-  padding: 6px 10px !important;
+  padding: 6px 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Project Marks Blocks Panel Header */
@@ -621,4 +629,98 @@ body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-
     display: none !important;
   }
 }
+
+/* ================= 8. SYNCED FIELD & THEME TOGGLES ================= */
+#btnHeaderThemeToggle.active-field-theme {
+  background: rgba(255, 223, 0, 0.22) !important;
+  border: 1px solid rgba(255, 223, 0, 0.8) !important;
+  color: #ffdf00 !important;
+  box-shadow: 0 0 12px rgba(255, 223, 0, 0.45) !important;
+  animation: pulseFieldGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseFieldGlow {
+  0%, 100% { box-shadow: 0 0 6px rgba(255, 223, 0, 0.3); }
+  50% { box-shadow: 0 0 14px rgba(255, 223, 0, 0.6); }
+}
+
+#fieldWorkspace #fwField {
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#fieldWorkspace #fwField[aria-pressed="true"] {
+  background: #ffdf00 !important;
+  color: #000000 !important;
+  border-color: #ffdf00 !important;
+  font-weight: 700;
+  box-shadow: 0 0 14px rgba(255, 223, 0, 0.5);
+}
+
+/* Responsive alignment across all viewports */
+@media (max-width: 480px) {
+  .app-header .app-subtitle {
+    display: none !important;
+  }
+  .app-title {
+    font-size: 13px !important;
+    max-width: 150px !important;
+  }
+  .app-title span:not(.mac-apple-badge) {
+    font-size: 13px !important;
+    max-width: 130px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  #btnHeaderBack {
+    padding: 0 8px !important;
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #btnHeaderMenu .tree-nav-label {
+    display: none !important;
+  }
+  #btnHeaderMenu {
+    padding: 0 10px !important;
+  }
+  .app-header .app-title span:not(.mac-apple-badge) {
+    display: none !important;
+  }
+}
+
+
+@media (max-width: 420px) {
+  #fieldWorkspace {
+    padding: 12px 10px 24px !important;
+  }
+  #fwToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 16px !important;
+  }
+  #fwModes {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: stretch;
+  }
+  #fwModes button {
+    flex: 1 1 50%;
+    text-align: center;
+    padding: 8px 6px !important;
+    font-size: 13px !important;
+  }
+  #fwField {
+    flex: 0 0 auto;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+}
+
 

@@ -103,6 +103,9 @@
             document.body.classList.toggle('field-mode', enabled);
             byId('fwField').setAttribute('aria-pressed', String(enabled));
             writePreference(storage, 'vn2k_field_mode', enabled ? '1' : '0');
+            if (root.appTheme && typeof root.appTheme.syncFieldMode === 'function') {
+                root.appTheme.syncFieldMode(enabled);
+            }
         }
         function refresh() {
             const t = words(), state = root.AppState;

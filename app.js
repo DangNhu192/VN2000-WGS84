@@ -27834,25 +27834,60 @@ const appTheme = {
     init() {
         const saved = (typeof localStorage !== 'undefined' && localStorage.getItem('app_theme')) || 'dark';
         this.setTheme(saved);
+        if (typeof document !== 'undefined' && document.body) {
+            this.syncFieldMode(document.body.classList.contains('field-mode'));
+        }
+    },
+    syncFieldMode(isFieldMode) {
+        if (typeof document === 'undefined') return;
+        const icon = document.getElementById('headerThemeIcon');
+        const btn = document.getElementById('btnHeaderThemeToggle');
+        if (isFieldMode) {
+            if (icon) icon.textContent = '⚡';
+            if (btn) {
+                btn.title = 'Đang bật Chế độ Thực địa (Siêu tương phản). Chạm để tắt và quay lại giao diện chuẩn';
+                btn.classList.add('active-field-theme');
+            }
+        } else {
+            if (icon) icon.textContent = this.current === 'light' ? '🌙' : '☀️';
+            if (btn) {
+                btn.title = this.current === 'light' ? 'Chuyển sang giao diện Tối (Engineering Dark Pro)' : 'Chuyển sang giao diện Sáng (Clean Pearl Light)';
+                btn.classList.remove('active-field-theme');
+            }
+        }
     },
     setTheme(theme) {
         this.current = (theme === 'light') ? 'light' : 'dark';
         if (typeof document !== 'undefined') {
             document.documentElement.setAttribute('data-theme', this.current);
             if (document.body) document.body.setAttribute('data-theme', this.current);
-            const icon = document.getElementById('headerThemeIcon');
-            if (icon) icon.textContent = this.current === 'light' ? '🌙' : '☀️';
-            const btn = document.getElementById('btnHeaderThemeToggle');
-            if (btn) btn.title = this.current === 'light' ? 'Chuyển sang giao diện Tối (Engineering Dark Pro)' : 'Chuyển sang giao diện Sáng (Clean Light Minimalist)';
+            const isFieldMode = document.body && document.body.classList.contains('field-mode');
+            this.syncFieldMode(isFieldMode);
         }
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem('app_theme', this.current);
         }
     },
     toggleTheme() {
+        const isFieldMode = typeof document !== 'undefined' && document.body && document.body.classList.contains('field-mode');
+        if (isFieldMode) {
+            if (document.body) document.body.classList.remove('field-mode');
+            const fwField = document.getElementById('fwField');
+            if (fwField) fwField.setAttribute('aria-pressed', 'false');
+            if (typeof localStorage !== 'undefined') {
+                try { localStorage.setItem('vn2k_field_mode', '0'); } catch (_) {}
+            }
+            const nextTheme = this.current === 'dark' ? 'light' : 'dark';
+            this.setTheme(nextTheme);
+            if (typeof showToast === 'function') {
+                showToast(nextTheme === 'light' ? '☀️ Đã thoát Thực địa → Bật giao diện Sáng (Clean Pearl Light)' : '🌙 Đã thoát Thực địa → Bật giao diện Tối (Engineering Dark Pro)');
+            }
+            return;
+        }
+
         this.setTheme(this.current === 'dark' ? 'light' : 'dark');
         if (typeof showToast === 'function') {
-            showToast(this.current === 'light' ? '☀️ Đã bật giao diện Sáng (Chống chói nắng thực địa)' : '🌙 Đã bật giao diện Tối (Engineering Dark Pro)');
+            showToast(this.current === 'light' ? '☀️ Đã bật giao diện Sáng (Clean Pearl Light)' : '🌙 Đã bật giao diện Tối (Engineering Dark Pro)');
         }
     }
 };

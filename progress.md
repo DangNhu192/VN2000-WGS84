@@ -9,6 +9,26 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-21] Khắc phục Xung đột "Thực địa vs Theme Sáng/Tối" & Tối ưu Giao diện Đa Màn Hình
+- **Khắc phục triệt để xung đột Thực địa (`#fwField`) và Theme Sáng/Tối (`#btnHeaderThemeToggle`)**:
+  - **Khử trùng lặp thị giác (Visual De-duplication)**: Thay thế icon Mặt trời (`☼`) trên nút `#fwField` bằng icon Tia sét siêu tương phản (`⚡`), triệt tiêu hoàn toàn sự xuất hiện đồng thời của 2 biểu tượng mặt trời gây hiểu nhầm cho người dùng.
+  - **Đồng bộ hóa trạng thái 2 chiều (Bidirectional Sync)**:
+    - Khi chế độ Thực địa (`body.field-mode`) được kích hoạt, nút Theme trên header chuyển sang icon `⚡`, kích hoạt hiệu ứng viền vàng cảnh báo `active-field-theme` với tooltip rõ ràng `Đang bật Chế độ Thực địa... Chạm để tắt`.
+    - Khi người dùng chạm nút Theme trên header trong lúc Thực địa đang bật, hệ thống tự động thoát `field-mode`, gỡ class CSS, đưa `aria-pressed="false"` về `#fwField`, lưu `vn2k_field_mode = '0'` và chuyển ngay về theme Sáng/Tối chuẩn xác, không còn tình trạng bị kẹt màu đen `#000 !important`.
+    - Chuẩn hóa thông điệp toast tiếng Việt của Light Mode: `"☀️ Giao diện Sáng (Clean Pearl Light)"`.
+- **Tối ưu hóa hiển thị và công thái học đa kích thước màn hình**:
+  - **Mobile siêu nhỏ (360px - 420px)**:
+    - Khắc phục lỗi tiêu đề Header bị co cụt ("W... Đồng") bằng cách tự động ẩn subtitle thừa trên mobile, thu gọn chữ "Menu" dài dòng thành icon `☰`, và co gọn nút Quay lại `◀`.
+    - Khắc phục lỗi hiển thị tiêu đề thẻ Sổ đo (`screen-datamgmt`) bị ngắt dòng dấu ngoặc đơn `1 )`: chuyển số lượng mốc vào một badge pill bo tròn sắc nét `#txtPointsCount`, căn chỉnh flexbox chống bẻ dòng xấu xí.
+    - Tối ưu thanh công cụ `#fwToolbar`: co giãn flex 50/50 đều đẹp cho `[ Đơn giản | Nâng cao ]` và căn phải nút `[ ⚡ Thực địa ]`.
+  - **Tablet (768px - 1024px) & Desktop (1280px - 1920px)**:
+    - Bố cục Bento HUD dàn đều 4 cột chuẩn tỷ lệ vàng.
+    - Căn giữa toàn bộ giao diện làm việc, giữ khoảng đệm tối đa 960px thanh lịch, không bị kéo dãn dị dạng.
+- **Xác thực toàn diện qua Chrome DevTools MCP & Node Test Runner**:
+  - Chụp ảnh màn hình đối soát trực quan tại: Mobile 360×740, Mobile 390×844, Tablet 768×1024, Desktop 1280×800.
+  - Thao tác thực tế qua lại giữa Chế độ Sáng (`Clean Pearl Light`), Tối (`Engineering Dark Pro`) và Thực địa (`High-Contrast Field Mode`).
+  - Toàn bộ **227/227 bài test PASS 100%**.
+
 ### [2026-10-20] Kiểm thử chuyên sâu & Tối ưu hóa chức năng, thao tác toàn bộ ứng dụng (Harness-Kit & Vibe Design - F-011)
 - **Kiểm thử chi tiết 578 nút bấm & thao tác**:
   - Dùng Chrome DevTools MCP tự động quét và phân tích 578 nút bấm và phần tử tương tác trên toàn bộ 11 phân hệ chức năng.
