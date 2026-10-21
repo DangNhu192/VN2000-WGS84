@@ -6930,46 +6930,46 @@
     <div class="modal-box modal-donate-box support-modal">
       <div class="support-header">
         <div class="support-title-wrap">
-          <h2 id="modalDonateTitle" class="support-title">Đồng Hành Cùng Dự Án ☕</h2>
-          <p class="support-subtitle">Duy trì nền tảng VN-2000 PRO miễn phí cho cộng đồng trắc địa</p>
+          <h2 id="modalDonateTitle" class="support-title">Mời Tác Giả Ly Cà Phê ☕</h2>
+          <p class="support-subtitle">Đồng hành cùng dự án VN2000 PRO</p>
         </div>
         <button type="button" id="btnDonateCloseTop" class="support-close-btn" aria-label="Đóng cửa sổ" onclick="appDonate.closeModal()">✕</button>
       </div>
       <div class="modal-body support-body">
-        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #bae6fd; line-height: 1.55;">
-          ☕ <strong>Tiếp sức phát triển:</strong> Ứng dụng hoạt động phi lợi nhuận phục vụ cộng đồng kỹ sư trắc địa. Mọi sự đồng hành tùy tâm là nguồn động lực quý giá giúp tác giả duy trì máy chủ tốc độ cao và phát triển các tiện ích mới.
+        <div style="font-size: 12px; color: #bae6fd; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 6px 10px; line-height: 1.4; text-align: center;">
+          Ứng dụng phi lợi nhuận. Tùy tâm tiếp sức để cùng phát triển!
         </div>
 
         <!-- Khối đếm ngược tiến trình 20s -->
-        <div id="boxDonateCountdownProgress" style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #94a3b8;">
-            <span id="badgeDonateStatus" style="font-weight: 700; color: #f59e0b;">⏳ Đang chờ 20 giây</span>
+        <div id="boxDonateCountdownProgress" style="display: flex; flex-direction: column; gap: 4px; padding: 2px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #94a3b8;">
+            <span id="badgeDonateStatus" style="font-weight: 700; color: #f59e0b;">⏳ Vui lòng chờ 20 giây</span>
             <span style="font-weight: 700; font-family: ui-monospace, monospace; color: #38bdf8;"><span id="txtDonateCountdownSec">20</span>s</span>
           </div>
-          <div class="support-progress-track" style="height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 99px; overflow: hidden;">
+          <div class="support-progress-track" style="height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 99px; overflow: hidden;">
             <div id="barDonateProgressFill" style="height: 100%; width: 0%; background: linear-gradient(90deg, #f59e0b, #10b981); transition: width 0.3s ease;"></div>
           </div>
         </div>
 
         <div class="support-channels" role="group" aria-label="Chọn kênh chuyển khoản">
-          <button type="button" class="donate-channel-pill support-channel-btn active" data-channel="vietinbank" onclick="appDonate.setChannel('vietinbank')">VietinBank</button>
+          <button type="button" class="donate-channel-pill support-channel-btn active" data-channel="vietinbank" onclick="appDonate.setChannel('vietinbank')">Vietin</button>
           <button type="button" class="donate-channel-pill support-channel-btn" data-channel="bidv" onclick="appDonate.setChannel('bidv')">BIDV</button>
           <button type="button" class="donate-channel-pill support-channel-btn" data-channel="momo" onclick="appDonate.setChannel('momo')">MoMo</button>
-          <button type="button" class="donate-channel-pill support-channel-btn" data-channel="zalopay" onclick="appDonate.setChannel('zalopay')">ZaloPay</button>
+          <button type="button" class="donate-channel-pill support-channel-btn" data-channel="zalopay" onclick="appDonate.setChannel('zalopay')">Zalo</button>
         </div>
 
         <div class="support-qr-panel">
           <div class="support-qr-box">
             <img id="imgDonateVietQR" class="support-qr-image" alt="Mã VietQR Donate" />
           </div>
-          <p id="txtDonateInstruction" class="support-hint">Mở ứng dụng ngân hàng hoặc ví điện tử để quét mã VietQR tự động</p>
+          <p id="txtDonateInstruction" class="support-hint">Mở ứng dụng ngân hàng hoặc ví điện tử để quét mã</p>
           <a id="btnDonateOpenApp" href="#" target="_blank" rel="noopener noreferrer" class="support-app-link" style="display: none;">Mở ứng dụng chuyển khoản</a>
         </div>
 
         <div class="support-meta-list">
           <div class="support-meta-row">
             <span class="support-meta-label">Ngân hàng</span>
-            <strong id="txtDonateBankName" class="support-meta-value">VietinBank (Ngân hàng Công Thương)</strong>
+            <strong id="txtDonateBankName" class="support-meta-value">VietinBank</strong>
           </div>
           <div class="support-meta-row">
             <span class="support-meta-label">Số tài khoản</span>
@@ -6988,12 +6988,12 @@
           </div>
         </div>
       </div>
-      <div class="support-footer" style="display: flex; flex-direction: column; gap: 8px;">
-        <button type="button" id="btnDonateEnterApp" class="support-primary-action" style="min-height: 46px; font-weight: 700; font-size: 13.5px;" onclick="appDonate.closeModal()">
+      <div class="support-footer" style="display: flex; flex-direction: column; gap: 6px; padding: 8px 14px 12px;">
+        <button type="button" id="btnDonateEnterApp" class="support-primary-action" style="min-height: 42px; font-weight: 700; font-size: 13px;" onclick="appDonate.closeModal()">
           ⏳ Chờ 20s để vào ứng dụng...
         </button>
-        <button type="button" class="btn-sm" style="width: 100%; height: 38px; background: rgba(255, 255, 255, 0.08); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; font-size: 12.5px;" onclick="appDonate.copyAccountNumber()">
-          📋 Sao chép số tài khoản chuyển khoản
+        <button type="button" class="btn-sm" style="width: 100%; height: 34px; background: rgba(255, 255, 255, 0.08); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; font-size: 12px;" onclick="appDonate.copyAccountNumber()">
+          📋 Sao chép số tài khoản
         </button>
       </div>
     </div>

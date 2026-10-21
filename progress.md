@@ -9,20 +9,23 @@
 
 ## Nhật ký tiến độ gần nhất
 
-### [2026-10-21] Chuẩn Hóa Văn Phong Sang Trọng & Tinh Tế: Cửa Sổ Đồng Hành Cùng Dự Án (20s - 1 Lần/Ngày)
-- **Cải tiến theo phản hồi**:
-  - Triệt tiêu toàn bộ các từ ngữ dân dã hoặc con số áp đặt (bỏ chữ "gói xôi", "ly trà đá", "10k", "20k").
-  - Nâng tầm văn phong sang trọng, chuyên nghiệp và đầy tôn trọng:
-    - **Tiêu đề**: `Đồng Hành Cùng Dự Án ☕`.
-    - **Phụ đề**: `Duy trì nền tảng VN-2000 PRO miễn phí cho cộng đồng trắc địa`.
-    - **Thông điệp**: *"☕ Tiếp sức phát triển: Ứng dụng hoạt động phi lợi nhuận phục vụ cộng đồng kỹ sư trắc địa. Mọi sự đồng hành tùy tâm là nguồn động lực quý giá giúp tác giả duy trì máy chủ tốc độ cao và phát triển các tiện ích mới."*
-    - **Hộp thông điệp**: Tone màu xanh dương Cyan dịu mắt (`rgba(56, 189, 248, 0.08)`), viền tinh tế, chuẩn công thái học trắc địa hiện đại.
-    - **Toast lịch sự**: *"⏳ Vui lòng đợi thêm {n}s trước khi vào ứng dụng nhé!"* và *"☕ Cảm ơn bạn đã đồng hành cùng VN2000 PRO!"*.
-- **Bảo toàn 100% cơ chế kỹ thuật**:
-  - Đếm ngược 20 giây (`COUNTDOWN_SECONDS: 20`), thanh tiến trình gradient mượt mà.
-  - Tần suất 1 lần / ngày (`checkDailyTrigger`) qua `localStorage`.
-  - Mở thủ công từ Menu Drawer không bắt buộc chờ.
-  - 100% test `node --test tests/*.test.js` PASS (229/229).
+### [2026-10-21] Chuyển Đổi Thành Thông Báo Treo Góc Trên Màn Hình & Tối Giản Văn Phong (Tự Tin, Sang Trọng)
+- **Đáp ứng phản hồi**:
+  1. **Không chiếm màn hình**: Chuyển đổi từ modal overlay che kín giữa trang sang **Thông báo treo góc trên màn hình (Top-Right Floating Toast Card)**:
+     - Xóa bỏ hoàn toàn lớp backdrop nền đen che mờ (`background: transparent !important`, `pointer-events: none`).
+     - Định vị treo góc trên: `top: 12px; right: 16px;` (trên Desktop/Tablet) và `top: 8px; left: 8px; right: 8px;` (trên Mobile).
+     - Toàn bộ giao diện bản đồ, menu và tác vụ bên dưới hiển thị thông thoáng 100%, người dùng không bị cảm giác che kín màn hình.
+  2. **Văn phong sang trọng, tự tin và siêu ngắn gọn (ít chữ)**:
+     - **Tiêu đề**: `Mời Tác Giả Ly Cà Phê ☕`
+     - **Phụ đề**: `Đồng hành cùng dự án VN2000 PRO`
+     - **Thông điệp ngắn gọn 1 câu duy nhất**: *"Ứng dụng phi lợi nhuận. Tùy tâm tiếp sức để cùng phát triển!"*
+     - Triệt tiêu hoàn toàn giải thích dài dòng, không xin xỏ con số, không than thở máy chủ.
+  3. **Tối ưu layout nhỏ gọn**:
+     - 4 kênh chuyển khoản dạng pill 1 hàng: `Vietin | BIDV | MoMo | Zalo`.
+     - Mã VietQR 140px sắc nét kèm nút `Chép` STK nhanh.
+     - Thanh đếm ngược 20s mỏng 4px và nút đếm ngược `⏳ Chờ {n}s để vào ứng dụng...` ➔ chuyển thành `🚀 Vào Ứng Dụng (Cảm ơn bạn!)`.
+  4. **Bảo đảm chất lượng**:
+     - 229 / 229 bài test PASS 100%. Xác thực qua Chrome DevTools MCP trên cả Desktop và Mobile.
 
 
 ### [2026-10-21] Khắc Phục Lỗi Chặn Lớp Phủ Android / Bong Bóng Chat & Bảo Vệ Cấp Quyền GPS Thông Minh

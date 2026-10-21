@@ -28337,11 +28337,11 @@ const appDonate = {
             btnClose.style.opacity = '1';
             btnClose.style.cursor = 'pointer';
             btnClose.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-            btnClose.innerHTML = '🚀 Vào Ứng Dụng Ngay (Cảm ơn bạn!)';
+            btnClose.innerHTML = '🚀 Vào Ứng Dụng (Cảm ơn bạn!)';
         }
         const badge = document.getElementById('badgeDonateStatus');
         if (badge) {
-            badge.innerText = '✓ Đã sẵn sàng';
+            badge.innerText = '✓ Sẵn sàng';
             badge.style.color = '#10b981';
         }
     },

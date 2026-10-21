@@ -1,12 +1,12 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Chuẩn Hóa Cửa Sổ Đồng Hành Cùng Dự Án & Bảo Vệ Cấp Quyền GPS
+## Phiên hiện tại — 2026-10-21: Chuyển Đổi Banner Treo Góc Trên Màn Hình & Bảo Vệ Cấp Quyền GPS
 - **Đã hoàn tất**:
-  1. **Chuẩn hóa Văn Phong Sang Trọng & Tinh Tế: Cửa sổ 20s Đồng Hành Cùng Dự Án (1 lần/ngày)**:
-     - Loại bỏ toàn bộ các từ ngữ dân dã, con số định sẵn (bỏ "gói xôi, trà đá, 10k, 20k"), nâng tầm sang trọng, văn minh và tôn trọng người dùng.
-     - Tiêu đề: `Đồng Hành Cùng Dự Án ☕` - Thông điệp: *"Tiếp sức phát triển: Ứng dụng hoạt động phi lợi nhuận phục vụ cộng đồng kỹ sư trắc địa. Mọi sự đồng hành tùy tâm là nguồn động lực quý giá..."*.
+  1. **Chuyển đổi thành Thông Báo Treo Góc Trên Màn Hình & Tối Giản Văn Phong (Tự tin, Sang trọng)**:
+     - Gỡ bỏ hoàn toàn backdrop mờ đen che kín toàn màn hình, chuyển thành Floating Toast Card treo góc trên bên phải (`top: 12px; right: 16px`), giao diện ứng dụng bên dưới nhìn thấy rõ ràng 100%.
+     - Tối giản văn phong, cực kỳ ít chữ: Tiêu đề `Mời Tác Giả Ly Cà Phê ☕` - Thông điệp duy nhất: *"Ứng dụng phi lợi nhuận. Tùy tâm tiếp sức để cùng phát triển!"*.
      - Giữ nguyên cơ chế đếm ngược 20s (`COUNTDOWN_SECONDS: 20`) mở 1 lần / ngày (`checkDailyTrigger`), mở khóa xanh ngọc khi hết giờ, và mở thủ công tự do từ menu Drawer.
-     - Bộ test `tests/donate_modal_30s.test.js` PASS 6/6 test.
+     - Bộ test `tests/donate_modal_30s.test.js` PASS 6/6 test. Toàn bộ dự án 229/229 test PASS.
   2. **Khắc phục lỗi chặn lớp phủ / chú giải (Tapjacking Protection) của Android**:
      - Tích hợp Lazy Permissions Check: chỉ kích hoạt GPS khi đã cấp quyền hoặc khi người dùng chạm ngón tay có chủ đích (`User Gesture`), không tự bung popup đột ngột khi tải trang.
      - Tích hợp Modal `#modalGpsPermissionGuide` giải thích nguyên nhân và hướng dẫn xử lý bong bóng chat Messenger/Zalo hoặc cấp quyền trực tiếp trong Chrome.

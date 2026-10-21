@@ -278,25 +278,28 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 #drawerItem_donate{width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font:inherit;color:var(--text-main,inherit);padding:10px 14px;border-radius:8px;display:flex;align-items:center;min-height:44px;-webkit-tap-highlight-color:transparent}
 #drawerItem_donate:hover{background:var(--hover-bg,rgba(255,255,255,.06))}
 #drawerItem_donate:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
-#modalDonateCountdown.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.68);display:flex;align-items:center;justify-content:center;z-index:99999;padding:12px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility .2s ease}
-#modalDonateCountdown.modal-overlay.active,#modalDonateCountdown.modal-overlay[style*="display: flex"],#modalDonateCountdown.modal-overlay[style*="display:flex"]{opacity:1;visibility:visible;pointer-events:auto}
-#modalDonateCountdown .modal-donate-box.support-modal{max-width:420px!important;width:calc(100% - 24px)!important;max-height:calc(100dvh - 32px)!important;background:var(--bg-card,#111827)!important;color:var(--text-main,#f3f4f6)!important;border:1px solid var(--border-color,rgba(255,255,255,.14))!important;border-radius:14px;box-shadow:none;display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important}
-#modalDonateCountdown .support-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border-color,rgba(255,255,255,.12));background:inherit}
+#modalDonateCountdown.modal-overlay{position:fixed!important;top:12px!important;right:16px!important;left:auto!important;bottom:auto!important;width:auto!important;background:transparent!important;display:flex!important;align-items:flex-start!important;justify-content:flex-end!important;z-index:99999;padding:0!important;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s cubic-bezier(0.16,1,0.3,1),visibility .25s ease,transform .25s cubic-bezier(0.16,1,0.3,1);transform:translateY(-12px)}
+#modalDonateCountdown.modal-overlay.active,#modalDonateCountdown.modal-overlay[style*="display: flex"],#modalDonateCountdown.modal-overlay[style*="display:flex"]{opacity:1;visibility:visible;transform:translateY(0)}
+@media (max-width: 480px) {
+  #modalDonateCountdown.modal-overlay{top:8px!important;left:8px!important;right:8px!important;justify-content:center!important}
+}
+#modalDonateCountdown .modal-donate-box.support-modal{width:360px!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 20px)!important;background:rgba(15,23,42,0.96)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;color:var(--text-main,#f3f4f6)!important;border:1px solid rgba(56,189,248,0.28)!important;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.08)!important;display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important;pointer-events:auto!important}
+#modalDonateCountdown .support-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08);background:inherit}
 #modalDonateCountdown .support-title-wrap{min-width:0;flex:1}
-#modalDonateCountdown .support-title{margin:0;font-size:15px;font-weight:700;line-height:1.3;color:var(--text-main,#f3f4f6);letter-spacing:.2px}
-#modalDonateCountdown .support-subtitle{margin:2px 0 0;font-size:11.5px;color:var(--text-muted,#9ca3af);line-height:1.35}
-#modalDonateCountdown #btnDonateEnterApp.support-close-btn{min-width:44px!important;min-height:44px!important;width:44px!important;height:44px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid var(--border-color,rgba(255,255,255,.14))!important;border-radius:8px!important;background:transparent!important;color:var(--text-main,#f3f4f6)!important;font-size:16px!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent}
+#modalDonateCountdown .support-title{margin:0;font-size:14px;font-weight:700;line-height:1.2;color:var(--text-main,#f3f4f6);letter-spacing:.2px}
+#modalDonateCountdown .support-subtitle{margin:1px 0 0;font-size:11px;color:var(--text-muted,#9ca3af);line-height:1.3}
+#modalDonateCountdown #btnDonateEnterApp.support-close-btn{min-width:36px!important;min-height:36px!important;width:36px!important;height:36px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid var(--border-color,rgba(255,255,255,.14))!important;border-radius:8px!important;background:transparent!important;color:var(--text-main,#f3f4f6)!important;font-size:15px!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent}
 #modalDonateCountdown #btnDonateEnterApp.support-close-btn:hover{background:var(--hover-bg,rgba(255,255,255,.08))!important}
 #modalDonateCountdown #btnDonateEnterApp.support-close-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
-#modalDonateCountdown .support-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
-#modalDonateCountdown .support-intro{margin:0;font-size:12px;line-height:1.55;color:var(--text-muted,#9ca3af)}
-#modalDonateCountdown .support-channels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-#modalDonateCountdown .donate-channel-pill.support-channel-btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;font-size:12.5px;font-weight:600;border-radius:8px;border:1px solid var(--border-color,rgba(255,255,255,.14));background:transparent;color:var(--text-main,#f3f4f6);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+#modalDonateCountdown .support-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+#modalDonateCountdown .support-intro{margin:0;font-size:11.5px;line-height:1.45;color:var(--text-muted,#9ca3af)}
+#modalDonateCountdown .support-channels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+#modalDonateCountdown .donate-channel-pill.support-channel-btn{min-height:36px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;font-size:11.5px;font-weight:600;border-radius:6px;border:1px solid var(--border-color,rgba(255,255,255,.14));background:transparent;color:var(--text-main,#f3f4f6);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn:hover{background:var(--hover-bg,rgba(255,255,255,.06))}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn.active{border-color:var(--accent,#38bdf8);background:var(--accent-glow,rgba(56,189,248,.14));color:var(--text-main,#f3f4f6)}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
-#modalDonateCountdown .support-qr-panel{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:4px}
-#modalDonateCountdown .support-qr-box{width:180px;height:180px;background:#fff;border-radius:8px;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;padding:6px;overflow:hidden}
+#modalDonateCountdown .support-qr-panel{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:2px}
+#modalDonateCountdown .support-qr-box{width:140px;height:140px;background:#fff;border-radius:8px;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;padding:4px;overflow:hidden}
 #modalDonateCountdown .support-qr-image{width:100%;height:100%;object-fit:contain;border-radius:4px;display:block}
 #modalDonateCountdown .support-qr-image:not([src]){display:none}
 #modalDonateCountdown .support-qr-image[src]{display:block}
