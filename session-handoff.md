@@ -1,21 +1,38 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Cài Đặt Skill pdoom-video & Studio Video Hướng Dẫn Âm Nhạc Song Ngữ
+## Phiên hiện tại — 2026-10-21: Khắc Phục Lỗi Cuộn Menu Drawer & Nâng Cấp Hệ Thống Âm Nhạc Polyphonic Lo-Fi Studio
 - **Đã hoàn tất**:
-  1. **Cài đặt chuẩn hóa Skill `pdoom-video` (mexicat/pdoom-video)**:
-     - Tạo tài liệu SKILL.md tại `C:\Users\User\.gemini\config\skills\pdoom-video\SKILL.md` và `.agents/skills/pdoom-video/SKILL.md`.
-     - Quy chuẩn kiến trúc: Deterministic Timeline (`render(t)`), Word-Synced Karaoke Typography (Song ngữ Anh - Việt), Web Audio Drum Beat Synthesizer, Web Speech Voice Guide và Export Pipeline (MediaRecorder + SRT + CapCut).
-  2. **Bộ 3 Video Hướng Dẫn Âm Nhạc Song Ngữ (Code-Rendered Full HD 60fps)**:
-     - **Tập 1**: *"Vè Chuyển Đổi VN-2000 & Bắt Sóng GPS"* (128 BPM - Preset `tech_cyber`).
-     - **Tập 2**: *"Khúc Ca Mốc Dự Án & Sổ Đo Thực Địa"* (120 BPM - Preset `bold_impact`).
-     - **Tập 3**: *"Giai Điệu MiniCAD & Thửa Đất Khống Chế"* (132 BPM - Preset `kinetic_hype`).
-     - Lời hát tiếng Việt có vần điệu bắt tai kết hợp phụ đề tiếng Anh kỹ thuật dịch nghĩa chuẩn xác.
-  3. **Studio Player `tutorials-pdoom.html` & Tích Hợp Hệ Thống**:
-     - Player Canvas 1920×1080 mượt mà 60fps, hỗ trợ ghi hình video WebM/MP4 trực tiếp và tải phụ đề SRT song ngữ.
-     - Liên kết mục 5.7 từ Menu Drawer `index.html`.
-     - 234 / 234 bài test PASS 100% (`tests/pdoom_video_engine.test.js`).
-     - Đã xác thực trực quan qua Chrome DevTools MCP trên cả 3 tập video.
-  2. **Khắc phục lỗi chặn lớp phủ / chú giải (Tapjacking Protection) của Android**:
+  1. **Khắc phục lỗi Menu Drawer không thể vuốt lên xem các mục bị che khuất**:
+     - **Nguyên nhân**: Mặc định Flex items trong `.drawer-tree-body` có `flex-shrink: 1`. Khi menu mở rộng nhiều thư mục con, flexbox tự động co ép chiều cao các thư mục khiến `scrollHeight` chỉ bằng `clientHeight` (669px), triệt tiêu thanh cuộn.
+     - **Khắc phục triệt để trong `ui-polish.css` & `app.js`**:
+       + `.drawer-tree-body > * { flex-shrink: 0 !important; }`
+       + `.drawer-folder.open { height: auto !important; max-height: none !important; overflow: visible !important; }`
+       + `.drawer-tree-body { overflow-y: scroll !important; -webkit-overflow-scrolling: touch !important; padding-bottom: calc(var(--sat-safe-bottom, 20px) + 160px) !important; touch-action: pan-y !important; }`
+       + Thêm `document.body.classList.add('drawer-open')` và `remove('drawer-open')` khi mở/đóng drawer để khóa cuộn nền ngoài.
+     - **Kiểm chứng qua Chrome DevTools MCP**: `scrollHeight` tăng từ 669px lên **1601px**, cuộn `scrollTop = 932px`, hiển thị đầy đủ 100% các mục cuối (mục 5.4 ➔ 5.7, nút Ủng Hộ Tác Giả).
+  2. **Nâng cấp Hệ thống Âm nhạc Polyphonic Lo-Fi Synth Engine (`tutorials-pdoom.html`)**:
+     - **Phản hồi người dùng**: *"nhạc bạn làm nghe chán quá."* do phiên bản trước chỉ dùng oscillator bíp đơn điệu cùng giọng đọc Web Speech robot khô cứng.
+     - **Hệ thống hòa âm Polyphonic Web Audio Studio**:
+       + **Polyphonic Chord Progression**: Chuỗi hợp âm Jazz Lo-Fi kinh điển (`Dm9 → G13 → Cmaj9 → Am9`), dùng 2 oscillator (Triangle + Sine) detuned ±4 cents qua bộ lọc Low-pass 750Hz tạo độ ấm mịn như synthesizer Moog / Juno.
+       + **Melodic Rhodes Piano & Bell Arpeggio**: Điểm xuyết các nốt licks ngũ âm Pentatonic thánh thót, ngẫu hứng có trật tự ở các phách lệch.
+       + **Sub-Bass 55Hz - 110Hz**: Âm sắc trầm ấm, êm tai, nảy nhịp groove tự nhiên.
+       + **Lo-Fi Velvet Drums**: Soft kick tròn trịa, velvet rimshot/snare ấm cúng, shaker nhấp nhô nhẹ nhàng giữ nhịp swing thư thái.
+       + **Tape Echo / Reverb Space**: Mô phỏng hiệu ứng không gian băng từ 280ms êm đềm.
+     - **3 Phong cách Âm nhạc Tự chọn**:
+       + ☕ `Lo-Fi Trắc Địa Chill` (75-80 BPM: ấm áp, thư giãn, giúp tập trung tính toán)
+       + 🌆 `Cyber Synthwave 80s` (105-120 BPM: phong cách retro neon, arpeggiator sôi động)
+       + 🍃 `Ambient Zen Space` (55-60 BPM: không gian mở mênh mang, chuông ngân thiền định)
+     - **Bảng Điều Khiển Âm Thanh Chuyên Nghiệp**:
+       + 🗣️ **Nút Tắt / Bật Giọng đọc riêng biệt**: Cho phép người dùng tắt hoàn toàn giọng đọc thuyết minh robot để nghe thuần túy nhạc Lo-Fi chill thư giãn trong lúc xem video.
+       + 🎵 **Nút Bật / Tắt Nhạc nền** + Thanh trượt Volume BGM (0% - 100%).
+       + 🎙️ **Thanh trượt Volume Giọng đọc** độc lập.
+       + 🔊 **Nút Tắt/Bật Master Sound**.
+     - **Real-Time Audio Spectrum Neon Equalizer**: Tích hợp `AnalyserNode` vẽ 20 cột quang phổ âm thanh neon trực tiếp trên khung nhìn Canvas Full HD 1920×1080.
+  3. **Kiểm thử tự động & Nghiệm thu trực quan**:
+     - `node --test tests/*.test.js`: **234 / 234 bài test PASS 100%**.
+     - Xác thực thực tế qua Chrome DevTools MCP: Playback 60fps mượt mà, audioState "running", 0 lỗi console.
+
+## Phiên trước — 2026-10-21: Cài Đặt Skill pdoom-video & Studio Video Hướng Dẫn Âm Nhạc Song Ngữ
      - Tích hợp Lazy Permissions Check: chỉ kích hoạt GPS khi đã cấp quyền hoặc khi người dùng chạm ngón tay có chủ đích (`User Gesture`), không tự bung popup đột ngột khi tải trang.
      - Tích hợp Modal `#modalGpsPermissionGuide` giải thích nguyên nhân và hướng dẫn xử lý bong bóng chat Messenger/Zalo hoặc cấp quyền trực tiếp trong Chrome.
      - Cập nhật xử lý lỗi `PERMISSION_DENIED` trên toàn bộ các điểm gọi GPS (`appGps.init`, `appGps.startTracking`, `appTransform.getLiveGps`).

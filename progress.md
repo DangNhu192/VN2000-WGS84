@@ -9,6 +9,40 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-21] Khắc Phục Lỗi Cuộn Menu Drawer & Nâng Cấp Hệ Thống Âm Nhạc Polyphonic Lo-Fi Studio
+- **Yêu cầu**:
+  1. "thanh menu không thể vuốt lên để chọn các chức năng bị che khuất"
+  2. "nhạc bạn làm nghe chán quá."
+- **Triển khai kỹ thuật toàn diện**:
+  1. **Khắc phục dứt điểm lỗi kẹt cuộn Menu Drawer**:
+     - Phát hiện nguyên nhân cốt lõi: Các thẻ con trong `.drawer-tree-body` mặc định bị Flexbox co ép (`flex-shrink: 1`), làm triệt tiêu thanh cuộn dọc (`scrollHeight: 669px === clientHeight: 669px`).
+     - Bổ sung luật CSS cưỡng chế trong `ui-polish.css`:
+       + `.drawer-tree-body > * { flex-shrink: 0 !important; }`
+       + `.drawer-folder.open { height: auto !important; max-height: none !important; overflow: visible !important; }`
+       + `.drawer-tree-body { min-height: 0 !important; overflow-y: scroll !important; -webkit-overflow-scrolling: touch !important; padding-bottom: calc(var(--sat-safe-bottom, 20px) + 160px) !important; touch-action: pan-y !important; }`
+     - Bổ sung cơ chế khóa cuộn nền ngoài `document.body.classList.add('drawer-open')` trong `app.js`.
+     - Xác thực qua Chrome DevTools Viewport di động: `scrollHeight` đạt **1601px**, cuộn `scrollTop = 932px`, hiển thị đầy đủ 100% các mục cuối (mục 5.4 đến 5.7 và nút Ủng Hộ).
+  2. **Nâng cấp Hệ thống Âm nhạc Polyphonic Lo-Fi Studio (`tutorials-pdoom.html`)**:
+     - Thay thế các tiếng oscillator bíp đơn điệu bằng **Polyphonic Web Audio Synthesizer**:
+       + **Hợp âm Lo-Fi Jazz**: `Dm9 → G13 → Cmaj9 → Am9` với 2 oscillator detuned ±4 cents qua Low-pass filter 750Hz tạo độ ấm mềm mại chuẩn analog.
+       + **Giai điệu Rhodes Piano / Bell Plucks**: Ngẫu hứng pentatonic thánh thót, du dương ở các phách lệch.
+       + **Sub-Bass 55Hz**: Trầm sâu ấm cúng, nảy nhịp tự nhiên.
+       + **Lo-Fi Velvet Drums**: Soft kick, velvet snare/rimshot và shaker nhẹ nhàng giữ nhịp swing thư thái.
+       + **Tape Echo / Reverb Network**: Mô phỏng vang không gian băng từ 280ms êm dịu.
+     - **3 Phong cách Âm nhạc Tự chọn**:
+       + ☕ `Lo-Fi Trắc Địa Chill` (Ấm áp, êm dịu giúp kỹ sư tập trung làm việc)
+       + 🌆 `Cyber Synthwave 80s` (Retro neon, arpeggiator sôi động)
+       + 🍃 `Ambient Zen Space` (Không gian sâu lắng, tĩnh tại)
+     - **Bảng Điều Khiển Âm Thanh Chuyên Nghiệp**:
+       + 🗣️ **Nút Tắt / Bật Giọng đọc riêng biệt**: Cho phép tắt hẳn giọng đọc thuyết minh để nghe thuần nhạc nền thư giãn.
+       + 🎵 **Nút Tắt / Bật Nhạc nền** + Thanh trượt Volume BGM (0% - 100%).
+       + 🎙️ **Thanh trượt Volume Giọng đọc** độc lập.
+       + 🔊 **Nút Tắt/Bật Master Sound**.
+     - **Real-Time Audio Spectrum Neon Equalizer**: Vẽ dải quang phổ tần số 20 cột neon trực tiếp trên khung nhìn Canvas Full HD.
+  3. **Kiểm thử tự động**:
+     - Toàn bộ **234 / 234 bài test PASS 100%** (`node --test tests/*.test.js`).
+     - Xác thực trực tiếp trên trình duyệt qua Chrome DevTools MCP.
+
 ### [2026-10-21] Cài Đặt Skill pdoom-video & Xây Dựng Studio Video Hướng Dẫn Âm Nhạc Song Ngữ (Code-Rendered)
 - **Yêu cầu**: Cài đặt repo `mexicat/pdoom-video` thành 1 skill, sau đó sử dụng để tạo các video hướng dẫn sử dụng app có chất lượng cao, song ngữ Anh - Việt để đọc, và tiếng Việt là ngôn ngữ hát/hướng dẫn.
 - **Triển khai kỹ thuật toàn diện**:

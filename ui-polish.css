@@ -794,4 +794,89 @@ body[data-theme="light"] .export-format-tile div > div:first-child {
   color: #0f172a !important;
 }
 
+/* ================= TỐI ƯU CUỘN VÀ CHỐNG KẸT THANH MENU DRAWER DI ĐỘNG ================= */
+.nav-tree-drawer {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 360px !important;
+  max-width: 88vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  z-index: 2200 !important;
+  overscroll-behavior: contain !important;
+  box-sizing: border-box !important;
+}
+
+.nav-tree-drawer .drawer-header,
+.nav-tree-drawer .drawer-status-chip,
+.nav-tree-drawer .drawer-search-box {
+  flex-shrink: 0 !important;
+}
+
+.nav-tree-drawer .drawer-tree-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: 100% !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain !important;
+  touch-action: pan-y !important;
+  padding: 10px 10px calc(var(--sat-safe-bottom, 20px) + 160px) 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* Triệt tiêu lỗi CSS Flexbox co ép (shrink) làm méo mó và mất cuộn menu */
+.nav-tree-drawer .drawer-tree-body > * {
+  flex-shrink: 0 !important;
+}
+
+.nav-tree-drawer .drawer-folder {
+  flex-shrink: 0 !important;
+  height: auto !important;
+  min-height: min-content !important;
+}
+
+.nav-tree-drawer .drawer-folder.open {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.nav-tree-drawer .drawer-folder.open .drawer-folder-body {
+  display: flex !important;
+  height: auto !important;
+  min-height: min-content !important;
+}
+
+/* Chống kẹt thao tác vuốt trên thiết bị di động (Mobile Touch Action) */
+.nav-tree-drawer .drawer-folder,
+.nav-tree-drawer .drawer-folder-head,
+.nav-tree-drawer .drawer-folder-body,
+.nav-tree-drawer .drawer-leaf-item {
+  touch-action: pan-y !important;
+}
+
+/* Khoảng đệm cho các mục cuối nhóm 5 để luôn nổi trọn vẹn trên màn hình */
+.nav-tree-drawer #drawerItem_pdoom_video,
+.nav-tree-drawer #drawerItem_donate,
+.nav-tree-drawer #drawerItem_datetime,
+.nav-tree-drawer #drawerItem_about {
+  margin-bottom: 6px !important;
+}
+
+body.drawer-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
 

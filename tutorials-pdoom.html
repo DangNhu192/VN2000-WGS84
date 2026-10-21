@@ -228,6 +228,51 @@
     .btn-ctrl.btn-primary-play:hover {
       filter: brightness(1.15);
     }
+    /* Audio Engine Console Styles */
+    .audio-engine-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .audio-ctrl-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .audio-label {
+      font-weight: 600;
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+    .sel-audio-style {
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+    .sel-audio-style:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+    .volume-slider {
+      width: 65px;
+      height: 4px;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
     /* Episodes Carousel */
     .episodes-grid {
       width: 100%;
@@ -368,9 +413,40 @@
           <button type="button" class="btn-ctrl btn-primary-play" id="btnPlayPause" onclick="togglePlay()">▶ PHÁT</button>
           <button type="button" class="btn-ctrl" onclick="seekOffset(-5)">⏪ -5s</button>
           <button type="button" class="btn-ctrl" onclick="seekOffset(5)">+5s ⏩</button>
-          <button type="button" class="btn-ctrl" onclick="stepFrame(-1)">⏮ 1 Frame</button>
-          <button type="button" class="btn-ctrl" onclick="stepFrame(1)">1 Frame ⏭</button>
-          <button type="button" class="btn-ctrl" id="btnToggleSound" onclick="toggleSound()">🔊 Âm Nhạc & Giọng Hát: BẬT</button>
+          <button type="button" class="btn-ctrl" onclick="stepFrame(-1)">⏮ 1F</button>
+          <button type="button" class="btn-ctrl" onclick="stepFrame(1)">1F ⏭</button>
+        </div>
+
+        <!-- AUDIO ENGINE CONSOLE -->
+        <div class="audio-engine-bar">
+          <div class="audio-ctrl-item">
+            <span class="audio-label">🎨 Phong cách:</span>
+            <select id="selMusicStyle" class="sel-audio-style" onchange="changeMusicStyle(this.value)">
+              <option value="lofi" selected>☕ Lo-Fi Trắc Địa Chill</option>
+              <option value="synthwave">🌆 Cyber Synthwave 80s</option>
+              <option value="ambient">🍃 Ambient Zen Space</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn-ctrl" id="btnToggleBgm" onclick="toggleBgm()" title="Bật/Tắt Nhạc nền">
+            🎵 Nhạc nền: BẬT
+          </button>
+          <div class="audio-ctrl-item" title="Âm lượng nhạc nền">
+            <span>🔈</span>
+            <input type="range" id="sliderBgmVolume" min="0" max="1" step="0.05" value="0.75" oninput="setBgmVolume(this.value)" class="volume-slider" />
+          </div>
+
+          <button type="button" class="btn-ctrl" id="btnToggleVoice" onclick="toggleVoice()" title="Bật/Tắt Giọng đọc thuyết minh (Tắt để chỉ nghe nhạc thư giãn)">
+            🗣️ Giọng đọc: BẬT
+          </button>
+          <div class="audio-ctrl-item" title="Âm lượng giọng đọc">
+            <span>🎙️</span>
+            <input type="range" id="sliderVoiceVolume" min="0" max="1" step="0.05" value="0.85" oninput="setVoiceVolume(this.value)" class="volume-slider" />
+          </div>
+
+          <button type="button" class="btn-ctrl" id="btnToggleSound" onclick="toggleSound()" title="Tắt toàn bộ âm thanh">
+            🔊 Tổng: BẬT
+          </button>
         </div>
 
         <div style="display: flex; gap: 8px;">
@@ -494,7 +570,6 @@
     let currentEpisodeIdx = 0;
     let isPlaying = false;
     let isLooping = false;
-    let isSoundEnabled = true;
     let currentTime = 0;
     let lastTimestamp = 0;
     let showHud = true;
@@ -505,37 +580,328 @@
     const WIDTH = 1920;
     const HEIGHT = 1080;
 
-    // Web Audio Drum Synthesizer (Zero-cost BPM Beatmaker)
+    // =========================================================================
+    // PROFESSIONAL POLYPHONIC WEB AUDIO SYNTH & LO-FI MUSIC ENGINE
+    // =========================================================================
     let audioCtx = null;
+    let masterGain = null;
+    let bgmGain = null;
+    let delayNode = null;
+    let delayGain = null;
+    let analyserNode = null;
+    let freqData = null;
+
+    let isSoundEnabled = true;
+    let isBgmEnabled = true;
+    let isVoiceEnabled = true;
+    let bgmVolume = 0.75;
+    let voiceVolume = 0.85;
+    let currentMusicStyle = 'lofi'; // 'lofi' | 'synthwave' | 'ambient'
+
     let lastBeatIndex = -1;
+    let lastSubBeatIndex = -1;
+    let lastChordBarIndex = -1;
+    let lastSpokenIndex = -1;
+
+    // Musical Scale & Note Frequency Table (Hz)
+    const NOTES = {
+      C2: 65.41, D2: 73.42, E2: 82.41, F2: 87.31, G2: 98.00, A2: 110.00, B2: 123.47,
+      C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
+      C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
+      C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.00
+    };
+
+    // Progression Presets for each Style (Each bar = 4 beats)
+    const STYLE_CHORDS = {
+      lofi: [
+        { name: 'Dm9', bass: NOTES.D2, pad: [NOTES.F3, NOTES.A3, NOTES.C4, NOTES.E4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.D5, NOTES.E5] },
+        { name: 'G13', bass: NOTES.G2, pad: [NOTES.F3, NOTES.B3, NOTES.E4, NOTES.A4], melodyPool: [NOTES.G4, NOTES.B4, NOTES.D5, NOTES.E5] },
+        { name: 'Cmaj9', bass: NOTES.C2, pad: [NOTES.E3, NOTES.G3, NOTES.B3, NOTES.D4], melodyPool: [NOTES.G4, NOTES.B4, NOTES.C5, NOTES.E5] },
+        { name: 'Am9', bass: NOTES.A2, pad: [NOTES.G3, NOTES.C4, NOTES.E4, NOTES.B4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.E5, NOTES.G5] }
+      ],
+      synthwave: [
+        { name: 'Am', bass: NOTES.A2, pad: [NOTES.A3, NOTES.C4, NOTES.E4, NOTES.A4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.E5, NOTES.A5] },
+        { name: 'Fmaj7', bass: NOTES.F2, pad: [NOTES.A3, NOTES.C4, NOTES.E4, NOTES.G4], melodyPool: [NOTES.F4, NOTES.A4, NOTES.C5, NOTES.E5] },
+        { name: 'C', bass: NOTES.C2, pad: [NOTES.G3, NOTES.C4, NOTES.E4, NOTES.G4], melodyPool: [NOTES.G4, NOTES.C5, NOTES.E5, NOTES.G5] },
+        { name: 'G', bass: NOTES.G2, pad: [NOTES.G3, NOTES.B3, NOTES.D4, NOTES.G4], melodyPool: [NOTES.D4, NOTES.G4, NOTES.B4, NOTES.D5] }
+      ],
+      ambient: [
+        { name: 'Fmaj7#11', bass: NOTES.F2, pad: [NOTES.C3, NOTES.E3, NOTES.A3, NOTES.B3, NOTES.E4], melodyPool: [NOTES.E4, NOTES.A4, NOTES.B4, NOTES.E5] },
+        { name: 'Em7', bass: NOTES.E2, pad: [NOTES.B2, NOTES.D3, NOTES.G3, NOTES.B3, NOTES.D4], melodyPool: [NOTES.D4, NOTES.G4, NOTES.B4, NOTES.D5] },
+        { name: 'Dm9', bass: NOTES.D2, pad: [NOTES.A2, NOTES.C3, NOTES.F3, NOTES.A3, NOTES.E4], melodyPool: [NOTES.A4, NOTES.C5, NOTES.E5, NOTES.F5] },
+        { name: 'Cmaj9', bass: NOTES.C2, pad: [NOTES.G2, NOTES.B2, NOTES.E3, NOTES.G3, NOTES.D4], melodyPool: [NOTES.G4, NOTES.B4, NOTES.D5, NOTES.G5] }
+      ]
+    };
 
     function initAudioContext() {
       if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AudioContext();
+
+        // Master Gain
+        masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(isSoundEnabled ? 1.0 : 0.0, audioCtx.currentTime);
+
+        // BGM Gain
+        bgmGain = audioCtx.createGain();
+        bgmGain.gain.setValueAtTime(isBgmEnabled ? bgmVolume : 0.0, audioCtx.currentTime);
+        bgmGain.connect(masterGain);
+
+        // Ambient Space Reverb / Delay Network
+        delayNode = audioCtx.createDelay();
+        delayNode.delayTime.value = 0.28; // 280ms tape echo
+        delayGain = audioCtx.createGain();
+        delayGain.gain.value = 0.22; // Feedback
+        const delayFilter = audioCtx.createBiquadFilter();
+        delayFilter.type = 'lowpass';
+        delayFilter.frequency.value = 1600; // Warm damped echo
+
+        bgmGain.connect(delayNode);
+        delayNode.connect(delayFilter);
+        delayFilter.connect(delayGain);
+        delayGain.connect(delayNode);
+        delayGain.connect(masterGain);
+
+        // Spectrum Analyser Node for Visualizer
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 64;
+        masterGain.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
+        freqData = new Uint8Array(analyserNode.frequencyBinCount);
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
     }
 
-    function playDrumBeat(type) {
-      if (!isSoundEnabled || !audioCtx) return;
+    // Polyphonic Chord Synthesizer with Warm Low-pass Filters
+    function playChordPad(chordObj, duration) {
+      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
       const t = audioCtx.currentTime;
+      const notes = chordObj.pad;
+      
+      notes.forEach((freq, idx) => {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const filter = audioCtx.createBiquadFilter();
+        const noteGain = audioCtx.createGain();
+
+        // Waveforms based on musical style
+        if (currentMusicStyle === 'synthwave') {
+          osc1.type = 'sawtooth';
+          osc2.type = 'square';
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1400, t);
+          filter.Q.value = 1.8;
+        } else if (currentMusicStyle === 'ambient') {
+          osc1.type = 'sine';
+          osc2.type = 'triangle';
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(550, t);
+          filter.Q.value = 1.0;
+        } else {
+          // Lo-Fi Jazz Pad
+          osc1.type = 'triangle';
+          osc2.type = 'sine';
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(750, t);
+          filter.Q.value = 1.2;
+        }
+
+        osc1.frequency.setValueAtTime(freq, t);
+        osc1.detune.setValueAtTime(-4, t); // Chorus detune
+        osc2.frequency.setValueAtTime(freq, t);
+        osc2.detune.setValueAtTime(4, t);
+
+        // Warm Attack-Decay-Sustain-Release Envelope
+        const baseGain = (currentMusicStyle === 'ambient' ? 0.08 : 0.06);
+        noteGain.gain.setValueAtTime(0.0001, t);
+        noteGain.gain.exponentialRampToValueAtTime(baseGain, t + 0.18);
+        noteGain.gain.exponentialRampToValueAtTime(baseGain * 0.7, t + 0.4);
+        noteGain.gain.setValueAtTime(baseGain * 0.7, t + duration);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, t + duration + 0.9);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(noteGain);
+        noteGain.connect(bgmGain);
+
+        osc1.start(t);
+        osc2.start(t);
+        osc1.stop(t + duration + 1.0);
+        osc2.stop(t + duration + 1.0);
+      });
+    }
+
+    // Sub-Bass Synthesizer (55 - 110 Hz Deep Warm Low End)
+    function playBass(freq, duration) {
+      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const oscHarmonic = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+
+      oscHarmonic.type = 'triangle';
+      oscHarmonic.frequency.setValueAtTime(freq * 2, t);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(currentMusicStyle === 'synthwave' ? 240 : 160, t);
+
+      const bassVol = (currentMusicStyle === 'synthwave' ? 0.32 : 0.26);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(bassVol, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(bassVol * 0.75, t + 0.15);
+      gain.gain.setValueAtTime(bassVol * 0.75, t + duration * 0.8);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+      osc.connect(filter);
+      oscHarmonic.connect(filter);
+      filter.connect(gain);
+      gain.connect(bgmGain);
+
+      osc.start(t);
+      oscHarmonic.start(t);
+      osc.stop(t + duration + 0.05);
+      oscHarmonic.stop(t + duration + 0.05);
+    }
+
+    // Melodic Lofi Rhodes & Bell Piano Plucks
+    function playMelodyNote(freq) {
+      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const oscBell = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      if (currentMusicStyle === 'synthwave') {
+        osc.type = 'sawtooth';
+        oscBell.type = 'square';
+        filter.frequency.setValueAtTime(2200, t);
+      } else if (currentMusicStyle === 'ambient') {
+        osc.type = 'sine';
+        oscBell.type = 'triangle';
+        filter.frequency.setValueAtTime(1400, t);
+      } else {
+        // Lo-Fi Electric Piano (Rhodes tone)
+        osc.type = 'triangle';
+        oscBell.type = 'sine';
+        filter.frequency.setValueAtTime(1100, t);
+      }
+
+      osc.frequency.setValueAtTime(freq, t);
+      oscBell.frequency.setValueAtTime(freq * 2, t);
+
+      filter.type = 'lowpass';
+
+      const melGain = 0.09;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(melGain, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + (currentMusicStyle === 'ambient' ? 1.2 : 0.55));
+
+      osc.connect(filter);
+      oscBell.connect(filter);
+      filter.connect(gain);
+      gain.connect(bgmGain);
+
+      osc.start(t);
+      oscBell.start(t);
+      osc.stop(t + 1.3);
+      oscBell.stop(t + 1.3);
+    }
+
+    // Web Audio Drum Synthesizer (Enhanced with Velvet Lofi & Punchy Beats)
+    function playDrumBeat(type) {
+      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
+      const t = audioCtx.currentTime;
+
       if (type === 'kick') {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.frequency.setValueAtTime(120, t);
-        osc.frequency.exponentialRampToValueAtTime(35, t + 0.12);
-        gain.gain.setValueAtTime(0.7, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        const filter = audioCtx.createBiquadFilter();
+
+        if (currentMusicStyle === 'synthwave') {
+          osc.frequency.setValueAtTime(130, t);
+          osc.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(800, t);
+          gain.gain.setValueAtTime(0.5, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        } else if (currentMusicStyle === 'ambient') {
+          // Soft deep sub thud
+          osc.frequency.setValueAtTime(65, t);
+          osc.frequency.exponentialRampToValueAtTime(32, t + 0.25);
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(200, t);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        } else {
+          // Velvet Lo-Fi Kick
+          osc.frequency.setValueAtTime(95, t);
+          osc.frequency.exponentialRampToValueAtTime(38, t + 0.11);
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(380, t); // Filtered warm thump
+          gain.gain.setValueAtTime(0.42, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        }
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(bgmGain);
         osc.start(t);
-        osc.stop(t + 0.2);
+        osc.stop(t + 0.3);
       } else if (type === 'snare') {
-        // Noise buffer for snappy snare
-        const bufferSize = audioCtx.sampleRate * 0.1;
+        if (currentMusicStyle === 'ambient') return; // Không dùng snare trong ambient để giữ sự tĩnh tại
+
+        const bufferSize = audioCtx.sampleRate * 0.12;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        if (currentMusicStyle === 'synthwave') {
+          filter.type = 'bandpass';
+          filter.frequency.value = 2000;
+          filter.Q.value = 1.0;
+          gain.gain.setValueAtTime(0.35, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        } else {
+          // Velvet Warm Lofi Rim / Snare
+          filter.type = 'bandpass';
+          filter.frequency.value = 1350;
+          filter.Q.value = 1.4;
+          gain.gain.setValueAtTime(0.22, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+
+          // Add subtle wooden tap tone
+          const tap = audioCtx.createOscillator();
+          const tapGain = audioCtx.createGain();
+          tap.frequency.setValueAtTime(190, t);
+          tapGain.gain.setValueAtTime(0.12, t);
+          tapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+          tap.connect(tapGain);
+          tapGain.connect(bgmGain);
+          tap.start(t);
+          tap.stop(t + 0.05);
+        }
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(bgmGain);
+        noise.start(t);
+        noise.stop(t + 0.18);
+      } else if (type === 'hihat') {
+        const bufferSize = audioCtx.sampleRate * 0.04;
         const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
@@ -545,38 +911,84 @@
         noise.buffer = buffer;
         const filter = audioCtx.createBiquadFilter();
         filter.type = 'highpass';
-        filter.frequency.value = 1000;
+        filter.frequency.value = (currentMusicStyle === 'ambient' ? 8000 : 6500);
         const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(0.4, t);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.14);
+        const hatGain = (currentMusicStyle === 'ambient' ? 0.03 : 0.06);
+        gain.gain.setValueAtTime(hatGain, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+
         noise.connect(filter);
         filter.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(bgmGain);
         noise.start(t);
-        noise.stop(t + 0.15);
-      } else if (type === 'hihat') {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(8000, t);
-        gain.gain.setValueAtTime(0.12, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(t);
-        osc.stop(t + 0.06);
+        noise.stop(t + 0.04);
       }
     }
 
-    // Web Speech API Voiceover Guide (Vietnamese rhythmic guide)
-    let lastSpokenIndex = -1;
+    // Master Music Engine Coordinator
+    function updateMusicEngine(beat, t) {
+      if (!isSoundEnabled || !isBgmEnabled || !audioCtx) return;
+
+      const chords = STYLE_CHORDS[currentMusicStyle] || STYLE_CHORDS.lofi;
+      const barDuration = (4 * 60) / EPISODES[currentEpisodeIdx].bpm;
+      const beatIndex = Math.floor(beat);
+      const subBeatIndex = Math.floor(beat * 2); // 8th note
+      const barIndex = Math.floor(beat / 4);
+      const barBeat = beatIndex % 4; // 0, 1, 2, 3
+      const currentChord = chords[barIndex % chords.length];
+
+      // 1. New Chord Bar Trigger
+      if (barIndex !== lastChordBarIndex) {
+        lastChordBarIndex = barIndex;
+        playChordPad(currentChord, barDuration);
+        playBass(currentChord.bass, barDuration * 0.85);
+      }
+
+      // 2. Beat Triggers (Drums & Bass Grooves)
+      if (beatIndex !== lastBeatIndex) {
+        lastBeatIndex = beatIndex;
+        if (barBeat === 0) {
+          playDrumBeat('kick');
+        } else if (barBeat === 1) {
+          playDrumBeat('snare');
+        } else if (barBeat === 2) {
+          playDrumBeat('kick');
+          if (currentMusicStyle === 'lofi') {
+            playBass(currentChord.bass * 1.5, 0.4); // Subtle groove bounce
+          }
+        } else if (barBeat === 3) {
+          playDrumBeat('snare');
+        }
+        playDrumBeat('hihat');
+      }
+
+      // 3. Sub-Beat Melodic Arpeggiations (Melody Licks)
+      if (subBeatIndex !== lastSubBeatIndex) {
+        lastSubBeatIndex = subBeatIndex;
+        // On offbeats, add melodic improvisation
+        if (subBeatIndex % 2 === 1) {
+          playDrumBeat('hihat'); // Light swing shaker
+          const pool = currentChord.melodyPool;
+          const seed = Math.sin(t * 12.345 + subBeatIndex) * 10000;
+          const rand = seed - Math.floor(seed);
+          const chance = currentMusicStyle === 'synthwave' ? 0.65 : (currentMusicStyle === 'ambient' ? 0.25 : 0.45);
+          if (rand < chance) {
+            const noteIdx = Math.floor(rand * pool.length * 2) % pool.length;
+            playMelodyNote(pool[noteIdx]);
+          }
+        }
+      }
+    }
+
+    // Web Speech API Voiceover Guide (Controlled with independent toggle & volume)
     function speakVietnameseVerse(text) {
-      if (!isSoundEnabled || !window.speechSynthesis) return;
-      window.speechSynthesis.cancel(); // Dừng câu cũ
+      if (!isSoundEnabled || !isVoiceEnabled || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'vi-VN';
-      utter.rate = 1.08;
-      utter.pitch = 1.05;
+      utter.volume = voiceVolume;
+      utter.rate = 1.05;
+      utter.pitch = 1.02;
       window.speechSynthesis.speak(utter);
     }
 
@@ -592,15 +1004,9 @@
       const beatPhase = beat - beatIndex; // 0..1 pulse
       const kickImpact = Math.pow(Math.max(0, 1 - beatPhase * 2.5), 2); // 1 at beat, quickly decays
 
-      // Sound triggers on new beat
-      if (beatIndex !== lastBeatIndex && isPlaying) {
-        lastBeatIndex = beatIndex;
-        if (beatIndex % 2 === 0) {
-          playDrumBeat('kick');
-        } else {
-          playDrumBeat('snare');
-        }
-        playDrumBeat('hihat');
+      // Master Music Engine Update
+      if (isPlaying) {
+        updateMusicEngine(beat, t);
       }
 
       // 1. Clear & Background Gradient
@@ -624,6 +1030,53 @@
 
       // 5. Film Scanlines & Cinematic Border Vignette
       drawCinematicOverlays(ctx, t);
+
+      // 6. Real-Time Audio Spectrum Neon Equalizer
+      drawAudioSpectrum(ctx, t);
+    }
+
+    // Real-Time Audio Frequency Spectrum Equalizer (HUD Top-Right)
+    function drawAudioSpectrum(c, t) {
+      if (!analyserNode || !freqData) return;
+      analyserNode.getByteFrequencyData(freqData);
+
+      const numBars = 20;
+      const barW = 7;
+      const gap = 3;
+      const totalW = numBars * (barW + gap);
+      const startX = WIDTH - totalW - 40;
+      const startY = 75;
+
+      c.save();
+      c.fillStyle = 'rgba(15, 23, 42, 0.75)';
+      c.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.roundRect(startX - 10, startY - 38, totalW + 20, 48, 8);
+      c.fill();
+      c.stroke();
+
+      for (let i = 0; i < numBars; i++) {
+        const val = freqData[i] || 0;
+        const barH = Math.max(3, (val / 255) * 36);
+        const x = startX + i * (barW + gap);
+        const y = startY - barH + 4;
+
+        const grad = c.createLinearGradient(0, y, 0, startY);
+        if (currentMusicStyle === 'synthwave') {
+          grad.addColorStop(0, '#f43f5e');
+          grad.addColorStop(1, '#a855f7');
+        } else if (currentMusicStyle === 'ambient') {
+          grad.addColorStop(0, '#10b981');
+          grad.addColorStop(1, '#06b6d4');
+        } else {
+          grad.addColorStop(0, '#38bdf8');
+          grad.addColorStop(1, '#0284c7');
+        }
+        c.fillStyle = grad;
+        c.fillRect(x, y, barW, barH);
+      }
+      c.restore();
     }
 
     // Visual Scene 1: Coordinate Transform & Satellite Radar Scan
@@ -1053,15 +1506,66 @@
       lastSpokenIndex = -1;
     }
 
+    function changeMusicStyle(style) {
+      currentMusicStyle = style;
+      lastChordBarIndex = -1;
+      lastBeatIndex = -1;
+      lastSubBeatIndex = -1;
+      initAudioContext();
+    }
+
+    function toggleBgm() {
+      initAudioContext();
+      isBgmEnabled = !isBgmEnabled;
+      const btn = document.getElementById('btnToggleBgm');
+      if (isBgmEnabled) {
+        btn.innerText = '🎵 Nhạc nền: BẬT';
+        btn.style.color = '#38bdf8';
+        if (bgmGain) bgmGain.gain.setValueAtTime(bgmVolume, audioCtx.currentTime);
+      } else {
+        btn.innerText = '🔇 Nhạc nền: TẮT';
+        btn.style.color = '#94a3b8';
+        if (bgmGain) bgmGain.gain.setValueAtTime(0, audioCtx.currentTime);
+      }
+    }
+
+    function setBgmVolume(val) {
+      initAudioContext();
+      bgmVolume = parseFloat(val);
+      if (bgmGain && isBgmEnabled) {
+        bgmGain.gain.setValueAtTime(bgmVolume, audioCtx.currentTime);
+      }
+    }
+
+    function toggleVoice() {
+      isVoiceEnabled = !isVoiceEnabled;
+      const btn = document.getElementById('btnToggleVoice');
+      if (isVoiceEnabled) {
+        btn.innerText = '🗣️ Giọng đọc: BẬT';
+        btn.style.color = '#38bdf8';
+      } else {
+        btn.innerText = '🤐 Giọng đọc: TẮT';
+        btn.style.color = '#94a3b8';
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      }
+    }
+
+    function setVoiceVolume(val) {
+      voiceVolume = parseFloat(val);
+    }
+
     function toggleSound() {
+      initAudioContext();
       isSoundEnabled = !isSoundEnabled;
       const btn = document.getElementById('btnToggleSound');
       if (isSoundEnabled) {
-        btn.innerText = '🔊 Âm Nhạc & Giọng Hát: BẬT';
+        btn.innerText = '🔊 Tổng: BẬT';
         btn.style.color = '#38bdf8';
+        if (masterGain) masterGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
       } else {
-        btn.innerText = '🔇 Âm Nhạc & Giọng Hát: TẮT';
+        btn.innerText = '🔇 Tổng: TẮT';
         btn.style.color = '#94a3b8';
+        if (masterGain) masterGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
         if (window.speechSynthesis) window.speechSynthesis.cancel();
       }
     }

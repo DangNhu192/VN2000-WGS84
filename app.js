@@ -607,6 +607,7 @@ const appNav = window.appNav = {
             drawer.style.setProperty('transform', 'translateX(0)', 'important');
             drawer.classList.add('active');
         }
+        document.body.classList.add('drawer-open');
         appNav.updateTreeNavState();
     },
 
@@ -625,6 +626,7 @@ const appNav = window.appNav = {
             backdrop.classList.remove('active');
             backdrop.style.setProperty('display', 'none', 'important');
         }
+        document.body.classList.remove('drawer-open');
     },
 
     setActiveMenuItem(itemId) {
