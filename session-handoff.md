@@ -1,12 +1,20 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Chuyển Đổi Banner Treo Góc Trên Màn Hình & Bảo Vệ Cấp Quyền GPS
+## Phiên hiện tại — 2026-10-21: Cài Đặt Skill pdoom-video & Studio Video Hướng Dẫn Âm Nhạc Song Ngữ
 - **Đã hoàn tất**:
-  1. **Chuyển đổi thành Thông Báo Treo Góc Trên Màn Hình & Tối Giản Văn Phong (Tự tin, Sang trọng)**:
-     - Gỡ bỏ hoàn toàn backdrop mờ đen che kín toàn màn hình, chuyển thành Floating Toast Card treo góc trên bên phải (`top: 12px; right: 16px`), giao diện ứng dụng bên dưới nhìn thấy rõ ràng 100%.
-     - Tối giản văn phong, cực kỳ ít chữ: Tiêu đề `Mời Tác Giả Ly Cà Phê ☕` - Thông điệp duy nhất: *"Ứng dụng phi lợi nhuận. Tùy tâm tiếp sức để cùng phát triển!"*.
-     - Giữ nguyên cơ chế đếm ngược 20s (`COUNTDOWN_SECONDS: 20`) mở 1 lần / ngày (`checkDailyTrigger`), mở khóa xanh ngọc khi hết giờ, và mở thủ công tự do từ menu Drawer.
-     - Bộ test `tests/donate_modal_30s.test.js` PASS 6/6 test. Toàn bộ dự án 229/229 test PASS.
+  1. **Cài đặt chuẩn hóa Skill `pdoom-video` (mexicat/pdoom-video)**:
+     - Tạo tài liệu SKILL.md tại `C:\Users\User\.gemini\config\skills\pdoom-video\SKILL.md` và `.agents/skills/pdoom-video/SKILL.md`.
+     - Quy chuẩn kiến trúc: Deterministic Timeline (`render(t)`), Word-Synced Karaoke Typography (Song ngữ Anh - Việt), Web Audio Drum Beat Synthesizer, Web Speech Voice Guide và Export Pipeline (MediaRecorder + SRT + CapCut).
+  2. **Bộ 3 Video Hướng Dẫn Âm Nhạc Song Ngữ (Code-Rendered Full HD 60fps)**:
+     - **Tập 1**: *"Vè Chuyển Đổi VN-2000 & Bắt Sóng GPS"* (128 BPM - Preset `tech_cyber`).
+     - **Tập 2**: *"Khúc Ca Mốc Dự Án & Sổ Đo Thực Địa"* (120 BPM - Preset `bold_impact`).
+     - **Tập 3**: *"Giai Điệu MiniCAD & Thửa Đất Khống Chế"* (132 BPM - Preset `kinetic_hype`).
+     - Lời hát tiếng Việt có vần điệu bắt tai kết hợp phụ đề tiếng Anh kỹ thuật dịch nghĩa chuẩn xác.
+  3. **Studio Player `tutorials-pdoom.html` & Tích Hợp Hệ Thống**:
+     - Player Canvas 1920×1080 mượt mà 60fps, hỗ trợ ghi hình video WebM/MP4 trực tiếp và tải phụ đề SRT song ngữ.
+     - Liên kết mục 5.7 từ Menu Drawer `index.html`.
+     - 234 / 234 bài test PASS 100% (`tests/pdoom_video_engine.test.js`).
+     - Đã xác thực trực quan qua Chrome DevTools MCP trên cả 3 tập video.
   2. **Khắc phục lỗi chặn lớp phủ / chú giải (Tapjacking Protection) của Android**:
      - Tích hợp Lazy Permissions Check: chỉ kích hoạt GPS khi đã cấp quyền hoặc khi người dùng chạm ngón tay có chủ đích (`User Gesture`), không tự bung popup đột ngột khi tải trang.
      - Tích hợp Modal `#modalGpsPermissionGuide` giải thích nguyên nhân và hướng dẫn xử lý bong bóng chat Messenger/Zalo hoặc cấp quyền trực tiếp trong Chrome.

@@ -9,6 +9,31 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-21] Cài Đặt Skill pdoom-video & Xây Dựng Studio Video Hướng Dẫn Âm Nhạc Song Ngữ (Code-Rendered)
+- **Yêu cầu**: Cài đặt repo `mexicat/pdoom-video` thành 1 skill, sau đó sử dụng để tạo các video hướng dẫn sử dụng app có chất lượng cao, song ngữ Anh - Việt để đọc, và tiếng Việt là ngôn ngữ hát/hướng dẫn.
+- **Triển khai kỹ thuật toàn diện**:
+  1. **Cài đặt Skill `pdoom-video`**:
+     - Tạo tài liệu quy chuẩn tại `C:\Users\User\.gemini\config\skills\pdoom-video\SKILL.md` và `.agents/skills/pdoom-video/SKILL.md`.
+     - Quy chuẩn hóa 5 trụ cột: Deterministic Timeline (`render(t)`), Word-Synced Karaoke Typography, Scene Module System, Web Audio Drum Synthesizer + Web Speech Voice, và Export Pipeline (MediaRecorder + CapCut/SRT).
+  2. **Bộ 3 Video Hướng Dẫn Code-Rendered (1080p60)**:
+     - **Tập 1**: *"Vè Chuyển Đổi VN-2000 & Bắt Sóng GPS"* (128 BPM - Preset `tech_cyber`).
+     - **Tập 2**: *"Khúc Ca Mốc Dự Án & Sổ Đo Thực Địa"* (120 BPM - Preset `bold_impact`).
+     - **Tập 3**: *"Giai Điệu MiniCAD & Thửa Đất Khống Chế"* (132 BPM - Preset `kinetic_hype`).
+  3. **Word-Synced Karaoke Typography Song Ngữ (Anh - Việt)**:
+     - Dòng 1: Tiếng Việt hát/hướng dẫn theo nhịp phách, từ đang hát phóng to và phát quang rực rỡ màu vàng hổ phách (`#f59e0b`).
+     - Dòng 2: Tiếng Anh phụ đề kỹ thuật quốc tế dịch nghĩa chuẩn xác bên dưới.
+  4. **Studio Player Chuyên Biệt `tutorials-pdoom.html`**:
+     - Canvas Full HD 1920×1080 render 60fps mượt mà bằng toán học thuần túy.
+     - Bộ máy âm thanh Web Audio đánh trống Kick/Snare/Hi-hat theo BPM thực tế.
+     - Giọng đọc/hát tiếng Việt qua Web Speech API đồng bộ từng câu hát.
+     - Phím tắt chuẩn pdoom-video: `Space` (Play/Pause), `←/→` (Seek ±1s/5s), `,/.` (Frame step), `L` (Loop), `H` (Toggle HUD).
+     - Hỗ trợ xuất video WebM/MP4 trực tiếp từ Canvas qua `MediaRecorder` và tải trọn gói phụ đề `.srt` song ngữ + CapCut typography `.json`/`.svg`.
+  5. **Tích hợp & Kiểm thử**:
+     - Thêm mục `5.7 Video Hướng Dẫn Âm Nhạc Song Ngữ` trong Menu Drawer của `index.html`.
+     - Thêm bộ test `tests/pdoom_video_engine.test.js` kiểm tra 5/5 kịch bản thành công.
+     - Toàn bộ **234 / 234 bài test PASS 100%**.
+     - Đã xác thực trực quan qua Chrome DevTools MCP trên cả 3 tập.
+
 ### [2026-10-21] Chuyển Đổi Thành Thông Báo Treo Góc Trên Màn Hình & Tối Giản Văn Phong (Tự Tin, Sang Trọng)
 - **Đáp ứng phản hồi**:
   1. **Không chiếm màn hình**: Chuyển đổi từ modal overlay che kín giữa trang sang **Thông báo treo góc trên màn hình (Top-Right Floating Toast Card)**:

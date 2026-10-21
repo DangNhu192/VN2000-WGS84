@@ -1,0 +1,39 @@
+1
+00:00:01,000 --> 00:00:04,500
+Kỹ sư trắc địa ra khơi, GPS cầm tay chẳng ngại nắng trời!
+Survey engineers heading to the field with GPS in hand!
+
+2
+00:00:04,800 --> 00:00:08,200
+WGS-84 ta chuyển đổi, sang VN-2000 chính xác tức thời!
+Effortlessly transforming WGS-84 to VN-2000 in real-time!
+
+3
+00:00:08,500 --> 00:00:12,000
+Đồng Tháp Mười, kinh tuyến một lẻ năm độ ba mươi,
+Selecting local central meridian (e.g. Dong Thap 105°00'),
+
+4
+00:00:12,300 --> 00:00:15,800
+Chạm tay chọn tỉnh, hệ số kinh tuyến cập nhật liền tay!
+The projection parameters auto-update instantly!
+
+5
+00:00:16,000 --> 00:00:19,500
+Dán nhanh danh sách, đảo trục X Y chống lệch trăm cây,
+Paste raw coordinate pairs, smart auto-detects and swaps X-Y,
+
+6
+00:00:19,800 --> 00:00:23,200
+Một giây tính toán, sai số chuẩn xác đến từng mi-li!
+Eliminating offset errors within millimeter precision in a second!
+
+7
+00:00:23,500 --> 00:00:27,500
+Bản đồ mở lối, chấm điểm thực địa rõ ràng trên mây,
+Open live map preview, pinpoint benchmarks with high-contrast HUD!
+
+8
+00:00:27,800 --> 00:00:32,000
+VN2000 Pro đồng hành, công trình vươn cao rạng rỡ từng ngày!
+VN2000 PRO powers your daily survey missions with confidence!

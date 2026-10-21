@@ -1,0 +1,32 @@
+{
+  "schema": "ags.capcut.typography.v2",
+  "preset_key": "kinetic_hype",
+  "preset_name": "Kinetic Hype & Sports/Business",
+  "canvas": {
+    "width": 1080,
+    "height": 1350,
+    "aspect_ratio": "1080:1350"
+  },
+  "typography": {
+    "headline_font_file": "BarlowCondensed-BlackItalic.ttf",
+    "body_font_file": "CapCutSansText-Bold.otf",
+    "fallback_stack": "Bricolage Grotesque, Be Vietnam Pro, Plus Jakarta Sans, sans-serif",
+    "line_height": 1.28,
+    "letter_spacing_em": 0.02,
+    "vietnamese_diacritic_safe": true,
+    "unicode_coverage": "U+0102–U+1EF9 (134/134)"
+  },
+  "styling": {
+    "treatment": "Condensed italic punch + crisp dark stroke",
+    "scrim_bg": "rgba(14, 17, 22, 0.72)",
+    "badge_bg": "#10B981",
+    "headline_color": "#FFFFFF",
+    "subtitle_color": "#E2E8F0",
+    "drop_shadow": "0px 3px 8px rgba(0, 0, 0, 0.75)"
+  },
+  "copy": {
+    "badge": "MINICAD & BÙ TRẠM ĐO",
+    "title": "MINICAD & ĐO THỰC ĐỊA",
+    "subtitle": "Vẽ thửa đất, tính diện tích tức thì và bù sai số thực địa"
+  }
+}
