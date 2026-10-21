@@ -543,10 +543,22 @@ body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch !important;
   scrollbar-width: thin !important;
-  display: flex !important;
   flex-wrap: nowrap !important;
   gap: 6px !important;
   padding: 4px 6px 6px 6px !important;
+}
+
+#mapCadToolbar .cad-collapsible-row:not(.active) {
+  display: none !important;
+}
+
+#mapCadToolbar .cad-collapsible-row.active {
+  display: flex !important;
+}
+
+#mapCadToolbar.collapsed .cad-collapsible-row,
+#mapCadToolbar.collapsed .cad-collapsible-row.active {
+  display: none !important;
 }
 
 #mapCadToolbar .cad-tab-btn {

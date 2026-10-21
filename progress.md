@@ -9,7 +9,31 @@
 
 ## Nhật ký tiến độ gần nhất
 
-### [2026-10-21] Tinh Chỉnh Giao Diện & Câu Chữ Video Hướng Dẫn Chuẩn Coder Chuyên Nghiệp
+### [2026-10-21] Sửa Lỗi Thanh Công Cụ MiniCAD & Nâng Cấp Toàn Diện Studio Video Hướng Dẫn
+- **Yêu cầu từ người dùng**:
+  1. `Thanh công cụ của MiniCAD bị show hết mà không thu theo từng cụm riêng (chiếm hết màn hình)`
+  2. `Về các video:`
+     - `phần hướng dẫn bằng giọng nói quá đơn giản, cần chi tiết hơn`
+     - `phần hiển thị giao diện hướng dẫn cần hướng dẫn trên màn hình có kích thước lớn/nhỏ.`
+     - `mô tả và hình ảnh của video chưa khớp với nhau. bên cạnh đó trỏ chuột chưa được đặt đúng chức năng, các bước được mô tả.`
+     - `các chức năng nâng cao như Minicad, đào đắp,.... cần được hướng dẫn chi tiết đến từng công cụ của MiniCAD, đào đắp,...`
+- **Triển khai kỹ thuật toàn diện**:
+  1. **Sửa dứt điểm lỗi thanh công cụ MiniCAD bị bung cùng lúc cả 5 cụm panel ([ui-polish.css](file:///d:/Nhu/APP/VN2000-PWA/ui-polish.css))**:
+     - *Nguyên nhân gốc rễ (Root Cause)*: Rule `#mapCadToolbar .cad-collapsible-row { display: flex !important; }` đã vô hiệu hóa thuộc tính `panel.style.display = 'none'` trong JavaScript, khiến cả 5 cụm công cụ (Vẽ, Sửa, Nhãn, Snap, File) cùng hiển thị đồng thời chiếm trọn màn hình.
+     - *Khắc phục*: Chuyển thành `#mapCadToolbar .cad-collapsible-row:not(.active) { display: none !important; }` và `#mapCadToolbar .cad-collapsible-row.active { display: flex !important; }`. Chỉ mở duy nhất 1 hàng công cụ của tab đang chọn, giải phóng 100% không gian bản đồ thực địa.
+  2. **Nâng cấp Studio Video Hướng Dẫn hỗ trợ Dual-Mode Màn hình lớn & Màn hình nhỏ ([tutorials-pdoom.html](file:///d:/Nhu/APP/VN2000-PWA/tutorials-pdoom.html))**:
+     - Bổ sung nút chuyển đổi tức thì giữa:
+       + `📱 Điện thoại (Mobile)`: Giả lập Smartphone 9:16 viền Titanium, touch ripple phát quang cyan.
+       + `💻 Màn hình lớn (Desktop / Tablet)`: Khung Laptop/Monitor 16:10 sang trọng, thanh Safari/macOS có 3 nút điều khiển, URL `https://vn2000.pro — Màn hình chuyên dụng kỹ sư`, con trỏ chuột máy tính (Sharp Computer Mouse Pointer Arrow) sắc nét có hiệu ứng click ripple.
+  3. **Tách & Nâng cấp thành 8 Video Chuyên Biệt, Chi Tiết Từng Công Cụ Nâng Cao**:
+     - **Video 6: Chi Tiết Bộ Công Cụ MiniCAD Thực Địa** (4 bước): Tab Vẽ (Đa giác [P], Tuyến [L], Nhà [REC], Bán kính [C], Polar [D]); Tab Snap (Bắt mốc [F3], Bắt cạnh ranh [B] chống hở thửa đất, Ortho [F8] vuông góc); Tab Sửa & Nhãn ([V, RO, O, DIM, Tem]); Bảng kê diện tích m² & Xuất bản vẽ AutoCAD (.dwg) chuẩn TT 25/2014/TT-BTNMT.
+     - **Video 7: Trắc Dọc Địa Hình & Khối Lượng Đào Đắp TCVN 4447:2012** (4 bước): Nạp cọc mốc tuyến và cao độ tự nhiên $Z_{TN}$; Thiết kế đường đỏ $Z_0$, độ dốc dọc $i$ (%) và mái dốc taluy $m$; Mặt cắt trắc dọc TCVN 9436, khối lượng $V_{đào}, V_{đắp}$ ($m^3$); Xuất bản vẽ trắc dọc AutoCAD (.dwg) và bảng tính CSV.
+  4. **Khớp Chuẩn Xác 100% Giọng Đọc Chuyên Nghiệp, Hình Ảnh Thực Tế & Tọa Độ Con Trỏ Chuột**:
+     - Chụp bổ sung bộ ảnh màn hình Desktop và Mobile độ nét cao bằng Chrome DevTools MCP (`fn6_step1_draw.png`, `fn6_step2_snap.png`, `fn6_step3_export.png`, `fn7_step1_profile_input.png`, `fn7_step2_profile_design.png`, `fn7_step3_profile_chart.png`, `desktop_fn1_transform.png`, `desktop_fn2_project.png`, `desktop_fn4_geoid.png`, `desktop_fn5_batch.png`, `desktop_fn6_cad.png`, `desktop_fn7_profile.png`).
+     - Tọa độ `cursor` và `focus` được căn chỉnh chính xác đến từng nút bấm trên giao diện.
+     - Thuyết minh Tiếng Việt chi tiết nghiệp vụ sâu sắc, kèm phụ đề tiếng Anh và mẹo thực địa chuyên gia.
+  5. **Kiểm thử hồi quy tự động**:
+     - `node --test tests/*.test.js`: **237 / 237 bài test PASS 100%**.
 - **Yêu cầu**: `" Video Hướng Dẫn Thao Tác Chức Năng (Quay chụp màn hình • Giọng đọc & Nhạc nhẹ)." sao mà AI quá vậy. bạn hãy sửa lỗi để thuận tự nhiên như một coder chuyên nghiệp gọn gàng chứ.`
 - **Triển khai kỹ thuật**:
   1. **Loại bỏ văn phong giải thích rườm rà dạng AI prompt**:

@@ -248,6 +248,40 @@
       accent-color: #38bdf8;
       cursor: pointer;
     }
+    /* Device Mode Switcher (Mobile vs Desktop Screen Size) */
+    .device-switcher-group {
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .btn-device-toggle {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .btn-device-toggle:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .btn-device-toggle.active {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border-color: #38bdf8;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    }
     /* Function Cards Selector */
     .section-title {
       font-size: 13.5px;
@@ -392,6 +426,16 @@
           <button class="btn-ctrl" onclick="prevStep()" title="Bước trước">⏮ Bước trước</button>
           <button class="btn-ctrl" onclick="nextStep()" title="Bước sau">Bước sau ⏭</button>
           <button class="btn-ctrl" onclick="restartVideo()" title="Phát lại từ đầu">🔄 Phát lại</button>
+
+          <!-- Device Switcher: Mobile vs Large/Desktop Screen -->
+          <div class="device-switcher-group" title="Chuyển chế độ xem giao diện: Màn hình điện thoại hoặc Màn hình lớn máy tính bảng">
+            <button type="button" class="btn-device-toggle active" id="btnDeviceMobile" onclick="setDeviceMode('mobile')">
+              📱 Điện thoại
+            </button>
+            <button type="button" class="btn-device-toggle" id="btnDeviceDesktop" onclick="setDeviceMode('desktop')">
+              💻 Màn hình lớn
+            </button>
+          </div>
         </div>
 
         <div class="audio-engine-bar">
@@ -437,45 +481,51 @@
       {
         id: "ep1",
         number: 1,
-        title: "Chuyển Đổi Tọa Độ Đơn Điểm & Xem Bản Đồ",
+        title: "Chuyển Đổi Tọa Độ Đơn Điểm & Tra Cứu Vị Trí Vệ Tinh",
         short: "1. Chuyển Đổi Đơn Điểm",
         icon: "🔄",
         badge: "Cốt lõi",
-        summary: "Hướng dẫn chọn tỉnh kinh tuyến trục, nhập tọa độ VN-2000 hoặc WGS-84 và xem mốc trên bản đồ vệ tinh.",
+        summary: "Hướng dẫn chọn tỉnh kinh tuyến trục, nhập tọa độ VN-2000 hoặc WGS-84 và tra cứu mốc trên bản đồ vệ tinh.",
         steps: [
           {
             screen: "assets/tutorial_screens/fn1_step1_form.png",
-            title: "BƯỚC 1: CHỌN TỈNH & KINH TUYẾN TRỤC",
-            text: "Mở phân hệ Chuyển đổi tọa độ. Chọn Tỉnh hoặc Thành phố thi công để hệ thống tự động thiết lập kinh tuyến trục và múi chiếu 3 độ hoặc 6 độ chuẩn xác theo quy chuẩn Bộ Tài nguyên và Môi trường.",
-            en: "Select Province/City to automatically configure central meridian and projection zone (3° or 6°).",
-            tip: "💡 Mẹo: Hệ thống tự động lưu tỉnh đã chọn cho mọi lần mở sau.",
-            focus: { x: 50, y: 35, w: 86, h: 14, label: "Chọn Tỉnh / KTT" },
-            duration: 6
+            desktopScreen: "assets/tutorial_screens/desktop_fn1_transform.png",
+            title: "BƯỚC 1: CHỌN TỈNH & KINH TUYẾN TRỤC (KTT)",
+            text: "Mở phân hệ Chuyển đổi tọa độ. Tại ô chọn tỉnh thành, hãy chọn đúng địa phương bạn đang thi công. Hệ thống sẽ tự động cấu hình kinh tuyến trục và múi chiếu 3 độ hoặc 6 độ chuẩn xác theo quy chuẩn của Bộ Tài nguyên và Môi trường. Kinh tuyến trục này sẽ được lưu cố định cho các lần đo tiếp theo.",
+            en: "Select project Province to automatically configure local central meridian and projection zone (3° or 6°) compliant with MONRE standards.",
+            tip: "💡 Quy chuẩn: Múi 3° dùng cho bản đồ địa chính tỷ lệ lớn (1:500 - 1:2.000); Múi 6° dùng cho bản đồ địa hình tỷ lệ nhỏ.",
+            focus: { x: 50, y: 35, w: 86, h: 14, label: "1. Chọn Tỉnh / KTT Cục Bộ" },
+            cursor: { x: 50, y: 35 },
+            duration: 9
           },
           {
             screen: "assets/tutorial_screens/fn1_step2_input.png",
-            title: "BƯỚC 2: NHẬP TỌA ĐỘ & BẤM CHUYỂN ĐỔI",
-            text: "Nhập cặp tọa độ X và Y theo hệ VN-2000 hoặc dán nhanh từ bộ nhớ tạm Clipboard. Sau đó nhấn nút Chuyển đổi để hệ thống tính toán tức thì sang tọa độ trắc địa WGS-84.",
-            en: "Enter VN-2000 coordinates (X, Y) or paste from clipboard, then click Convert.",
-            tip: "💡 Mẹo: Hỗ trợ tự phát hiện và đảo trục nếu bạn dán ngược thứ tự Y-X.",
-            focus: { x: 50, y: 55, w: 86, h: 20, label: "Nhập X, Y & Chuyển đổi" },
-            duration: 7
+            desktopScreen: "assets/tutorial_screens/desktop_fn1_transform.png",
+            title: "BƯỚC 2: NHẬP TỌA ĐỘ & TÍNH TOÁN CHUYỂN ĐỔI",
+            text: "Nhập cặp tọa độ X và Y theo hệ quy chiếu VN-2000 hoặc dán nhanh từ bộ nhớ tạm Clipboard. Thuật toán thông minh của ứng dụng sẽ tự động phân tích định dạng, tự phát hiện và đảo trục nếu bạn dán ngược thứ tự Y trước X. Sau đó nhấn nút Chuyển đổi để tính toán tức thì sang tọa độ trắc địa WGS-84 với độ chính xác cao.",
+            en: "Enter VN-2000 (X, Y) coordinates or paste from clipboard; smart auto-detection prevents axis inversion and computes WGS-84 coordinates.",
+            tip: "💡 Chống lệch: VN-2000 quy ước X là trục Bắc (7 chữ số: >1.000.000m), Y là trục Đông (6 chữ số: >500.000m).",
+            focus: { x: 50, y: 55, w: 86, h: 20, label: "2. Nhập X, Y & Bấm Chuyển đổi" },
+            cursor: { x: 50, y: 62 },
+            duration: 10
           },
           {
             screen: "assets/tutorial_screens/fn1_step3_map.png",
-            title: "BƯỚC 3: XEM MỐC TRÊN BẢN ĐỒ VỆ TINH",
-            text: "Xem kết quả chi tiết trong bảng nổi. Bạn có thể nhấn Xem bản đồ để kiểm tra vị trí thực tế của mốc trên nền ảnh vệ tinh Google Earth có độ phân giải cao.",
-            en: "Inspect computed coordinates and view marker location on high-resolution satellite map.",
-            tip: "💡 Mẹo: Chạm vào thanh kéo để thu gọn hoặc mở rộng bảng tính.",
-            focus: { x: 50, y: 72, w: 90, h: 25, label: "Bảng kết quả & Bản đồ" },
-            duration: 7
+            desktopScreen: "assets/tutorial_screens/desktop_fn1_transform.png",
+            title: "BƯỚC 3: KIỂM TRA KẾT QUẢ & XEM VỊ TRÍ VỆ TINH",
+            text: "Xem bảng kết quả nổi chi tiết. Bạn có thể nhấn nút Xem bản đồ để định vị trực quan vị trí mốc trên nền ảnh vệ tinh Google Earth độ phân giải cao. Chạm vào thanh kéo của bảng kết quả để vuốt trượt thu gọn hoặc mở rộng toàn màn hình tùy ý.",
+            en: "Inspect computed coordinates on draggable bottom sheet and view marker location on high-resolution Google Earth satellite imagery.",
+            tip: "💡 Thao tác: Chạm 1 chạm vào thanh kéo đỉnh bảng để thu gọn nhanh thành thẻ mini (peek) giải phóng bản đồ.",
+            focus: { x: 50, y: 72, w: 90, h: 25, label: "3. Bảng kết quả & Nút Xem bản đồ" },
+            cursor: { x: 72, y: 75 },
+            duration: 9
           }
         ]
       },
       {
         id: "ep2",
         number: 2,
-        title: "Chuyển Đổi Tọa Độ Hàng Loạt (Excel / CSV)",
+        title: "Chuyển Đổi Hàng Loạt Từ Bảng Excel & Tự Đảo Trục Chống Lệch",
         short: "2. Chuyển Đổi Hàng Loạt",
         icon: "📊",
         badge: "Tự động hóa",
@@ -483,37 +533,43 @@
         steps: [
           {
             screen: "assets/tutorial_screens/fn2_step1_batch_tab.png",
-            title: "BƯỚC 1: CHUYỂN SANG THẺ HÀNG LOẠT",
-            text: "Tại màn hình Chuyển đổi tọa độ, chạm vào thẻ Chuyển đổi hàng loạt để mở không gian nhập liệu dạng bảng dành cho các dự án nhiều mốc khống chế.",
-            en: "Switch to Batch Conversion tab for processing multi-point project coordinate tables.",
-            tip: "💡 Mẹo: Không giới hạn số lượng điểm trong một lần chuyển đổi.",
+            desktopScreen: "assets/tutorial_screens/desktop_fn5_batch.png",
+            title: "BƯỚC 1: CHUYỂN SANG THẺ CHUYỂN ĐỔI HÀNG LOẠT",
+            text: "Tại màn hình Chuyển đổi tọa độ, chạm vào thẻ Chuyển đổi hàng loạt. Không gian nhập liệu dạng lưới mở ra, cho phép bạn xử lý cùng lúc hàng chục hoặc hàng trăm điểm mốc của dự án đo đạc một cách nhanh chóng mà không cần nhập thủ công từng điểm.",
+            en: "Switch to Batch Conversion tab for bulk processing of project survey benchmarks.",
+            tip: "💡 Quy mô: Hỗ trợ xử lý mượt mà danh sách lên đến hàng nghìn mốc trong một thao tác.",
             focus: { x: 50, y: 22, w: 85, h: 10, label: "Thẻ Chuyển đổi Hàng loạt" },
-            duration: 6
+            cursor: { x: 70, y: 22 },
+            duration: 8
           },
           {
             screen: "assets/tutorial_screens/fn2_step2_batch_data.png",
-            title: "BƯỚC 2: DÁN DỮ LIỆU TỪ EXCEL & CHUYỂN ĐỔI",
-            text: "Sao chép các cột Tên mốc, X, Y từ bảng tính Excel và dán trực tiếp vào khung. Thuật toán thông minh sẽ tự động nhận diện thứ tự cột, đảo trục chống lệch và tính toán hàng loạt chỉ sau 1 giây.",
-            en: "Paste table columns directly from Excel; smart auto-detection handles column order and conversion.",
-            tip: "💡 Mẹo: Hỗ trợ dấu phẩy số học Việt Nam và phân cách Tab Excel.",
-            focus: { x: 50, y: 45, w: 88, h: 32, label: "Dán bảng tọa độ & Tính toán" },
-            duration: 7
+            desktopScreen: "assets/tutorial_screens/desktop_fn5_batch.png",
+            title: "BƯỚC 2: DÁN BẢNG TỌA ĐỘ EXCEL & NHẬN DIỆN CỘT TỰ ĐỘNG",
+            text: "Sao chép các cột Tên mốc, X và Y từ file Excel rồi dán trực tiếp vào khung dữ liệu. Ứng dụng tự động nhận diện phân cách Tab, dấu phẩy thập phân Việt Nam và phân tích độ lớn tọa độ để hoán đổi đúng vị trí trục X Bắc và Y Đông, ngăn chặn triệt để nguy cơ điểm bị văng lệch hàng trăm kilomet.",
+            en: "Paste coordinates table directly from Excel; smart auto-parser detects Vietnamese decimals, separators, and axis order.",
+            tip: "💡 Dữ liệu: Hỗ trợ cả định dạng chỉ có 2 cột số (tự sinh tên M1, M2...) hoặc đầy đủ 3 cột Tên, X, Y.",
+            focus: { x: 50, y: 45, w: 88, h: 32, label: "Khung dán bảng tọa độ & Nút Tính toán" },
+            cursor: { x: 50, y: 58 },
+            duration: 10
           },
           {
             screen: "assets/tutorial_screens/fn5_step2_export_modal.png",
-            title: "BƯỚC 3: XUẤT KẾT QUẢ RA FILE BÁO CÁO",
-            text: "Sau khi chuyển đổi thành công, bạn có thể xuất toàn bộ danh sách sang file Excel, bản vẽ CAD DXF hoặc file KML để nạp vào Google Earth phục vụ công tác báo cáo.",
-            en: "Export result coordinates directly to Excel, AutoCAD DXF, or Google Earth KML.",
-            tip: "💡 Mẹo: Có thể gửi trực tiếp file qua Zalo hoặc Gmail.",
-            focus: { x: 50, y: 50, w: 90, h: 50, label: "Xuất file Excel / DXF / KML" },
-            duration: 6
+            desktopScreen: "assets/tutorial_screens/desktop_fn5_batch.png",
+            title: "BƯỚC 3: KIỂM TRA BẢNG KẾT QUẢ & XUẤT FILE BÁO CÁO",
+            text: "Sau khi tính toán xong, toàn bộ kết quả chuyển đổi được hiển thị trong bảng dữ liệu rõ ràng. Bạn có thể nhấn nút Xuất dữ liệu để tải file bảng tính Excel, bản vẽ AutoCAD DWG hoặc file KML mở trên Google Earth để lập báo cáo nghiệm thu.",
+            en: "Inspect converted table and export to Excel workbook, AutoCAD DWG drawing, or Google Earth KML.",
+            tip: "💡 Báo cáo: File xuất có đầy đủ thông tin kinh tuyến trục, múi chiếu và công thức sai số chuyển đổi.",
+            focus: { x: 50, y: 50, w: 90, h: 50, label: "Hộp thoại Xuất file Excel / DWG / KML" },
+            cursor: { x: 50, y: 45 },
+            duration: 9
           }
         ]
       },
       {
         id: "ep3",
         number: 3,
-        title: "Bản Đồ Trắc Địa & Định Vị GPS Thực Địa",
+        title: "Bản Đồ Khảo Sát Thực Địa & HUD Quan Trắc Vệ Tinh",
         short: "3. Bản Đồ & Live GPS",
         icon: "🗺️",
         badge: "Thực địa",
@@ -521,28 +577,32 @@
         steps: [
           {
             screen: "assets/tutorial_screens/fn3_step1_gps.png",
-            title: "BƯỚC 1: KÍCH HOẠT ĐỊNH VỊ GPS TRẮC ĐỊA",
-            text: "Chạm vào biểu tượng Bản Đồ Trắc Địa trên thanh điều hướng. Cho phép quyền truy cập vị trí để kích hoạt bảng hiển thị Live HUD theo dõi liên tục tọa độ VN-2000 và WGS-84.",
-            en: "Activate Field Survey Map and allow location access for live geodetic coordinate HUD.",
-            tip: "💡 Mẹo: Chạm nút Chế độ Thực địa (⚡) để tăng độ tương phản dưới ánh nắng gắt.",
+            desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
+            title: "BƯỚC 1: KÍCH HOẠT LIVE HUD ĐỊNH VỊ VỆ TINH THỰC ĐỊA",
+            text: "Chạm vào biểu tượng Bản Đồ Trắc Địa trên thanh điều hướng. Cấp quyền vị trí để kích hoạt bảng hiển thị Live HUD. Hệ thống sẽ liên tục tính toán tọa độ thực tế của bạn theo cả hai hệ quy chiếu VN-2000 và WGS-84 theo thời gian thực.",
+            en: "Activate Field Survey Map and enable location access for real-time dual geodetic coordinate HUD.",
+            tip: "💡 Thực địa: Bật chế độ Thực địa (icon tia sét ⚡ trên thanh công cụ) để giao diện chuyển sang tương phản cao chống lóa nắng.",
             focus: { x: 50, y: 25, w: 90, h: 28, label: "Bảng Live HUD Tọa độ thực địa" },
-            duration: 7
+            cursor: { x: 50, y: 22 },
+            duration: 9
           },
           {
             screen: "assets/tutorial_screens/fn3_step1_gps.png",
-            title: "BƯỚC 2: KIỂM TRA SAI SỐ & LƯU TỌA ĐỘ MỐC",
-            text: "Theo dõi chỉ số sai số vệ tinh để đảm bảo độ chính xác. Khi tín hiệu ổn định, nhấn nút Lưu mốc hoặc Sao chép nhanh để ghi nhận tọa độ thực địa vào sổ đo công trình.",
-            en: "Monitor GPS precision metrics and click Save Point to record survey measurements.",
-            tip: "💡 Mẹo: Chạm vào bản đồ để chuyển đổi các lớp ảnh vệ tinh và bản đồ giao thông.",
-            focus: { x: 50, y: 65, w: 90, h: 25, label: "Lưu mốc & Sao chép nhanh" },
-            duration: 7
+            desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
+            title: "BƯỚC 2: KIỂM SOÁT SAI SỐ VỆ TINH & CHẤM LẤY TỌA ĐỘ MỐC",
+            text: "Quan sát chỉ số sai số mét của GPS trên bảng HUD để đảm bảo vệ tinh đã ổn định dưới năm mét. Chạm vào bản đồ hoặc nhấn nút Lưu mốc để ghi nhận điểm đo trực tiếp vào sổ đo dự án phục vụ công tác khảo sát hiện trường.",
+            en: "Monitor satellite precision metrics and tap map to capture field benchmark coordinates directly into survey book.",
+            tip: "💡 Khuyến cáo: GPS điện thoại có sai số từ 3 đến 10 mét, dùng cho công tác khảo sát sơ bộ và tìm mốc thực địa.",
+            focus: { x: 50, y: 65, w: 90, h: 25, label: "Lưu mốc thực địa & Sao chép nhanh" },
+            cursor: { x: 50, y: 78 },
+            duration: 9
           }
         ]
       },
       {
         id: "ep4",
         number: 4,
-        title: "Cắm Mốc Thực Địa & Dẫn Đường Tìm Điểm",
+        title: "Cắm Mốc Thực Địa & La Bàn Dẫn Hướng Bám Tim Mốc",
         short: "4. Cắm Mốc & Tìm Điểm",
         icon: "🎯",
         badge: "Thi công",
@@ -550,28 +610,32 @@
         steps: [
           {
             screen: "assets/tutorial_screens/fn4_step1_stakeout.png",
-            title: "BƯỚC 1: CHỌN ĐIỂM MỐC THIẾT KẾ CẦN CẮM",
-            text: "Mở phân hệ Cắm Mốc Thực Địa. Chọn một điểm mốc từ danh sách dự án hoặc nhập tọa độ thiết kế cần định vị ra ngoài thực địa.",
-            en: "Open Stakeout Navigation and choose a target project benchmark or enter design coordinates.",
-            tip: "💡 Mẹo: Có thể nạp danh sách mốc trực tiếp từ file khảo sát cũ.",
-            focus: { x: 50, y: 28, w: 90, h: 20, label: "Chọn mốc thiết kế mục tiêu" },
-            duration: 7
+            desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
+            title: "BƯỚC 1: CHỌN ĐIỂM MỐC THIẾT KẾ CẦN ĐỊNH VỊ",
+            text: "Mở phân hệ Cắm Mốc Thực Địa. Chọn mốc mục tiêu từ danh sách dự án hoặc nhập trực tiếp cặp tọa độ thiết kế cần tìm kiếm ngoài hiện trường.",
+            en: "Open Stakeout Navigation module and select a target benchmark or enter design coordinates.",
+            tip: "💡 Tìm kiếm: Bạn có thể lọc nhanh tên mốc bằng thanh tìm kiếm ở đầu danh sách.",
+            focus: { x: 50, y: 28, w: 90, h: 20, label: "Hộp chọn mốc thiết kế mục tiêu" },
+            cursor: { x: 50, y: 26 },
+            duration: 8
           },
           {
             screen: "assets/tutorial_screens/fn4_step1_stakeout.png",
-            title: "BƯỚC 2: DI CHUYỂN THEO LA BÀN DẪN HƯỚNG",
-            text: "Cầm điện thoại song song mặt đất. Mũi tên la bàn sẽ xoay chỉ hướng thẳng tới điểm mốc, kèm theo khoảng cách còn lại và độ chênh lệch dX, dY giảm dần về 0 khi bạn tiến đến vị trí.",
-            en: "Follow digital compass needle; distance and coordinate deltas decrease as you reach the point.",
-            tip: "💡 Mẹo: Âm thanh cảnh báo sẽ phát tín hiệu bíp dồn dập khi cách mốc dưới 1 mét.",
-            focus: { x: 50, y: 60, w: 90, h: 35, label: "La bàn dẫn hướng & Khoảng cách d" },
-            duration: 8
+            desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
+            title: "BƯỚC 2: BÁM HƯỚNG LA BÀN SỐ & ĐO CỰ LY TIẾP CẬN",
+            text: "Cầm điện thoại nằm ngang song song mặt đất và xoay theo hướng mũi tên la bàn chỉ định. Khoảng cách d và độ lệch delta X, delta Y sẽ liên tục cập nhật và giảm dần về không khi bạn tiếp cận sát vị trí cắm mốc.",
+            en: "Hold phone horizontally and follow dynamic compass pointer; distance and coordinate deltas decrease toward target.",
+            tip: "💡 Báo động âm thanh: Khi cự ly tới mốc dưới 1 mét, âm thanh cảnh báo bíp sẽ phát liên tục để dẫn hướng chính xác.",
+            focus: { x: 50, y: 60, w: 90, h: 35, label: "La bàn số điện tử & Chỉ số cự ly dX, dY" },
+            cursor: { x: 50, y: 55 },
+            duration: 9
           }
         ]
       },
       {
         id: "ep5",
         number: 5,
-        title: "Sổ Đo & Quản Lý Dự Án (Xuất File Hợp Nhất)",
+        title: "Sổ Đo Dự Án & Quản Lý Dữ Liệu Mốc Khống Chế",
         short: "5. Sổ Đo & Dự Án",
         icon: "📁",
         badge: "Quản lý",
@@ -579,79 +643,168 @@
         steps: [
           {
             screen: "assets/tutorial_screens/fn5_step1_datamgmt.png",
-            title: "BƯỚC 1: QUẢN LÝ DỰ ÁN & SỔ ĐO THỰC ĐỊA",
-            text: "Mở màn hình Sổ Đo & Dự Án để theo dõi toàn bộ các điểm mốc đã đo đạc. Bạn có thể tìm kiếm, đổi tên mốc, xem ngày giờ thu thập hoặc thêm mới nhanh chóng.",
-            en: "Open Project Fieldbook to manage, filter, and inspect collected survey benchmarks.",
-            tip: "💡 Mẹo: Dữ liệu được mã hóa lưu trữ bền vững trong bộ nhớ máy tính bảng / điện thoại.",
-            focus: { x: 50, y: 35, w: 90, h: 35, label: "Danh sách mốc & Quản lý dự án" },
-            duration: 7
+            desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
+            title: "BƯỚC 1: QUẢN LÝ DANH SÁCH MỐC DỰ ÁN & BỘ LỌC NHANH",
+            text: "Mở màn hình Sổ Đo & Dự Án để theo dõi toàn bộ các điểm mốc đã thu thập. Bạn có thể đổi tên mốc, chỉnh sửa tọa độ, lọc điểm theo tên hoặc phân loại mốc ranh giới, mốc khống chế một cách có hệ thống.",
+            en: "Access Project Fieldbook to inspect, edit, filter, and organize collected survey benchmarks.",
+            tip: "💡 Lưu trữ: Dữ liệu được lưu trữ ngoại tuyến an toàn trong bộ nhớ máy, không bị mất khi mất sóng internet.",
+            focus: { x: 50, y: 35, w: 90, h: 35, label: "Bảng quản lý sổ đo & Bộ lọc tìm kiếm" },
+            cursor: { x: 50, y: 25 },
+            duration: 8
           },
           {
             screen: "assets/tutorial_screens/fn5_step2_export_modal.png",
-            title: "BƯỚC 2: XUẤT DỮ LIỆU HỢP NHẤT 5 ĐỊNH DẠNG",
-            text: "Nhấn nút Xuất Dữ Liệu Sổ Đo để mở trung tâm xuất file. Chọn xuất Excel tính toán, bản vẽ CAD DXF, file KML Google Earth hoặc chia sẻ nhanh qua Zalo để gửi cho chỉ huy trưởng.",
-            en: "Use Unified Export to download Excel sheets, CAD drawings, KML files, or share via messaging.",
-            tip: "💡 Mẹo: Bản vẽ CAD được định dạng đúng đơn vị mét và hệ tọa độ trắc địa TCVN.",
-            focus: { x: 50, y: 50, w: 90, h: 50, label: "Hộp thoại xuất dữ liệu hợp nhất" },
-            duration: 8
+            desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
+            title: "BƯỚC 2: XUẤT BẢN VẼ AUTOCAD DWG & ĐA ĐỊNH DẠNG TRẮC ĐỊA",
+            text: "Nhấn nút Xuất Dữ Liệu Sổ Đo để mở trung tâm xuất file hợp nhất. Chọn xuất file bản vẽ AutoCAD DWG theo tiêu chuẩn TCVN, bảng tính Excel tính toán, hoặc file KML Google Earth để gửi nhanh cho các bộ phận liên quan.",
+            en: "Unified Export modal allows 1-tap download of AutoCAD DWG drawings, Excel sheets, or Google Earth KML files.",
+            tip: "💡 Tiêu chuẩn: File bản vẽ xuất ra định dạng chuẩn AutoCAD (.dwg), tương thích 100% với AutoCAD và Civil 3D.",
+            focus: { x: 50, y: 50, w: 90, h: 50, label: "Hộp thoại Xuất file DWG / Excel / KML" },
+            cursor: { x: 50, y: 52 },
+            duration: 9
           }
         ]
       },
       {
         id: "ep6",
         number: 6,
-        title: "Tiện Ích Vẽ Mặt Bằng & Thửa Đất MiniCAD",
+        title: "Chi Tiết Bộ Công Cụ MiniCAD Thực Địa",
         short: "6. Tiện Ích MiniCAD",
         icon: "📐",
-        badge: "Thiết kế",
-        summary: "Hướng dẫn vẽ ranh thửa đất, nối đa giác khống chế, tính diện tích tự động và xuất bản vẽ AutoCAD.",
+        badge: "Nâng cao",
+        summary: "Hướng dẫn chi tiết từng cụm công cụ vẽ đa giác, bắt điểm OSNAP, biên tập ranh và xuất bản vẽ AutoCAD DWG.",
         steps: [
           {
-            screen: "assets/tutorial_screens/fn6_step1_cad.png",
-            title: "BƯỚC 1: KHỞI ĐỘNG KHÔNG GIAN VẼ MINICAD",
-            text: "Từ menu tiện ích, mở chức năng Vẽ Mặt Bằng CAD Mini. Không gian bản đồ tích hợp bảng công cụ vẽ đa giác, đoạn thẳng, đo khoảng cách và gán nhãn đỉnh mốc.",
-            en: "Launch Standalone MiniCAD workspace with polygon drawing, vertex labeling, and distance tools.",
-            tip: "💡 Mẹo: MiniCAD hoạt động độc lập hoàn toàn, không xung đột với bản đồ dự án.",
-            focus: { x: 50, y: 30, w: 90, h: 25, label: "Thanh công cụ vẽ CAD" },
-            duration: 7
+            screen: "assets/tutorial_screens/fn6_step1_draw.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
+            title: "BƯỚC 1: CỤM CÔNG CỤ VẼ HÌNH HỌC [P, L, REC, C, D]",
+            text: "Trong MiniCAD, cụm công cụ Vẽ được gom gọn trong tab Vẽ. Nút Đa giác phím tắt P cho phép bạn chấm các đỉnh tạo ranh thửa đất khép kín. Nút Tuyến phím tắt L vẽ đường tim hở. Bạn có thể vẽ khối nhà với phím REC, vẽ bán kính bảo vệ với phím C, hoặc bắn điểm theo cự ly và góc phương vị với phím tắt D.",
+            en: "Drawing toolset includes Polygon boundary [P], Polyline centerlines [L], Building footprint [REC], Buffer circle [C], and Polar offset [D].",
+            tip: "💡 Phím tắt nhanh: Gõ trực tiếp P, L, REC hoặc D trên bàn phím máy tính để kích hoạt nhanh công cụ vẽ.",
+            focus: { x: 50, y: 22, w: 92, h: 14, label: "Cụm Tab Vẽ: Đa giác [P], Tuyến [L], Nhà [REC], Bán kính [C]" },
+            cursor: { x: 16, y: 22 },
+            duration: 11
           },
           {
-            screen: "assets/tutorial_screens/fn6_step1_cad.png",
-            title: "BƯỚC 2: NỐI RANH THỬA & XEM DIỆN TÍCH TỰ ĐỘNG",
-            text: "Chấm lần lượt các đỉnh mốc để tạo thành thửa đất khép kín. Phần mềm tự động tính toán chu vi, diện tích chính xác từng milimet vuông và cho phép xuất file DXF chuẩn lớp layer.",
-            en: "Snap vertices to close boundary; perimeter and area calculate automatically with DXF export.",
-            tip: "💡 Mẹo: Có thể tùy chỉnh màu sắc và độ dày nét vẽ ranh thửa.",
-            focus: { x: 50, y: 65, w: 90, h: 30, label: "Đa giác khép kín & Bảng diện tích" },
-            duration: 8
+            screen: "assets/tutorial_screens/fn6_step2_snap.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
+            title: "BƯỚC 2: CỤM TRỢ VẼ & BẮT ĐIỂM OSNAP [F3, B, F8]",
+            text: "Chạm vào tab Snap có biểu tượng nam châm để kích hoạt trợ vẽ thông minh. Nút Snap mốc phím tắt F3 sẽ tự động hút con trỏ vào mốc dự án. Đặc biệt, tính năng Bắt Line phím tắt B sẽ tự động khóa cạnh của thửa đất liền kề trong phạm vi nửa mét, giúp triệt tiêu hoàn toàn lỗi hở ranh hoặc chồng lấn thửa đất. Bật Ortho phím F8 để khóa góc vuông 90 độ.",
+            en: "Precision drafting features OSNAP benchmark magnet [F3], Adjacent line snap [B] preventing parcel overlap, and Ortho 90° constraint [F8].",
+            tip: "💡 Chống tranh chấp: Tính năng Bắt Line [B] đảm bảo ranh giới giữa hai thửa đất tiếp giáp trùng khít 100% không bị hở mét nào.",
+            focus: { x: 50, y: 22, w: 92, h: 14, label: "Cụm Tab Snap: Bắt mốc [F3], Bắt cạnh line [B], Khóa vuông góc [F8]" },
+            cursor: { x: 45, y: 22 },
+            duration: 12
+          },
+          {
+            screen: "assets/tutorial_screens/fn6_step1_draw.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
+            title: "BƯỚC 3: CỤM BIÊN TẬP & GHI CHÚ [V, RO, O, DIM]",
+            text: "Tab Sửa chuyển sang con trỏ chọn đối tượng phím tắt V để chọn khối thửa đất cần biên tập. Bạn có thể xoay nhãn theo góc phương vị cạnh với phím tắt RO, hoặc tạo đường ranh song song offset với phím tắt O. Tab Nhãn hỗ trợ cắm nét mũi tên chỉ hướng DIM, ghi chú văn bản và đóng khung tem nhãn công trình chuyên nghiệp.",
+            en: "Editing toolset supports Object Selection [V], Label Rotation [RO], Parallel Offset [O], Dimension Arrows [DIM], and Title Stamps.",
+            tip: "💡 Tiện ích: Phím tắt CL nối nhanh đỉnh cuối về đỉnh đầu để khép góc thửa đất tức thì.",
+            focus: { x: 50, y: 15, w: 92, h: 12, label: "Cụm Sửa [V, RO, O] & Ghi chú nhãn [DIM, Tem]" },
+            cursor: { x: 25, y: 15 },
+            duration: 11
+          },
+          {
+            screen: "assets/tutorial_screens/fn6_step3_export.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
+            title: "BƯỚC 4: BẢNG KÊ DIỆN TÍCH [E] & XUẤT AUTOCAD (.DWG)",
+            text: "Nhấn nút Bảng kê phím tắt E để xem bảng kê tọa độ ranh góc, cự ly từng cạnh và diện tích tính toán tự động. Sau đó chạm nút Xuất bản vẽ và chọn định dạng AutoCAD DWG. Bản vẽ được xuất trực tiếp định dạng DWG chuẩn hệ mét với các lớp layer màu sắc quy chuẩn Thông tư 25 năm 2014 của Bộ Tài nguyên và Môi trường.",
+            en: "Inspect Area & Coordinate Schedule [E] and export directly to AutoCAD (.dwg) formatted to MONRE Circular 25/2014 standards.",
+            tip: "💡 Tương thích: File DWG mở xem và biên tập mượt mà trên tất cả phiên bản AutoCAD, Civil 3D và các app CAD trên di động.",
+            focus: { x: 50, y: 50, w: 88, h: 52, label: "Hộp thoại Xuất Bản Vẽ AutoCAD (.DWG) Chuẩn TCVN" },
+            cursor: { x: 50, y: 45 },
+            duration: 11
           }
         ]
       },
       {
         id: "ep7",
         number: 7,
-        title: "Camera Khảo Sát Đóng Dấu Tọa Độ Hiện Trường",
-        short: "7. Camera Khảo Sát",
+        title: "Trắc Dọc Địa Hình & Tính Khối Lượng Đào Đắp TCVN 4447",
+        short: "7. Trắc Dọc & Đào Đắp",
+        icon: "📈",
+        badge: "Nâng cao",
+        summary: "Hướng dẫn nạp cọc tuyến, thiết kế đường đỏ, mái dốc taluy, tính mét khối đào đắp và xuất bản vẽ trắc dọc DWG.",
+        steps: [
+          {
+            screen: "assets/tutorial_screens/fn7_step1_profile_input.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
+            title: "BƯỚC 1: NẠP CỌC TUYẾN & CAO ĐỘ TỰ NHIÊN Z_TN",
+            text: "Mở phân hệ Trắc dọc địa hình và Đào đắp từ menu Tiện ích. Tại thẻ Tuyến Trắc Dọc, bạn có thể nhấn nút Chọn mốc Dự án để nạp các điểm đo sẵn có, hoặc nhấn Vẽ Tuyến trên MiniCAD để vẽ tim đường trực tiếp trên nền ảnh vệ tinh. Danh sách cọc mốc sẽ hiển thị đầy đủ tên cọc, tọa độ X, Y và cao độ tự nhiên Z.",
+            en: "Load alignment stake points from project benchmarks, draft alignment on MiniCAD, or paste coordinate tables.",
+            tip: "💡 Thử nghiệm: Bạn có thể nhấn nút [🛣️ Tuyến Mẫu (5 Cọc)] để nạp nhanh số liệu thực hành mẫu.",
+            focus: { x: 50, y: 25, w: 90, h: 25, label: "Nạp cọc mốc: Chọn Dự án, Vẽ từ MiniCAD hoặc Dán nhanh" },
+            cursor: { x: 30, y: 22 },
+            duration: 10
+          },
+          {
+            screen: "assets/tutorial_screens/fn7_step2_profile_design.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
+            title: "BƯỚC 2: THIẾT KẾ ĐƯỜNG ĐỎ Z₀, ĐỘ DỐC i & MÁI DỐC TALUY",
+            text: "Cấu hình thông số thiết kế tuyến theo tiêu chuẩn kỹ thuật: nhập cao độ thiết kế tại cọc đầu Z0 và độ dốc dọc tuyến i theo phần trăm. Tiếp theo, nhập bề rộng nền đào đắp B theo mét và hệ số mái dốc taluy m theo tiêu chuẩn TCVN 4447:2012. Nhấn nút Tính toán và cập nhật trắc dọc.",
+            en: "Configure vertical design profile: initial elevation Z0, longitudinal slope i (%), roadbed width B, and talus slope ratio m (1:m).",
+            tip: "💡 Tiêu chuẩn TCVN 4447: Mái dốc đào đất thường từ 1:0.5 đến 1:1.0; mái dốc đắp thường từ 1:1.0 đến 1:1.5.",
+            focus: { x: 50, y: 55, w: 90, h: 32, label: "Thông số thiết kế: Cao độ Z0, Độ dốc i, Nền B, Mái dốc m" },
+            cursor: { x: 50, y: 75 },
+            duration: 11
+          },
+          {
+            screen: "assets/tutorial_screens/fn7_step3_profile_chart.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
+            title: "BƯỚC 3: BẢN VẼ TRẮC DỌC KỸ THUẬT & KHỐI LƯỢNG (m³)",
+            text: "Quan sát bản vẽ mặt cắt trắc dọc kỹ thuật. Đường màu xanh lá thể hiện địa hình tự nhiên, đường màu đỏ thể hiện cao độ thiết kế. Các vùng đào được tô màu đỏ và vùng đắp được tô màu xanh dương trực quan. Bên dưới là bảng trích yếu chuẩn TCVN 9436. Bảng tổng hợp hiển thị chính xác tổng khối lượng đào và khối lượng đắp theo mét khối.",
+            en: "Technical profile chart visualizes ground vs design elevations, cut/fill hatching, TCVN 9436 grid table, and total cubic meters.",
+            tip: "💡 Trực quan: Chữ trong bảng trích yếu tự động xoay dọc thông minh, không bị đè chữ khi các cọc nằm gần nhau.",
+            focus: { x: 50, y: 40, w: 92, h: 45, label: "Bản vẽ trắc dọc TCVN & Tổng mét khối V_đào, V_đắp" },
+            cursor: { x: 50, y: 65 },
+            duration: 11
+          },
+          {
+            screen: "assets/tutorial_screens/fn7_step3_profile_chart.png",
+            desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
+            title: "BƯỚC 4: XUẤT BẢN VẼ AUTOCAD TRẮC DỌC (.DWG) & BÁO CÁO CSV",
+            text: "Xuất hồ sơ kỹ thuật phục vụ nghiệm thu: nhấn nút Xuất DWG để tải trực tiếp file bản vẽ trắc dọc kỹ thuật định dạng AutoCAD. Toàn bộ đường gióng, cọc mốc, cao độ và bảng trích yếu được dựng thành các thực thể CAD chuẩn lớp layer. Bạn cũng có thể xuất file CSV để đưa vào phần mềm dự toán và bảng tính khối lượng.",
+            en: "Export technical profile directly to AutoCAD DWG format with standard layers and download CSV volume reports.",
+            tip: "💡 Hồ sơ: Bản vẽ DWG xuất ra mở được ngay trong AutoCAD với đầy đủ khung tên, đường gióng và cao độ chính xác.",
+            focus: { x: 50, y: 78, w: 90, h: 18, label: "Nút Xuất Bản Vẽ AutoCAD (.DWG) & Báo Cáo CSV" },
+            cursor: { x: 80, y: 78 },
+            duration: 10
+          }
+        ]
+      },
+      {
+        id: "ep8",
+        number: 8,
+        title: "Camera Khảo Sát Đóng Dấu Thủy Vân Tọa Độ Hiện Trường",
+        short: "8. Camera Khảo Sát",
         icon: "📷",
         badge: "Nghiệm thu",
         summary: "Hướng dẫn chụp ảnh hiện trường có đóng dấu tọa độ VN-2000, WGS-84, thời gian thực và tên dự án.",
         steps: [
           {
             screen: "assets/tutorial_screens/fn7_step1_camera.png",
+            desktopScreen: "assets/tutorial_screens/fn7_step1_camera.png",
             title: "BƯỚC 1: KÍCH HOẠT CAMERA KHẢO SÁT CÔNG TRÌNH",
-            text: "Mở tính năng Camera Khảo Sát từ menu tiện ích. Ống kính camera thực địa khởi động cùng khung ngắm tích hợp lớp phủ Watermark kỹ thuật trắc địa.",
-            en: "Activate Field Survey Camera with real-time on-screen technical watermark overlay.",
-            tip: "💡 Mẹo: Camera tự động cập nhật tọa độ liên tục theo thời gian thực.",
-            focus: { x: 50, y: 30, w: 90, h: 25, label: "Khung ngắm Camera khảo sát" },
-            duration: 7
+            text: "Mở tính năng Camera Khảo Sát từ menu tiện ích. Ống kính camera thực địa khởi động cùng khung ngắm tích hợp lớp phủ Watermark kỹ thuật trắc địa. Hệ thống tự động đọc tọa độ GPS vệ tinh theo thời gian thực và quy đổi sang hệ VN-2000 theo kinh tuyến trục địa phương.",
+            en: "Activate Field Survey Camera with real-time technical watermark overlay displaying VN-2000 coordinates.",
+            tip: "💡 Nghiệp vụ: Lớp watermark tự động cập nhật liên tục tọa độ X, Y, kinh vĩ độ, la bàn số và thời gian.",
+            focus: { x: 50, y: 30, w: 90, h: 25, label: "Khung ngắm Camera & Watermark trực tiếp" },
+            cursor: { x: 50, y: 30 },
+            duration: 8
           },
           {
             screen: "assets/tutorial_screens/fn7_step1_camera.png",
-            title: "BƯỚC 2: ĐÓNG DẤU TỌA ĐỘ TỰ ĐỘNG & LƯU ẢNH",
-            text: "Thông số tọa độ VN-2000 X, Y, kinh độ, vĩ độ, ngày giờ và tên công trình được in chìm vĩnh viễn lên ảnh chụp. Nhấn nút chụp để lưu trữ hồ sơ nghiệm thu thực địa pháp lý rõ ràng.",
-            en: "Permanent watermark embeds VN-2000 X/Y, coordinates, timestamp, and project metadata.",
-            tip: "💡 Mẹo: Ảnh đóng dấu được lưu với độ phân giải gốc của camera thiết bị.",
+            desktopScreen: "assets/tutorial_screens/fn7_step1_camera.png",
+            title: "BƯỚC 2: ĐÓNG DẤU TỌA ĐỘ VĨNH VIỄN & CHỤP LƯU NGHIỆM THU",
+            text: "Thông số tọa độ VN-2000 X, Y, kinh độ, vĩ độ, ngày giờ và tên công trình được in chìm vĩnh viễn lên ảnh chụp. Nhấn nút chụp để lưu trữ hồ sơ nghiệm thu thực địa pháp lý rõ ràng, phục vụ đính kèm biên bản bàn giao mốc hoặc báo cáo tư vấn giám sát.",
+            en: "Permanent watermark embeds VN-2000 X/Y, coordinates, timestamp, and project metadata directly onto high-res survey photos.",
+            tip: "💡 Pháp lý: Ảnh đóng dấu được lưu với độ phân giải gốc của camera thiết bị, không thể chỉnh sửa số liệu.",
             focus: { x: 50, y: 75, w: 90, h: 20, label: "Watermark tọa độ & Nút chụp ảnh" },
-            duration: 8
+            cursor: { x: 50, y: 75 },
+            duration: 9
           }
         ]
       }
@@ -675,17 +828,29 @@
     let bgmGainNode = null;
     let musicInterval = null;
 
-    // Loaded image cache
+    // Loaded image cache & Device mode state
     const imageCache = {};
+    let currentDeviceMode = 'mobile'; // 'mobile' | 'desktop'
+
+    function setDeviceMode(mode) {
+      currentDeviceMode = mode;
+      const btnMobile = document.getElementById('btnDeviceMobile');
+      const btnDesktop = document.getElementById('btnDeviceDesktop');
+      if (btnMobile) btnMobile.classList.toggle('active', mode === 'mobile');
+      if (btnDesktop) btnDesktop.classList.toggle('active', mode === 'desktop');
+      renderFrame(currentTime);
+    }
 
     function preloadScreens() {
       VIDEO_EPISODES.forEach(ep => {
         ep.steps.forEach(st => {
-          if (!imageCache[st.screen]) {
-            const img = new Image();
-            img.src = st.screen;
-            imageCache[st.screen] = img;
-          }
+          [st.screen, st.desktopScreen].forEach(src => {
+            if (src && !imageCache[src]) {
+              const img = new Image();
+              img.src = src;
+              imageCache[src] = img;
+            }
+          });
         });
       });
     }
@@ -888,6 +1053,59 @@
     const canvas = document.getElementById('videoCanvas');
     const ctx = canvas.getContext('2d');
 
+    function drawComputerMousePointer(ctx, x, y, pulse) {
+      ctx.save();
+      // Click Ripple wave
+      ctx.beginPath();
+      ctx.arc(x, y, 16 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(56, 189, 248, ${0.45 * (2 - pulse)})`;
+      ctx.fill();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Sharp Computer Mouse Pointer Arrow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 4;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#090d16';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + 23);
+      ctx.lineTo(x + 5.5, y + 17.5);
+      ctx.lineTo(x + 11.5, y + 28.5);
+      ctx.lineTo(x + 15.5, y + 26.5);
+      ctx.lineTo(x + 9.5, y + 15.8);
+      ctx.lineTo(x + 16.5, y + 15.8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawTouchPulse(ctx, x, y, pulse) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, 24 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(56, 189, 248, ${0.25 * (2 - pulse)})`;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, 12, 0, Math.PI * 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function renderFrame(time) {
       const ep = VIDEO_EPISODES[currentEpIndex];
       const totalDur = getTotalDuration(ep);
@@ -903,6 +1121,7 @@
 
       const W = canvas.width;
       const H = canvas.height;
+      const isDesktop = currentDeviceMode === 'desktop';
 
       // 1. Cinematic Background
       const bgGrad = ctx.createLinearGradient(0, 0, W, H);
@@ -928,111 +1147,236 @@
         ctx.stroke();
       }
 
-      // 2. Left Side: Real Screen Viewport Mockup
-      const phoneW = 540;
-      const phoneH = 960;
-      const phoneX = 80;
-      const phoneY = (H - phoneH) / 2;
+      // 2. Left Side: Device Screen Viewport
+      let innerX, innerY, innerW, innerH;
+      let cardX, cardY, cardW, cardH;
 
-      // Device Shadow & Glow
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-      ctx.shadowBlur = 40;
-      ctx.shadowOffsetY = 20;
+      if (!isDesktop) {
+        // --- MOBILE PHONE MODE (9:16) ---
+        const phoneW = 520;
+        const phoneH = 940;
+        const phoneX = 60;
+        const phoneY = (H - phoneH) / 2;
 
-      // Device Outer Frame
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.roundRect(phoneX, phoneY, phoneW, phoneH, 46);
-      ctx.fill();
-      ctx.restore();
+        innerX = phoneX + 12;
+        innerY = phoneY + 12;
+        innerW = phoneW - 24;
+        innerH = phoneH - 24;
 
-      // Titanium Border
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.roundRect(phoneX, phoneY, phoneW, phoneH, 46);
-      ctx.stroke();
+        // Card dimensions on right
+        cardX = 620;
+        cardY = 70;
+        cardW = 1240;
+        cardH = 940;
 
-      // Screen Clip
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(phoneX + 10, phoneY + 10, phoneW - 20, phoneH - 20, 38);
-      ctx.clip();
+        // Device Outer Shadow & Frame
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+        ctx.shadowBlur = 40;
+        ctx.shadowOffsetY = 20;
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.roundRect(phoneX, phoneY, phoneW, phoneH, 44);
+        ctx.fill();
+        ctx.restore();
 
-      // Draw Real Screenshot with Smooth Ken Burns Zoom
-      const img = imageCache[step.screen];
-      if (img && img.complete && img.naturalWidth > 0) {
-        const zoom = 1.0 + Math.sin(stepInfo.progress * Math.PI) * 0.03;
-        const dw = (phoneW - 20) * zoom;
-        const dh = (phoneH - 20) * zoom;
-        const dx = phoneX + 10 - (dw - (phoneW - 20)) / 2;
-        const dy = phoneY + 10 - (dh - (phoneH - 20)) / 2;
-        ctx.drawImage(img, dx, dy, dw, dh);
-      } else {
-        // Fallback Dark Screen
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(phoneX + 10, phoneY + 10, phoneW - 20, phoneH - 20);
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '600 24px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Đang tải ảnh màn hình chức năng...', phoneX + phoneW / 2, phoneY + phoneH / 2);
-      }
-
-      // Spotlight Target Box on active UI element
-      if (step.focus) {
-        const fx = phoneX + 10 + (step.focus.x / 100) * (phoneW - 20) - ((step.focus.w / 100) * (phoneW - 20)) / 2;
-        const fy = phoneY + 10 + (step.focus.y / 100) * (phoneH - 20) - ((step.focus.h / 100) * (phoneH - 20)) / 2;
-        const fw = (step.focus.w / 100) * (phoneW - 20);
-        const fh = (step.focus.h / 100) * (phoneH - 20);
-
-        // Glowing Spotlight Border
-        ctx.strokeStyle = '#38bdf8';
+        // Titanium Border
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
         ctx.lineWidth = 3;
-        ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 15;
         ctx.beginPath();
-        ctx.roundRect(fx, fy, fw, fh, 12);
+        ctx.roundRect(phoneX, phoneY, phoneW, phoneH, 44);
         ctx.stroke();
 
-        // Spotlight Tag Pill
-        ctx.fillStyle = 'rgba(2, 132, 199, 0.9)';
-        ctx.shadowBlur = 0;
+        // Screen Clip
+        ctx.save();
         ctx.beginPath();
-        ctx.roundRect(fx + 6, fy - 26, ctx.measureText(step.focus.label).width + 24, 22, 6);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(step.focus.label, fx + 18, fy - 11);
+        ctx.roundRect(innerX, innerY, innerW, innerH, 36);
+        ctx.clip();
 
-        // Pulsating Touch Cursor
+        // Screenshot
+        const img = imageCache[step.screen];
+        if (img && img.complete && img.naturalWidth > 0) {
+          const zoom = 1.0 + Math.sin(stepInfo.progress * Math.PI) * 0.025;
+          const dw = innerW * zoom;
+          const dh = innerH * zoom;
+          const dx = innerX - (dw - innerW) / 2;
+          const dy = innerY - (dh - innerH) / 2;
+          ctx.drawImage(img, dx, dy, dw, dh);
+        } else {
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = '600 24px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Đang tải giao diện điện thoại...', innerX + innerW / 2, innerY + innerH / 2);
+        }
+
+        // Spotlight Box
+        if (step.focus) {
+          const fx = innerX + (step.focus.x / 100) * innerW - ((step.focus.w / 100) * innerW) / 2;
+          const fy = innerY + (step.focus.y / 100) * innerH - ((step.focus.h / 100) * innerH) / 2;
+          const fw = (step.focus.w / 100) * innerW;
+          const fh = (step.focus.h / 100) * innerH;
+
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 15;
+          ctx.beginPath();
+          ctx.roundRect(fx, fy, fw, fh, 12);
+          ctx.stroke();
+
+          // Spotlight Tag Pill
+          ctx.fillStyle = 'rgba(2, 132, 199, 0.95)';
+          ctx.shadowBlur = 0;
+          const labelW = ctx.measureText(step.focus.label).width + 24;
+          ctx.beginPath();
+          ctx.roundRect(Math.max(innerX + 6, fx), Math.max(innerY + 6, fy - 26), labelW, 22, 6);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(step.focus.label, Math.max(innerX + 18, fx + 12), Math.max(innerY + 20, fy - 11));
+        }
+
+        // Touch Cursor
         const cursorPulse = 1 + Math.sin(time * 6) * 0.25;
-        const cx = fx + fw / 2;
-        const cy = fy + fh / 2;
+        const curX = step.cursor ? innerX + (step.cursor.x / 100) * innerW : (innerX + innerW / 2);
+        const curY = step.cursor ? innerY + (step.cursor.y / 100) * innerH : (innerY + innerH / 2);
+        drawTouchPulse(ctx, curX, curY, cursorPulse);
+
+        ctx.restore(); // End Screen Clip
+      } else {
+        // --- DESKTOP / TABLET LARGE SCREEN MODE (16:10) ---
+        const deskW = 1040;
+        const deskH = 650;
+        const deskX = 60;
+        const deskY = (H - deskH) / 2; // 215
+
+        const barH = 38;
+        innerX = deskX + 8;
+        innerY = deskY + barH;
+        innerW = deskW - 16;
+        innerH = deskH - barH - 8;
+
+        // Card dimensions on right
+        cardX = 1140;
+        cardY = 70;
+        cardW = 720;
+        cardH = 940;
+
+        // Laptop / Monitor Outer Body
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+        ctx.shadowBlur = 45;
+        ctx.shadowOffsetY = 22;
+        ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.arc(cx, cy, 22 * cursorPulse, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.roundRect(deskX, deskY, deskW, deskH, 18);
         ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
+        ctx.restore();
+
+        // Titanium / Chrome Border
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
         ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(deskX, deskY, deskW, deskH, 18);
         ctx.stroke();
+
+        // Browser Top Bar
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(deskX + 2, deskY + 2, deskW - 4, barH, [16, 16, 0, 0]);
+        ctx.fill();
+
+        // macOS Window Control Buttons
+        ctx.fillStyle = '#ff5f56'; // Close
+        ctx.beginPath(); ctx.arc(deskX + 24, deskY + 19, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffbd2e'; // Minimize
+        ctx.beginPath(); ctx.arc(deskX + 44, deskY + 19, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#27c93f'; // Maximize
+        ctx.beginPath(); ctx.arc(deskX + 64, deskY + 19, 6, 0, Math.PI * 2); ctx.fill();
+
+        // Browser Address URL Bar
+        const urlW = deskW - 200;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.beginPath();
+        ctx.roundRect(deskX + 90, deskY + 7, urlW, 24, 6);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '500 12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('🔒 https://vn2000.pro — Màn hình chuyên dụng kỹ sư trắc địa & thi công', deskX + 104, deskY + 23);
+
+        // Screen Clip
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(innerX, innerY, innerW, innerH, [0, 0, 12, 12]);
+        ctx.clip();
+
+        // Screenshot Desktop (Fallback to mobile if desktop not yet loaded)
+        const deskSrc = step.desktopScreen || step.screen;
+        const img = imageCache[deskSrc] || imageCache[step.screen];
+        if (img && img.complete && img.naturalWidth > 0) {
+          const zoom = 1.0 + Math.sin(stepInfo.progress * Math.PI) * 0.02;
+          const dw = innerW * zoom;
+          const dh = innerH * zoom;
+          const dx = innerX - (dw - innerW) / 2;
+          const dy = innerY - (dh - innerH) / 2;
+          ctx.drawImage(img, dx, dy, dw, dh);
+        } else {
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(innerX, innerY, innerW, innerH);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = '600 24px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Đang tải giao diện màn hình lớn...', innerX + innerW / 2, innerY + innerH / 2);
+        }
+
+        // Spotlight Box on Desktop
+        if (step.focus) {
+          const fx = innerX + (step.focus.x / 100) * innerW - ((step.focus.w / 100) * innerW) / 2;
+          const fy = innerY + (step.focus.y / 100) * innerH - ((step.focus.h / 100) * innerH) / 2;
+          const fw = (step.focus.w / 100) * innerW;
+          const fh = (step.focus.h / 100) * innerH;
+
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 15;
+          ctx.beginPath();
+          ctx.roundRect(fx, fy, fw, fh, 10);
+          ctx.stroke();
+
+          // Spotlight Tag Pill
+          ctx.fillStyle = 'rgba(2, 132, 199, 0.95)';
+          ctx.shadowBlur = 0;
+          const labelW = ctx.measureText(step.focus.label).width + 24;
+          ctx.beginPath();
+          ctx.roundRect(Math.max(innerX + 6, fx), Math.max(innerY + 6, fy - 26), labelW, 22, 6);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(step.focus.label, Math.max(innerX + 18, fx + 12), Math.max(innerY + 20, fy - 11));
+        }
+
+        // Sharp Computer Mouse Pointer on Desktop
+        const cursorPulse = 1 + Math.sin(time * 6) * 0.25;
+        const curX = step.cursor ? innerX + (step.cursor.x / 100) * innerW : (innerX + innerW / 2);
+        const curY = step.cursor ? innerY + (step.cursor.y / 100) * innerH : (innerY + innerH / 2);
+        drawComputerMousePointer(ctx, curX, curY, cursorPulse);
+
+        ctx.restore(); // End Screen Clip
       }
-      ctx.restore(); // Restore screen clip
 
       // 3. Right Side: Instructional Glass Card & Stepper
-      const cardX = 660;
-      const cardY = 120;
-      const cardW = 1180;
-      const cardH = 840;
-
-      // Card Background
       ctx.save();
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 2;
       ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
@@ -1046,73 +1390,79 @@
       // Top Header of Card
       ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
       ctx.beginPath();
-      ctx.roundRect(cardX + 40, cardY + 40, 260, 36, 8);
+      ctx.roundRect(cardX + 36, cardY + 36, isDesktop ? 220 : 260, 36, 8);
       ctx.fill();
       ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 14px sans-serif';
+      ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`CHỨC NĂNG ${ep.number} / 7: ${ep.badge.toUpperCase()}`, cardX + 170, cardY + 63);
+      ctx.fillText(`CHỨC NĂNG ${ep.number} / 8: ${ep.badge.toUpperCase()}`, cardX + 36 + (isDesktop ? 110 : 130), cardY + 59);
 
       // Step Number Pill
       ctx.fillStyle = '#10b981';
       ctx.beginPath();
-      ctx.roundRect(cardX + 320, cardY + 40, 160, 36, 8);
+      ctx.roundRect(cardX + 36 + (isDesktop ? 230 : 280), cardY + 36, 150, 36, 8);
       ctx.fill();
       ctx.fillStyle = '#062817';
-      ctx.font = 'bold 15px sans-serif';
-      ctx.fillText(`BƯỚC ${stepIdx + 1} / ${ep.steps.length}`, cardX + 400, cardY + 63);
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(`BƯỚC ${stepIdx + 1} / ${ep.steps.length}`, cardX + 36 + (isDesktop ? 305 : 355), cardY + 59);
 
-      // Step Title (Large Typography)
+      // Step Title (Adaptive Typography)
       ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 38px sans-serif';
+      ctx.font = isDesktop ? 'bold 27px sans-serif' : 'bold 36px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(step.title, cardX + 40, cardY + 135);
+      wrapText(ctx, step.title, cardX + 36, cardY + 115, cardW - 72, isDesktop ? 34 : 42);
 
       // Step Main Explanation (Vietnamese)
       ctx.fillStyle = '#e2e8f0';
-      ctx.font = '500 24px -apple-system, sans-serif';
-      wrapText(ctx, step.text, cardX + 40, cardY + 195, cardW - 80, 42);
+      ctx.font = isDesktop ? '500 19px -apple-system, sans-serif' : '500 23px -apple-system, sans-serif';
+      const textStartY = isDesktop ? (cardY + 175) : (cardY + 200);
+      const textLineH = isDesktop ? 31 : 38;
+      wrapText(ctx, step.text, cardX + 36, textStartY, cardW - 72, textLineH);
 
       // Subtitle / English Translation Card
+      const subCardY = isDesktop ? (cardY + 390) : (cardY + 410);
+      const subCardH = isDesktop ? 120 : 120;
       ctx.fillStyle = 'rgba(2, 132, 199, 0.12)';
       ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(cardX + 40, cardY + 380, cardW - 80, 110, 14);
+      ctx.roundRect(cardX + 36, subCardY, cardW - 72, subCardH, 14);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.fillText('SUBTITLE (ENGLISH / GLOBAL)', cardX + 65, cardY + 412);
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('SUBTITLE (ENGLISH / GLOBAL)', cardX + 56, subCardY + 26);
 
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = 'italic 19px sans-serif';
-      wrapText(ctx, step.en, cardX + 65, cardY + 445, cardW - 130, 28);
+      ctx.font = isDesktop ? 'italic 16px sans-serif' : 'italic 18px sans-serif';
+      wrapText(ctx, step.en, cardX + 56, subCardY + 52, cardW - 112, isDesktop ? 24 : 27);
 
       // Practical Field Tip Pill
       if (step.tip) {
+        const tipCardY = subCardY + subCardH + 16;
+        const tipCardH = isDesktop ? 80 : 70;
         ctx.fillStyle = 'rgba(245, 158, 11, 0.1)';
         ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.roundRect(cardX + 40, cardY + 515, cardW - 80, 60, 12);
+        ctx.roundRect(cardX + 36, tipCardY, cardW - 72, tipCardH, 12);
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = '#fbbf24';
-        ctx.font = '600 18px sans-serif';
-        ctx.fillText(step.tip, cardX + 65, cardY + 552);
+        ctx.font = isDesktop ? '600 15px sans-serif' : '600 17px sans-serif';
+        wrapText(ctx, step.tip, cardX + 56, tipCardY + (isDesktop ? 28 : 34), cardW - 112, 24);
       }
 
       // Step Timeline Progress Bars at bottom of card
-      const barY = cardY + 620;
-      const stepBarGap = 16;
-      const totalBarW = cardW - 80;
+      const barY = cardY + cardH - 180;
+      const stepBarGap = 12;
+      const totalBarW = cardW - 72;
       const singleBarW = (totalBarW - (ep.steps.length - 1) * stepBarGap) / ep.steps.length;
 
       for (let i = 0; i < ep.steps.length; i++) {
-        const bx = cardX + 40 + i * (singleBarW + stepBarGap);
+        const bx = cardX + 36 + i * (singleBarW + stepBarGap);
         // Track
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.beginPath();
@@ -1134,21 +1484,22 @@
 
         // Label under bar
         ctx.fillStyle = i === stepIdx ? '#38bdf8' : '#64748b';
-        ctx.font = i === stepIdx ? 'bold 15px sans-serif' : '14px sans-serif';
-        ctx.fillText(`Bước ${i + 1}`, bx, barY + 30);
+        ctx.font = i === stepIdx ? 'bold 14px sans-serif' : '13px sans-serif';
+        ctx.fillText(`Bước ${i + 1}`, bx, barY + 28);
       }
 
       // Live Voice Waveform Visualizer
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '600 14px sans-serif';
-      ctx.fillText('GIỌNG ĐỌC THUYẾT MINH & NHẠC NỀN LO-FI:', cardX + 40, cardY + 720);
+      ctx.font = '600 13px sans-serif';
+      ctx.fillText('GIỌNG ĐỌC THUYẾT MINH & NHẠC NỀN CHUYÊN NGHIỆP:', cardX + 36, cardY + cardH - 95);
 
-      const waveX = cardX + 40;
-      const waveY = cardY + 745;
-      for (let b = 0; b < 32; b++) {
+      const waveX = cardX + 36;
+      const waveY = cardY + cardH - 70;
+      const numWaveBars = isDesktop ? 28 : 40;
+      for (let b = 0; b < numWaveBars; b++) {
         const barH = isPlaying ? (8 + Math.sin(time * 8 + b * 0.4) * 16 + Math.cos(time * 4 + b * 0.2) * 10) : 6;
         ctx.fillStyle = isPlaying ? (b % 2 === 0 ? '#38bdf8' : '#10b981') : 'rgba(255,255,255,0.2)';
-        ctx.fillRect(waveX + b * 18, waveY + 20 - barH / 2, 8, Math.max(4, barH));
+        ctx.fillRect(waveX + b * 16, waveY + 20 - barH / 2, 7, Math.max(4, barH));
       }
 
       // Update HTML HUD
@@ -1158,7 +1509,7 @@
       const elProgress = document.getElementById('progressFill');
       const elTimeLabel = document.getElementById('timeLabel');
 
-      if (elHudTitle) elHudTitle.innerText = `CHỨC NĂNG ${ep.number}: ${ep.title.toUpperCase()}`;
+      if (elHudTitle) elHudTitle.innerText = `CHỨC NĂNG ${ep.number} / 8: ${ep.title.toUpperCase()}`;
       if (elHudBadge) elHudBadge.innerText = `BƯỚC ${stepIdx + 1} / ${ep.steps.length}`;
       if (elHudTime) elHudTime.innerText = `${formatTime(time)} / ${formatTime(totalDur)}`;
       if (elProgress) elProgress.style.width = `${(time / totalDur) * 100}%`;

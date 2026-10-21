@@ -1,6 +1,28 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Tinh Chỉnh Giao Diện & Câu Chữ Video Hướng Dẫn Chuẩn Coder Chuyên Nghiệp
+## Phiên hiện tại — 2026-10-21: Sửa Lỗi Thanh Công Cụ MiniCAD & Nâng Cấp Toàn Diện Studio Video Hướng Dẫn
+- **Yêu cầu từ người dùng**:
+  1. `Thanh công cụ của MiniCAD bị show hết mà không thu theo từng cụm riêng (chiếm hết màn hình)`
+  2. `Về các video: hướng dẫn bằng giọng nói quá đơn giản cần chi tiết hơn; hiển thị giao diện cần hướng dẫn trên màn hình kích thước lớn/nhỏ; mô tả và hình ảnh chưa khớp, trỏ chuột chưa đặt đúng chức năng; các chức năng nâng cao như MiniCAD, đào đắp,... cần hướng dẫn chi tiết đến từng công cụ.`
+- **Đã hoàn tất**:
+  1. **Sửa dứt điểm lỗi thanh công cụ MiniCAD ([ui-polish.css](file:///d:/Nhu/APP/VN2000-PWA/ui-polish.css))**:
+     - Khắc phục rule CSS bị cưỡng ép `display: flex !important` bằng `#mapCadToolbar .cad-collapsible-row:not(.active) { display: none !important; }` và `#mapCadToolbar .cad-collapsible-row.active { display: flex !important; }`.
+     - Chỉ mở đúng 1 hàng công cụ của tab được chọn (`Vẽ`, `Sửa`, `Nhãn`, `Snap`, `File`), giải phóng 100% không gian bản đồ thực địa.
+  2. **Studio Video Hướng Dẫn Dual-Mode Màn hình lớn & Màn hình nhỏ ([tutorials-pdoom.html](file:///d:/Nhu/APP/VN2000-PWA/tutorials-pdoom.html))**:
+     - Nút chuyển đổi: `📱 Điện thoại (Mobile)` (khung smartphone 9:16, touch ripple) ⇄ `💻 Màn hình lớn (Desktop / Tablet)` (khung laptop/monitor 16:10, thanh Safari/macOS có 3 nút điều khiển, URL `https://vn2000.pro — Màn hình chuyên dụng kỹ sư`).
+     - Con trỏ chuột máy tính sắc nét (Sharp Computer Mouse Pointer Arrow) có hiệu ứng click ripple trên desktop, đặt chuẩn xác 100% vào từng nút công cụ.
+  3. **Tách thành 8 Video Chuyên Biệt, Chi Tiết Từng Công Cụ Nâng Cao**:
+     - **Video 6: Chi Tiết Bộ Công Cụ MiniCAD** (4 bước): Tab Vẽ (Đa giác [P], Tuyến [L], Nhà [REC], Bán kính [C], Polar [D]); Tab Snap (Bắt mốc [F3], Bắt cạnh ranh [B] chống hở thửa đất, Ortho [F8] vuông góc); Tab Sửa & Nhãn ([V, RO, O, DIM, Tem]); Bảng kê diện tích m² & Xuất bản vẽ AutoCAD (.dwg) chuẩn TT 25/2014/TT-BTNMT.
+     - **Video 7: Trắc Dọc Địa Hình & Khối Lượng Đào Đắp TCVN 4447:2012** (4 bước): Nạp cọc mốc tuyến và cao độ tự nhiên $Z_{TN}$; Thiết kế đường đỏ $Z_0$, độ dốc dọc $i$ (%) và mái dốc taluy $m$; Mặt cắt trắc dọc TCVN 9436, khối lượng $V_{đào}, V_{đắp}$ ($m^3$); Xuất bản vẽ trắc dọc AutoCAD (.dwg) và bảng tính CSV.
+  4. **Khớp Chuẩn Xác 100% Giọng Đọc, Ảnh Thực Tế & Con Trỏ Chuột**:
+     - Chụp bổ sung 12 ảnh màn hình Desktop và Mobile độ nét cao bằng Chrome DevTools MCP.
+     - Tọa độ `cursor` và `focus` căn chỉnh tỉ mỉ từng nút bấm.
+     - Thuyết minh tiếng Việt phân tích chuyên sâu các quy chuẩn kỹ thuật và thao tác thực hành.
+  5. **Kiểm thử tự động & Trực quan**:
+     - **237 / 237 bài test tự động PASS 100%**.
+     - Đã xác thực thực tế qua Chrome DevTools MCP chụp ảnh nghiệm thu trên cả 2 chế độ hiển thị.
+
+## Phiên trước — 2026-10-21: Tinh Chỉnh Giao Diện & Câu Chữ Video Hướng Dẫn Chuẩn Coder Chuyên Nghiệp
 - **Đã hoàn tất**:
   1. Loại bỏ hoàn toàn văn phong giải thích rườm rà dạng AI prompt:
      - Menu Drawer mục 5.7: Sửa thành `5.7 Video Hướng Dẫn Sử Dụng`, phụ đề `Trực quan từng bước 7 tính năng chính`.
