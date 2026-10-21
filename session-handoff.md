@@ -1,6 +1,30 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Xóa Bỏ Toàn Bộ Video Cũ & Ra Mắt Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa user-guide.html Kèm Tích Hợp Nút "?"
+## Phiên hiện tại — 2026-10-21: Nâng Cấp Toàn Diện Studio Xuất Dữ Liệu & Bản Đồ Trắc Địa, Khắc Phục Triệt Để Lỗi "Missing Symbol Table" trong AutoCAD
+- **Yêu cầu từ người dùng**:
+  1. `kiểm tra lại vấn đề xuất dữ liệu, cần tối ưu hóa xuất dữ liệu: Nhận chọn nút xuất dữ liệu==>cửa sổ preview==>cài đặt các thông tin, chọn lớp xuất dữ liệu,....==>chọn định dạng file được xuất dữ liệu (.png, .pdf, .xlsx, .dng (microstation), .dwg, .kml, ...)==>xuất dữ liệu.`
+  2. `tối ưu các file dữ liệu được xuất ra đúng tỉ lệ được chọn.`
+  3. `fix lỗi file .dwg không đọc được do lỗi "Missing symbol table"`
+- **Đã hoàn tất**:
+  1. **Khắc phục 100% lỗi "Missing symbol table" trong AutoCAD ([src/core/cad_geometry.js](file:///d:/Nhu/APP/VN2000-PWA/src/core/cad_geometry.js), [app.js](file:///d:/Nhu/APP/VN2000-PWA/app.js))**:
+     - Bổ sung toàn diện các Symbol Tables chuẩn Autodesk AutoCAD DXF/DWG (AC1015): Table `VPORT` (entry `*ACTIVE` tự động định vị camera), Table `LTYPE` (`CONTINUOUS`, `DASHED`, `CENTER`), Table `LAYER` (chuẩn TCVN 7285 & TT 25/2014/TT-BTNMT), Table `STYLE` (`STANDARD`, `VN_ARIAL`), Table `BLOCK_RECORD` (`*MODEL_SPACE`, `*PAPER_SPACE`), Section `BLOCKS`, và kết thúc file bằng `0\r\nEOF\r\n`.
+     - Tự động chuẩn hóa mảng điểm đầu vào, tính toán text height và bán kính tâm mốc scale chính xác theo hệ số $S = \text{Scale} / 1000$.
+  2. **Giao diện Modal Studio Xuất Dữ Liệu 5 bước ([index.html](file:///d:/Nhu/APP/VN2000-PWA/index.html) `#modalExportData`)**:
+     - **Cửa sổ Live Preview**: Khung SVG tương tác cao, vẽ đa giác ranh thửa, tâm mốc, tên mốc, tọa độ X/Y, thước tỷ lệ Graphic Scale Bar, la bàn hướng Bắc, lưới Km chữ thập; tự động cập nhật ngay lập tức khi thay đổi tỷ lệ hoặc bật/tắt lớp.
+     - **Cài đặt thông tin dự án & người lập**: Tên công trình, Kỹ sư đo vẽ, Ngày lập, Đơn vị khảo sát.
+     - **Bộ chọn tỷ lệ bản vẽ**: 1:500, 1:1.000, 1:2.000, 1:5.000, 1:10.000, và Fit tự động theo khổ giấy.
+     - **Bộ chọn lớp dữ liệu xuất (Layers)**: Toggle độc lập 8 lớp dữ liệu với nút "Bật tất cả".
+     - **11 Định dạng xuất file**: DWG (AutoCAD), DGN (MicroStation/Famis), PDF (Báo cáo A4/A3), PNG (Full HD có tỷ lệ xích), Excel XLSX, Google Earth KML, GeoJSON OGC, SVG Vector, TXT (Máy toàn đạc RTK), CSV UTF-8, Chia sẻ Zalo.
+  3. **Tối ưu xuất dữ liệu đúng tỷ lệ xích ([app.js](file:///d:/Nhu/APP/VN2000-PWA/app.js))**:
+     - Nâng cấp `exportDwgFile()` áp dụng tỷ lệ bản vẽ và metadata.
+     - Nâng cấp `exportPdfFile()` theo khổ giấy A4/A3, vẽ sơ đồ phân bố mốc theo các lớp đã lọc và ghi rõ tỷ lệ 1:scaleVal.
+     - Nâng cấp `exportPngImage()` với Graphic Scale Bar, kim hướng Bắc, lưới Km và đặt tên file `${projName}_1-${scaleVal}.png`.
+  4. **Kiểm thử tự động & Trực quan**:
+     - Thêm `tests/export_data_modal_and_standards.test.js`.
+     - Toàn bộ 241/241 bài test PASS 100%.
+     - Kiểm tra thực tế bằng Chrome DevTools MCP chụp ảnh nghiệm thu thành công.
+
+## Phiên trước — 2026-10-21: Xóa Bỏ Toàn Bộ Video Cũ & Ra Mắt Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa user-guide.html Kèm Tích Hợp Nút "?"
 - **Yêu cầu từ người dùng**:
   1. `bỏ hết các video hướng dẫn đi (xóa vết các video cũ và các tài liệu liên quan video luôn, tạo file hướng dẫn .html khi người dùng cần hướng dẫn đi (Nhấn nút "?" để nhờ hướng dẫn)`
   2. `hướng dẫn thì cái màn hình cần thao tác cần lớn để nhìn chứ, đưa mấy cái khung kia nhỏ hơn hoặc bố trí sao cho phù hợp. hiện tại hướng dẫn còn chưa nhìn được màn hình. chưa đọc xong hướng dẫn bước này thì đã chuyển sang bước khác.`

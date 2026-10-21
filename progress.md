@@ -9,7 +9,35 @@
 
 ## Nhật ký tiến độ gần nhất
 
-### [2026-10-21] Xóa Bỏ Hoàn Toàn Video Hướng Dẫn & Ra Mắt Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa user-guide.html Kèm Tích Hợp Nút "?"
+### [2026-10-21] Nâng Cấp Toàn Diện Studio Xuất Dữ Liệu & Bản Đồ Trắc Địa: Cửa Sổ Live Preview, Đa Định Dạng Chuẩn Tỷ Lệ & Khắc Phục Triệt Để Lỗi "Missing Symbol Table" trong AutoCAD
+- **Yêu cầu từ người dùng**:
+  1. `kiểm tra lại vấn đề xuất dữ liệu, cần tối ưu hóa xuất dữ liệu: Nhận chọn nút xuất dữ liệu==>cửa sổ preview==>cài đặt các thông tin, chọn lớp xuất dữ liệu,....==>chọn định dạng file được xuất dữ liệu (.png, .pdf, .xlsx, .dng (microstation), .dwg, .kml, ...)==>xuất dữ liệu.`
+  2. `tối ưu các file dữ liệu được xuất ra đúng tỉ lệ được chọn.`
+  3. `fix lỗi file .dwg không đọc được do lỗi "Missing symbol table"`
+- **Nguyên nhân cốt lõi lỗi "Missing symbol table"**:
+  - File CAD trước đây chỉ có duy nhất Table `LAYER` sơ sài trong Section `TABLES`, thiếu toàn bộ các Symbol Tables bắt buộc theo đặc tả AutoCAD của Autodesk (`VPORT`, `LTYPE`, `STYLE`, `BLOCK_RECORD`) và thiếu Section `BLOCKS`. Khi AutoCAD mở file này, trình nạp phát hiện thiếu các bảng ký hiệu chuẩn và báo lỗi nghiêm trọng *"Missing symbol table"* hoặc *"Drawing file is not valid"*.
+- **Giải pháp triển khai kỹ thuật toàn diện**:
+  1. **Khắc phục 100% lỗi "Missing symbol table" (`src/core/cad_geometry.js`)**:
+     - Xây dựng đầy đủ 100% Symbol Tables chuẩn Autodesk AutoCAD 2000-2026:
+       + Table `VPORT`: Entry `*ACTIVE` tự động định vị camera trung tâm bản vẽ dựa trên bounding box thực tế.
+       + Table `LTYPE`: Đầy đủ `CONTINUOUS`, `DASHED`, `CENTER`, `BYBLOCK`, `BYLAYER`.
+       + Table `LAYER`: Hệ thống lớp chuẩn TCVN 7285 & TT 25/2014/TT-BTNMT (`0`, `RANH_THUA`, `RANH_DAT`, `MOC_TOADO`, `SO_HIEU_DINH`, `CHIEU_DAI_CANH`, `TOADO_TEXT`, `LUOI_TOADO`, `KHUNG_BAN_VE`, `KHUNG_TEN`, `HUONG_BAC`).
+       + Table `STYLE`: Khai báo phông chữ `STANDARD` (`txt`) và `VN_ARIAL` (`arial.ttf`).
+       + Table `BLOCK_RECORD` & Section `BLOCKS`: `*MODEL_SPACE` và `*PAPER_SPACE`.
+     - Tự động chuẩn hóa mảng điểm đầu vào, tính toán kích thước text height và bán kính tâm mốc scale theo đúng hệ số tỷ lệ $S = \text{Scale} / 1000$.
+  2. **Quy trình xuất 5 bước tích hợp trong Studio Xuất Dữ Liệu (`#modalExportData` trong `index.html`)**:
+     - **Cửa sổ Xem trước bản vẽ (Live Preview)**: SVG Map tương tác cao, tự động cập nhật ngay lập tức khi bật/tắt lớp hoặc thay đổi tỷ lệ bản đồ.
+     - **Cài đặt thông tin dự án**: Tên công trình, Kỹ sư đo đạc, Ngày đo, Đơn vị khảo sát.
+     - **Bộ chọn tỷ lệ bản vẽ chuẩn**: 1:500 (Hoàn công, Đô thị), 1:1.000 (Địa chính chuẩn), 1:2.000 (Tuyến, Quy hoạch), 1:5.000, 1:10.000, và chế độ Fit tự động tính toán theo khổ giấy.
+     - **Bộ chọn lớp dữ liệu xuất (Layers)**: Bật/tắt độc lập Tâm mốc, Tên mốc, Tọa độ X/Y, Ranh thửa đất, Chiều dài cạnh, Lưới Km chữ thập, Khung bản vẽ, Kim chỉ hướng Bắc.
+     - **11 Định dạng xuất dữ liệu**: AutoCAD (.dwg), MicroStation & Famis (.dgn), Báo cáo PDF A4/A3 (.pdf), Ảnh PNG Full HD (.png), Excel (.xlsx), Google Earth (.kml), GeoJSON (.geojson), Vector SVG (.svg), Tọa độ máy đo RTK (.txt), CSV UTF-8 (.csv), Chia sẻ trực tiếp (Zalo).
+  3. **Tối ưu xuất file đúng tỷ lệ xích thực tế (`app.js`)**:
+     - Nâng cấp `exportDwgFile()` nạp options tỷ lệ và metadata, đảm bảo AutoCAD mở mượt mà không lỗi.
+     - Nâng cấp `exportPdfFile()` định dạng khổ giấy A4/A3 theo tỷ lệ được chọn, hiển thị sơ đồ phân bố mốc theo các lớp đã lọc.
+     - Nâng cấp `exportPngImage()` vẽ đồ họa bản vẽ chuẩn kỹ thuật, hiển thị thước tỷ lệ xích Graphic Scale Bar góc dưới và xuất tên file theo tỷ lệ `${projName}_1-${scaleVal}.png`.
+  4. **Kiểm thử tự động**:
+     - Bổ sung bộ test `tests/export_data_modal_and_standards.test.js`.
+     - Toàn bộ 241/241 unit tests trong `tests/*.test.js` PASS 100%.
 - **Yêu cầu từ người dùng**:
   - `bỏ hết các video hướng dẫn đi (xóa vết các video cũ và các tài liệu liên quan video luôn, tạo file hướng dẫn .html khi người dùng cần hướng dẫn đi (Nhấn nút "?" để nhờ hướng dẫn)`
   - `hướng dẫn thì cái màn hình cần thao tác cần lớn để nhìn chứ, đưa mấy cái khung kia nhỏ hơn hoặc bố trí sao cho phù hợp. hiện tại hướng dẫn còn chưa nhìn được màn hình. chưa đọc xong hướng dẫn bước này thì đã chuyển sang bước khác.`
