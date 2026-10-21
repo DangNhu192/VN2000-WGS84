@@ -9,6 +9,21 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-21] Tinh Chỉnh Giao Diện & Câu Chữ Video Hướng Dẫn Chuẩn Coder Chuyên Nghiệp
+- **Yêu cầu**: `" Video Hướng Dẫn Thao Tác Chức Năng (Quay chụp màn hình • Giọng đọc & Nhạc nhẹ)." sao mà AI quá vậy. bạn hãy sửa lỗi để thuận tự nhiên như một coder chuyên nghiệp gọn gàng chứ.`
+- **Triển khai kỹ thuật**:
+  1. **Loại bỏ văn phong giải thích rườm rà dạng AI prompt**:
+     - Menu Drawer mục 5.7: Đổi từ `"5.7 Video Hướng Dẫn Thao Tác Chức Năng (Quay chụp màn hình • Giọng đọc & Nhạc nhẹ)"` thành:
+       + Tiêu đề: **`5.7 Video Hướng Dẫn Sử Dụng`**
+       + Mô tả nghiệp vụ: **`Trực quan từng bước 7 tính năng chính`**
+  2. **Chuẩn hóa trang Studio ([tutorials-pdoom.html](file:///d:/Nhu/APP/VN2000-PWA/tutorials-pdoom.html))**:
+     - Tiêu đề trang & header: **`VN2000 PRO — Video Hướng Dẫn Sử Dụng`** (Badge: `HƯỚNG DẪN`).
+     - Thanh điều khiển âm thanh: `🎹 Nhạc nền:`, `🗣️ Thuyết minh:` thay vì `Nhạc nhẹ`, `Giọng đọc`.
+     - Danh mục: **`📂 DANH SÁCH VIDEO HƯỚNG DẪN`**.
+  3. **Kiểm tra trực quan & Kiểm thử hồi quy**:
+     - Xác thực thực tế qua Chrome DevTools MCP trên cả mobile viewport và desktop viewport: giao diện gọn gàng, đồng nhất với các mục khác trong hệ thống.
+     - **237 / 237 bài test tự động PASS 100%**.
+
 ### [2026-10-21] Chuẩn Hóa Xuất File Bản Vẽ AutoCAD (.dwg) & Loại Bỏ Hoàn Toàn Định Dạng .dxf
 - **Mục tiêu**: Chuẩn hóa toàn bộ hệ thống xuất bản vẽ CAD sang định dạng AutoCAD (.dwg) theo tiêu chuẩn kỹ thuật địa chính TCVN và Thông tư 25/2014/TT-BTNMT; loại bỏ triệt để định dạng trung gian .dxf khỏi giao diện người dùng, mã nguồn và hệ thống file.
 - **Triển khai kỹ thuật toàn diện**:

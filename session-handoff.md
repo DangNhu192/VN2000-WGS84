@@ -1,6 +1,18 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Chuẩn Hóa Xuất File Bản Vẽ AutoCAD (.dwg) & Loại Bỏ Hoàn Toàn Định Dạng .dxf
+## Phiên hiện tại — 2026-10-21: Tinh Chỉnh Giao Diện & Câu Chữ Video Hướng Dẫn Chuẩn Coder Chuyên Nghiệp
+- **Đã hoàn tất**:
+  1. Loại bỏ hoàn toàn văn phong giải thích rườm rà dạng AI prompt:
+     - Menu Drawer mục 5.7: Sửa thành `5.7 Video Hướng Dẫn Sử Dụng`, phụ đề `Trực quan từng bước 7 tính năng chính`.
+  2. Chuẩn hóa trang Studio `tutorials-pdoom.html`:
+     - Tiêu đề & header: `VN2000 PRO — Video Hướng Dẫn Sử Dụng`, badge `HƯỚNG DẪN`.
+     - Nhãn âm thanh: `🎹 Nhạc nền:`, `🗣️ Thuyết minh:`.
+     - Danh mục: `📂 DANH SÁCH VIDEO HƯỚNG DẪN`.
+  3. Kiểm thử tự động & Trực quan:
+     - **237 / 237 bài test tự động PASS 100%**.
+     - Đã xác thực thực tế qua Chrome DevTools MCP chụp ảnh màn hình di động.
+
+## Phiên trước — 2026-10-21: Chuẩn Hóa Xuất File Bản Vẽ AutoCAD (.dwg) & Loại Bỏ Hoàn Toàn Định Dạng .dxf
 - **Đã hoàn tất**:
   1. **Loại bỏ hoàn toàn từ khóa & nút xuất .dxf trong giao diện (`index.html`)**:
      - Thay thế tất cả các nhãn, badge, modal, tooltip: `"Xuất AutoCAD (.dwg / .dxf)"` → `"Xuất Bản vẽ AutoCAD (.dwg)"`.
