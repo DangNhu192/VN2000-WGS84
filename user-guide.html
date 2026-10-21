@@ -47,17 +47,14 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html {
-      scroll-behavior: smooth;
-    }
+    html { scroll-behavior: smooth; }
 
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 15px;
-      line-height: 1.65;
+      line-height: 1.68;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -129,9 +126,7 @@
       transition: all 0.2s ease;
       font-family: inherit;
     }
-    body.light-theme .search-input {
-      background: #f1f5f9;
-    }
+    body.light-theme .search-input { background: #f1f5f9; }
     .search-input:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--accent-glow);
@@ -168,9 +163,7 @@
       transition: all 0.2s ease;
       font-family: inherit;
     }
-    body.light-theme .btn-header {
-      background: #f1f5f9;
-    }
+    body.light-theme .btn-header { background: #f1f5f9; }
     .btn-header:hover {
       background: var(--accent);
       color: #fff;
@@ -243,18 +236,14 @@
       color: var(--text);
       background: rgba(255, 255, 255, 0.05);
     }
-    body.light-theme .toc-item a:hover {
-      background: #f1f5f9;
-    }
+    body.light-theme .toc-item a:hover { background: #f1f5f9; }
     .toc-item a.active {
       color: #38bdf8;
       background: rgba(56, 189, 248, 0.12);
       font-weight: 700;
       border-left: 3px solid #38bdf8;
     }
-    .toc-item .toc-icon {
-      font-size: 16px;
-    }
+    .toc-item .toc-icon { font-size: 16px; }
 
     /* Main Content Area */
     main.guide-content {
@@ -286,8 +275,8 @@
     .hero-banner p {
       font-size: 15px;
       color: var(--text-muted);
-      max-width: 860px;
-      line-height: 1.6;
+      max-width: 880px;
+      line-height: 1.65;
     }
     .hero-tags {
       display: flex;
@@ -361,7 +350,7 @@
       font-size: 15px;
       color: var(--text-muted);
       margin-top: 4px;
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
     /* Large Interactive Screen Showcase */
@@ -383,15 +372,8 @@
       justify-content: space-between;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .showcase-dots {
-      display: flex;
-      gap: 6px;
-    }
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
+    .showcase-dots { display: flex; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
     .dot-red { background: #ef4444; }
     .dot-yellow { background: #f59e0b; }
     .dot-green { background: #10b981; }
@@ -414,10 +396,7 @@
       gap: 4px;
       transition: all 0.2s ease;
     }
-    .showcase-btn-zoom:hover {
-      background: var(--accent);
-      color: #fff;
-    }
+    .showcase-btn-zoom:hover { background: var(--accent); color: #fff; }
 
     .showcase-img-container {
       position: relative;
@@ -436,9 +415,7 @@
       display: block;
       transition: transform 0.2s ease;
     }
-    .showcase-img:hover {
-      filter: brightness(1.03);
-    }
+    .showcase-img:hover { filter: brightness(1.03); }
 
     .showcase-callouts-bar {
       background: rgba(15, 23, 42, 0.95);
@@ -505,9 +482,7 @@
       flex-shrink: 0;
       box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
     }
-    .step-body {
-      flex: 1;
-    }
+    .step-body { flex: 1; }
     .step-heading {
       font-size: 15.5px;
       font-weight: 700;
@@ -517,11 +492,9 @@
     .step-text {
       font-size: 14px;
       color: var(--text-muted);
-      line-height: 1.6;
+      line-height: 1.65;
     }
-    .step-text b {
-      color: var(--text);
-    }
+    .step-text b { color: var(--text); }
     .step-text code {
       font-family: 'JetBrains Mono', monospace;
       background: var(--code-bg);
@@ -540,15 +513,12 @@
       margin: 16px 0;
       font-size: 13.5px;
       color: #fbbf24;
-      line-height: 1.55;
+      line-height: 1.6;
       display: flex;
       gap: 12px;
       align-items: flex-start;
     }
-    body.light-theme .tip-box {
-      background: #fef3c7;
-      color: #92400e;
-    }
+    body.light-theme .tip-box { background: #fef3c7; color: #92400e; }
 
     .alert-box {
       background: rgba(239, 68, 68, 0.1);
@@ -558,15 +528,12 @@
       margin: 16px 0;
       font-size: 13.5px;
       color: #fca5a5;
-      line-height: 1.55;
+      line-height: 1.6;
       display: flex;
       gap: 12px;
       align-items: flex-start;
     }
-    body.light-theme .alert-box {
-      background: #fee2e2;
-      color: #991b1b;
-    }
+    body.light-theme .alert-box { background: #fee2e2; color: #991b1b; }
 
     .shortcut-table {
       width: 100%;
@@ -615,9 +582,7 @@
       justify-content: center;
       padding: 20px;
     }
-    .lightbox-modal.active {
-      display: flex;
-    }
+    .lightbox-modal.active { display: flex; }
     .lightbox-img {
       max-width: 95vw;
       max-height: 92vh;
@@ -643,45 +608,20 @@
       justify-content: center;
       transition: all 0.2s ease;
     }
-    .lightbox-close:hover {
-      background: #ef4444;
-      border-color: #ef4444;
-    }
+    .lightbox-close:hover { background: #ef4444; border-color: #ef4444; }
 
-    /* Responsive */
     @media (max-width: 1024px) {
-      aside.guide-sidebar {
-        display: none;
-      }
-      main.guide-content {
-        padding: 24px 20px 80px;
-      }
-      .brand-title {
-        font-size: 14px;
-      }
+      aside.guide-sidebar { display: none; }
+      main.guide-content { padding: 24px 20px 80px; }
+      .brand-title { font-size: 14px; }
     }
 
-    /* Print View */
     @media print {
-      header.guide-header, aside.guide-sidebar, .showcase-btn-zoom, .btn-header {
-        display: none !important;
-      }
-      main.guide-content {
-        padding: 0 !important;
-        max-width: 100% !important;
-      }
-      body {
-        background: #fff !important;
-        color: #000 !important;
-      }
-      .guide-screen-showcase {
-        box-shadow: none !important;
-        border: 1px solid #ccc !important;
-        page-break-inside: avoid;
-      }
-      section.guide-section {
-        page-break-inside: avoid;
-      }
+      header.guide-header, aside.guide-sidebar, .showcase-btn-zoom, .btn-header { display: none !important; }
+      main.guide-content { padding: 0 !important; max-width: 100% !important; }
+      body { background: #fff !important; color: #000 !important; }
+      .guide-screen-showcase { box-shadow: none !important; border: 1px solid #ccc !important; page-break-inside: avoid; }
+      section.guide-section { page-break-inside: avoid; }
     }
   </style>
 </head>
@@ -700,7 +640,7 @@
     <!-- Live Instant Search -->
     <div class="search-box-wrap">
       <span class="search-icon">🔍</span>
-      <input type="text" id="guideSearchInput" class="search-input" placeholder="Tìm kiếm nhanh: KTT, Đảo trục, MiniCAD, Xuất DWG, La bàn, Trắc dọc..." oninput="filterGuideTopics(this.value)">
+      <input type="text" id="guideSearchInput" class="search-input" placeholder="Tìm nhanh: KTT, đảo trục, bắt điểm, xuất DWG, cắm mốc, trắc dọc..." oninput="filterGuideTopics(this.value)">
     </div>
 
     <div class="header-actions">
@@ -758,7 +698,7 @@
       <!-- Hero Header -->
       <div class="hero-banner">
         <h1>📖 Cẩm Nang Hướng Dẫn Sử Dụng Thực Địa</h1>
-        <p>Tài liệu hướng dẫn trực quan, chuẩn xác từng thao tác kỹ thuật cho kỹ sư trắc địa, địa chính và cán bộ giám sát công trường. Hình ảnh giao diện kích thước lớn, từng bước mạch lạc, không áp lực thời gian.</p>
+        <p>Sổ tay kỹ thuật thực chiến dành riêng cho kỹ sư đo đạc, cán bộ trắc địa địa chính và giám sát công trường. Mọi bước thực hiện đi thẳng vào thao tác máy, nêu rõ thông số cụ thể, chỉ ra cạm bẫy sai số thực tế kèm ảnh chụp giao diện khổ lớn không che khuất.</p>
         <div class="hero-tags">
           <span class="hero-pill">✓ Tiêu chuẩn QĐ 05/2007/QĐ-BTNMT</span>
           <span class="hero-pill">✓ Độ chính xác Millimeter (0.001m)</span>
@@ -776,7 +716,7 @@
               <span class="section-category">GIAO DIỆN & TỔNG QUAN</span>
             </div>
             <h2 class="section-title">📱 Tổng Quan Giao Diện & Thanh Điều Hướng Nhanh</h2>
-            <p class="section-desc">Giao diện thiết kế theo triết lý Apple Tahoe & iOS 21 Dynamic Control Center: Tối ưu cho thiết bị cầm tay ngoài công trường với độ tương phản cao, phím tắt nhanh và thanh dock chuyển tác vụ.</p>
+            <p class="section-desc">Bố cục công trường tối ưu cho thao tác một tay trên điện thoại và mở rộng đa cửa sổ trên máy tính bảng hoặc laptop. Tương phản cao, chữ to, rõ phím chức năng.</p>
           </div>
         </div>
 
@@ -786,23 +726,23 @@
             <div class="step-body">
               <div class="step-heading">Thanh Menu Trên Cùng (Header Control Center)</div>
               <div class="step-text">
-                Nút <b>☰ Menu</b> mở cây thư mục phân cấp toàn bộ chức năng. Nút <b>☀️ Đổi Theme</b> giúp chuyển đổi nhanh nền Sáng/Tối. Nút <b>🛰️ GPS</b> bật tắt nhận tín hiệu vệ tinh trực tiếp. Nút <b>⚙️ Cài đặt</b> và nút <b>? Hướng dẫn</b> cung cấp trợ giúp ngữ cảnh tức thì tại bất kỳ màn hình nào.
+                Nhấp nút <b>☰ Menu</b> để duyệt nhanh toàn bộ cây thư mục 14 phân hệ. Nút <b>☀️ Đổi Theme</b> đảo tức thì giữa nền tối chống mỏi mắt và nền sáng chống lóa ngoài trời nắng. Cạnh đó, nút <b>🛰️ GPS</b> bật/tắt định vị vệ tinh, nút <b>⚙️ Cài đặt</b> và nút <b>?</b> mở hướng dẫn ngữ cảnh ngay tại màn hình đang mở.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Thanh Điều Hướng Đáy Màn Hình (Taskbar Dock)</div>
+              <div class="step-heading">Thanh Tác Vụ Đáy Màn Hình (Taskbar Dock)</div>
               <div class="step-text">
-                Cung cấp 4 phím tắt chuyển nhanh: <b>🏠 Trang Chủ</b>, <b>🔄 Chuyển Đổi</b>, <b>🗺️ Bản Đồ</b>, <b>📁 Sổ Đo</b>. Bạn có thể nhấn giữ hoặc vào Cài Đặt Ghim để thay đổi các phím tắt này thành MiniCAD, Cắm Mốc hoặc Camera tùy theo nhu cầu thi công thực địa.
+                Thanh đáy ghim sẵn 4 tác vụ cốt lõi: <b>Trang Chủ</b>, <b>Chuyển Đổi</b>, <b>Bản Đồ</b> và <b>Sổ Đo</b>. Cần đổi tính năng khác? Hãy bấm giữ vào thanh dock hoặc mở menu Cài Đặt Ghim để thay bằng MiniCAD, Cắm Mốc hoặc Camera tùy ý đồ thi công.
               </div>
             </div>
           </div>
         </div>
 
         <div class="tip-box">
-          💡 <b>Mẹo thực địa:</b> Bạn có thể nhấn phím <b>F1</b> hoặc nút <b>?</b> ở góc phải trên cùng màn hình bất kỳ lúc nào để nhận trợ giúp tương ứng với phân hệ bạn đang làm việc.
+          💡 <b>Phím tắt nhanh:</b> Khi đang ở bất kỳ màn hình nào, bấm phím <b>F1</b> hoặc nút tròn <b>?</b> ở góc phải trên cùng để mở ngay cẩm nang hướng dẫn riêng của chức năng đó.
         </div>
       </section>
 
@@ -815,7 +755,7 @@
               <span class="section-category">CHUYỂN ĐỔI TỌA ĐỘ</span>
             </div>
             <h2 class="section-title">🔄 Chuyển Đổi Tọa Độ Đơn Điểm 2 Chiều & Tra Cứu Vệ Tinh</h2>
-            <p class="section-desc">Chuyển đổi 2 chiều chính xác tuyệt đối giữa hệ VN-2000 (X, Y) và WGS-84 (Lat, Lng) theo Quyết định 05/2007/QĐ-BTNMT. Tích hợp bản đồ trực quan vệ tinh Google Earth độ phân giải cao.</p>
+            <p class="section-desc">Tính toán chuyển đổi qua lại giữa tọa độ phẳng trắc địa VN-2000 (X, Y) và tọa độ địa lý quốc tế WGS-84 (Lat, Lng). Thuật toán Gauss-Krüger chuẩn hóa theo Quyết định 05/2007/QĐ-BTNMT, sai số dưới 1mm.</p>
           </div>
         </div>
 
@@ -834,10 +774,10 @@
             <img src="assets/tutorial_screens/desktop_fn1_transform.png" alt="Màn hình chuyển đổi tọa độ đơn điểm lớn" class="showcase-img">
           </div>
           <div class="showcase-callouts-bar">
-            <div class="callout-pill"><span class="callout-num">1</span> Ô chọn Tỉnh & Kinh tuyến trục cục bộ</div>
-            <div class="callout-pill"><span class="callout-num">2</span> Cặp ô nhập tọa độ X (Bắc) và Y (Đông)</div>
-            <div class="callout-pill"><span class="callout-num">3</span> Nút Chuyển Đổi & Nút Đảo Trục thông minh</div>
-            <div class="callout-pill"><span class="callout-num">4</span> Mốc hiển thị trực quan trên nền ảnh vệ tinh</div>
+            <div class="callout-pill"><span class="callout-num">1</span> Khung chọn Tỉnh & Kinh tuyến trục cục bộ</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Ô nhập cặp tọa độ X (Bắc) và Y (Đông)</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Nút Chuyển Đổi & Nút Đảo Trục chống lệch</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Mốc hiển thị trực quan trên nền ảnh vệ tinh Google Earth</div>
           </div>
         </div>
 
@@ -845,34 +785,34 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Chọn Tỉnh thành & Múi chiếu (KTT)</div>
+              <div class="step-heading">Bước 1: Chọn Tỉnh thành và Múi chiếu thi công</div>
               <div class="step-text">
-                Tại ô chọn tỉnh thành, click chọn địa phương thi công (ví dụ: <code>Đồng Tháp - KTT 105°00', Múi 3°</code>). Hệ thống tự động thiết lập kinh tuyến trục và lưu vĩnh viễn theo chuẩn Bộ TN&MT.
+                Nhấp vào ô danh sách địa phương, chọn tỉnh thành nơi đặt công trình (ví dụ: <code>Đồng Tháp - KTT 105°00', Múi 3°</code>). Ứng dụng tự động khóa kinh tuyến trục tương ứng. Thông số này được lưu lại cho mọi lần đo tiếp theo, không lo mất cấu hình.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Nhập hoặc Dán Tọa Độ Cần Quy Đổi</div>
+              <div class="step-heading">Bước 2: Điền hoặc Dán tọa độ cần quy đổi</div>
               <div class="step-text">
-                Nhập cặp tọa độ <b>X</b> (trục Bắc, 7 chữ số: >1.000.000m) và <b>Y</b> (trục Đông, 6 chữ số: >500.000m). Bạn cũng có thể bấm nút <b>📋 Dán</b> để lấy trực tiếp từ Zalo/Clipboard — ứng dụng tự phát hiện và đảo trục nếu bạn dán nhầm thứ tự Y-X.
+                Điền giá trị <b>X</b> (trục Bắc, 7 chữ số: >1.000.000m) và <b>Y</b> (trục Đông, 6 chữ số: >500.000m). Nhận số liệu qua tin nhắn Zalo hay ghi chú? Chỉ cần sao chép rồi bấm nút <b>📋 Dán</b>. Hệ thống tự động tách số, loại bỏ ký tự lạ và tự hoán đổi vị trí nếu bạn dán ngược thứ tự Y trước X sau.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bước 3: Nhận Kết Quả & Xem Vị Trí Vệ Tinh Trực Quan</div>
+              <div class="step-heading">Bước 3: Nhận kết quả và kiểm tra thực địa trên vệ tinh</div>
               <div class="step-text">
-                Kết quả WGS-84 (Vĩ độ Lat, Kinh độ Lng) lập tức xuất hiện. Click nút <b>Bản đồ lớn trực quan</b> hoặc kéo tấm bảng lên để kiểm tra mốc nằm đúng vị trí thực tế trên nền ảnh vệ tinh Google Earth độ nét cao.
+                Bấm nút <b>Chuyển Đổi</b>. Cặp tọa độ đích WGS-84 (Vĩ độ Lat, Kinh độ Lng) hiện ra ngay lập tức kèm độ chính xác 6 chữ số thập phân. Bấm nút <b>Bản Đồ Lớn Trực Quan</b> hoặc vuốt bảng kết quả lên để thấy điểm mốc ghim chính xác trên nền ảnh vệ tinh Google Earth sắc nét.
               </div>
             </div>
           </div>
         </div>
 
         <div class="tip-box">
-          💡 <b>Quy tắc chống lệch hàng trăm km:</b> Trong hệ VN-2000 tại Việt Nam: Trục <b>X là trục Bắc</b> luôn có <b>7 chữ số</b> (khoảng 900.000m đến 2.500.000m); Trục <b>Y là trục Đông</b> luôn có <b>6 chữ số</b> (khoảng 400.000m đến 650.000m). Ứng dụng tích hợp bộ AI Guard tự động cảnh báo nếu tọa độ bị đảo ngược.
+          💡 <b>Kinh nghiệm nhận biết trục tọa độ:</b> Lưới chiếu VN-2000 quy ước trục <b>X là trục Bắc</b> luôn mang <b>7 chữ số</b> (từ 900.000m đến 2.500.000m). Trục <b>Y là trục Đông</b> luôn mang <b>6 chữ số</b> (từ 400.000m đến 650.000m). Nhập ngược trục sẽ làm điểm mốc văng xa hàng trăm cây số ra ngoài biển Đông. Hãy để ý cảnh báo màu đỏ nếu hệ thống phát hiện số lượng chữ số bất thường.
         </div>
       </section>
 
@@ -885,7 +825,7 @@
               <span class="section-category">XỬ LÝ DỮ LIỆU EXCEL</span>
             </div>
             <h2 class="section-title">📊 Chuyển Đổi Hàng Loạt Từ Bảng Excel & Tự Đảo Trục Chống Lệch</h2>
-            <p class="section-desc">Xử lý cùng lúc hàng chục hoặc hàng nghìn mốc trắc địa từ bảng tính Excel. Tự nhận diện phân cách Tab, dấu phẩy thập phân Việt Nam và xuất file đa định dạng.</p>
+            <p class="section-desc">Xử lý đồng loạt hàng trăm điểm mốc chỉ bằng một cú dán bảng. Tự động nhận diện phân cách phím Tab, dấu phẩy thập phân Việt Nam và xuất kết quả sang bản vẽ AutoCAD DWG hoặc bảng tính Excel.</p>
           </div>
         </div>
 
@@ -905,9 +845,9 @@
           </div>
           <div class="showcase-callouts-bar">
             <div class="callout-pill"><span class="callout-num">1</span> Tab Chuyển đổi hàng loạt</div>
-            <div class="callout-pill"><span class="callout-num">2</span> Khung dán trực tiếp từ Excel (Ctrl+V)</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Khung dán trực tiếp từ bảng tính Excel (Ctrl+V)</div>
             <div class="callout-pill"><span class="callout-num">3</span> Bảng kết quả tính toán chi tiết kèm sai số</div>
-            <div class="callout-pill"><span class="callout-num">4</span> Nút Xuất file AutoCAD DWG / Excel / KML</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Cụm nút Xuất file AutoCAD DWG, Excel XLS, KML</div>
           </div>
         </div>
 
@@ -915,34 +855,34 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Chuyển sang Tab [Chuyển Đổi Đa Điểm / Hàng Loạt]</div>
+              <div class="step-heading">Bước 1: Chuyển sang Tab [Chuyển Đổi Đa Điểm]</div>
               <div class="step-text">
-                Tại giao diện Chuyển đổi, bấm chọn tab <b>Chuyển Đổi Đa Điểm</b>. Giao diện bảng tính thông minh mở ra, sẵn sàng tiếp nhận danh sách mốc.
+                Tại giao diện Chuyển Đổi, nhấp vào tab <b>Chuyển Đổi Đa Điểm</b>. Khung bảng tính mở rộng sẵn sàng đón nhận danh sách mốc công trình từ bảng tính ngoài.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Dán Bảng Tọa Độ Từ Excel (Ctrl + V)</div>
+              <div class="step-heading">Bước 2: Sao chép từ Excel và Dán thẳng vào ô nhập (Ctrl + V)</div>
               <div class="step-text">
-                Sao chép các cột từ file Excel dự án (hỗ trợ cả mẫu 2 cột: <code>X | Y</code> hoặc mẫu 3 cột: <code>Tên Mốc | X | Y</code>) rồi dán trực tiếp. Trình phân tích tự chuẩn hóa phân cách Tab, nhận diện dấu phẩy thập phân Việt Nam <code>1144058,623</code> và bấm nút <b>⚡ Tính toán hàng loạt</b>.
+                Bôi đen vùng dữ liệu trong file Excel (chấp nhận cả bảng 2 cột <code>X, Y</code> lẫn bảng 3 cột <code>Tên Mốc, X, Y</code>), nhấn copy rồi dán thẳng vào khung. Trình bóc tách số liệu tự động xử lý dấu phẩy thập phân kiểu Việt Nam như <code>1144058,623</code>, chuẩn hóa dấu cách rồi kích hoạt nút <b>⚡ Tính toán hàng loạt</b>.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bước 3: Xuất File Nghiệm Thu (DWG / Excel / KML)</div>
+              <div class="step-heading">Bước 3: Xem bảng kết quả và Tải tệp nghiệm thu</div>
               <div class="step-text">
-                Bảng danh sách kết quả hiển thị trọn vẹn tọa độ chuyển đổi. Bấm nút <b>Xuất dữ liệu</b> để tải về file bản vẽ AutoCAD (<code>.dwg</code>), file bảng tính Excel (<code>.xlsx</code>) hoặc file Google Earth (<code>.kml</code>) phục vụ hồ sơ nghiệm thu.
+                Toàn bộ danh sách tọa độ mới được xếp hàng ngay ngắn trong bảng đối soát. Nhấp nút <b>Xuất Dữ Liệu</b> để tải ngay file bản vẽ <code>.dwg</code> tương thích AutoCAD, file bảng tính <code>.xlsx</code> hoặc file <code>.kml</code> mở xem trực tiếp trên Google Earth.
               </div>
             </div>
           </div>
         </div>
 
         <div class="tip-box">
-          💡 <b>Định dạng hỗ trợ:</b> Hỗ trợ cả danh sách không có tên mốc (hệ thống tự động đánh số M1, M2, M3...) hoặc danh sách đảo trục Y trước X sau (thuật toán tự động sắp xếp lại chuẩn VN-2000).
+          💡 <b>Không cần sửa file Excel mẫu:</b> Danh sách thiếu tên mốc? Hệ thống tự gán nhãn M1, M2, M3... Thứ tự cột bị đảo lộn Y trước X sau? Thuật toán tự đối soát độ lớn để xếp lại đúng trật tự chuẩn trước khi tính toán.
         </div>
       </section>
 
@@ -955,7 +895,7 @@
               <span class="section-category">BẢN ĐỒ THỰC ĐỊA</span>
             </div>
             <h2 class="section-title">🗺️ Bản Đồ Khảo Sát Thực Địa & HUD Quan Trắc Vệ Tinh</h2>
-            <p class="section-desc">Theo dõi vị trí hiện trường theo thời gian thực (Live GPS HUD). Tích hợp chế độ tương phản cao chống nắng chói, kiểm soát sai số vệ tinh và chấm điểm lưu mốc trực tiếp ngoài thực địa.</p>
+            <p class="section-desc">Theo dõi vị trí bước chân ngoài thực địa theo thời gian thực (Live GPS HUD). Lọc nâng cao tương phản chống chói nắng gắt, theo dõi sai số vệ tinh từng mét và chấm mốc nhanh vào sổ đo.</p>
           </div>
         </div>
 
@@ -974,10 +914,10 @@
             <img src="assets/tutorial_screens/desktop_fn2_project.png" alt="Màn hình bản đồ dự án và mốc tọa độ" class="showcase-img">
           </div>
           <div class="showcase-callouts-bar">
-            <div class="callout-pill"><span class="callout-num">1</span> Thanh công cụ Bản đồ & Mốc dự án chuyên biệt</div>
-            <div class="callout-pill"><span class="callout-num">2</span> Live HUD hiển thị tọa độ tức thời cả 2 hệ</div>
-            <div class="callout-pill"><span class="callout-num">3</span> Điểm mốc khảo sát trên nền bản đồ</div>
-            <div class="callout-pill"><span class="callout-num">4</span> Nút Chấm mốc & Thu phóng bao quát dự án</div>
+            <div class="callout-pill"><span class="callout-num">1</span> Thanh công cụ Bản đồ & Mốc dự án độc lập</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Live HUD hiển thị tọa độ tức thời cả 2 hệ VN-2000 & WGS-84</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Điểm mốc khảo sát hiển thị trên nền ảnh bản đồ</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Nút Chấm mốc & Thu phóng bao quát toàn dự án</div>
           </div>
         </div>
 
@@ -985,34 +925,34 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Bật Định Vị GPS & Xem Live HUD Tọa Độ</div>
+              <div class="step-heading">Bước 1: Bật GPS để nạp vị trí thực địa</div>
               <div class="step-text">
-                Chạm vào biểu tượng <b>🗺️ Bản Đồ</b> hoặc nút <b>🛰️ GPS</b> trên thanh header. Cấp quyền truy cập vị trí trên trình duyệt. Bảng Live HUD lập tức hiển thị song song cặp tọa độ VN-2000 (X, Y) và WGS-84 (Lat, Lng) theo vị trí bước chân của bạn.
+                Chạm vào biểu tượng <b>Bản Đồ</b> ở thanh đáy hoặc nút <b>🛰️ GPS</b> trên header. Cho phép trình duyệt truy cập vị trí. Hộp Live HUD lập tức hiển thị song song tọa độ phẳng VN-2000 và tọa độ WGS-84 bám theo từng bước chân bạn di chuyển ngoài hiện trường.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Bật Chế Độ Thực Địa Chống Nắng (High Contrast)</div>
+              <div class="step-heading">Bước 2: Bật chế độ Thực Địa khi trời nắng gắt</div>
               <div class="step-text">
-                Khi đo đạc dưới trời nắng gắt, chạm vào nút <b>⚡ Thực Địa</b> trên thanh công cụ bản đồ. Ứng dụng tự động áp dụng bộ lọc tăng độ nét biên ranh mốc Laplacian và khử chói để bạn quan sát rõ ràng mà không phải che tay.
+                Đo đạc giữa đồng trống nắng chói lóa? Nhấp ngay nút <b>⚡ Thực Địa</b> trên thanh công cụ bản đồ. Bộ lọc vi sai Laplacian lập tức kích hoạt, đẩy đậm biên ranh thửa và mốc trắc địa, giúp màn hình rõ nét dù ánh sáng mặt trời chiếu trực diện.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bước 3: Chấm Điểm Lấy Tọa Độ & Lưu Mốc</div>
+              <div class="step-heading">Bước 3: Chấm điểm và Lưu mốc đo</div>
               <div class="step-text">
-                Chạm trực tiếp vào vị trí bất kỳ trên bản đồ vệ tinh hoặc đứng tại mốc rồi bấm nút <b>📌 Lưu mốc thực địa</b>. Điểm đo sẽ được ghi nhận ngay vào Sổ Đo Dự Án với đầy đủ thời gian và tọa độ chuẩn xác.
+                Đứng tại vị trí cọc mốc, chạm nút <b>📌 Lưu Mốc Thực Địa</b> (hoặc chấm trực tiếp lên màn hình bản đồ). Tọa độ tức thời, thời gian đo và độ chính xác vệ tinh được ghi nhận ngay vào Sổ Đo Dự Án, an toàn không lo thất lạc.
               </div>
             </div>
           </div>
         </div>
 
         <div class="alert-box">
-          ⚠️ <b>Lưu ý sai số GPS thiết bị di động:</b> Cảm biến GPS tích hợp trong điện thoại/máy tính bảng thông thường có sai số từ 3 mét đến 10 mét phụ thuộc vào độ thông thoáng bầu trời. Dùng cho khảo sát sơ bộ, tìm mốc và nhận diện ranh. Để đạt độ chính xác cm, hãy kết nối máy RTK qua Bluetooth trong mục Cài đặt.
+          ⚠️ <b>Đặc điểm sai số chip GPS dân dụng:</b> Cảm biến định vị trên điện thoại hoặc máy tính bảng thông thường luôn dao động sai số từ 3 mét đến 8 mét tùy độ thoáng của bầu trời. Số liệu này cực kỳ hữu ích để nhận diện thửa đất, tìm mốc cũ bị vùi lấp hay định vị tổng thể. Khi cần nghiệm thu ranh mốc đòi hỏi độ chính xác từng milimet, hãy ghép nối máy thu RTK chuyên dụng qua Bluetooth tại mục Cài Đặt.
         </div>
       </section>
 
@@ -1025,7 +965,7 @@
               <span class="section-category">ĐỊNH VỊ CÔNG TRƯỜNG</span>
             </div>
             <h2 class="section-title">🎯 Cắm Mốc Thực Địa & La Bàn Số Dẫn Hướng Bám Tim</h2>
-            <p class="section-desc">Hỗ trợ kỹ sư tìm mốc thiết kế ngoài thực địa. La bàn số điện tử xoay dẫn hướng trực quan, liên tục tính toán độ lệch dX, dY và phát âm thanh cảnh báo bíp khi tiếp cận sát tim mốc.</p>
+            <p class="section-desc">Đưa vị trí thiết kế từ bản vẽ ra cắm cọc ngoài thực địa. Mũi tên la bàn số xoay liên tục chỉ hướng, tính toán độ lệch dX, dY và phát chuông báo dồn dập khi bạn tiến sát tim mốc.</p>
           </div>
         </div>
 
@@ -1033,34 +973,34 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Chọn Điểm Mốc Thiết Kế Cần Tìm</div>
+              <div class="step-heading">Bước 1: Chọn điểm mốc thiết kế cần tìm</div>
               <div class="step-text">
-                Mở phân hệ <b>Cắm Mốc Thực Địa</b>. Chọn điểm mục tiêu từ danh sách dự án (hoặc nhập thủ công cặp tọa độ X, Y thiết kế cần cắm mốc).
+                Mở phân hệ <b>Cắm Mốc Thực Địa</b>. Chọn điểm mốc mục tiêu từ danh sách dự án có sẵn, hoặc gõ trực tiếp cặp tọa độ thiết kế X, Y cần cắm cọc ngoài hiện trường.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Cầm Máy Nằm Ngang & Di Chuyển Theo Mũi Tên La Bàn</div>
+              <div class="step-heading">Bước 2: Cầm máy thăng bằng và bước theo mũi tên chỉ hướng</div>
               <div class="step-text">
-                Mũi tên la bàn số xoay liên tục chỉ thẳng về hướng điểm mốc. Màn hình hiển thị khoảng cách còn lại (mét) cùng độ lệch trục <code>ΔX</code> (Tiến/Lùi) và <code>ΔY</code> (Trái/Phải).
+                Giữ điện thoại nằm ngang lòng bàn tay. Mũi tên la bàn xoay liên tục chỉ thẳng về hướng tim mốc. Màn hình báo rõ cự ly còn lại (mét) cùng hai khoảng lệch trục: <code>ΔX</code> (Tiến/Lùi) và <code>ΔY</code> (Trái/Phải).
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bước 3: Chuông Báo Âm Thanh Khi Tiếp Cận Sát Tim Mốc</div>
+              <div class="step-heading">Bước 3: Nghe chuông báo âm thanh để đóng cọc cắm mốc</div>
               <div class="step-text">
-                Khi bạn di chuyển vào bán kính dưới 1 mét quanh tim mốc, ứng dụng tự động kích hoạt âm thanh cảnh báo <b>bíp dồn dập</b> và rung phản hồi Haptic giúp bạn đóng cọc cắm mốc chính xác tuyệt đối mà không cần dán mắt vào màn hình.
+                Khi bước vào phạm vi dưới 1 mét quanh tâm mốc, ứng dụng tự phát <b>tiếng bíp bíp dồn dập</b> kèm rung xúc giác liên tục. Bạn chỉ việc nhìn xuống chân và đóng cọc đúng vị trí mà không cần dán mắt vào màn hình.
               </div>
             </div>
           </div>
         </div>
 
         <div class="tip-box">
-          💡 <b>Mẹo hiệu chuẩn la bàn:</b> Nếu la bàn bị lệch hướng do từ trường công trình, cầm điện thoại xoay hình số 8 trong không khí 2-3 lần để cảm biến từ kế tự căn chỉnh lại hướng Bắc thực.
+          💡 <b>Khắc phục lệch la bàn ngoài công trường:</b> Gặp khu vực có nhiều kết cấu thép hoặc đường dây điện cao thế khiến kim la bàn đảo vòng? Cầm điện thoại vẽ hình số 8 trong không khí 2 đến 3 lần. Cảm biến từ kế sẽ tự cân bằng lại hướng Bắc từ trường.
         </div>
       </section>
 
@@ -1073,7 +1013,7 @@
               <span class="section-category">QUẢN LÝ DỮ LIỆU</span>
             </div>
             <h2 class="section-title">📁 Sổ Đo Dự Án & Quản Lý Dữ Liệu Mốc Khống Chế</h2>
-            <p class="section-desc">Quản lý toàn bộ danh sách điểm mốc khảo sát, mốc ranh và mốc khống chế. Lưu trữ an toàn 100% trong bộ nhớ máy (Offline IndexedDB), tự động đồng bộ và xuất dữ liệu.</p>
+            <p class="section-desc">Hệ thống sổ tay điện tử quản lý toàn bộ mốc ranh, mốc đường chuyền và điểm đo khống chế. Lưu trữ độc lập 100% trong bộ nhớ máy (Offline IndexedDB), an toàn tuyệt đối khi mất sóng viễn thông.</p>
           </div>
         </div>
 
@@ -1081,18 +1021,18 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Quản Trị Danh Sách Mốc & Bộ Lọc Nhanh</div>
+              <div class="step-heading">Bước 1: Quản lý danh bạ mốc và Lọc tìm nhanh</div>
               <div class="step-text">
-                Xem toàn bộ các mốc đã thu thập từ hiện trường. Bạn có thể đổi tên mốc, chỉnh sửa tọa độ, tìm kiếm nhanh theo ký hiệu hoặc phân loại mốc ranh giới, mốc đường chuyền, mốc cao đạc.
+                Xem toàn bộ các điểm đo đã thu thập ngoài hiện trường. Dễ dàng đổi tên mốc, sửa tọa độ khi phát hiện nhầm lẫn, phân loại mốc ranh giới, mốc cao tọa độ hoặc dùng ô tìm kiếm để lọc điểm trong chớp mắt.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Xuất Báo Cáo & Bản Vẽ AutoCAD DWG Chuẩn TCVN</div>
+              <div class="step-heading">Bước 2: Xuất bản vẽ AutoCAD DWG và Bảng tính nghiệm thu</div>
               <div class="step-text">
-                Click nút <b>Xuất dữ liệu</b> để mở trung tâm xuất file: Chọn xuất bản vẽ <b>AutoCAD DWG</b> (tương thích AutoCAD 2007-2026), bảng tính <b>Excel XLS</b>, hoặc file <b>Google Earth KML</b> để gửi ngay cho chủ đầu tư.
+                Nhấp nút <b>Xuất Dữ Liệu Sổ Đo</b>. Chọn định dạng mong muốn: tệp bản vẽ <b>AutoCAD DWG</b> chuẩn layer, bảng tính <b>Excel XLS</b> phục vụ báo cáo khối lượng, hoặc tệp <b>KML</b> gửi cho chủ đầu tư duyệt vị trí.
               </div>
             </div>
           </div>
@@ -1108,7 +1048,7 @@
               <span class="section-category">BẢN VẼ & BIÊN TẬP RANH</span>
             </div>
             <h2 class="section-title">📐 Tiện Ích MiniCAD Thực Địa & Bắt Điểm Tự Động OSNAP</h2>
-            <p class="section-desc">Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ: Vẽ đa giác ranh đất, đường tim tuyến, nhà xưởng, bán kính bảo vệ. Bắt điểm tự động đỉnh mốc (OSNAP) và tính diện tích mét vuông tức thì.</p>
+            <p class="section-desc">Không gian CAD thu nhỏ chạy mượt mà ngay trên bản đồ nền. Vẽ ranh thửa đất, kẻ tim tuyến, khoanh vùng bảo vệ, tự động hít nam châm vào đỉnh mốc (OSNAP) và chốt diện tích mét vuông tức thì.</p>
           </div>
         </div>
 
@@ -1127,9 +1067,9 @@
             <img src="assets/tutorial_screens/desktop_fn6_cad.png" alt="Màn hình MiniCAD và công cụ vẽ" class="showcase-img">
           </div>
           <div class="showcase-callouts-bar">
-            <div class="callout-pill"><span class="callout-num">1</span> Tab Vẽ: Đa giác [P], Đoạn thẳng [L], Hình chữ nhật [REC]</div>
-            <div class="callout-pill"><span class="callout-num">2</span> Tab Bắt điểm: Bật/Tắt chế độ hít nam châm OSNAP</div>
-            <div class="callout-pill"><span class="callout-num">3</span> Bảng kê danh sách các khối đã vẽ kèm diện tích</div>
+            <div class="callout-pill"><span class="callout-num">1</span> Tab Vẽ: Đa giác [P], Tuyến tim [L], Khối chữ nhật [REC]</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Tab Bắt điểm: Bật công tắc hít nam châm OSNAP</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Bảng kê danh mục các khối đã vẽ kèm diện tích m²</div>
             <div class="callout-pill"><span class="callout-num">4</span> Nút Xuất bản vẽ AutoCAD (.DWG / .DXF)</div>
           </div>
         </div>
@@ -1138,32 +1078,32 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Chọn Công Cụ Vẽ Hình Học [P, L, REC, C, D]</div>
+              <div class="step-heading">Bước 1: Chọn công cụ vẽ hình học [P, L, REC, C, D]</div>
               <div class="step-text">
-                Click tab <b>Vẽ</b> trên thanh công cụ MiniCAD hoặc nhấn phím tắt trên bàn phím:
-                <br>• <kbd class="kbd-key">P</kbd> <b>Đa giác thửa đất (Polygon):</b> Click liên tiếp các đỉnh mốc để khép góc thửa, tự động tính diện tích m² và chu vi mét.
-                <br>• <kbd class="kbd-key">L</kbd> <b>Đường tim tuyến (Polyline):</b> Vẽ tim đường, rãnh thoát nước, đường dây điện lực.
-                <br>• <kbd class="kbd-key">REC</kbd> <b>Nhà xưởng / Công trình:</b> Chấm 2 góc chéo để tạo khối chữ nhật nhanh.
-                <br>• <kbd class="kbd-key">C</kbd> <b>Vòng đệm bán kính (Buffer Circle):</b> Chấm tâm và bán kính bảo vệ hành lang lưới điện/cây xanh.
-                <br>• <kbd class="kbd-key">D</kbd> <b>Đo khoảng cách & Góc phương vị:</b> Đo cự ly giữa 2 điểm bất kỳ.
+                Chọn tab <b>Vẽ</b> trên thanh công cụ hoặc gõ trực tiếp phím tắt trên bàn phím:
+                <br>• <kbd class="kbd-key">P</kbd> <b>Đa giác thửa đất (Polygon):</b> Chấm liên tiếp các góc ranh để khép kín hình thể, ứng dụng tự tính ngay diện tích $m^2$ và chu vi mét.
+                <br>• <kbd class="kbd-key">L</kbd> <b>Đường tim tuyến (Polyline):</b> Vẽ tim đường giao thông, rãnh hở, đường ống ngầm.
+                <br>• <kbd class="kbd-key">REC</kbd> <b>Công trình chữ nhật:</b> Chấm 2 góc chéo để tạo nhanh ranh móng nhà, công trình phụ trợ.
+                <br>• <kbd class="kbd-key">C</kbd> <b>Vòng tròn bán kính (Buffer Circle):</b> Chấm tâm và kéo cự ly an toàn hành lang bảo vệ.
+                <br>• <kbd class="kbd-key">D</kbd> <b>Đo cự ly & Góc phương vị:</b> Kiểm tra khoảng cách thực giữa 2 điểm bất kỳ.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Hít Nam Châm Tự Động Bắt Điểm (OSNAP)</div>
+              <div class="step-heading">Bước 2: Hít nam châm bắt điểm đỉnh mốc (OSNAP)</div>
               <div class="step-text">
-                Chuyển sang tab <b>Bắt Điểm</b> và bật công tắc nam châm OSNAP. Khi bạn rê chuột hoặc chạm gần mốc khảo sát, tâm vẽ sẽ tự động hít chặt vào đỉnh mốc (sai số 0.000m) chống lệch góc ranh thửa đất.
+                Bật công tắc <b>OSNAP</b> tại tab Bắt Điểm. Rê đầu bút hoặc con trỏ chuột đến gần điểm mốc khảo sát, nét vẽ sẽ tự động hít dính chặt vào tâm mốc với sai số 0.000m, triệt tiêu hoàn toàn lỗi hở góc ranh khi ghép nối thửa đất.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bước 3: Biên Tập & Xuất Bản Vẽ AutoCAD DWG</div>
+              <div class="step-heading">Bước 3: Đặt tên thửa và Xuất file AutoCAD DWG</div>
               <div class="step-text">
-                Chuyển sang tab <b>Biên Tập</b> để đổi tên thửa đất, gán mã màu layer, hoặc chỉnh sửa vị trí từng đỉnh ranh. Bấm nút <b>Xuất CAD</b> để tải file <code>.dwg</code> hoàn chỉnh layer, text nhãn mốc và hatch diện tích.
+                Vào tab <b>Biên Tập</b> để đặt số hiệu thửa, chọn màu layer và ghi chú chủ sử dụng đất. Bấm nút <b>Xuất CAD</b> để tải tệp <code>.dwg</code> hoàn chỉnh, mở trên máy tính thấy nguyên vẹn đường bao, nhãn mốc và hatch diện tích.
               </div>
             </div>
           </div>
@@ -1173,30 +1113,30 @@
           <thead>
             <tr>
               <th>Phím tắt</th>
-              <th>Chức năng</th>
-              <th>Mục đích nghiệp vụ</th>
+              <th>Lệnh thao tác</th>
+              <th>Mục đích nghiệp vụ trắc địa</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><kbd class="kbd-key">P</kbd></td>
               <td>Vẽ Đa giác (Polygon)</td>
-              <td>Đo vẽ khép góc ranh thửa đất, tính diện tích pháp lý</td>
+              <td>Đo khép góc ranh thửa đất, tính diện tích pháp lý</td>
             </tr>
             <tr>
               <td><kbd class="kbd-key">L</kbd></td>
-              <td>Vẽ Đường tim (Polyline)</td>
-              <td>Đo vẽ tim đường giao thông, kênh mương, đường ống</td>
+              <td>Kẻ Đường tim (Polyline)</td>
+              <td>Kẻ tim tuyến đường giao thông, mương máng, tuyến cọc</td>
             </tr>
             <tr>
               <td><kbd class="kbd-key">O</kbd></td>
               <td>Bật/Tắt Bắt điểm OSNAP</td>
-              <td>Hít chính xác vào đỉnh mốc khống chế hiện có</td>
+              <td>Hít chặt tâm vẽ vào mốc khống chế có sẵn</td>
             </tr>
             <tr>
               <td><kbd class="kbd-key">ESC</kbd></td>
-              <td>Hủy lệnh vẽ hiện tại</td>
-              <td>Thoát chế độ vẽ và quay về con trỏ chọn đối tượng</td>
+              <td>Hủy lệnh vẽ dở dang</td>
+              <td>Hủy bỏ điểm đang bắt, quay về con trỏ tự do</td>
             </tr>
           </tbody>
         </table>
@@ -1211,7 +1151,7 @@
               <span class="section-category">BẢNG KÊ PHÁP LÝ ĐỊA CHÍNH</span>
             </div>
             <h2 class="section-title">📋 Năm (5) Bảng Kê Ranh Giới, Diện Tích & Tọa Độ Thửa Đất</h2>
-            <p class="section-desc">Xuất tự động 5 biểu mẫu kê khai tọa độ và ranh giới theo Thông tư 25/2014/TT-BTNMT phục vụ hồ sơ trích lục, cấp giấy chứng nhận quyền sử dụng đất và giải phóng mặt bằng.</p>
+            <p class="section-desc">Xuất trọn bộ 5 biểu mẫu kê khai tọa độ phục vụ hồ sơ kỹ thuật thửa đất, cấp giấy chứng nhận quyền sử dụng đất và phương án bồi thường giải phóng mặt bằng theo Thông tư 25/2014/TT-BTNMT.</p>
           </div>
         </div>
 
@@ -1219,29 +1159,29 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bảng 1: Bảng Kê Tọa Độ Góc Ranh (X, Y)</div>
-              <div class="step-text">Liệt kê thứ tự các đỉnh thửa (1, 2, 3... 1) kèm cặp tọa độ VN-2000 chính xác đến 3 chữ số thập phân (mm).</div>
+              <div class="step-heading">Bảng 1: Bảng Kê Tọa Độ Góc Ranh Thửa Đất</div>
+              <div class="step-text">Xếp thứ tự các đỉnh mốc (1, 2, 3... 1) kèm cặp tọa độ VN-2000 chính xác đến từng milimet (3 chữ số sau dấu phẩy).</div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
               <div class="step-heading">Bảng 2: Bảng Kê Chiều Dài Cạnh Ranh (Cự ly d)</div>
-              <div class="step-text">Tính toán cự ly từng cạnh ranh (Cạnh 1-2, Cạnh 2-3...) phục vụ đối soát mốc giới hiện trường với hàng xóm giáp ranh.</div>
+              <div class="step-text">Tính chiều dài từng cạnh ranh thửa (1-2, 2-3...), dùng để cầm thước dây đối soát ngoài thực địa với các hộ giáp ranh.</div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bảng 3: Bảng Thống Kê Diện Tích Pháp Lý</div>
-              <div class="step-text">Tổng hợp diện tích thửa đất tính theo công thức giải tích Gauss, diện tích nằm trong hành lang an toàn công trình.</div>
+              <div class="step-heading">Bảng 3: Bảng Thống Kê Diện Tích Giải Tích Gauss</div>
+              <div class="step-text">Tính toán diện tích thửa đất theo công thức tọa độ giải tích Gauss, bóc tách phần diện tích nằm trong chỉ giới quy hoạch giao thông.</div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">4</div>
             <div class="step-body">
-              <div class="step-heading">Bảng 4 & 5: Bảng Góc Phương Vị & Bảng Khối Đã Vẽ</div>
-              <div class="step-text">Cung cấp góc định hướng phương vị (Azimuth) từng cạnh ranh và tổng hợp toàn bộ các phân thửa trong dự án.</div>
+              <div class="step-heading">Bảng 4 & 5: Bảng Góc Phương Vị & Danh Mục Khối Thửa</div>
+              <div class="step-text">Cung cấp góc phương vị (Azimuth) từng cạnh ranh và tổng hợp danh sách toàn bộ các thửa đất đã vẽ trong dự án.</div>
             </div>
           </div>
         </div>
@@ -1256,7 +1196,7 @@
               <span class="section-category">CÔNG TRÌNH GIAO THÔNG & THỦY LỢI</span>
             </div>
             <h2 class="section-title">📈 Đo Vẽ Trắc Dọc Địa Hình & Tính Toán Khối Lượng Đào Đắp</h2>
-            <p class="section-desc">Vẽ biểu đồ trắc dọc tự nhiên và trắc dọc thiết kế tuyến đường, tuyến kênh. Tự động tính toán khối lượng đào, khối lượng đắp và chênh cao thi công.</p>
+            <p class="section-desc">Vẽ biểu đồ trắc dọc tự nhiên và vạch đường đỏ thiết kế tuyến đường, tuyến kênh mương. Tự động tính chênh cao thi công, diện tích mặt cắt và khối lượng mét khối đất đào đắp theo TCVN 4447:2012.</p>
           </div>
         </div>
 
@@ -1275,10 +1215,10 @@
             <img src="assets/tutorial_screens/desktop_fn7_profile.png" alt="Màn hình đo vẽ trắc dọc và tính đào đắp" class="showcase-img">
           </div>
           <div class="showcase-callouts-bar">
-            <div class="callout-pill"><span class="callout-num">1</span> Bảng nhập danh sách cọc & khoảng cách cộng dồn</div>
+            <div class="callout-pill"><span class="callout-num">1</span> Bảng nhập danh sách cọc & cự ly cộng dồn</div>
             <div class="callout-pill"><span class="callout-num">2</span> Đường địa hình tự nhiên & Đường đỏ thiết kế</div>
-            <div class="callout-pill"><span class="callout-num">3</span> Khối lượng Đào / Đắp tính theo phương pháp diện tích bình quân</div>
-            <div class="callout-pill"><span class="callout-num">4</span> Xuất biểu đồ & bảng tính Excel nghiệm thu</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Khối lượng Đào / Đắp tính theo diện tích bình quân</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Nút Xuất bản vẽ trắc dọc AutoCAD và bảng tính Excel</div>
           </div>
         </div>
 
@@ -1286,27 +1226,27 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Nhập Số Liệu Tuyến (Tên cọc, Khoảng cách lẻ, Cao độ Z)</div>
+              <div class="step-heading">Bước 1: Nạp danh sách cọc lý trình và cao độ tự nhiên</div>
               <div class="step-text">
-                Nhập hoặc dán từ Excel danh sách các cọc lý trình (Km0, C1, C2...). Điền khoảng cách giữa các cọc và cao độ đo được ngoài thực tế.
+                Điền hoặc dán từ Excel danh sách cọc (C0, C1, C2...). Nhập khoảng cách lẻ giữa các cọc và cao độ đo đạc thực tế ngoài hiện trường Z_TN.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Thiết Lập Độ Dốc Thiết Kế Tuyến (Đường Đỏ)</div>
+              <div class="step-heading">Bước 2: Thiết lập đường đỏ thiết kế (Độ dốc i%)</div>
               <div class="step-text">
-                Điền cao độ khống chế đầu tuyến và độ dốc thiết kế <code>i%</code>. Hệ thống tự động vạch đường đỏ thiết kế và tính cao độ thiết kế tại từng vị trí cọc.
+                Nhập cao độ khống chế đầu tuyến Z₀, độ dốc dọc thiết kế i% và bề rộng nền đường B. Ứng dụng tự động tính cao độ thiết kế tại từng cọc và xác định điểm đổi dốc.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bước 3: Nhận Kết Quả Đào Đắp & Xuất Bản Vẽ</div>
+              <div class="step-heading">Bước 3: Xem biểu đồ phân bố và Khối lượng đất đào đắp</div>
               <div class="step-text">
-                Biểu đồ trắc dọc hiển thị trực quan vùng Đào (màu đỏ) và vùng Đắp (màu xanh). Bảng tổng hợp báo cáo chi tiết diện tích mặt cắt và tổng khối lượng mét khối (m³) đào đắp toàn tuyến.
+                Biểu đồ phân màu trực quan: vùng Đào (đỏ) và vùng Đắp (xanh). Bảng tổng hợp liệt kê chi tiết khối lượng đào đắp từng đoạn cọc và tổng thể tích m³ toàn tuyến, sẵn sàng xuất file nghiệm thu.
               </div>
             </div>
           </div>
@@ -1322,7 +1262,7 @@
               <span class="section-category">NGHIỆM THU HÌNH ẢNH</span>
             </div>
             <h2 class="section-title">📷 Camera Thực Địa Đóng Dấu Tọa Độ VN-2000 & WGS-84</h2>
-            <p class="section-desc">Chụp ảnh hiện trường nghiệm thu mốc và ranh giới đất. Tự động khắc dấu tọa độ VN-2000, kinh tuyến trục, địa chỉ hành chính, thời gian thực và ghi chú vào ảnh chụp, chống làm giả số liệu.</p>
+            <p class="section-desc">Chụp ảnh hiện trường nghiệm thu bàn giao mốc ranh giới. Khắc chết tọa độ VN-2000, kinh tuyến trục, cao độ, thời gian chụp và tên công trình trực tiếp lên ảnh, chống làm giả hồ sơ.</p>
           </div>
         </div>
 
@@ -1330,27 +1270,27 @@
           <div class="step-card">
             <div class="step-number-circle">1</div>
             <div class="step-body">
-              <div class="step-heading">Bước 1: Mở Camera Thực Địa & Cấp Quyền Thiết Bị</div>
+              <div class="step-heading">Bước 1: Bật máy ảnh và Chờ khóa tín hiệu tọa độ</div>
               <div class="step-text">
-                Bật tính năng <b>Camera</b> trên ứng dụng. Cấp quyền máy ảnh và vị trí GPS để bộ máy xử lý lấy thông tin tọa độ tức thời.
+                Mở tính năng <b>Camera</b> trên thanh menu. Cấp quyền truy cập máy ảnh và vị trí. Chờ thanh trạng thái GPS chuyển sang màu xanh để đảm bảo tọa độ đóng dấu có độ chính xác cao nhất.
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">2</div>
             <div class="step-body">
-              <div class="step-heading">Bước 2: Chọn Mẫu Khung Dấu Watermark</div>
+              <div class="step-heading">Bước 2: Chọn mẫu dấu nghiệm thu phù hợp</div>
               <div class="step-text">
-                Chọn mẫu dấu nghiệm thu phù hợp: Mẫu trắc địa (X, Y, KTT, Múi chiếu), Mẫu địa chính (Tên mốc, Thửa đất, Tờ bản đồ), hoặc Mẫu thi công (Ngày giờ, Sai số GPS, Kỹ sư phụ trách).
+                Tùy yêu cầu hồ sơ, chọn mẫu dấu tương ứng: Mẫu trắc địa (X, Y, KTT, Múi chiếu), Mẫu địa chính (Số hiệu mốc, Thửa đất, Tờ bản đồ), hoặc Mẫu giám sát thi công (Ngày giờ, Sai số vệ tinh, Kỹ sư phụ trách).
               </div>
             </div>
           </div>
           <div class="step-card">
             <div class="step-number-circle">3</div>
             <div class="step-body">
-              <div class="step-heading">Bước 3: Bấm Chụp & Lưu Ảnh Về Máy</div>
+              <div class="step-heading">Bước 3: Chụp và Lưu ảnh độ phân giải cao</div>
               <div class="step-text">
-                Bấm nút chụp ảnh màu xanh. Ảnh được xuất ở độ phân giải gốc kèm dấu khắc sắc nét không bị vỡ chữ khi phóng to, sẵn sàng đính kèm vào biên bản bàn giao mốc.
+                Bấm nút chụp. Ảnh được xử lý giữ nguyên độ nét gốc của camera thiết bị. Dấu chữ rõ nét, không vỡ hạt, đính kèm thẳng vào biên bản bàn giao mốc ranh giới ngoài hiện trường.
               </div>
             </div>
           </div>
@@ -1372,8 +1312,8 @@
 
         <div class="tip-box">
           💡 <b>Nguyên tắc chọn múi chiếu trắc địa:</b>
-          <br>• <b>Múi chiếu 3° (k0 = 0.9999):</b> Bắt buộc sử dụng cho bản đồ địa chính, hồ sơ đo đạc thửa đất, cắm mốc ranh giới tỷ lệ lớn (1:500, 1:1.000, 1:2.000). Biến dạng chiều dài cực nhỏ (tối đa 10cm/km).
-          <br>• <b>Múi chiếu 6° (k0 = 0.9996):</b> Dùng cho bản đồ địa hình tỷ lệ nhỏ (1:25.000, 1:50.000, 1:100.000) và quy hoạch vùng liên tỉnh.
+          <br>• <b>Múi chiếu 3° (k₀ = 0.9999):</b> Bắt buộc sử dụng cho bản đồ địa chính, hồ sơ đo đạc thửa đất, cắm mốc ranh giới tỷ lệ lớn (1:500, 1:1.000, 1:2.000). Biến dạng chiều dài cực nhỏ (tối đa 10cm/km).
+          <br>• <b>Múi chiếu 6° (k₀ = 0.9996):</b> Dùng cho bản đồ địa hình tỷ lệ nhỏ (1:25.000, 1:50.000, 1:100.000) và quy hoạch vùng liên tỉnh.
         </div>
       </section>
 
