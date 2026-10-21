@@ -1,16 +1,25 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Khắc Phục Lỗi Cuộn Menu Drawer & Nâng Cấp Hệ Thống Âm Nhạc Polyphonic Lo-Fi Studio
+## Phiên hiện tại — 2026-10-21: Sửa Dứt Điểm Lỗi Thanh Menu Không Thể Vuốt Lên & Chức Năng Bị Che Khuất
 - **Đã hoàn tất**:
-  1. **Khắc phục lỗi Menu Drawer không thể vuốt lên xem các mục bị che khuất**:
-     - **Nguyên nhân**: Mặc định Flex items trong `.drawer-tree-body` có `flex-shrink: 1`. Khi menu mở rộng nhiều thư mục con, flexbox tự động co ép chiều cao các thư mục khiến `scrollHeight` chỉ bằng `clientHeight` (669px), triệt tiêu thanh cuộn.
-     - **Khắc phục triệt để trong `ui-polish.css` & `app.js`**:
-       + `.drawer-tree-body > * { flex-shrink: 0 !important; }`
-       + `.drawer-folder.open { height: auto !important; max-height: none !important; overflow: visible !important; }`
-       + `.drawer-tree-body { overflow-y: scroll !important; -webkit-overflow-scrolling: touch !important; padding-bottom: calc(var(--sat-safe-bottom, 20px) + 160px) !important; touch-action: pan-y !important; }`
-       + Thêm `document.body.classList.add('drawer-open')` và `remove('drawer-open')` khi mở/đóng drawer để khóa cuộn nền ngoài.
-     - **Kiểm chứng qua Chrome DevTools MCP**: `scrollHeight` tăng từ 669px lên **1601px**, cuộn `scrollTop = 932px`, hiển thị đầy đủ 100% các mục cuối (mục 5.4 ➔ 5.7, nút Ủng Hộ Tác Giả).
-  2. **Nâng cấp Hệ thống Âm nhạc Polyphonic Lo-Fi Synth Engine (`tutorials-pdoom.html`)**:
+  1. **Khắc phục lỗi Menu Drawer không thể vuốt lên & bị Bottom Dock đè**:
+     - **Nguyên nhân**: `.nav-tree-drawer` có `z-index: 2200`, `.nav-tree-backdrop` có `z-index: 2100`, trong khi thanh dock nổi `#mobileBottomNav` có `z-index: 2400` và header có `z-index: 2500`. Do đó khi Drawer mở, thanh dock nổi vẫn nằm đè chình ình lên trên Drawer ở đáy màn hình, che toàn bộ các mục 5.1 đến 5.7 và nuốt cử chỉ vuốt chạm. Đồng thời `body.drawer-open` có `touch-action: none !important;` chặn cử chỉ cuộn dọc trên mọi phần tử con trên Safari iOS / Chrome Android.
+     - **Giải pháp**:
+       + Đưa `.nav-tree-drawer` lên `z-index: 9999 !important;`, `.nav-tree-backdrop` lên `z-index: 9998 !important;`.
+       + Ẩn hoàn toàn thanh Bottom Navigation khi mở Drawer (`body.drawer-open #mobileBottomNav { display: none !important; ... }`) trong cả CSS và JS (`openTreeMenu`/`closeTreeMenu`).
+       + Sửa `body.drawer-open` thành `touch-action: pan-y !important;` (bỏ `touch-action: none`), cho phép vuốt cuộn 100% trơn tru, nhẹ nhàng.
+  2. **Tăng khoảng đệm đáy (Dock Clearance) cho Trang Chủ & Các Màn Hình**:
+     - **Nguyên nhân**: `#screen-menu` có `padding-bottom: calc(68px + ...)`, khiến khi cuộn xuống dưới cùng của trang chủ, các thẻ chức năng ở đáy (như Tiện ích CAD Mini, Camera, v.v.) bị thanh dock che khuất phân nửa và không thể vuốt lên cao hơn được.
+     - **Giải pháp**: Tăng padding-bottom cho `#screen-menu`, `#screen-datamgmt`, `#screen-about`, v.v. lên `calc(130px + env(safe-area-inset-bottom, 20px)) !important;`. Toàn bộ các thẻ ở đáy có thể vuốt lên cao vượt hẳn qua thanh dock nổi với khoảng thở rộng rãi.
+  3. **Tối ưu Bottom Sheet Chuyển Đổi Trên Bản Đồ (`#transformBottomSheet`)**:
+     - Bổ sung sự kiện 1-chạm tap/click vào drag handle để tự động thu gọn/mở rộng.
+     - Hạ ngưỡng kéo vuốt xuống 15px để phản hồi cử chỉ vuốt nhạy hơn.
+  4. **Kiểm thử tự động & Nghiệm thu trực quan**:
+     - Viết bài test bảo vệ `tests/menu_scroll_and_touch_fix.test.js` (3/3 tests PASS).
+     - Toàn bộ **237 / 237 bài test PASS 100%** (`node --test tests/*.test.js`).
+     - Nghiệm thu trực quan qua Chrome DevTools MCP: Cả 3 màn hình đều cuộn vuốt 100% không còn bất kỳ chi tiết nào bị che khuất.
+
+## Phiên trước — 2026-10-21: Nâng Cấp Hệ Thống Âm Nhạc Polyphonic Lo-Fi Studio
      - **Phản hồi người dùng**: *"nhạc bạn làm nghe chán quá."* do phiên bản trước chỉ dùng oscillator bíp đơn điệu cùng giọng đọc Web Speech robot khô cứng.
      - **Hệ thống hòa âm Polyphonic Web Audio Studio**:
        + **Polyphonic Chord Progression**: Chuỗi hợp âm Jazz Lo-Fi kinh điển (`Dm9 → G13 → Cmaj9 → Am9`), dùng 2 oscillator (Triangle + Sine) detuned ±4 cents qua bộ lọc Low-pass 750Hz tạo độ ấm mịn như synthesizer Moog / Juno.

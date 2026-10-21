@@ -75,16 +75,27 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item:not
   color: var(--text-muted, #94a3b8) !important;
 }
 
-/* Dock clearance: Screen-menu, screen-datamgmt and mobile normal converter only */
-#screen-menu, #screen-datamgmt {
-  padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+/* Dock clearance: Cho phép vuốt trọn vẹn mọi chức năng ở đáy màn hình vượt thanh Bottom Dock */
+#screen-menu,
+#screen-datamgmt,
+#screen-about,
+#screen-gps,
+#screen-geodesy,
+#screen-camera,
+#screen-stakeout,
+#screen-profile {
+  padding-bottom: calc(130px + env(safe-area-inset-bottom, 20px)) !important;
+  box-sizing: border-box !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
 }
 
 @media (max-width: 767px) {
   #screen-transform:not(.fullscreen-mode) {
-    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(130px + env(safe-area-inset-bottom, 20px)) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
   }
 }
 
@@ -795,6 +806,10 @@ body[data-theme="light"] .export-format-tile div > div:first-child {
 }
 
 /* ================= TỐI ƯU CUỘN VÀ CHỐNG KẸT THANH MENU DRAWER DI ĐỘNG ================= */
+.nav-tree-backdrop {
+  z-index: 9998 !important;
+}
+
 .nav-tree-drawer {
   position: fixed !important;
   top: 0 !important;
@@ -808,9 +823,10 @@ body[data-theme="light"] .export-format-tile div > div:first-child {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  z-index: 2200 !important;
+  z-index: 9999 !important;
   overscroll-behavior: contain !important;
   box-sizing: border-box !important;
+  touch-action: pan-y !important;
 }
 
 .nav-tree-drawer .drawer-header,
@@ -824,12 +840,12 @@ body[data-theme="light"] .export-format-tile div > div:first-child {
   min-height: 0 !important;
   height: auto !important;
   max-height: 100% !important;
-  overflow-y: scroll !important;
+  overflow-y: auto !important;
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior-y: contain !important;
   touch-action: pan-y !important;
-  padding: 10px 10px calc(var(--sat-safe-bottom, 20px) + 160px) 10px !important;
+  padding: 10px 10px calc(var(--sat-safe-bottom, 20px) + 80px) 10px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
@@ -874,9 +890,22 @@ body[data-theme="light"] .export-format-tile div > div:first-child {
   margin-bottom: 6px !important;
 }
 
+/* Cho phép vuốt cuộn drawer khi mở, không khóa chết touch-action */
 body.drawer-open {
   overflow: hidden !important;
-  touch-action: none !important;
+  touch-action: pan-y !important;
 }
+
+/* Ẩn hoàn toàn Bottom Dock khi mở Side Drawer để không đè lên menu hoặc nuốt thao tác vuốt */
+body.drawer-open nav#mobileBottomNav.mobile-bottom-nav,
+body.drawer-open #mobileBottomNav,
+body.drawer-open .mobile-bottom-nav {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(150%) !important;
+  z-index: -1 !important;
+}
+
 
 

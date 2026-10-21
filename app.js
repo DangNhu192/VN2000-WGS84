@@ -596,6 +596,7 @@ const appNav = window.appNav = {
         AppState.isTreeDrawerOpen = true;
         const drawer = document.getElementById('navTreeDrawer');
         const backdrop = document.getElementById('navTreeBackdrop');
+        const bnav = document.getElementById('mobileBottomNav');
         if (backdrop) {
             backdrop.style.setProperty('display', 'block', 'important');
             backdrop.style.setProperty('opacity', '1', 'important');
@@ -607,6 +608,9 @@ const appNav = window.appNav = {
             drawer.style.setProperty('transform', 'translateX(0)', 'important');
             drawer.classList.add('active');
         }
+        if (bnav) {
+            bnav.style.setProperty('display', 'none', 'important');
+        }
         document.body.classList.add('drawer-open');
         appNav.updateTreeNavState();
     },
@@ -615,6 +619,7 @@ const appNav = window.appNav = {
         AppState.isTreeDrawerOpen = false;
         const drawer = document.getElementById('navTreeDrawer');
         const backdrop = document.getElementById('navTreeBackdrop');
+        const bnav = document.getElementById('mobileBottomNav');
         if (drawer) {
             drawer.style.setProperty('transform', 'translateX(-100%)', 'important');
             drawer.classList.remove('active');
@@ -625,6 +630,9 @@ const appNav = window.appNav = {
             backdrop.style.setProperty('pointer-events', 'none', 'important');
             backdrop.classList.remove('active');
             backdrop.style.setProperty('display', 'none', 'important');
+        }
+        if (bnav) {
+            bnav.style.removeProperty('display');
         }
         document.body.classList.remove('drawer-open');
     },
@@ -4567,11 +4575,13 @@ const appTransformMap = {
         let startY = 0;
         let isDragging = false;
         let currentTranslate = 0;
+        let moved = false;
 
         const onTouchStart = (e) => {
             const touch = e.touches ? e.touches[0] : e;
             startY = touch.clientY;
             isDragging = true;
+            moved = false;
             sheet.classList.add('is-dragging');
         };
 
@@ -4579,6 +4589,9 @@ const appTransformMap = {
             if (!isDragging) return;
             const touch = e.touches ? e.touches[0] : e;
             const deltaY = touch.clientY - startY;
+            if (Math.abs(deltaY) > 6) {
+                moved = true;
+            }
             if (sheet.classList.contains('sheet-peek')) {
                 if (deltaY < 0) {
                     currentTranslate = deltaY;
@@ -4598,18 +4611,23 @@ const appTransformMap = {
             sheet.classList.remove('is-dragging');
             sheet.style.transform = '';
 
-            if (sheet.classList.contains('sheet-peek')) {
-                if (currentTranslate < -35) {
+            if (!moved) {
+                // Chạm nhẹ (Tap/Click) -> Tự động Toggle Peek/Expanded
+                sheet.classList.toggle('sheet-peek');
+                triggerHaptic('selection');
+            } else if (sheet.classList.contains('sheet-peek')) {
+                if (currentTranslate < -15) {
                     sheet.classList.remove('sheet-peek');
                     triggerHaptic('selection');
                 }
             } else {
-                if (currentTranslate > 35) {
+                if (currentTranslate > 15) {
                     sheet.classList.add('sheet-peek');
                     triggerHaptic('selection');
                 }
             }
             currentTranslate = 0;
+            moved = false;
         };
 
         handle.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -4620,6 +4638,13 @@ const appTransformMap = {
         handle.addEventListener('mousedown', onTouchStart);
         window.addEventListener('mousemove', onTouchMove);
         window.addEventListener('mouseup', onTouchEnd);
+
+        handle.addEventListener('click', () => {
+            if (!moved) {
+                sheet.classList.toggle('sheet-peek');
+                triggerHaptic('selection');
+            }
+        });
     },
 
     ensureMap() {

@@ -9,6 +9,31 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-21] Sửa Dứt Điểm Lỗi Thanh Menu Không Thể Vuốt Lên & Chức Năng Bị Che Khuất
+- **Yêu cầu**: "thanh menu không thể vuốt lên để chọn các chức năng bị che khuất"
+- **Phân tích nguyên nhân gốc rễ (Root Cause)**:
+  1. **Side Drawer (`#navTreeDrawer`)**:
+     - `.nav-tree-drawer` có `z-index: 2200` và `.nav-tree-backdrop` có `z-index: 2100`, trong khi thanh dock nổi `#mobileBottomNav` có `z-index: 2400` và header có `z-index: 2500`. Do đó, khi Drawer mở ra, thanh Bottom Dock vẫn nằm đè lên trên Drawer ở đáy màn hình, che khuất toàn bộ các mục 5.1 đến 5.7 và nuốt cử chỉ chạm vuốt ở 1/3 dưới màn hình!
+     - `body.drawer-open` có `touch-action: none !important;` khiến trình duyệt mobile (WebKit, Chrome) chặn cử chỉ cuộn dọc trên mọi phần tử con.
+  2. **Trang Chủ / Màn Hình Chính (`#screen-menu`)**:
+     - `#screen-menu` có `padding-bottom: calc(68px + ...)`, trong khi thanh dock `#mobileBottomNav` chiếm khoảng 90-110px ở đáy. Khi cuộn xuống hết trang chủ, các thẻ chức năng ở đáy ("Tiện Ích: Vẽ Mặt Bằng CAD Mini", v.v.) bị thanh dock che khuất phân nửa và không thể vuốt lên cao hơn được.
+  3. **Bottom Sheet Chuyển Đổi Trên Bản Đồ (`#transformBottomSheet`)**:
+     - Thiếu sự kiện click/tap 1 chạm trên drag handle để toggle và ngưỡng vuốt 35px quá nặng.
+- **Giải pháp xử lý toàn diện**:
+  1. **Nâng cấp Side Drawer**:
+     - Cập nhật `.nav-tree-drawer` lên `z-index: 9999 !important;`, `.nav-tree-backdrop` lên `z-index: 9998 !important;`.
+     - Thêm luật CSS và xử lý JS: khi mở Drawer (`body.drawer-open`), thanh Bottom Dock được ẩn hoàn toàn (`display: none !important; opacity: 0; pointer-events: none; z-index: -1;`).
+     - Sửa `body.drawer-open` thành `touch-action: pan-y !important;` (xóa `touch-action: none`), cho phép vuốt cuộn 100% mượt mà trên di động.
+  2. **Tăng Dock Clearance cho Trang Chủ & Màn Hình**:
+     - Cập nhật `#screen-menu`, `#screen-datamgmt`, `#screen-about`, `#screen-camera`, v.v. lên `padding-bottom: calc(130px + env(safe-area-inset-bottom, 20px)) !important;`.
+     - Cho phép cuộn vuốt trọn vẹn mọi thẻ chức năng ở đáy màn hình vượt hẳn lên trên thanh Bottom Dock.
+  3. **Tối ưu Bottom Sheet**:
+     - Bổ sung sự kiện 1-chạm tap/click trên drag handle để tự động thu gọn/mở rộng (`sheet-peek`), hạ ngưỡng kéo vuốt xuống 15px.
+  4. **Kiểm thử tự động & Trực quan**:
+     - Tạo bài test `tests/menu_scroll_and_touch_fix.test.js` xác thực bảo vệ.
+     - Toàn bộ **237 / 237 bài test PASS 100%**.
+     - Chụp ảnh màn hình kiểm chứng trực tiếp qua Chrome DevTools MCP.
+
 ### [2026-10-21] Khắc Phục Lỗi Cuộn Menu Drawer & Nâng Cấp Hệ Thống Âm Nhạc Polyphonic Lo-Fi Studio
 - **Yêu cầu**:
   1. "thanh menu không thể vuốt lên để chọn các chức năng bị che khuất"
