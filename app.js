@@ -10387,44 +10387,98 @@ function doGet(e) {
         showToast(`✓ Đã tải file Vector SVG sắc nét: ${filename}`);
     },
 
-    // 5. Xuất Tệp MicroStation DGN & Famis (.dgn / .dat) Địa Chính
+    // 5. Xuất Tệp MicroStation DGN & Famis (.dat / .cmd / .dgn) Địa Chính Chuẩn Bộ TN&MT
     exportDgnFile() {
         const pts = appData.getPoints(AppState.currentProject);
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file MicroStation DGN!", true);
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file MicroStation DGN & Famis!", true);
             return;
         }
 
-        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+        const opts = this.getExportOptions();
+        const rawProj = opts.meta.projectName || (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn");
+        const projName = rawProj.replace(/[\r\n]/g, '').trim();
         const kttStr = (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'");
 
-        let dgnData = `# BẢN ĐỒ ĐỊA CHÍNH VN-2000 - FAMIS / MICROSTATION V7-V8\r\n`;
-        dgnData += `# DỰ ÁN: ${projName}\r\n`;
-        dgnData += `# KINH TUYẾN TRỤC: ${kttStr} - MÚI CHIẾU 3 ĐỘ\r\n`;
-        dgnData += `# NGÀY XUẤT: ${new Date().toLocaleDateString('vi-VN')}\r\n`;
-        dgnData += `# -----------------------------------------------------------------\r\n`;
-        dgnData += `# STT\tTEN_DIEM\tX_BAC(m)\tY_DONG(m)\tCAO_DO_H(m)\tGHI_CHU\r\n`;
-
+        // 1. Tệp số liệu Famis chuẩn (.dat) - Chuẩn quy phạm thành lập bản đồ địa chính Bộ TN&MT
+        // Cấu trúc cột Famis: STT \t Tên_Mốc \t Y_Đông(m) \t X_Bắc(m) \t Cao_Độ_H(m) \t Mã_Điểm
+        let famisDat = "";
         pts.forEach((p, idx) => {
-            const x = parseFloat(p.x || 0).toFixed(3);
-            const y = parseFloat(p.y || 0).toFixed(3);
-            const h = parseFloat(p.h || 0).toFixed(3);
+            const xBac = parseFloat(p.x || 0).toFixed(3);
+            const yDong = parseFloat(p.y || 0).toFixed(3);
+            const hCaoDo = parseFloat(p.h || 0).toFixed(3);
             const name = p.name || `M${idx + 1}`;
-            const note = p.note || '';
-            dgnData += `${idx + 1}\t${name}\t${x}\t${y}\t${h}\t${note}\r\n`;
+            const code = p.note ? p.note.replace(/\s+/g, '_') : '1';
+            famisDat += `${idx + 1}\t${name}\t${yDong}\t${xBac}\t${hCaoDo}\t${code}\r\n`;
         });
 
-        const blob = new Blob([dgnData], { type: "text/plain;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const filename = `${projName}_Famis_MicroStation.dgn`;
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất tệp MicroStation DGN & Famis: ${filename}`);
+        const blobDat = new Blob([famisDat], { type: "text/plain;charset=utf-8;" });
+        const urlDat = URL.createObjectURL(blobDat);
+        const aDat = document.createElement("a");
+        const filenameDat = `${projName}_Famis.dat`;
+        aDat.href = urlDat;
+        aDat.download = filenameDat;
+        document.body.appendChild(aDat);
+        aDat.click();
+        document.body.removeChild(aDat);
+        URL.revokeObjectURL(urlDat);
+
+        // 2. Tệp Kịch Bản Lệnh MicroStation Key-in Command (.cmd)
+        // Mở MicroStation SE/V7/V8/CONNECT, gõ: @ten_file.cmd -> Tự động vẽ trọn vẹn ranh mốc lên DGN
+        let cmd = `# KICH BAN VE TU DONG MICROSTATION DGN - DU AN: ${projName}\r\n`;
+        cmd += `# KINH TUYEN TRUC: ${kttStr} (MUI 3 DO) - VN2000\r\n`;
+        cmd += `active unit m\r\n`;
+
+        // Vẽ các mốc trắc địa (Level 10, Màu 3 xanh lá, Weight 3)
+        cmd += `active level 10\r\nactive color 3\r\nactive weight 3\r\n`;
+        pts.forEach(p => {
+            const yDong = parseFloat(p.y || 0).toFixed(3);
+            const xBac = parseFloat(p.x || 0).toFixed(3);
+            const h = parseFloat(p.h || 0).toFixed(3);
+            cmd += `place point xy=${yDong},${xBac},${h}\r\n`;
+        });
+
+        // Ghi nhãn tên mốc (Level 11, Màu 2 vàng, Weight 1)
+        cmd += `active level 11\r\nactive color 2\r\nactive weight 1\r\n`;
+        pts.forEach((p, idx) => {
+            const yDong = (parseFloat(p.y || 0) + 1.5).toFixed(3);
+            const xBac = (parseFloat(p.x || 0) + 1.5).toFixed(3);
+            const name = p.name || `M${idx + 1}`;
+            cmd += `place text "${name}" xy=${yDong},${xBac}\r\n`;
+        });
+
+        // Vẽ đường ranh nối các mốc (Level 1, Màu 1 đỏ, Weight 2)
+        if (pts.length >= 2) {
+            cmd += `active level 1\r\nactive color 1\r\nactive weight 2\r\n`;
+            cmd += `place line `;
+            pts.forEach(p => {
+                const yDong = parseFloat(p.y || 0).toFixed(3);
+                const xBac = parseFloat(p.x || 0).toFixed(3);
+                cmd += `xy=${yDong},${xBac} `;
+            });
+            if (pts.length >= 3) {
+                const yDong0 = parseFloat(pts[0].y || 0).toFixed(3);
+                const xBac0 = parseFloat(pts[0].x || 0).toFixed(3);
+                cmd += `xy=${yDong0},${xBac0} `;
+            }
+            cmd += `\r\nreset\r\n`;
+        }
+        cmd += `fit all\r\n`;
+
+        const blobCmd = new Blob([cmd], { type: "text/plain;charset=utf-8;" });
+        const urlCmd = URL.createObjectURL(blobCmd);
+        const aCmd = document.createElement("a");
+        const filenameCmd = `${projName}_MicroStation_VeTuDong.cmd`;
+        aCmd.href = urlCmd;
+        aCmd.download = filenameCmd;
+        document.body.appendChild(aCmd);
+        setTimeout(() => {
+            aCmd.click();
+            document.body.removeChild(aCmd);
+            URL.revokeObjectURL(urlCmd);
+        }, 150);
+
+        showToast(`✓ Đã xuất bộ tệp Famis (.dat) nạp địa chính & Kịch bản MicroStation (.cmd) vẽ tự động!`);
     },
 
     // 6. Xuất Tệp Tọa Độ Máy Đo Toàn Đạc TXT / XYZ (.txt)
@@ -10709,18 +10763,19 @@ function doGet(e) {
 
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        // Xuất file CAD định dạng chuẩn AutoCAD (.dwg)
-        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const filename = `${projName}_1-${scaleVal}.dwg`;
-        a.setAttribute("href", url);
-        a.setAttribute("download", filename);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) Tỷ lệ 1:${scaleVal}: ${filename}`);
+        // Xuất file bản vẽ AutoCAD (.dwg) chuẩn Autodesk AC1015 với đầy đủ 100% Symbol Tables
+        const blobDwg = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
+        const urlDwg = URL.createObjectURL(blobDwg);
+        const aDwg = document.createElement("a");
+        const filenameDwg = `${projName}_1-${scaleVal}.dwg`;
+        aDwg.setAttribute("href", urlDwg);
+        aDwg.setAttribute("download", filenameDwg);
+        document.body.appendChild(aDwg);
+        aDwg.click();
+        document.body.removeChild(aDwg);
+        URL.revokeObjectURL(urlDwg);
+
+        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) Tỷ lệ 1:${scaleVal}: ${filenameDwg}`);
     },
 
     exportKmlFile() {

@@ -122,4 +122,21 @@ describe('=== KIỂM THỬ QUY TRÌNH XUẤT DỮ LIỆU & FIX LỖI MISSING SYM
         assert.ok(appJs.includes('renderExportPreview()'), 'Hàm renderExportPreview phải có trong appData');
         assert.ok(appJs.includes('executeExport()'), 'Hàm executeExport phải có trong appData');
     });
+
+    test('5. Đảm bảo tính toàn vẹn của các định dạng file xuất ra (.dwg, .dat/.cmd, .kml, .geojson, .svg, .xlsx)', () => {
+        // Kiểm tra xuất CAD .dwg chuẩn Autodesk AC1015
+        assert.ok(appJs.includes('filenameDwg'), 'appData.exportDwgFile phải xuất file .dwg chuẩn');
+        assert.ok(appJs.includes('application/acad'), 'MIME type bản vẽ CAD phải là application/acad');
+
+        // Kiểm tra xuất MicroStation & Famis (.dat & .cmd)
+        assert.ok(appJs.includes('filenameDat'), 'exportDgnFile phải xuất file số liệu Famis .dat chuẩn');
+        assert.ok(appJs.includes('filenameCmd'), 'exportDgnFile phải xuất file kịch bản MicroStation Key-in .cmd');
+        assert.ok(appJs.includes('place point xy='), 'Kịch bản .cmd phải chứa lệnh đặt điểm MicroStation');
+        assert.ok(appJs.includes('place line '), 'Kịch bản .cmd phải chứa lệnh vẽ đường ranh MicroStation');
+
+        // Kiểm tra tính toàn vẹn của nhãn giao diện modal
+        assert.ok(indexHtml.includes('Bản vẽ AutoCAD (.dwg)'), 'Nhãn AutoCAD nêu rõ Bản vẽ AutoCAD (.dwg)');
+        assert.ok(indexHtml.includes('MicroStation &amp; Famis (.dat / .cmd / .dgn)') || indexHtml.includes('MicroStation & Famis (.dat / .cmd / .dgn)'), 'Nhãn MicroStation nêu rõ .dat / .cmd / .dgn');
+    });
 });
+

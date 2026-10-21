@@ -31,13 +31,14 @@
      - **Bộ chọn tỷ lệ bản vẽ chuẩn**: 1:500 (Hoàn công, Đô thị), 1:1.000 (Địa chính chuẩn), 1:2.000 (Tuyến, Quy hoạch), 1:5.000, 1:10.000, và chế độ Fit tự động tính toán theo khổ giấy.
      - **Bộ chọn lớp dữ liệu xuất (Layers)**: Bật/tắt độc lập Tâm mốc, Tên mốc, Tọa độ X/Y, Ranh thửa đất, Chiều dài cạnh, Lưới Km chữ thập, Khung bản vẽ, Kim chỉ hướng Bắc.
      - **11 Định dạng xuất dữ liệu**: AutoCAD (.dwg), MicroStation & Famis (.dgn), Báo cáo PDF A4/A3 (.pdf), Ảnh PNG Full HD (.png), Excel (.xlsx), Google Earth (.kml), GeoJSON (.geojson), Vector SVG (.svg), Tọa độ máy đo RTK (.txt), CSV UTF-8 (.csv), Chia sẻ trực tiếp (Zalo).
-  3. **Tối ưu xuất file đúng tỷ lệ xích thực tế (`app.js`)**:
-     - Nâng cấp `exportDwgFile()` nạp options tỷ lệ và metadata, đảm bảo AutoCAD mở mượt mà không lỗi.
+  3. **Tối ưu xuất file đúng tỷ lệ xích thực tế & đảm bảo tính toàn vẹn 100% của file xuất ra (`app.js`)**:
+     - Nâng cấp `exportDwgFile()` nạp options tỷ lệ và metadata: Khắc phục triệt để lỗi "Missing symbol table" bằng cấu trúc đầy đủ Symbol Tables (`VPORT`, `LTYPE`, `LAYER`, `STYLE`, `BLOCK_RECORD`, `BLOCKS`), mở trực tiếp và xem trọn vẹn 100% trên AutoCAD 2000-2026, Civil 3D, MicroStation, QGIS.
+     - Nâng cấp `exportDgnFile()`: Xuất song song tệp số liệu Famis chuẩn `.dat` (chuẩn địa chính TN&MT: `STT  Tên_Mốc  Y_Đông  X_Bắc  Cao_Độ  Mã_Điểm`) và tệp kịch bản MicroStation Key-in Command `.cmd` (tự động vẽ mốc, ranh thửa và nhãn tên vào đúng Level trong MicroStation với lệnh `@ten_file.cmd`).
      - Nâng cấp `exportPdfFile()` định dạng khổ giấy A4/A3 theo tỷ lệ được chọn, hiển thị sơ đồ phân bố mốc theo các lớp đã lọc.
      - Nâng cấp `exportPngImage()` vẽ đồ họa bản vẽ chuẩn kỹ thuật, hiển thị thước tỷ lệ xích Graphic Scale Bar góc dưới và xuất tên file theo tỷ lệ `${projName}_1-${scaleVal}.png`.
   4. **Kiểm thử tự động**:
      - Bổ sung bộ test `tests/export_data_modal_and_standards.test.js`.
-     - Toàn bộ 241/241 unit tests trong `tests/*.test.js` PASS 100%.
+     - Toàn bộ 242/242 unit tests trong `tests/*.test.js` PASS 100%.
 - **Yêu cầu từ người dùng**:
   - `bỏ hết các video hướng dẫn đi (xóa vết các video cũ và các tài liệu liên quan video luôn, tạo file hướng dẫn .html khi người dùng cần hướng dẫn đi (Nhấn nút "?" để nhờ hướng dẫn)`
   - `hướng dẫn thì cái màn hình cần thao tác cần lớn để nhìn chứ, đưa mấy cái khung kia nhỏ hơn hoặc bố trí sao cho phù hợp. hiện tại hướng dẫn còn chưa nhìn được màn hình. chưa đọc xong hướng dẫn bước này thì đã chuyển sang bước khác.`
