@@ -64,16 +64,17 @@ function extractAppDonate(appJsContent, overrides = {}) {
   assert.ok(startIdx !== -1, 'app.js must contain appDonate');
   const endIdx = appJsContent.indexOf('// ================= 11. KHỞI TẠO ỨNG DỤNG', startIdx);
   const code = appJsContent.slice(startIdx, endIdx !== -1 ? endIdx : undefined) + '\nreturn appDonate;';
-  const fn = new Function('localStorage', 'document', 'window', 'appNav', code);
-  return fn(overrides.localStorage, overrides.document, overrides.window, overrides.appNav);
+  const fn = new Function('localStorage', 'document', 'window', 'appNav', 'showToast', code);
+  return fn(overrides.localStorage, overrides.document, overrides.window, overrides.appNav, overrides.showToast);
 }
 
-test('1. Startup does not open modal, write storage, or schedule timers', () => {
+test('1. Startup checks daily trigger and configures 20s countdown support (gói xôi, ly trà đá)', () => {
   const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
-  let storageWritten = false;
+  let storageWrittenKey = null;
+  let storageWrittenValue = null;
   const mockStorage = {
     getItem() { return null; },
-    setItem() { storageWritten = true; }
+    setItem(k, v) { storageWrittenKey = k; storageWrittenValue = v; }
   };
   const { document } = createMockDom();
   const windowEvents = {};
@@ -82,26 +83,31 @@ test('1. Startup does not open modal, write storage, or schedule timers', () => 
   };
 
   const originalSetTimeout = global.setTimeout;
-  const originalSetInterval = global.setInterval;
   let timerScheduled = false;
-  global.setTimeout = () => { timerScheduled = true; };
-  global.setInterval = () => { timerScheduled = true; };
+  let scheduledCallback = null;
+  global.setTimeout = (cb) => {
+    timerScheduled = true;
+    scheduledCallback = cb;
+  };
 
   try {
     const appDonate = extractAppDonate(appJs, { localStorage: mockStorage, document, window: mockWindow });
-    assert.equal(appDonate.timerId, undefined);
-    assert.equal(appDonate.COUNTDOWN_SECONDS, undefined);
-    assert.equal(appDonate.STORAGE_KEY, undefined);
-    assert.equal(appDonate.checkDailyTrigger, undefined);
+    assert.equal(appDonate.COUNTDOWN_SECONDS, 20, 'Đếm ngược đúng 20 giây');
+    assert.equal(appDonate.STORAGE_KEY, 'vn2k_donate_last_shown_date_v1');
+    assert.equal(typeof appDonate.checkDailyTrigger, 'function');
 
     appDonate.init();
-    assert.equal(storageWritten, false, 'init must not write storage');
-    assert.equal(timerScheduled, false, 'init must not schedule timers');
+    assert.equal(storageWrittenKey, 'vn2k_donate_last_shown_date_v1', 'Phải ghi nhớ ngày kích hoạt vào localStorage');
+    assert.equal(timerScheduled, true, 'checkDailyTrigger phải lên lịch hiển thị sau khi UI ổn định');
+    
+    // Giả lập callback setTimeout kích hoạt mở modal
+    scheduledCallback();
     const modal = document.getElementById('modalDonateCountdown');
-    assert.equal(modal.classList.contains('active'), false, 'init must not open modal');
+    assert.equal(modal.classList.contains('active'), true, 'Modal phải được mở với đếm ngược');
+    assert.equal(appDonate.isCountingDown, true, 'Trạng thái đếm ngược phải active');
+    assert.equal(appDonate.remainingSeconds, 20, 'Thời gian còn lại khởi tạo 20s');
   } finally {
     global.setTimeout = originalSetTimeout;
-    global.setInterval = originalSetInterval;
   }
 });
 
@@ -133,7 +139,7 @@ test('3. Switching all 4 channels updates config and pill states', () => {
   }
 });
 
-test('4. Explicit opening closes tree menu, displays modal, sets QR src, and focuses close button', () => {
+test('4. Explicit opening from menu does not force countdown and allows free close', () => {
   const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const { document, getOrCreate } = createMockDom();
   let treeMenuClosed = false;
@@ -145,30 +151,44 @@ test('4. Explicit opening closes tree menu, displays modal, sets QR src, and foc
   const qr = getOrCreate('imgDonateVietQR');
   assert.equal(qr.src, '', 'QR image must have no src before opening');
 
-  appDonate.openModal();
+  appDonate.openModal(false);
   assert.equal(treeMenuClosed, true, 'openModal must close tree menu via appNav.closeTreeMenu');
   const modal = getOrCreate('modalDonateCountdown');
   assert.equal(modal.classList.contains('active'), true, 'modal must be active');
-  assert.notEqual(qr.src, '', 'QR image src must be populated upon explicit open');
-  const closeBtn = getOrCreate('btnDonateEnterApp');
-  assert.equal(closeBtn.focusCalled, true, 'Close button must receive focus');
+  assert.notEqual(qr.src, '', 'QR image src must be populated upon open');
+  assert.equal(appDonate.isCountingDown, false, 'Mở từ menu không bắt buộc đếm ngược');
+  assert.equal(appDonate.remainingSeconds, 0, 'Số giây còn lại là 0');
+
+  // Đóng modal tự do
+  appDonate.closeModal();
+  assert.equal(modal.classList.contains('active'), false, 'Đóng modal thành công');
 });
 
-test('5. Immediate close hides modal and returns focus to btnHeaderMenu', () => {
+test('5. Auto countdown mode prevents early close until 20s finished', () => {
   const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const { document, getOrCreate } = createMockDom();
-  const appDonate = extractAppDonate(appJs, { document, window: {} });
+  let toastMsg = '';
+  const mockShowToast = (msg) => { toastMsg = msg; };
+  const appDonate = extractAppDonate(appJs, { document, window: {}, showToast: mockShowToast });
 
   const modal = getOrCreate('modalDonateCountdown');
-  modal.classList.add('active');
-  const menuBtn = getOrCreate('btnHeaderMenu');
+  appDonate.openModal(true); // Mở chế độ đếm ngược
+  assert.equal(appDonate.isCountingDown, true);
+  assert.equal(appDonate.remainingSeconds, 20);
 
+  // Thử đóng trước khi hết 20s -> bị chặn và toast nhắc nhở
   appDonate.closeModal();
-  assert.equal(modal.classList.contains('active'), false, 'closeModal must hide modal immediately');
-  assert.equal(menuBtn.focusCalled, true, 'closeModal must return focus to btnHeaderMenu');
+  assert.equal(modal.classList.contains('active'), true, 'Không cho phép đóng khi còn thời gian đếm ngược');
+  assert.ok(toastMsg.includes('gói xôi, ly trà đá'), 'Thông báo nhắc nhở ủng hộ gói xôi trà đá');
+
+  // Giả lập hết 20s
+  appDonate.remainingSeconds = 0;
+  appDonate.unlockCloseButton();
+  appDonate.closeModal();
+  assert.equal(modal.classList.contains('active'), false, 'Hết 20s thì đóng modal thành công');
 });
 
-test('6. Escape key listener closes modal only when modal is active', () => {
+test('6. Escape key listener respects modal active state', () => {
   const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const { document, getOrCreate } = createMockDom();
   let keydownHandler = null;

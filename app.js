@@ -28062,8 +28062,13 @@ const appTheme = {
     }
 };
 
-// ================= 10.10 CỬA SỔ CHỜ 30S XIN DONATE TÁC GIẢ (1 LẦN/NGÀY) =================
+// ================= 10.10 CỬA SỔ CHỜ 20S ỦNG HỘ GÓI XÔI, LY TRÀ ĐÁ TÁC GIẢ (1 LẦN/NGÀY) =================
 const appDonate = {
+    STORAGE_KEY: 'vn2k_donate_last_shown_date_v1',
+    COUNTDOWN_SECONDS: 20,
+    timerId: null,
+    remainingSeconds: 20,
+    isCountingDown: false,
 
     // Cấu hình 4 kênh nhận donate của tác giả Đặng Như: STK 0839656568
     activeChannel: 'vietinbank',
@@ -28125,18 +28130,21 @@ const appDonate = {
     },
 
     init() {
-      this.loadCustomConfig();
-      if (typeof window !== 'undefined' && !this._escapeBound) {
-        this._escapeBound = true;
-        window.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape') {
-            const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
-            if (modal && modal.classList && modal.classList.contains('active')) {
-              this.closeModal();
-            }
-          }
-        });
-      }
+        this.loadCustomConfig();
+        // Tự động kiểm tra hiển thị 1 lần / ngày cửa sổ chờ 20s ủng hộ tác giả
+        this.checkDailyTrigger();
+
+        if (typeof window !== 'undefined' && !this._escapeBound) {
+            this._escapeBound = true;
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+                    if (modal && modal.classList && modal.classList.contains('active')) {
+                        this.closeModal();
+                    }
+                }
+            });
+        }
     },
 
     loadCustomConfig() {
@@ -28181,22 +28189,68 @@ const appDonate = {
         this.renderBankInfo();
     },
 
+    checkDailyTrigger() {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            const today = new Date().toLocaleDateString('en-CA');
+            const lastShown = localStorage.getItem(this.STORAGE_KEY);
+            if (lastShown !== today) {
+                localStorage.setItem(this.STORAGE_KEY, today);
+                setTimeout(() => {
+                    this.openModal(true);
+                }, 1000);
+            }
+        } catch(e) {
+            console.warn('[appDonate] Lỗi kiểm tra ngày:', e);
+        }
+    },
 
+    openModal(isAutoCountdown = false) {
+        if (typeof appNav !== 'undefined' && typeof appNav.closeTreeMenu === 'function') {
+            appNav.closeTreeMenu();
+        }
+        const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+        if (modal) {
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+        this.renderBankInfo();
 
-    openModal() {
-      if (typeof appNav !== 'undefined' && typeof appNav.closeTreeMenu === 'function') {
-        appNav.closeTreeMenu();
-      }
-      const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
-      if (modal) {
-        modal.classList.add('active');
-        modal.setAttribute('aria-hidden', 'false');
-      }
-      this.renderBankInfo();
-      const closeBtn = (typeof document !== 'undefined') ? document.getElementById('btnDonateEnterApp') : null;
-      if (closeBtn && typeof closeBtn.focus === 'function') {
-        closeBtn.focus();
-      }
+        const badge = (typeof document !== 'undefined') ? document.getElementById('badgeDonateStatus') : null;
+        const progressBox = (typeof document !== 'undefined') ? document.getElementById('boxDonateCountdownProgress') : null;
+
+        if (isAutoCountdown) {
+            this.isCountingDown = true;
+            this.remainingSeconds = this.COUNTDOWN_SECONDS;
+            if (progressBox) progressBox.style.display = 'flex';
+            if (badge) {
+                badge.innerText = '⏳ Đang chờ ' + this.COUNTDOWN_SECONDS + 's';
+                badge.style.color = '#f59e0b';
+            }
+            this.updateCountdownUi();
+
+            clearInterval(this.timerId);
+            this.timerId = setInterval(() => {
+                this.remainingSeconds--;
+                this.updateCountdownUi();
+                if (this.remainingSeconds <= 0) {
+                    clearInterval(this.timerId);
+                    this.timerId = null;
+                    this.isCountingDown = false;
+                    this.unlockCloseButton();
+                }
+            }, 1000);
+        } else {
+            this.isCountingDown = false;
+            this.remainingSeconds = 0;
+            if (progressBox) progressBox.style.display = 'none';
+            this.unlockCloseButton();
+        }
+
+        const closeBtn = (typeof document !== 'undefined') ? document.getElementById('btnDonateEnterApp') : null;
+        if (closeBtn && typeof closeBtn.focus === 'function') {
+            closeBtn.focus();
+        }
     },
 
     renderBankInfo() {
@@ -28217,11 +28271,11 @@ const appDonate = {
             let qrUrl = cur.qrUrl;
             if (!qrUrl) {
                 if (cur.bankCode === 'MOMO') {
-                    qrUrl = `https://img.vietqr.io/image/momo-${cur.accountNumber}-compact2.png?amount=0&addInfo=${encodeURIComponent(cur.memo)}&accountName=${encodeURIComponent(cur.accountName)}`;
+                    qrUrl = 'https://img.vietqr.io/image/momo-' + cur.accountNumber + '-compact2.png?amount=0&addInfo=' + encodeURIComponent(cur.memo) + '&accountName=' + encodeURIComponent(cur.accountName);
                 } else if (cur.bankCode === 'ZALOPAY') {
-                    qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Fzalo.me%2F${encodeURIComponent(cur.accountNumber)}`;
+                    qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Fzalo.me%2F' + encodeURIComponent(cur.accountNumber);
                 } else {
-                    qrUrl = `https://img.vietqr.io/image/${cur.bankCode}-${cur.accountNumber}-compact2.png?amount=0&addInfo=${encodeURIComponent(cur.memo)}&accountName=${encodeURIComponent(cur.accountName)}`;
+                    qrUrl = 'https://img.vietqr.io/image/' + cur.bankCode + '-' + cur.accountNumber + '-compact2.png?amount=0&addInfo=' + encodeURIComponent(cur.memo) + '&accountName=' + encodeURIComponent(cur.accountName);
                 }
             }
             elQr.src = qrUrl;
@@ -28250,20 +28304,70 @@ const appDonate = {
         }
     },
 
+    updateCountdownUi() {
+        if (typeof document === 'undefined') return;
+        const txtTimer = document.getElementById('txtDonateCountdownSec');
+        const barProgress = document.getElementById('barDonateProgressFill');
+        const btnClose = document.getElementById('btnDonateEnterApp');
 
+        if (txtTimer) txtTimer.innerText = Math.max(0, this.remainingSeconds);
 
+        const pct = Math.min(100, Math.round(((this.COUNTDOWN_SECONDS - this.remainingSeconds) / this.COUNTDOWN_SECONDS) * 100));
+        if (barProgress) barProgress.style.width = pct + '%';
 
+        if (btnClose) {
+            if (this.remainingSeconds > 0) {
+                btnClose.disabled = true;
+                btnClose.classList.remove('btn-ready');
+                btnClose.style.opacity = '0.65';
+                btnClose.style.cursor = 'not-allowed';
+                btnClose.innerHTML = '⏳ Chờ <b>' + this.remainingSeconds + 's</b> để vào ứng dụng...';
+            } else {
+                this.unlockCloseButton();
+            }
+        }
+    },
+
+    unlockCloseButton() {
+        if (typeof document === 'undefined') return;
+        const btnClose = document.getElementById('btnDonateEnterApp');
+        if (btnClose) {
+            btnClose.disabled = false;
+            btnClose.classList.add('btn-ready');
+            btnClose.style.opacity = '1';
+            btnClose.style.cursor = 'pointer';
+            btnClose.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            btnClose.innerHTML = '🚀 Vào Ứng Dụng Ngay (Cảm ơn bạn!)';
+        }
+        const badge = document.getElementById('badgeDonateStatus');
+        if (badge) {
+            badge.innerText = '✓ Đã sẵn sàng';
+            badge.style.color = '#10b981';
+        }
+    },
 
     closeModal() {
-      const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
-      if (modal) {
-        modal.classList.remove('active');
-        modal.setAttribute('aria-hidden', 'true');
-      }
-      const btnMenu = (typeof document !== 'undefined') ? document.getElementById('btnHeaderMenu') : null;
-      if (btnMenu && typeof btnMenu.focus === 'function') {
-        btnMenu.focus();
-      }
+        if (this.isCountingDown && this.remainingSeconds > 0) {
+            if (typeof showToast === 'function') {
+                showToast('⏳ Vui lòng chờ thêm ' + this.remainingSeconds + 's ủng hộ gói xôi, ly trà đá nhé!', true);
+            }
+            return;
+        }
+        const modal = (typeof document !== 'undefined') ? document.getElementById('modalDonateCountdown') : null;
+        if (modal) {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+        clearInterval(this.timerId);
+        this.timerId = null;
+        this.isCountingDown = false;
+        if (typeof showToast === 'function') {
+            showToast('☕ Cảm ơn bạn đã đồng hành! Chúc bạn ngày mới làm việc hiệu quả!');
+        }
+        const btnMenu = (typeof document !== 'undefined') ? document.getElementById('btnHeaderMenu') : null;
+        if (btnMenu && typeof btnMenu.focus === 'function') {
+            btnMenu.focus();
+        }
     },
 
     copyAccountNumber() {
@@ -28272,7 +28376,7 @@ const appDonate = {
         if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(this.config.accountNumber)
                 .then(() => {
-                    if (typeof showToast === 'function') showToast(`✓ Đã sao chép STK: ${self.config.accountNumber}`);
+                    if (typeof showToast === 'function') showToast('✓ Đã sao chép STK: ' + self.config.accountNumber);
                 })
                 .catch(() => self.fallbackCopy(self.config.accountNumber));
         } else {
@@ -28288,7 +28392,7 @@ const appDonate = {
         input.select();
         document.execCommand('copy');
         document.body.removeChild(input);
-        if (typeof showToast === 'function') showToast(`✓ Đã sao chép STK: ${text}`);
+        if (typeof showToast === 'function') showToast('✓ Đã sao chép STK: ' + text);
     }
 };
 
