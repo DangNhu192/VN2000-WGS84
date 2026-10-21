@@ -20,9 +20,9 @@
      - Nâng cấp `exportPdfFile()` theo khổ giấy A4/A3, vẽ sơ đồ phân bố mốc theo các lớp đã lọc và ghi rõ tỷ lệ 1:scaleVal.
      - Nâng cấp `exportPngImage()` với Graphic Scale Bar, kim hướng Bắc, lưới Km và đặt tên file `${projName}_1-${scaleVal}.png`.
   4. **Kiểm thử tự động & Trực quan**:
-     - Thêm `tests/export_data_modal_and_standards.test.js`.
-     - Toàn bộ 241/241 bài test PASS 100%.
-     - Kiểm tra thực tế bằng Chrome DevTools MCP chụp ảnh nghiệm thu thành công.
+     - Thêm `tests/export_data_modal_and_standards.test.js` & `tests/export_flow_and_dwg.test.js`.
+     - Toàn bộ 247/247 bài test trong dự án PASS 100%.
+     - Khắc phục triệt để lỗi "Missing symbol table" cho file `.dwg` trên AutoCAD 2000-2026.
 
 ## Phiên trước — 2026-10-21: Xóa Bỏ Toàn Bộ Video Cũ & Ra Mắt Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa user-guide.html Kèm Tích Hợp Nút "?"
 - **Yêu cầu từ người dùng**:

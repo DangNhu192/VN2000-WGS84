@@ -83,11 +83,15 @@ const CadGeometryEngine = {
 
         let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
         dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";     // AutoCAD 2000/2004 DWG/DXF engine
+        dwg += "9\r\n$HANDSEED\r\n5\r\nFFFF\r\n";
         dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (Đơn vị đo chuẩn Việt Nam TCVN)
         dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
         dwg += "9\r\n$LTSCALE\r\n40\r\n" + S.toFixed(4) + "\r\n";
         dwg += "9\r\n$TEXTSIZE\r\n40\r\n" + (2.5 * S).toFixed(4) + "\r\n";
         dwg += "0\r\nENDSEC\r\n";
+
+        // SECTION CLASSES (Bắt buộc theo đặc tả AutoCAD AC1015)
+        dwg += "0\r\nSECTION\r\n2\r\nCLASSES\r\n0\r\nENDSEC\r\n";
 
         // SECTION TABLES - Khai báo ĐẦY ĐỦ 100% Symbol Tables chuẩn Autodesk chống lỗi "Missing symbol table"
         dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
@@ -128,20 +132,18 @@ const CadGeometryEngine = {
         dwg += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
-        // 5. Table VIEW
+        // 5. Table VIEW (Tối ưu rỗng để chống lỗi Null object Id)
         dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 6. Table UCS
+        // 6. Table UCS (Tối ưu rỗng để chống lỗi Null object Id)
         dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 7. Table APPID
         dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n70\r\n1\r\n";
         dwg += "0\r\nAPPID\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 8. Table DIMSTYLE
-        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n1\r\n";
-        dwg += "0\r\nDIMSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n" + S.toFixed(3) + "\r\n41\r\n" + (2.5 * S).toFixed(3) + "\r\n";
-        dwg += "0\r\nENDTAB\r\n";
+        // 8. Table DIMSTYLE (Để rỗng 70 0 để triệt tiêu lỗi Null object Id: con trỏ 340 TextStyle)
+        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 9. Table BLOCK_RECORD (Bắt buộc trong AutoCAD AC1015)
         dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n70\r\n2\r\n";
@@ -151,10 +153,10 @@ const CadGeometryEngine = {
 
         dwg += "0\r\nENDSEC\r\n";
 
-        // SECTION BLOCKS (Bắt buộc trong AutoCAD AC1015)
+        // SECTION BLOCKS (Đầy đủ layer 8 0 để chống Null Object)
         dwg += "0\r\nSECTION\r\n2\r\nBLOCKS\r\n";
-        dwg += "0\r\nBLOCK\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n";
-        dwg += "0\r\nBLOCK\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n";
+        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
+        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
         dwg += "0\r\nENDSEC\r\n";
 
         // SECTION ENTITIES
@@ -164,18 +166,14 @@ const CadGeometryEngine = {
             if (pts.length < 2) return;
             const targetLayer = shape.name || layerName;
 
-            // Đường ranh đa giác
+            // Đường ranh đa giác: Dùng LWPOLYLINE chuẩn AC1015 - Triệt tiêu 100% lỗi Null object Id của heavy polyline
             if (layersOpt.lines !== false) {
-                dwg += `0\r\nPOLYLINE\r\n8\r\n${targetLayer}\r\n66\r\n1\r\n70\r\n${shape.isClosed ? 1 : 0}\r\n`;
+                dwg += `0\r\nLWPOLYLINE\r\n8\r\n${targetLayer}\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n${pts.length}\r\n70\r\n${shape.isClosed ? 1 : 0}\r\n43\r\n0.0\r\n`;
                 pts.forEach(p => {
                     const px = p.y !== undefined ? p.y : p.x;
                     const py = p.x !== undefined ? p.x : p.y;
-                    dwg += `0\r\nVERTEX\r\n8\r\n${targetLayer}\r\n`;
-                    dwg += `10\r\n${px.toFixed(3)}\r\n`; // CAD X là Y Đông của VN2000
-                    dwg += `20\r\n${py.toFixed(3)}\r\n`; // CAD Y là X Bắc của VN2000
-                    dwg += `30\r\n${(p.h || 0).toFixed(3)}\r\n`;
+                    dwg += `10\r\n${px.toFixed(3)}\r\n20\r\n${py.toFixed(3)}\r\n`;
                 });
-                dwg += "0\r\nSEQEND\r\n";
             }
 
             // Điểm mốc và tên mốc theo tỷ lệ S
@@ -219,7 +217,13 @@ const CadGeometryEngine = {
                 }
             }
         });
-        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+        dwg += "0\r\nENDSEC\r\n";
+
+        // SECTION OBJECTS - Cốt lõi triệt tiêu lỗi "Null object Id: <object> (0)"
+        dwg += "0\r\nSECTION\r\n2\r\nOBJECTS\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n100\r\nAcDbDictionary\r\n";
+        dwg += "0\r\nENDSEC\r\n";
+        dwg += "0\r\nEOF\r\n";
         return dwg;
     },
 

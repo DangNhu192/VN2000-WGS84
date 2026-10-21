@@ -9722,6 +9722,384 @@ function doGet(e) {
         }
     },
 
+    // ================= STUDIO XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA (PREVIEW -> CÀI ĐẶT -> XUẤT) =================
+    openExportModal() {
+        const modal = document.getElementById('modalExportData');
+        if (!modal) return;
+        modal.style.display = 'flex';
+
+        const projName = AppState.currentProject || "VN2000_SoLieu_DoDac.csv";
+        const cleanProj = projName.replace(/\.[^/.]+$/, "");
+        const pts = this.getExportPoints();
+
+        // Cập nhật thông tin Header & Tóm tắt
+        const projEl = document.getElementById('exportModalProjName');
+        if (projEl) projEl.innerText = projName;
+        const kttEl = document.getElementById('exportModalKttInfo');
+        if (kttEl) {
+            const kttStr = AppState.kttDeg ? `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'` : "105°45'";
+            kttEl.innerText = `KTT: ${kttStr} • Múi ${AppState.muiVal || 3}° • ${AppState.provinceName || 'Việt Nam'}`;
+        }
+        const badgeEl = document.getElementById('exportModalPointBadge');
+        if (badgeEl) badgeEl.innerText = `${pts.length} mốc`;
+
+        // Điền trước các trường thông tin nếu còn trống
+        const nameInput = document.getElementById('txtExportProjectName');
+        if (nameInput && !nameInput.value) nameInput.value = cleanProj;
+        const surveyorInput = document.getElementById('txtExportSurveyor');
+        if (surveyorInput && !surveyorInput.value) surveyorInput.value = AppState.surveyorName || "Kỹ sư đo đạc";
+        const dateInput = document.getElementById('txtExportDate');
+        if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+        const orgInput = document.getElementById('txtExportOrg');
+        if (orgInput && !orgInput.value) orgInput.value = "Trung tâm Trắc địa Bản đồ";
+
+        // Mặc định chọn định dạng DWG (AutoCAD) để đáp ứng ngay yêu cầu người dùng
+        this.selectExportFormat('dwg');
+        this.updateExportPreview();
+    },
+
+    closeExportModal() {
+        const modal = document.getElementById('modalExportData');
+        if (modal) modal.style.display = 'none';
+    },
+
+    getExportPoints() {
+        return this.getPoints(AppState.currentProject) || [];
+    },
+
+    getExportOptions() {
+        const selScale = document.getElementById('selExportMapScale');
+        const scaleVal = selScale ? selScale.value : '1000';
+        const selPaper = document.getElementById('selExportPaperSize');
+        const paperSize = selPaper ? selPaper.value : 'A4-L';
+
+        const getChk = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.checked : true;
+        };
+
+        const layers = {
+            points: getChk('chkExportPoints'),
+            names: getChk('chkExportNames'),
+            coords: getChk('chkExportCoords'),
+            lines: getChk('chkExportLines'),
+            lengths: getChk('chkExportLengths'),
+            grid: getChk('chkExportGrid'),
+            frame: getChk('chkExportFrame'),
+            north: getChk('chkExportNorth')
+        };
+
+        const nameInput = document.getElementById('txtExportProjectName');
+        const surveyorInput = document.getElementById('txtExportSurveyor');
+        const dateInput = document.getElementById('txtExportDate');
+        const orgInput = document.getElementById('txtExportOrg');
+        const selRadio = document.querySelector('input[name="exportFormatRadio"]:checked');
+
+        const meta = {
+            projectName: nameInput && nameInput.value.trim() ? nameInput.value.trim() : (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn"),
+            surveyor: surveyorInput && surveyorInput.value.trim() ? surveyorInput.value.trim() : "Kỹ sư đo đạc",
+            drawingDate: dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0],
+            org: orgInput && orgInput.value.trim() ? orgInput.value.trim() : "Trung tâm Trắc địa",
+            format: selRadio ? selRadio.value : 'dwg'
+        };
+
+        return { scaleVal, paperSize, layers, meta };
+    },
+
+    getExportScaleFactor(scaleVal, boundsW, boundsH, paperSize = 'A4-L') {
+        if (scaleVal !== 'fit') return parseInt(scaleVal) || 1000;
+        const paperW_m = paperSize === 'A3-L' ? 0.380 : (paperSize === 'A4-P' ? 0.170 : 0.257);
+        const paperH_m = paperSize === 'A3-L' ? 0.267 : (paperSize === 'A4-P' ? 0.257 : 0.180);
+        const needed = Math.max((boundsW || 100) / paperW_m, (boundsH || 100) / paperH_m);
+        if (needed <= 500) return 500;
+        if (needed <= 1000) return 1000;
+        if (needed <= 2000) return 2000;
+        if (needed <= 5000) return 5000;
+        return 10000;
+    },
+
+    selectExportFormat(fmt) {
+        const radio = document.querySelector(`input[name="exportFormatRadio"][value="${fmt}"]`);
+        if (radio) radio.checked = true;
+
+        document.querySelectorAll('.export-format-tile').forEach(tile => {
+            if (tile.getAttribute('data-format') === fmt) {
+                tile.classList.add('active');
+                tile.style.borderColor = '#0284c7';
+                tile.style.background = 'rgba(2, 132, 199, 0.15)';
+            } else {
+                tile.classList.remove('active');
+                tile.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                tile.style.background = 'rgba(30, 41, 59, 0.55)';
+            }
+        });
+
+        // Cập nhật tên nút bấm xuất
+        const btn = document.getElementById('btnExecuteExport');
+        if (btn) {
+            const labels = {
+                dwg: '🚀 XUẤT BẢN VẼ AUTOCAD (.DWG)',
+                excel: '🚀 XUẤT BẢNG TÍNH EXCEL (.XLSX)',
+                xlsx: '🚀 XUẤT BẢNG TÍNH EXCEL (.XLSX)',
+                pdf: '🚀 XUẤT BÁO CÁO KỸ THUẬT PDF (.PDF)',
+                png: '🚀 XUẤT ẢNH SƠ ĐỒ MỐC FULL HD (.PNG)',
+                dgn: '🚀 XUẤT MICROSTATION & FAMIS (.DGN/.DAT)',
+                kml: '🚀 XUẤT GOOGLE EARTH 3D (.KML)',
+                geojson: '🚀 XUẤT VECTOR GIS OGC (.GEOJSON)',
+                svg: '🚀 XUẤT BẢN VẼ VECTOR SVG (.SVG)',
+                txt: '🚀 XUẤT TỌA ĐỘ MÁY ĐO (.TXT)',
+                csv: '🚀 XUẤT TẬP TIN CSV (.CSV)',
+                share: '🚀 CHIA SẺ SỐ LIỆU ĐO ĐẠC'
+            };
+            btn.innerHTML = labels[fmt] || `🚀 XUẤT DỮ LIỆU (.${fmt.toUpperCase()})`;
+        }
+    },
+
+    toggleAllExportLayers() {
+        const ids = ['chkExportPoints', 'chkExportNames', 'chkExportCoords', 'chkExportLines', 'chkExportLengths', 'chkExportGrid', 'chkExportFrame', 'chkExportNorth'];
+        const allChecked = ids.every(id => {
+            const el = document.getElementById(id);
+            return el ? el.checked : false;
+        });
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.checked = !allChecked;
+        });
+        this.updateExportPreview();
+    },
+
+    onExportSettingChange() {
+        this.updateExportPreview();
+    },
+
+    updateExportPreview() {
+        this.renderExportPreview();
+    },
+
+    renderExportPreview() {
+        this.renderExportPreviewSvg();
+    },
+
+    renderExportPreviewSvg() {
+        const svg = document.getElementById('exportPreviewSvg');
+        if (!svg) return;
+
+        const pts = this.getExportPoints();
+        const opts = this.getExportOptions();
+        const layers = opts.layers;
+
+        if (pts.length === 0) {
+            svg.innerHTML = `
+                <rect width="100%" height="100%" fill="#070b14"/>
+                <text x="50%" y="45%" text-anchor="middle" fill="#64748b" font-size="14" font-family="sans-serif">Chưa có mốc tọa độ nào trong dự án</text>
+                <text x="50%" y="60%" text-anchor="middle" fill="#0284c7" font-size="12" font-family="sans-serif">Nhập mốc hoặc chuyển đổi tọa độ để xem trước bản vẽ</text>
+            `;
+            const spanEl = document.getElementById('statExportSpan');
+            if (spanEl) spanEl.innerText = '-- x -- m';
+            return;
+        }
+
+        // Tính Bounding Box
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        pts.forEach(p => {
+            const east = parseFloat(p.y) || 0;
+            const north = parseFloat(p.x) || 0;
+            if (east < minX) minX = east;
+            if (east > maxX) maxX = east;
+            if (north < minY) minY = north;
+            if (north > maxY) maxY = north;
+        });
+
+        const spanX = Math.max(maxX - minX, 10);
+        const spanY = Math.max(maxY - minY, 10);
+        const scaleVal = this.getExportScaleFactor(opts.scaleVal, spanX, spanY, opts.paperSize);
+        const S = Math.max(scaleVal / 1000.0, 0.1);
+
+        // Cập nhật thẻ tỷ lệ trên giao diện
+        const scaleTag = document.getElementById('exportPreviewScaleTag');
+        if (scaleTag) scaleTag.innerText = `Tỷ lệ 1:${scaleVal}`;
+        const spanEl = document.getElementById('statExportSpan');
+        if (spanEl) spanEl.innerText = `${spanX.toFixed(1)}m × ${spanY.toFixed(1)}m`;
+
+        // Chu vi và diện tích
+        let perim = 0, area = 0;
+        if (pts.length >= 2) {
+            for (let i = 0; i < pts.length; i++) {
+                const j = (i + 1) % pts.length;
+                const dx = (parseFloat(pts[j].y) || 0) - (parseFloat(pts[i].y) || 0);
+                const dy = (parseFloat(pts[j].x) || 0) - (parseFloat(pts[i].x) || 0);
+                perim += Math.hypot(dx, dy);
+            }
+        }
+        if (pts.length >= 3) {
+            for (let i = 0; i < pts.length; i++) {
+                const j = (i + 1) % pts.length;
+                const xi = parseFloat(pts[i].y) || 0;
+                const yi = parseFloat(pts[i].x) || 0;
+                const xj = parseFloat(pts[j].y) || 0;
+                const yj = parseFloat(pts[j].x) || 0;
+                area += (xi * yj) - (xj * yi);
+            }
+            area = Math.abs(area) / 2.0;
+        }
+        const perimEl = document.getElementById('statExportPerim');
+        if (perimEl) perimEl.innerText = pts.length >= 2 ? `${perim.toFixed(1)} m` : '-- m';
+        const areaEl = document.getElementById('statExportArea');
+        if (areaEl) areaEl.innerText = pts.length >= 3 ? `${area.toFixed(1)} m²` : '-- m²';
+
+        // Tọa độ ViewBox SVG chuẩn (600x360)
+        const padX = spanX * 0.22;
+        const padY = spanY * 0.22;
+        const bMinX = minX - padX;
+        const bMinY = minY - padY;
+        const bW = spanX + padX * 2;
+        const bH = spanY + padY * 2;
+
+        const toSvg = (east, north) => {
+            const sx = ((east - bMinX) / bW) * 560 + 20;
+            const sy = 340 - ((north - bMinY) / bH) * 320;
+            return { x: sx, y: sy };
+        };
+
+        let svgHtml = `<rect width="100%" height="100%" fill="#070b14"/>`;
+
+        // 1. Khung bản vẽ nếu bật
+        if (layers.frame) {
+            svgHtml += `<rect x="10" y="10" width="580" height="340" fill="none" stroke="#38bdf8" stroke-width="1.5" rx="6"/>`;
+            svgHtml += `<rect x="15" y="15" width="570" height="330" fill="none" stroke="rgba(56, 189, 248, 0.3)" stroke-width="0.8"/>`;
+        }
+
+        // 2. Lưới Km chữ thập nếu bật
+        if (layers.grid) {
+            for (let i = 1; i <= 6; i++) {
+                const gx = 20 + (560 / 7) * i;
+                svgHtml += `<line x1="${gx}" y1="20" x2="${gx}" y2="340" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>`;
+            }
+            for (let j = 1; j <= 4; j++) {
+                const gy = 20 + (320 / 5) * j;
+                svgHtml += `<line x1="20" y1="${gy}" x2="580" y2="${gy}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>`;
+            }
+        }
+
+        // 3. Đường ranh đa giác
+        if (layers.lines && pts.length >= 2) {
+            const polyCoords = pts.map(p => {
+                const s = toSvg(parseFloat(p.y)||0, parseFloat(p.x)||0);
+                return `${s.x.toFixed(1)},${s.y.toFixed(1)}`;
+            }).join(' ');
+
+            if (pts.length >= 3) {
+                svgHtml += `<polygon points="${polyCoords}" fill="rgba(14, 165, 233, 0.15)" stroke="#38bdf8" stroke-width="2"/>`;
+            } else {
+                svgHtml += `<polyline points="${polyCoords}" fill="none" stroke="#38bdf8" stroke-width="2"/>`;
+            }
+        }
+
+        // 4. Kích thước cạnh
+        if (layers.lengths && pts.length >= 2) {
+            for (let i = 0; i < pts.length; i++) {
+                const p1 = pts[i];
+                const p2 = pts[(i + 1) % pts.length];
+                const s1 = toSvg(parseFloat(p1.y)||0, parseFloat(p1.x)||0);
+                const s2 = toSvg(parseFloat(p2.y)||0, parseFloat(p2.x)||0);
+                const d = Math.hypot((parseFloat(p2.y)||0) - (parseFloat(p1.y)||0), (parseFloat(p2.x)||0) - (parseFloat(p1.x)||0));
+                if (d > 0.05) {
+                    const midX = (s1.x + s2.x) / 2;
+                    const midY = (s1.y + s2.y) / 2;
+                    svgHtml += `<rect x="${midX - 18}" y="${midY - 14}" width="36" height="13" fill="#0f172a" rx="2" opacity="0.85"/>`;
+                    svgHtml += `<text x="${midX}" y="${midY - 4}" text-anchor="middle" fill="#38bdf8" font-size="9" font-weight="700" font-family="sans-serif">${d.toFixed(1)}m</text>`;
+                }
+            }
+        }
+
+        // 5. Tâm mốc & Tên mốc & Tọa độ
+        pts.forEach((p, idx) => {
+            const s = toSvg(parseFloat(p.y)||0, parseFloat(p.x)||0);
+            if (layers.points) {
+                svgHtml += `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="6" fill="rgba(239, 68, 68, 0.3)"/>`;
+                svgHtml += `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="3.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.2"/>`;
+            }
+            if (layers.names) {
+                const name = p.name || `M${idx + 1}`;
+                svgHtml += `<text x="${(s.x + 8).toFixed(1)}" y="${(s.y - 4).toFixed(1)}" fill="#facc15" font-size="10.5" font-weight="800" font-family="sans-serif">${name}</text>`;
+            }
+            if (layers.coords) {
+                svgHtml += `<text x="${(s.x + 8).toFixed(1)}" y="${(s.y + 8).toFixed(1)}" fill="#94a3b8" font-size="8" font-family="monospace">X:${parseFloat(p.x||0).toFixed(1)} Y:${parseFloat(p.y||0).toFixed(1)}</text>`;
+            }
+        });
+
+        // 6. Kim hướng Bắc
+        if (layers.north) {
+            svgHtml += `
+                <g transform="translate(550, 45)">
+                    <polygon points="0,-18 -6,6 0,2" fill="#ef4444"/>
+                    <polygon points="0,-18 6,6 0,2" fill="#ffffff"/>
+                    <text x="0" y="-21" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="800" font-family="sans-serif">N</text>
+                </g>
+            `;
+        }
+
+        // 7. Khung tên bản vẽ mini
+        if (layers.frame) {
+            const rawProj = opts.meta.projectName || "BanDo";
+            svgHtml += `
+                <g transform="translate(25, 290)">
+                    <rect width="180" height="42" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(56, 189, 248, 0.4)" rx="4"/>
+                    <text x="8" y="15" fill="#f8fafc" font-size="9.5" font-weight="700" font-family="sans-serif">${rawProj.toUpperCase()}</text>
+                    <text x="8" y="27" fill="#94a3b8" font-size="8" font-family="sans-serif">Tỷ lệ: 1:${scaleVal} | Múi 3°</text>
+                    <text x="8" y="37" fill="#cbd5e1" font-size="7.5" font-family="sans-serif">Kỹ sư: ${opts.meta.surveyor}</text>
+                </g>
+            `;
+        }
+
+        svg.innerHTML = svgHtml;
+    },
+
+    executeExport() {
+        const opts = this.getExportOptions();
+        const fmt = opts.meta.format;
+
+        switch(fmt) {
+            case 'dwg':
+                this.exportDwgFile();
+                break;
+            case 'excel':
+            case 'xlsx':
+                this.exportExcelFile();
+                break;
+            case 'pdf':
+                this.exportPdfFile();
+                break;
+            case 'png':
+                this.exportPngImage();
+                break;
+            case 'dgn':
+                this.exportDgnFile();
+                break;
+            case 'kml':
+                this.exportKmlFile();
+                break;
+            case 'geojson':
+                this.exportGeoJsonFile();
+                break;
+            case 'svg':
+                this.exportSvgFile();
+                break;
+            case 'txt':
+                this.exportTxtXyzFile();
+                break;
+            case 'csv':
+                this.exportCsvFile();
+                break;
+            case 'share':
+                this.shareCsvFile();
+                break;
+            default:
+                this.exportExcelFile();
+                break;
+        }
+    },
+
     // ================= 10.9.2 CÁC BỘ XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA =================
 
     // 1. Xuất Báo Cáo Kỹ Thuật PDF (.pdf) khổ A4/A3 chuẩn TCVN có sơ đồ mốc
@@ -10567,6 +10945,7 @@ function doGet(e) {
 
         let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
         dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";     // AutoCAD 2000/2004 AC1015 tương thích tối đa
+        dwg += "9\r\n$HANDSEED\r\n5\r\nFFFF\r\n";
         dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (Đơn vị đo chuẩn Việt Nam TCVN)
         dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Hệ mét Metric
         dwg += "9\r\n$LTSCALE\r\n40\r\n" + S.toFixed(4) + "\r\n";
@@ -10574,6 +10953,9 @@ function doGet(e) {
         dwg += "9\r\n$VIEWCTR\r\n10\r\n" + cx.toFixed(3) + "\r\n20\r\n" + cy.toFixed(3) + "\r\n";
         dwg += "9\r\n$VIEWSIZE\r\n40\r\n" + viewSize.toFixed(3) + "\r\n";
         dwg += "0\r\nENDSEC\r\n";
+
+        // SECTION CLASSES (Bắt buộc theo đặc tả AutoCAD AC1015)
+        dwg += "0\r\nSECTION\r\n2\r\nCLASSES\r\n0\r\nENDSEC\r\n";
 
         // SECTION TABLES - Khai báo ĐẦY ĐỦ 100% Symbol Tables chuẩn Autodesk chống lỗi "Missing symbol table"
         dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
@@ -10615,20 +10997,18 @@ function doGet(e) {
         dwg += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
-        // 5. Table VIEW
+        // 5. Table VIEW (Tối ưu rỗng để chống lỗi Null object Id)
         dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 6. Table UCS
+        // 6. Table UCS (Tối ưu rỗng để chống lỗi Null object Id)
         dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 7. Table APPID
         dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n70\r\n1\r\n";
         dwg += "0\r\nAPPID\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 8. Table DIMSTYLE
-        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n1\r\n";
-        dwg += "0\r\nDIMSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n" + S.toFixed(3) + "\r\n41\r\n" + (2.5 * S).toFixed(3) + "\r\n";
-        dwg += "0\r\nENDTAB\r\n";
+        // 8. Table DIMSTYLE (Để rỗng 70 0 để triệt tiêu lỗi Null object Id: con trỏ 340 TextStyle)
+        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 9. Table BLOCK_RECORD (Bắt buộc trong AutoCAD AC1015)
         dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n70\r\n2\r\n";
@@ -10638,10 +11018,10 @@ function doGet(e) {
 
         dwg += "0\r\nENDSEC\r\n";
 
-        // SECTION BLOCKS (Bắt buộc trong AutoCAD AC1015)
+        // SECTION BLOCKS (Đầy đủ layer 8 0 để chống Null Object)
         dwg += "0\r\nSECTION\r\n2\r\nBLOCKS\r\n";
-        dwg += "0\r\nBLOCK\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n";
-        dwg += "0\r\nBLOCK\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n";
+        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
+        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
         dwg += "0\r\nENDSEC\r\n";
 
         // SECTION ENTITIES
@@ -10690,16 +11070,14 @@ function doGet(e) {
             }
         });
 
-        // C. NỐI ĐƯỜNG RANH THỬA POLYLINE nếu có từ 2 mốc trở lên
+        // C. NỐI ĐƯỜNG RANH THỬA: Dùng LWPOLYLINE chuẩn AC1015 triệt tiêu lỗi Null object Id
         if (layers.lines && pts.length >= 2) {
-            dwg += "0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n1\r\n";
+            dwg += `0\r\nLWPOLYLINE\r\n8\r\nRANH_THUA\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n${pts.length}\r\n70\r\n1\r\n43\r\n0.0\r\n`;
             pts.forEach(p => {
                 const easting = parseFloat(p.y) || 0;
                 const northing = parseFloat(p.x) || 0;
-                const elev = parseFloat(p.h || 0);
-                dwg += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n`;
+                dwg += `10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n`;
             });
-            dwg += "0\r\nSEQEND\r\n";
         }
 
         // D. GHI KÍCH THƯỚC CHIỀU DÀI CÁC CẠNH RANH ĐẤT
@@ -10747,12 +11125,11 @@ function doGet(e) {
             const tbX0 = maxX + 20.0 * S - tbW;
             const tbY0 = fY0;
 
-            dwg += `0\r\nPOLYLINE\r\n8\r\nKHUNG_TEN\r\n66\r\n1\r\n70\r\n1\r\n`;
-            dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TEN\r\n10\r\n${tbX0.toFixed(3)}\r\n20\r\n${tbY0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-            dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + tbW).toFixed(3)}\r\n20\r\n${tbY0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-            dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + tbW).toFixed(3)}\r\n20\r\n${(tbY0 + tbH).toFixed(3)}\r\n30\r\n0.0\r\n`;
-            dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TEN\r\n10\r\n${tbX0.toFixed(3)}\r\n20\r\n${(tbY0 + tbH).toFixed(3)}\r\n30\r\n0.0\r\n`;
-            dwg += "0\r\nSEQEND\r\n";
+            dwg += `0\r\nLWPOLYLINE\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n4\r\n70\r\n1\r\n43\r\n0.0\r\n`;
+            dwg += `10\r\n${tbX0.toFixed(3)}\r\n20\r\n${tbY0.toFixed(3)}\r\n`;
+            dwg += `10\r\n${(tbX0 + tbW).toFixed(3)}\r\n20\r\n${tbY0.toFixed(3)}\r\n`;
+            dwg += `10\r\n${(tbX0 + tbW).toFixed(3)}\r\n20\r\n${(tbY0 + tbH).toFixed(3)}\r\n`;
+            dwg += `10\r\n${tbX0.toFixed(3)}\r\n20\r\n${(tbY0 + tbH).toFixed(3)}\r\n`;
 
             const kttStr = AppState.kttDeg ? `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'` : "105°45'";
             dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 5.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\nDU AN: ${projName.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
@@ -10761,6 +11138,11 @@ function doGet(e) {
             dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 23.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nNGAY LAP: ${opts.meta.drawingDate} | NGUOI DO: ${opts.meta.surveyor.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
         }
 
+        dwg += "0\r\nENDSEC\r\n";
+
+        // SECTION OBJECTS - Cốt lõi triệt tiêu lỗi "Null object Id: <object> (0)"
+        dwg += "0\r\nSECTION\r\n2\r\nOBJECTS\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n100\r\nAcDbDictionary\r\n";
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
         // Xuất file bản vẽ AutoCAD (.dwg) chuẩn Autodesk AC1015 với đầy đủ 100% Symbol Tables
@@ -27477,6 +27859,7 @@ const appCadTool = {
         const showBlockInfo = meta.showBlockInfo === true;
         let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
         dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";
+        dwg += "9\r\n$HANDSEED\r\n5\r\nFFFF\r\n";
         dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (TCVN)
         dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
         dwg += "9\r\n$LTSCALE\r\n40\r\n" + S.toFixed(4) + "\r\n";
@@ -27488,6 +27871,9 @@ const appCadTool = {
         dwg += "9\r\n$LIMMIN\r\n10\r\n" + L.X0.toFixed(3) + "\r\n20\r\n" + L.Y0.toFixed(3) + "\r\n";
         dwg += "9\r\n$LIMMAX\r\n10\r\n" + (L.X0 + L.W_sheet).toFixed(3) + "\r\n20\r\n" + (L.Y0 + L.H_sheet).toFixed(3) + "\r\n";
         dwg += "0\r\nENDSEC\r\n";
+
+        // SECTION CLASSES (Bắt buộc theo đặc tả AutoCAD AC1015)
+        dwg += "0\r\nSECTION\r\n2\r\nCLASSES\r\n0\r\nENDSEC\r\n";
 
         // TABLES SECTION
         dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
@@ -27508,7 +27894,7 @@ const appCadTool = {
         dwg += "0\r\nLTYPE\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
-        // 3. Layer table chuẩn kỹ thuật địa chính (R12 chuẩn không dùng handle)
+        // 3. Layer table chuẩn kỹ thuật địa chính
         dwg += "0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n18\r\n";
         dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
         dwg += "0\r\nLAYER\r\n2\r\nCAD_MUITEN\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
@@ -27536,20 +27922,18 @@ const appCadTool = {
         dwg += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
-        // 5. Table VIEW
+        // 5. Table VIEW (Tối ưu rỗng để chống lỗi Null object Id)
         dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 6. Table UCS
+        // 6. Table UCS (Tối ưu rỗng để chống lỗi Null object Id)
         dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 7. Table APPID
         dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n70\r\n1\r\n";
         dwg += "0\r\nAPPID\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 8. Table DIMSTYLE
-        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n1\r\n";
-        dwg += "0\r\nDIMSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n" + S.toFixed(3) + "\r\n41\r\n" + (2.5 * S).toFixed(3) + "\r\n";
-        dwg += "0\r\nENDTAB\r\n";
+        // 8. Table DIMSTYLE (Để rỗng 70 0 để triệt tiêu lỗi Null object Id)
+        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 9. Table BLOCK_RECORD (Bắt buộc trong AutoCAD AC1015)
         dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n70\r\n2\r\n";
@@ -27559,31 +27943,29 @@ const appCadTool = {
 
         dwg += "0\r\nENDSEC\r\n";
 
-        // SECTION BLOCKS (Bắt buộc trong AutoCAD AC1015)
+        // SECTION BLOCKS (Đầy đủ layer 8 0 để chống Null Object)
         dwg += "0\r\nSECTION\r\n2\r\nBLOCKS\r\n";
-        dwg += "0\r\nBLOCK\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n";
-        dwg += "0\r\nBLOCK\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n";
+        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
+        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
         dwg += "0\r\nENDSEC\r\n";
 
         // ENTITIES SECTION
         dwg += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
-        // === A. KHUNG BẢN VẼ CHUẨN XÁC THEO KHỔ GIẤY (A3/A4) ===
+        // === A. KHUNG BẢN VẼ CHUẨN XÁC THEO KHỔ GIẤY (A3/A4) DÙNG LWPOLYLINE CHUẨN AC1015 ===
         // 1. Khung Ngoài (Mép cắt khổ giấy A3/A4 chuẩn mm)
-        dwg += `0\r\nPOLYLINE\r\n8\r\nKHUNG_NGOAI\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_NGOAI\r\n10\r\n${L.X0.toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nSEQEND\r\n8\r\nKHUNG_NGOAI\r\n`;
+        dwg += `0\r\nLWPOLYLINE\r\n8\r\nKHUNG_NGOAI\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n4\r\n70\r\n1\r\n43\r\n0.0\r\n`;
+        dwg += `10\r\n${L.X0.toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n`;
+        dwg += `10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${L.Y0.toFixed(3)}\r\n`;
+        dwg += `10\r\n${(L.X0 + L.W_sheet).toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n`;
+        dwg += `10\r\n${L.X0.toFixed(3)}\r\n20\r\n${(L.Y0 + L.H_sheet).toFixed(3)}\r\n`;
 
         // 2. Khung Trong (Đậm nét 0.50mm, cách lề trái 20mm, lề phải/trên/dưới 10mm)
-        dwg += `0\r\nPOLYLINE\r\n8\r\nKHUNG_TRONG\r\n66\r\n1\r\n70\r\n1\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nVERTEX\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n30\r\n0.0\r\n`;
-        dwg += `0\r\nSEQEND\r\n8\r\nKHUNG_TRONG\r\n`;
+        dwg += `0\r\nLWPOLYLINE\r\n8\r\nKHUNG_TRONG\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n4\r\n70\r\n1\r\n43\r\n0.0\r\n`;
+        dwg += `10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n`;
+        dwg += `10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n`;
+        dwg += `10\r\n${L.Xin1.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n`;
+        dwg += `10\r\n${L.Xin0.toFixed(3)}\r\n20\r\n${L.Yin1.toFixed(3)}\r\n`;
 
         // 3. Đường phân cách giữa Vùng Bản Đồ và Cột Bảng Kê Bên Phải
         dwg += `0\r\nLINE\r\n8\r\nKHUNG_TRONG\r\n10\r\n${L.Xpanel0.toFixed(3)}\r\n20\r\n${L.Yin0.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${L.Xpanel0.toFixed(3)}\r\n21\r\n${L.Yin1.toFixed(3)}\r\n31\r\n0.0\r\n`;
@@ -27637,13 +28019,12 @@ const appCadTool = {
             const isClosed = (shape.mode === 'polygon' && n >= 3);
             const stats = shape.stats || this.calculateAreaAndPerimeter(pts, shape.mode);
 
-            // Đường ranh thửa nét đậm 0.50mm
+            // Đường ranh thửa nét đậm 0.50mm bằng LWPOLYLINE chuẩn AC1015
             if (meta.showBoundaries !== false) {
-                dwg += `0\r\nPOLYLINE\r\n8\r\nRANH_THUA\r\n66\r\n1\r\n70\r\n${isClosed ? 1 : 0}\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n`;
+                dwg += `0\r\nLWPOLYLINE\r\n8\r\nRANH_THUA\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n${pts.length}\r\n70\r\n${isClosed ? 1 : 0}\r\n43\r\n0.0\r\n`;
                 pts.forEach(p => {
-                    dwg += `0\r\nVERTEX\r\n8\r\nRANH_THUA\r\n10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n30\r\n0.0\r\n`;
+                    dwg += `10\r\n${p.y.toFixed(3)}\r\n20\r\n${p.x.toFixed(3)}\r\n`;
                 });
-                dwg += `0\r\nSEQEND\r\n8\r\nRANH_THUA\r\n`;
             }
 
             // Điểm đỉnh mốc & Nhãn tên mốc (Hiển thị khi meta.showVertices !== false)
@@ -28023,7 +28404,12 @@ const appCadTool = {
         dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 6.8 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nSo to/thua: ${this.toCadAscii(meta.parcelNo || '01')}\r\n7\r\nVN_ARIAL\r\n`;
         dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(midColX + 1.8 * S).toFixed(3)}\r\n20\r\n${(yRow3 - 10.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\nNgay lap: ${this.toCadAscii(meta.drawingDate)}\r\n7\r\nVN_ARIAL\r\n`;
 
-        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
+        dwg += "0\r\nENDSEC\r\n";
+
+        // SECTION OBJECTS (Bắt buộc cho AutoCAD AC1015)
+        dwg += "0\r\nSECTION\r\n2\r\nOBJECTS\r\n";
+        dwg += "0\r\nDICTIONARY\r\n0\r\nENDSEC\r\n";
+        dwg += "0\r\nEOF\r\n";
 
         const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
