@@ -9,7 +9,27 @@
 
 ## Nhật ký tiến độ gần nhất
 
-### [2026-10-21] Khắc Phục Triệt Để Lệch Vị Trí Spotlight Box, Con Trỏ Chuột & Chi Tiết Hóa Toàn Diện Hướng Dẫn Thao Tác
+### [2026-10-21] Xóa Bỏ Hoàn Toàn Video Hướng Dẫn & Ra Mắt Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa user-guide.html Kèm Tích Hợp Nút "?"
+- **Yêu cầu từ người dùng**:
+  - `bỏ hết các video hướng dẫn đi (xóa vết các video cũ và các tài liệu liên quan video luôn, tạo file hướng dẫn .html khi người dùng cần hướng dẫn đi (Nhấn nút "?" để nhờ hướng dẫn)`
+  - `hướng dẫn thì cái màn hình cần thao tác cần lớn để nhìn chứ, đưa mấy cái khung kia nhỏ hơn hoặc bố trí sao cho phù hợp. hiện tại hướng dẫn còn chưa nhìn được màn hình. chưa đọc xong hướng dẫn bước này thì đã chuyển sang bước khác.`
+- **Giải pháp triệt để**:
+  1. **Xóa sạch dấu vết video cũ & tài liệu liên quan**:
+     - Xóa bỏ hoàn toàn `tutorials-pdoom.html` và toàn bộ thư mục `assets/video_assets/` (các file phụ đề .srt, file storyboard .json, typography).
+     - Xóa bỏ và thay thế test cũ `pdoom_video_engine.test.js` bằng `tests/user_guide_handbook.test.js`.
+  2. **Xây dựng Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa Chuyên Nghiệp (`user-guide.html` & `huong-dan.html`)**:
+     - **Màn hình thao tác cực lớn (Showcase 1000px-1100px)**: Dùng ảnh chụp thực tế chất lượng cao (`assets/tutorial_screens/`), rõ nét từng con số, nút bấm, ô nhập liệu. Tích hợp Lightbox phóng to 100%.
+     - **Không bao giờ bị trôi bước**: Trình bày dạng cẩm nang kỹ thuật tĩnh (SOP), từng bước 1-2-3 rõ ràng, kèm Mẹo thực địa (Field Tips) và Cảnh báo sai số. Kỹ sư tự do đọc kỹ bao lâu tùy thích mà không bị áp lực thời gian.
+     - **14 Chuyên đề toàn diện**: Chuyển đổi đơn điểm, Chuyển đổi hàng loạt Excel, Bản đồ & Live GPS HUD, Cắm mốc la bàn, Sổ đo dự án, MiniCAD thực địa, 5 Bảng kê ranh đất, Trắc dọc & Đào đắp, Camera đóng dấu tọa độ, KTT 63 tỉnh thành, Xuất DWG/Excel/KML, Tiện ích trắc địa, Lưu trữ ngoại tuyến.
+     - **Sidebar mục lục cố định (Sticky TOC)** và **Bộ lọc tìm kiếm tức thì (Live Search Filter)**.
+     - **Hỗ trợ In ấn / Xuất PDF (Print friendly)** làm tài liệu đào tạo nội bộ.
+  3. **Tích hợp nút "?" toàn diện trong ứng dụng**:
+     - Nút `?` ở Header (`#btnHeaderHelpGuide`) và ở từng phân hệ: Mở modal tóm tắt kèm nút nổi bật **"📖 Cẩm Nang Toàn Diện"** (`appGuide.openFullUserGuide()`) dẫn thẳng tới chuyên mục tương ứng trên `user-guide.html`.
+     - Drawer menu mục 5.7: Đổi thành `5.7 Cẩm Nang & Sổ Tay Hướng Dẫn`, nhấp vào mở trực tiếp `user-guide.html`.
+  4. **Kiểm thử hồi quy**:
+     - 237/237 bài test PASS 100% trong `tests/*.test.js`.
+
+---
 - **Yêu cầu từ người dùng**:
   1. `các khung làm nổi bật nội dung cần hướng dẫn và vị trí con trỏ chuột chưa được rê đúng vị trí cần hướng dẫn các chức năng.`
   2. `các chức năng chưa thực sự được hướng dẫn cụ thể`

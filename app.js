@@ -31750,6 +31750,30 @@ const appGuide = {
         triggerHaptic('light');
     },
 
+    openFullUserGuide(guideKey) {
+        const key = guideKey || this.activeGuideKey || 'settings_welcome';
+        const sectionMap = {
+            'settings_welcome': 'section-overview',
+            'transform': 'section-transform',
+            'transform_batch': 'section-batch',
+            'gps_map': 'section-map',
+            'stakeout': 'section-stakeout',
+            'datamgmt': 'section-datamgmt',
+            'cad': 'section-cad',
+            'cad_tables': 'section-cad_tables',
+            'profile': 'section-profile',
+            'camera': 'section-camera',
+            'settings_ktt': 'section-settings_ktt',
+            'settings_export': 'section-export',
+            'geodesy': 'section-geodesy',
+            'settings_storage': 'section-settings_storage'
+        };
+        const secId = sectionMap[key] || 'section-overview';
+        if (typeof window !== 'undefined') {
+            window.open(`user-guide.html#${secId}`, '_blank');
+        }
+    },
+
     onDontShowAgainToggle(checked) {
         if (typeof localStorage !== 'undefined' && this.activeGuideKey) {
             localStorage.setItem('guide_dont_show_' + this.activeGuideKey, checked ? 'true' : 'false');

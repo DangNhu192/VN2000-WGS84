@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Cẩm Nang Hướng Dẫn Sử Dụng — VN2000 PRO</title>
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <!-- Google Fonts: Be Vietnam Pro & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --bg-sidebar: #0f172a;
+      --card-bg: rgba(17, 24, 39, 0.95);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --card-hover: rgba(30, 41, 59, 0.95);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --signal: #10b981;
+      --gold: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --code-bg: #1e293b;
+      --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    body.light-theme {
+      --bg: #f8fafc;
+      --bg-sidebar: #ffffff;
+      --card-bg: #ffffff;
+      --card-border: rgba(0, 0, 0, 0.1);
+      --card-hover: #f1f5f9;
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.2);
+      --signal: #059669;
+      --gold: #d97706;
+      --danger: #dc2626;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --code-bg: #e2e8f0;
+      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    /* Top Navigation Header */
+    header.guide-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    body.light-theme header.guide-header {
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #10b981);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .search-box-wrap {
+      flex: 1;
+      max-width: 480px;
+      position: relative;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 8px 14px 8px 36px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      outline: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    body.light-theme .search-input {
+      background: #f1f5f9;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-header {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    body.light-theme .btn-header {
+      background: #f1f5f9;
+    }
+    .btn-header:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-header-primary {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      border-color: #38bdf8;
+    }
+    .btn-header-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #0284c7);
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+
+    /* Main Layout */
+    .guide-layout {
+      flex: 1;
+      display: flex;
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* Sticky Sidebar Navigation */
+    aside.guide-sidebar {
+      width: 320px;
+      min-width: 320px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--card-border);
+      padding: 24px 16px;
+      position: sticky;
+      top: 57px;
+      height: calc(100vh - 57px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      padding-left: 8px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .toc-item a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .toc-item a:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    body.light-theme .toc-item a:hover {
+      background: #f1f5f9;
+    }
+    .toc-item a.active {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      font-weight: 700;
+      border-left: 3px solid #38bdf8;
+    }
+    .toc-item .toc-icon {
+      font-size: 16px;
+    }
+
+    /* Main Content Area */
+    main.guide-content {
+      flex: 1;
+      padding: 36px 48px 100px;
+      overflow-y: auto;
+      max-width: 1280px;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.15), rgba(16, 185, 129, 0.12));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-banner h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hero-banner p {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 860px;
+      line-height: 1.6;
+    }
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .hero-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* Guide Chapter Section */
+    section.guide-section {
+      margin-bottom: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--card-border);
+    }
+    section.guide-section:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .section-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .section-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-num {
+      background: #0284c7;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 5px;
+      letter-spacing: 0.5px;
+    }
+    .section-category {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--accent);
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+
+    /* Large Interactive Screen Showcase */
+    .guide-screen-showcase {
+      width: 100%;
+      background: #000;
+      border-radius: 14px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.15);
+      overflow: hidden;
+      margin: 24px 0 28px;
+      position: relative;
+    }
+    .showcase-topbar {
+      background: #111827;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .showcase-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+    .showcase-title-badge {
+      font-size: 11.5px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+    .showcase-btn-zoom {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      font-size: 11.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .showcase-btn-zoom:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .showcase-img-container {
+      position: relative;
+      background: #07090e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      cursor: pointer;
+    }
+    .showcase-img {
+      width: 100%;
+      height: auto;
+      max-height: 680px;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.2s ease;
+    }
+    .showcase-img:hover {
+      filter: brightness(1.03);
+    }
+
+    .showcase-callouts-bar {
+      background: rgba(15, 23, 42, 0.95);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .callout-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: #e2e8f0;
+    }
+    .callout-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0284c7;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Steps Layout */
+    .steps-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: 20px 0;
+    }
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      transition: all 0.2s ease;
+    }
+    .step-card:hover {
+      border-color: var(--accent);
+      background: var(--card-hover);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    .step-number-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+    }
+    .step-body {
+      flex: 1;
+    }
+    .step-heading {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .step-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .step-text b {
+      color: var(--text);
+    }
+    .step-text code {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: #38bdf8;
+    }
+
+    /* Pro Tips and Alert Boxes */
+    .tip-box {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 4px solid var(--gold);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 13.5px;
+      color: #fbbf24;
+      line-height: 1.55;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    body.light-theme .tip-box {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .alert-box {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid var(--danger);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 13.5px;
+      color: #fca5a5;
+      line-height: 1.55;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    body.light-theme .alert-box {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13px;
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+    }
+    .shortcut-table th, .shortcut-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .shortcut-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kbd-key {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 2px 0 var(--card-border);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Lightbox Modal */
+    .lightbox-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(12px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .lightbox-modal.active {
+      display: flex;
+    }
+    .lightbox-img {
+      max-width: 95vw;
+      max-height: 92vh;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .lightbox-close:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      aside.guide-sidebar {
+        display: none;
+      }
+      main.guide-content {
+        padding: 24px 20px 80px;
+      }
+      .brand-title {
+        font-size: 14px;
+      }
+    }
+
+    /* Print View */
+    @media print {
+      header.guide-header, aside.guide-sidebar, .showcase-btn-zoom, .btn-header {
+        display: none !important;
+      }
+      main.guide-content {
+        padding: 0 !important;
+        max-width: 100% !important;
+      }
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .guide-screen-showcase {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        page-break-inside: avoid;
+      }
+      section.guide-section {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header class="guide-header">
+    <div class="brand-wrap">
+      <img src="icon.png" alt="VN2000 Pro" class="brand-logo">
+      <div class="brand-title">
+        <span>VN-2000 PRO</span>
+        <span class="brand-badge">SỔ TAY THỰC ĐỊA</span>
+      </div>
+    </div>
+
+    <!-- Live Instant Search -->
+    <div class="search-box-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="guideSearchInput" class="search-input" placeholder="Tìm kiếm nhanh: KTT, Đảo trục, MiniCAD, Xuất DWG, La bàn, Trắc dọc..." oninput="filterGuideTopics(this.value)">
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-header" onclick="toggleGuideTheme()" title="Chuyển đổi Giao diện Sáng / Tối">
+        <span id="themeIcon">☀️</span> <span id="themeText">Giao diện</span>
+      </button>
+      <button class="btn-header" onclick="window.print()" title="In ấn hoặc Xuất sổ tay ra PDF">
+        🖨️ In / PDF
+      </button>
+      <a href="index.html" class="btn-header btn-header-primary">
+        ◀ Quay Lại Ứng Dụng
+      </a>
+    </div>
+  </header>
+
+  <div class="guide-layout">
+    <!-- Sticky Sidebar Navigation (TOC) -->
+    <aside class="guide-sidebar" id="guideSidebar">
+      <div>
+        <div class="sidebar-section-title">CHUYÊN ĐỀ CỐT LÕI</div>
+        <ul class="toc-list">
+          <li class="toc-item"><a href="#section-overview" class="active"><span class="toc-icon">📱</span> 1. Tổng Quan & Giao Diện</a></li>
+          <li class="toc-item"><a href="#section-transform"><span class="toc-icon">🔄</span> 2. Chuyển Đổi Đơn Điểm</a></li>
+          <li class="toc-item"><a href="#section-batch"><span class="toc-icon">📊</span> 3. Chuyển Đổi Hàng Loạt</a></li>
+          <li class="toc-item"><a href="#section-map"><span class="toc-icon">🗺️</span> 4. Bản Đồ & Live GPS</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="sidebar-section-title">THỰC ĐỊA & DỰ ÁN</div>
+        <ul class="toc-list">
+          <li class="toc-item"><a href="#section-stakeout"><span class="toc-icon">🎯</span> 5. Cắm Mốc & La Bàn</a></li>
+          <li class="toc-item"><a href="#section-datamgmt"><span class="toc-icon">📁</span> 6. Sổ Đo & Quản Lý Mốc</a></li>
+          <li class="toc-item"><a href="#section-cad"><span class="toc-icon">📐</span> 7. Tiện Ích MiniCAD</a></li>
+          <li class="toc-item"><a href="#section-cad_tables"><span class="toc-icon">📋</span> 8. Năm (5) Bảng Kê Ranh</a></li>
+          <li class="toc-item"><a href="#section-profile"><span class="toc-icon">📈</span> 9. Trắc Dọc & Đào Đắp</a></li>
+          <li class="toc-item"><a href="#section-camera"><span class="toc-icon">📷</span> 10. Camera Đóng Dấu</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="sidebar-section-title">QUY CHUẨN & HỆ THỐNG</div>
+        <ul class="toc-list">
+          <li class="toc-item"><a href="#section-settings_ktt"><span class="toc-icon">🌐</span> 11. Cấu Hình KTT 63 Tỉnh</a></li>
+          <li class="toc-item"><a href="#section-export"><span class="toc-icon">📥</span> 12. Xuất DWG, Excel, KML</a></li>
+          <li class="toc-item"><a href="#section-geodesy"><span class="toc-icon">📐</span> 13. Giao Hội & Trắc Địa</a></li>
+          <li class="toc-item"><a href="#section-settings_storage"><span class="toc-icon">☁️</span> 14. Sao Lưu & Đồng Bộ</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content Articles -->
+    <main class="guide-content" id="guideContent">
+
+      <!-- Hero Header -->
+      <div class="hero-banner">
+        <h1>📖 Cẩm Nang Hướng Dẫn Sử Dụng Thực Địa</h1>
+        <p>Tài liệu hướng dẫn trực quan, chuẩn xác từng thao tác kỹ thuật cho kỹ sư trắc địa, địa chính và cán bộ giám sát công trường. Hình ảnh giao diện kích thước lớn, từng bước mạch lạc, không áp lực thời gian.</p>
+        <div class="hero-tags">
+          <span class="hero-pill">✓ Tiêu chuẩn QĐ 05/2007/QĐ-BTNMT</span>
+          <span class="hero-pill">✓ Độ chính xác Millimeter (0.001m)</span>
+          <span class="hero-pill">✓ 100% Hoạt động ngoại tuyến (Offline)</span>
+          <span class="hero-pill">✓ Tương thích AutoCAD & Civil 3D</span>
+        </div>
+      </div>
+
+      <!-- ================= MỤC 1: TỔNG QUAN & GIAO DIỆN ================= -->
+      <section id="section-overview" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">01</span>
+              <span class="section-category">GIAO DIỆN & TỔNG QUAN</span>
+            </div>
+            <h2 class="section-title">📱 Tổng Quan Giao Diện & Thanh Điều Hướng Nhanh</h2>
+            <p class="section-desc">Giao diện thiết kế theo triết lý Apple Tahoe & iOS 21 Dynamic Control Center: Tối ưu cho thiết bị cầm tay ngoài công trường với độ tương phản cao, phím tắt nhanh và thanh dock chuyển tác vụ.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Thanh Menu Trên Cùng (Header Control Center)</div>
+              <div class="step-text">
+                Nút <b>☰ Menu</b> mở cây thư mục phân cấp toàn bộ chức năng. Nút <b>☀️ Đổi Theme</b> giúp chuyển đổi nhanh nền Sáng/Tối. Nút <b>🛰️ GPS</b> bật tắt nhận tín hiệu vệ tinh trực tiếp. Nút <b>⚙️ Cài đặt</b> và nút <b>? Hướng dẫn</b> cung cấp trợ giúp ngữ cảnh tức thì tại bất kỳ màn hình nào.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Thanh Điều Hướng Đáy Màn Hình (Taskbar Dock)</div>
+              <div class="step-text">
+                Cung cấp 4 phím tắt chuyển nhanh: <b>🏠 Trang Chủ</b>, <b>🔄 Chuyển Đổi</b>, <b>🗺️ Bản Đồ</b>, <b>📁 Sổ Đo</b>. Bạn có thể nhấn giữ hoặc vào Cài Đặt Ghim để thay đổi các phím tắt này thành MiniCAD, Cắm Mốc hoặc Camera tùy theo nhu cầu thi công thực địa.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip-box">
+          💡 <b>Mẹo thực địa:</b> Bạn có thể nhấn phím <b>F1</b> hoặc nút <b>?</b> ở góc phải trên cùng màn hình bất kỳ lúc nào để nhận trợ giúp tương ứng với phân hệ bạn đang làm việc.
+        </div>
+      </section>
+
+      <!-- ================= MỤC 2: CHUYỂN ĐỔI ĐƠN ĐIỂM ================= -->
+      <section id="section-transform" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">02</span>
+              <span class="section-category">CHUYỂN ĐỔI TỌA ĐỘ</span>
+            </div>
+            <h2 class="section-title">🔄 Chuyển Đổi Tọa Độ Đơn Điểm 2 Chiều & Tra Cứu Vệ Tinh</h2>
+            <p class="section-desc">Chuyển đổi 2 chiều chính xác tuyệt đối giữa hệ VN-2000 (X, Y) và WGS-84 (Lat, Lng) theo Quyết định 05/2007/QĐ-BTNMT. Tích hợp bản đồ trực quan vệ tinh Google Earth độ phân giải cao.</p>
+          </div>
+        </div>
+
+        <!-- Large Screen Showcase -->
+        <div class="guide-screen-showcase">
+          <div class="showcase-topbar">
+            <div class="showcase-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <span class="showcase-title-badge">CHUYỂN ĐỔI 2 CHIỀU ĐƠN ĐIỂM & BẢN ĐỒ VỆ TINH</span>
+            <button class="showcase-btn-zoom" onclick="openLightbox('assets/tutorial_screens/desktop_fn1_transform.png')">🔍 Phóng to 100%</button>
+          </div>
+          <div class="showcase-img-container" onclick="openLightbox('assets/tutorial_screens/desktop_fn1_transform.png')">
+            <img src="assets/tutorial_screens/desktop_fn1_transform.png" alt="Màn hình chuyển đổi tọa độ đơn điểm lớn" class="showcase-img">
+          </div>
+          <div class="showcase-callouts-bar">
+            <div class="callout-pill"><span class="callout-num">1</span> Ô chọn Tỉnh & Kinh tuyến trục cục bộ</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Cặp ô nhập tọa độ X (Bắc) và Y (Đông)</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Nút Chuyển Đổi & Nút Đảo Trục thông minh</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Mốc hiển thị trực quan trên nền ảnh vệ tinh</div>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Chọn Tỉnh thành & Múi chiếu (KTT)</div>
+              <div class="step-text">
+                Tại ô chọn tỉnh thành, click chọn địa phương thi công (ví dụ: <code>Đồng Tháp - KTT 105°00', Múi 3°</code>). Hệ thống tự động thiết lập kinh tuyến trục và lưu vĩnh viễn theo chuẩn Bộ TN&MT.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Nhập hoặc Dán Tọa Độ Cần Quy Đổi</div>
+              <div class="step-text">
+                Nhập cặp tọa độ <b>X</b> (trục Bắc, 7 chữ số: >1.000.000m) và <b>Y</b> (trục Đông, 6 chữ số: >500.000m). Bạn cũng có thể bấm nút <b>📋 Dán</b> để lấy trực tiếp từ Zalo/Clipboard — ứng dụng tự phát hiện và đảo trục nếu bạn dán nhầm thứ tự Y-X.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 3: Nhận Kết Quả & Xem Vị Trí Vệ Tinh Trực Quan</div>
+              <div class="step-text">
+                Kết quả WGS-84 (Vĩ độ Lat, Kinh độ Lng) lập tức xuất hiện. Click nút <b>Bản đồ lớn trực quan</b> hoặc kéo tấm bảng lên để kiểm tra mốc nằm đúng vị trí thực tế trên nền ảnh vệ tinh Google Earth độ nét cao.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip-box">
+          💡 <b>Quy tắc chống lệch hàng trăm km:</b> Trong hệ VN-2000 tại Việt Nam: Trục <b>X là trục Bắc</b> luôn có <b>7 chữ số</b> (khoảng 900.000m đến 2.500.000m); Trục <b>Y là trục Đông</b> luôn có <b>6 chữ số</b> (khoảng 400.000m đến 650.000m). Ứng dụng tích hợp bộ AI Guard tự động cảnh báo nếu tọa độ bị đảo ngược.
+        </div>
+      </section>
+
+      <!-- ================= MỤC 3: CHUYỂN ĐỔI HÀNG LOẠT ================= -->
+      <section id="section-batch" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">03</span>
+              <span class="section-category">XỬ LÝ DỮ LIỆU EXCEL</span>
+            </div>
+            <h2 class="section-title">📊 Chuyển Đổi Hàng Loạt Từ Bảng Excel & Tự Đảo Trục Chống Lệch</h2>
+            <p class="section-desc">Xử lý cùng lúc hàng chục hoặc hàng nghìn mốc trắc địa từ bảng tính Excel. Tự nhận diện phân cách Tab, dấu phẩy thập phân Việt Nam và xuất file đa định dạng.</p>
+          </div>
+        </div>
+
+        <!-- Large Screen Showcase -->
+        <div class="guide-screen-showcase">
+          <div class="showcase-topbar">
+            <div class="showcase-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <span class="showcase-title-badge">CHUYỂN ĐỔI HÀNG LOẠT & XUẤT FILE DWG / EXCEL</span>
+            <button class="showcase-btn-zoom" onclick="openLightbox('assets/tutorial_screens/desktop_fn5_batch.png')">🔍 Phóng to 100%</button>
+          </div>
+          <div class="showcase-img-container" onclick="openLightbox('assets/tutorial_screens/desktop_fn5_batch.png')">
+            <img src="assets/tutorial_screens/desktop_fn5_batch.png" alt="Màn hình chuyển đổi hàng loạt từ Excel" class="showcase-img">
+          </div>
+          <div class="showcase-callouts-bar">
+            <div class="callout-pill"><span class="callout-num">1</span> Tab Chuyển đổi hàng loạt</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Khung dán trực tiếp từ Excel (Ctrl+V)</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Bảng kết quả tính toán chi tiết kèm sai số</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Nút Xuất file AutoCAD DWG / Excel / KML</div>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Chuyển sang Tab [Chuyển Đổi Đa Điểm / Hàng Loạt]</div>
+              <div class="step-text">
+                Tại giao diện Chuyển đổi, bấm chọn tab <b>Chuyển Đổi Đa Điểm</b>. Giao diện bảng tính thông minh mở ra, sẵn sàng tiếp nhận danh sách mốc.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Dán Bảng Tọa Độ Từ Excel (Ctrl + V)</div>
+              <div class="step-text">
+                Sao chép các cột từ file Excel dự án (hỗ trợ cả mẫu 2 cột: <code>X | Y</code> hoặc mẫu 3 cột: <code>Tên Mốc | X | Y</code>) rồi dán trực tiếp. Trình phân tích tự chuẩn hóa phân cách Tab, nhận diện dấu phẩy thập phân Việt Nam <code>1144058,623</code> và bấm nút <b>⚡ Tính toán hàng loạt</b>.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 3: Xuất File Nghiệm Thu (DWG / Excel / KML)</div>
+              <div class="step-text">
+                Bảng danh sách kết quả hiển thị trọn vẹn tọa độ chuyển đổi. Bấm nút <b>Xuất dữ liệu</b> để tải về file bản vẽ AutoCAD (<code>.dwg</code>), file bảng tính Excel (<code>.xlsx</code>) hoặc file Google Earth (<code>.kml</code>) phục vụ hồ sơ nghiệm thu.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip-box">
+          💡 <b>Định dạng hỗ trợ:</b> Hỗ trợ cả danh sách không có tên mốc (hệ thống tự động đánh số M1, M2, M3...) hoặc danh sách đảo trục Y trước X sau (thuật toán tự động sắp xếp lại chuẩn VN-2000).
+        </div>
+      </section>
+
+      <!-- ================= MỤC 4: BẢN ĐỒ & LIVE GPS ================= -->
+      <section id="section-map" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">04</span>
+              <span class="section-category">BẢN ĐỒ THỰC ĐỊA</span>
+            </div>
+            <h2 class="section-title">🗺️ Bản Đồ Khảo Sát Thực Địa & HUD Quan Trắc Vệ Tinh</h2>
+            <p class="section-desc">Theo dõi vị trí hiện trường theo thời gian thực (Live GPS HUD). Tích hợp chế độ tương phản cao chống nắng chói, kiểm soát sai số vệ tinh và chấm điểm lưu mốc trực tiếp ngoài thực địa.</p>
+          </div>
+        </div>
+
+        <!-- Large Screen Showcase -->
+        <div class="guide-screen-showcase">
+          <div class="showcase-topbar">
+            <div class="showcase-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <span class="showcase-title-badge">BẢN ĐỒ DỰ ÁN & MỐC TỌA ĐỘ VỆ TINH</span>
+            <button class="showcase-btn-zoom" onclick="openLightbox('assets/tutorial_screens/desktop_fn2_project.png')">🔍 Phóng to 100%</button>
+          </div>
+          <div class="showcase-img-container" onclick="openLightbox('assets/tutorial_screens/desktop_fn2_project.png')">
+            <img src="assets/tutorial_screens/desktop_fn2_project.png" alt="Màn hình bản đồ dự án và mốc tọa độ" class="showcase-img">
+          </div>
+          <div class="showcase-callouts-bar">
+            <div class="callout-pill"><span class="callout-num">1</span> Thanh công cụ Bản đồ & Mốc dự án chuyên biệt</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Live HUD hiển thị tọa độ tức thời cả 2 hệ</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Điểm mốc khảo sát trên nền bản đồ</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Nút Chấm mốc & Thu phóng bao quát dự án</div>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Bật Định Vị GPS & Xem Live HUD Tọa Độ</div>
+              <div class="step-text">
+                Chạm vào biểu tượng <b>🗺️ Bản Đồ</b> hoặc nút <b>🛰️ GPS</b> trên thanh header. Cấp quyền truy cập vị trí trên trình duyệt. Bảng Live HUD lập tức hiển thị song song cặp tọa độ VN-2000 (X, Y) và WGS-84 (Lat, Lng) theo vị trí bước chân của bạn.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Bật Chế Độ Thực Địa Chống Nắng (High Contrast)</div>
+              <div class="step-text">
+                Khi đo đạc dưới trời nắng gắt, chạm vào nút <b>⚡ Thực Địa</b> trên thanh công cụ bản đồ. Ứng dụng tự động áp dụng bộ lọc tăng độ nét biên ranh mốc Laplacian và khử chói để bạn quan sát rõ ràng mà không phải che tay.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 3: Chấm Điểm Lấy Tọa Độ & Lưu Mốc</div>
+              <div class="step-text">
+                Chạm trực tiếp vào vị trí bất kỳ trên bản đồ vệ tinh hoặc đứng tại mốc rồi bấm nút <b>📌 Lưu mốc thực địa</b>. Điểm đo sẽ được ghi nhận ngay vào Sổ Đo Dự Án với đầy đủ thời gian và tọa độ chuẩn xác.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert-box">
+          ⚠️ <b>Lưu ý sai số GPS thiết bị di động:</b> Cảm biến GPS tích hợp trong điện thoại/máy tính bảng thông thường có sai số từ 3 mét đến 10 mét phụ thuộc vào độ thông thoáng bầu trời. Dùng cho khảo sát sơ bộ, tìm mốc và nhận diện ranh. Để đạt độ chính xác cm, hãy kết nối máy RTK qua Bluetooth trong mục Cài đặt.
+        </div>
+      </section>
+
+      <!-- ================= MỤC 5: CẮM MỐC THỰC ĐỊA ================= -->
+      <section id="section-stakeout" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">05</span>
+              <span class="section-category">ĐỊNH VỊ CÔNG TRƯỜNG</span>
+            </div>
+            <h2 class="section-title">🎯 Cắm Mốc Thực Địa & La Bàn Số Dẫn Hướng Bám Tim</h2>
+            <p class="section-desc">Hỗ trợ kỹ sư tìm mốc thiết kế ngoài thực địa. La bàn số điện tử xoay dẫn hướng trực quan, liên tục tính toán độ lệch dX, dY và phát âm thanh cảnh báo bíp khi tiếp cận sát tim mốc.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Chọn Điểm Mốc Thiết Kế Cần Tìm</div>
+              <div class="step-text">
+                Mở phân hệ <b>Cắm Mốc Thực Địa</b>. Chọn điểm mục tiêu từ danh sách dự án (hoặc nhập thủ công cặp tọa độ X, Y thiết kế cần cắm mốc).
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Cầm Máy Nằm Ngang & Di Chuyển Theo Mũi Tên La Bàn</div>
+              <div class="step-text">
+                Mũi tên la bàn số xoay liên tục chỉ thẳng về hướng điểm mốc. Màn hình hiển thị khoảng cách còn lại (mét) cùng độ lệch trục <code>ΔX</code> (Tiến/Lùi) và <code>ΔY</code> (Trái/Phải).
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 3: Chuông Báo Âm Thanh Khi Tiếp Cận Sát Tim Mốc</div>
+              <div class="step-text">
+                Khi bạn di chuyển vào bán kính dưới 1 mét quanh tim mốc, ứng dụng tự động kích hoạt âm thanh cảnh báo <b>bíp dồn dập</b> và rung phản hồi Haptic giúp bạn đóng cọc cắm mốc chính xác tuyệt đối mà không cần dán mắt vào màn hình.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip-box">
+          💡 <b>Mẹo hiệu chuẩn la bàn:</b> Nếu la bàn bị lệch hướng do từ trường công trình, cầm điện thoại xoay hình số 8 trong không khí 2-3 lần để cảm biến từ kế tự căn chỉnh lại hướng Bắc thực.
+        </div>
+      </section>
+
+      <!-- ================= MỤC 6: SỔ ĐO DỰ ÁN ================= -->
+      <section id="section-datamgmt" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">06</span>
+              <span class="section-category">QUẢN LÝ DỮ LIỆU</span>
+            </div>
+            <h2 class="section-title">📁 Sổ Đo Dự Án & Quản Lý Dữ Liệu Mốc Khống Chế</h2>
+            <p class="section-desc">Quản lý toàn bộ danh sách điểm mốc khảo sát, mốc ranh và mốc khống chế. Lưu trữ an toàn 100% trong bộ nhớ máy (Offline IndexedDB), tự động đồng bộ và xuất dữ liệu.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Quản Trị Danh Sách Mốc & Bộ Lọc Nhanh</div>
+              <div class="step-text">
+                Xem toàn bộ các mốc đã thu thập từ hiện trường. Bạn có thể đổi tên mốc, chỉnh sửa tọa độ, tìm kiếm nhanh theo ký hiệu hoặc phân loại mốc ranh giới, mốc đường chuyền, mốc cao đạc.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Xuất Báo Cáo & Bản Vẽ AutoCAD DWG Chuẩn TCVN</div>
+              <div class="step-text">
+                Click nút <b>Xuất dữ liệu</b> để mở trung tâm xuất file: Chọn xuất bản vẽ <b>AutoCAD DWG</b> (tương thích AutoCAD 2007-2026), bảng tính <b>Excel XLS</b>, hoặc file <b>Google Earth KML</b> để gửi ngay cho chủ đầu tư.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MỤC 7: MINICAD THỰC ĐỊA ================= -->
+      <section id="section-cad" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">07</span>
+              <span class="section-category">BẢN VẼ & BIÊN TẬP RANH</span>
+            </div>
+            <h2 class="section-title">📐 Tiện Ích MiniCAD Thực Địa & Bắt Điểm Tự Động OSNAP</h2>
+            <p class="section-desc">Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ: Vẽ đa giác ranh đất, đường tim tuyến, nhà xưởng, bán kính bảo vệ. Bắt điểm tự động đỉnh mốc (OSNAP) và tính diện tích mét vuông tức thì.</p>
+          </div>
+        </div>
+
+        <!-- Large Screen Showcase -->
+        <div class="guide-screen-showcase">
+          <div class="showcase-topbar">
+            <div class="showcase-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <span class="showcase-title-badge">BỘ CÔNG CỤ MINICAD THỰC ĐỊA (P, L, REC, C, D)</span>
+            <button class="showcase-btn-zoom" onclick="openLightbox('assets/tutorial_screens/desktop_fn6_cad.png')">🔍 Phóng to 100%</button>
+          </div>
+          <div class="showcase-img-container" onclick="openLightbox('assets/tutorial_screens/desktop_fn6_cad.png')">
+            <img src="assets/tutorial_screens/desktop_fn6_cad.png" alt="Màn hình MiniCAD và công cụ vẽ" class="showcase-img">
+          </div>
+          <div class="showcase-callouts-bar">
+            <div class="callout-pill"><span class="callout-num">1</span> Tab Vẽ: Đa giác [P], Đoạn thẳng [L], Hình chữ nhật [REC]</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Tab Bắt điểm: Bật/Tắt chế độ hít nam châm OSNAP</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Bảng kê danh sách các khối đã vẽ kèm diện tích</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Nút Xuất bản vẽ AutoCAD (.DWG / .DXF)</div>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Chọn Công Cụ Vẽ Hình Học [P, L, REC, C, D]</div>
+              <div class="step-text">
+                Click tab <b>Vẽ</b> trên thanh công cụ MiniCAD hoặc nhấn phím tắt trên bàn phím:
+                <br>• <kbd class="kbd-key">P</kbd> <b>Đa giác thửa đất (Polygon):</b> Click liên tiếp các đỉnh mốc để khép góc thửa, tự động tính diện tích m² và chu vi mét.
+                <br>• <kbd class="kbd-key">L</kbd> <b>Đường tim tuyến (Polyline):</b> Vẽ tim đường, rãnh thoát nước, đường dây điện lực.
+                <br>• <kbd class="kbd-key">REC</kbd> <b>Nhà xưởng / Công trình:</b> Chấm 2 góc chéo để tạo khối chữ nhật nhanh.
+                <br>• <kbd class="kbd-key">C</kbd> <b>Vòng đệm bán kính (Buffer Circle):</b> Chấm tâm và bán kính bảo vệ hành lang lưới điện/cây xanh.
+                <br>• <kbd class="kbd-key">D</kbd> <b>Đo khoảng cách & Góc phương vị:</b> Đo cự ly giữa 2 điểm bất kỳ.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Hít Nam Châm Tự Động Bắt Điểm (OSNAP)</div>
+              <div class="step-text">
+                Chuyển sang tab <b>Bắt Điểm</b> và bật công tắc nam châm OSNAP. Khi bạn rê chuột hoặc chạm gần mốc khảo sát, tâm vẽ sẽ tự động hít chặt vào đỉnh mốc (sai số 0.000m) chống lệch góc ranh thửa đất.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 3: Biên Tập & Xuất Bản Vẽ AutoCAD DWG</div>
+              <div class="step-text">
+                Chuyển sang tab <b>Biên Tập</b> để đổi tên thửa đất, gán mã màu layer, hoặc chỉnh sửa vị trí từng đỉnh ranh. Bấm nút <b>Xuất CAD</b> để tải file <code>.dwg</code> hoàn chỉnh layer, text nhãn mốc và hatch diện tích.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table class="shortcut-table">
+          <thead>
+            <tr>
+              <th>Phím tắt</th>
+              <th>Chức năng</th>
+              <th>Mục đích nghiệp vụ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd class="kbd-key">P</kbd></td>
+              <td>Vẽ Đa giác (Polygon)</td>
+              <td>Đo vẽ khép góc ranh thửa đất, tính diện tích pháp lý</td>
+            </tr>
+            <tr>
+              <td><kbd class="kbd-key">L</kbd></td>
+              <td>Vẽ Đường tim (Polyline)</td>
+              <td>Đo vẽ tim đường giao thông, kênh mương, đường ống</td>
+            </tr>
+            <tr>
+              <td><kbd class="kbd-key">O</kbd></td>
+              <td>Bật/Tắt Bắt điểm OSNAP</td>
+              <td>Hít chính xác vào đỉnh mốc khống chế hiện có</td>
+            </tr>
+            <tr>
+              <td><kbd class="kbd-key">ESC</kbd></td>
+              <td>Hủy lệnh vẽ hiện tại</td>
+              <td>Thoát chế độ vẽ và quay về con trỏ chọn đối tượng</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ================= MỤC 8: NĂM (5) BẢNG KÊ MINICAD ================= -->
+      <section id="section-cad_tables" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">08</span>
+              <span class="section-category">BẢNG KÊ PHÁP LÝ ĐỊA CHÍNH</span>
+            </div>
+            <h2 class="section-title">📋 Năm (5) Bảng Kê Ranh Giới, Diện Tích & Tọa Độ Thửa Đất</h2>
+            <p class="section-desc">Xuất tự động 5 biểu mẫu kê khai tọa độ và ranh giới theo Thông tư 25/2014/TT-BTNMT phục vụ hồ sơ trích lục, cấp giấy chứng nhận quyền sử dụng đất và giải phóng mặt bằng.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bảng 1: Bảng Kê Tọa Độ Góc Ranh (X, Y)</div>
+              <div class="step-text">Liệt kê thứ tự các đỉnh thửa (1, 2, 3... 1) kèm cặp tọa độ VN-2000 chính xác đến 3 chữ số thập phân (mm).</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bảng 2: Bảng Kê Chiều Dài Cạnh Ranh (Cự ly d)</div>
+              <div class="step-text">Tính toán cự ly từng cạnh ranh (Cạnh 1-2, Cạnh 2-3...) phục vụ đối soát mốc giới hiện trường với hàng xóm giáp ranh.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bảng 3: Bảng Thống Kê Diện Tích Pháp Lý</div>
+              <div class="step-text">Tổng hợp diện tích thửa đất tính theo công thức giải tích Gauss, diện tích nằm trong hành lang an toàn công trình.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">4</div>
+            <div class="step-body">
+              <div class="step-heading">Bảng 4 & 5: Bảng Góc Phương Vị & Bảng Khối Đã Vẽ</div>
+              <div class="step-text">Cung cấp góc định hướng phương vị (Azimuth) từng cạnh ranh và tổng hợp toàn bộ các phân thửa trong dự án.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MỤC 9: TRẮC DỌC & ĐÀO ĐẮP ================= -->
+      <section id="section-profile" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">09</span>
+              <span class="section-category">CÔNG TRÌNH GIAO THÔNG & THỦY LỢI</span>
+            </div>
+            <h2 class="section-title">📈 Đo Vẽ Trắc Dọc Địa Hình & Tính Toán Khối Lượng Đào Đắp</h2>
+            <p class="section-desc">Vẽ biểu đồ trắc dọc tự nhiên và trắc dọc thiết kế tuyến đường, tuyến kênh. Tự động tính toán khối lượng đào, khối lượng đắp và chênh cao thi công.</p>
+          </div>
+        </div>
+
+        <!-- Large Screen Showcase -->
+        <div class="guide-screen-showcase">
+          <div class="showcase-topbar">
+            <div class="showcase-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <span class="showcase-title-badge">BIỂU ĐỒ TRẮC DỌC ĐỊA HÌNH & KHỐI LƯỢNG ĐÀO ĐẮP</span>
+            <button class="showcase-btn-zoom" onclick="openLightbox('assets/tutorial_screens/desktop_fn7_profile.png')">🔍 Phóng to 100%</button>
+          </div>
+          <div class="showcase-img-container" onclick="openLightbox('assets/tutorial_screens/desktop_fn7_profile.png')">
+            <img src="assets/tutorial_screens/desktop_fn7_profile.png" alt="Màn hình đo vẽ trắc dọc và tính đào đắp" class="showcase-img">
+          </div>
+          <div class="showcase-callouts-bar">
+            <div class="callout-pill"><span class="callout-num">1</span> Bảng nhập danh sách cọc & khoảng cách cộng dồn</div>
+            <div class="callout-pill"><span class="callout-num">2</span> Đường địa hình tự nhiên & Đường đỏ thiết kế</div>
+            <div class="callout-pill"><span class="callout-num">3</span> Khối lượng Đào / Đắp tính theo phương pháp diện tích bình quân</div>
+            <div class="callout-pill"><span class="callout-num">4</span> Xuất biểu đồ & bảng tính Excel nghiệm thu</div>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Nhập Số Liệu Tuyến (Tên cọc, Khoảng cách lẻ, Cao độ Z)</div>
+              <div class="step-text">
+                Nhập hoặc dán từ Excel danh sách các cọc lý trình (Km0, C1, C2...). Điền khoảng cách giữa các cọc và cao độ đo được ngoài thực tế.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Thiết Lập Độ Dốc Thiết Kế Tuyến (Đường Đỏ)</div>
+              <div class="step-text">
+                Điền cao độ khống chế đầu tuyến và độ dốc thiết kế <code>i%</code>. Hệ thống tự động vạch đường đỏ thiết kế và tính cao độ thiết kế tại từng vị trí cọc.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 3: Nhận Kết Quả Đào Đắp & Xuất Bản Vẽ</div>
+              <div class="step-text">
+                Biểu đồ trắc dọc hiển thị trực quan vùng Đào (màu đỏ) và vùng Đắp (màu xanh). Bảng tổng hợp báo cáo chi tiết diện tích mặt cắt và tổng khối lượng mét khối (m³) đào đắp toàn tuyến.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MỤC 10: CAMERA ĐÓNG DẤU ================= -->
+      <section id="section-camera" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">10</span>
+              <span class="section-category">NGHIỆM THU HÌNH ẢNH</span>
+            </div>
+            <h2 class="section-title">📷 Camera Thực Địa Đóng Dấu Tọa Độ VN-2000 & WGS-84</h2>
+            <p class="section-desc">Chụp ảnh hiện trường nghiệm thu mốc và ranh giới đất. Tự động khắc dấu tọa độ VN-2000, kinh tuyến trục, địa chỉ hành chính, thời gian thực và ghi chú vào ảnh chụp, chống làm giả số liệu.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 1: Mở Camera Thực Địa & Cấp Quyền Thiết Bị</div>
+              <div class="step-text">
+                Bật tính năng <b>Camera</b> trên ứng dụng. Cấp quyền máy ảnh và vị trí GPS để bộ máy xử lý lấy thông tin tọa độ tức thời.
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 2: Chọn Mẫu Khung Dấu Watermark</div>
+              <div class="step-text">
+                Chọn mẫu dấu nghiệm thu phù hợp: Mẫu trắc địa (X, Y, KTT, Múi chiếu), Mẫu địa chính (Tên mốc, Thửa đất, Tờ bản đồ), hoặc Mẫu thi công (Ngày giờ, Sai số GPS, Kỹ sư phụ trách).
+              </div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">Bước 3: Bấm Chụp & Lưu Ảnh Về Máy</div>
+              <div class="step-text">
+                Bấm nút chụp ảnh màu xanh. Ảnh được xuất ở độ phân giải gốc kèm dấu khắc sắc nét không bị vỡ chữ khi phóng to, sẵn sàng đính kèm vào biên bản bàn giao mốc.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MỤC 11: CẤU HÌNH KTT 63 TỈNH ================= -->
+      <section id="section-settings_ktt" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">11</span>
+              <span class="section-category">QUY CHUẨN ĐỊA GIỚI</span>
+            </div>
+            <h2 class="section-title">🌐 Cấu Hình Kinh Tuyến Trục (KTT) & Múi Chiếu 63 Tỉnh Thành</h2>
+            <p class="section-desc">Quy định kinh tuyến trục cục bộ chuẩn hóa theo Thông tư của Bộ Tài nguyên và Môi trường áp dụng cho toàn bộ 63 tỉnh thành Việt Nam.</p>
+          </div>
+        </div>
+
+        <div class="tip-box">
+          💡 <b>Nguyên tắc chọn múi chiếu trắc địa:</b>
+          <br>• <b>Múi chiếu 3° (k0 = 0.9999):</b> Bắt buộc sử dụng cho bản đồ địa chính, hồ sơ đo đạc thửa đất, cắm mốc ranh giới tỷ lệ lớn (1:500, 1:1.000, 1:2.000). Biến dạng chiều dài cực nhỏ (tối đa 10cm/km).
+          <br>• <b>Múi chiếu 6° (k0 = 0.9996):</b> Dùng cho bản đồ địa hình tỷ lệ nhỏ (1:25.000, 1:50.000, 1:100.000) và quy hoạch vùng liên tỉnh.
+        </div>
+      </section>
+
+      <!-- ================= MỤC 12: XUẤT FILE ĐA ĐỊNH DẠNG ================= -->
+      <section id="section-export" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">12</span>
+              <span class="section-category">TÍCH HỢP PHẦN MỀM</span>
+            </div>
+            <h2 class="section-title">📥 Xuất Dữ Liệu Đa Định Dạng (AutoCAD DWG, Excel, Google Earth KML)</h2>
+            <p class="section-desc">Chuyển giao dữ liệu đo đạc thông suốt sang các phần mềm biên tập bản vẽ chuyên nghiệp hàng đầu.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">File Bản Vẽ AutoCAD (.DWG / .DXF)</div>
+              <div class="step-text">Tạo đầy đủ Point đối tượng trắc địa, Text nhãn tên mốc, Polyline ranh thửa, phân chia theo Layer chuẩn màu TCVN. Tương thích 100% AutoCAD 2007 đến AutoCAD 2026.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">File Bảng Tính Microsoft Excel (.XLSX)</div>
+              <div class="step-text">Bảng tính có sẵn công thức tính khoảng cách, góc phương vị, định dạng chuẩn số học trắc địa phục vụ lập thuyết minh báo cáo kỹ thuật.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">3</div>
+            <div class="step-body">
+              <div class="step-heading">File Google Earth (.KML) & GeoJSON</div>
+              <div class="step-text">Mở xem trực tiếp vị trí các mốc trên ứng dụng Google Earth trên điện thoại hoặc máy tính để quan sát bao quát dự án từ trên cao.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MỤC 13: TIỆN ÍCH TRẮC ĐỊA & GIAO HỘI ================= -->
+      <section id="section-geodesy" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">13</span>
+              <span class="section-category">TOÁN TRẮC ĐỊA CHUYÊN SÂU</span>
+            </div>
+            <h2 class="section-title">📐 Tiện Ích Trắc Địa Chuyên Sâu & Giải Bài Toán Giao Hội</h2>
+            <p class="section-desc">Giải quyết các bài toán trắc địa hình học: Giao hội góc thuận, giao hội cạnh nghịch, bài toán trắc địa thuận/nghịch, tính góc phương vị và hội tụ kinh tuyến.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Giao Hội Góc Thuận & Giao Hội Cạnh</div>
+              <div class="step-text">Xác định tọa độ điểm đo mới từ 2 điểm khống chế đã biết tọa độ khi không thể đặt máy trực tiếp tại điểm cần đo (bị cản trở sông rạch, tường rào).</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Bài Toán Trắc Địa Thuận & Nghịch</div>
+              <div class="step-text">Tính tọa độ điểm B từ điểm A khi biết khoảng cách S và góc phương vị Alpha; hoặc ngược lại tính cự ly và góc định hướng từ 2 điểm tọa độ.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MỤC 14: LƯU TRỮ & ĐỒNG BỘ ================= -->
+      <section id="section-settings_storage" class="guide-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-badge-row">
+              <span class="section-num">14</span>
+              <span class="section-category">BẢO VỆ DỮ LIỆU</span>
+            </div>
+            <h2 class="section-title">☁️ Cài Đặt Hệ Thống, Lưu Trữ Ngoại Tuyến & Đồng Bộ Google Sheets</h2>
+            <p class="section-desc">Bảo đảm an toàn dữ liệu khảo sát hiện trường. Lưu trữ nội bộ an toàn và cơ chế đồng bộ lên tài khoản Google Drive cá nhân.</p>
+          </div>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number-circle">1</div>
+            <div class="step-body">
+              <div class="step-heading">Lưu Trữ Ngoại Tuyến 100% (Offline First)</div>
+              <div class="step-text">Dữ liệu được ghi thẳng vào cơ sở dữ liệu IndexedDB trên thiết bị của bạn. Không sợ mất số liệu khi mất sóng 4G/Wifi giữa đồng ruộng hoặc vùng sâu vùng xa.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-number-circle">2</div>
+            <div class="step-body">
+              <div class="step-heading">Sao Lưu Dự Phòng & Khôi Phục File (.JSON)</div>
+              <div class="step-text">Bấm nút <b>Sao lưu hệ thống</b> để tải file dự phòng về máy tính. Bạn có thể nạp lại file này trên điện thoại hoặc máy tính khác để đồng bộ dữ liệu dự án tức thì.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Lightbox Modal for High-Resolution Screen Inspection -->
+  <div id="guideLightbox" class="lightbox-modal" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightboxImg" src="" alt="Phóng to màn hình hướng dẫn" class="lightbox-img" onclick="event.stopPropagation()">
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleGuideTheme() {
+      document.body.classList.toggle('light-theme');
+      const isLight = document.body.classList.contains('light-theme');
+      localStorage.setItem('vn2000_guide_theme', isLight ? 'light' : 'dark');
+      document.getElementById('themeIcon').textContent = isLight ? '🌙' : '☀️';
+      document.getElementById('themeText').textContent = isLight ? 'Giao diện Tối' : 'Giao diện Sáng';
+    }
+
+    // Init saved theme
+    if (localStorage.getItem('vn2000_guide_theme') === 'light') {
+      document.body.classList.add('light-theme');
+      document.getElementById('themeIcon').textContent = '🌙';
+      document.getElementById('themeText').textContent = 'Giao diện Tối';
+    }
+
+    // Lightbox zoom
+    function openLightbox(src) {
+      const modal = document.getElementById('guideLightbox');
+      const img = document.getElementById('lightboxImg');
+      img.src = src;
+      modal.classList.add('active');
+    }
+    function closeLightbox() {
+      document.getElementById('guideLightbox').classList.remove('active');
+    }
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // Instant Search / Filter Topics
+    function filterGuideTopics(query) {
+      const q = query.trim().toLowerCase();
+      const sections = document.querySelectorAll('section.guide-section');
+      const tocLinks = document.querySelectorAll('.toc-item a');
+
+      sections.forEach(sec => {
+        const text = sec.innerText.toLowerCase();
+        const matches = text.includes(q);
+        sec.style.display = matches ? 'block' : 'none';
+      });
+
+      tocLinks.forEach(link => {
+        const targetId = link.getAttribute('href').replace('#', '');
+        const targetSec = document.getElementById(targetId);
+        if (targetSec) {
+          link.parentElement.style.display = (targetSec.style.display !== 'none') ? 'block' : 'none';
+        }
+      });
+    }
+
+    // Sidebar active link indicator on scroll
+    window.addEventListener('scroll', () => {
+      const scrollPos = window.scrollY + 120;
+      const sections = document.querySelectorAll('section.guide-section');
+      const tocLinks = document.querySelectorAll('.toc-item a');
+
+      sections.forEach(sec => {
+        if (sec.style.display === 'none') return;
+        const top = sec.offsetTop;
+        const height = sec.offsetHeight;
+        if (scrollPos >= top && scrollPos < top + height) {
+          tocLinks.forEach(l => l.classList.remove('active'));
+          const currentLink = document.querySelector(`.toc-item a[href="#${sec.id}"]`);
+          if (currentLink) currentLink.classList.add('active');
+        }
+      });
+    });
+
+    // URL Hash handling for direct links
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.hash) {
+        const target = document.querySelector(window.location.hash);
+        if (target) {
+          setTimeout(() => {
+            target.scrollIntoView({ behavior: 'smooth' });
+          }, 150);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

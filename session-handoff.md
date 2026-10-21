@@ -1,25 +1,24 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Khắc Phục Triệt Để Lệch Vị Trí Spotlight Box, Con Trỏ Chuột & Chi Tiết Hóa Toàn Diện Hướng Dẫn Thao Tác
+## Phiên hiện tại — 2026-10-21: Xóa Bỏ Toàn Bộ Video Cũ & Ra Mắt Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa user-guide.html Kèm Tích Hợp Nút "?"
 - **Yêu cầu từ người dùng**:
-  1. `các khung làm nổi bật nội dung cần hướng dẫn và vị trí con trỏ chuột chưa được rê đúng vị trí cần hướng dẫn các chức năng.`
-  2. `các chức năng chưa thực sự được hướng dẫn cụ thể`
+  1. `bỏ hết các video hướng dẫn đi (xóa vết các video cũ và các tài liệu liên quan video luôn, tạo file hướng dẫn .html khi người dùng cần hướng dẫn đi (Nhấn nút "?" để nhờ hướng dẫn)`
+  2. `hướng dẫn thì cái màn hình cần thao tác cần lớn để nhìn chứ, đưa mấy cái khung kia nhỏ hơn hoặc bố trí sao cho phù hợp. hiện tại hướng dẫn còn chưa nhìn được màn hình. chưa đọc xong hướng dẫn bước này thì đã chuyển sang bước khác.`
 - **Đã hoàn tất**:
-  1. **Tách biệt độc lập cấu trúc tọa độ Mobile (9:16) & Desktop (16:10)**:
-     - Khắc phục triệt để việc dùng chung tọa độ gây lệch 20-30% trên Desktop.
-     - Cấu trúc dữ liệu phân tách rõ rệt: `focus`, `cursor` (Mobile) và `desktopFocus`, `desktopCursor` (Desktop).
-  2. **Đo đạc 100% tọa độ thực tế từ DOM qua Chrome DevTools MCP**:
-     - MiniCAD: Tab Vẽ, Bắt điểm Snap, Sửa & Nhãn, Bảng kê & Xuất bản vẽ AutoCAD (.dwg).
-     - Trắc dọc & Đào đắp: Tuyến mẫu 5 cọc, Thông số $Z_0$, dốc dọc $i$, mái dốc taluy $m$, Bề rộng $B$, Nút Tính toán, Mặt cắt trắc dọc TCVN 9436, Xuất AutoCAD (.dwg) & CSV.
-  3. **Động cơ rê chuột & nhấp chuột chân thực (`interpolateCursor`)**:
-     - Hoạt ảnh nội suy Cubic Easing mượt mà: Rê từ xuất phát → Đáp chuẩn xác vào tâm nút bấm → Nhấp chuột (Click & Ripple) → Rê sang vùng kết quả để đối soát số liệu.
-     - Con trỏ chuột co tỉ lệ, đổi màu cyan, sóng lan tỏa từ đầu mũi tên và khung spotlight rực sáng 28px blur.
-  4. **Hướng dẫn nghiệp vụ chi tiết, thông số và phím tắt thực tế**:
-     - Cung cấp số liệu cụ thể ($Z_0 = 12.00\text{m}$, $i = 0.00\%$, $B = 6.00\text{m}$, $m = 1.00$, $V_{đào} = 404.2\text{ m}^3$, $V_{đắp} = 193.5\text{ m}^3$).
-     - Liệt kê chuẩn xác phím tắt: `[P]`, `[L]`, `[F3]`, `[B]`, `[F8]`, `[RO]`, `[E]`.
-  5. **Xác thực toàn diện**:
-     - Kiểm tra trực quan qua Chrome DevTools MCP trên cả Phone và Desktop.
-     - **237 / 237 bài test tự động PASS 100%**.
+  1. **Xóa sạch dấu vết video cũ & tài liệu liên quan**:
+     - Xóa bỏ hoàn toàn `tutorials-pdoom.html` và toàn bộ thư mục `assets/video_assets/`.
+     - Thay thế test `pdoom_video_engine.test.js` bằng `tests/user_guide_handbook.test.js`.
+  2. **Ra mắt Cẩm Nang Sổ Tay Hướng Dẫn Thực Địa Chuyên Nghiệp ([user-guide.html](file:///d:/Nhu/APP/VN2000-PWA/user-guide.html) & [huong-dan.html](file:///d:/Nhu/APP/VN2000-PWA/huong-dan.html))**:
+     - **Màn hình thao tác cực lớn (Showcase 1000px-1100px)**: Dùng ảnh chụp thực tế độ phân giải cao từ `assets/tutorial_screens/`, chữ số, nút bấm, bản đồ đều rõ nét, trực quan. Tích hợp Lightbox zoom 100%.
+     - **Không bao giờ bị trôi bước**: Trình bày dạng tài liệu SOP tĩnh, người dùng tự do đọc kỹ, nghiền ngẫm, đối chiếu với màn hình ứng dụng mà không bị áp lực thời gian.
+     - **14 Chuyên đề toàn diện**: Chuyển đổi đơn điểm, Hàng loạt Excel, Bản đồ & Live GPS, Cắm mốc la bàn, Sổ đo dự án, MiniCAD thực địa, 5 Bảng kê ranh đất, Trắc dọc & Đào đắp, Camera đóng dấu, KTT 63 tỉnh thành, Xuất DWG/Excel/KML, Tiện ích trắc địa, Lưu trữ ngoại tuyến.
+     - **Tính năng tra cứu thông minh**: Thanh tìm kiếm tức thì (Live Quick Filter), Sidebar mục lục cố định (Sticky TOC), hỗ trợ in ấn hoặc xuất ra PDF (Print-friendly).
+  3. **Tích hợp nút "?" toàn diện trong ứng dụng ([index.html](file:///d:/Nhu/APP/VN2000-PWA/index.html), [app.js](file:///d:/Nhu/APP/VN2000-PWA/app.js))**:
+     - Khi bấm nút `?` ở Header hoặc ở bất kỳ màn hình nào: Modal hiển thị tóm tắt và nút nổi bật **"📖 Cẩm Nang Toàn Diện"** (`appGuide.openFullUserGuide()`) dẫn thẳng tới chuyên mục tương ứng trên `user-guide.html`.
+     - Drawer menu mục 5.7: Đổi thành `5.7 Cẩm Nang & Sổ Tay Hướng Dẫn`, mở thẳng `user-guide.html`.
+  4. **Xác thực toàn diện**:
+     - 237/237 bài test PASS 100% trong `tests/*.test.js`.
+     - Kiểm tra trực quan bằng Chrome DevTools MCP.
 
 ## Phiên trước — 2026-10-21: Sửa Lỗi Thanh Công Cụ MiniCAD & Nâng Cấp Toàn Diện Studio Video Hướng Dẫn
 - **Yêu cầu từ người dùng**:
