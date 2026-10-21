@@ -10,12 +10,12 @@
 ## Nhật ký tiến độ gần nhất
 
 ### [2026-10-21] Khắc phục Xung đột "Thực địa vs Theme Sáng/Tối" & Tối ưu Giao diện Đa Màn Hình
-- **Khắc phục triệt để xung đột Thực địa (`#fwField`) và Theme Sáng/Tối (`#btnHeaderThemeToggle`)**:
-  - **Khử trùng lặp thị giác (Visual De-duplication)**: Thay thế icon Mặt trời (`☼`) trên nút `#fwField` bằng icon Tia sét siêu tương phản (`⚡`), triệt tiêu hoàn toàn sự xuất hiện đồng thời của 2 biểu tượng mặt trời gây hiểu nhầm cho người dùng.
-  - **Đồng bộ hóa trạng thái 2 chiều (Bidirectional Sync)**:
-    - Khi chế độ Thực địa (`body.field-mode`) được kích hoạt, nút Theme trên header chuyển sang icon `⚡`, kích hoạt hiệu ứng viền vàng cảnh báo `active-field-theme` với tooltip rõ ràng `Đang bật Chế độ Thực địa... Chạm để tắt`.
-    - Khi người dùng chạm nút Theme trên header trong lúc Thực địa đang bật, hệ thống tự động thoát `field-mode`, gỡ class CSS, đưa `aria-pressed="false"` về `#fwField`, lưu `vn2k_field_mode = '0'` và chuyển ngay về theme Sáng/Tối chuẩn xác, không còn tình trạng bị kẹt màu đen `#000 !important`.
-    - Chuẩn hóa thông điệp toast tiếng Việt của Light Mode: `"☀️ Giao diện Sáng (Clean Pearl Light)"`.
+- **Nâng cấp Hệ thống Theme Toàn cục 3-in-1 (Dark ➔ Light ➔ Field ➔ Dark)**:
+  - Hợp nhất hoàn toàn Chế độ Thực địa vào nút Theme trên Header (`#btnHeaderThemeToggle`):
+    - Chu trình 3 trạng thái: `🌙 Tối kỹ thuật` ➔ `☀️ Sáng ngọc trai` ➔ `⚡ Thực địa ngoài trời` ➔ `🌙 Tối kỹ thuật`.
+    - Cho phép kỹ sư bật/tắt chế độ Thực địa ở **bất kỳ màn hình nào** (Bản đồ, Sổ đo, Cắm mốc...) ngay từ Header trên cùng.
+  - Đồng bộ hóa 100% hai chiều với nút `#fwField` ở Toolbar trang chủ (hoạt động như một công tắc nhanh Quick Sunlight Switch ngoài nắng).
+  - Khử trùng lặp thị giác: Dùng icon tia sét `⚡` thay cho biểu tượng mặt trời cũ, thêm viền phát quang cảnh báo `active-field-theme`.
 - **Tối ưu hóa hiển thị và công thái học đa kích thước màn hình**:
   - **Mobile siêu nhỏ (360px - 420px)**:
     - Khắc phục lỗi tiêu đề Header bị co cụt ("W... Đồng") bằng cách tự động ẩn subtitle thừa trên mobile, thu gọn chữ "Menu" dài dòng thành icon `☰`, và co gọn nút Quay lại `◀`.

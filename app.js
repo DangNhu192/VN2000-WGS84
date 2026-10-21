@@ -27870,24 +27870,41 @@ const appTheme = {
     },
     toggleTheme() {
         const isFieldMode = typeof document !== 'undefined' && document.body && document.body.classList.contains('field-mode');
+        
+        // Chu trình 3 chế độ thông minh: Dark ➔ Light ➔ Thực địa (Field) ➔ Dark
         if (isFieldMode) {
+            // Đang ở Thực địa ➔ Chuyển về Dark mode
             if (document.body) document.body.classList.remove('field-mode');
             const fwField = document.getElementById('fwField');
             if (fwField) fwField.setAttribute('aria-pressed', 'false');
             if (typeof localStorage !== 'undefined') {
                 try { localStorage.setItem('vn2k_field_mode', '0'); } catch (_) {}
             }
-            const nextTheme = this.current === 'dark' ? 'light' : 'dark';
-            this.setTheme(nextTheme);
+            this.setTheme('dark');
             if (typeof showToast === 'function') {
-                showToast(nextTheme === 'light' ? '☀️ Đã thoát Thực địa → Bật giao diện Sáng (Clean Pearl Light)' : '🌙 Đã thoát Thực địa → Bật giao diện Tối (Engineering Dark Pro)');
+                showToast('🌙 Giao diện Tối kỹ thuật (Engineering Dark Pro)');
             }
             return;
         }
 
-        this.setTheme(this.current === 'dark' ? 'light' : 'dark');
-        if (typeof showToast === 'function') {
-            showToast(this.current === 'light' ? '☀️ Đã bật giao diện Sáng (Clean Pearl Light)' : '🌙 Đã bật giao diện Tối (Engineering Dark Pro)');
+        if (this.current === 'dark') {
+            // Đang ở Dark ➔ Chuyển sang Light mode
+            this.setTheme('light');
+            if (typeof showToast === 'function') {
+                showToast('☀️ Giao diện Sáng (Clean Pearl Light)');
+            }
+        } else {
+            // Đang ở Light ➔ Chuyển sang Thực địa (Siêu tương phản ngoài trời)
+            if (document.body) document.body.classList.add('field-mode');
+            const fwField = document.getElementById('fwField');
+            if (fwField) fwField.setAttribute('aria-pressed', 'true');
+            if (typeof localStorage !== 'undefined') {
+                try { localStorage.setItem('vn2k_field_mode', '1'); } catch (_) {}
+            }
+            this.syncFieldMode(true);
+            if (typeof showToast === 'function') {
+                showToast('⚡ Chế độ Thực địa: Nền đen chữ vàng siêu tương phản chống lóa');
+            }
         }
     }
 };

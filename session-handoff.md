@@ -2,10 +2,12 @@
 
 ## Phiên hiện tại — 2026-10-21: Khắc phục Xung đột Thực địa vs Theme Sáng/Tối & Tối ưu Đa Màn Hình
 - **Đã hoàn tất**:
-  1. **Khắc phục triệt để xung đột Thực địa (`#fwField`) và Theme Sáng/Tối (`#btnHeaderThemeToggle`)**:
-     - Thay icon Mặt trời (`☼`) trên nút `#fwField` bằng icon Tia sét siêu tương phản (`⚡`), triệt tiêu việc xuất hiện 2 biểu tượng mặt trời cùng lúc.
+  1. **Nâng cấp Hệ thống Theme Toàn cục 3-in-1 (Dark ➔ Light ➔ Field ➔ Dark)**:
+     - Nút Theme Header (`#btnHeaderThemeToggle`) điều khiển chu trình 3 chế độ: `🌙 Tối` ➔ `☀️ Sáng` ➔ `⚡ Thực địa` ➔ `🌙 Tối`.
+     - Cho phép kích hoạt Chế độ Thực địa (đen/vàng siêu tương phản) ở bất kỳ màn hình nào trong toàn bộ ứng dụng.
+     - Thay icon Mặt trời (`☼`) trên nút `#fwField` bằng icon Tia sét (`⚡`), triệt tiêu việc xuất hiện 2 biểu tượng mặt trời cùng lúc.
      - Đồng bộ hóa trạng thái 2 chiều: Khi Thực địa bật, nút Theme trên header chuyển thành `⚡`, kích hoạt viền phát quang cảnh báo `active-field-theme`.
-     - Khi bấm nút Theme trên header trong lúc Thực địa đang bật: Tự động thoát chế độ thực địa (gỡ `field-mode`, set `aria-pressed="false"`, ghi `vn2k_field_mode = '0'`) và chuyển ngay về theme Sáng/Tối chuẩn xác mà không bị kẹt nền đen `#000 !important`.
+     - Nút `#fwField` ở Toolbar trang chủ đóng vai trò Quick Outdoor Switch, đồng bộ 100% với Header, không còn kẹt màu nền đen `#000 !important`.
   2. **Tối ưu hiển thị đa kích thước màn hình (Mobile 360px - 420px, Tablet 768px, Desktop 1280px)**:
      - Header mobile siêu nhỏ (< 480px): Tự động ẩn subtitle thừa, co gọn nút Menu thành icon `☰`, nút Quay lại thành `◀`, giải phóng không gian cho tiêu đề không bị co cụt.
      - Tiêu đề thẻ Sổ đo (`screen-datamgmt`): Bọc số lượng mốc `#txtPointsCount` trong badge pill bo tròn sắc nét, căn chỉnh flexbox chống bẻ dấu ngoặc đơn `1 )` xuống dòng.
