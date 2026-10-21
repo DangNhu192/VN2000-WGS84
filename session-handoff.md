@@ -1,6 +1,23 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Nâng Cấp Toàn Diện Studio Xuất Dữ Liệu & Bản Đồ Trắc Địa, Khắc Phục Triệt Để Lỗi "Missing Symbol Table" trong AutoCAD
+## Phiên hiện tại — 2026-10-21: Sửa Dứt Điểm Lỗi Check Chọn Thửa Trong Bảng Kê & Thống Kê Tổng Hợp MiniCAD
+- **Yêu cầu từ người dùng**:
+  `"Bảng kê & thống kê tổng hợp MiniCAD" trong chức năng MiniCAD hiện không phản hồi ở chức năng check chọn thửa`
+- **Đã hoàn tất**:
+  1. **Khắc phục lỗi mất trạng thái `selected` trong `openAreaTableModal()`**:
+     - Thay thế việc sinh mảng thủ công bằng `this._getAllExportShapes()` chuẩn hóa toàn diện có trường `selected: s.selected !== false` và `this._draftSelected !== false`.
+     - Phân tách `selectedShapes = allShapes.filter(s => s.selected !== false)` để tính toán chính xác tổng diện tích, tổng chu vi và số đỉnh của các thửa được chọn.
+     - Cập nhật số liệu hiển thị tức thì trên các thẻ tóm tắt `#cadModalAreaM2`, `#cadModalAreaHa`, `#cadModalPerimeter`, `#cadModalVertexCount`.
+     - Bảng chi tiết đỉnh: hiển thị làm mờ và gắn nhãn `👁️ Bỏ chọn (Không tính tổng)` cho thửa bị bỏ chọn.
+  2. **Nâng cấp `toggleBlockSelect(idx, isChecked)` & `toggleSelectAllBlocks(isChecked)`**:
+     - Xử lý cả khối đã lưu trong `savedShapes` và khối đang vẽ dở `this._draftSelected`.
+     - Lưu trạng thái bền vững với `saveShapesForProject()` và `persistSession()`.
+     - Gọi `renderGeometry()` để lập tức ẩn/hiện thửa đất trên bản đồ MiniCAD.
+  3. **Kiểm thử tự động**:
+     - Bổ sung `tests/cad_block_selection.test.js`.
+     - Toàn bộ 251/251 bài test trong `tests/*.test.js` PASS 100%.
+
+## Phiên trước — 2026-10-21: Nâng Cấp Toàn Diện Studio Xuất Dữ Liệu & Bản Đồ Trắc Địa, Khắc Phục Triệt Để Lỗi "Missing Symbol Table" trong AutoCAD
 - **Yêu cầu từ người dùng**:
   1. `kiểm tra lại vấn đề xuất dữ liệu, cần tối ưu hóa xuất dữ liệu: Nhận chọn nút xuất dữ liệu==>cửa sổ preview==>cài đặt các thông tin, chọn lớp xuất dữ liệu,....==>chọn định dạng file được xuất dữ liệu (.png, .pdf, .xlsx, .dng (microstation), .dwg, .kml, ...)==>xuất dữ liệu.`
   2. `tối ưu các file dữ liệu được xuất ra đúng tỉ lệ được chọn.`

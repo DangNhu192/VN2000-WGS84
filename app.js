@@ -17491,22 +17491,29 @@ const appCadTool = {
     toggleBlockSelect(idx, isChecked) {
         if (this.savedShapes && this.savedShapes[idx]) {
             this.savedShapes[idx].selected = isChecked;
-            this.renderGeometry();
-            this.renderBlocksPanel();
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
-                this.openAreaTableModal();
-            }
+        } else if (this.vertices && this.vertices.length >= 2 && idx === (this.savedShapes ? this.savedShapes.length : 0)) {
+            this._draftSelected = isChecked;
+        }
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.openAreaTableModal();
         }
     },
 
     toggleSelectAllBlocks(isChecked) {
         if (this.savedShapes) {
             this.savedShapes.forEach(s => s.selected = isChecked);
-            this.renderGeometry();
-            this.renderBlocksPanel();
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
-                this.openAreaTableModal();
-            }
+        }
+        this._draftSelected = isChecked;
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.openAreaTableModal();
         }
     },
 
@@ -23929,46 +23936,18 @@ const appCadTool = {
     openAreaTableModal(action = null) {
         if (document.getElementById("modalCadExportConfig")) document.getElementById("modalCadExportConfig").classList.remove("active");
         setTimeout(() => this.checkScalePaperFit(), 50);
-        const allShapes = [];
-        this.savedShapes.forEach((s, idx) => {
-            s.stats = this.getEffectiveStats(s);
-            allShapes.push({
-                id: s.id,
-                name: s.name,
-                shortName: s.shortName || `Thửa ${idx + 1}`,
-                symbol: s.symbol || String(idx + 1),
-                mode: s.mode,
-                vertices: s.vertices,
-                stats: s.stats,
-                customArea: s.customArea,
-                customPerimeter: s.customPerimeter,
-                customEdges: s.customEdges,
-                color: s.color || '#10b981'
-            });
-        });
-        if (this.vertices.length >= 2) {
-            const actStats = this.calculateAreaAndPerimeter();
-            const actIdx = allShapes.length + 1;
-            allShapes.push({
-                id: 'active_drawing',
-                name: `Cấu trúc ${actIdx} (Đang vẽ)`,
-                shortName: `Thửa ${actIdx} (Đang vẽ)`,
-                mode: this.mode,
-                vertices: [...this.vertices],
-                stats: actStats,
-                color: '#06b6d4'
-            });
-        }
+        const allShapes = this._getAllExportShapes();
 
         if (allShapes.length === 0) {
             showToast("⚠️ Chưa có cấu trúc hoặc đỉnh nào để lập bảng diện tích và tọa độ ranh!", true);
             return;
         }
 
-        const totalArea = allShapes.reduce((sum, s) => sum + (s.stats?.area || 0), 0);
-        const totalHa = totalArea / 10000.0;
-        const totalPerimeter = allShapes.reduce((sum, s) => sum + (s.stats?.perimeter || 0), 0);
-        const totalVertices = allShapes.reduce((sum, s) => sum + s.vertices.length, 0);
+        const selectedShapes = allShapes.filter(s => s.selected !== false);
+        const selectedArea = selectedShapes.reduce((sum, s) => sum + (s.mode === 'polygon' ? (s.stats?.area || 0) : 0), 0);
+        const selectedHa = selectedArea / 10000.0;
+        const selectedPerimeter = selectedShapes.reduce((sum, s) => sum + (s.stats?.perimeter || 0), 0);
+        const selectedVertices = selectedShapes.reduce((sum, s) => sum + (s.vertices ? s.vertices.length : 0), 0);
         // Khôi phục các thông tin tiêu đề bản vẽ & dự án đã lưu từ localStorage
         try {
             const savedMetaStr = localStorage.getItem('vn2k_cad_meta_saved');
@@ -24000,10 +23979,10 @@ const appCadTool = {
         const elVCount = document.getElementById('cadModalVertexCount');
         const elKtt = document.getElementById('cadModalKtt');
 
-        if (elAreaM2) elAreaM2.innerText = `${totalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
-        if (elAreaHa) elAreaHa.innerText = `≈ ${totalHa.toFixed(4)} ha (${allShapes.length} cấu trúc)`;
-        if (elPerim) elPerim.innerText = `${totalPerimeter.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
-        if (elVCount) elVCount.innerText = `${totalVertices} đỉnh (${allShapes.length} thửa)`;
+        if (elAreaM2) elAreaM2.innerText = `${selectedArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
+        if (elAreaHa) elAreaHa.innerText = `≈ ${selectedHa.toFixed(4)} ha (${selectedShapes.length}/${allShapes.length} cấu trúc)`;
+        if (elPerim) elPerim.innerText = `${selectedPerimeter.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+        if (elVCount) elVCount.innerText = `${selectedVertices} đỉnh (${selectedShapes.length}/${allShapes.length} thửa)`;
         if (elKtt) elKtt.innerText = `KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (${AppState.provinceName || 'VN-2000'})`;
 
         const tbody = document.getElementById('cadTableBody');
@@ -24011,20 +23990,28 @@ const appCadTool = {
             let html = '';
             allShapes.forEach((shape, shapeIdx) => {
                 const isPoly = shape.mode === 'polygon' && shape.vertices.length >= 3;
-                const isShapeActive = shape.id === 'active_drawing';
-                const sIdx = this.savedShapes.findIndex(s => s.id === shape.id);
+                const isShapeActive = shape.id === 'active_draft' || shape.id === 'active_drawing';
+                const sIdx = (this.savedShapes || []).findIndex(s => s.id === shape.id);
                 const hasCustomEdge = shape.customEdges && Object.keys(shape.customEdges).length > 0;
+                const isSelected = shape.selected !== false;
 
                 html += `
-                    <tr style="background: rgba(15, 23, 42, 0.95); border-top: 2px solid ${shape.color};">
+                    <tr style="background: rgba(15, 23, 42, 0.95); border-top: 2px solid ${shape.color}; opacity: ${isSelected ? '1' : '0.55'};">
                         <td colspan="7" style="color: ${shape.color}; font-weight: 800; font-size: 11.5px; padding: 7px 10px;">
                             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                                 <span>📁 ${shape.name} [${isPoly ? 'Đa giác' : 'Tuyến'}] • S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m</span>
-                                ${(shape.customArea !== undefined || shape.customPerimeter !== undefined || hasCustomEdge) ? `
-                                    <span style="font-size: 10px; color: #facc15; background: rgba(250,204,21,0.15); border: 1px solid rgba(250,204,21,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
-                                        ✏️ Số liệu đã tùy chỉnh (Bấm "Tự động đo" để khôi phục)
-                                    </span>
-                                ` : ''}
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    ${!isSelected ? `
+                                        <span style="font-size: 10px; color: #94a3b8; background: rgba(100,116,139,0.25); border: 1px solid rgba(100,116,139,0.4); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                                            👁️ Bỏ chọn (Không tính tổng)
+                                        </span>
+                                    ` : ''}
+                                    ${(shape.customArea !== undefined || shape.customPerimeter !== undefined || hasCustomEdge) ? `
+                                        <span style="font-size: 10px; color: #facc15; background: rgba(250,204,21,0.15); border: 1px solid rgba(250,204,21,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                                            ✏️ Số liệu đã tùy chỉnh (Bấm "Tự động đo" để khôi phục)
+                                        </span>
+                                    ` : ''}
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -24049,7 +24036,7 @@ const appCadTool = {
                     }
 
                     html += `
-                        <tr>
+                        <tr style="opacity: ${isSelected ? '1' : '0.4'};">
                             <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
                             <td style="text-align: left; font-weight: 700; color: #38bdf8;">${v.name}</td>
                             <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.x || 0).toFixed(3)}</td>
@@ -24065,9 +24052,9 @@ const appCadTool = {
             if (allShapes.length > 1) {
                 html += `
                     <tr class="total-row" style="background: rgba(30, 41, 59, 1); font-size: 11.5px; border-top: 2px solid #38bdf8;">
-                        <td colspan="2" style="text-align: center; color: #38bdf8; font-weight: 800;">TỔNG CỘNG (${allShapes.length} THỬA)</td>
-                        <td colspan="2" style="color: #4ade80;"><b>TỔNG DIỆN TÍCH: ${totalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²</b> (${totalHa.toFixed(4)} ha)</td>
-                        <td colspan="3" style="color: #fbbf24;"><b>TỔNG CHU VI: ${totalPerimeter.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m</b></td>
+                        <td colspan="2" style="text-align: center; color: #38bdf8; font-weight: 800;">TỔNG CỘNG (${selectedShapes.length}/${allShapes.length} THỬA ĐÃ CHỌN)</td>
+                        <td colspan="2" style="color: #4ade80;"><b>TỔNG DIỆN TÍCH: ${selectedArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²</b> (${selectedHa.toFixed(4)} ha)</td>
+                        <td colspan="3" style="color: #fbbf24;"><b>TỔNG CHU VI: ${selectedPerimeter.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m</b></td>
                     </tr>
                 `;
             }

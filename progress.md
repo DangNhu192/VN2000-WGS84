@@ -3,11 +3,28 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 247/247 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 251/251 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-10-21] Sửa Lỗi Chức Năng Check Chọn Thửa Trong "Bảng Kê & Thống Kê Tổng Hợp MiniCAD"
+- **Yêu cầu từ người dùng**:
+  `"Bảng kê & thống kê tổng hợp MiniCAD" trong chức năng MiniCAD hiện không phản hồi ở chức năng check chọn thửa`
+- **Nguyên nhân gốc rễ**:
+  1. Trong `openAreaTableModal()` (`app.js`), mảng `allShapes` được khởi tạo thủ công bằng cách lặp qua `this.savedShapes` nhưng bỏ quên thuộc tính `selected: s.selected !== false`. Khi truyền `allShapes` vào `renderBlockList(allShapes)`, điều kiện kiểm tra `s.selected !== false` luôn nhận giá trị `undefined !== false` (tức `true`), khiến checkbox trong danh sách khối luôn bị render lại thành `checked`.
+  2. Khi người dùng click bỏ chọn một thửa, hàm `toggleBlockSelect(idx, isChecked)` cập nhật `this.savedShapes[idx].selected = false` và gọi `openAreaTableModal()` để render lại, nhưng do `openAreaTableModal()` không giữ thuộc tính `selected` nên checkbox lại bị ép về `checked`, và tổng diện tích `totalArea` tính gộp toàn bộ các thửa mà không trừ thửa đã bỏ chọn.
+  3. Khối đang vẽ dở (`active_draft`) khi người dùng click checkbox không được cập nhật trạng thái `_draftSelected`.
+- **Giải pháp triển khai kỹ thuật**:
+  1. Chuẩn hóa `openAreaTableModal()` sử dụng `this._getAllExportShapes()` (đã có đầy đủ chuẩn hóa `selected: s.selected !== false`, `_draftSelected`, tọa độ và stats).
+  2. Tách biệt `selectedShapes = allShapes.filter(s => s.selected !== false)` để tính toán chính xác tổng diện tích `selectedArea`, tổng chu vi `selectedPerimeter`, và số đỉnh `selectedVertices` của các thửa được chọn.
+  3. Cập nhật các thẻ tóm tắt `#cadModalAreaM2`, `#cadModalAreaHa`, `#cadModalPerimeter`, `#cadModalVertexCount` phản hồi tức thì theo số đo của các thửa được chọn kèm tỷ lệ số thửa chọn / tổng số thửa.
+  4. Hiển thị trực quan trong bảng chi tiết đỉnh: các thửa bị bỏ chọn được làm mờ (opacity: 0.55 / 0.4) và gắn nhãn `👁️ Bỏ chọn (Không tính tổng)`.
+  5. Cập nhật `toggleBlockSelect(idx, isChecked)` và `toggleSelectAllBlocks(isChecked)` hỗ trợ đầy đủ cả các khối đã lưu và khối đang vẽ dở (`this._draftSelected = isChecked`), lưu trạng thái bền vững qua `saveShapesForProject()` và `persistSession()`, đồng thời gọi `renderGeometry()` để lập tức ẩn/hiện thửa đất trên bản đồ MiniCAD.
+- **Kiểm thử tự động**:
+  - Bổ sung bộ test `tests/cad_block_selection.test.js`.
+  - Toàn bộ 251/251 tests trong `tests/*.test.js` PASS 100%.
 
 ### [2026-10-21] Nâng Cấp Toàn Diện Studio Xuất Dữ Liệu & Bản Đồ Trắc Địa: Cửa Sổ Live Preview, Đa Định Dạng Chuẩn Tỷ Lệ & Khắc Phục Triệt Để Lỗi "Missing Symbol Table" trong AutoCAD
 - **Yêu cầu từ người dùng**:
