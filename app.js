@@ -5779,7 +5779,7 @@ const appTransformMap = {
 // ================= 5. PHÂN HỆ GPS THỰC ĐỊA (GPS REALTIME) =================
 const appGps = {
     init() {
-        if (!navigator.geolocation) {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
             const badge = document.getElementById('gpsLiveStatusBadge');
             if (badge) {
                 badge.innerText = "🔴 Không hỗ trợ";
@@ -5793,6 +5793,40 @@ const appGps = {
             appGps.stopTracking();
             return;
         }
+
+        // Kiểm tra quyền Permissions API để tránh bị Android chặn xin quyền (Tapjacking) khi có bong bóng chat/lớp phủ
+        if (typeof navigator.permissions !== 'undefined' && navigator.permissions.query) {
+            try {
+                navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                    if (result.state === 'granted') {
+                        // Đã cấp quyền từ trước -> Khởi động an toàn không gây popup
+                        appGps.updateHeaderGpsUI('searching');
+                        appGps.startTracking();
+                    } else if (result.state === 'prompt') {
+                        // Thiết bị mới chưa cấp quyền -> Để ở trạng thái Chờ (Standby), đợi người dùng chạm vào mới xin quyền
+                        appGps.updateHeaderGpsUI('off');
+                        if (typeof appDashboard !== 'undefined') {
+                            appDashboard.updateGpsMiniCard(null, null, null, 'off');
+                        }
+                    } else {
+                        // Đã bị từ chối trước đó
+                        appGps.updateHeaderGpsUI('error');
+                    }
+                    result.onchange = () => {
+                        if (result.state === 'granted') {
+                            appGps.startTracking();
+                        } else if (result.state === 'denied') {
+                            appGps.stopTracking();
+                        }
+                    };
+                }).catch(() => {
+                    appGps.updateHeaderGpsUI('searching');
+                    appGps.startTracking();
+                });
+                return;
+            } catch (_) {}
+        }
+
         appGps.updateHeaderGpsUI('searching');
         appGps.startTracking();
     },
@@ -5870,6 +5904,15 @@ const appGps = {
                 appGps.updateHeaderGpsUI('error');
                 if (typeof appDashboard !== 'undefined') {
                     appDashboard.updateGpsMiniCard(null, null, null, 'searching');
+                }
+
+                // Bắt lỗi chặn quyền do lớp phủ Android (Tapjacking) hoặc chưa cấp quyền
+                if (err && err.code === 1) { // PERMISSION_DENIED
+                    AppState.isGpsTracking = false;
+                    appSettings.save();
+                    if (typeof showToast === 'function') {
+                        showToast("⚠️ Trình duyệt chưa cấp quyền vị trí. Vui lòng đóng các cửa sổ nổi (Bong bóng Messenger, Zalo...) hoặc cấp quyền Vị trí cho Chrome trong Cài đặt máy!", true);
+                    }
                 }
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 }
