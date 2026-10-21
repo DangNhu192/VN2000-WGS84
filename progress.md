@@ -9,6 +9,41 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-21] Khắc Phục Triệt Để Lệch Vị Trí Spotlight Box, Con Trỏ Chuột & Chi Tiết Hóa Toàn Diện Hướng Dẫn Thao Tác
+- **Yêu cầu từ người dùng**:
+  1. `các khung làm nổi bật nội dung cần hướng dẫn và vị trí con trỏ chuột chưa được rê đúng vị trí cần hướng dẫn các chức năng.`
+  2. `các chức năng chưa thực sự được hướng dẫn cụ thể`
+- **Nguyên nhân cốt lõi (Root Cause)**:
+  - Trước đây video hướng dẫn dùng chung 1 cặp tọa độ `%` cho cả Mobile (dọc 9:16) và Desktop (ngang 16:10). Do giao diện Desktop và Mobile có bố cục layout hoàn toàn khác nhau (Desktop chia 2 cột trái phải, Mobile 1 cột dọc), việc dùng chung tọa độ khiến trên Desktop con trỏ chuột và khung spotlight bị lệch hơn 20-30% so với vị trí nút thực tế.
+  - Tọa độ con trỏ trước đây chỉ là 1 điểm tĩnh `x, y`, đứng yên một chỗ và không có hành vi rê chuột hay thao tác bấm (Click), thiếu tính tương tác thực tế của một chuyên viên đo đạc thao tác phần mềm.
+  - Lời thoại và văn bản hướng dẫn còn mang tính khái quát, thiếu thông số nhập liệu thực nghiệm cụ thể và các bước bấm phím tắt kỹ thuật.
+- **Triển khai kỹ thuật toàn diện**:
+  1. **Đo đạc chính xác 100% tọa độ thực tế trên cả 2 viewports (Chrome DevTools MCP)**:
+     - **Chế độ Desktop (1280×800)**:
+       + MiniCAD: Tab Vẽ `{x: 30.5, y: 11.4}`, Nút Đa giác `[P]` `{x: 6.3, y: 18.4, w: 8.7, h: 4.8}`; Tab Snap `{x: 49.1, y: 11.4}`, Nút Bắt line `[B]` `{x: 18.0, y: 18.4, w: 11.2, h: 4.8}`, Ortho `[F8]` `{x: 29.5, y: 18.4}`; Tab Sửa `{x: 38.6, y: 11.4}`, Nút Chọn `[V]` `{x: 7.6, y: 18.4}`, Xoay `[RO]` `{x: 31.8, y: 18.4}`; Tab File `{x: 58.0, y: 11.4}`, Bảng kê `[E]` `{x: 14.7, y: 18.4}`, Hộp thoại xuất AutoCAD (.dwg) `{x: 50.0, y: 60.0}`.
+       + Trắc dọc & Đào đắp: Nút Tuyến Mẫu (5 Cọc) `{x: 19.7, y: 33.1, w: 11.2, h: 4.3}`; Ô nhập Cao độ $Z_0$ `{x: 9.8, y: 63.1}`, Dốc dọc $i$ `{x: 24.1, y: 63.0}`; Nút Tính toán `{x: 17.0, y: 76.4, w: 28.0, h: 4.8}`; Biểu đồ trắc dọc `{x: 65.0, y: 53.3, w: 62.5, h: 50.0}`; Nút Xuất CAD .DWG `{x: 9.4, y: 89.3}`, Xuất CSV `{x: 24.5, y: 89.3}`.
+     - **Chế độ Mobile (500×844)**:
+       + MiniCAD: Tab Vẽ `{x: 9.5, y: 12.0}`, Nút Đa giác `[P]` `{x: 14.9, y: 23.6, w: 22.3, h: 4.5}`; Tab Snap `{x: 56.6, y: 12.0}`, Nút Bắt line `[B]` `{x: 44.9, y: 23.6, w: 28.7, h: 4.5}`.
+       + Trắc dọc: Nút Tuyến Mẫu `{x: 53.9, y: 35.2}`; Ô nhập $Z_0$ `{x: 27.7, y: 63.6}`, Dốc $i$ `{x: 69.3, y: 63.5}`; Nút Tính toán `{x: 48.5, y: 76.2}`; Nút Xuất CAD .DWG `{x: 77.6, y: 83.2}`.
+  2. **Tách biệt độc lập cấu trúc dữ liệu theo thiết bị ([tutorials-pdoom.html](file:///d:/Nhu/APP/VN2000-PWA/tutorials-pdoom.html))**:
+     - Định nghĩa riêng rẽ `focus` & `cursor` (dành cho Mobile) và `desktopFocus` & `desktopCursor` (dành cho Desktop).
+     - Hỗ trợ quỹ đạo 3 mốc tọa độ: `start` (vị trí xuất phát) → `target` (tâm nút cần thao tác) → `end` (vùng kết quả sau khi bấm).
+  3. **Động cơ mô phỏng rê chuột & nhấp chuột chân thực (`interpolateCursor`)**:
+     - Áp dụng hàm mượt bậc 3 (Smoothstep Cubic Easing: $3t^2 - 2t^3$) chia làm 4 pha tự nhiên:
+       + *Pha 1 (0% - 28%)*: Rê con trỏ chuột mượt mà từ điểm xuất phát đến đúng tâm nút bấm.
+       + *Pha 2 (28% - 48%)*: Thực hiện cú **CLICK** thực tế — con trỏ chuột co tỉ lệ ($0.88\times$), đổi màu xanh cyan, sóng xung kích (Click Pulse Wave) lan tỏa từ đầu mũi tên, khung spotlight rực sáng 28px blur.
+       + *Pha 3 (48% - 78%)*: Rê con trỏ từ nút bấm sang vùng hiển thị kết quả (bản đồ, biểu đồ hoặc bảng số liệu).
+       + *Pha 4 (78% - 100%)*: Dừng nhẹ con trỏ tại vùng kết quả để người dùng quan sát số liệu nghiệm thu.
+  4. **Chi tiết hóa nghiệp vụ từng bước thực hành (Action-Oriented Hands-on Walkthrough)**:
+     - Nêu rõ tên phím tắt bàn phím: `[P]` (Đa giác), `[L]` (Đường thẳng), `[F3]` (Bắt mốc), `[B]` (Bắt line ranh), `[F8]` (Ortho vuông góc), `[RO]` (Xoay ranh đất), `[E]` (Bảng kê diện tích).
+     - Nêu rõ giá trị thông số số liệu cụ thể: $Z_0 = 12.00\text{m}$, $i = 0.00\%$, $B = 6.00\text{m}$, $m = 1.00$; đọc trực tiếp số liệu đào đắp: $V_{đào} = 404.2\text{ m}^3$, $V_{đắp} = 193.5\text{ m}^3$.
+  5. **Kiểm tra trực quan & Đảm bảo chất lượng (QA)**:
+     - Trực tiếp kiểm tra và chụp màn hình qua Chrome DevTools MCP trên cả hai chế độ `📱 Điện thoại` và `💻 Màn hình lớn`.
+     - Xác nhận con trỏ chuột và khung spotlight ôm khít 100% nút bấm tại thời điểm click.
+     - Bộ kiểm thử tự động toàn dự án: **237 / 237 bài test PASS 100%**.
+
+---
+
 ### [2026-10-21] Sửa Lỗi Thanh Công Cụ MiniCAD & Nâng Cấp Toàn Diện Studio Video Hướng Dẫn
 - **Yêu cầu từ người dùng**:
   1. `Thanh công cụ của MiniCAD bị show hết mà không thu theo từng cụm riêng (chiếm hết màn hình)`

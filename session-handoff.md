@@ -1,6 +1,27 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Sửa Lỗi Thanh Công Cụ MiniCAD & Nâng Cấp Toàn Diện Studio Video Hướng Dẫn
+## Phiên hiện tại — 2026-10-21: Khắc Phục Triệt Để Lệch Vị Trí Spotlight Box, Con Trỏ Chuột & Chi Tiết Hóa Toàn Diện Hướng Dẫn Thao Tác
+- **Yêu cầu từ người dùng**:
+  1. `các khung làm nổi bật nội dung cần hướng dẫn và vị trí con trỏ chuột chưa được rê đúng vị trí cần hướng dẫn các chức năng.`
+  2. `các chức năng chưa thực sự được hướng dẫn cụ thể`
+- **Đã hoàn tất**:
+  1. **Tách biệt độc lập cấu trúc tọa độ Mobile (9:16) & Desktop (16:10)**:
+     - Khắc phục triệt để việc dùng chung tọa độ gây lệch 20-30% trên Desktop.
+     - Cấu trúc dữ liệu phân tách rõ rệt: `focus`, `cursor` (Mobile) và `desktopFocus`, `desktopCursor` (Desktop).
+  2. **Đo đạc 100% tọa độ thực tế từ DOM qua Chrome DevTools MCP**:
+     - MiniCAD: Tab Vẽ, Bắt điểm Snap, Sửa & Nhãn, Bảng kê & Xuất bản vẽ AutoCAD (.dwg).
+     - Trắc dọc & Đào đắp: Tuyến mẫu 5 cọc, Thông số $Z_0$, dốc dọc $i$, mái dốc taluy $m$, Bề rộng $B$, Nút Tính toán, Mặt cắt trắc dọc TCVN 9436, Xuất AutoCAD (.dwg) & CSV.
+  3. **Động cơ rê chuột & nhấp chuột chân thực (`interpolateCursor`)**:
+     - Hoạt ảnh nội suy Cubic Easing mượt mà: Rê từ xuất phát → Đáp chuẩn xác vào tâm nút bấm → Nhấp chuột (Click & Ripple) → Rê sang vùng kết quả để đối soát số liệu.
+     - Con trỏ chuột co tỉ lệ, đổi màu cyan, sóng lan tỏa từ đầu mũi tên và khung spotlight rực sáng 28px blur.
+  4. **Hướng dẫn nghiệp vụ chi tiết, thông số và phím tắt thực tế**:
+     - Cung cấp số liệu cụ thể ($Z_0 = 12.00\text{m}$, $i = 0.00\%$, $B = 6.00\text{m}$, $m = 1.00$, $V_{đào} = 404.2\text{ m}^3$, $V_{đắp} = 193.5\text{ m}^3$).
+     - Liệt kê chuẩn xác phím tắt: `[P]`, `[L]`, `[F3]`, `[B]`, `[F8]`, `[RO]`, `[E]`.
+  5. **Xác thực toàn diện**:
+     - Kiểm tra trực quan qua Chrome DevTools MCP trên cả Phone và Desktop.
+     - **237 / 237 bài test tự động PASS 100%**.
+
+## Phiên trước — 2026-10-21: Sửa Lỗi Thanh Công Cụ MiniCAD & Nâng Cấp Toàn Diện Studio Video Hướng Dẫn
 - **Yêu cầu từ người dùng**:
   1. `Thanh công cụ của MiniCAD bị show hết mà không thu theo từng cụm riêng (chiếm hết màn hình)`
   2. `Về các video: hướng dẫn bằng giọng nói quá đơn giản cần chi tiết hơn; hiển thị giao diện cần hướng dẫn trên màn hình kích thước lớn/nhỏ; mô tả và hình ảnh chưa khớp, trỏ chuột chưa đặt đúng chức năng; các chức năng nâng cao như MiniCAD, đào đắp,... cần hướng dẫn chi tiết đến từng công cụ.`

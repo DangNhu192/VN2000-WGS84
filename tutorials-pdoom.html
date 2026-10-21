@@ -491,33 +491,39 @@
             screen: "assets/tutorial_screens/fn1_step1_form.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn1_transform.png",
             title: "BƯỚC 1: CHỌN TỈNH & KINH TUYẾN TRỤC (KTT)",
-            text: "Mở phân hệ Chuyển đổi tọa độ. Tại ô chọn tỉnh thành, hãy chọn đúng địa phương bạn đang thi công. Hệ thống sẽ tự động cấu hình kinh tuyến trục và múi chiếu 3 độ hoặc 6 độ chuẩn xác theo quy chuẩn của Bộ Tài nguyên và Môi trường. Kinh tuyến trục này sẽ được lưu cố định cho các lần đo tiếp theo.",
+            text: "Tại ô chọn tỉnh thành, click chọn địa phương thi công (ví dụ: Đồng Tháp - KTT 105°00', Múi 3°). Hệ thống tự động thiết lập kinh tuyến trục và lưu vĩnh viễn cho các lần đo kế tiếp theo chuẩn Bộ TN&MT.",
             en: "Select project Province to automatically configure local central meridian and projection zone (3° or 6°) compliant with MONRE standards.",
             tip: "💡 Quy chuẩn: Múi 3° dùng cho bản đồ địa chính tỷ lệ lớn (1:500 - 1:2.000); Múi 6° dùng cho bản đồ địa hình tỷ lệ nhỏ.",
-            focus: { x: 50, y: 35, w: 86, h: 14, label: "1. Chọn Tỉnh / KTT Cục Bộ" },
-            cursor: { x: 50, y: 35 },
+            focus: { x: 50, y: 19.5, w: 86, h: 8.5, label: "1. Chọn Tỉnh / Kinh Tuyến Trục" },
+            cursor: { start: { x: 50, y: 10 }, target: { x: 50, y: 19.5 }, end: { x: 50, y: 24 } },
+            desktopFocus: { x: 25.0, y: 16.5, w: 42, h: 7.5, label: "1. Chọn Tỉnh / KTT Cục Bộ Chuẩn BTNMT" },
+            desktopCursor: { start: { x: 15, y: 10 }, target: { x: 25, y: 16.5 }, end: { x: 35, y: 16.5 } },
             duration: 9
           },
           {
             screen: "assets/tutorial_screens/fn1_step2_input.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn1_transform.png",
-            title: "BƯỚC 2: NHẬP TỌA ĐỘ & TÍNH TOÁN CHUYỂN ĐỔI",
-            text: "Nhập cặp tọa độ X và Y theo hệ quy chiếu VN-2000 hoặc dán nhanh từ bộ nhớ tạm Clipboard. Thuật toán thông minh của ứng dụng sẽ tự động phân tích định dạng, tự phát hiện và đảo trục nếu bạn dán ngược thứ tự Y trước X. Sau đó nhấn nút Chuyển đổi để tính toán tức thì sang tọa độ trắc địa WGS-84 với độ chính xác cao.",
+            title: "BƯỚC 2: NHẬP TỌA ĐỘ X, Y & BẤM [CHUYỂN ĐỔI]",
+            text: "Nhập cặp tọa độ X (trục Bắc, 7 chữ số) và Y (trục Đông, 6 chữ số) hoặc dán từ clipboard. Ứng dụng tự phát hiện và đảo trục nếu dán ngược. Click nút Chuyển đổi màu xanh để tính toán sang WGS-84.",
             en: "Enter VN-2000 (X, Y) coordinates or paste from clipboard; smart auto-detection prevents axis inversion and computes WGS-84 coordinates.",
             tip: "💡 Chống lệch: VN-2000 quy ước X là trục Bắc (7 chữ số: >1.000.000m), Y là trục Đông (6 chữ số: >500.000m).",
-            focus: { x: 50, y: 55, w: 86, h: 20, label: "2. Nhập X, Y & Bấm Chuyển đổi" },
-            cursor: { x: 50, y: 62 },
+            focus: { x: 50, y: 35.0, w: 86, h: 18.0, label: "2. Nhập X, Y & Bấm [Chuyển đổi]" },
+            cursor: { start: { x: 30, y: 28 }, target: { x: 50, y: 40 }, end: { x: 50, y: 46 } },
+            desktopFocus: { x: 25.0, y: 32.0, w: 42, h: 22.0, label: "2. Nhập X, Y & Bấm [Chuyển Đổi]" },
+            desktopCursor: { start: { x: 20, y: 26 }, target: { x: 25, y: 38 }, end: { x: 25, y: 46 } },
             duration: 10
           },
           {
             screen: "assets/tutorial_screens/fn1_step3_map.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn1_transform.png",
             title: "BƯỚC 3: KIỂM TRA KẾT QUẢ & XEM VỊ TRÍ VỆ TINH",
-            text: "Xem bảng kết quả nổi chi tiết. Bạn có thể nhấn nút Xem bản đồ để định vị trực quan vị trí mốc trên nền ảnh vệ tinh Google Earth độ phân giải cao. Chạm vào thanh kéo của bảng kết quả để vuốt trượt thu gọn hoặc mở rộng toàn màn hình tùy ý.",
+            text: "Kết quả WGS-84 (Kinh độ, Vĩ độ) xuất hiện trên bảng nổi. Click nút Xem trên bản đồ để định vị trực quan vị trí mốc trên nền ảnh vệ tinh Google Earth độ phân giải cao.",
             en: "Inspect computed coordinates on draggable bottom sheet and view marker location on high-resolution Google Earth satellite imagery.",
             tip: "💡 Thao tác: Chạm 1 chạm vào thanh kéo đỉnh bảng để thu gọn nhanh thành thẻ mini (peek) giải phóng bản đồ.",
-            focus: { x: 50, y: 72, w: 90, h: 25, label: "3. Bảng kết quả & Nút Xem bản đồ" },
-            cursor: { x: 72, y: 75 },
+            focus: { x: 50, y: 62.0, w: 88, h: 30.0, label: "3. Bảng Kết Quả & Nút [Xem Trên Bản Đồ]" },
+            cursor: { start: { x: 50, y: 52 }, target: { x: 50, y: 68 }, end: { x: 50, y: 78 } },
+            desktopFocus: { x: 65.0, y: 52.0, w: 60, h: 55.0, label: "3. Vị Trí Mốc Trực Quan Trên Nền Ảnh Vệ Tinh" },
+            desktopCursor: { start: { x: 40, y: 40 }, target: { x: 65, y: 50 }, end: { x: 65, y: 65 } },
             duration: 9
           }
         ]
@@ -534,34 +540,40 @@
           {
             screen: "assets/tutorial_screens/fn2_step1_batch_tab.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn5_batch.png",
-            title: "BƯỚC 1: CHUYỂN SANG THẺ CHUYỂN ĐỔI HÀNG LOẠT",
-            text: "Tại màn hình Chuyển đổi tọa độ, chạm vào thẻ Chuyển đổi hàng loạt. Không gian nhập liệu dạng lưới mở ra, cho phép bạn xử lý cùng lúc hàng chục hoặc hàng trăm điểm mốc của dự án đo đạc một cách nhanh chóng mà không cần nhập thủ công từng điểm.",
+            title: "BƯỚC 1: CHUYỂN SANG TAB [CHUYỂN ĐỔI HÀNG LOẠT]",
+            text: "Tại màn hình chuyển đổi, chạm vào tab Chuyển đổi hàng loạt. Giao diện lưới mở ra, cho phép xử lý đồng thời hàng chục hoặc hàng trăm điểm mốc dự án cùng lúc.",
             en: "Switch to Batch Conversion tab for bulk processing of project survey benchmarks.",
             tip: "💡 Quy mô: Hỗ trợ xử lý mượt mà danh sách lên đến hàng nghìn mốc trong một thao tác.",
-            focus: { x: 50, y: 22, w: 85, h: 10, label: "Thẻ Chuyển đổi Hàng loạt" },
-            cursor: { x: 70, y: 22 },
+            focus: { x: 50, y: 15.0, w: 88, h: 8.0, label: "1. Tab Chuyển Đổi Hàng Loạt" },
+            cursor: { start: { x: 25, y: 15 }, target: { x: 65, y: 15 }, end: { x: 65, y: 15 } },
+            desktopFocus: { x: 25.0, y: 15.0, w: 42, h: 7.0, label: "1. Tab Chuyển Đổi Hàng Loạt" },
+            desktopCursor: { start: { x: 10, y: 15 }, target: { x: 32, y: 15 }, end: { x: 32, y: 15 } },
             duration: 8
           },
           {
             screen: "assets/tutorial_screens/fn2_step2_batch_data.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn5_batch.png",
-            title: "BƯỚC 2: DÁN BẢNG TỌA ĐỘ EXCEL & NHẬN DIỆN CỘT TỰ ĐỘNG",
-            text: "Sao chép các cột Tên mốc, X và Y từ file Excel rồi dán trực tiếp vào khung dữ liệu. Ứng dụng tự động nhận diện phân cách Tab, dấu phẩy thập phân Việt Nam và phân tích độ lớn tọa độ để hoán đổi đúng vị trí trục X Bắc và Y Đông, ngăn chặn triệt để nguy cơ điểm bị văng lệch hàng trăm kilomet.",
+            title: "BƯỚC 2: DÁN BẢNG EXCEL VÀO KHUNG & BẤM [TÍNH TOÁN]",
+            text: "Sao chép các cột Tên mốc, X và Y từ Excel rồi dán trực tiếp. Trình phân tích tự nhận diện phân cách Tab, dấu phẩy thập phân Việt Nam và tự đảo trục. Click nút Tính toán hàng loạt.",
             en: "Paste coordinates table directly from Excel; smart auto-parser detects Vietnamese decimals, separators, and axis order.",
             tip: "💡 Dữ liệu: Hỗ trợ cả định dạng chỉ có 2 cột số (tự sinh tên M1, M2...) hoặc đầy đủ 3 cột Tên, X, Y.",
-            focus: { x: 50, y: 45, w: 88, h: 32, label: "Khung dán bảng tọa độ & Nút Tính toán" },
-            cursor: { x: 50, y: 58 },
+            focus: { x: 50, y: 42.0, w: 88, h: 32.0, label: "2. Khung Dán Bảng Excel & Nút [Tính Toán]" },
+            cursor: { start: { x: 50, y: 35 }, target: { x: 50, y: 55 }, end: { x: 50, y: 65 } },
+            desktopFocus: { x: 25.0, y: 45.0, w: 42, h: 42.0, label: "2. Dán Bảng Excel & Bấm [Tính Toán Hàng Loạt]" },
+            desktopCursor: { start: { x: 25, y: 35 }, target: { x: 25, y: 60 }, end: { x: 25, y: 60 } },
             duration: 10
           },
           {
             screen: "assets/tutorial_screens/fn5_step2_export_modal.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn5_batch.png",
-            title: "BƯỚC 3: KIỂM TRA BẢNG KẾT QUẢ & XUẤT FILE BÁO CÁO",
-            text: "Sau khi tính toán xong, toàn bộ kết quả chuyển đổi được hiển thị trong bảng dữ liệu rõ ràng. Bạn có thể nhấn nút Xuất dữ liệu để tải file bảng tính Excel, bản vẽ AutoCAD DWG hoặc file KML mở trên Google Earth để lập báo cáo nghiệm thu.",
+            title: "BƯỚC 3: BẢNG KẾT QUẢ & XUẤT FILE [DWG / EXCEL / KML]",
+            text: "Toàn bộ danh sách tọa độ WGS-84 được lập bảng. Click nút Xuất dữ liệu để tải file bản vẽ AutoCAD (.dwg), file bảng tính Excel hoặc file KML phục vụ hồ sơ nghiệm thu.",
             en: "Inspect converted table and export to Excel workbook, AutoCAD DWG drawing, or Google Earth KML.",
             tip: "💡 Báo cáo: File xuất có đầy đủ thông tin kinh tuyến trục, múi chiếu và công thức sai số chuyển đổi.",
-            focus: { x: 50, y: 50, w: 90, h: 50, label: "Hộp thoại Xuất file Excel / DWG / KML" },
-            cursor: { x: 50, y: 45 },
+            focus: { x: 50, y: 52.0, w: 88, h: 45.0, label: "3. Hộp Thoại Xuất File AutoCAD DWG / Excel" },
+            cursor: { start: { x: 50, y: 45 }, target: { x: 50, y: 62 }, end: { x: 50, y: 62 } },
+            desktopFocus: { x: 65.0, y: 50.0, w: 58, h: 58.0, label: "3. Bảng Kết Quả Hàng Loạt & Nút [Xuất File]" },
+            desktopCursor: { start: { x: 45, y: 50 }, target: { x: 75, y: 25 }, end: { x: 75, y: 25 } },
             duration: 9
           }
         ]
@@ -579,22 +591,26 @@
             screen: "assets/tutorial_screens/fn3_step1_gps.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
             title: "BƯỚC 1: KÍCH HOẠT LIVE HUD ĐỊNH VỊ VỆ TINH THỰC ĐỊA",
-            text: "Chạm vào biểu tượng Bản Đồ Trắc Địa trên thanh điều hướng. Cấp quyền vị trí để kích hoạt bảng hiển thị Live HUD. Hệ thống sẽ liên tục tính toán tọa độ thực tế của bạn theo cả hai hệ quy chiếu VN-2000 và WGS-84 theo thời gian thực.",
+            text: "Chạm vào biểu tượng Bản Đồ Trắc Địa trên thanh điều hướng. Cấp quyền vị trí để kích hoạt bảng hiển thị Live HUD. Hệ thống liên tục tính toán tọa độ theo cả hai hệ VN-2000 và WGS-84.",
             en: "Activate Field Survey Map and enable location access for real-time dual geodetic coordinate HUD.",
             tip: "💡 Thực địa: Bật chế độ Thực địa (icon tia sét ⚡ trên thanh công cụ) để giao diện chuyển sang tương phản cao chống lóa nắng.",
-            focus: { x: 50, y: 25, w: 90, h: 28, label: "Bảng Live HUD Tọa độ thực địa" },
-            cursor: { x: 50, y: 22 },
+            focus: { x: 50, y: 22.0, w: 90, h: 24.0, label: "1. Bảng Live HUD Tọa Độ Thực Địa" },
+            cursor: { start: { x: 50, y: 10 }, target: { x: 50, y: 22.0 }, end: { x: 50, y: 22.0 } },
+            desktopFocus: { x: 50.0, y: 15.0, w: 60, h: 14.0, label: "1. Thanh Công Cụ Bản Đồ Dự Án & Live GPS" },
+            desktopCursor: { start: { x: 20, y: 15 }, target: { x: 50, y: 15.0 }, end: { x: 65, y: 15.0 } },
             duration: 9
           },
           {
             screen: "assets/tutorial_screens/fn3_step1_gps.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
-            title: "BƯỚC 2: KIỂM SOÁT SAI SỐ VỆ TINH & CHẤM LẤY TỌA ĐỘ MỐC",
-            text: "Quan sát chỉ số sai số mét của GPS trên bảng HUD để đảm bảo vệ tinh đã ổn định dưới năm mét. Chạm vào bản đồ hoặc nhấn nút Lưu mốc để ghi nhận điểm đo trực tiếp vào sổ đo dự án phục vụ công tác khảo sát hiện trường.",
+            title: "BƯỚC 2: KIỂM SOÁT SAI SỐ VỆ TINH & LƯU MỐC THỰC ĐỊA",
+            text: "Quan sát chỉ số sai số mét của GPS trên bảng HUD đảm bảo dưới 5 mét. Chạm vào bản đồ hoặc click nút Lưu mốc để ghi nhận điểm đo trực tiếp vào sổ đo dự án hiện trường.",
             en: "Monitor satellite precision metrics and tap map to capture field benchmark coordinates directly into survey book.",
             tip: "💡 Khuyến cáo: GPS điện thoại có sai số từ 3 đến 10 mét, dùng cho công tác khảo sát sơ bộ và tìm mốc thực địa.",
-            focus: { x: 50, y: 65, w: 90, h: 25, label: "Lưu mốc thực địa & Sao chép nhanh" },
-            cursor: { x: 50, y: 78 },
+            focus: { x: 50, y: 68.0, w: 90, h: 22.0, label: "2. Nút [Lưu Mốc] & Sao Chép Nhanh" },
+            cursor: { start: { x: 50, y: 55 }, target: { x: 50, y: 68.0 }, end: { x: 70, y: 68.0 } },
+            desktopFocus: { x: 50.0, y: 55.0, w: 80, h: 50.0, label: "2. Vị Trí Các Mốc Dự Án Trên Nền Bản Đồ" },
+            desktopCursor: { start: { x: 30, y: 40 }, target: { x: 50, y: 55.0 }, end: { x: 50, y: 55.0 } },
             duration: 9
           }
         ]
@@ -612,22 +628,26 @@
             screen: "assets/tutorial_screens/fn4_step1_stakeout.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
             title: "BƯỚC 1: CHỌN ĐIỂM MỐC THIẾT KẾ CẦN ĐỊNH VỊ",
-            text: "Mở phân hệ Cắm Mốc Thực Địa. Chọn mốc mục tiêu từ danh sách dự án hoặc nhập trực tiếp cặp tọa độ thiết kế cần tìm kiếm ngoài hiện trường.",
+            text: "Mở phân hệ Cắm Mốc Thực Địa. Chọn mốc mục tiêu từ danh sách dự án hoặc nhập trực tiếp cặp tọa độ thiết kế X, Y cần tìm kiếm ngoài hiện trường.",
             en: "Open Stakeout Navigation module and select a target benchmark or enter design coordinates.",
             tip: "💡 Tìm kiếm: Bạn có thể lọc nhanh tên mốc bằng thanh tìm kiếm ở đầu danh sách.",
-            focus: { x: 50, y: 28, w: 90, h: 20, label: "Hộp chọn mốc thiết kế mục tiêu" },
-            cursor: { x: 50, y: 26 },
+            focus: { x: 50, y: 26.0, w: 90, h: 18.0, label: "1. Chọn Mốc Thiết Kế Mục Tiêu" },
+            cursor: { start: { x: 50, y: 15 }, target: { x: 50, y: 26.0 }, end: { x: 50, y: 26.0 } },
+            desktopFocus: { x: 25.0, y: 35.0, w: 35, h: 30.0, label: "1. Danh Sách Mốc Dự Án Khảo Sát" },
+            desktopCursor: { start: { x: 10, y: 30 }, target: { x: 25, y: 35.0 }, end: { x: 25, y: 45.0 } },
             duration: 8
           },
           {
             screen: "assets/tutorial_screens/fn4_step1_stakeout.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
-            title: "BƯỚC 2: BÁM HƯỚNG LA BÀN SỐ & ĐO CỰ LY TIẾP CẬN",
-            text: "Cầm điện thoại nằm ngang song song mặt đất và xoay theo hướng mũi tên la bàn chỉ định. Khoảng cách d và độ lệch delta X, delta Y sẽ liên tục cập nhật và giảm dần về không khi bạn tiếp cận sát vị trí cắm mốc.",
+            title: "BƯỚC 2: BÁM HƯỚNG LA BÀN SỐ & TIẾP CẬN VỊ TRÍ MỐC",
+            text: "Cầm máy nằm ngang và di chuyển theo hướng mũi tên la bàn chỉ định. Khoảng cách d và độ lệch delta X, delta Y sẽ liên tục cập nhật và giảm dần về không khi bạn tiếp cận sát tim mốc.",
             en: "Hold phone horizontally and follow dynamic compass pointer; distance and coordinate deltas decrease toward target.",
             tip: "💡 Báo động âm thanh: Khi cự ly tới mốc dưới 1 mét, âm thanh cảnh báo bíp sẽ phát liên tục để dẫn hướng chính xác.",
-            focus: { x: 50, y: 60, w: 90, h: 35, label: "La bàn số điện tử & Chỉ số cự ly dX, dY" },
-            cursor: { x: 50, y: 55 },
+            focus: { x: 50, y: 62.0, w: 90, h: 32.0, label: "2. La Bàn Số Điện Tử & Cự Ly dX, dY" },
+            cursor: { start: { x: 50, y: 45 }, target: { x: 50, y: 62.0 }, end: { x: 50, y: 75.0 } },
+            desktopFocus: { x: 65.0, y: 55.0, w: 55, h: 50.0, label: "2. Mốc Mục Tiêu Đang Định Vị Trên Bản Đồ" },
+            desktopCursor: { start: { x: 50, y: 40 }, target: { x: 65, y: 55.0 }, end: { x: 65, y: 55.0 } },
             duration: 9
           }
         ]
@@ -645,22 +665,26 @@
             screen: "assets/tutorial_screens/fn5_step1_datamgmt.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
             title: "BƯỚC 1: QUẢN LÝ DANH SÁCH MỐC DỰ ÁN & BỘ LỌC NHANH",
-            text: "Mở màn hình Sổ Đo & Dự Án để theo dõi toàn bộ các điểm mốc đã thu thập. Bạn có thể đổi tên mốc, chỉnh sửa tọa độ, lọc điểm theo tên hoặc phân loại mốc ranh giới, mốc khống chế một cách có hệ thống.",
+            text: "Mở màn hình Sổ Đo & Dự Án để theo dõi toàn bộ các điểm mốc đã thu thập. Bạn có thể đổi tên mốc, chỉnh sửa tọa độ, lọc điểm theo tên hoặc phân loại mốc ranh giới, mốc khống chế.",
             en: "Access Project Fieldbook to inspect, edit, filter, and organize collected survey benchmarks.",
             tip: "💡 Lưu trữ: Dữ liệu được lưu trữ ngoại tuyến an toàn trong bộ nhớ máy, không bị mất khi mất sóng internet.",
-            focus: { x: 50, y: 35, w: 90, h: 35, label: "Bảng quản lý sổ đo & Bộ lọc tìm kiếm" },
-            cursor: { x: 50, y: 25 },
+            focus: { x: 50, y: 35.0, w: 90, h: 32.0, label: "1. Bảng Quản Lý Danh Sách Mốc Dự Án" },
+            cursor: { start: { x: 50, y: 20 }, target: { x: 50, y: 35.0 }, end: { x: 50, y: 45.0 } },
+            desktopFocus: { x: 25.0, y: 40.0, w: 35, h: 45.0, label: "1. Danh Sách Mốc Sổ Đo Dự Án" },
+            desktopCursor: { start: { x: 15, y: 25 }, target: { x: 25, y: 40.0 }, end: { x: 25, y: 50.0 } },
             duration: 8
           },
           {
             screen: "assets/tutorial_screens/fn5_step2_export_modal.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn2_project.png",
-            title: "BƯỚC 2: XUẤT BẢN VẼ AUTOCAD DWG & ĐA ĐỊNH DẠNG TRẮC ĐỊA",
-            text: "Nhấn nút Xuất Dữ Liệu Sổ Đo để mở trung tâm xuất file hợp nhất. Chọn xuất file bản vẽ AutoCAD DWG theo tiêu chuẩn TCVN, bảng tính Excel tính toán, hoặc file KML Google Earth để gửi nhanh cho các bộ phận liên quan.",
+            title: "BƯỚC 2: XUẤT BẢN VẼ AUTOCAD DWG & ĐA ĐỊNH DẠNG",
+            text: "Click nút Xuất Dữ Liệu Sổ Đo để mở trung tâm xuất file. Chọn xuất file bản vẽ AutoCAD DWG theo tiêu chuẩn TCVN, bảng tính Excel tính toán, hoặc file KML Google Earth để gửi nhanh cho các bên.",
             en: "Unified Export modal allows 1-tap download of AutoCAD DWG drawings, Excel sheets, or Google Earth KML files.",
             tip: "💡 Tiêu chuẩn: File bản vẽ xuất ra định dạng chuẩn AutoCAD (.dwg), tương thích 100% với AutoCAD và Civil 3D.",
-            focus: { x: 50, y: 50, w: 90, h: 50, label: "Hộp thoại Xuất file DWG / Excel / KML" },
-            cursor: { x: 50, y: 52 },
+            focus: { x: 50, y: 50.0, w: 90, h: 48.0, label: "2. Hộp Thoại Xuất File DWG / Excel / KML" },
+            cursor: { start: { x: 50, y: 35 }, target: { x: 50, y: 50.0 }, end: { x: 50, y: 65.0 } },
+            desktopFocus: { x: 50.0, y: 50.0, w: 45, h: 45.0, label: "2. Hộp Thoại Xuất Bản Vẽ AutoCAD (.DWG)" },
+            desktopCursor: { start: { x: 30, y: 40 }, target: { x: 50, y: 50.0 }, end: { x: 50, y: 60.0 } },
             duration: 9
           }
         ]
@@ -677,45 +701,53 @@
           {
             screen: "assets/tutorial_screens/fn6_step1_draw.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
-            title: "BƯỚC 1: CỤM CÔNG CỤ VẼ HÌNH HỌC [P, L, REC, C, D]",
-            text: "Trong MiniCAD, cụm công cụ Vẽ được gom gọn trong tab Vẽ. Nút Đa giác phím tắt P cho phép bạn chấm các đỉnh tạo ranh thửa đất khép kín. Nút Tuyến phím tắt L vẽ đường tim hở. Bạn có thể vẽ khối nhà với phím REC, vẽ bán kính bảo vệ với phím C, hoặc bắn điểm theo cự ly và góc phương vị với phím tắt D.",
+            title: "BƯỚC 1: TAB VẼ & CÔNG CỤ VẼ HÌNH HỌC [P, L, REC, C, D]",
+            text: "Click tab Vẽ trên thanh công cụ MiniCAD. Click chọn công cụ Đa giác phím tắt P, sau đó rê chuột click liên tiếp các góc ranh trên bản đồ để khép góc thửa đất. Bảng số liệu tự động tính diện tích mét vuông và chu vi.",
             en: "Drawing toolset includes Polygon boundary [P], Polyline centerlines [L], Building footprint [REC], Buffer circle [C], and Polar offset [D].",
             tip: "💡 Phím tắt nhanh: Gõ trực tiếp P, L, REC hoặc D trên bàn phím máy tính để kích hoạt nhanh công cụ vẽ.",
-            focus: { x: 50, y: 22, w: 92, h: 14, label: "Cụm Tab Vẽ: Đa giác [P], Tuyến [L], Nhà [REC], Bán kính [C]" },
-            cursor: { x: 16, y: 22 },
+            focus: { x: 24.0, y: 17.5, w: 45.0, h: 14.0, label: "Tab Vẽ & Công cụ Đa giác [P]" },
+            cursor: { start: { x: 9.5, y: 12.0 }, target: { x: 14.9, y: 23.6 }, end: { x: 50.0, y: 50.0 } },
+            desktopFocus: { x: 10.8, y: 14.9, w: 18.0, h: 10.0, label: "Tab Vẽ [P] & Công cụ Đa giác [P]" },
+            desktopCursor: { start: { x: 30.5, y: 11.4 }, target: { x: 6.3, y: 18.4 }, end: { x: 48.0, y: 52.0 } },
             duration: 11
           },
           {
             screen: "assets/tutorial_screens/fn6_step2_snap.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
-            title: "BƯỚC 2: CỤM TRỢ VẼ & BẮT ĐIỂM OSNAP [F3, B, F8]",
-            text: "Chạm vào tab Snap có biểu tượng nam châm để kích hoạt trợ vẽ thông minh. Nút Snap mốc phím tắt F3 sẽ tự động hút con trỏ vào mốc dự án. Đặc biệt, tính năng Bắt Line phím tắt B sẽ tự động khóa cạnh của thửa đất liền kề trong phạm vi nửa mét, giúp triệt tiêu hoàn toàn lỗi hở ranh hoặc chồng lấn thửa đất. Bật Ortho phím F8 để khóa góc vuông 90 độ.",
+            title: "BƯỚC 2: TAB SNAP & BẮT ĐIỂM THÔNG MINH OSNAP [F3, B, F8]",
+            text: "Click tab Snap (biểu tượng nam châm). Bật nút Bắt Line phím tắt B để tự động hút khít cạnh ranh thửa đất liền kề trong phạm vi nửa mét, triệt tiêu 100% lỗi hở ranh chồng lấn. Bật Ortho phím F8 để khóa góc vuông 90 độ.",
             en: "Precision drafting features OSNAP benchmark magnet [F3], Adjacent line snap [B] preventing parcel overlap, and Ortho 90° constraint [F8].",
             tip: "💡 Chống tranh chấp: Tính năng Bắt Line [B] đảm bảo ranh giới giữa hai thửa đất tiếp giáp trùng khít 100% không bị hở mét nào.",
-            focus: { x: 50, y: 22, w: 92, h: 14, label: "Cụm Tab Snap: Bắt mốc [F3], Bắt cạnh line [B], Khóa vuông góc [F8]" },
-            cursor: { x: 45, y: 22 },
+            focus: { x: 30.8, y: 17.8, w: 58.0, h: 14.0, label: "Tab Snap & Chế độ Bắt line [B], Ortho [F8]" },
+            cursor: { start: { x: 56.6, y: 12.0 }, target: { x: 44.9, y: 23.6 }, end: { x: 16.6, y: 23.6 } },
+            desktopFocus: { x: 18.2, y: 15.0, w: 34.0, h: 10.0, label: "Tab Snap: Bắt mốc [F3], Bắt cạnh line [B], Khóa vuông góc [F8]" },
+            desktopCursor: { start: { x: 49.1, y: 11.4 }, target: { x: 18.0, y: 18.4 }, end: { x: 29.5, y: 18.4 } },
             duration: 12
           },
           {
             screen: "assets/tutorial_screens/fn6_step1_draw.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
-            title: "BƯỚC 3: CỤM BIÊN TẬP & GHI CHÚ [V, RO, O, DIM]",
-            text: "Tab Sửa chuyển sang con trỏ chọn đối tượng phím tắt V để chọn khối thửa đất cần biên tập. Bạn có thể xoay nhãn theo góc phương vị cạnh với phím tắt RO, hoặc tạo đường ranh song song offset với phím tắt O. Tab Nhãn hỗ trợ cắm nét mũi tên chỉ hướng DIM, ghi chú văn bản và đóng khung tem nhãn công trình chuyên nghiệp.",
+            title: "BƯỚC 3: TAB SỬA & BIÊN TẬP RANH THỬA [V, RO, O, DIM]",
+            text: "Click tab Sửa. Click chọn con trỏ phím tắt V để chọn khối thửa đất. Click nút Xoay nhãn phím RO để xoay nhãn cạnh song song góc phương vị ranh đất, hoặc tạo đường ranh song song offset với phím O. Tab Nhãn hỗ trợ cắm mũi tên chỉ hướng DIM.",
             en: "Editing toolset supports Object Selection [V], Label Rotation [RO], Parallel Offset [O], Dimension Arrows [DIM], and Title Stamps.",
             tip: "💡 Tiện ích: Phím tắt CL nối nhanh đỉnh cuối về đỉnh đầu để khép góc thửa đất tức thì.",
-            focus: { x: 50, y: 15, w: 92, h: 12, label: "Cụm Sửa [V, RO, O] & Ghi chú nhãn [DIM, Tem]" },
-            cursor: { x: 25, y: 15 },
+            focus: { x: 30.0, y: 17.8, w: 55.0, h: 14.0, label: "Tab Sửa: Chọn đối tượng [V] & Xoay ranh [RO]" },
+            cursor: { start: { x: 25.0, y: 12.0 }, target: { x: 20.0, y: 23.6 }, end: { x: 45.0, y: 23.6 } },
+            desktopFocus: { x: 19.7, y: 15.0, w: 36.0, h: 10.0, label: "Tab Sửa: Con trỏ Chọn [V], Xoay nhãn [RO], Offset [O]" },
+            desktopCursor: { start: { x: 38.6, y: 11.4 }, target: { x: 7.6, y: 18.4 }, end: { x: 31.8, y: 18.4 } },
             duration: 11
           },
           {
             screen: "assets/tutorial_screens/fn6_step3_export.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn6_cad.png",
-            title: "BƯỚC 4: BẢNG KÊ DIỆN TÍCH [E] & XUẤT AUTOCAD (.DWG)",
-            text: "Nhấn nút Bảng kê phím tắt E để xem bảng kê tọa độ ranh góc, cự ly từng cạnh và diện tích tính toán tự động. Sau đó chạm nút Xuất bản vẽ và chọn định dạng AutoCAD DWG. Bản vẽ được xuất trực tiếp định dạng DWG chuẩn hệ mét với các lớp layer màu sắc quy chuẩn Thông tư 25 năm 2014 của Bộ Tài nguyên và Môi trường.",
+            title: "BƯỚC 4: BẢNG KÊ TỌA ĐỘ RANH [E] & XUẤT AUTOCAD (.DWG)",
+            text: "Click nút Bảng kê phím tắt E để xem danh sách tọa độ đỉnh và chiều dài các cạnh. Sau đó click nút Xuất bản vẽ và chọn tải file AutoCAD DWG. Bản vẽ được xuất trực tiếp định dạng DWG chuẩn tỷ lệ và các lớp layer quy chuẩn TT 25/2014/TT-BTNMT.",
             en: "Inspect Area & Coordinate Schedule [E] and export directly to AutoCAD (.dwg) formatted to MONRE Circular 25/2014 standards.",
             tip: "💡 Tương thích: File DWG mở xem và biên tập mượt mà trên tất cả phiên bản AutoCAD, Civil 3D và các app CAD trên di động.",
-            focus: { x: 50, y: 50, w: 88, h: 52, label: "Hộp thoại Xuất Bản Vẽ AutoCAD (.DWG) Chuẩn TCVN" },
-            cursor: { x: 50, y: 45 },
+            focus: { x: 50.0, y: 50.0, w: 85.0, h: 48.0, label: "Hộp thoại Xuất Bản Vẽ AutoCAD (.DWG)" },
+            cursor: { start: { x: 36.4, y: 23.6 }, target: { x: 50.0, y: 65.0 }, end: { x: 50.0, y: 65.0 } },
+            desktopFocus: { x: 50.0, y: 50.0, w: 42.0, h: 46.0, label: "Hộp thoại Xuất Bản Vẽ AutoCAD (.DWG) Chuẩn TCVN" },
+            desktopCursor: { start: { x: 14.7, y: 18.4 }, target: { x: 50.0, y: 60.0 }, end: { x: 50.0, y: 60.0 } },
             duration: 11
           }
         ]
@@ -732,46 +764,54 @@
           {
             screen: "assets/tutorial_screens/fn7_step1_profile_input.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
-            title: "BƯỚC 1: NẠP CỌC TUYẾN & CAO ĐỘ TỰ NHIÊN Z_TN",
-            text: "Mở phân hệ Trắc dọc địa hình và Đào đắp từ menu Tiện ích. Tại thẻ Tuyến Trắc Dọc, bạn có thể nhấn nút Chọn mốc Dự án để nạp các điểm đo sẵn có, hoặc nhấn Vẽ Tuyến trên MiniCAD để vẽ tim đường trực tiếp trên nền ảnh vệ tinh. Danh sách cọc mốc sẽ hiển thị đầy đủ tên cọc, tọa độ X, Y và cao độ tự nhiên Z.",
+            title: "BƯỚC 1: NẠP CỌC MỐC TUYẾN & CAO ĐỘ TỰ NHIÊN Z_TN",
+            text: "Trong phân hệ Trắc dọc & Đào đắp, click nút [🛣️ Tuyến Mẫu (5 Cọc)] để nạp nhanh số liệu thực hành mẫu từ KM0+00 đến KM0+100, hoặc click [📐 Vẽ Tuyến trên MiniCAD] để số hóa tim đường. Bảng danh sách cọc hiển thị đầy đủ lý trình và cao độ tự nhiên Z.",
             en: "Load alignment stake points from project benchmarks, draft alignment on MiniCAD, or paste coordinate tables.",
             tip: "💡 Thử nghiệm: Bạn có thể nhấn nút [🛣️ Tuyến Mẫu (5 Cọc)] để nạp nhanh số liệu thực hành mẫu.",
-            focus: { x: 50, y: 25, w: 90, h: 25, label: "Nạp cọc mốc: Chọn Dự án, Vẽ từ MiniCAD hoặc Dán nhanh" },
-            cursor: { x: 30, y: 22 },
-            duration: 10
+            focus: { x: 50.0, y: 33.0, w: 88.0, h: 16.0, label: "1. Nạp cọc tuyến: [🛣️ Tuyến Mẫu (5 Cọc)] & Cao độ Z_TN" },
+            cursor: { start: { x: 69.3, y: 30.0 }, target: { x: 53.9, y: 35.2 }, end: { x: 50.0, y: 44.0 } },
+            desktopFocus: { x: 17.0, y: 35.0, w: 28.5, h: 18.0, label: "1. Nạp cọc tuyến: [🛣️ Tuyến Mẫu (5 Cọc)] & Bảng cao độ Z_TN" },
+            desktopCursor: { start: { x: 24.0, y: 27.6 }, target: { x: 19.7, y: 33.1 }, end: { x: 17.0, y: 43.0 } },
+            duration: 11
           },
           {
             screen: "assets/tutorial_screens/fn7_step2_profile_design.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
-            title: "BƯỚC 2: THIẾT KẾ ĐƯỜNG ĐỎ Z₀, ĐỘ DỐC i & MÁI DỐC TALUY",
-            text: "Cấu hình thông số thiết kế tuyến theo tiêu chuẩn kỹ thuật: nhập cao độ thiết kế tại cọc đầu Z0 và độ dốc dọc tuyến i theo phần trăm. Tiếp theo, nhập bề rộng nền đào đắp B theo mét và hệ số mái dốc taluy m theo tiêu chuẩn TCVN 4447:2012. Nhấn nút Tính toán và cập nhật trắc dọc.",
+            title: "BƯỚC 2: CẤU HÌNH ĐƯỜNG ĐỎ Z₀, ĐỘ DỐC i & MÁI TALUY m",
+            text: "Rê chuột xuống cụm thông số thiết kế: nhập cao độ thiết kế đầu tuyến Z0 = 12.00m, độ dốc dọc i = 0.00%, bề rộng nền B = 6.00m, mái taluy m = 1.00 (TCVN 4447:2012). Click nút [⚡ TÍNH TOÁN & CẬP NHẬT TRẮC DỌC].",
             en: "Configure vertical design profile: initial elevation Z0, longitudinal slope i (%), roadbed width B, and talus slope ratio m (1:m).",
             tip: "💡 Tiêu chuẩn TCVN 4447: Mái dốc đào đất thường từ 1:0.5 đến 1:1.0; mái dốc đắp thường từ 1:1.0 đến 1:1.5.",
-            focus: { x: 50, y: 55, w: 90, h: 32, label: "Thông số thiết kế: Cao độ Z0, Độ dốc i, Nền B, Mái dốc m" },
-            cursor: { x: 50, y: 75 },
-            duration: 11
+            focus: { x: 48.5, y: 70.0, w: 86.0, h: 18.0, label: "2. Cấu hình Z0, Dốc i & Bấm [⚡ TÍNH TOÁN]" },
+            cursor: { start: { x: 27.7, y: 63.6 }, target: { x: 69.3, y: 63.5 }, end: { x: 48.5, y: 76.2 } },
+            desktopFocus: { x: 17.0, y: 70.0, w: 28.5, h: 19.0, label: "2. Cấu hình Z0, Dốc i, Taluy m & Bấm [⚡ TÍNH TOÁN]" },
+            desktopCursor: { start: { x: 9.8, y: 63.1 }, target: { x: 24.1, y: 63.0 }, end: { x: 17.0, y: 76.4 } },
+            duration: 12
           },
           {
             screen: "assets/tutorial_screens/fn7_step3_profile_chart.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
-            title: "BƯỚC 3: BẢN VẼ TRẮC DỌC KỸ THUẬT & KHỐI LƯỢNG (m³)",
-            text: "Quan sát bản vẽ mặt cắt trắc dọc kỹ thuật. Đường màu xanh lá thể hiện địa hình tự nhiên, đường màu đỏ thể hiện cao độ thiết kế. Các vùng đào được tô màu đỏ và vùng đắp được tô màu xanh dương trực quan. Bên dưới là bảng trích yếu chuẩn TCVN 9436. Bảng tổng hợp hiển thị chính xác tổng khối lượng đào và khối lượng đắp theo mét khối.",
+            title: "BƯỚC 3: MẶT CẮT TRẮC DỌC TCVN 9436 & TỔNG MÉT KHỐI (m³)",
+            text: "Quan sát bản vẽ mặt cắt trắc dọc kỹ thuật: đường xanh thể hiện tự nhiên, đường đỏ thể hiện thiết kế. Vùng đào màu đỏ, vùng đắp màu xanh. Thẻ tổng hợp hiển thị chính xác tổng mét khối: V_đào = 404.2 m³, V_đắp = 193.5 m³, chênh lệch -210.7 m³.",
             en: "Technical profile chart visualizes ground vs design elevations, cut/fill hatching, TCVN 9436 grid table, and total cubic meters.",
             tip: "💡 Trực quan: Chữ trong bảng trích yếu tự động xoay dọc thông minh, không bị đè chữ khi các cọc nằm gần nhau.",
-            focus: { x: 50, y: 40, w: 92, h: 45, label: "Bản vẽ trắc dọc TCVN & Tổng mét khối V_đào, V_đắp" },
-            cursor: { x: 50, y: 65 },
-            duration: 11
+            focus: { x: 50.0, y: 48.0, w: 92.0, h: 42.0, label: "3. Mặt cắt trắc dọc TCVN & Khối lượng Đào 404.2m³, Đắp 193.5m³" },
+            cursor: { start: { x: 50.0, y: 38.0 }, target: { x: 50.0, y: 44.0 }, end: { x: 50.0, y: 64.0 } },
+            desktopFocus: { x: 65.0, y: 53.3, w: 62.5, h: 50.0, label: "3. Mặt cắt trắc dọc TCVN 9436 & Khối lượng Đào 404.2m³, Đắp 193.5m³" },
+            desktopCursor: { start: { x: 50.0, y: 45.0 }, target: { x: 65.0, y: 42.0 }, end: { x: 65.0, y: 64.0 } },
+            duration: 12
           },
           {
             screen: "assets/tutorial_screens/fn7_step3_profile_chart.png",
             desktopScreen: "assets/tutorial_screens/desktop_fn7_profile.png",
-            title: "BƯỚC 4: XUẤT BẢN VẼ AUTOCAD TRẮC DỌC (.DWG) & BÁO CÁO CSV",
-            text: "Xuất hồ sơ kỹ thuật phục vụ nghiệm thu: nhấn nút Xuất DWG để tải trực tiếp file bản vẽ trắc dọc kỹ thuật định dạng AutoCAD. Toàn bộ đường gióng, cọc mốc, cao độ và bảng trích yếu được dựng thành các thực thể CAD chuẩn lớp layer. Bạn cũng có thể xuất file CSV để đưa vào phần mềm dự toán và bảng tính khối lượng.",
+            title: "BƯỚC 4: XUẤT HỒ SƠ BẢN VẼ AUTOCAD [💻 DWG] & BÁO CÁO [📊 CSV]",
+            text: "Rê chuột click nút [💻 Xuất DWG] để tải bản vẽ trắc dọc kỹ thuật chuẩn AutoCAD đầy đủ khung tên, đường gióng và cao độ. Click [📊 Xuất CSV] để xuất bảng tính khối lượng từng cọc đưa vào dự toán công trình.",
             en: "Export technical profile directly to AutoCAD DWG format with standard layers and download CSV volume reports.",
             tip: "💡 Hồ sơ: Bản vẽ DWG xuất ra mở được ngay trong AutoCAD với đầy đủ khung tên, đường gióng và cao độ chính xác.",
-            focus: { x: 50, y: 78, w: 90, h: 18, label: "Nút Xuất Bản Vẽ AutoCAD (.DWG) & Báo Cáo CSV" },
-            cursor: { x: 80, y: 78 },
-            duration: 10
+            focus: { x: 50.0, y: 84.0, w: 85.0, h: 10.0, label: "4. Nút Xuất Bản Vẽ AutoCAD DWG & Báo Cáo CSV" },
+            cursor: { start: { x: 30.0, y: 83.2 }, target: { x: 77.6, y: 83.2 }, end: { x: 77.6, y: 83.2 } },
+            desktopFocus: { x: 17.0, y: 86.5, w: 29.0, h: 13.0, label: "4. Nút Xuất Báo Cáo [📊 CSV] & Bản Vẽ AutoCAD [💻 DWG]" },
+            desktopCursor: { start: { x: 65.0, y: 64.0 }, target: { x: 9.4, y: 89.3 }, end: { x: 9.4, y: 83.8 } },
+            duration: 11
           }
         ]
       },
@@ -791,8 +831,10 @@
             text: "Mở tính năng Camera Khảo Sát từ menu tiện ích. Ống kính camera thực địa khởi động cùng khung ngắm tích hợp lớp phủ Watermark kỹ thuật trắc địa. Hệ thống tự động đọc tọa độ GPS vệ tinh theo thời gian thực và quy đổi sang hệ VN-2000 theo kinh tuyến trục địa phương.",
             en: "Activate Field Survey Camera with real-time technical watermark overlay displaying VN-2000 coordinates.",
             tip: "💡 Nghiệp vụ: Lớp watermark tự động cập nhật liên tục tọa độ X, Y, kinh vĩ độ, la bàn số và thời gian.",
-            focus: { x: 50, y: 30, w: 90, h: 25, label: "Khung ngắm Camera & Watermark trực tiếp" },
-            cursor: { x: 50, y: 30 },
+            focus: { x: 50, y: 30, w: 90, h: 25, label: "1. Khung Ngắm Camera & Watermark Trực Tiếp" },
+            cursor: { start: { x: 50, y: 15 }, target: { x: 50, y: 30 }, end: { x: 50, y: 30 } },
+            desktopFocus: { x: 50, y: 30, w: 80, h: 35, label: "1. Khung Ngắm Camera & Watermark Trực Tiếp" },
+            desktopCursor: { start: { x: 50, y: 15 }, target: { x: 50, y: 30 }, end: { x: 50, y: 30 } },
             duration: 8
           },
           {
@@ -802,8 +844,10 @@
             text: "Thông số tọa độ VN-2000 X, Y, kinh độ, vĩ độ, ngày giờ và tên công trình được in chìm vĩnh viễn lên ảnh chụp. Nhấn nút chụp để lưu trữ hồ sơ nghiệm thu thực địa pháp lý rõ ràng, phục vụ đính kèm biên bản bàn giao mốc hoặc báo cáo tư vấn giám sát.",
             en: "Permanent watermark embeds VN-2000 X/Y, coordinates, timestamp, and project metadata directly onto high-res survey photos.",
             tip: "💡 Pháp lý: Ảnh đóng dấu được lưu với độ phân giải gốc của camera thiết bị, không thể chỉnh sửa số liệu.",
-            focus: { x: 50, y: 75, w: 90, h: 20, label: "Watermark tọa độ & Nút chụp ảnh" },
-            cursor: { x: 50, y: 75 },
+            focus: { x: 50, y: 78, w: 90, h: 18, label: "2. Watermark Tọa Độ & Nút [Chụp Ảnh]" },
+            cursor: { start: { x: 50, y: 65 }, target: { x: 50, y: 78 }, end: { x: 50, y: 78 } },
+            desktopFocus: { x: 50, y: 75, w: 80, h: 25, label: "2. Watermark Tọa Độ & Nút [Chụp Ảnh]" },
+            desktopCursor: { start: { x: 50, y: 60 }, target: { x: 50, y: 75 }, end: { x: 50, y: 75 } },
             duration: 9
           }
         ]
@@ -1053,16 +1097,66 @@
     const canvas = document.getElementById('videoCanvas');
     const ctx = canvas.getContext('2d');
 
-    function drawComputerMousePointer(ctx, x, y, pulse) {
+    function interpolateCursor(curDef, progress) {
+      if (!curDef) return { x: 50, y: 50, isClicking: false, clickPulse: 0 };
+      // Fallback for legacy static {x, y} format
+      if (typeof curDef.x === 'number' && typeof curDef.y === 'number') {
+        const pulse = Math.sin(progress * Math.PI * 4) * 0.3 + 0.3;
+        return { x: curDef.x, y: curDef.y, isClicking: false, clickPulse: pulse };
+      }
+
+      const p0 = curDef.start || curDef.target;
+      const p1 = curDef.target;
+      const p2 = curDef.end || curDef.target;
+
+      // Smoothstep easing: 3t^2 - 2t^3
+      const ease = (t) => {
+        const clamped = Math.max(0, Math.min(1, t));
+        return clamped * clamped * (3 - 2 * clamped);
+      };
+
+      let x, y, isClicking = false, clickPulse = 0;
+
+      if (progress < 0.28) {
+        // Pha 1: Rê mượt mà từ start -> target (0 -> 0.28)
+        const k = ease(progress / 0.28);
+        x = p0.x + (p1.x - p0.x) * k;
+        y = p0.y + (p1.y - p0.y) * k;
+        clickPulse = 0;
+      } else if (progress < 0.42) {
+        // Pha 2: Dừng tại target và THỰC HIỆN CÚ CLICK (0.28 -> 0.42)
+        x = p1.x;
+        y = p1.y;
+        isClicking = true;
+        clickPulse = (progress - 0.28) / 0.14; // 0 -> 1
+      } else if (progress < 0.78) {
+        // Pha 3: Rê từ target -> end (vùng kết quả) (0.42 -> 0.78)
+        const k = ease((progress - 0.42) / 0.36);
+        x = p1.x + (p2.x - p1.x) * k;
+        y = p1.y + (p2.y - p1.y) * k;
+        clickPulse = 0;
+      } else {
+        // Pha 4: Dừng tại vùng kết quả, chỉ dẫn người dùng quan sát (0.78 -> 1.0)
+        x = p2.x;
+        y = p2.y;
+        clickPulse = Math.sin((progress - 0.78) * Math.PI * 5) * 0.35 + 0.35;
+      }
+
+      return { x, y, isClicking, clickPulse };
+    }
+
+    function drawComputerMousePointer(ctx, x, y, isClicking, clickPulse) {
       ctx.save();
-      // Click Ripple wave
-      ctx.beginPath();
-      ctx.arc(x, y, 16 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(56, 189, 248, ${0.45 * (2 - pulse)})`;
-      ctx.fill();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      // Click Ripple wave lan toả
+      if (clickPulse > 0) {
+        ctx.beginPath();
+        ctx.arc(x, y, 22 * clickPulse, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(56, 189, 248, ${0.45 * (1.2 - clickPulse)})`;
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+      }
 
       // Sharp Computer Mouse Pointer Arrow
       ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
@@ -1070,19 +1164,23 @@
       ctx.shadowOffsetX = 3;
       ctx.shadowOffsetY = 4;
 
-      ctx.fillStyle = '#ffffff';
+      const scale = isClicking ? 0.88 : 1.0;
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      ctx.fillStyle = isClicking ? '#38bdf8' : '#ffffff';
       ctx.strokeStyle = '#090d16';
       ctx.lineWidth = 2;
       ctx.lineJoin = 'round';
 
       ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x, y + 23);
-      ctx.lineTo(x + 5.5, y + 17.5);
-      ctx.lineTo(x + 11.5, y + 28.5);
-      ctx.lineTo(x + 15.5, y + 26.5);
-      ctx.lineTo(x + 9.5, y + 15.8);
-      ctx.lineTo(x + 16.5, y + 15.8);
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, 23);
+      ctx.lineTo(5.5, 17.5);
+      ctx.lineTo(11.5, 28.5);
+      ctx.lineTo(15.5, 26.5);
+      ctx.lineTo(9.5, 15.8);
+      ctx.lineTo(16.5, 15.8);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -1090,17 +1188,18 @@
       ctx.restore();
     }
 
-    function drawTouchPulse(ctx, x, y, pulse) {
+    function drawTouchPulse(ctx, x, y, isClicking, clickPulse) {
       ctx.save();
+      const pulse = isClicking ? (1.5 + clickPulse * 0.5) : (1.0 + clickPulse * 0.25);
       ctx.beginPath();
       ctx.arc(x, y, 24 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(56, 189, 248, ${0.25 * (2 - pulse)})`;
+      ctx.fillStyle = `rgba(56, 189, 248, ${isClicking ? 0.4 : 0.2})`;
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(x, y, 12, 0, Math.PI * 2);
-      ctx.fillStyle = '#38bdf8';
+      ctx.arc(x, y, isClicking ? 15 : 12, 0, Math.PI * 2);
+      ctx.fillStyle = isClicking ? '#ffffff' : '#38bdf8';
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = isClicking ? '#38bdf8' : '#ffffff';
       ctx.lineWidth = 2.5;
       ctx.stroke();
       ctx.restore();
@@ -1211,39 +1310,43 @@
           ctx.fillText('Đang tải giao diện điện thoại...', innerX + innerW / 2, innerY + innerH / 2);
         }
 
-        // Spotlight Box
-        if (step.focus) {
-          const fx = innerX + (step.focus.x / 100) * innerW - ((step.focus.w / 100) * innerW) / 2;
-          const fy = innerY + (step.focus.y / 100) * innerH - ((step.focus.h / 100) * innerH) / 2;
-          const fw = (step.focus.w / 100) * innerW;
-          const fh = (step.focus.h / 100) * innerH;
+        const focusDef = step.focus;
+        const curDef = step.cursor;
+        const curState = interpolateCursor(curDef, stepInfo.progress);
 
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 3;
+        // Spotlight Box
+        if (focusDef) {
+          const fx = innerX + (focusDef.x / 100) * innerW - ((focusDef.w / 100) * innerW) / 2;
+          const fy = innerY + (focusDef.y / 100) * innerH - ((focusDef.h / 100) * innerH) / 2;
+          const fw = (focusDef.w / 100) * innerW;
+          const fh = (focusDef.h / 100) * innerH;
+
+          const isGlowing = curState.isClicking;
+          ctx.strokeStyle = isGlowing ? '#ffffff' : '#38bdf8';
+          ctx.lineWidth = isGlowing ? 3.5 : 2.5;
           ctx.shadowColor = '#38bdf8';
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = isGlowing ? 25 : 14;
           ctx.beginPath();
           ctx.roundRect(fx, fy, fw, fh, 12);
           ctx.stroke();
 
           // Spotlight Tag Pill
-          ctx.fillStyle = 'rgba(2, 132, 199, 0.95)';
+          ctx.fillStyle = isGlowing ? 'rgba(14, 165, 233, 0.98)' : 'rgba(2, 132, 199, 0.95)';
           ctx.shadowBlur = 0;
-          const labelW = ctx.measureText(step.focus.label).width + 24;
+          const labelW = ctx.measureText(focusDef.label).width + 24;
           ctx.beginPath();
           ctx.roundRect(Math.max(innerX + 6, fx), Math.max(innerY + 6, fy - 26), labelW, 22, 6);
           ctx.fill();
           ctx.fillStyle = '#ffffff';
           ctx.font = 'bold 12px sans-serif';
           ctx.textAlign = 'left';
-          ctx.fillText(step.focus.label, Math.max(innerX + 18, fx + 12), Math.max(innerY + 20, fy - 11));
+          ctx.fillText(focusDef.label, Math.max(innerX + 18, fx + 12), Math.max(innerY + 20, fy - 11));
         }
 
-        // Touch Cursor
-        const cursorPulse = 1 + Math.sin(time * 6) * 0.25;
-        const curX = step.cursor ? innerX + (step.cursor.x / 100) * innerW : (innerX + innerW / 2);
-        const curY = step.cursor ? innerY + (step.cursor.y / 100) * innerH : (innerY + innerH / 2);
-        drawTouchPulse(ctx, curX, curY, cursorPulse);
+        // Animated Touch Cursor
+        const curPixelX = innerX + (curState.x / 100) * innerW;
+        const curPixelY = innerY + (curState.y / 100) * innerH;
+        drawTouchPulse(ctx, curPixelX, curPixelY, curState.isClicking, curState.clickPulse);
 
         ctx.restore(); // End Screen Clip
       } else {
@@ -1337,39 +1440,43 @@
           ctx.fillText('Đang tải giao diện màn hình lớn...', innerX + innerW / 2, innerY + innerH / 2);
         }
 
-        // Spotlight Box on Desktop
-        if (step.focus) {
-          const fx = innerX + (step.focus.x / 100) * innerW - ((step.focus.w / 100) * innerW) / 2;
-          const fy = innerY + (step.focus.y / 100) * innerH - ((step.focus.h / 100) * innerH) / 2;
-          const fw = (step.focus.w / 100) * innerW;
-          const fh = (step.focus.h / 100) * innerH;
+        const focusDef = step.desktopFocus || step.focus;
+        const curDef = step.desktopCursor || step.cursor;
+        const curState = interpolateCursor(curDef, stepInfo.progress);
 
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 3;
+        // Spotlight Box on Desktop
+        if (focusDef) {
+          const fx = innerX + (focusDef.x / 100) * innerW - ((focusDef.w / 100) * innerW) / 2;
+          const fy = innerY + (focusDef.y / 100) * innerH - ((focusDef.h / 100) * innerH) / 2;
+          const fw = (focusDef.w / 100) * innerW;
+          const fh = (focusDef.h / 100) * innerH;
+
+          const isGlowing = curState.isClicking;
+          ctx.strokeStyle = isGlowing ? '#ffffff' : '#38bdf8';
+          ctx.lineWidth = isGlowing ? 3.5 : 2.5;
           ctx.shadowColor = '#38bdf8';
-          ctx.shadowBlur = 15;
+          ctx.shadowBlur = isGlowing ? 28 : 15;
           ctx.beginPath();
           ctx.roundRect(fx, fy, fw, fh, 10);
           ctx.stroke();
 
           // Spotlight Tag Pill
-          ctx.fillStyle = 'rgba(2, 132, 199, 0.95)';
+          ctx.fillStyle = isGlowing ? 'rgba(14, 165, 233, 0.98)' : 'rgba(2, 132, 199, 0.95)';
           ctx.shadowBlur = 0;
-          const labelW = ctx.measureText(step.focus.label).width + 24;
+          const labelW = ctx.measureText(focusDef.label).width + 24;
           ctx.beginPath();
           ctx.roundRect(Math.max(innerX + 6, fx), Math.max(innerY + 6, fy - 26), labelW, 22, 6);
           ctx.fill();
           ctx.fillStyle = '#ffffff';
           ctx.font = 'bold 12px sans-serif';
           ctx.textAlign = 'left';
-          ctx.fillText(step.focus.label, Math.max(innerX + 18, fx + 12), Math.max(innerY + 20, fy - 11));
+          ctx.fillText(focusDef.label, Math.max(innerX + 18, fx + 12), Math.max(innerY + 20, fy - 11));
         }
 
-        // Sharp Computer Mouse Pointer on Desktop
-        const cursorPulse = 1 + Math.sin(time * 6) * 0.25;
-        const curX = step.cursor ? innerX + (step.cursor.x / 100) * innerW : (innerX + innerW / 2);
-        const curY = step.cursor ? innerY + (step.cursor.y / 100) * innerH : (innerY + innerH / 2);
-        drawComputerMousePointer(ctx, curX, curY, cursorPulse);
+        // Animated Sharp Computer Mouse Pointer on Desktop
+        const curPixelX = innerX + (curState.x / 100) * innerW;
+        const curPixelY = innerY + (curState.y / 100) * innerH;
+        drawComputerMousePointer(ctx, curPixelX, curPixelY, curState.isClicking, curState.clickPulse);
 
         ctx.restore(); // End Screen Clip
       }
