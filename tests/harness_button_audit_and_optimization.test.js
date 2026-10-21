@@ -105,3 +105,40 @@ test('=== 6. KIỂM THỬ KHẮC PHỤC LỖI HIỂN THỊ ĐA MÀN HÌNH & BADG
     assert.ok(polishCss.includes('@media (max-width: 380px)'), 'Có media query max-width 380px');
     assert.ok(polishCss.includes('#fwToolbar'), 'Có responsive styling cho #fwToolbar');
 });
+
+test('=== 7. KIỂM THỬ TỐI ƯU 1 NÚT XUẤT DỮ LIỆU & MODAL CHỌN ĐỊNH DẠNG (LOVABLE PRO 2026) ===', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
+    const polishCss = fs.readFileSync(path.join(__dirname, '../ui-polish.css'), 'utf8');
+
+    // 1. Kiểm tra chỉ còn 1 nút xuất duy nhất #btnOpenExportModal trong Sổ Đo
+    assert.ok(html.includes('id="btnOpenExportModal"'), 'Phải có nút đơn nhất #btnOpenExportModal');
+    assert.ok(html.includes('appData.openExportModal()'), 'Nút phải gọi appData.openExportModal()');
+    assert.ok(!html.includes('class="export-actions-grid"'), 'Không còn lưới 4 nút cũ gây chật chội');
+
+    // 2. Kiểm tra Modal xuất dữ liệu #modalExportData tồn tại
+    assert.ok(html.includes('id="modalExportData"'), 'Phải có Modal #modalExportData');
+    assert.ok(html.includes('data-format="excel"'), 'Modal phải có định dạng Excel (.xlsx)');
+    assert.ok(html.includes('data-format="csv"'), 'Modal phải có định dạng CSV (.csv)');
+    assert.ok(html.includes('data-format="dwg"'), 'Modal phải có định dạng AutoCAD (.dwg)');
+    assert.ok(html.includes('data-format="kml"'), 'Modal phải có định dạng Google Earth (.kml)');
+    assert.ok(html.includes('data-format="share"'), 'Modal phải có lựa chọn Chia sẻ (Zalo)');
+
+    // 3. Kiểm tra các hàm điều khiển trong appData
+    assert.ok(appJs.includes('openExportModal()'), 'appData phải có hàm openExportModal');
+    assert.ok(appJs.includes('closeExportModal()'), 'appData phải có hàm closeExportModal');
+    assert.ok(appJs.includes('selectExportFormat(format)'), 'appData phải có hàm selectExportFormat');
+    assert.ok(appJs.includes('executeExport()'), 'appData phải có hàm executeExport');
+
+    // 4. Bảo toàn các hàm xuất tệp tin nền tảng
+    assert.ok(appJs.includes('exportExcelFile()'), 'Bảo toàn exportExcelFile');
+    assert.ok(appJs.includes('exportCsvFile()'), 'Bảo toàn exportCsvFile');
+    assert.ok(appJs.includes('exportDwgFile()'), 'Bảo toàn exportDwgFile');
+    assert.ok(appJs.includes('exportKmlFile()'), 'Bảo toàn exportKmlFile');
+    assert.ok(appJs.includes('shareCsvFile()'), 'Bảo toàn shareCsvFile');
+
+    // 5. Kiểm tra CSS định dạng
+    assert.ok(polishCss.includes('.export-actions-single #btnOpenExportModal'), 'Phải có CSS cho nút xuất duy nhất');
+    assert.ok(polishCss.includes('.export-format-tile'), 'Phải có CSS cho các thẻ định dạng trong modal');
+});
+

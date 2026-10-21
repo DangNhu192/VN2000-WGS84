@@ -9036,6 +9036,83 @@ function doGet(e) {
         showToast("✓ Đã xóa mốc!");
     },
 
+    // ================= 10.9.1 QUẢN LÝ CỬA SỔ XUẤT DỮ LIỆU HỢP NHẤT (LOVABLE PRO 2026) =================
+    selectedExportFormat: 'excel',
+
+    openExportModal() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file!", true);
+            return;
+        }
+
+        const modal = document.getElementById('modalExportData');
+        if (!modal) return;
+
+        const projNameEl = document.getElementById('exportModalProjName');
+        if (projNameEl) projNameEl.textContent = AppState.currentProject || "VN2000_SoLieu_DoDac.csv";
+
+        const badgeEl = document.getElementById('exportModalPointBadge');
+        if (badgeEl) badgeEl.textContent = `${pts.length} mốc`;
+
+        this.selectExportFormat(this.selectedExportFormat || 'excel');
+
+        modal.style.display = 'flex';
+    },
+
+    closeExportModal() {
+        const modal = document.getElementById('modalExportData');
+        if (modal) modal.style.display = 'none';
+    },
+
+    selectExportFormat(format) {
+        this.selectedExportFormat = format;
+        const modal = document.getElementById('modalExportData');
+        if (!modal) return;
+
+        modal.querySelectorAll('.export-format-tile').forEach(tile => {
+            const isMatch = tile.getAttribute('data-format') === format;
+            tile.classList.toggle('active', isMatch);
+            const radio = tile.querySelector('input[type="radio"]');
+            if (radio) radio.checked = isMatch;
+        });
+
+        const execBtn = document.getElementById('btnExecuteExport');
+        if (execBtn) {
+            if (format === 'share') {
+                execBtn.innerHTML = '📤 CHIA SẺ NGAY';
+            } else {
+                execBtn.innerHTML = '💾 TẢI VỀ MÁY';
+            }
+        }
+    },
+
+    executeExport() {
+        const format = this.selectedExportFormat || 'excel';
+        this.closeExportModal();
+
+        switch (format) {
+            case 'excel':
+                this.exportExcelFile();
+                break;
+            case 'csv':
+                this.exportCsvFile();
+                break;
+            case 'dwg':
+                this.exportDwgFile();
+                break;
+            case 'kml':
+                this.exportKmlFile();
+                break;
+            case 'share':
+                this.shareCsvFile();
+                break;
+            default:
+                this.exportExcelFile();
+                break;
+        }
+    },
+
     // Xuất file CSV chuẩn UTF-8 BOM hiển thị tiếng Việt sắc nét trên Excel
     exportExcelFile() {
         const pts = appData.getPoints(AppState.currentProject);

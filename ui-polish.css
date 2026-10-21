@@ -723,4 +723,72 @@ body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-
   }
 }
 
+/* ================= 5. MODAL XUẤT DỮ LIỆU SỔ ĐO HỢP NHẤT (LOVABLE PRO 2026) ================= */
+.export-actions-single #btnOpenExportModal {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.export-actions-single #btnOpenExportModal:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5) !important;
+}
+
+.export-actions-single #btnOpenExportModal:active {
+  transform: scale(0.98);
+}
+
+.export-format-tile {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.export-format-tile:hover {
+  background: rgba(51, 65, 85, 0.6) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+}
+
+.export-format-tile.active {
+  background: rgba(14, 165, 233, 0.12) !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.25);
+}
+
+body[data-theme="light"] #modalExportData .modal-box {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+body[data-theme="light"] #modalExportData .export-summary-card {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+body[data-theme="light"] #modalExportData .export-summary-card #exportModalProjName {
+  color: #0f172a !important;
+}
+
+body[data-theme="light"] .export-format-tile {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+body[data-theme="light"] .export-format-tile:hover {
+  background: #e2e8f0 !important;
+}
+
+body[data-theme="light"] .export-format-tile.active {
+  background: #e0f2fe !important;
+  border-color: #0284c7 !important;
+}
+
+body[data-theme="light"] .export-format-tile div > div:first-child {
+  color: #0f172a !important;
+}
+
 
