@@ -600,14 +600,11 @@
                   Earth 3D (.KML) và bảng tính Excel (.CSV UTF-8) có dấu tiếng Việt.
                 </div>
                 <div class="feature-card-action-bar">
-                  <span class="feature-card-hint">Tải file bản vẽ & vệ tinh</span>
-                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.exportDwgFile();">💻
-                      DWG</button>
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.exportKmlFile();">🌍
-                      KML</button>
-                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.exportCsvFile();">📊
-                      CSV</button>
+                  <span class="feature-card-hint">Xuất đa định dạng chuyên bản đồ</span>
+                  <div>
+                    <button class="btn-quick-tag" onclick="event.stopPropagation(); appData.openExportModal();" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1.5px solid rgba(56, 189, 248, 0.5); font-weight: 700; padding: 5px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                      <span>📤</span> Xuất dữ liệu
+                    </button>
                   </div>
                 </div>
               </div>
@@ -3116,8 +3113,9 @@
 
           <div class="export-actions-single" style="margin-top: 14px;">
             <button id="btnOpenExportModal" type="button" class="btn-convert btn-wgs-to-vn2k" onclick="appData.openExportModal()" style="width: 100%; height: 50px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px; margin: 0; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3);">
-              <span style="font-size: 18px;">📤</span> XUẤT DỮ LIỆU SỔ ĐO
+              <span style="font-size: 18px;">📤</span> XUẤT DỮ LIỆU SỔ ĐO ĐA ĐỊNH DẠNG (EXCEL, CAD, PDF, KML...)
             </button>
+            <button type="button" class="btn-convert btn-export-dwg" style="display: none;" onclick="appData.exportDwgFile()">Bản vẽ AutoCAD (.dwg)</button>
           </div>
         </div>
       </section>
@@ -7072,104 +7070,185 @@
     </div>
   </div>
 
-  <!-- ================= MODAL XUẤT & CHIA SẺ DỮ LIỆU SỔ ĐO HỢP NHẤT (LOVABLE PRO 2026) ================= -->
+  <!-- ================= MODAL XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA (LOVABLE PRO 2026) ================= -->
   <div id="modalExportData" class="modal-overlay" style="display: none; z-index: 99992;">
-    <div class="modal-box modal-export-box" style="max-width: 520px; width: 95%;">
+    <div class="modal-box modal-export-box" style="max-width: 560px; width: 95%; max-height: 92vh; display: flex; flex-direction: column;">
       <!-- Header Modal -->
-      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 22px;">📤</span>
+          <span style="font-size: 24px;">📤</span>
           <div>
-            <div style="font-weight: 800; font-size: 15px; color: var(--text-gold, #f59e0b);">XUẤT & CHIA SẺ DỮ LIỆU</div>
-            <div style="font-size: 11px; color: var(--text-muted, #94a3b8); font-weight: 600;" id="exportModalSubTitle">SỔ ĐO TỌA ĐỘ VN-2000 & WGS-84</div>
+            <div style="font-weight: 800; font-size: 15.5px; color: var(--text-gold, #f59e0b); letter-spacing: 0.3px;">XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG</div>
+            <div style="font-size: 11px; color: var(--text-muted, #94a3b8); font-weight: 600;" id="exportModalSubTitle">CHUẨN BẢN ĐỒ & TRẮC ĐỊA • 100% XEM ĐƯỢC NGAY</div>
           </div>
         </div>
         <button type="button" class="btn-modal-close" onclick="appData.closeExportModal()" title="Đóng cửa sổ">✕</button>
       </div>
 
-      <!-- Body Modal -->
-      <div class="modal-body" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;">
+      <!-- Body Modal (Cuộn mượt mà các định dạng) -->
+      <div class="modal-body custom-scrollbar" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1 1 auto; max-height: calc(92vh - 130px);">
         <!-- Card Tóm tắt Dự án -->
-        <div class="export-summary-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-            <span style="font-size: 18px;">📁</span>
+        <div class="export-summary-card" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <span style="font-size: 20px;">📁</span>
             <div style="min-width: 0;">
-              <div id="exportModalProjName" style="font-size: 13px; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">VN2000_SoLieu_DoDac.csv</div>
-              <div style="font-size: 11px; color: #94a3b8;">Dự án hiện hành</div>
+              <div id="exportModalProjName" style="font-size: 13.5px; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">VN2000_SoLieu_DoDac.csv</div>
+              <div style="font-size: 11px; color: #94a3b8;">Dự án làm việc hiện hành</div>
             </div>
           </div>
-          <span id="exportModalPointBadge" class="badge-count" style="padding: 3px 10px; border-radius: 999px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 12px; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.4); flex-shrink: 0;">1 mốc</span>
+          <span id="exportModalPointBadge" class="badge-count" style="padding: 4px 12px; border-radius: 999px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 12px; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.4); flex-shrink: 0;">1 mốc</span>
         </div>
 
-        <!-- Tiêu đề chọn định dạng -->
-        <div style="font-size: 12.5px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
-          <span>🎯 Chọn định dạng xuất dữ liệu:</span>
+        <!-- NHÓM 1: BÁO CÁO & BẢNG TÍNH VĂN PHÒNG -->
+        <div style="margin-top: 2px;">
+          <div style="font-size: 11px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span>📊</span> BÁO CÁO & BẢNG TÍNH VĂN PHÒNG
+          </div>
+          <div class="export-format-list" style="display: flex; flex-direction: column; gap: 6px;">
+            <!-- 1. Excel XLSX -->
+            <label class="export-format-tile active" data-format="excel" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid #0284c7; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="excel" checked onchange="appData.selectExportFormat('excel')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">📊</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Bảng Tính Excel (.xlsx)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">11 cột chuẩn: X, Y, H, Lat, Lng, KTT, Múi + Sheet Chú thích MiniCAD. Mở trực tiếp trên Excel.</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 5px; padding: 2px 6px;">Chuẩn</span>
+            </label>
+
+            <!-- 2. PDF Report -->
+            <label class="export-format-tile" data-format="pdf" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="pdf" onchange="appData.selectExportFormat('pdf')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">📕</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Báo Cáo Kỹ Thuật PDF (.pdf)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Khổ A4 TCVN chuẩn mực: Quốc hiệu, bảng kê mốc VN2000, sơ đồ phân bố, sẵn sàng in/lưu.</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 5px; padding: 2px 6px;">In ấn A4</span>
+            </label>
+
+            <!-- 3. CSV UTF-8 -->
+            <label class="export-format-tile" data-format="csv" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="csv" onchange="appData.selectExportFormat('csv')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">📄</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">File Văn Bản CSV (.csv)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Mã hóa UTF-8 BOM, không lỗi font tiếng Việt, tương thích mọi máy tính và thiết bị đo.</div>
+              </div>
+            </label>
+          </div>
         </div>
 
-        <!-- Danh sách thẻ định dạng (Format Tiles) -->
-        <div class="export-format-list" style="display: flex; flex-direction: column; gap: 8px;">
-          <!-- 1. Excel XLSX -->
-          <label class="export-format-tile active" data-format="excel" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(30, 41, 59, 0.5); border: 1.5px solid #0284c7; border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">
-            <input type="radio" name="exportFormatRadio" value="excel" checked onchange="appData.selectExportFormat('excel')" style="accent-color: #0284c7; width: 18px; height: 18px;">
-            <div style="font-size: 24px; flex-shrink: 0;">📊</div>
-            <div style="flex: 1 1 auto; min-width: 0;">
-              <div style="font-size: 13.5px; font-weight: 700; color: #f8fafc;">Bảng Tính Excel (.xlsx)</div>
-              <div style="font-size: 11px; color: #94a3b8; line-height: 1.35;">Đầy đủ 11 cột chuẩn: X, Y, H, Lat, Lng, KTT, Múi + Sheet Chú thích hình khối MiniCAD</div>
-            </div>
-            <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px; padding: 2px 6px;">Khuyên dùng</span>
-          </label>
+        <!-- NHÓM 2: BẢN ĐỒ ĐỒ HỌA & VECTOR GIS -->
+        <div style="margin-top: 4px;">
+          <div style="font-size: 11px; font-weight: 800; color: #4ade80; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span>🗺️</span> BẢN ĐỒ ĐỒ HỌA & KHÔNG GIAN VECTOR (GIS)
+          </div>
+          <div class="export-format-list" style="display: flex; flex-direction: column; gap: 6px;">
+            <!-- 4. PNG Image -->
+            <label class="export-format-tile" data-format="png" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="png" onchange="appData.selectExportFormat('png')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">📸</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Ảnh Sơ Đồ Mốc PNG (.png)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Đồ họa bản đồ Full HD sắc nét: lưới tọa độ trắc địa, tâm mốc, nhãn tọa độ, thước tỷ lệ, hướng Bắc.</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 5px; padding: 2px 6px;">Full HD</span>
+            </label>
 
-          <!-- 2. CSV UTF-8 -->
-          <label class="export-format-tile" data-format="csv" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(30, 41, 59, 0.5); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">
-            <input type="radio" name="exportFormatRadio" value="csv" onchange="appData.selectExportFormat('csv')" style="accent-color: #0284c7; width: 18px; height: 18px;">
-            <div style="font-size: 24px; flex-shrink: 0;">📄</div>
-            <div style="flex: 1 1 auto; min-width: 0;">
-              <div style="font-size: 13.5px; font-weight: 700; color: #f8fafc;">File Văn Bản CSV (.csv)</div>
-              <div style="font-size: 11px; color: #94a3b8; line-height: 1.35;">Mã hóa UTF-8 BOM, tương thích mọi máy toàn đạc, GPS RTK và phần mềm máy tính</div>
-            </div>
-          </label>
+            <!-- 5. GeoJSON Vector -->
+            <label class="export-format-tile" data-format="geojson" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="geojson" onchange="appData.selectExportFormat('geojson')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">🗺️</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Dữ Liệu Vector GeoJSON (.geojson)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Chuẩn quốc tế OGC RFC 7946: Mở và biên tập trực tiếp trên QGIS, ArcGIS, Mapbox, geojson.io.</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 5px; padding: 2px 6px;">GIS OGC</span>
+            </label>
 
-          <!-- 3. AutoCAD DWG -->
-          <label class="export-format-tile" data-format="dwg" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(30, 41, 59, 0.5); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">
-            <input type="radio" name="exportFormatRadio" value="dwg" onchange="appData.selectExportFormat('dwg')" style="accent-color: #0284c7; width: 18px; height: 18px;">
-            <div style="font-size: 24px; flex-shrink: 0;">📐</div>
-            <div style="flex: 1 1 auto; min-width: 0;">
-              <div style="font-size: 13.5px; font-weight: 700; color: #f8fafc;">Bản Vẽ AutoCAD (.dwg)</div>
-              <div style="font-size: 11px; color: #94a3b8; line-height: 1.35;">Chuẩn Thông tư 25/2014/TT-BTNMT (Layer RANH_THUA, MOC_TOADO, chiều dài cạnh)</div>
-            </div>
-            <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 2px 6px;">CAD TCVN</span>
-          </label>
+            <!-- 6. SVG Vector -->
+            <label class="export-format-tile" data-format="svg" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="svg" onchange="appData.selectExportFormat('svg')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">🖼️</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Bản Vẽ Vector SVG (.svg)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Đồ họa vector chuẩn W3C, phóng to vô hạn không vỡ nét, mở trực tiếp trên trình duyệt / Corel / Illustrator.</div>
+              </div>
+            </label>
 
-          <!-- 4. Google Earth KML -->
-          <label class="export-format-tile" data-format="kml" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(30, 41, 59, 0.5); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">
-            <input type="radio" name="exportFormatRadio" value="kml" onchange="appData.selectExportFormat('kml')" style="accent-color: #0284c7; width: 18px; height: 18px;">
-            <div style="font-size: 24px; flex-shrink: 0;">🌍</div>
-            <div style="flex: 1 1 auto; min-width: 0;">
-              <div style="font-size: 13.5px; font-weight: 700; color: #f8fafc;">Google Earth 3D (.kml)</div>
-              <div style="font-size: 11px; color: #94a3b8; line-height: 1.35;">Mô phỏng 3D trên không ảnh vệ tinh Google Earth, đánh dấu tâm mốc và đa giác ranh đất</div>
-            </div>
-          </label>
+            <!-- 7. Google Earth KML -->
+            <label class="export-format-tile" data-format="kml" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="kml" onchange="appData.selectExportFormat('kml')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">🌍</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Google Earth 3D (.kml)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Mô phỏng 3D trên không ảnh vệ tinh Google Earth Pro, ghim mốc và đa giác ranh thửa.</div>
+              </div>
+            </label>
+          </div>
+        </div>
 
-          <!-- 5. Share via OS (Zalo/Apps) -->
-          <label class="export-format-tile" data-format="share" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(30, 41, 59, 0.5); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">
-            <input type="radio" name="exportFormatRadio" value="share" onchange="appData.selectExportFormat('share')" style="accent-color: #0284c7; width: 18px; height: 18px;">
-            <div style="font-size: 24px; flex-shrink: 0;">📤</div>
-            <div style="flex: 1 1 auto; min-width: 0;">
-              <div style="font-size: 13.5px; font-weight: 700; color: #f8fafc;">Chia Sẻ Trực Tiếp (Zalo / Mail / App)</div>
-              <div style="font-size: 11px; color: #94a3b8; line-height: 1.35;">Mở hộp thoại chia sẻ di động để gửi nhanh file số liệu qua Zalo, Messenger, Email...</div>
-            </div>
-            <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; padding: 2px 6px;">Zalo</span>
-          </label>
+        <!-- NHÓM 3: KỸ THUẬT CAD & CHUYÊN NGÀNH TRẮC ĐỊA -->
+        <div style="margin-top: 4px;">
+          <div style="font-size: 11px; font-weight: 800; color: #facc15; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span>📐</span> KỸ THUẬT CAD & DỮ LIỆU ĐO ĐẠC THỰC ĐỊA
+          </div>
+          <div class="export-format-list" style="display: flex; flex-direction: column; gap: 6px;">
+            <!-- 8. CAD DWG / AutoCAD -->
+            <label class="export-format-tile" data-format="dwg" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="dwg" onchange="appData.selectExportFormat('dwg')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">📐</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Bản vẽ AutoCAD (.dwg)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Chuẩn TCVN 7285 & TT 25/2014/TT-BTNMT (Layer RANH_THUA, MOC_TOADO, cạnh). Mở 100% không lỗi.</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 5px; padding: 2px 6px;">CAD Chuẩn</span>
+            </label>
+
+            <!-- 9. MicroStation DGN & Famis -->
+            <label class="export-format-tile" data-format="dgn" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="dgn" onchange="appData.selectExportFormat('dgn')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">🏛️</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">MicroStation DGN & Famis (.dgn / .dat)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Định dạng chuyên dụng địa chính: tương thích MicroStation SE/V8 và phần mềm Famis Việt Nam.</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 5px; padding: 2px 6px;">Địa chính</span>
+            </label>
+
+            <!-- 10. Máy Đo Toàn Đạc TXT / XYZ -->
+            <label class="export-format-tile" data-format="txt" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="txt" onchange="appData.selectExportFormat('txt')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">📑</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Tọa Độ Máy Toàn Đạc & RTK (.txt / .xyz)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Định dạng chuẩn máy Leica, Topcon, Trimble, South. Mở bằng Notepad hoặc nạp thẳng vào máy đo.</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 5px; padding: 2px 6px;">Leica/RTK</span>
+            </label>
+
+            <!-- 11. Share via OS (Zalo/Apps) -->
+            <label class="export-format-tile" data-format="share" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 41, 59, 0.55); border: 1.5px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+              <input type="radio" name="exportFormatRadio" value="share" onchange="appData.selectExportFormat('share')" style="accent-color: #0284c7; width: 17px; height: 17px;">
+              <div style="font-size: 20px; flex-shrink: 0;">📤</div>
+              <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #f8fafc;">Chia Sẻ Trực Tiếp (Zalo / Mail / App)</div>
+                <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3;">Mở hộp thoại chia sẻ di động để gửi nhanh số liệu qua Zalo, Messenger, Gmail...</div>
+              </div>
+              <span class="badge-tag" style="font-size: 10px; font-weight: 700; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 5px; padding: 2px 6px;">Zalo</span>
+            </label>
+          </div>
         </div>
       </div>
 
       <!-- Footer Modal -->
-      <div class="modal-footer" style="padding: 14px 18px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; gap: 10px;">
+      <div class="modal-footer" style="padding: 12px 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; gap: 10px; flex-shrink: 0; background: rgba(15, 23, 42, 0.9);">
         <button type="button" class="btn-sm" style="flex: 1; height: 44px; font-size: 13.5px; background: rgba(255, 255, 255, 0.08); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px;" onclick="appData.closeExportModal()">
           ✕ Hủy
         </button>
         <button type="button" id="btnExecuteExport" class="btn-convert btn-wgs-to-vn2k" style="flex: 2; height: 44px; font-size: 14px; font-weight: 700; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px;" onclick="appData.executeExport()">
-          💾 TẢI VỀ MÁY
+          💾 TẢI FILE EXCEL (.XLSX)
         </button>
       </div>
     </div>

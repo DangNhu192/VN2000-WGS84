@@ -9182,11 +9182,21 @@ function doGet(e) {
 
         const execBtn = document.getElementById('btnExecuteExport');
         if (execBtn) {
-            if (format === 'share') {
-                execBtn.innerHTML = '📤 CHIA SẺ NGAY';
-            } else {
-                execBtn.innerHTML = '💾 TẢI VỀ MÁY';
-            }
+            const btnLabels = {
+                excel: '💾 TẢI FILE EXCEL (.XLSX)',
+                pdf: '🖨️ XUẤT BÁO CÁO PDF (.PDF)',
+                png: '📸 TẢI ẢNH BẢN ĐỒ (.PNG)',
+                geojson: '🗺️ TẢI VECTOR GEOJSON (.GEOJSON)',
+                svg: '🖼️ TẢI VECTOR SVG (.SVG)',
+                dwg: '📐 TẢI BẢN VẼ AUTOCAD (.DWG)',
+                cad: '📐 TẢI BẢN VẼ AUTOCAD (.DWG)',
+                dgn: '🏛️ TẢI MICROSTATION DGN (.DGN)',
+                kml: '🌍 TẢI GOOGLE EARTH (.KML)',
+                txt: '📑 TẢI TỌA ĐỘ MÁY ĐO (.TXT)',
+                csv: '📄 TẢI FILE CSV (.CSV)',
+                share: '📤 CHIA SẺ TRỰC TIẾP'
+            };
+            execBtn.innerHTML = btnLabels[format] || '💾 TẢI VỀ MÁY';
         }
     },
 
@@ -9198,14 +9208,34 @@ function doGet(e) {
             case 'excel':
                 this.exportExcelFile();
                 break;
-            case 'csv':
-                this.exportCsvFile();
+            case 'pdf':
+                this.exportPdfFile();
+                break;
+            case 'png':
+                this.exportPngImage();
+                break;
+            case 'geojson':
+                this.exportGeoJsonFile();
+                break;
+            case 'svg':
+                this.exportSvgFile();
                 break;
             case 'dwg':
+            case 'cad':
                 this.exportDwgFile();
+                break;
+            case 'dgn':
+                this.exportDgnFile();
                 break;
             case 'kml':
                 this.exportKmlFile();
+                break;
+            case 'txt':
+            case 'xyz':
+                this.exportTxtXyzFile();
+                break;
+            case 'csv':
+                this.exportCsvFile();
                 break;
             case 'share':
                 this.shareCsvFile();
@@ -9402,7 +9432,623 @@ function doGet(e) {
         }
     },
 
-    // Xuất Bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính TCVN & Thông tư 25/2014/TT-BTNMT
+    // ================= 10.9.2 CÁC BỘ XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA =================
+
+    // 1. Xuất Báo Cáo Kỹ Thuật PDF (.pdf) khổ A4 chuẩn TCVN có sơ đồ mốc
+    exportPdfFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất báo cáo PDF!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+        const kttStr = (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'");
+        const muiVal = AppState.muiVal || 3;
+        const now = new Date();
+        const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        const printWin = window.open('', '_blank');
+        if (!printWin) {
+            showToast("⚠️ Vui lòng cho phép mở popup trình duyệt để xem và in báo cáo PDF!", true);
+            return;
+        }
+
+        let rowsHtml = '';
+        pts.forEach((p, idx) => {
+            rowsHtml += `<tr>
+                <td style="text-align: center;">${idx + 1}</td>
+                <td style="font-weight: 700;">${p.name || `M${idx + 1}`}</td>
+                <td style="text-align: right; font-family: monospace;">${parseFloat(p.x || 0).toFixed(3)}</td>
+                <td style="text-align: right; font-family: monospace;">${parseFloat(p.y || 0).toFixed(3)}</td>
+                <td style="text-align: right; font-family: monospace;">${parseFloat(p.h || 0).toFixed(3)}</td>
+                <td style="text-align: right; font-family: monospace;">${parseFloat(p.lat || 0).toFixed(7)}</td>
+                <td style="text-align: right; font-family: monospace;">${parseFloat(p.lng || 0).toFixed(7)}</td>
+                <td>${p.note || ''}</td>
+            </tr>`;
+        });
+
+        // Sơ đồ phân bố mốc dạng SVG thu nhỏ
+        let svgMapHtml = '';
+        if (pts.length > 0) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            pts.forEach(p => {
+                const x = parseFloat(p.y) || 0;
+                const y = parseFloat(p.x) || 0;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            });
+            const spanX = Math.max(maxX - minX, 10);
+            const spanY = Math.max(maxY - minY, 10);
+            const padX = spanX * 0.15;
+            const padY = spanY * 0.15;
+            const vMinX = minX - padX;
+            const vMinY = minY - padY;
+            const vWidth = spanX + padX * 2;
+            const vHeight = spanY + padY * 2;
+
+            let ptsPoly = '';
+            pts.forEach(p => {
+                const px = parseFloat(p.y) || 0;
+                const py = parseFloat(p.x) || 0;
+                const svgY = vMinY + vHeight - (py - vMinY);
+                ptsPoly += `${px},${svgY} `;
+            });
+
+            let marksSvg = '';
+            pts.forEach((p, idx) => {
+                const px = parseFloat(p.y) || 0;
+                const py = parseFloat(p.x) || 0;
+                const svgY = vMinY + vHeight - (py - vMinY);
+                marksSvg += `
+                    <circle cx="${px}" cy="${svgY}" r="${vWidth * 0.012}" fill="#ef4444" stroke="#ffffff" stroke-width="${vWidth * 0.003}" />
+                    <text x="${px + vWidth * 0.015}" y="${svgY - vWidth * 0.01}" font-size="${vWidth * 0.024}" font-weight="bold" fill="#0f172a">${p.name || `M${idx + 1}`}</text>
+                `;
+            });
+
+            svgMapHtml = `
+            <div style="margin-top: 15px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; background: #f8fafc; page-break-inside: avoid;">
+                <div style="font-size: 11pt; font-weight: bold; color: #1e293b; margin-bottom: 6px;">SƠ ĐỒ PHÂN BỐ CÁC MỐC TRẮC ĐỊA:</div>
+                <svg viewBox="${vMinX} ${vMinY} ${vWidth} ${vHeight}" style="width: 100%; max-height: 280px; background: #ffffff; border: 1px dashed #94a3b8; border-radius: 4px;">
+                    ${pts.length >= 2 ? `<polyline points="${ptsPoly}${pts.length >= 3 ? ptsPoly.split(' ')[0] : ''}" fill="${pts.length >= 3 ? 'rgba(56, 189, 248, 0.15)' : 'none'}" stroke="#0284c7" stroke-width="${vWidth * 0.004}" />` : ''}
+                    ${marksSvg}
+                </svg>
+            </div>`;
+        }
+
+        const reportHtml = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Báo Cáo Kỹ Thuật Tọa Độ Mốc - ${projName}</title>
+    <style>
+        @page { size: A4 portrait; margin: 15mm 15mm 15mm 15mm; }
+        body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.4; color: #000; margin: 0; padding: 20px; }
+        .header-grid { display: flex; justify-content: space-between; text-align: center; margin-bottom: 18px; }
+        .header-col { flex: 1; }
+        .quoc-hieu { font-weight: bold; font-size: 12pt; text-transform: uppercase; }
+        .tieu-ngu { font-weight: bold; font-size: 12pt; margin-top: 2px; }
+        .line-dec { width: 120px; height: 1.5px; background: #000; margin: 4px auto 0; }
+        .title { text-align: center; font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 20px 0 6px; color: #000; }
+        .subtitle { text-align: center; font-size: 11pt; font-style: italic; margin-bottom: 18px; }
+        .meta-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px 14px; margin-bottom: 16px; font-size: 11pt; }
+        .meta-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        table.tbl-data { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10.5pt; }
+        table.tbl-data th, table.tbl-data td { border: 1px solid #334155; padding: 6px 8px; }
+        table.tbl-data th { background: #e2e8f0; font-weight: bold; text-align: center; }
+        .sign-grid { display: flex; justify-content: space-between; margin-top: 30px; page-break-inside: avoid; }
+        .sign-col { text-align: center; width: 45%; }
+        .btn-print-bar { margin-bottom: 20px; padding: 10px 14px; background: #0284c7; color: white; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
+        @media print {
+            .btn-print-bar { display: none !important; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="btn-print-bar">
+        <span style="font-weight: bold; font-family: sans-serif;">📄 Báo Cáo Kỹ Thuật Tọa Độ Mốc VN-2000 (Khổ A4 Chuẩn)</span>
+        <button onclick="window.print()" style="padding: 7px 18px; font-weight: bold; cursor: pointer; border-radius: 4px; border: none; background: #f59e0b; color: #000; font-size: 13px;">🖨️ IN / LƯU FILE PDF</button>
+    </div>
+
+    <div class="header-grid">
+        <div class="header-col">
+            <div style="font-weight: bold; text-transform: uppercase;">DỰ ÁN ĐO ĐẠC & QUẢN LÝ MỐC</div>
+            <div style="font-size: 11pt;">SỔ ĐO ĐỊA CHÍNH VN-2000</div>
+            <div class="line-dec"></div>
+        </div>
+        <div class="header-col">
+            <div class="quoc-hieu">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+            <div class="tieu-ngu">Độc lập - Tự do - Hạnh phúc</div>
+            <div class="line-dec"></div>
+        </div>
+    </div>
+
+    <div class="title">BÁO CÁO KỸ THUẬT TỌA ĐỘ MỐC TRẮC ĐỊA</div>
+    <div class="subtitle">Hệ quy chiếu & Hệ tọa độ Quốc gia VN-2000 (Ellipsoid WGS-84)</div>
+
+    <div class="meta-box">
+        <div class="meta-row">
+            <span><strong>Tên Dự Án:</strong> ${projName}</span>
+            <span><strong>Tổng Số Mốc:</strong> ${pts.length} điểm</span>
+        </div>
+        <div class="meta-row">
+            <span><strong>Kinh Tuyến Trục (KTT):</strong> ${kttStr} (Múi chiếu ${muiVal}°)</span>
+            <span><strong>Thời Gian Xuất:</strong> ${dateStr}</span>
+        </div>
+        <div class="meta-row">
+            <span><strong>Hệ Cao Độ:</strong> Hòn Dấu - Hải Phòng (Chuẩn Quốc gia)</span>
+            <span><strong>Ứng Dụng:</strong> VN2000-PWA Pro</span>
+        </div>
+    </div>
+
+    <table class="tbl-data">
+        <thead>
+            <tr>
+                <th style="width: 35px;">STT</th>
+                <th>Tên Mốc</th>
+                <th>Tọa Độ X (Bắc) [m]</th>
+                <th>Tọa Độ Y (Đông) [m]</th>
+                <th>Cao Độ H [m]</th>
+                <th>Vĩ Độ (Lat)</th>
+                <th>Kinh Độ (Long)</th>
+                <th>Ghi Chú</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${rowsHtml}
+        </tbody>
+    </table>
+
+    ${svgMapHtml}
+
+    <div class="sign-grid">
+        <div class="sign-col">
+            <div style="font-weight: bold;">NGƯỜI LẬP BÁO CÁO</div>
+            <div style="font-style: italic; font-size: 10pt;">(Ký, ghi rõ họ tên)</div>
+            <div style="height: 60px;"></div>
+            <div style="font-weight: bold;">Kỹ sư đo đạc</div>
+        </div>
+        <div class="sign-col">
+            <div style="font-style: italic; font-size: 11pt;">Ngày ..... tháng ..... năm 202...</div>
+            <div style="font-weight: bold;">PHÒNG KỸ THUẬT / ĐƠN VỊ DUYỆT</div>
+            <div style="font-style: italic; font-size: 10pt;">(Ký tên và đóng dấu)</div>
+            <div style="height: 60px;"></div>
+            <div style="font-weight: bold;">Chủ nhiệm dự án</div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        printWin.document.open();
+        printWin.document.write(reportHtml);
+        printWin.document.close();
+        showToast("✓ Đã mở Báo cáo PDF A4 chuẩn TCVN. Bạn có thể bấm In / Lưu file PDF!");
+    },
+
+    // 2. Xuất Ảnh Bản Đồ Sơ Đồ Mốc PNG (.png) Full HD sắc nét
+    exportPngImage() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất ảnh PNG!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+        const kttStr = (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'");
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 1920;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+
+        // Nền tối kỹ thuật trắc địa hiện đại
+        ctx.fillStyle = '#0a0f1d';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Khung đôi kỹ thuật
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(38, 38, canvas.width - 76, canvas.height - 76);
+
+        // Tiêu đề
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText(`SƠ ĐỒ TỌA ĐỘ MỐC TRẮC ĐỊA VN-2000 • ${projName.toUpperCase()}`, 60, 80);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '16px sans-serif';
+        const now = new Date();
+        const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+        ctx.fillText(`Kinh tuyến trục: ${kttStr} | Múi chiếu 3° | Tổng số: ${pts.length} mốc | Ngày: ${dateStr} | VN2000-PWA`, 60, 110);
+
+        // Tính Bounding Box
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        pts.forEach(p => {
+            const x = parseFloat(p.y) || 0; // CAD X là Y Đông
+            const y = parseFloat(p.x) || 0; // CAD Y là X Bắc
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+        });
+
+        const spanX = Math.max(maxX - minX, 10);
+        const spanY = Math.max(maxY - minY, 10);
+        const padX = spanX * 0.2;
+        const padY = spanY * 0.2;
+        const boundsMinX = minX - padX;
+        const boundsMinY = minY - padY;
+        const boundsW = spanX + padX * 2;
+        const boundsH = spanY + padY * 2;
+
+        const mapArea = { x: 70, y: 140, w: canvas.width - 140, h: canvas.height - 230 };
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(mapArea.x, mapArea.y, mapArea.w, mapArea.h);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(mapArea.x, mapArea.y, mapArea.w, mapArea.h);
+
+        const toCanvas = (cadX, cadY) => {
+            const cx = mapArea.x + ((cadX - boundsMinX) / boundsW) * mapArea.w;
+            const cy = mapArea.y + mapArea.h - ((cadY - boundsMinY) / boundsH) * mapArea.h;
+            return { x: cx, y: cy };
+        };
+
+        // Vẽ lưới tọa độ Grid lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 8; i++) {
+            const gx = mapArea.x + (mapArea.w / 9) * i;
+            ctx.beginPath(); ctx.moveTo(gx, mapArea.y); ctx.lineTo(gx, mapArea.y + mapArea.h); ctx.stroke();
+            const gy = mapArea.y + (mapArea.h / 9) * i;
+            ctx.beginPath(); ctx.moveTo(mapArea.x, gy); ctx.lineTo(mapArea.x + mapArea.w, gy); ctx.stroke();
+        }
+
+        // Vẽ đa giác ranh nối các mốc
+        if (pts.length >= 2) {
+            ctx.beginPath();
+            pts.forEach((p, idx) => {
+                const pt = toCanvas(parseFloat(p.y) || 0, parseFloat(p.x) || 0);
+                if (idx === 0) ctx.moveTo(pt.x, pt.y);
+                else ctx.lineTo(pt.x, pt.y);
+            });
+            if (pts.length >= 3) {
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(14, 165, 233, 0.12)';
+                ctx.fill();
+            }
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
+
+        // Vẽ các mốc
+        pts.forEach((p, idx) => {
+            const pt = toCanvas(parseFloat(p.y) || 0, parseFloat(p.x) || 0);
+
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            const name = p.name || `M${idx + 1}`;
+            ctx.fillStyle = '#facc15';
+            ctx.font = 'bold 15px sans-serif';
+            ctx.fillText(name, pt.x + 12, pt.y - 6);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px monospace';
+            ctx.fillText(`X:${parseFloat(p.x||0).toFixed(1)} Y:${parseFloat(p.y||0).toFixed(1)}`, pt.x + 12, pt.y + 10);
+        });
+
+        // La bàn hướng Bắc trắc địa
+        const northX = mapArea.x + mapArea.w - 55;
+        const northY = mapArea.y + 60;
+        ctx.beginPath();
+        ctx.moveTo(northX, northY - 30);
+        ctx.lineTo(northX - 10, northY + 12);
+        ctx.lineTo(northX, northY + 4);
+        ctx.closePath();
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(northX, northY - 30);
+        ctx.lineTo(northX + 10, northY + 12);
+        ctx.lineTo(northX, northY + 4);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('N', northX, northY - 34);
+        ctx.textAlign = 'left';
+
+        // Footer ghi chú
+        ctx.fillStyle = '#64748b';
+        ctx.font = '13px sans-serif';
+        ctx.fillText(`VN2000-PWA • Bản quyền bản vẽ trắc địa chuẩn • Xuất lúc: ${dateStr}`, 70, canvas.height - 50);
+
+        canvas.toBlob(blob => {
+            if (!blob) return showToast("⚠️ Không tạo được ảnh PNG!", true);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const filename = `${projName}_SoDoMoc.png`;
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`✓ Đã tải ảnh sơ đồ mốc PNG sắc nét: ${filename}`);
+        }, 'image/png');
+    },
+
+    // 3. Xuất Tệp Dữ Liệu Vector GeoJSON (.geojson) Chuẩn OGC RFC 7946
+    exportGeoJsonFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất GeoJSON!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+        const kttStr = (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'");
+
+        const features = [];
+
+        pts.forEach((p, idx) => {
+            const lat = parseFloat(p.lat) || 0;
+            const lng = parseFloat(p.lng) || 0;
+            const elev = parseFloat(p.h || 0);
+
+            features.push({
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [lng, lat, elev]
+                },
+                properties: {
+                    stt: idx + 1,
+                    name: p.name || `M${idx + 1}`,
+                    x_vn2000: parseFloat(parseFloat(p.x || 0).toFixed(3)),
+                    y_vn2000: parseFloat(parseFloat(p.y || 0).toFixed(3)),
+                    elevation_h: elev,
+                    lat: lat,
+                    lng: lng,
+                    ktt: p.ktt || kttStr,
+                    mui: p.mui || (AppState.muiVal || 3),
+                    time: p.time || '',
+                    note: p.note || ''
+                }
+            });
+        });
+
+        if (pts.length >= 2) {
+            const coords = pts.map(p => [parseFloat(p.lng) || 0, parseFloat(p.lat) || 0, parseFloat(p.h || 0)]);
+            if (pts.length >= 3) {
+                coords.push([parseFloat(pts[0].lng) || 0, parseFloat(pts[0].lat) || 0, parseFloat(pts[0].h || 0)]);
+                features.push({
+                    type: "Feature",
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [coords]
+                    },
+                    properties: {
+                        name: `Ranh_${projName}`,
+                        type: "Ranh thửa đất / Tuyến đo",
+                        total_points: pts.length
+                    }
+                });
+            } else {
+                features.push({
+                    type: "Feature",
+                    geometry: {
+                        type: "LineString",
+                        coordinates: coords
+                    },
+                    properties: {
+                        name: `Tuyen_${projName}`,
+                        type: "Tuyến đo trắc địa",
+                        total_points: pts.length
+                    }
+                });
+            }
+        }
+
+        const geojsonObj = {
+            type: "FeatureCollection",
+            name: projName,
+            crs: {
+                type: "name",
+                properties: { name: "urn:ogc:def:crs:OGC:1.3:CRS84" }
+            },
+            features: features
+        };
+
+        const jsonStr = JSON.stringify(geojsonObj, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/geo+json;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const filename = `${projName}.geojson`;
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`✓ Đã xuất tệp dữ liệu Vector GeoJSON: ${filename}`);
+    },
+
+    // 4. Xuất Bản Vẽ Vector SVG (.svg) Đồ Họa Sắc Nét Chuẩn W3C
+    exportSvgFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file SVG!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        pts.forEach(p => {
+            const x = parseFloat(p.y) || 0;
+            const y = parseFloat(p.x) || 0;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+        });
+
+        const spanX = Math.max(maxX - minX, 10);
+        const spanY = Math.max(maxY - minY, 10);
+        const padX = spanX * 0.15;
+        const padY = spanY * 0.15;
+        const vMinX = minX - padX;
+        const vMinY = minY - padY;
+        const vW = spanX + padX * 2;
+        const vH = spanY + padY * 2;
+
+        let polyPoints = '';
+        pts.forEach(p => {
+            const px = parseFloat(p.y) || 0;
+            const py = parseFloat(p.x) || 0;
+            const svgY = vMinY + vH - (py - vMinY);
+            polyPoints += `${px.toFixed(3)},${svgY.toFixed(3)} `;
+        });
+
+        let elements = '';
+        if (pts.length >= 2) {
+            elements += `<polygon points="${polyPoints}" fill="rgba(56, 189, 248, 0.15)" stroke="#0284c7" stroke-width="${(vW * 0.003).toFixed(3)}" />\n`;
+        }
+
+        pts.forEach((p, idx) => {
+            const px = parseFloat(p.y) || 0;
+            const py = parseFloat(p.x) || 0;
+            const svgY = vMinY + vH - (py - vMinY);
+            const r = vW * 0.01;
+            elements += `<circle cx="${px.toFixed(3)}" cy="${svgY.toFixed(3)}" r="${r.toFixed(3)}" fill="#ef4444" stroke="#ffffff" stroke-width="${(r * 0.3).toFixed(3)}" />\n`;
+            elements += `<text x="${(px + r * 1.4).toFixed(3)}" y="${(svgY - r * 0.8).toFixed(3)}" font-size="${(vW * 0.022).toFixed(3)}" font-family="sans-serif" font-weight="bold" fill="#0f172a">${p.name || `M${idx + 1}`}</text>\n`;
+        });
+
+        const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vMinX.toFixed(3)} ${vMinY.toFixed(3)} ${vW.toFixed(3)} ${vH.toFixed(3)}" style="background: #ffffff;">
+    <rect x="${vMinX.toFixed(3)}" y="${vMinY.toFixed(3)}" width="${vW.toFixed(3)}" height="${vH.toFixed(3)}" fill="#f8fafc" stroke="#cbd5e1" stroke-width="${(vW * 0.002).toFixed(3)}" />
+    ${elements}
+</svg>`;
+
+        const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const filename = `${projName}.svg`;
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`✓ Đã tải file Vector SVG sắc nét: ${filename}`);
+    },
+
+    // 5. Xuất Tệp MicroStation DGN & Famis (.dgn / .dat) Địa Chính
+    exportDgnFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file MicroStation DGN!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+        const kttStr = (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'");
+
+        let dgnData = `# BẢN ĐỒ ĐỊA CHÍNH VN-2000 - FAMIS / MICROSTATION V7-V8\r\n`;
+        dgnData += `# DỰ ÁN: ${projName}\r\n`;
+        dgnData += `# KINH TUYẾN TRỤC: ${kttStr} - MÚI CHIẾU 3 ĐỘ\r\n`;
+        dgnData += `# NGÀY XUẤT: ${new Date().toLocaleDateString('vi-VN')}\r\n`;
+        dgnData += `# -----------------------------------------------------------------\r\n`;
+        dgnData += `# STT\tTEN_DIEM\tX_BAC(m)\tY_DONG(m)\tCAO_DO_H(m)\tGHI_CHU\r\n`;
+
+        pts.forEach((p, idx) => {
+            const x = parseFloat(p.x || 0).toFixed(3);
+            const y = parseFloat(p.y || 0).toFixed(3);
+            const h = parseFloat(p.h || 0).toFixed(3);
+            const name = p.name || `M${idx + 1}`;
+            const note = p.note || '';
+            dgnData += `${idx + 1}\t${name}\t${x}\t${y}\t${h}\t${note}\r\n`;
+        });
+
+        const blob = new Blob([dgnData], { type: "text/plain;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const filename = `${projName}_Famis_MicroStation.dgn`;
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`✓ Đã xuất tệp MicroStation DGN & Famis: ${filename}`);
+    },
+
+    // 6. Xuất Tệp Tọa Độ Máy Đo Toàn Đạc TXT / XYZ (.txt)
+    exportTxtXyzFile() {
+        const pts = appData.getPoints(AppState.currentProject);
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file máy đo!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+
+        let txt = `# SO LIEU TOA DO TRAC DIA VN-2000 (LEICA / TRIMBLE / TOPCON / SOUTH)\r\n`;
+        txt += `# DU AN: ${projName}\r\n`;
+        txt += `# TEN_DIEM\tX(BAC)\tY(DONG)\tCAO_DO_H\tGHI_CHU\r\n`;
+
+        pts.forEach((p, idx) => {
+            const name = p.name || `M${idx + 1}`;
+            const x = parseFloat(p.x || 0).toFixed(3);
+            const y = parseFloat(p.y || 0).toFixed(3);
+            const h = parseFloat(p.h || 0).toFixed(3);
+            const note = p.note || '';
+            txt += `${name}\t${x}\t${y}\t${h}\t${note}\r\n`;
+        });
+
+        const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const filename = `${projName}_ToaDo_MayDo.txt`;
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`✓ Đã tải file tọa độ máy đo toàn đạc (.txt): ${filename}`);
+    },
+
+    // 7. Xuất Bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính TCVN & Thông tư 25/2014/TT-BTNMT
     exportDwgFile() {
         const pts = appData.getPoints(AppState.currentProject);
         if (pts.length === 0) {
@@ -9475,7 +10121,7 @@ function doGet(e) {
 
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        // Xuất file định dạng .dwg chuẩn MIME application/acad
+        // Xuất file CAD định dạng chuẩn AutoCAD (.dwg)
         const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -26719,7 +27365,7 @@ const appCadTool = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật khổ ${meta.paper} tỷ lệ 1:${L.scaleVal}: ${filename}`);
+        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg): ${filename}`);
     },
 
     // === 3. XUẤT BẢN VẼ PDF CHUẨN IN ẤN ĐỘ PHÂN GIẢI CAO (A3/A4 CHUẨN TỶ LỆ) ===
