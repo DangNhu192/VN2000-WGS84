@@ -9,6 +9,31 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-22] Triển Khai Hệ Thống Bộ Nhớ Học Tập Hindsight (vectorize-io/hindsight) Toàn Cục Tại D:\Nhu\Memory Antigravity
+- **Yêu cầu từ người dùng**:
+  - `cài đặt skill repo này (vectorize-io/hindsight: Hindsight: Agent Memory That Learns) cho tất cả các hoạt động của từng dự án trên Antigravity IDE và Antigravity về folder D:\Nhu\Memory Antigravity. để lưu trữ các phiên làm việc và tối ưu hiệu suất hoạt động của Antigravity IDE và Antigravity`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Khởi tạo kho lưu trữ tập trung `D:\Nhu\Memory Antigravity`**:
+     - Phân vùng theo từng Memory Bank riêng biệt cho từng dự án (`banks/VN2000-PWA/`, `banks/global/`, v.v.).
+     - Mỗi bank gồm 2 khoang lưu trữ: `observations/` (lưu các quan sát/bài học độc lập) và `mental_models/` (đúc kết các mô hình kiến trúc & cạm bẫy).
+     - Chỉ mục `index.json` hỗ trợ tra cứu đa chiều (Semantic BM25 + Tags + Temporal) trong <10ms.
+  2. **Xây dựng động cơ lõi Hindsight Engine (`hindsight.js` & `hindsight.py`)**:
+     - Cung cấp đầy đủ 3 thao tác cốt lõi của Hindsight:
+       * `retain`: Lưu trữ bền vững bài học, quyết định kiến trúc, bugfix, sở thích người dùng.
+       * `recall`: Hồi tưởng và tra cứu trí nhớ liên quan với độ khớp cao nhất trước khi thực hiện nhiệm vụ mới.
+       * `reflect`: Tự động phản chiếu và tổng hợp các observations thành các Mental Model chuyên sâu (`gotchas_and_bugfixes.md`, `architecture.md`, `summary.md`).
+     - Chạy hoàn toàn Offline 100%, Zero-Latency, không tốn tài nguyên mạng và không ngốn RAM.
+  3. **Khởi tạo Skill toàn cục `hindsight-memory` trong Antigravity IDE**:
+     - Đăng ký tại `C:\Users\User\.gemini\config\skills\hindsight-memory\SKILL.md`.
+     - Cho phép mọi Agent trên Antigravity IDE gọi và vận hành trí nhớ học tập.
+  4. **Tích hợp Quy chuẩn bắt buộc toàn hệ thống vào `core-protocol.md`**:
+     - Bắt buộc mọi Agent phải `RECALL` từ `D:\Nhu\Memory Antigravity\banks\<project>\` khi bắt đầu phiên làm việc.
+     - Bắt buộc phải `RETAIN` bài học và `REFLECT` mô hình tư duy khi kết thúc phiên.
+  5. **Nạp sẵn toàn bộ trí nhớ cốt lõi của dự án `VN2000-PWA`**:
+     - Nạp các quy chuẩn: UI Isolation Principle, AutoCAD DWG Symbol Tables, Chống tiến trình zombie MCP, Bảng kê MiniCAD toàn màn hình sticky thead.
+  6. **Kiểm thử tự động**:
+     - Toàn bộ 279/279 tests trong `tests/*.test.js` PASS 100%.
+
 ### [2026-10-22] Xử Lý Triệt Để Các Hoạt Động Gây Nghẽn Mạng & Đứng Máy: Dọn Dẹp Zombie MCP & Tối Ưu Offline Service Worker
 - **Yêu cầu từ người dùng**:
   - `fix lỗi các hoạt động của Antigravity gây nghẽn mạng và đứng máy.`

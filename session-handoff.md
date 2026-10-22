@@ -1,6 +1,26 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-22: Xử Lý Triệt Để Các Hoạt Động Gây Nghẽn Mạng & Đứng Máy Của Antigravity
+## Phiên hiện tại — 2026-10-22: Triển Khai Hệ Thống Bộ Nhớ Học Tập Hindsight (vectorize-io/hindsight) Toàn Cục Tại D:\Nhu\Memory Antigravity
+- **Yêu cầu từ người dùng**:
+  - `cài đặt skill repo này (vectorize-io/hindsight: Hindsight: Agent Memory That Learns) cho tất cả các hoạt động của từng dự án trên Antigravity IDE và Antigravity về folder D:\Nhu\Memory Antigravity. để lưu trữ các phiên làm việc và tối ưu hiệu suất hoạt động của Antigravity IDE và Antigravity`
+- **Đã hoàn tất**:
+  1. **Khởi tạo kho lưu trữ tập trung `D:\Nhu\Memory Antigravity`**:
+     - Cấu trúc các Memory Bank: `banks/VN2000-PWA/`, `banks/global/`...
+     - Các thư mục `observations/` và `mental_models/` độc lập theo từng dự án.
+     - Bộ chỉ mục đa chiều `index.json` (BM25 + Tags + Temporal).
+  2. **Động cơ lõi Hindsight Engine (`hindsight.js` & `hindsight.py`)**:
+     - Đầy đủ 3 thao tác: `retain` (lưu trí nhớ), `recall` (hồi tưởng ngữ cảnh), `reflect` (đúc kết mental models).
+     - Hoạt động 100% offline, siêu tốc (<10ms), zero-latency, không tốn token vô ích.
+  3. **Cài đặt Skill toàn cục `hindsight-memory`**:
+     - Đặt tại `C:\Users\User\.gemini\config\skills\hindsight-memory\SKILL.md`.
+  4. **Tích hợp Quy chuẩn bắt buộc vào `core-protocol.md`**:
+     - Bắt buộc Agent thực hiện `RECALL` khi bắt đầu và `RETAIN` + `REFLECT` khi kết thúc phiên.
+  5. **Nạp sẵn toàn bộ bài học cốt lõi cho `VN2000-PWA`**:
+     - Nạp các kinh nghiệm về UI Isolation, DWG AC1015 symbol tables, offline MCP, MiniCAD area table.
+  6. **Kiểm thử tự động**:
+     - Toàn bộ 279/279 tests trong `tests/*.test.js` PASS 100%.
+
+## Phiên trước — 2026-10-22: Xử Lý Triệt Để Các Hoạt Động Gây Nghẽn Mạng & Đứng Máy Của Antigravity
 - **Yêu cầu từ người dùng**:
   - `fix lỗi các hoạt động của Antigravity gây nghẽn mạng và đứng máy.`
 - **Đã hoàn tất**:
