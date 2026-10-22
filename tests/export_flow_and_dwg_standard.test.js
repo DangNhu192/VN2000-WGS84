@@ -120,3 +120,49 @@ describe('=== 3. KIỂM THỬ LOGIC JAVASCRIPT ĐIỀU PHỐI PREVIEW VÀ XUẤT
         assert.ok(appJs.includes('selectExportFormat'), 'MiniCAD có hàm selectExportFormat');
     });
 });
+
+describe('=== 4. KIỂM THỬ GIAO DIỆN DROPDOWN SỔ XUỐNG VÀ ĐỊNH DẠNG ĐUÔI FILE SÚC TÍCH ===', () => {
+    let indexHtml = '';
+    let appJs = '';
+    before(() => {
+        indexHtml = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+        appJs = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
+    });
+
+    test('4.1 Cửa sổ chọn định dạng file là dropdown <select> sổ xuống cả ở Sổ đo và MiniCAD', () => {
+        assert.ok(indexHtml.includes('<select id="selExportFormat"'), 'Sổ đo/Chuyển đổi có dropdown <select id="selExportFormat">');
+        assert.ok(indexHtml.includes('<select id="cadExportFormatSelect"'), 'MiniCAD có dropdown <select id="cadExportFormatSelect">');
+    });
+
+    test('4.2 Nội dung hiển thị trong option chỉ đơn giản là định dạng đuôi file không giải thích dài dòng', () => {
+        // Trích xuất các option trong selExportFormat
+        const selMatch = indexHtml.match(/<select id="selExportFormat"[\s\S]*?<\/select>/);
+        assert.ok(selMatch, 'Tìm thấy selExportFormat');
+        const selContent = selMatch[0];
+        
+        // Kiểm tra các định dạng hiển thị dạng .dwg, .xlsx, .pdf, .png...
+        assert.ok(/>\.dwg<\/option>/.test(selContent), 'Option hiển thị .dwg gọn gàng');
+        assert.ok(/>\.xlsx<\/option>/.test(selContent), 'Option hiển thị .xlsx gọn gàng');
+        assert.ok(/>\.pdf<\/option>/.test(selContent), 'Option hiển thị .pdf gọn gàng');
+        assert.ok(/>\.png<\/option>/.test(selContent), 'Option hiển thị .png gọn gàng');
+        assert.ok(/>\.dgn\s*\/?\s*\.?dat?<\/option>/.test(selContent), 'Option hiển thị .dgn / .dat gọn gàng');
+        assert.ok(/>\.kml<\/option>/.test(selContent), 'Option hiển thị .kml gọn gàng');
+        assert.ok(/>\.geojson<\/option>/.test(selContent), 'Option hiển thị .geojson gọn gàng');
+
+        // Trong thẻ cadExportFormatSelect cũng súc tích tương tự
+        const cadSelMatch = indexHtml.match(/<select id="cadExportFormatSelect"[\s\S]*?<\/select>/);
+        assert.ok(cadSelMatch, 'Tìm thấy cadExportFormatSelect');
+        const cadContent = cadSelMatch[0];
+        assert.ok(/>\.dwg<\/option>/.test(cadContent), 'MiniCAD option hiển thị .dwg gọn gàng');
+        assert.ok(/>\.xlsx<\/option>/.test(cadContent), 'MiniCAD option hiển thị .xlsx gọn gàng');
+        assert.ok(/>\.pdf<\/option>/.test(cadContent), 'MiniCAD option hiển thị .pdf gọn gàng');
+    });
+
+    test('4.3 Nút bấm xuất dữ liệu phản hồi nhãn súc tích chỉ chứa đuôi file', () => {
+        assert.ok(appJs.includes("'🚀 XUẤT FILE .DWG'"), 'Nhãn nút xuất DWG chuẩn súc tích');
+        assert.ok(appJs.includes("'🚀 XUẤT FILE .XLSX'"), 'Nhãn nút xuất XLSX chuẩn súc tích');
+        assert.ok(appJs.includes("'🚀 XUẤT FILE .PDF'"), 'Nhãn nút xuất PDF chuẩn súc tích');
+        assert.ok(appJs.includes("'🚀 XUẤT FILE .PNG'"), 'Nhãn nút xuất PNG chuẩn súc tích');
+    });
+});
+

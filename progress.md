@@ -3,11 +3,30 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 274/274 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 279/279 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-10-22] Tinh Gọn Cửa Sổ Chọn Định Dạng File Thành Dropdown Sổ Xuống (Chỉ Hiển Thị Đuôi File) & Hoàn Thiện Bảng Điều Khiển Bản Vẽ
+- **Yêu cầu từ người dùng**:
+  - `cửa sổ "Chọn định dạng file cần xuất" là dạng list sổ xuống để chọn, chỉ đơn giản là định dạng đuôi file, đừng giải thích dài dòng. hãy điều chỉnh trong ứng dụng và các chức năng của ứng dụng có thể xuất file`
+- **Các cải tiến kỹ thuật thực hiện**:
+  1. **Chuyển đổi giao diện chọn định dạng file thành `<select>` Dropdown sổ xuống**:
+     - Áp dụng trên cả 2 phân hệ: Sổ đo / Chuyển đổi (`#selExportFormat`) và MiniCAD (`#cadExportFormatSelect`).
+     - Nội dung hiển thị trong danh sách tùy chọn chỉ đơn thuần là định dạng đuôi file ngắn gọn: `.dwg`, `.xlsx`, `.pdf`, `.png`, `.dgn / .dat`, `.kml`, `.geojson`, `.svg`, `.txt`, `.csv`, `.share`.
+     - Loại bỏ hoàn toàn các mô tả dài dòng rườm rà gây rối mắt.
+  2. **Đồng bộ nhãn nút bấm xuất dữ liệu súc tích**:
+     - Nút xuất phản hồi tức thì theo định dạng được chọn: `🚀 XUẤT FILE .DWG`, `🚀 XUẤT FILE .XLSX`, `🚀 XUẤT FILE .PDF`, `🚀 XUẤT FILE .PNG`, v.v.
+     - Loại bỏ hoàn toàn chữ giải thích thừa trên nút bấm.
+  3. **Bảo toàn và hiển thị trọn vẹn Bảng điều khiển "Cấu hình thông tin khác của bản vẽ"**:
+     - Cung cấp đầy đủ 11 trường thông tin kỹ thuật địa chính TCVN 7285: Tên bản vẽ, Tên công trình, Chủ sở hữu, Đơn vị khảo sát, Số tờ/thửa, Địa chỉ, Người đo vẽ, Người kiểm tra, Ngày lập, Ký hiệu mã bản vẽ, Ghi chú kỹ thuật.
+     - Tích hợp 2 nút thao tác: "💾 Lưu cấu hình" (lưu vào localStorage) và "🔄 Đặt lại" (phục hồi mặc định).
+  4. **Kiểm thử tự động & kiểm chứng trình duyệt**:
+     - Mở rộng `tests/export_flow_and_dwg_standard.test.js` bổ sung Suite 4 kiểm thử dropdown sổ xuống và nhãn nút xuất súc tích.
+     - Toàn bộ **279/279 bài test** trong `tests/*.test.js` PASS 100%.
+     - Kiểm chứng trực quan qua Chrome DevTools: Cả 2 modal mở mượt mà, dropdown sổ xuống chọn nhạy bén, nút bấm đổi nhãn chính xác.
 
 ### [2026-10-22] Sửa Lỗi Nút Xuất Dữ Liệu Không Phản Hồi & Phục Hồi Bảng Điều Khiển "Cấu Hình Thông Tin Khác Của Bản Vẽ"
 - **Yêu cầu từ người dùng**:

@@ -9802,7 +9802,9 @@ function doGet(e) {
         };
 
         const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
+        const selFormatEl = document.getElementById('selExportFormat');
         const selRadio = document.querySelector('input[name="exportFormatRadio"]:checked');
+        const chosenFormat = selFormatEl?.value || (selRadio ? selRadio.value : (this.selectedExportFormat || 'dwg'));
 
         const meta = {
             drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
@@ -9816,7 +9818,7 @@ function doGet(e) {
             org: getVal('txtExportOrg') || "Trung tâm Trắc địa Bản đồ",
             drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
             notes: getVal('txtExportNotes'),
-            format: selRadio ? selRadio.value : 'dwg'
+            format: chosenFormat
         };
 
         return { scaleVal, paperSize, layers, meta };
@@ -9835,7 +9837,14 @@ function doGet(e) {
     },
 
     selectExportFormat(format) {
-        const fmt = format;
+        const fmt = format || 'dwg';
+        this.selectedExportFormat = fmt;
+
+        const selDropdown = document.getElementById('selExportFormat');
+        if (selDropdown && selDropdown.value !== fmt) {
+            selDropdown.value = fmt;
+        }
+
         const radio = document.querySelector(`input[name="exportFormatRadio"][value="${fmt}"]`);
         if (radio) radio.checked = true;
 
@@ -9851,24 +9860,24 @@ function doGet(e) {
             }
         });
 
-        // Cập nhật tên nút bấm xuất
+        // Cập nhật tên nút bấm xuất (đơn giản, súc tích chỉ chứa đuôi file)
         const btn = document.getElementById('btnExecuteExport');
         if (btn) {
             const labels = {
-                dwg: '🚀 XUẤT BẢN VẼ AUTOCAD (.DWG)',
-                excel: '🚀 XUẤT BẢNG TÍNH EXCEL (.XLSX)',
-                xlsx: '🚀 XUẤT BẢNG TÍNH EXCEL (.XLSX)',
-                pdf: '🚀 XUẤT BÁO CÁO KỸ THUẬT PDF (.PDF)',
-                png: '🚀 XUẤT ẢNH SƠ ĐỒ MỐC FULL HD (.PNG)',
-                dgn: '🚀 XUẤT MICROSTATION & FAMIS (.DGN/.DAT)',
-                kml: '🚀 XUẤT GOOGLE EARTH 3D (.KML)',
-                geojson: '🚀 XUẤT VECTOR GIS OGC (.GEOJSON)',
-                svg: '🚀 XUẤT BẢN VẼ VECTOR SVG (.SVG)',
-                txt: '🚀 XUẤT TỌA ĐỘ MÁY ĐO (.TXT)',
-                csv: '🚀 XUẤT TẬP TIN CSV (.CSV)',
-                share: '🚀 CHIA SẺ SỐ LIỆU ĐO ĐẠC'
+                dwg: '🚀 XUẤT FILE .DWG',
+                excel: '🚀 XUẤT FILE .XLSX',
+                xlsx: '🚀 XUẤT FILE .XLSX',
+                pdf: '🚀 XUẤT FILE .PDF',
+                png: '🚀 XUẤT FILE .PNG',
+                dgn: '🚀 XUẤT FILE .DGN',
+                kml: '🚀 XUẤT FILE .KML',
+                geojson: '🚀 XUẤT FILE .GEOJSON',
+                svg: '🚀 XUẤT FILE .SVG',
+                txt: '🚀 XUẤT FILE .TXT',
+                csv: '🚀 XUẤT FILE .CSV',
+                share: '🚀 CHIA SẺ SỐ LIỆU'
             };
-            btn.innerHTML = labels[fmt] || `🚀 XUẤT DỮ LIỆU (.${fmt.toUpperCase()})`;
+            btn.innerHTML = labels[fmt] || `🚀 XUẤT FILE .${fmt.toUpperCase()}`;
         }
     },
 
@@ -23147,6 +23156,12 @@ const appCadTool = {
     selectExportFormat(fmt) {
         if (!fmt) fmt = 'dwg';
         this._exportFormat = fmt;
+
+        const selDropdown = document.getElementById('cadExportFormatSelect');
+        if (selDropdown && selDropdown.value !== fmt) {
+            selDropdown.value = fmt;
+        }
+
         const modal = document.getElementById('modalCadExportConfig');
         if (modal) {
             modal.querySelectorAll('.cad-export-format-tile').forEach(tile => {
@@ -23167,19 +23182,21 @@ const appCadTool = {
         const btn = document.getElementById('btnExecuteCadExport');
         if (btn) {
             const labels = {
-                dwg: '🚀 XUẤT BẢN VẼ AUTOCAD (.DWG)',
-                dgn: '🏛️ XUẤT FAMIS & MICROSTATION (.DAT/.CMD)',
-                pdf: '📕 XUẤT BÁO CÁO KỸ THUẬT PDF (.PDF)',
-                excel: '📊 XUẤT BẢNG KÊ DIỆN TÍCH (.XLSX)',
-                svg: '🖼️ XUẤT BẢN VẼ VECTOR SVG (.SVG)',
-                png: '📷 XUẤT BẢN VẼ HÌNH ẢNH (.PNG)',
-                kml: '🌍 XUẤT GOOGLE EARTH 3D (.KML)',
-                geojson: '🗺️ XUẤT VECTOR KHÔNG GIAN (.GEOJSON)',
-                txt: '📑 XUẤT TỌA ĐỘ TOÀN ĐẠC (.TXT)',
-                csv: '📄 XUẤT FILE VĂN BẢN CSV (.CSV)',
-                share: '📤 CHIA SẺ BẢN VẼ NGAY'
+                dwg: '🚀 XUẤT FILE .DWG',
+                dgn: '🚀 XUẤT FILE .DGN',
+                pdf: '🚀 XUẤT FILE .PDF',
+                excel: '🚀 XUẤT FILE .XLSX',
+                xlsx: '🚀 XUẤT FILE .XLSX',
+                svg: '🚀 XUẤT FILE .SVG',
+                png: '🚀 XUẤT FILE .PNG',
+                img: '🚀 XUẤT FILE .PNG',
+                kml: '🚀 XUẤT FILE .KML',
+                geojson: '🚀 XUẤT FILE .GEOJSON',
+                txt: '🚀 XUẤT FILE .TXT',
+                csv: '🚀 XUẤT FILE .CSV',
+                share: '🚀 CHIA SẺ BẢN VẼ'
             };
-            btn.innerHTML = labels[fmt] || '🚀 XUẤT BẢN VẼ AUTOCAD (.DWG)';
+            btn.innerHTML = labels[fmt] || `🚀 XUẤT FILE .${fmt.toUpperCase()}`;
         }
         if (typeof triggerHaptic === 'function') triggerHaptic('selection');
     },
