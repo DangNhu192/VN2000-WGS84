@@ -24269,7 +24269,7 @@ const appCadTool = {
         container.style.gridTemplateColumns = '';
         blockSec.style.display = 'flex';
         coordSec.style.display = 'flex';
-        if (blockList) blockList.style.maxHeight = '200px';
+        if (blockList) blockList.style.maxHeight = '140px';
 
         if (mode === 'blocks') {
             coordSec.style.display = 'none';
@@ -24278,18 +24278,20 @@ const appCadTool = {
         } else if (mode === 'coords') {
             blockSec.style.display = 'none';
             coordSec.style.flex = '1';
+            coordSec.style.minHeight = '300px';
         } else if (mode === 'split') {
             container.style.display = 'grid';
-            container.style.gridTemplateColumns = 'minmax(330px, 1fr) minmax(420px, 1.4fr)';
+            container.style.gridTemplateColumns = 'minmax(320px, 1fr) minmax(420px, 1.4fr)';
             container.style.gap = '12px';
             blockSec.style.flex = '1';
             coordSec.style.flex = '1';
             if (blockList) blockList.style.maxHeight = '500px';
         } else {
-            // mode === 'both' (dọc tiêu chuẩn, không che khuất bảng chi tiết)
+            // mode === 'both' (dọc tiêu chuẩn: ưu tiên giải phóng chiều cao cho bảng chi tiết đỉnh)
             blockSec.style.flex = '0 0 auto';
             coordSec.style.flex = '1';
-            if (blockList) blockList.style.maxHeight = '190px';
+            coordSec.style.minHeight = '230px';
+            if (blockList) blockList.style.maxHeight = '130px';
         }
 
         if (typeof triggerHaptic === 'function') triggerHaptic('selection');
@@ -26379,7 +26381,10 @@ const appCadTool = {
 
     closeAreaTableModal() {
         const modal = document.getElementById('modalCadAreaTable');
-        if (modal) modal.style.display = 'none';
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+        }
     },
 
     // Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xls, .xlsx) hoặc CSV

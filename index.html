@@ -4869,7 +4869,7 @@
 
 
   <!-- ================= MODAL BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH (3.5) ================= -->
-  <div id="modalCadAreaTable" class="modal-overlay">
+  <div id="modalCadAreaTable" class="modal-overlay" onclick="if(event.target === this) appCadTool.closeAreaTableModal()">
     <div class="modal-box" id="cadAreaTableModalBox" style="max-width: 960px; width: 94vw; max-height: 92vh; display: flex; flex-direction: column; transition: all 0.25s ease;">
       <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid rgba(56,189,248,0.25); background: rgba(15,23,42,0.95);">
         <div style="display: flex; align-items: center; gap: 8px;">
