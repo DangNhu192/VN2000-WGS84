@@ -16964,6 +16964,7 @@ const appElevationProfile = {
 const appCadTool = {
     isActive: false,
     mode: 'polygon', // 'polygon' | 'polyline' | 'select'
+    _exportFormat: 'dwg', // 'dwg' | 'dgn' | 'pdf' | 'img' | 'excel' | 'kml' | 'geojson' | 'svg' | 'txt' | 'csv' | 'share'
     activeToolTab: 'draw', // 'draw' | 'select' | 'markup' | 'data' | 'layers'
     selectedItem: null, // { type: 'shape' | 'annotation', id, index, name }
     snapEnabled: true,
@@ -23164,7 +23165,11 @@ const appCadTool = {
         } catch (e) {}
 
         this.renderExportBlockPicker();
-        setTimeout(() => this.checkScalePaperFit(), 50);
+        this.selectExportFormat(this._exportFormat || 'dwg');
+        setTimeout(() => {
+            this.checkScalePaperFit();
+            this.renderExportPreview();
+        }, 50);
     },
 
     saveTitleBlockInfo(showToastMsg = false) {
