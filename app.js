@@ -3622,6 +3622,18 @@ const appTransform = {
         showToast("📋 Đã chép danh sách tọa độ WGS-84!");
     },
 
+    openExportModal() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả chuyển đổi để xuất file! Hãy thực hiện chuyển đổi trước.", true);
+            return;
+        }
+        if (typeof appData !== 'undefined' && appData.openExportModal) {
+            appData.openExportModal('transform');
+        } else {
+            this.exportMultiResultCsv();
+        }
+    },
+
     exportMultiResultCsv() {
         if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
             showToast("⚠️ Chưa có kết quả để xuất file!", true);
@@ -7447,22 +7459,26 @@ const appMap = {
     },
 
     exportProjectBlocksExcel() {
-        const curProj = AppState.currentProject;
-        const pts = appData.getPoints(curProj) || [];
-        let csvContent = "\uFEFFSTT,Ten_Diem,Toa_Do_X,Toa_Do_Y,Vi_Do_Lat,Kinh_Do_Lng,Ghi_Chu\r\n";
-        pts.forEach((p, i) => {
-            csvContent += `${i+1},"${p.name || `M${i+1}`}",${p.x || 0},${p.y || 0},${p.lat || 0},${p.lng || 0},"${p.note || ''}"\r\n`;
-        });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Bang_Ke_${curProj.replace(/\.[^/.]+$/, "")}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast("📊 Đã xuất file Bảng kê dự án!");
+        if (typeof appData !== 'undefined' && appData.openExportModal) {
+            appData.openExportModal('survey');
+        } else {
+            const curProj = AppState.currentProject;
+            const pts = appData.getPoints(curProj) || [];
+            let csvContent = "\uFEFFSTT,Ten_Diem,Toa_Do_X,Toa_Do_Y,Vi_Do_Lat,Kinh_Do_Lng,Ghi_Chu\r\n";
+            pts.forEach((p, i) => {
+                csvContent += `${i+1},"${p.name || `M${i+1}`}",${p.x || 0},${p.y || 0},${p.lat || 0},${p.lng || 0},"${p.note || ''}"\r\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Bang_Ke_${curProj.replace(/\.[^/.]+$/, "")}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("📊 Đã xuất file Bảng kê dự án!");
+        }
     },
 
     openInMiniCadToEdit() {
@@ -9722,14 +9738,29 @@ function doGet(e) {
         }
     },
 
-    // ================= STUDIO XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA (PREVIEW -> CÀI ĐẶT -> XUẤT) =================
-    openExportModal() {
+    // ================= STUDIO XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA (CHỌN ĐỊNH DẠNG -> XUẤT) =================
+    openExportModal(context = 'survey') {
+        this.exportContext = context || 'survey';
         const modal = document.getElementById('modalExportData');
         if (!modal) return;
         modal.style.display = 'flex';
 
-        const projName = AppState.currentProject || "VN2000_SoLieu_DoDac.csv";
-        const cleanProj = projName.replace(/\.[^/.]+$/, "");
+        let projName = AppState.currentProject || "VN2000_SoLieu_DoDac.csv";
+        let cleanProj = projName.replace(/\.[^/.]+$/, "");
+        
+        const titleEl = document.getElementById('lblExportModalMainTitle');
+        if (this.exportContext === 'transform') {
+            projName = "KetQua_ChuyenDoi_VN2000.xlsx";
+            cleanProj = "ChuyenDoi_VN2000";
+            if (titleEl) titleEl.innerText = "XUẤT KẾT QUẢ CHUYỂN ĐỔI TỌA ĐỘ";
+        } else if (this.exportContext === 'cad') {
+            projName = (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "BanDo") + "_MiniCAD.dwg";
+            cleanProj = "MiniCAD_MatBang";
+            if (titleEl) titleEl.innerText = "XUẤT DỮ LIỆU BẢN VẼ MINICAD";
+        } else {
+            if (titleEl) titleEl.innerText = "XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG";
+        }
+
         const pts = this.getExportPoints();
 
         // Cập nhật thông tin Header & Tóm tắt
@@ -9741,11 +9772,14 @@ function doGet(e) {
             kttEl.innerText = `KTT: ${kttStr} • Múi ${AppState.muiVal || 3}° • ${AppState.provinceName || 'Việt Nam'}`;
         }
         const badgeEl = document.getElementById('exportModalPointBadge');
-        if (badgeEl) badgeEl.innerText = `${pts.length} mốc`;
+        if (badgeEl) {
+            const labelSuffix = this.exportContext === 'transform' ? 'điểm kết quả' : 'mốc';
+            badgeEl.innerText = `${pts.length} ${labelSuffix}`;
+        }
 
         // Điền trước các trường thông tin nếu còn trống
         const nameInput = document.getElementById('txtExportProjectName');
-        if (nameInput && !nameInput.value) nameInput.value = cleanProj;
+        if (nameInput) nameInput.value = cleanProj;
         const surveyorInput = document.getElementById('txtExportSurveyor');
         if (surveyorInput && !surveyorInput.value) surveyorInput.value = AppState.surveyorName || "Kỹ sư đo đạc";
         const dateInput = document.getElementById('txtExportDate');
@@ -9753,8 +9787,9 @@ function doGet(e) {
         const orgInput = document.getElementById('txtExportOrg');
         if (orgInput && !orgInput.value) orgInput.value = "Trung tâm Trắc địa Bản đồ";
 
-        // Mặc định chọn định dạng DWG (AutoCAD) để đáp ứng ngay yêu cầu người dùng
-        this.selectExportFormat('dwg');
+        // Mặc định chọn định dạng: Excel nếu chuyển đổi, DWG nếu bản đồ / sổ đo
+        const defaultFmt = this.exportContext === 'transform' ? 'excel' : 'dwg';
+        this.selectExportFormat(defaultFmt);
         this.updateExportPreview();
     },
 
@@ -9764,6 +9799,19 @@ function doGet(e) {
     },
 
     getExportPoints() {
+        if (this.exportContext === 'transform') {
+            const raw = (typeof appTransform !== 'undefined' && appTransform.multiConvertedResults) ? appTransform.multiConvertedResults : [];
+            return raw.map((r, i) => ({
+                id: i + 1,
+                name: r.name || `P${r.stt || i + 1}`,
+                x: r.x !== 'Lỗi' ? r.x : 0,
+                y: r.y !== 'Lỗi' ? r.y : 0,
+                lat: r.lat !== 'Lỗi' ? r.lat : 0,
+                lng: r.lng !== 'Lỗi' ? r.lng : 0,
+                h: 0,
+                note: r.ktt || 'Chuyển đổi'
+            }));
+        }
         return this.getPoints(AppState.currentProject) || [];
     },
 
