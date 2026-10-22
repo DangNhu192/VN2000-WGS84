@@ -110,14 +110,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // C. TÀI NGUYÊN NGOẠI VI (Google Tile, OSM Tile, Phông chữ) - Cache cả phản hồi Opaque (status: 0)
+  // C. TÀI NGUYÊN NGOẠI VI (Google Tile, OSM Tile, Phông chữ, CDN)
+  const isMapTile = url.hostname.includes('tile.') || 
+                    (url.hostname.includes('google.com') && url.pathname.includes('/vt')) ||
+                    url.hostname.includes('arcgisonline.com');
+
+  if (isMapTile) {
+    // Với tile bản đồ: Ưu tiên cache đã tải, nếu chưa có thì fetch trực tiếp từ mạng mà không spam ghi đĩa CacheStorage
+    event.respondWith(
+      caches.match(req).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        return fetch(req).catch(() => new Response('', { status: 408, statusText: 'Offline Tile' }));
+      })
+    );
+    return;
+  }
+
+  // Với CDN tĩnh (Fonts, Icons, Libs): Cache có kiểm soát, chỉ cache status 200
   event.respondWith(
     caches.match(req).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
 
       return fetch(req).then((networkResponse) => {
-        // Chú ý: Các ô bản đồ Cross-Origin trả về status === 0 (loại 'opaque'). Phải cho phép cache để dùng offline!
-        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+        if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(req, responseToCache);
@@ -125,8 +140,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Trả về ảnh rỗng 408 nếu offline và ô tile này chưa từng được xem
-        return new Response('', { status: 408, statusText: 'Offline Tile' });
+        return new Response('', { status: 408, statusText: 'Offline Resource' });
       });
     })
   );

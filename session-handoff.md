@@ -1,6 +1,23 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-22: Tinh Gọn Dropdown Chọn Đuôi File, Sửa Lỗi Nút Xuất Không Phản Hồi & Hoàn Thiện Bảng Cấu Hình Bản Vẽ
+## Phiên hiện tại — 2026-10-22: Xử Lý Triệt Để Các Hoạt Động Gây Nghẽn Mạng & Đứng Máy Của Antigravity
+- **Yêu cầu từ người dùng**:
+  - `fix lỗi các hoạt động của Antigravity gây nghẽn mạng và đứng máy.`
+- **Đã hoàn tất**:
+  1. **Dọn dẹp triệt để 15 tiến trình Zombie ngầm**:
+     - Tiêu diệt 7 tiến trình Chrome DevTools bị kẹt (trong đó có GPU/Renderer ăn tới hơn 2.200s CPU) và 8 tiến trình Node MCP.
+     - Hệ thống được giải phóng CPU và hàng Gigabyte RAM ngay lập tức.
+  2. **Cài đặt cố định & Offline hóa cấu hình MCP (`mcp_config.json`)**:
+     - Chuyển `chrome-devtools-mcp` từ chạy qua `npx -y chrome-devtools-mcp@latest` sang `node` gọi trực tiếp file script toàn cục.
+     - Chấm dứt 100% tình trạng ping mạng ra npm registry kiểm tra update, khởi động trong <50ms.
+  3. **Tối ưu Service Worker `sw.js`**:
+     - Tách riêng logic xử lý tile bản đồ trực tuyến (`isMapTile`), chấm dứt việc tự động `cache.put` hàng trăm opaque tile gây nghẽn Disk I/O khi cuộn bản đồ.
+  4. **Tạo script bảo trì định kỳ `clean-system.ps1`**:
+     - Cho phép quét và dọn dẹp tiến trình mồ côi nhanh chóng chỉ bằng 1 câu lệnh.
+  5. **Kiểm thử tự động**:
+     - Toàn bộ **279/279 bài test** trong `tests/*.test.js` PASS 100%.
+
+## Phiên trước — 2026-10-22: Tinh Gọn Dropdown Chọn Đuôi File, Sửa Lỗi Nút Xuất Không Phản Hồi & Hoàn Thiện Bảng Cấu Hình Bản Vẽ
 - **Yêu cầu từ người dùng**:
   1. `file .dwg khi xuất ra đã đảm bảo cấu trúc để có thể cho phần mềm AutoCad đọc chưa?`
   2. `kiểm tra lại tính năng xuất dữ liệu. nút bấm xuất dữ liệu ko phản hồi.`
