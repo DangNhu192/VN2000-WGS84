@@ -17605,17 +17605,32 @@ const appCadTool = {
             const s = this.savedShapes[shapeIdx];
             if (!s.customEdges) s.customEdges = {};
             s.customEdges[edgeIdx] = val;
+            // Xóa customArea thủ công để diện tích khối được tự động tính lại 100% theo các cạnh (tuyến) mới
+            delete s.customArea;
             s.stats = this.getEffectiveStats(s);
             this.pushHistoryState(`Sửa cự ly cạnh ${s.name}`);
+            this.saveShapesForProject(AppState.currentProject);
+            this.persistSession();
             this.renderGeometry();
             this.renderBlocksPanel();
             this.renderExportBlockPicker();
-            const allShapes = this._getAllExportShapes();
-            this.renderBlockList(allShapes);
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.checkScalePaperFit();
+
+            const modal = document.getElementById('modalCadAreaTable');
+            const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+            if (isModalOpen) {
+                const cadBlockList = document.getElementById('cadBlockList');
+                const scrollBlockList = cadBlockList ? cadBlockList.scrollTop : 0;
+                const scrollModal = modal.querySelector('.modal-box') ? modal.querySelector('.modal-box').scrollTop : 0;
+
                 this.openAreaTableModal();
+
+                if (cadBlockList) cadBlockList.scrollTop = scrollBlockList;
+                if (modal.querySelector('.modal-box')) modal.querySelector('.modal-box').scrollTop = scrollModal;
             }
-            showToast(`✓ Đã cập nhật cự ly cạnh #${edgeIdx + 1} của ${s.name}: ${val.toFixed(2)} m`);
+
+            if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+            showToast(`✓ Cạnh #${edgeIdx + 1} của ${s.name}: ${val.toFixed(2)}m ➔ Diện tích khối tự tính lại: ${s.stats.areaFormatted} m²`);
         }
     },
 
@@ -21153,20 +21168,12 @@ const appCadTool = {
         stats.realArea = realStats.area;
         stats.realPerimeter = realStats.perimeter;
 
-        // 1. Áp dụng override diện tích thủ công (nếu có)
-        if (shape.customArea !== undefined && shape.customArea !== null && !isNaN(shape.customArea) && shape.customArea > 0) {
-            stats.area = parseFloat(shape.customArea);
-            stats.areaFormatted = stats.area.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            stats.ha = stats.area / 10000.0;
-            stats.haFormatted = (stats.area / 10000.0).toFixed(4);
-            stats.isCustomArea = true;
-        }
-
-        // 2. Áp dụng override cự ly cạnh thủ công (nếu có)
+        // 1. Áp dụng override cự ly cạnh thủ công (nếu có)
+        const hasCustomEdges = !!(shape.customEdges && Object.keys(shape.customEdges).length > 0);
         stats.edges = (realStats.edges || []).map((e, eIdx) => {
             if (!e) return null;
             const cloneE = { ...e };
-            if (shape.customEdges && shape.customEdges[eIdx] !== undefined && shape.customEdges[eIdx] !== null && !isNaN(shape.customEdges[eIdx])) {
+            if (hasCustomEdges && shape.customEdges[eIdx] !== undefined && shape.customEdges[eIdx] !== null && !isNaN(shape.customEdges[eIdx])) {
                 cloneE.length = parseFloat(shape.customEdges[eIdx]);
                 cloneE.lengthFormatted = cloneE.length.toFixed(2);
                 cloneE.isCustom = true;
@@ -21174,12 +21181,59 @@ const appCadTool = {
             return cloneE;
         });
 
-        // 3. Áp dụng override chu vi / chiều dài tuyến thủ công (nếu có)
+        // 2. Tính toán lại diện tích theo các cạnh (tuyến) đã điều chỉnh
+        let recalculatedAreaFromEdges = null;
+        if (hasCustomEdges && shape.mode === 'polygon' && shape.vertices.length >= 3) {
+            const n = shape.vertices.length;
+            // Tính tâm Centroid
+            let cx = 0, cy = 0;
+            shape.vertices.forEach(v => {
+                cx += (v.x !== undefined ? v.x : 0);
+                cy += (v.y !== undefined ? v.y : 0);
+            });
+            cx /= n;
+            cy /= n;
+
+            let totalAdjArea = 0;
+            for (let i = 0; i < n; i++) {
+                const p1 = shape.vertices[i];
+                const p2 = shape.vertices[(i + 1) % n];
+                const realE = realStats.edges ? realStats.edges[i] : null;
+                const realLen = realE && realE.length > 0 ? realE.length : Math.hypot((p2.x || 0) - (p1.x || 0), (p2.y || 0) - (p1.y || 0));
+                const effLen = (shape.customEdges[i] !== undefined && shape.customEdges[i] > 0) ? parseFloat(shape.customEdges[i]) : realLen;
+
+                // Diện tích tam giác từ Centroid đến cạnh i
+                const triArea = 0.5 * Math.abs(((p1.x || 0) - cx) * ((p2.y || 0) - cy) - ((p2.x || 0) - cx) * ((p1.y || 0) - cy));
+                const ratio = realLen > 0 ? (effLen / realLen) : 1.0;
+                totalAdjArea += triArea * ratio;
+            }
+            recalculatedAreaFromEdges = totalAdjArea;
+        }
+
+        // 3. Quyết định diện tích áp dụng:
+        // - Nếu người dùng trực tiếp nhập override diện tích thủ công (customArea) -> ưu tiên customArea
+        // - Nếu người dùng điều chỉnh cạnh (customEdges) mà không gán customArea -> TỰ ĐỘNG TÍNH LẠI DIỆN TÍCH THEO CẠNH!
+        if (shape.customArea !== undefined && shape.customArea !== null && !isNaN(shape.customArea) && shape.customArea > 0) {
+            stats.area = parseFloat(shape.customArea);
+            stats.areaFormatted = stats.area.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            stats.ha = stats.area / 10000.0;
+            stats.haFormatted = (stats.area / 10000.0).toFixed(4);
+            stats.isCustomArea = true;
+        } else if (recalculatedAreaFromEdges !== null && recalculatedAreaFromEdges > 0) {
+            stats.area = recalculatedAreaFromEdges;
+            stats.areaFormatted = stats.area.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            stats.ha = stats.area / 10000.0;
+            stats.haFormatted = (stats.area / 10000.0).toFixed(4);
+            stats.isCustomArea = true;
+            stats.isAreaRecalculatedFromEdges = true;
+        }
+
+        // 4. Áp dụng override chu vi / chiều dài tuyến thủ công (nếu có)
         if (shape.customPerimeter !== undefined && shape.customPerimeter !== null && !isNaN(shape.customPerimeter) && shape.customPerimeter > 0) {
             stats.perimeter = parseFloat(shape.customPerimeter);
             stats.perimeterFormatted = stats.perimeter.toFixed(2);
             stats.isCustomPerimeter = true;
-        } else if (shape.customEdges && Object.keys(shape.customEdges).length > 0) {
+        } else if (hasCustomEdges) {
             // Tự động tính chu vi/chiều dài tuyến theo tổng các cạnh (bao gồm các cạnh đã sửa)
             const sumLen = stats.edges.reduce((sum, e) => sum + (e && isFinite(e.length) ? e.length : 0), 0);
             stats.perimeter = sumLen;
@@ -24121,6 +24175,17 @@ const appCadTool = {
         const modal = document.getElementById('modalCadAreaTable');
         if (modal) {
             modal.style.display = 'flex';
+            modal.classList.add('active');
+
+            // Khôi phục view mode & maximize
+            const savedMode = localStorage.getItem('vn2k_cad_table_view_mode') || 'both';
+            this.setAreaTableViewMode(savedMode);
+
+            const isMaximized = localStorage.getItem('vn2k_cad_table_maximized') === '1';
+            if (isMaximized && !this.isAreaModalMaximized) {
+                this.toggleMaximizeAreaModal();
+            }
+
             if (action === 'dwg') {
                 setTimeout(() => {
                     const exportSec = document.getElementById('cadExportDrawingName');
@@ -24129,6 +24194,124 @@ const appCadTool = {
                 }, 150);
             }
         }
+    },
+
+    closeAreaTableModal() {
+        const modal = document.getElementById('modalCadAreaTable');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+        }
+    },
+
+    toggleMaximizeAreaModal() {
+        const box = document.getElementById('cadAreaTableModalBox');
+        const iconEl = document.getElementById('lblCadTableMaximizeIcon');
+        const btnEl = document.getElementById('btnCadTableMaximize');
+        if (!box) return;
+
+        this.isAreaModalMaximized = !this.isAreaModalMaximized;
+        if (this.isAreaModalMaximized) {
+            box.style.maxWidth = '98vw';
+            box.style.width = '98vw';
+            box.style.maxHeight = '96vh';
+            box.style.height = '96vh';
+            if (iconEl) iconEl.textContent = '❐';
+            if (btnEl) btnEl.title = 'Thu nhỏ kích thước bảng kê [⛶]';
+            const spanText = btnEl?.querySelector('span:last-child');
+            if (spanText) spanText.textContent = 'Thu nhỏ';
+        } else {
+            box.style.maxWidth = '960px';
+            box.style.width = '94vw';
+            box.style.maxHeight = '92vh';
+            box.style.height = '';
+            if (iconEl) iconEl.textContent = '⛶';
+            if (btnEl) btnEl.title = 'Phóng to toàn màn hình để xem rộng rãi, không bị che khuất [⛶]';
+            const spanText = btnEl?.querySelector('span:last-child');
+            if (spanText) spanText.textContent = 'Phóng to';
+        }
+        localStorage.setItem('vn2k_cad_table_maximized', this.isAreaModalMaximized ? '1' : '0');
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+    },
+
+    setAreaTableViewMode(mode) {
+        this.areaTableViewMode = mode || 'both';
+        localStorage.setItem('vn2k_cad_table_view_mode', this.areaTableViewMode);
+
+        const btnBoth = document.getElementById('btnCadViewBoth');
+        const btnBlocks = document.getElementById('btnCadViewBlocksOnly');
+        const btnCoords = document.getElementById('btnCadViewCoordsOnly');
+        const btnSplit = document.getElementById('btnCadViewSplit');
+
+        [btnBoth, btnBlocks, btnCoords, btnSplit].forEach(b => {
+            if (b) {
+                b.style.background = 'transparent';
+                b.style.color = '#94a3b8';
+            }
+        });
+
+        const activeBtn = mode === 'blocks' ? btnBlocks : (mode === 'coords' ? btnCoords : (mode === 'split' ? btnSplit : btnBoth));
+        if (activeBtn) {
+            activeBtn.style.background = '#0284c7';
+            activeBtn.style.color = '#ffffff';
+        }
+
+        const container = document.getElementById('cadTablesMainContainer');
+        const blockSec = document.getElementById('cadBlockListSection');
+        const coordSec = document.getElementById('cadCoordTableSection');
+        const blockList = document.getElementById('cadBlockList');
+
+        if (!container || !blockSec || !coordSec) return;
+
+        // Reset display inline styles
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gridTemplateColumns = '';
+        blockSec.style.display = 'flex';
+        coordSec.style.display = 'flex';
+        if (blockList) blockList.style.maxHeight = '200px';
+
+        if (mode === 'blocks') {
+            coordSec.style.display = 'none';
+            blockSec.style.flex = '1';
+            if (blockList) blockList.style.maxHeight = '550px';
+        } else if (mode === 'coords') {
+            blockSec.style.display = 'none';
+            coordSec.style.flex = '1';
+        } else if (mode === 'split') {
+            container.style.display = 'grid';
+            container.style.gridTemplateColumns = 'minmax(330px, 1fr) minmax(420px, 1.4fr)';
+            container.style.gap = '12px';
+            blockSec.style.flex = '1';
+            coordSec.style.flex = '1';
+            if (blockList) blockList.style.maxHeight = '500px';
+        } else {
+            // mode === 'both' (dọc tiêu chuẩn, không che khuất bảng chi tiết)
+            blockSec.style.flex = '0 0 auto';
+            coordSec.style.flex = '1';
+            if (blockList) blockList.style.maxHeight = '190px';
+        }
+
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+    },
+
+    toggleSection(sectionKey) {
+        if (sectionKey === 'blocks') {
+            const bodyWrap = document.getElementById('cadBlockListBodyWrap');
+            const lblToggle = document.getElementById('lblToggleCollapseBlocks');
+            if (!bodyWrap) return;
+            const isHidden = bodyWrap.style.display === 'none';
+            bodyWrap.style.display = isHidden ? 'flex' : 'none';
+            if (lblToggle) lblToggle.textContent = isHidden ? 'Thu gọn khối' : 'Mở rộng khối';
+        } else if (sectionKey === 'coords') {
+            const wrap = document.getElementById('cadCoordTableWrap');
+            const lblToggle = document.getElementById('lblToggleCollapseCoords');
+            if (!wrap) return;
+            const isHidden = wrap.style.display === 'none';
+            wrap.style.display = isHidden ? 'block' : 'none';
+            if (lblToggle) lblToggle.textContent = isHidden ? 'Thu gọn chi tiết' : 'Mở rộng chi tiết';
+        }
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
     },
 
     // === BẢNG DANH SÁCH KHỐI 2D VỚI TÊN CHỈNH SỬA ĐƯỢC ===

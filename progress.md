@@ -9,6 +9,33 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-22] Nâng Cấp Bảng Kê MiniCAD Chống Che Khuất: Phóng To Toàn Màn Hình, 4 Chế Độ Bố Trí Bảng Linh Hoạt & Sticky Header Chống Trôi
+- **Yêu cầu từ người dùng**:
+  - `làm cho bản kê này không bị che khuất và tạo thêm kiểm thử cho chức năng này`
+- **Nguyên nhân cốt lõi gây che khuất**:
+  1. Modal `#modalCadAreaTable` trước đây có kích thước cố định `max-width: 900px; max-height: 90vh;`, khi danh sách khối nhiều hoặc bảng chi tiết đỉnh dài, hai bảng xếp chồng dọc khiến bảng chi tiết bị dồn xuống đáy và bị thanh cuộn cắt mất tầm nhìn.
+  2. Thẻ `thead` của bảng chi tiết đỉnh không được cố định (`position: sticky`), khi cuộn xem các đỉnh bên dưới thì tiêu đề cột (STT, Tên đỉnh, X, Y, Cạnh, Phương vị, Ghi chú) bị trôi mất, gây khó đối chiếu số liệu.
+  3. Thiếu cơ chế điều chỉnh bố trí cho các màn hình khác nhau (màn hình dọc di động vs màn hình rộng máy tính).
+- **Giải pháp triển khai kỹ thuật toàn diện**:
+  1. **Nút Phóng to / Thu nhỏ toàn màn hình (`#btnCadTableMaximize`)**:
+     - Nút ⛶ phóng to modal lên `98vw × 96vh`, mở rộng tối đa không gian hiển thị, loại bỏ hoàn toàn cảm giác chật chội.
+     - Tự động lưu trạng thái vào `localStorage ('vn2k_cad_table_maximized')` để người dùng không phải bấm lại mỗi lần mở.
+  2. **Thanh điều chỉnh bố trí bảng (`.cad-table-view-controls`) với 4 chế độ linh hoạt**:
+     - `📑 Xem Cả Hai (both)`: Bố trí dọc chuẩn mực, tự cân đối chiều cao của cả Bảng khối và Bảng chi tiết đỉnh.
+     - `📦 Chỉ Bảng Khối (blocks)`: Ẩn bảng chi tiết, mở rộng Bảng tổng hợp các khối & tỷ lệ diện tích % toàn màn hình (rất tiện khi cần rà soát cơ cấu đất dự án).
+     - `📍 Chỉ Bảng Chi Tiết (coords)`: Ẩn bảng khối, giải phóng 100% diện tích modal cho Bảng kê chi tiết tọa độ đỉnh & cự ly cạnh VN-2000.
+     - `🔀 Song Song 2 Cột (split)`: Bố trí dạng Grid 2 cột song song (cột trái: Bảng khối & tỷ lệ %, cột phải: Bảng chi tiết tọa độ đỉnh), cực kỳ trực quan và rộng rãi trên máy tính/máy tính bảng màn hình ngang.
+     - Tự động lưu chế độ bố trí vào `localStorage ('vn2k_cad_table_view_mode')`.
+  3. **Nút gập / mở thu gọn độc lập (`btnToggleCollapseBlocks`, `btnToggleCollapseCoords`)**:
+     - Cho phép kỹ sư thu gọn nhanh từng bảng chỉ với 1 click mà không làm xáo trộn dữ liệu.
+  4. **Sticky Header chống trôi tiêu đề cột (`.cad-sticky-thead`)**:
+     - Cố định dòng tiêu đề `th` (`position: sticky; top: 0; z-index: 10; background: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.5);`), cuộn hàng trăm đỉnh vẫn luôn nhìn rõ tiêu đề cột.
+  5. **Kiểm thử tự động**:
+     - Tạo mới `tests/cad_table_layout_unobscured.test.js` (10/10 tests PASS).
+     - Toàn bộ **267/267 bài test** trong `tests/*.test.js` PASS 100%.
+
+---
+
 ### [2026-10-21] Sửa Lỗi Chức Năng Check Chọn Thửa Trong "Bảng Kê & Thống Kê Tổng Hợp MiniCAD"
 - **Yêu cầu từ người dùng**:
   `"Bảng kê & thống kê tổng hợp MiniCAD" trong chức năng MiniCAD hiện không phản hồi ở chức năng check chọn thửa`

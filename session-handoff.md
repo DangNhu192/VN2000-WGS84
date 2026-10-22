@@ -1,6 +1,27 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-21: Sửa Dứt Điểm Lỗi Check Chọn Thửa Trong Bảng Kê & Thống Kê Tổng Hợp MiniCAD
+## Phiên hiện tại — 2026-10-22: Nâng Cấp Bảng Kê MiniCAD Chống Che Khuất: Phóng To Toàn Màn Hình, 4 Chế Độ Bố Trí Bảng Linh Hoạt & Sticky Header Chống Trôi
+- **Yêu cầu từ người dùng**:
+  - `làm cho bản kê này không bị che khuất và tạo thêm kiểm thử cho chức năng này`
+- **Đã hoàn tất**:
+  1. **Nút Phóng to / Thu nhỏ toàn màn hình (`#btnCadTableMaximize`)**:
+     - Nút ⛶ mở rộng modal lên `98vw × 96vh`, tăng không gian hiển thị lên tối đa.
+     - Tự động lưu và khôi phục trạng thái toàn màn hình với `localStorage ('vn2k_cad_table_maximized')`.
+  2. **Thanh điều chỉnh bố trí bảng (`.cad-table-view-controls`) với 4 chế độ thông minh**:
+     - `📑 Xem Cả Hai (both)`: Bố trí dọc chuẩn mực, cuộn mượt mà.
+     - `📦 Chỉ Bảng Khối (blocks)`: Phóng to Bảng tổng hợp các khối & tỷ lệ diện tích % toàn màn hình.
+     - `📍 Chỉ Bảng Chi Tiết (coords)`: Giải phóng toàn bộ chiều cao cho Bảng kê chi tiết tọa độ đỉnh & cự ly cạnh VN-2000.
+     - `🔀 Song Song 2 Cột (split)`: Bố trí dạng Grid 2 cột song song (cột 1: Bảng khối & tỷ lệ %, cột 2: Bảng chi tiết đỉnh & cạnh), cực kỳ trực quan và rộng rãi trên máy tính / tablet.
+     - Lưu trạng thái vào `localStorage ('vn2k_cad_table_view_mode')`.
+  3. **Nút gập / mở thu gọn độc lập (`btnToggleCollapseBlocks`, `btnToggleCollapseCoords`)**:
+     - Cho phép kỹ sư thu gọn nhanh từng bảng chỉ với 1 click.
+  4. **Sticky Header chống trôi tiêu đề cột (`.cad-sticky-thead`)**:
+     - Khung bảng chi tiết có `position: sticky; top: 0; z-index: 10;`, cuộn dữ liệu hàng trăm mốc vẫn luôn cố định tiêu đề cột STT, Tên đỉnh, X, Y, Cạnh, Phương vị, Ghi chú.
+  5. **Kiểm thử tự động**:
+     - Tạo mới `tests/cad_table_layout_unobscured.test.js` (10/10 tests PASS).
+     - Toàn bộ **267/267 bài test** trong `tests/*.test.js` PASS 100%.
+
+## Phiên trước — 2026-10-21: Sửa Dứt Điểm Lỗi Check Chọn Thửa Trong Bảng Kê & Thống Kê Tổng Hợp MiniCAD
 - **Yêu cầu từ người dùng**:
   `"Bảng kê & thống kê tổng hợp MiniCAD" trong chức năng MiniCAD hiện không phản hồi ở chức năng check chọn thửa`
 - **Đã hoàn tất**:
