@@ -9,6 +9,36 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-22] Sửa Lỗi Nút Xuất Dữ Liệu Không Phản Hồi & Phục Hồi Bảng Điều Khiển "Cấu Hình Thông Tin Khác Của Bản Vẽ"
+- **Yêu cầu từ người dùng**:
+  1. `file .dwg khi xuất ra đã đảm bảo cấu trúc để có thể cho phần mềm AutoCad đọc chưa?`
+  2. `kiểm tra lại tính năng xuất dữ liệu. nút bấm xuất dữ liệu ko phản hồi.`
+  3. `đã mất bảng điểuf khiển "cấu hình thông tin khác của bản vẽ", hãy bổ sung lại`
+- **Nguyên nhân cốt lõi**:
+  1. **Lỗi nút xuất dữ liệu không phản hồi tại MiniCAD (`appCadTool`)**:
+     - Khi bấm nút "Xuất bản vẽ (CAD/PDF)" trên thanh công cụ MiniCAD hoặc phím tắt `[EXP]`, hàm `appCadTool.openExportModal()` gọi `this.selectExportFormat(this._exportFormat || 'dwg')`, nhưng hàm `selectExportFormat` chưa được định nghĩa trong `appCadTool`. Điều này gây ra lỗi Runtime Exception: `TypeError: this.selectExportFormat is not a function`, làm luồng JavaScript bị dừng đột ngột, modal không hiển thị và nút bấm tê liệt hoàn toàn.
+     - Đồng thời, modal `#modalCadExportConfig` có inline CSS `style="display: none;"` nhưng hàm mở chỉ thêm class `.active` mà không thiết lập `modal.style.display = 'flex'`, khiến modal bị ẩn trên giao diện desktop.
+     - Ngoài ra, nút bấm "Xuất dữ liệu" gọi `appCadTool.executeExport()`, nhưng hàm này chưa tồn tại trong `appCadTool`.
+  2. **Bảng điều khiển "Cấu hình thông tin khác của bản vẽ" bị thiếu**:
+     - Trong modal `#modalExportData` (Sổ đo mốc & Chuyển đổi tọa độ), khối thông tin kỹ thuật địa chính TCVN 7285 trước đây bị thiếu các trường quan trọng: Chủ sở hữu/Người sử dụng đất, Số tờ/thửa đất, Địa chỉ thửa đất, Người kiểm tra/phê duyệt, Mã ký hiệu bản vẽ, Ghi chú kỹ thuật, cũng như các nút "💾 Lưu cấu hình" và "🔄 Đặt lại mặc định".
+- **Giải pháp triển khai kỹ thuật**:
+  1. **Bổ sung và chuẩn hóa toàn bộ hàm điều khiển trong `appCadTool` (`app.js`)**:
+     - Bổ sung `selectExportFormat(format)`: đồng bộ radio, highlight tile định dạng được chọn, tự động đổi nhãn và icon trên nút xuất `#btnExecuteCadExport`.
+     - Bổ sung `executeExport()`: điều hướng gọi đúng hàm xuất tương ứng định dạng đã chọn (`exportDwg`, `exportPdf`, `exportAreaExcel`, `exportOptimizedImage`, `exportDgn`, `exportKml`, `exportGeoJson`, `exportTxt`, `shareExport`).
+     - Bổ sung các phương thức xuất hoàn chỉnh cho MiniCAD: `exportDgn()` (xuất kịch bản MicroStation `.cmd` và bảng số liệu Famis `.dat`), `exportKml()` (Google Earth 3D có Polygon ranh thửa), `exportGeoJson()` (chuẩn RFC 7946 CRS84), `exportTxt()` (tọa độ toàn đạc điện tử & RTK), `shareExport()` (Web Share API & Clipboard).
+     - Cập nhật `openExportModal()` và `closeExportModal()` quản lý `modal.style.display = 'flex'` / `'none'` và `classList.add('active')` / `remove('active')` mượt mà.
+  2. **Tái thiết lập Bảng điều khiển "Cấu hình thông tin khác của bản vẽ" (TCVN 7285 & Bản đồ địa chính)**:
+     - Tích hợp đầy đủ vào cả 2 modal: `#modalExportData` (Sổ đo mốc) và `#modalCadExportConfig` (MiniCAD).
+     - Gồm 11 trường chi tiết: Tiêu đề in bản vẽ, Tên công trình/dự án, Chủ sở hữu/Người sử dụng, Đơn vị khảo sát/đo đạc, Số hiệu thửa/tờ bản đồ, Địa chỉ thửa đất, Người đo vẽ, Người kiểm tra/phê duyệt, Ngày lập, Ký hiệu mã bản vẽ, Ghi chú kỹ thuật.
+     - Thêm 2 nút thao tác: "💾 Lưu cấu hình" (lưu vào `localStorage` bền vững) và "🔄 Đặt lại" (phục hồi mặc định chuẩn kỹ thuật).
+     - Động cơ xuất AutoCAD `.dwg` và báo cáo PDF đọc và in trực tiếp các thông tin này vào khung tên (Title Block) và bảng góc ranh theo đúng quy chuẩn bản đồ địa chính Việt Nam.
+  3. **Kiểm thử tự động & kiểm chứng trực quan**:
+     - Tạo mới `tests/export_modal_and_drawing_config.test.js` (2/2 tests PASS).
+     - Toàn bộ **276/276 bài test** trong `tests/*.test.js` PASS 100%.
+     - Kiểm chứng thực tế qua Chrome DevTools: Modal mở mượt mà, bảng điều khiển hiển thị sắc nét, nút xuất bản vẽ `.dwg` phản hồi tức thì và tải file về máy thành công.
+
+---
+
 ### [2026-10-22] Nâng Cấp Bảng Kê MiniCAD Chống Che Khuất: Phóng To Toàn Màn Hình, 4 Chế Độ Bố Trí Bảng Linh Hoạt & Sticky Header Chống Trôi
 - **Yêu cầu từ người dùng**:
   - `làm cho bản kê này không bị che khuất và tạo thêm kiểm thử cho chức năng này`

@@ -9424,143 +9424,17 @@ function doGet(e) {
         svg.innerHTML = svgHtml;
     },
 
-    openExportModal() {
-        const pts = appData.getPoints(AppState.currentProject);
-        if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file!", true);
-            return;
-        }
 
-        const modal = document.getElementById('modalExportData');
-        if (!modal) return;
-
-        const projNameEl = document.getElementById('exportModalProjName');
-        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "VN2000_SoLieu_DoDac";
-        if (projNameEl) projNameEl.textContent = projName;
-
-        const kttInfoEl = document.getElementById('exportModalKttInfo');
-        if (kttInfoEl) {
-            const kttStr = AppState.kttDeg ? `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'` : "105°45'";
-            kttInfoEl.textContent = `Hệ VN-2000 • KTT: ${kttStr} • Múi 3°`;
-        }
-
-        const badgeEl = document.getElementById('exportModalPointBadge');
-        if (badgeEl) badgeEl.textContent = `${pts.length} mốc`;
-
-        // Điền trước các thông tin biểu mẫu
-        const txtProj = document.getElementById('txtExportProjectName');
-        if (txtProj && !txtProj.value) txtProj.value = projName;
-
-        const txtDate = document.getElementById('txtExportDate');
-        if (txtDate && !txtDate.value) {
-            const now = new Date();
-            txtDate.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        }
-
-        const txtSurv = document.getElementById('txtExportSurveyor');
-        if (txtSurv && !txtSurv.value) txtSurv.value = "KS. KHẢO SÁT ĐỊA CHÍNH";
-
-        this.selectExportFormat(this.selectedExportFormat || 'dwg');
-        this.renderExportPreview();
-
-        modal.style.display = 'flex';
-    },
-
-    closeExportModal() {
-        const modal = document.getElementById('modalExportData');
-        if (modal) modal.style.display = 'none';
-    },
-
-    selectExportFormat(format) {
-        this.selectedExportFormat = format;
-        const modal = document.getElementById('modalExportData');
-        if (!modal) return;
-
-        modal.querySelectorAll('.export-format-tile').forEach(tile => {
-            const isMatch = tile.getAttribute('data-format') === format;
-            tile.classList.toggle('active', isMatch);
-            const radio = tile.querySelector('input[type="radio"]');
-            if (radio) radio.checked = isMatch;
-        });
-
-        const scaleEl = document.getElementById('selExportMapScale');
-        const scaleStr = scaleEl && scaleEl.value !== 'fit' ? ` (1:${scaleEl.value})` : '';
-
-        const execBtn = document.getElementById('btnExecuteExport');
-        if (execBtn) {
-            const btnLabels = {
-                dwg: `📐 XUẤT BẢN VẼ AUTOCAD (.DWG)${scaleStr}`,
-                cad: `📐 XUẤT BẢN VẼ AUTOCAD (.DWG)${scaleStr}`,
-                excel: `📊 XUẤT BẢNG TÍNH EXCEL (.XLSX)`,
-                pdf: `📕 XUẤT BÁO CÁO KỸ THUẬT PDF (.PDF)${scaleStr}`,
-                png: `📸 XUẤT ẢNH BẢN ĐỒ PNG (.PNG)${scaleStr}`,
-                dgn: `🏛️ XUẤT MICROSTATION DGN (.DGN)${scaleStr}`,
-                kml: `🌍 XUẤT GOOGLE EARTH 3D (.KML)`,
-                geojson: `🗺️ XUẤT VECTOR GEOJSON (.GEOJSON)`,
-                svg: `🖼️ XUẤT VECTOR BẢN ĐỒ (.SVG)${scaleStr}`,
-                txt: `📑 XUẤT TỌA ĐỘ MÁY ĐO (.TXT)`,
-                csv: `📄 XUẤT FILE VĂN BẢN CSV (.CSV)`,
-                share: `📤 CHIA SẺ TRỰC TIẾP SỐ LIỆU`
-            };
-            execBtn.innerHTML = btnLabels[format] || '💾 TẢI VỀ MÁY';
-        }
-    },
-
-    executeExport() {
-        const format = this.selectedExportFormat || 'dwg';
-        this.closeExportModal();
-
-        switch (format) {
-            case 'dwg':
-            case 'cad':
-                this.exportDwgFile();
-                break;
-            case 'excel':
-                this.exportExcelFile();
-                break;
-            case 'pdf':
-                this.exportPdfFile();
-                break;
-            case 'png':
-                this.exportPngImage();
-                break;
-            case 'dgn':
-                this.exportDgnFile();
-                break;
-            case 'kml':
-                this.exportKmlFile();
-                break;
-            case 'geojson':
-                this.exportGeoJsonFile();
-                break;
-            case 'svg':
-                this.exportSvgFile();
-                break;
-            case 'txt':
-            case 'xyz':
-                this.exportTxtXyzFile();
-                break;
-            case 'csv':
-                this.exportCsvFile();
-                break;
-            case 'share':
-                this.shareCsvFile();
-                break;
-            default:
-                this.exportDwgFile();
-                break;
-        }
-    },
 
     // Xuất file CSV chuẩn UTF-8 BOM hiển thị tiếng Việt sắc nét trên Excel
     exportExcelFile() {
-        const pts = appData.getPoints(AppState.currentProject);
-        if (pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file!", true);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file Excel! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
-        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+        const projName = (this.exportContext === 'transform' ? 'KetQua_ChuyenDoi_VN2000' : (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc"));
         
         if (typeof XLSX !== 'undefined') {
             const wb = XLSX.utils.book_new();
@@ -9663,11 +9537,13 @@ function doGet(e) {
     },
 
     exportCsvFile() {
-        const pts = appData.getPoints(AppState.currentProject);
-        if (pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file!", true);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file CSV! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
+
+        const outName = (this.exportContext === 'transform' ? 'KetQua_ChuyenDoi_VN2000.csv' : (AppState.currentProject || "VN2000_SoLieu_DoDac.csv"));
 
         // Cấu trúc dữ liệu CSV 9 cột chuẩn
         const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
@@ -9694,18 +9570,19 @@ function doGet(e) {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", AppState.currentProject);
+        link.setAttribute("download", outName);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        showToast(`✓ Đã tải file: ${AppState.currentProject}`);
+        showToast(`✓ Đã tải file: ${outName}`);
     },
 
     shareCsvFile() {
-        const pts = appData.getPoints(AppState.currentProject);
-        if (pts.length === 0) return showToast("⚠️ Dự án chưa có mốc nào!", true);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
+        if (!pts || pts.length === 0) return showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để chia sẻ!", true);
+        const outName = (this.exportContext === 'transform' ? 'KetQua_ChuyenDoi_VN2000.csv' : (AppState.currentProject || "VN2000_SoLieu_DoDac.csv"));
 
         const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
         const rows = [headers.join(",")];
@@ -9777,20 +9654,107 @@ function doGet(e) {
             badgeEl.innerText = `${pts.length} ${labelSuffix}`;
         }
 
-        // Điền trước các trường thông tin nếu còn trống
+        // Khôi phục hoặc điền thông tin bảng điều khiển cấu hình bản vẽ
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val !== undefined && val !== null) el.value = val;
+        };
+
+        try {
+            const savedMetaStr = localStorage.getItem('vn2k_export_title_block');
+            const savedMeta = savedMetaStr ? JSON.parse(savedMetaStr) : null;
+            if (savedMeta) {
+                if (savedMeta.drawingTitle) setVal('txtExportDrawingTitle', savedMeta.drawingTitle);
+                if (savedMeta.projectName && this.exportContext === 'survey') setVal('txtExportProjectName', savedMeta.projectName);
+                if (savedMeta.owner) setVal('txtExportOwner', savedMeta.owner);
+                if (savedMeta.parcelNo) setVal('txtExportParcelNo', savedMeta.parcelNo);
+                if (savedMeta.address) setVal('txtExportAddress', savedMeta.address);
+                if (savedMeta.org) setVal('txtExportOrg', savedMeta.org);
+                if (savedMeta.surveyor) setVal('txtExportSurveyor', savedMeta.surveyor);
+                if (savedMeta.checker) setVal('txtExportChecker', savedMeta.checker);
+                if (savedMeta.drawingCode) setVal('txtExportDrawingCode', savedMeta.drawingCode);
+                if (savedMeta.notes) setVal('txtExportNotes', savedMeta.notes);
+                if (savedMeta.scaleVal) setVal('selExportMapScale', savedMeta.scaleVal);
+                if (savedMeta.paperSize) setVal('selExportPaperSize', savedMeta.paperSize);
+            }
+        } catch (e) {}
+
+        // Điền giá trị dự phòng nếu các trường vẫn trống
         const nameInput = document.getElementById('txtExportProjectName');
-        if (nameInput) nameInput.value = cleanProj;
+        if (nameInput && !nameInput.value) nameInput.value = cleanProj;
         const surveyorInput = document.getElementById('txtExportSurveyor');
         if (surveyorInput && !surveyorInput.value) surveyorInput.value = AppState.surveyorName || "Kỹ sư đo đạc";
         const dateInput = document.getElementById('txtExportDate');
         if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
         const orgInput = document.getElementById('txtExportOrg');
         if (orgInput && !orgInput.value) orgInput.value = "Trung tâm Trắc địa Bản đồ";
+        const titleInput = document.getElementById('txtExportDrawingTitle');
+        if (titleInput && !titleInput.value) titleInput.value = "BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT";
 
         // Mặc định chọn định dạng: Excel nếu chuyển đổi, DWG nếu bản đồ / sổ đo
-        const defaultFmt = this.exportContext === 'transform' ? 'excel' : 'dwg';
+        const defaultFmt = this.exportContext === 'transform' ? 'excel' : (this.selectedExportFormat || 'dwg');
         this.selectExportFormat(defaultFmt);
         this.updateExportPreview();
+    },
+
+    saveTitleBlockInfo(showToastMsg = false) {
+        try {
+            const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
+            const data = {
+                drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
+                projectName: getVal('txtExportProjectName'),
+                owner: getVal('txtExportOwner'),
+                parcelNo: getVal('txtExportParcelNo'),
+                address: getVal('txtExportAddress'),
+                org: getVal('txtExportOrg'),
+                surveyor: getVal('txtExportSurveyor'),
+                checker: getVal('txtExportChecker'),
+                drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
+                notes: getVal('txtExportNotes'),
+                scaleVal: document.getElementById('selExportMapScale')?.value || '1000',
+                paperSize: document.getElementById('selExportPaperSize')?.value || 'A4-L',
+                savedAt: Date.now()
+            };
+            localStorage.setItem('vn2k_export_title_block', JSON.stringify(data));
+            if (AppState.currentProject) {
+                const projKey = 'vn2k_export_meta_proj_' + AppState.currentProject.replace(/\.[^/.]+$/, "");
+                localStorage.setItem(projKey, JSON.stringify(data));
+            }
+            if (showToastMsg) {
+                triggerHaptic('success');
+                showToast('💾 Đã lưu thành công cấu hình thông tin bản vẽ kỹ thuật!');
+            }
+            return data;
+        } catch (e) {
+            console.warn('Lỗi khi lưu cấu hình bản vẽ:', e);
+            return null;
+        }
+    },
+
+    resetTitleBlockInfo() {
+        if (!confirm('Bạn có muốn đặt lại cấu hình thông tin bản vẽ về mặc định không?')) return;
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        };
+        const curProj = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "VN2000_SoLieu_DoDac";
+        setVal('txtExportDrawingTitle', 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
+        setVal('txtExportProjectName', curProj);
+        setVal('txtExportOwner', '');
+        setVal('txtExportParcelNo', '');
+        setVal('txtExportAddress', AppState.provinceName || '');
+        setVal('txtExportOrg', 'Trung tâm Trắc địa Bản đồ');
+        setVal('txtExportSurveyor', AppState.surveyorName || 'Kỹ sư đo đạc');
+        setVal('txtExportChecker', '');
+        setVal('txtExportDrawingCode', 'SĐ-01/01');
+        setVal('txtExportNotes', '');
+        localStorage.removeItem('vn2k_export_title_block');
+        if (AppState.currentProject) {
+            const projKey = 'vn2k_export_meta_proj_' + AppState.currentProject.replace(/\.[^/.]+$/, "");
+            localStorage.removeItem(projKey);
+        }
+        triggerHaptic('selection');
+        showToast('✓ Đã đặt lại cấu hình thông tin bản vẽ về mặc định');
     },
 
     closeExportModal() {
@@ -9837,17 +9801,21 @@ function doGet(e) {
             north: getChk('chkExportNorth')
         };
 
-        const nameInput = document.getElementById('txtExportProjectName');
-        const surveyorInput = document.getElementById('txtExportSurveyor');
-        const dateInput = document.getElementById('txtExportDate');
-        const orgInput = document.getElementById('txtExportOrg');
+        const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
         const selRadio = document.querySelector('input[name="exportFormatRadio"]:checked');
 
         const meta = {
-            projectName: nameInput && nameInput.value.trim() ? nameInput.value.trim() : (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn"),
-            surveyor: surveyorInput && surveyorInput.value.trim() ? surveyorInput.value.trim() : "Kỹ sư đo đạc",
-            drawingDate: dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split('T')[0],
-            org: orgInput && orgInput.value.trim() ? orgInput.value.trim() : "Trung tâm Trắc địa",
+            drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
+            projectName: getVal('txtExportProjectName') || (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn"),
+            owner: getVal('txtExportOwner'),
+            parcelNo: getVal('txtExportParcelNo'),
+            address: getVal('txtExportAddress'),
+            surveyor: getVal('txtExportSurveyor') || "Kỹ sư đo đạc",
+            checker: getVal('txtExportChecker'),
+            drawingDate: getVal('txtExportDate') || new Date().toISOString().split('T')[0],
+            org: getVal('txtExportOrg') || "Trung tâm Trắc địa Bản đồ",
+            drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
+            notes: getVal('txtExportNotes'),
             format: selRadio ? selRadio.value : 'dwg'
         };
 
@@ -9866,7 +9834,8 @@ function doGet(e) {
         return 10000;
     },
 
-    selectExportFormat(fmt) {
+    selectExportFormat(format) {
+        const fmt = format;
         const radio = document.querySelector(`input[name="exportFormatRadio"][value="${fmt}"]`);
         if (radio) radio.checked = true;
 
@@ -10152,9 +10121,9 @@ function doGet(e) {
 
     // 1. Xuất Báo Cáo Kỹ Thuật PDF (.pdf) khổ A4/A3 chuẩn TCVN có sơ đồ mốc
     exportPdfFile() {
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất báo cáo PDF!", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất báo cáo PDF! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
@@ -10394,9 +10363,9 @@ function doGet(e) {
 
     // 2. Xuất Ảnh Bản Đồ Sơ Đồ Mốc PNG (.png) Full HD sắc nét theo tỷ lệ
     exportPngImage() {
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất ảnh PNG!", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất ảnh PNG! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
@@ -10649,9 +10618,9 @@ function doGet(e) {
 
     // 3. Xuất Tệp Dữ Liệu Vector GeoJSON (.geojson) Chuẩn OGC RFC 7946
     exportGeoJsonFile() {
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất GeoJSON!", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất GeoJSON! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
@@ -10745,9 +10714,9 @@ function doGet(e) {
 
     // 4. Xuất Bản Vẽ Vector SVG (.svg) Đồ Họa Sắc Nét Chuẩn W3C
     exportSvgFile() {
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file SVG!", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file SVG! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
@@ -10815,9 +10784,9 @@ function doGet(e) {
 
     // 5. Xuất Tệp MicroStation DGN & Famis (.dat / .cmd / .dgn) Địa Chính Chuẩn Bộ TN&MT
     exportDgnFile() {
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file MicroStation DGN & Famis!", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file MicroStation DGN & Famis! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
@@ -10909,9 +10878,9 @@ function doGet(e) {
 
     // 6. Xuất Tệp Tọa Độ Máy Đo Toàn Đạc TXT / XYZ (.txt)
     exportTxtXyzFile() {
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file máy đo!", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file máy đo! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
@@ -10946,9 +10915,9 @@ function doGet(e) {
     // 7. Xuất Bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính TCVN 7285 & Thông tư 25/2014/TT-BTNMT
     // Khắc phục triệt để lỗi "Missing symbol table" - Chuẩn 100% Autodesk AC1015
     exportDwgFile() {
-        const pts = appData.getPoints(AppState.currentProject);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file bản vẽ AutoCAD (.dwg)!", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file bản vẽ AutoCAD (.dwg)! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
@@ -11209,13 +11178,13 @@ function doGet(e) {
     },
 
     exportKmlFile() {
-        const pts = appData.getPoints(AppState.currentProject);
-        if (pts.length === 0) {
-            showToast("⚠️ Dự án hiện chưa có mốc nào để xuất file KML!", true);
+        const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file KML! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
 
-        const projName = AppState.currentProject.replace(/\.[^/.]+$/, "");
+        const projName = (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc");
         let kml = `<?xml version="1.0" encoding="UTF-8"?>\r\n<kml xmlns="http://www.opengis.net/kml/2.2">\r\n<Document>\r\n<name>${projName}</name>\r\n`;
         kml += `<Style id="pointStyle"><IconStyle><color>ff00ff00</color><scale>1.1</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\r\n`;
         kml += `<Style id="lineStyle"><LineStyle><color>ff00ffff</color><width>3</width></LineStyle><PolyStyle><color>4000ffff</color></PolyStyle></Style>\r\n`;
@@ -23110,7 +23079,10 @@ const appCadTool = {
         }
 
         const modal = document.getElementById('modalCadExportConfig');
-        if (modal) modal.classList.add('active');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
 
         // Reset bộ lọc tìm kiếm khối
         const filterInput = document.getElementById('txtFilterExportBlocks');
@@ -23170,6 +23142,186 @@ const appCadTool = {
             this.checkScalePaperFit();
             this.renderExportPreview();
         }, 50);
+    },
+
+    selectExportFormat(fmt) {
+        if (!fmt) fmt = 'dwg';
+        this._exportFormat = fmt;
+        const modal = document.getElementById('modalCadExportConfig');
+        if (modal) {
+            modal.querySelectorAll('.cad-export-format-tile').forEach(tile => {
+                if (tile.getAttribute('data-format') === fmt) {
+                    tile.classList.add('active');
+                    tile.style.background = 'rgba(2, 132, 199, 0.2)';
+                    tile.style.borderColor = '#0284c7';
+                } else {
+                    tile.classList.remove('active');
+                    tile.style.background = 'rgba(30, 41, 59, 0.55)';
+                    tile.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                }
+            });
+            const radio = modal.querySelector(`input[name="cadExportFormatRadio"][value="${fmt}"]`);
+            if (radio) radio.checked = true;
+        }
+
+        const btn = document.getElementById('btnExecuteCadExport');
+        if (btn) {
+            const labels = {
+                dwg: '🚀 XUẤT BẢN VẼ AUTOCAD (.DWG)',
+                dgn: '🏛️ XUẤT FAMIS & MICROSTATION (.DAT/.CMD)',
+                pdf: '📕 XUẤT BÁO CÁO KỸ THUẬT PDF (.PDF)',
+                excel: '📊 XUẤT BẢNG KÊ DIỆN TÍCH (.XLSX)',
+                svg: '🖼️ XUẤT BẢN VẼ VECTOR SVG (.SVG)',
+                png: '📷 XUẤT BẢN VẼ HÌNH ẢNH (.PNG)',
+                kml: '🌍 XUẤT GOOGLE EARTH 3D (.KML)',
+                geojson: '🗺️ XUẤT VECTOR KHÔNG GIAN (.GEOJSON)',
+                txt: '📑 XUẤT TỌA ĐỘ TOÀN ĐẠC (.TXT)',
+                csv: '📄 XUẤT FILE VĂN BẢN CSV (.CSV)',
+                share: '📤 CHIA SẺ BẢN VẼ NGAY'
+            };
+            btn.innerHTML = labels[fmt] || '🚀 XUẤT BẢN VẼ AUTOCAD (.DWG)';
+        }
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+    },
+
+    executeExport() {
+        const fmt = this._exportFormat || 'dwg';
+        switch (fmt) {
+            case 'dwg':
+                return this.exportDwg();
+            case 'dgn':
+                return this.exportDgn();
+            case 'pdf':
+                return this.exportPdf();
+            case 'excel':
+                return this.exportAreaExcel('xlsx');
+            case 'svg':
+                return this.exportSvg();
+            case 'png':
+                return this.exportPng();
+            case 'kml':
+                return this.exportKml();
+            case 'geojson':
+                return this.exportGeoJson();
+            case 'txt':
+                return this.exportTxt();
+            case 'csv':
+                return this.exportAreaCsv();
+            case 'share':
+                return this.shareExport();
+            default:
+                return this.exportDwg();
+        }
+    },
+
+    onExportSettingChange() {
+        const scaleVal = document.getElementById('cadExportScale')?.value || 'auto';
+        const scaleTag = document.getElementById('cadExportPreviewScaleTag');
+        if (scaleTag) {
+            scaleTag.textContent = (scaleVal === 'auto') ? 'Tỷ lệ Tự động' : (scaleVal === 'fit' ? 'Vừa khung nhìn' : `Tỉ lệ 1:${scaleVal}`);
+        }
+        this.checkScalePaperFit();
+        this.renderExportPreview();
+    },
+
+    renderExportPreview() {
+        const svg = document.getElementById('cadExportPreviewSvg');
+        if (!svg) return;
+
+        const allShapes = this._getAllExportShapes();
+        const selectedShapes = allShapes.filter(s => s.selected !== false);
+        if (selectedShapes.length === 0) {
+            svg.innerHTML = `
+                <text x="300" y="180" text-anchor="middle" fill="#64748b" font-size="13" font-family="sans-serif">
+                    ⚠️ Chưa có khối nào được chọn để xem trước bản vẽ
+                </text>`;
+            return;
+        }
+
+        const meta = this._getExportMeta();
+        const L = this._calculatePaperLayout(selectedShapes, meta);
+
+        // Cập nhật thống kê HUD
+        let totalArea = 0, totalPerim = 0;
+        selectedShapes.forEach(s => {
+            if (s.stats?.area) totalArea += s.stats.area;
+            if (s.stats?.perimeter) totalPerim += s.stats.perimeter;
+        });
+
+        const spanEl = document.getElementById('cadStatExportSpan');
+        const perimEl = document.getElementById('cadStatExportPerim');
+        const areaEl = document.getElementById('cadStatExportArea');
+        const countEl = document.getElementById('cadStatExportCount');
+        const projEl = document.getElementById('cadExportModalProjName');
+
+        if (spanEl) spanEl.textContent = `${L.spanCadX.toFixed(1)} × ${L.spanCadY.toFixed(1)} m`;
+        if (perimEl) perimEl.textContent = `${totalPerim.toFixed(1)} m`;
+        if (areaEl) areaEl.textContent = `${totalArea.toFixed(1)} m²`;
+        if (countEl) countEl.textContent = `${selectedShapes.length} khối`;
+        if (projEl) projEl.textContent = meta.projectName || (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Bản Vẽ Mặt Bằng MiniCAD");
+
+        // Vẽ SVG xem trước tỷ lệ thực
+        const W_svg = 600, H_svg = 360;
+        const pad = 20;
+        const drawW = W_svg - pad * 2;
+        const drawH = H_svg - pad * 2;
+
+        const scaleX = drawW / (L.spanCadX || 1);
+        const scaleY = drawH / (L.spanCadY || 1);
+        const k = Math.min(scaleX, scaleY) * 0.88;
+
+        const midX = (L.minCadX + L.maxCadX) / 2;
+        const midY = (L.minCadY + L.maxCadY) / 2;
+        const toSvgX = (x) => (W_svg / 2 + (x - midX) * k);
+        const toSvgY = (y) => (H_svg / 2 - (y - midY) * k);
+
+        let svgContent = `
+            <defs>
+                <pattern id="cadGridPat" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="20" y2="0" stroke="rgba(148,163,184,0.08)" stroke-width="0.5"/>
+                    <line x1="0" y1="0" x2="0" y2="20" stroke="rgba(148,163,184,0.08)" stroke-width="0.5"/>
+                </pattern>
+            </defs>
+            <rect width="${W_svg}" height="${H_svg}" fill="#070b14"/>
+            <rect width="${W_svg}" height="${H_svg}" fill="url(#cadGridPat)"/>
+            <!-- Khung giấy tỷ lệ -->
+            <rect x="${pad}" y="${pad}" width="${drawW}" height="${drawH}" fill="none" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1.2" stroke-dasharray="4,4" rx="4"/>
+            <text x="${pad + 6}" y="${pad + 14}" fill="#38bdf8" font-size="9" font-weight="bold" font-family="sans-serif">KHỔ GIẤY ${L.W_paper === 420 ? 'A3' : 'A4'} • TỶ LỆ 1:${L.scaleVal}</text>
+        `;
+
+        // Render từng khối/thửa
+        selectedShapes.forEach((s, idx) => {
+            const pts = (s.vertices || []).map(v => `${toSvgX(v.x).toFixed(1)},${toSvgY(v.y).toFixed(1)}`).join(' ');
+            const color = s.color || '#38bdf8';
+            if (s.mode === 'polygon' && pts) {
+                svgContent += `<polygon points="${pts}" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/>`;
+            } else if (pts) {
+                svgContent += `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>`;
+            }
+
+            // Điểm đỉnh và nhãn
+            (s.vertices || []).forEach((v, vIdx) => {
+                const sx = toSvgX(v.x);
+                const sy = toSvgY(v.y);
+                svgContent += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="3" fill="#ef4444" stroke="#ffffff" stroke-width="1"/>`;
+                svgContent += `<text x="${(sx + 5).toFixed(1)}" y="${(sy - 4).toFixed(1)}" fill="#f8fafc" font-size="8.5" font-weight="600" font-family="sans-serif">${v.name || (vIdx + 1)}</text>`;
+            });
+
+            // Tên thửa / diện tích ở tâm
+            if (s.stats?.centroid && s.mode === 'polygon') {
+                const cx = toSvgX(s.stats.centroid.x);
+                const cy = toSvgY(s.stats.centroid.y);
+                const areaStr = s.stats.area ? `${s.stats.area.toFixed(1)} m²` : '';
+                svgContent += `
+                    <g transform="translate(${cx.toFixed(1)}, ${cy.toFixed(1)})">
+                        <rect x="-35" y="-14" width="70" height="26" rx="4" fill="rgba(15, 23, 42, 0.85)" stroke="${color}" stroke-width="0.8"/>
+                        <text x="0" y="-2" text-anchor="middle" fill="#facc15" font-size="9" font-weight="bold" font-family="sans-serif">${s.name || ('Khối ' + (idx + 1))}</text>
+                        <text x="0" y="9" text-anchor="middle" fill="#e2e8f0" font-size="7.5" font-family="sans-serif">${areaStr}</text>
+                    </g>`;
+            }
+        });
+
+        svg.innerHTML = svgContent;
     },
 
     saveTitleBlockInfo(showToastMsg = false) {
@@ -23238,7 +23390,10 @@ const appCadTool = {
 
     closeExportModal() {
         const modal = document.getElementById('modalCadExportConfig');
-        if (modal) modal.classList.remove('active');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+        }
     },
 
     filterExportBlocks(keyword) {
@@ -29987,6 +30142,221 @@ const appCadTool = {
         if (btn) {
             const ext = (fmt === 'jpeg') ? 'jpg' : fmt;
             btn.innerHTML = `⚡ Ảnh Tối Ưu (.${ext})`;
+        }
+    },
+
+    exportDgn() {
+        const allShapes = this._getAllExportShapes();
+        const selectedShapes = allShapes.filter(s => s.selected !== false);
+        if (selectedShapes.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất tệp MicroStation & Famis!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
+        let dat = "\uFEFF";
+        dat += "# SỐ LIỆU ĐO ĐẠC ĐỊA CHÍNH TỰ ĐỘNG - FAMIS & MICROSTATION\r\n";
+        dat += `# Dự án: ${projName} | KTT: ${AppState.kttVal || 105.75}° | Múi: ${AppState.zoneVal || 3}°\r\n`;
+        dat += "# STT   TÊN_ĐIỂM      X(m)         Y(m)        H(m)    LOẠI\r\n";
+
+        let cmd = `# KỊCH BẢN KEY-IN VẼ TỰ ĐỘNG TRÊN MICROSTATION SE / V8 / FAMIS\r\n# Chạy bằng lệnh: @${projName}.cmd\r\n\r\n`;
+        cmd += "active level 10\r\nactive color 3\r\nactive weight 1\r\n";
+
+        let pIdx = 1;
+        selectedShapes.forEach((s, sIdx) => {
+            cmd += `\r\n# --- Vẽ thửa/khối: ${s.name || (sIdx + 1)} ---\r\n`;
+            cmd += "place shape\r\n";
+            (s.vertices || []).forEach(v => {
+                const x = (v.x || 0).toFixed(3);
+                const y = (v.y || 0).toFixed(3);
+                dat += `${String(pIdx++).padEnd(6)} ${String(v.name || ('D' + pIdx)).padEnd(12)} ${x.padStart(12)} ${y.padStart(12)} 0.000   RANH\r\n`;
+                cmd += `xy=${y},${x}\r\n`;
+            });
+            if (s.vertices && s.vertices.length > 0) {
+                const first = s.vertices[0];
+                cmd += `xy=${(first.y || 0).toFixed(3)},${(first.x || 0).toFixed(3)}\r\n`;
+            }
+            cmd += "reset\r\n";
+        });
+
+        const blobCmd = new Blob([cmd], { type: "text/plain;charset=utf-8;" });
+        const urlCmd = URL.createObjectURL(blobCmd);
+        const aCmd = document.createElement("a");
+        aCmd.href = urlCmd;
+        aCmd.download = `${projName}_MicroStation_Script.cmd`;
+        document.body.appendChild(aCmd);
+        aCmd.click();
+        document.body.removeChild(aCmd);
+        URL.revokeObjectURL(urlCmd);
+
+        const blobDat = new Blob([dat], { type: "text/plain;charset=utf-8;" });
+        const urlDat = URL.createObjectURL(blobDat);
+        const aDat = document.createElement("a");
+        aDat.href = urlDat;
+        aDat.download = `${projName}_Famis_Data.dat`;
+        document.body.appendChild(aDat);
+        aDat.click();
+        document.body.removeChild(aDat);
+        URL.revokeObjectURL(urlDat);
+
+        showToast("✓ Đã xuất thành công bộ tệp Famis (.dat) & Kịch bản MicroStation (.cmd)!");
+    },
+
+    exportKml() {
+        const allShapes = this._getAllExportShapes();
+        const selectedShapes = allShapes.filter(s => s.selected !== false);
+        if (selectedShapes.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất Google Earth KML!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
+        let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${projName} - Bản Đồ Ranh Thửa VN2000</name>
+    <Style id="polyStyle">
+      <LineStyle><color>ff00ffff</color><width>2.5</width></LineStyle>
+      <PolyStyle><color>4d00aaff</color></PolyStyle>
+    </Style>`;
+
+        selectedShapes.forEach((s, idx) => {
+            const coordsKml = (s.vertices || []).map(v => `${(v.lng || 0).toFixed(7)},${(v.lat || 0).toFixed(7)},0`).join(' ');
+            const first = (s.vertices && s.vertices[0]) ? `${(s.vertices[0].lng || 0).toFixed(7)},${(s.vertices[0].lat || 0).toFixed(7)},0` : '';
+            kml += `
+    <Placemark>
+      <name>${s.name || ('Khối ' + (idx + 1))}</name>
+      <description><![CDATA[Diện tích: ${(s.stats?.area || 0).toFixed(2)} m²<br>Chu vi: ${(s.stats?.perimeter || 0).toFixed(2)} m]]></description>
+      <styleUrl>#polyStyle</styleUrl>
+      <Polygon>
+        <extrude>1</extrude>
+        <altitudeMode>clampToGround</altitudeMode>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>${coordsKml} ${first}</coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>`;
+        });
+
+        kml += `
+  </Document>
+</kml>`;
+
+        const blob = new Blob([kml], { type: "application/vnd.google-earth.kml+xml;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${projName}_GoogleEarth.kml`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("✓ Đã xuất tệp Google Earth 3D (.kml)");
+    },
+
+    exportGeoJson() {
+        const allShapes = this._getAllExportShapes();
+        const selectedShapes = allShapes.filter(s => s.selected !== false);
+        if (selectedShapes.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất GeoJSON!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
+        const features = [];
+
+        selectedShapes.forEach((s, idx) => {
+            const ring = (s.vertices || []).map(v => [+(v.lng || 0).toFixed(7), +(v.lat || 0).toFixed(7)]);
+            if (ring.length > 0) ring.push([...ring[0]]);
+            features.push({
+                type: "Feature",
+                properties: {
+                    name: s.name || `Khối ${idx + 1}`,
+                    area_m2: +(s.stats?.area || 0).toFixed(2),
+                    perimeter_m: +(s.stats?.perimeter || 0).toFixed(2),
+                    vertices_count: s.vertices?.length || 0
+                },
+                geometry: {
+                    type: "Polygon",
+                    coordinates: [ring]
+                }
+            });
+        });
+
+        const geojson = {
+            type: "FeatureCollection",
+            name: projName,
+            crs: { type: "name", properties: { name: "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+            features: features
+        };
+
+        const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/geo+json;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${projName}_Vector.geojson`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("✓ Đã xuất tệp GeoJSON RFC 7946");
+    },
+
+    exportTxt() {
+        const allShapes = this._getAllExportShapes();
+        const selectedShapes = allShapes.filter(s => s.selected !== false);
+        if (selectedShapes.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất tệp tọa độ toàn đạc!", true);
+            return;
+        }
+
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
+        let txt = "# TỌA ĐỘ CÁC ĐỈNH RANH THỬA CHO MÁY TOÀN ĐẠC ĐIỆN TỬ & RTK\r\n";
+        txt += `# Dự án: ${projName} | KTT: ${AppState.kttVal || 105.75}° | Múi: ${AppState.zoneVal || 3}°\r\n`;
+        txt += "# STT,X(Bắc),Y(Đông),CaoĐộ(H),TênĐỉnh,GhiChú\r\n";
+
+        let idx = 1;
+        selectedShapes.forEach((s, sIdx) => {
+            (s.vertices || []).forEach(v => {
+                txt += `${idx++},${(v.x || 0).toFixed(3)},${(v.y || 0).toFixed(3)},0.000,${v.name || ('D' + idx)},${s.name || ('Thua_' + (sIdx + 1))}\r\n`;
+            });
+        });
+
+        const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${projName}_ToaDo_ToanDac.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("✓ Đã xuất tệp tọa độ máy toàn đạc (.txt)");
+    },
+
+    shareExport() {
+        const allShapes = this._getAllExportShapes();
+        const selectedShapes = allShapes.filter(s => s.selected !== false);
+        if (selectedShapes.length === 0) return showToast("⚠️ Chưa có khối nào để chia sẻ!", true);
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
+
+        let totalArea = 0;
+        selectedShapes.forEach(s => { if (s.stats?.area) totalArea += s.stats.area; });
+
+        const shareText = `📍 SỐ LIỆU MẶT BẰNG & RANH THỬA MINICAD\nDự án: ${projName}\nSố khối: ${selectedShapes.length}\nTổng diện tích: ${totalArea.toFixed(1)} m²\nHệ VN-2000 (KTT ${AppState.kttVal}°)\nXuất từ phần mềm VN2000 Pro`;
+
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            navigator.share({
+                title: `${projName} - Mặt Bằng MiniCAD`,
+                text: shareText
+            }).then(() => showToast("✓ Đã chia sẻ thành công!"))
+              .catch(() => {});
+        } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(shareText).then(() => {
+                showToast("✓ Đã sao chép nội dung tóm tắt mặt bằng vào bộ nhớ tạm để gửi Zalo/Email!");
+            });
         }
     }
 };
