@@ -17489,21 +17489,38 @@ const appCadTool = {
     },
 
     toggleBlockSelect(idx, isChecked) {
+        let shapeName = '';
         if (this.savedShapes && this.savedShapes[idx]) {
             this.savedShapes[idx].selected = isChecked;
+            shapeName = this.savedShapes[idx].name || this.savedShapes[idx].shortName || `Khối #${idx + 1}`;
         } else if (this.vertices && this.vertices.length >= 2 && idx === (this.savedShapes ? this.savedShapes.length : 0)) {
             this._draftSelected = isChecked;
+            shapeName = 'Khối đang vẽ dở';
         }
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
         this.renderBlocksPanel();
-        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+
+        const modal = document.getElementById('modalCadAreaTable');
+        const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+        if (isModalOpen) {
+            const cadBlockList = document.getElementById('cadBlockList');
+            const scrollBlockList = cadBlockList ? cadBlockList.scrollTop : 0;
+            const scrollModal = modal.querySelector('.modal-box') ? modal.querySelector('.modal-box').scrollTop : 0;
+
             this.openAreaTableModal();
+
+            if (cadBlockList) cadBlockList.scrollTop = scrollBlockList;
+            if (modal.querySelector('.modal-box')) modal.querySelector('.modal-box').scrollTop = scrollModal;
         }
+
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+        showToast(isChecked ? `✓ Đã chọn khối [${shapeName}]` : `👁️ Đã bỏ chọn khối [${shapeName}] (Không tính tổng)`);
     },
 
     toggleSelectAllBlocks(isChecked) {
+        const total = (this.savedShapes ? this.savedShapes.length : 0) + (this.vertices && this.vertices.length >= 2 ? 1 : 0);
         if (this.savedShapes) {
             this.savedShapes.forEach(s => s.selected = isChecked);
         }
@@ -17512,9 +17529,22 @@ const appCadTool = {
         this.persistSession();
         this.renderGeometry();
         this.renderBlocksPanel();
-        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+
+        const modal = document.getElementById('modalCadAreaTable');
+        const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+        if (isModalOpen) {
+            const cadBlockList = document.getElementById('cadBlockList');
+            const scrollBlockList = cadBlockList ? cadBlockList.scrollTop : 0;
+            const scrollModal = modal.querySelector('.modal-box') ? modal.querySelector('.modal-box').scrollTop : 0;
+
             this.openAreaTableModal();
+
+            if (cadBlockList) cadBlockList.scrollTop = scrollBlockList;
+            if (modal.querySelector('.modal-box')) modal.querySelector('.modal-box').scrollTop = scrollModal;
         }
+
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+        showToast(isChecked ? `✓ Đã chọn tất cả (${total}/${total} khối)` : `👁️ Đã bỏ chọn toàn bộ các khối (0/${total})`);
     },
 
     editBlockArea(idx, newAreaVal) {
@@ -20030,7 +20060,8 @@ const appCadTool = {
             mode: this.mode,
             vertices: [...this.vertices],
             stats: stats,
-            color: color
+            color: color,
+            selected: true
         });
 
         this.vertices = [];
@@ -23996,16 +24027,26 @@ const appCadTool = {
                 const isSelected = shape.selected !== false;
 
                 html += `
-                    <tr style="background: rgba(15, 23, 42, 0.95); border-top: 2px solid ${shape.color}; opacity: ${isSelected ? '1' : '0.55'};">
-                        <td colspan="7" style="color: ${shape.color}; font-weight: 800; font-size: 11.5px; padding: 7px 10px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-                                <span>📁 ${shape.name} [${isPoly ? 'Đa giác' : 'Tuyến'}] • S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m</span>
+                    <tr style="background: rgba(15, 23, 42, 0.95); border-top: 2px solid ${shape.color}; opacity: ${isSelected ? '1' : '0.65'};">
+                        <td colspan="7" style="padding: 7px 10px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;" title="${isSelected ? 'Nhấp để bỏ chọn khối này' : 'Nhấp để chọn khối này'}">
+                                    <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                                        onchange="appCadTool.toggleBlockSelect(${shapeIdx}, this.checked)"
+                                        onclick="event.stopPropagation();"
+                                        style="accent-color: #38bdf8; width: 16px; height: 16px; cursor: pointer; flex: none;">
+                                    <span style="color: ${isSelected ? shape.color : '#94a3b8'}; font-weight: 800; font-size: 12px;">📁 ${shape.name} [${isPoly ? 'Đa giác' : 'Tuyến'}] • S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m</span>
+                                </label>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     ${!isSelected ? `
-                                        <span style="font-size: 10px; color: #94a3b8; background: rgba(100,116,139,0.25); border: 1px solid rgba(100,116,139,0.4); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                                        <span style="font-size: 10px; color: #f87171; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700;">
                                             👁️ Bỏ chọn (Không tính tổng)
                                         </span>
-                                    ` : ''}
+                                    ` : `
+                                        <span style="font-size: 10px; color: #4ade80; background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700;">
+                                            ✅ Đang chọn tính tổng
+                                        </span>
+                                    `}
                                     ${(shape.customArea !== undefined || shape.customPerimeter !== undefined || hasCustomEdge) ? `
                                         <span style="font-size: 10px; color: #facc15; background: rgba(250,204,21,0.15); border: 1px solid rgba(250,204,21,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
                                             ✏️ Số liệu đã tùy chỉnh (Bấm "Tự động đo" để khôi phục)
@@ -24016,37 +24057,49 @@ const appCadTool = {
                         </td>
                     </tr>
                 `;
-                shape.vertices.forEach((v, idx) => {
-                    const edge = shape.stats?.edges ? shape.stats.edges[idx] : null;
-                    const azStr = edge ? edge.azFormatted : '--';
-                    const noteStr = v.isSnapped ? `<span style="color:#fbbf24;">🧲 ${v.snapSource || 'Hít mốc'}</span>` : '<span style="color:#94a3b8;">Vẽ tự do</span>';
 
-                    let edgeCell = '<span style="color:#64748b;">--</span>';
-                    if (edge) {
-                        const isEdgeCustom = edge.isCustom;
-                        edgeCell = `
-                            <div style="display:inline-flex; align-items:center; justify-content:flex-end; gap:3px;">
-                                <input type="number" step="0.01" value="${edge.length !== undefined ? edge.length.toFixed(2) : ''}"
-                                    style="width:72px; height:22px; font-size:11px; font-weight:700; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; background:${isEdgeCustom ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${isEdgeCustom ? 'rgba(250,204,21,0.5)' : 'rgba(110,231,183,0.35)'}; border-radius:4px; padding:0 4px; text-align:right; font-family:ui-monospace, monospace;"
-                                    ${(isShapeActive || sIdx < 0) ? 'readonly' : `onchange="appCadTool.editEdgeLength(${sIdx}, ${idx}, this.value)"`}
-                                    title="${isShapeActive ? 'Khối đang vẽ dở' : 'Chỉnh sửa cự ly cạnh (làm đẹp số liệu báo cáo)'}">
-                                <span style="font-size:10px; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; font-weight:600;">m</span>
-                            </div>
-                        `;
-                    }
-
+                if (!isSelected) {
                     html += `
-                        <tr style="opacity: ${isSelected ? '1' : '0.4'};">
-                            <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
-                            <td style="text-align: left; font-weight: 700; color: #38bdf8;">${v.name}</td>
-                            <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.x || 0).toFixed(3)}</td>
-                            <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.y || 0).toFixed(3)}</td>
-                            <td style="text-align: right; padding-right: 8px;">${edgeCell}</td>
-                            <td style="text-align: right; padding-right: 12px; color: #cbd5e1; font-family: ui-monospace, monospace;">${azStr}</td>
-                            <td style="text-align: center; font-size: 10px;">${noteStr}</td>
+                        <tr style="background: rgba(15, 23, 42, 0.45); opacity: 0.75;">
+                            <td colspan="7" style="text-align: center; color: #94a3b8; font-size: 11px; padding: 6px 10px;">
+                                👁️ Khối này đã được bỏ chọn (${shape.vertices.length} đỉnh không tính vào tổng diện tích). 
+                                <button type="button" class="btn-sm" style="height: 20px; padding: 0 8px; font-size: 10.5px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; cursor: pointer; margin-left: 6px;" onclick="appCadTool.toggleBlockSelect(${shapeIdx}, true)">☑️ Chọn lại khối này</button>
+                            </td>
                         </tr>
                     `;
-                });
+                } else {
+                    shape.vertices.forEach((v, idx) => {
+                        const edge = shape.stats?.edges ? shape.stats.edges[idx] : null;
+                        const azStr = edge ? edge.azFormatted : '--';
+                        const noteStr = v.isSnapped ? `<span style="color:#fbbf24;">🧲 ${v.snapSource || 'Hít mốc'}</span>` : '<span style="color:#94a3b8;">Vẽ tự do</span>';
+
+                        let edgeCell = '<span style="color:#64748b;">--</span>';
+                        if (edge) {
+                            const isEdgeCustom = edge.isCustom;
+                            edgeCell = `
+                                <div style="display:inline-flex; align-items:center; justify-content:flex-end; gap:3px;">
+                                    <input type="number" step="0.01" value="${edge.length !== undefined ? edge.length.toFixed(2) : ''}"
+                                        style="width:72px; height:22px; font-size:11px; font-weight:700; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; background:${isEdgeCustom ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${isEdgeCustom ? 'rgba(250,204,21,0.5)' : 'rgba(110,231,183,0.35)'}; border-radius:4px; padding:0 4px; text-align:right; font-family:ui-monospace, monospace;"
+                                        ${(isShapeActive || sIdx < 0) ? 'readonly' : `onchange="appCadTool.editEdgeLength(${sIdx}, ${idx}, this.value)"`}
+                                        title="${isShapeActive ? 'Khối đang vẽ dở' : 'Chỉnh sửa cự ly cạnh (làm đẹp số liệu báo cáo)'}">
+                                    <span style="font-size:10px; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; font-weight:600;">m</span>
+                                </div>
+                            `;
+                        }
+
+                        html += `
+                            <tr>
+                                <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
+                                <td style="text-align: left; font-weight: 700; color: #38bdf8;">${v.name}</td>
+                                <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.x || 0).toFixed(3)}</td>
+                                <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.y || 0).toFixed(3)}</td>
+                                <td style="text-align: right; padding-right: 8px;">${edgeCell}</td>
+                                <td style="text-align: right; padding-right: 12px; color: #cbd5e1; font-family: ui-monospace, monospace;">${azStr}</td>
+                                <td style="text-align: center; font-size: 10px;">${noteStr}</td>
+                            </tr>
+                        `;
+                    });
+                }
             });
 
             if (allShapes.length > 1) {
