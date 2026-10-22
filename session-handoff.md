@@ -1,25 +1,30 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-22: Nâng Cấp Bảng Kê MiniCAD Chống Che Khuất: Phóng To Toàn Màn Hình, 4 Chế Độ Bố Trí Bảng Linh Hoạt & Sticky Header Chống Trôi
+## Phiên hiện tại — 2026-10-22: Tinh Gọn Dropdown Chọn Đuôi File, Sửa Lỗi Nút Xuất Không Phản Hồi & Hoàn Thiện Bảng Cấu Hình Bản Vẽ
 - **Yêu cầu từ người dùng**:
-  - `làm cho bản kê này không bị che khuất và tạo thêm kiểm thử cho chức năng này`
+  1. `file .dwg khi xuất ra đã đảm bảo cấu trúc để có thể cho phần mềm AutoCad đọc chưa?`
+  2. `kiểm tra lại tính năng xuất dữ liệu. nút bấm xuất dữ liệu ko phản hồi.`
+  3. `đã mất bảng điểuf khiển "cấu hình thông tin khác của bản vẽ", hãy bổ sung lại`
+  4. `cửa sổ "Chọn định dạng file cần xuất" là dạng list sổ xuống để chọn, chỉ đơn giản là định dạng đuôi file, đừng giải thích dài dòng. hãy điều chỉnh trong ứng dụng và các chức năng của ứng dụng có thể xuất file`
 - **Đã hoàn tất**:
-  1. **Nút Phóng to / Thu nhỏ toàn màn hình (`#btnCadTableMaximize`)**:
-     - Nút ⛶ mở rộng modal lên `98vw × 96vh`, tăng không gian hiển thị lên tối đa.
-     - Tự động lưu và khôi phục trạng thái toàn màn hình với `localStorage ('vn2k_cad_table_maximized')`.
-  2. **Thanh điều chỉnh bố trí bảng (`.cad-table-view-controls`) với 4 chế độ thông minh**:
-     - `📑 Xem Cả Hai (both)`: Bố trí dọc chuẩn mực, cuộn mượt mà.
-     - `📦 Chỉ Bảng Khối (blocks)`: Phóng to Bảng tổng hợp các khối & tỷ lệ diện tích % toàn màn hình.
-     - `📍 Chỉ Bảng Chi Tiết (coords)`: Giải phóng toàn bộ chiều cao cho Bảng kê chi tiết tọa độ đỉnh & cự ly cạnh VN-2000.
-     - `🔀 Song Song 2 Cột (split)`: Bố trí dạng Grid 2 cột song song (cột 1: Bảng khối & tỷ lệ %, cột 2: Bảng chi tiết đỉnh & cạnh), cực kỳ trực quan và rộng rãi trên máy tính / tablet.
-     - Lưu trạng thái vào `localStorage ('vn2k_cad_table_view_mode')`.
-  3. **Nút gập / mở thu gọn độc lập (`btnToggleCollapseBlocks`, `btnToggleCollapseCoords`)**:
-     - Cho phép kỹ sư thu gọn nhanh từng bảng chỉ với 1 click.
-  4. **Sticky Header chống trôi tiêu đề cột (`.cad-sticky-thead`)**:
-     - Khung bảng chi tiết có `position: sticky; top: 0; z-index: 10;`, cuộn dữ liệu hàng trăm mốc vẫn luôn cố định tiêu đề cột STT, Tên đỉnh, X, Y, Cạnh, Phương vị, Ghi chú.
-  5. **Kiểm thử tự động**:
-     - Tạo mới `tests/cad_table_layout_unobscured.test.js` (10/10 tests PASS).
-     - Toàn bộ **267/267 bài test** trong `tests/*.test.js` PASS 100%.
+  1. **Khắc phục triệt để lỗi nút xuất dữ liệu không phản hồi**:
+     - Bổ sung `selectExportFormat(format)`, `executeExport()`, `onExportSettingChange()`, và các hàm xuất `exportDgn()`, `exportKml()`, `exportGeoJson()`, `exportTxt()`, `shareExport()` vào `appCadTool` trong `app.js`.
+     - Sửa lỗi `openExportModal()` và `closeExportModal()` đảm bảo bật/tắt `modal.style.display = 'flex'` / `'none'` và class `.active`.
+     - Chuẩn hóa hàm `getExportPoints()` và `getTitleBlockInfo()` trong `appData`, chống lỗi rỗng điểm khi xuất từ Chuyển đổi tọa độ hoặc Bản đồ.
+  2. **Tinh gọn bộ chọn định dạng file thành Dropdown `<select>` sổ xuống (chỉ hiển thị đuôi file)**:
+     - Áp dụng trên cả Sổ đo / Chuyển đổi (`#selExportFormat`) và MiniCAD (`#cadExportFormatSelect`).
+     - Tùy chọn thuần khiết chỉ gồm đuôi file: `.dwg`, `.xlsx`, `.pdf`, `.png`, `.dgn / .dat`, `.kml`, `.geojson`, `.svg`, `.txt`, `.csv`, `.share`.
+     - Nhãn nút bấm đồng bộ súc tích: `🚀 XUẤT FILE .DWG`, `🚀 XUẤT FILE .PDF`, `🚀 XUẤT FILE .XLSX`, v.v.
+  3. **Phục hồi và hoàn thiện Bảng điều khiển "Cấu hình thông tin khác của bản vẽ" (TCVN 7285 & Bản đồ địa chính)**:
+     - Đầy đủ 11 trường thông tin kỹ thuật: Tên bản vẽ, Tên dự án, Chủ sở hữu, Đơn vị khảo sát, Số tờ/thửa, Địa chỉ, Người đo vẽ, Người kiểm tra, Ngày lập, Ký hiệu bản vẽ, Ghi chú kỹ thuật.
+     - Tích hợp 2 nút thao tác: "💾 Lưu cấu hình" (lưu vào `localStorage`) và "🔄 Đặt lại" (phục hồi mặc định).
+     - Động cơ xuất AutoCAD `.dwg` và PDF tự động điền đầy đủ thông tin vào khung tên bản vẽ.
+  4. **Kiểm thử tự động & kiểm chứng trình duyệt**:
+     - Bổ sung 2 file test: `tests/export_modal_and_drawing_config.test.js` và `tests/export_flow_and_dwg_standard.test.js`.
+     - Toàn bộ **279/279 bài test** trong `tests/*.test.js` PASS 100%.
+     - Kiểm chứng trực tiếp qua Chrome DevTools: Modal mở mượt, dropdown sổ xuống tiện lợi, nút bấm phản hồi tức thì và tải file về máy thành công.
+
+## Phiên trước — 2026-10-22: Nâng Cấp Bảng Kê MiniCAD Chống Che Khuất: Phóng To Toàn Màn Hình, 4 Chế Độ Bố Trí Bảng Linh Hoạt & Sticky Header Chống Trôi
 
 ## Phiên trước — 2026-10-21: Sửa Dứt Điểm Lỗi Check Chọn Thửa Trong Bảng Kê & Thống Kê Tổng Hợp MiniCAD
 - **Yêu cầu từ người dùng**:

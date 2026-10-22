@@ -9731,6 +9731,14 @@ function doGet(e) {
         }
     },
 
+    getTitleBlockInfo() {
+        try {
+            const raw = localStorage.getItem('vn2k_export_title_block');
+            if (raw) return JSON.parse(raw);
+        } catch(e) {}
+        return this.getExportOptions()?.meta || {};
+    },
+
     resetTitleBlockInfo() {
         if (!confirm('Bạn có muốn đặt lại cấu hình thông tin bản vẽ về mặc định không?')) return;
         const setVal = (id, val) => {
@@ -10968,9 +10976,11 @@ function doGet(e) {
         const S = Math.max(scaleVal / 1000.0, 0.1); // 1mm trên giấy = S mét thực địa
         const layers = opts.layers;
         const viewSize = Math.max(spanX, spanY, 40) * 1.35;
+        let handleSeed = 0x30;
+        const nextH = () => (handleSeed++).toString(16).toUpperCase();
 
         let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
-        dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";     // AutoCAD 2000/2004 AC1015 tương thích tối đa
+        dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";     // AutoCAD 2000/2004 AC1015 engine
         dwg += "9\r\n$HANDSEED\r\n5\r\nFFFF\r\n";
         dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (Đơn vị đo chuẩn Việt Nam TCVN)
         dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Hệ mét Metric
@@ -10983,71 +10993,78 @@ function doGet(e) {
         // SECTION CLASSES (Bắt buộc theo đặc tả AutoCAD AC1015)
         dwg += "0\r\nSECTION\r\n2\r\nCLASSES\r\n0\r\nENDSEC\r\n";
 
-        // SECTION TABLES - Khai báo ĐẦY ĐỦ 100% Symbol Tables chuẩn Autodesk chống lỗi "Missing symbol table"
+        // SECTION TABLES - Khai báo ĐẦY ĐỦ 100% Symbol Tables chuẩn Autodesk chống lỗi "Missing symbol table" & "Null objectId"
         dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
 
         // 1. Table VPORT (Camera trung tâm)
-        dwg += "0\r\nTABLE\r\n2\r\nVPORT\r\n70\r\n1\r\n";
-        dwg += "0\r\nVPORT\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nVPORT\r\n5\r\n8\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n1\r\n";
+        dwg += "0\r\nVPORT\r\n5\r\n9\r\n330\r\n8\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbViewportTableRecord\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
         dwg += `12\r\n${cx.toFixed(3)}\r\n22\r\n${cy.toFixed(3)}\r\n40\r\n${viewSize.toFixed(3)}\r\n41\r\n1.4142\r\n`;
         dwg += "0\r\nENDTAB\r\n";
 
         // 2. Table LTYPE (Kiểu đường)
-        dwg += "0\r\nTABLE\r\n2\r\nLTYPE\r\n70\r\n5\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nBYBLOCK\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nBYLAYER\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (0.6 * S).toFixed(4) + "\r\n49\r\n" + (-0.4 * S).toFixed(4) + "\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nLTYPE\r\n5\r\n5\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n5\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n14\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nBYBLOCK\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n15\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nBYLAYER\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n16\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n17\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (0.6 * S).toFixed(4) + "\r\n49\r\n" + (-0.4 * S).toFixed(4) + "\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n18\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
         // 3. Table LAYER - Hệ thống Layer chuẩn Thông tư 25/2014/TT-BTNMT & TCVN 7285
-        dwg += "0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n12\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";      // Màu 1: Đỏ
-        dwg += "0\r\nLAYER\r\n2\r\nMOC_TOADO\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";      // Màu 3: Xanh lá
-        dwg += "0\r\nLAYER\r\n2\r\nSO_HIEU_DINH\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";   // Màu 2: Vàng
-        dwg += "0\r\nLAYER\r\n2\r\nCHIEU_DAI_CANH\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n"; // Màu 4: Cyan
-        dwg += "0\r\nLAYER\r\n2\r\nDIEN_TICH_THUA\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n"; // Màu 6: Magenta
-        dwg += "0\r\nLAYER\r\n2\r\nLUOI_TOADO\r\n70\r\n0\r\n62\r\n8\r\n6\r\nCONTINUOUS\r\n";     // Màu 8: Xám
-        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_BAN_VE\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";   // Màu 7: Trắng
-        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_TEN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";      // Màu 4: Cyan
-        dwg += "0\r\nLAYER\r\n2\r\nBANG_TOA_DO\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";    // Màu 4: Cyan
-        dwg += "0\r\nLAYER\r\n2\r\nMUI_TEN_BAC\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";    // Màu 1: Đỏ
-        dwg += "0\r\nLAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
+        const layersList = [
+            { name: "0", color: 7 },
+            { name: "RANH_THUA", color: 1 },
+            { name: "MOC_TOADO", color: 3 },
+            { name: "SO_HIEU_DINH", color: 2 },
+            { name: "CHIEU_DAI_CANH", color: 4 },
+            { name: "DIEN_TICH_THUA", color: 6 },
+            { name: "LUOI_TOADO", color: 8 },
+            { name: "KHUNG_BAN_VE", color: 7 },
+            { name: "KHUNG_TEN", color: 4 },
+            { name: "BANG_TOA_DO", color: 4 },
+            { name: "MUI_TEN_BAC", color: 1 },
+            { name: "TEN_MOC", color: 2 }
+        ];
+        dwg += `0\r\nTABLE\r\n2\r\nLAYER\r\n5\r\n2\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n${layersList.length}\r\n`;
+        layersList.forEach(ly => {
+            dwg += `0\r\nLAYER\r\n5\r\n${nextH()}\r\n330\r\n2\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLayerTableRecord\r\n2\r\n${ly.name}\r\n70\r\n0\r\n62\r\n${ly.color}\r\n6\r\nCONTINUOUS\r\n`;
+        });
         dwg += "0\r\nENDTAB\r\n";
 
         // 4. Table STYLE (Phông chữ bản vẽ)
-        dwg += "0\r\nTABLE\r\n2\r\nSTYLE\r\n70\r\n2\r\n";
-        dwg += "0\r\nSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n4\r\n\r\n";
-        dwg += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nSTYLE\r\n5\r\n3\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n2\r\n";
+        dwg += "0\r\nSTYLE\r\n5\r\n11\r\n330\r\n3\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbTextStyleTableRecord\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n4\r\n\r\n";
+        dwg += "0\r\nSTYLE\r\n5\r\n12\r\n330\r\n3\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbTextStyleTableRecord\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
-        // 5. Table VIEW (Tối ưu rỗng để chống lỗi Null object Id)
-        dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        // 5. Table VIEW
+        dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n5\r\n6\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 6. Table UCS (Tối ưu rỗng để chống lỗi Null object Id)
-        dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        // 6. Table UCS
+        dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n5\r\n7\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 7. Table APPID
-        dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n70\r\n1\r\n";
-        dwg += "0\r\nAPPID\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n5\r\n9\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n1\r\n";
+        dwg += "0\r\nAPPID\r\n5\r\n13\r\n330\r\n9\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbRegAppTableRecord\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 8. Table DIMSTYLE (Để rỗng 70 0 để triệt tiêu lỗi Null object Id: con trỏ 340 TextStyle)
-        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        // 8. Table DIMSTYLE
+        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n5\r\nA\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n100\r\nAcDbDimStyleTable\r\n71\r\n1\r\n0\r\nENDTAB\r\n";
 
         // 9. Table BLOCK_RECORD (Bắt buộc trong AutoCAD AC1015)
-        dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n70\r\n2\r\n";
-        dwg += "0\r\nBLOCK_RECORD\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n";
-        dwg += "0\r\nBLOCK_RECORD\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n5\r\n1\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n2\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1B\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*MODEL_SPACE\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1C\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*PAPER_SPACE\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
         dwg += "0\r\nENDSEC\r\n";
 
-        // SECTION BLOCKS (Đầy đủ layer 8 0 để chống Null Object)
+        // SECTION BLOCKS
         dwg += "0\r\nSECTION\r\n2\r\nBLOCKS\r\n";
-        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
-        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1D\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n";
+        dwg += "0\r\nENDBLK\r\n5\r\n1E\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1F\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n";
+        dwg += "0\r\nENDBLK\r\n5\r\n20\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
         dwg += "0\r\nENDSEC\r\n";
 
         // SECTION ENTITIES
@@ -11064,9 +11081,9 @@ function doGet(e) {
 
             for (let gx = startGx; gx <= endGx; gx += gridInterval) {
                 for (let gy = startGy; gy <= endGy; gy += gridInterval) {
-                    dwg += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx - crossArm).toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(gx + crossArm).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
-                    dwg += `0\r\nLINE\r\n8\r\nLUOI_TOADO\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${(gy - crossArm).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(gy + crossArm).toFixed(3)}\r\n31\r\n0.0\r\n`;
-                    dwg += `0\r\nTEXT\r\n8\r\nLUOI_TOADO\r\n10\r\n${(gx + 1.2 * S).toFixed(3)}\r\n20\r\n${(gy + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.5 * S).toFixed(4)}\r\n1\r\nY=${gx.toFixed(0)} X=${gy.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nLUOI_TOADO\r\n100\r\nAcDbLine\r\n10\r\n${(gx - crossArm).toFixed(3)}\r\n20\r\n${gy.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${(gx + crossArm).toFixed(3)}\r\n21\r\n${gy.toFixed(3)}\r\n31\r\n0.0\r\n`;
+                    dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nLUOI_TOADO\r\n100\r\nAcDbLine\r\n10\r\n${gx.toFixed(3)}\r\n20\r\n${(gy - crossArm).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${gx.toFixed(3)}\r\n21\r\n${(gy + crossArm).toFixed(3)}\r\n31\r\n0.0\r\n`;
+                    dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nLUOI_TOADO\r\n100\r\nAcDbText\r\n10\r\n${(gx + 1.2 * S).toFixed(3)}\r\n20\r\n${(gy + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.5 * S).toFixed(4)}\r\n1\r\nY=${gx.toFixed(0)} X=${gy.toFixed(0)}\r\n7\r\nVN_ARIAL\r\n`;
                 }
             }
         }
@@ -11080,25 +11097,25 @@ function doGet(e) {
 
             // Điểm mốc và vòng tròn ký hiệu tâm mốc
             if (layers.points) {
-                dwg += `0\r\nPOINT\r\n8\r\nMOC_TOADO\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n`;
-                dwg += `0\r\nCIRCLE\r\n8\r\nMOC_TOADO\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n${(0.8 * S).toFixed(4)}\r\n`;
+                dwg += `0\r\nPOINT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nMOC_TOADO\r\n100\r\nAcDbPoint\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n`;
+                dwg += `0\r\nCIRCLE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nMOC_TOADO\r\n100\r\nAcDbCircle\r\n10\r\n${easting.toFixed(3)}\r\n20\r\n${northing.toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n${(0.8 * S).toFixed(4)}\r\n`;
             }
 
             // Tên mốc / Số hiệu đỉnh
             if (layers.names) {
-                dwg += `0\r\nTEXT\r\n8\r\nSO_HIEU_DINH\r\n10\r\n${(easting + 1.2 * S).toFixed(3)}\r\n20\r\n${(northing + 1.2 * S).toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n${(2.5 * S).toFixed(4)}\r\n1\r\n${cleanName}\r\n7\r\nVN_ARIAL\r\n`;
+                dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nSO_HIEU_DINH\r\n100\r\nAcDbText\r\n10\r\n${(easting + 1.2 * S).toFixed(3)}\r\n20\r\n${(northing + 1.2 * S).toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n${(2.5 * S).toFixed(4)}\r\n1\r\n${cleanName}\r\n7\r\nVN_ARIAL\r\n`;
             }
 
             // Tọa độ chú dẫn X, Y
             if (layers.coords) {
                 const coordStr = `X:${northing.toFixed(2)} Y:${easting.toFixed(2)}`;
-                dwg += `0\r\nTEXT\r\n8\r\nBANG_TOA_DO\r\n10\r\n${(easting + 1.2 * S).toFixed(3)}\r\n20\r\n${(northing - 1.8 * S).toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\n${coordStr}\r\n7\r\nVN_ARIAL\r\n`;
+                dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nBANG_TOA_DO\r\n100\r\nAcDbText\r\n10\r\n${(easting + 1.2 * S).toFixed(3)}\r\n20\r\n${(northing - 1.8 * S).toFixed(3)}\r\n30\r\n${elev.toFixed(3)}\r\n40\r\n${(1.6 * S).toFixed(4)}\r\n1\r\n${coordStr}\r\n7\r\nVN_ARIAL\r\n`;
             }
         });
 
-        // C. NỐI ĐƯỜNG RANH THỬA: Dùng LWPOLYLINE chuẩn AC1015 triệt tiêu lỗi Null object Id
+        // C. NỐI ĐƯỜNG RANH THỬA: Dùng LWPOLYLINE chuẩn AC1015 với 5 & 330 pointers
         if (layers.lines && pts.length >= 2) {
-            dwg += `0\r\nLWPOLYLINE\r\n8\r\nRANH_THUA\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n${pts.length}\r\n70\r\n1\r\n43\r\n0.0\r\n`;
+            dwg += `0\r\nLWPOLYLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nRANH_THUA\r\n100\r\nAcDbPolyline\r\n90\r\n${pts.length}\r\n70\r\n1\r\n43\r\n0.0\r\n`;
             pts.forEach(p => {
                 const easting = parseFloat(p.y) || 0;
                 const northing = parseFloat(p.x) || 0;
@@ -11119,7 +11136,7 @@ function doGet(e) {
                 if (dist > 0.05) {
                     const midX = (x1 + x2) / 2.0;
                     const midY = (y1 + y2) / 2.0;
-                    dwg += `0\r\nTEXT\r\n8\r\nCHIEU_DAI_CANH\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${midY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\n${dist.toFixed(2)}m\r\n7\r\nVN_ARIAL\r\n`;
+                    dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nCHIEU_DAI_CANH\r\n100\r\nAcDbText\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${midY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\n${dist.toFixed(2)}m\r\n7\r\nVN_ARIAL\r\n`;
                 }
             }
         }
@@ -11130,11 +11147,11 @@ function doGet(e) {
             const naY = maxY + 15.0 * S;
             const naR = 4.5 * S;
             const naH = 14.0 * S;
-            dwg += `0\r\nCIRCLE\r\n8\r\nMUI_TEN_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${naR.toFixed(4)}\r\n`;
-            dwg += `0\r\nLINE\r\n8\r\nMUI_TEN_BAC\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${(naY - naR).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
-            dwg += `0\r\nLINE\r\n8\r\nMUI_TEN_BAC\r\n10\r\n${(naX - naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
-            dwg += `0\r\nLINE\r\n8\r\nMUI_TEN_BAC\r\n10\r\n${(naX + naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
-            dwg += `0\r\nTEXT\r\n8\r\nMUI_TEN_BAC\r\n10\r\n${(naX - 1.2 * S).toFixed(3)}\r\n20\r\n${(naY + naH + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.2 * S).toFixed(4)}\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nCIRCLE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nMUI_TEN_BAC\r\n100\r\nAcDbCircle\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${naR.toFixed(4)}\r\n`;
+            dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nMUI_TEN_BAC\r\n100\r\nAcDbLine\r\n10\r\n${naX.toFixed(3)}\r\n20\r\n${(naY - naR).toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nMUI_TEN_BAC\r\n100\r\nAcDbLine\r\n10\r\n${(naX - naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nMUI_TEN_BAC\r\n100\r\nAcDbLine\r\n10\r\n${(naX + naR * 0.8).toFixed(3)}\r\n20\r\n${naY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${naX.toFixed(3)}\r\n21\r\n${(naY + naH).toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nMUI_TEN_BAC\r\n100\r\nAcDbText\r\n10\r\n${(naX - 1.2 * S).toFixed(3)}\r\n20\r\n${(naY + naH + 1.2 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(3.2 * S).toFixed(4)}\r\n1\r\nB\r\n7\r\nVN_ARIAL\r\n`;
         }
 
         // F. KHUNG TÊN BẢN VẼ CHUẨN TCVN (nếu bật layer frame)
@@ -11151,27 +11168,28 @@ function doGet(e) {
             const tbX0 = maxX + 20.0 * S - tbW;
             const tbY0 = fY0;
 
-            dwg += `0\r\nLWPOLYLINE\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbEntity\r\n100\r\nAcDbPolyline\r\n90\r\n4\r\n70\r\n1\r\n43\r\n0.0\r\n`;
+            dwg += `0\r\nLWPOLYLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbPolyline\r\n90\r\n4\r\n70\r\n1\r\n43\r\n0.0\r\n`;
             dwg += `10\r\n${tbX0.toFixed(3)}\r\n20\r\n${tbY0.toFixed(3)}\r\n`;
             dwg += `10\r\n${(tbX0 + tbW).toFixed(3)}\r\n20\r\n${tbY0.toFixed(3)}\r\n`;
             dwg += `10\r\n${(tbX0 + tbW).toFixed(3)}\r\n20\r\n${(tbY0 + tbH).toFixed(3)}\r\n`;
             dwg += `10\r\n${tbX0.toFixed(3)}\r\n20\r\n${(tbY0 + tbH).toFixed(3)}\r\n`;
 
             const kttStr = AppState.kttDeg ? `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'` : "105°45'";
-            dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 5.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\nDU AN: ${projName.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
-            dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 11.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nHE VN-2000 - KTT: ${kttStr} (MUI 3)\r\n7\r\nVN_ARIAL\r\n`;
-            dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 17.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nTY LE: 1:${scaleVal} | SO MOC: ${pts.length}\r\n7\r\nVN_ARIAL\r\n`;
-            dwg += `0\r\nTEXT\r\n8\r\nKHUNG_TEN\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 23.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nNGAY LAP: ${opts.meta.drawingDate} | NGUOI DO: ${opts.meta.surveyor.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 5.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\nDU AN: ${projName.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 11.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nHE VN-2000 - KTT: ${kttStr} (MUI 3)\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 17.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nTY LE: 1:${scaleVal} | SO MOC: ${pts.length}\r\n7\r\nVN_ARIAL\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 23.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nNGAY LAP: ${opts.meta.drawingDate} | NGUOI DO: ${opts.meta.surveyor.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
         }
 
         dwg += "0\r\nENDSEC\r\n";
 
-        // SECTION OBJECTS - Cốt lõi triệt tiêu lỗi "Null object Id: <object> (0)"
+        // SECTION OBJECTS - Triệt tiêu 100% lỗi "Null objectId: <object> (0)"
         dwg += "0\r\nSECTION\r\n2\r\nOBJECTS\r\n";
-        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n100\r\nAcDbDictionary\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n330\r\n0\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n3\r\nACAD_GROUP\r\n350\r\nD\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nD\r\n330\r\nC\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n";
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        // Xuất file bản vẽ AutoCAD (.dwg) chuẩn Autodesk AC1015 với đầy đủ 100% Symbol Tables
+        // Xuất file bản vẽ AutoCAD chuẩn Autodesk AC1015 với đầy đủ Symbol Tables & Handles
         const blobDwg = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const urlDwg = URL.createObjectURL(blobDwg);
         const aDwg = document.createElement("a");
@@ -11183,7 +11201,7 @@ function doGet(e) {
         document.body.removeChild(aDwg);
         URL.revokeObjectURL(urlDwg);
 
-        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) Tỷ lệ 1:${scaleVal}: ${filenameDwg}`);
+        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg): ${filenameDwg}`);
     },
 
     exportKmlFile() {
@@ -16814,20 +16832,66 @@ const appElevationProfile = {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
         const scaleV = 5.0; // Phóng đại đứng 5x
 
+        let handleSeed = 0x25;
+        const nextH = () => (handleSeed++).toString(16).toUpperCase();
+
         let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
         dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";
+        dwg += "9\r\n$HANDSEED\r\n5\r\nFFFF\r\n";
         dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters
         dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
         dwg += "0\r\nENDSEC\r\n";
 
-        dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n7\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nTRACDOC_TUNHIEN\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dwg += "LAYER\r\n2\r\nTRACDOC_THIETKE\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dwg += "LAYER\r\n2\r\nTRACDOC_GIONG\r\n70\r\n0\r\n62\r\n8\r\n6\r\nDASHED\r\n0\r\n";
-        dwg += "LAYER\r\n2\r\nTRACDOC_BANG_SO_LIEU\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dwg += "LAYER\r\n2\r\nTRACDOC_TEXT_TIEUDE\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\n";
-        dwg += "LAYER\r\n2\r\nTRACDOC_TEXT_SOLIEU\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nENDTAB\r\n0\r\nENDSEC\r\n";
+        dwg += "0\r\nSECTION\r\n2\r\nCLASSES\r\n0\r\nENDSEC\r\n";
+
+        dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nVPORT\r\n5\r\n8\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n1\r\n";
+        dwg += "0\r\nVPORT\r\n5\r\n9\r\n330\r\n8\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbViewportTableRecord\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n";
+        dwg += "10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n12\r\n0.0\r\n22\r\n0.0\r\n40\r\n100.0\r\n41\r\n1.414\r\n0\r\nENDTAB\r\n";
+
+        dwg += "0\r\nTABLE\r\n2\r\nLTYPE\r\n5\r\n5\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n4\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n14\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nBYBLOCK\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n15\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nBYLAYER\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n16\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n17\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n2.0\r\n49\r\n1.2\r\n49\r\n-0.8\r\n";
+        dwg += "0\r\nENDTAB\r\n";
+
+        const profileLayers = [
+            { name: "0", color: 7 },
+            { name: "TRACDOC_TUNHIEN", color: 3 },
+            { name: "TRACDOC_THIETKE", color: 1 },
+            { name: "TRACDOC_GIONG", color: 8, ltype: "DASHED" },
+            { name: "TRACDOC_BANG_SO_LIEU", color: 7 },
+            { name: "TRACDOC_TEXT_TIEUDE", color: 4 },
+            { name: "TRACDOC_TEXT_SOLIEU", color: 2 }
+        ];
+        dwg += `0\r\nTABLE\r\n2\r\nLAYER\r\n5\r\n2\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n${profileLayers.length}\r\n`;
+        profileLayers.forEach(ly => {
+            dwg += `0\r\nLAYER\r\n5\r\n${nextH()}\r\n330\r\n2\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLayerTableRecord\r\n2\r\n${ly.name}\r\n70\r\n0\r\n62\r\n${ly.color}\r\n6\r\n${ly.ltype || "CONTINUOUS"}\r\n`;
+        });
+        dwg += "0\r\nENDTAB\r\n";
+
+        dwg += "0\r\nTABLE\r\n2\r\nSTYLE\r\n5\r\n3\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n2\r\n";
+        dwg += "0\r\nSTYLE\r\n5\r\n11\r\n330\r\n3\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbTextStyleTableRecord\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n4\r\n\r\n";
+        dwg += "0\r\nSTYLE\r\n5\r\n12\r\n330\r\n3\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbTextStyleTableRecord\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
+        dwg += "0\r\nENDTAB\r\n";
+
+        dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n5\r\n6\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n5\r\n7\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n5\r\n9\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n1\r\n0\r\nAPPID\r\n5\r\n13\r\n330\r\n9\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbRegAppTableRecord\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n5\r\nA\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n100\r\nAcDbDimStyleTable\r\n71\r\n1\r\n0\r\nENDTAB\r\n";
+
+        dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n5\r\n1\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n2\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1B\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*MODEL_SPACE\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1C\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*PAPER_SPACE\r\n";
+        dwg += "0\r\nENDTAB\r\n";
+
+        dwg += "0\r\nENDSEC\r\n";
+
+        dwg += "0\r\nSECTION\r\n2\r\nBLOCKS\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1D\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n5\r\n1E\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1F\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n5\r\n20\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
+        dwg += "0\r\nENDSEC\r\n";
 
         dwg += "0\r\nSECTION\r\n2\r\nENTITIES\r\n";
 
@@ -16839,50 +16903,48 @@ const appElevationProfile = {
         const maxDist = Math.max(items[items.length - 1].dist, 10.0);
         const leftHeaderX = -35.0;
 
-        // 1. Polyline Tự Nhiên
-        dwg += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_TUNHIEN\r\n66\r\n1\r\n70\r\n0\r\n";
+        // 1. Polyline Tự Nhiên (LWPOLYLINE chuẩn AC1015)
+        dwg += `0\r\nLWPOLYLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TUNHIEN\r\n100\r\nAcDbPolyline\r\n90\r\n${items.length}\r\n70\r\n0\r\n43\r\n0.0\r\n`;
         items.forEach(p => {
             const xCad = p.dist;
             const yCad = datumY + (p.zNat - minZ) * scaleV;
-            dwg += `0\r\nVERTEX\r\n8\r\nTRACDOC_TUNHIEN\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
+            dwg += `10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n`;
         });
-        dwg += "0\r\nSEQEND\r\n";
 
-        // 2. Polyline Thiết Kế
-        dwg += "0\r\nPOLYLINE\r\n8\r\nTRACDOC_THIETKE\r\n66\r\n1\r\n70\r\n0\r\n";
+        // 2. Polyline Thiết Kế (LWPOLYLINE chuẩn AC1015)
+        dwg += `0\r\nLWPOLYLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_THIETKE\r\n100\r\nAcDbPolyline\r\n90\r\n${items.length}\r\n70\r\n0\r\n43\r\n0.0\r\n`;
         items.forEach(p => {
             const xCad = p.dist;
             const yCad = datumY + (p.zDesign - minZ) * scaleV;
-            dwg += `0\r\nVERTEX\r\n8\r\nTRACDOC_THIETKE\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n30\r\n0.0\r\n`;
+            dwg += `10\r\n${xCad.toFixed(3)}\r\n20\r\n${yCad.toFixed(3)}\r\n`;
         });
-        dwg += "0\r\nSEQEND\r\n";
 
         // 3. Đường gióng và text
         items.forEach((p, idx) => {
             const xCad = p.dist;
             const yMax = datumY + Math.max(p.zNat - minZ, p.zDesign - minZ) * scaleV + 2.0;
 
-            dwg += `0\r\nLINE\r\n8\r\nTRACDOC_GIONG\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yMax.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${xCad.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_GIONG\r\n100\r\nAcDbLine\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yMax.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${xCad.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
             const cleanName = (p.name || `C${idx + 1}`).replace(/[\r\n]/g, '');
-            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${(yMax + 1.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n100\r\nAcDbText\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${(yMax + 1.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\n${cleanName}\r\n7\r\nVN_ARIAL\r\n`;
 
             // Hàng 1
             const yRow1 = datumY - 0.6 * rowH;
             const deltaStr = (p.deltaH > 0 ? "+" : "") + p.deltaH.toFixed(2);
-            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${deltaStr}\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n100\r\nAcDbText\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow1.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${deltaStr}\r\n7\r\nVN_ARIAL\r\n`;
 
             // Hàng 2
             const yRow2 = datumY - 1.6 * rowH;
-            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zDesign.toFixed(2)}\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n100\r\nAcDbText\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow2.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zDesign.toFixed(2)}\r\n7\r\nVN_ARIAL\r\n`;
 
             // Hàng 3
             const yRow3 = datumY - 2.6 * rowH;
-            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zNat.toFixed(2)}\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n100\r\nAcDbText\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow3.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.zNat.toFixed(2)}\r\n7\r\nVN_ARIAL\r\n`;
 
             // Hàng 4
             const yRow4 = datumY - 3.6 * rowH;
-            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow4.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.dist.toFixed(1)}\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n100\r\nAcDbText\r\n10\r\n${xCad.toFixed(3)}\r\n20\r\n${yRow4.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${p.dist.toFixed(1)}\r\n7\r\nVN_ARIAL\r\n`;
 
             // Hàng 5
             if (idx > 0) {
@@ -16890,18 +16952,18 @@ const appElevationProfile = {
                 const midX = (prevX + xCad) / 2;
                 const interD = p.dist - items[idx - 1].dist;
                 const yRow5 = datumY - 4.6 * rowH;
-                dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${yRow5.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${interD.toFixed(1)}\r\n`;
+                dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n100\r\nAcDbText\r\n10\r\n${midX.toFixed(3)}\r\n20\r\n${yRow5.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${interD.toFixed(1)}\r\n7\r\nVN_ARIAL\r\n`;
             }
         });
 
         // Khung bảng số liệu
         for (let r = 0; r <= 5; r++) {
             const yLine = datumY - r * rowH;
-            dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${yLine.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${yLine.toFixed(3)}\r\n31\r\n0.0\r\n`;
+            dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n100\r\nAcDbLine\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${yLine.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${yLine.toFixed(3)}\r\n31\r\n0.0\r\n`;
         }
-        dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${leftHeaderX.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n0.0\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n0.0\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
-        dwg += `0\r\nLINE\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n10\r\n${maxDist.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n100\r\nAcDbLine\r\n10\r\n${leftHeaderX.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${leftHeaderX.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n100\r\nAcDbLine\r\n10\r\n0.0\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n0.0\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
+        dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_BANG_SO_LIEU\r\n100\r\nAcDbLine\r\n10\r\n${maxDist.toFixed(3)}\r\n20\r\n${datumY.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${maxDist.toFixed(3)}\r\n21\r\n${tableBottom.toFixed(3)}\r\n31\r\n0.0\r\n`;
 
         const rowTitlesDwg = [
             "DO CAO THI CONG (+DAP/-DAO)",
@@ -16912,13 +16974,18 @@ const appElevationProfile = {
         ];
         rowTitlesDwg.forEach((title, idx) => {
             const yT = datumY - (idx + 0.6) * rowH;
-            dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n${(leftHeaderX + 1.5).toFixed(3)}\r\n20\r\n${yT.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${title}\r\n`;
+            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n100\r\nAcDbText\r\n10\r\n${(leftHeaderX + 1.5).toFixed(3)}\r\n20\r\n${yT.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.6\r\n1\r\n${title}\r\n7\r\nVN_ARIAL\r\n`;
         });
 
         const titleY = datumY + (Math.max(...allZ) - minZ) * scaleV + 8.0;
-        dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n10\r\n0.0\r\n20\r\n${titleY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n3.2\r\n1\r\nBAN VE TRAC DOC THIET KE & DAO DAP - DU AN: ${projName.toUpperCase()}\r\n`;
-        dwg += `0\r\nTEXT\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n10\r\n0.0\r\n20\r\n${(titleY - 4.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\nTY LE NGANG: 1/1000  -  TY LE DUNG: 1/200 (Phong dai 5x)  -  CAO DO CHUAN DATUM = ${minZ.toFixed(2)}m\r\n`;
+        dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_TIEUDE\r\n100\r\nAcDbText\r\n10\r\n0.0\r\n20\r\n${titleY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n3.2\r\n1\r\nBAN VE TRAC DOC THIET KE & DAO DAP - DU AN: ${projName.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+        dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nTRACDOC_TEXT_SOLIEU\r\n100\r\nAcDbText\r\n10\r\n0.0\r\n20\r\n${(titleY - 4.0).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n1.8\r\n1\r\nTY LE NGANG: 1/1000  -  TY LE DUNG: 1/200 (Phong dai 5x)  -  CAO DO CHUAN DATUM = ${minZ.toFixed(2)}m\r\n7\r\nVN_ARIAL\r\n`;
 
+        dwg += "0\r\nENDSEC\r\n";
+
+        dwg += "0\r\nSECTION\r\n2\r\nOBJECTS\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n330\r\n0\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n3\r\nACAD_GROUP\r\n350\r\nD\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nD\r\n330\r\nC\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n";
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
         const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
@@ -28307,9 +28374,12 @@ const appCadTool = {
         const baseProjectArea = (meta.customTotalArea && meta.customTotalArea > 0) ? meta.customTotalArea : measuredTotalArea;
         const showPercent = meta.showPercent !== false;
 
-        // KHỞI TẠO FILE BẢN VẼ AUTOCAD (.DWG) AC1015 - TƯƠNG THÍCH 100% TẤT CẢ PHẦN MỀM CAD
+        // KHỞI TẠO FILE BẢN VẼ AUTOCAD AC1015 - TƯƠNG THÍCH 100% TẤT CẢ PHẦN MỀM CAD
         // Tùy chọn showBlockInfo: true = hiện đầy đủ S, P, cạnh; false (mặc định) = chỉ hiện số thứ tự/ký hiệu khối tại tâm
         const showBlockInfo = meta.showBlockInfo === true;
+        let handleSeed = 0x30;
+        const nextH = () => (handleSeed++).toString(16).toUpperCase();
+
         let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
         dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";
         dwg += "9\r\n$HANDSEED\r\n5\r\nFFFF\r\n";
@@ -28328,12 +28398,12 @@ const appCadTool = {
         // SECTION CLASSES (Bắt buộc theo đặc tả AutoCAD AC1015)
         dwg += "0\r\nSECTION\r\n2\r\nCLASSES\r\n0\r\nENDSEC\r\n";
 
-        // TABLES SECTION
+        // TABLES SECTION - Chuẩn Autodesk chống lỗi "Missing symbol table" & "Null objectId"
         dwg += "0\r\nSECTION\r\n2\r\nTABLES\r\n";
 
         // 1. Viewport: Camera tự động zoom lớn trực diện vào trung tâm bản vẽ thửa đất khi mở trong AutoCAD
-        dwg += "0\r\nTABLE\r\n2\r\nVPORT\r\n70\r\n1\r\n";
-        dwg += "0\r\nVPORT\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nVPORT\r\n5\r\n8\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n1\r\n";
+        dwg += "0\r\nVPORT\r\n5\r\n9\r\n330\r\n8\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbViewportTableRecord\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n";
         dwg += "10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
         dwg += "12\r\n" + L.Cx.toFixed(3) + "\r\n22\r\n" + L.Cy.toFixed(3) + "\r\n";
         dwg += "40\r\n" + Math.max(L.spanCadY * 1.35, L.spanCadX * 1.05).toFixed(3) + "\r\n";
@@ -28341,65 +28411,81 @@ const appCadTool = {
         dwg += "0\r\nENDTAB\r\n";
 
         // 2. Line types
-        dwg += "0\r\nTABLE\r\n2\r\nLTYPE\r\n70\r\n3\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (0.6 * S).toFixed(4) + "\r\n49\r\n" + (-0.4 * S).toFixed(4) + "\r\n";
-        dwg += "0\r\nLTYPE\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nLTYPE\r\n5\r\n5\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n5\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n14\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nBYBLOCK\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n15\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nBYLAYER\r\n70\r\n0\r\n3\r\n\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n16\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nCONTINUOUS\r\n70\r\n0\r\n3\r\nSolid line\r\n72\r\n65\r\n73\r\n0\r\n40\r\n0.0\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n17\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nDASHED\r\n70\r\n0\r\n3\r\nDashed\r\n72\r\n65\r\n73\r\n2\r\n40\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (0.6 * S).toFixed(4) + "\r\n49\r\n" + (-0.4 * S).toFixed(4) + "\r\n";
+        dwg += "0\r\nLTYPE\r\n5\r\n18\r\n330\r\n5\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLinetypeTableRecord\r\n2\r\nCENTER\r\n70\r\n0\r\n3\r\nCenter\r\n72\r\n65\r\n73\r\n4\r\n40\r\n" + (2.0 * S).toFixed(4) + "\r\n49\r\n" + (1.0 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n49\r\n" + (0.3 * S).toFixed(4) + "\r\n49\r\n" + (-0.3 * S).toFixed(4) + "\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
         // 3. Layer table chuẩn kỹ thuật địa chính
-        dwg += "0\r\nTABLE\r\n2\r\nLAYER\r\n70\r\n18\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\n0\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nCAD_MUITEN\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nCAD_TEXT\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nCAD_HINHKHOI\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nCAD_TEMNHAN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_NGOAI\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_TRONG\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nKHUNG_TEN\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nBANG_BIEU\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nRANH_THUA\r\n70\r\n0\r\n62\r\n5\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nDINH_MOC\r\n70\r\n0\r\n62\r\n1\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nTEN_MOC\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nKICH_THUOC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nDIEN_TICH\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nDIEN_TICH_THUA\r\n70\r\n0\r\n62\r\n6\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nKHUNG_BAN_VE\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nBANG_TOA_DO\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nMOC_TOADO\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nSO_HIEU_DINH\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nCHIEU_DAI_CANH\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n0\r\nLAYER\r\n2\r\nMUI_TEN_BAC\r\n70\r\n0\r\n62\r\n2\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nLUOI_TOADO\r\n70\r\n0\r\n62\r\n8\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nTEXT_CHINH\r\n70\r\n0\r\n62\r\n7\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nTEXT_SO_LIEU\r\n70\r\n0\r\n62\r\n3\r\n6\r\nCONTINUOUS\r\n";
-        dwg += "0\r\nLAYER\r\n2\r\nHUONG_BAC\r\n70\r\n0\r\n62\r\n4\r\n6\r\nCONTINUOUS\r\n";
+        const cadLayers = [
+            { name: "0", color: 7 },
+            { name: "CAD_MUITEN", color: 2 },
+            { name: "CAD_TEXT", color: 7 },
+            { name: "CAD_HINHKHOI", color: 6 },
+            { name: "CAD_TEMNHAN", color: 4 },
+            { name: "KHUNG_NGOAI", color: 7 },
+            { name: "KHUNG_TRONG", color: 7 },
+            { name: "KHUNG_TEN", color: 4 },
+            { name: "BANG_BIEU", color: 4 },
+            { name: "RANH_THUA", color: 5 },
+            { name: "DINH_MOC", color: 1 },
+            { name: "TEN_MOC", color: 3 },
+            { name: "KICH_THUOC", color: 2 },
+            { name: "DIEN_TICH", color: 6 },
+            { name: "DIEN_TICH_THUA", color: 6 },
+            { name: "KHUNG_BAN_VE", color: 7 },
+            { name: "BANG_TOA_DO", color: 4 },
+            { name: "MOC_TOADO", color: 3 },
+            { name: "SO_HIEU_DINH", color: 2 },
+            { name: "CHIEU_DAI_CANH", color: 4 },
+            { name: "MUI_TEN_BAC", color: 2 },
+            { name: "LUOI_TOADO", color: 8 },
+            { name: "TEXT_CHINH", color: 7 },
+            { name: "TEXT_SO_LIEU", color: 3 },
+            { name: "HUONG_BAC", color: 4 }
+        ];
+        dwg += `0\r\nTABLE\r\n2\r\nLAYER\r\n5\r\n2\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n${cadLayers.length}\r\n`;
+        cadLayers.forEach(ly => {
+            dwg += `0\r\nLAYER\r\n5\r\n${nextH()}\r\n330\r\n2\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLayerTableRecord\r\n2\r\n${ly.name}\r\n70\r\n0\r\n62\r\n${ly.color}\r\n6\r\nCONTINUOUS\r\n`;
+        });
         dwg += "0\r\nENDTAB\r\n";
 
         // 4. Style table: Khai báo STANDARD và VN_ARIAL
-        dwg += "0\r\nTABLE\r\n2\r\nSTYLE\r\n70\r\n2\r\n";
-        dwg += "0\r\nSTYLE\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n4\r\n\r\n";
-        dwg += "0\r\nSTYLE\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nSTYLE\r\n5\r\n3\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n2\r\n";
+        dwg += "0\r\nSTYLE\r\n5\r\n11\r\n330\r\n3\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbTextStyleTableRecord\r\n2\r\nSTANDARD\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\ntxt\r\n4\r\n\r\n";
+        dwg += "0\r\nSTYLE\r\n5\r\n12\r\n330\r\n3\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbTextStyleTableRecord\r\n2\r\nVN_ARIAL\r\n70\r\n0\r\n40\r\n0.0\r\n41\r\n1.0\r\n50\r\n0.0\r\n71\r\n0\r\n42\r\n2.5\r\n3\r\narial.ttf\r\n4\r\n\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
-        // 5. Table VIEW (Tối ưu rỗng để chống lỗi Null object Id)
-        dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        // 5. Table VIEW
+        dwg += "0\r\nTABLE\r\n2\r\nVIEW\r\n5\r\n6\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 6. Table UCS (Tối ưu rỗng để chống lỗi Null object Id)
-        dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        // 6. Table UCS
+        dwg += "0\r\nTABLE\r\n2\r\nUCS\r\n5\r\n7\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
         // 7. Table APPID
-        dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n70\r\n1\r\n";
-        dwg += "0\r\nAPPID\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nAPPID\r\n5\r\n9\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n1\r\n";
+        dwg += "0\r\nAPPID\r\n5\r\n13\r\n330\r\n9\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbRegAppTableRecord\r\n2\r\nACAD\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
 
-        // 8. Table DIMSTYLE (Để rỗng 70 0 để triệt tiêu lỗi Null object Id)
-        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n70\r\n0\r\n0\r\nENDTAB\r\n";
+        // 8. Table DIMSTYLE
+        dwg += "0\r\nTABLE\r\n2\r\nDIMSTYLE\r\n5\r\nA\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n0\r\n100\r\nAcDbDimStyleTable\r\n71\r\n1\r\n0\r\nENDTAB\r\n";
 
         // 9. Table BLOCK_RECORD (Bắt buộc trong AutoCAD AC1015)
-        dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n70\r\n2\r\n";
-        dwg += "0\r\nBLOCK_RECORD\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n";
-        dwg += "0\r\nBLOCK_RECORD\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n";
+        dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n5\r\n1\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n2\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1B\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*MODEL_SPACE\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1C\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*PAPER_SPACE\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
         dwg += "0\r\nENDSEC\r\n";
 
-        // SECTION BLOCKS (Đầy đủ layer 8 0 để chống Null Object)
+        // SECTION BLOCKS
         dwg += "0\r\nSECTION\r\n2\r\nBLOCKS\r\n";
-        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
-        dwg += "0\r\nBLOCK\r\n8\r\n0\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n8\r\n0\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1D\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n";
+        dwg += "0\r\nENDBLK\r\n5\r\n1E\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1F\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n";
+        dwg += "0\r\nENDBLK\r\n5\r\n20\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
         dwg += "0\r\nENDSEC\r\n";
 
         // ENTITIES SECTION
@@ -28861,8 +28947,9 @@ const appCadTool = {
 
         // SECTION OBJECTS (Bắt buộc cho AutoCAD AC1015)
         dwg += "0\r\nSECTION\r\n2\r\nOBJECTS\r\n";
-        dwg += "0\r\nDICTIONARY\r\n0\r\nENDSEC\r\n";
-        dwg += "0\r\nEOF\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n330\r\n0\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n3\r\nACAD_GROUP\r\n350\r\nD\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nD\r\n330\r\nC\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n";
+        dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
         const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
