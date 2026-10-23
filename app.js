@@ -17201,6 +17201,550 @@ const appCadTool = {
     
     // === CHUYỂN ĐỔI TAB CÔNG CỤ TRÊN THANH MINICAD TIẾT KIỆM KHÔNG GIAN ===
     
+    // === ƯU TIÊN 3: HỆ THỐNG QUẢN LÝ LỚP (LAYER) CHUẨN THÔNG TƯ 25/2014/TT-BTNMT ===
+    layersTable: [
+        { id: 'RANH_THUA', name: 'Ranh thửa đất', color: '#ef4444', visible: true, locked: false },
+        { id: 'MOC_TOADO', name: 'Mốc tọa độ & Đỉnh', color: '#22c55e', visible: true, locked: false },
+        { id: 'TIM_DUONG', name: 'Tim & Mép đường', color: '#eab308', visible: true, locked: false },
+        { id: 'NHA_CONGTRINH', name: 'Nhà & Công trình', color: '#38bdf8', visible: true, locked: false },
+        { id: 'QUY_HOACH', name: 'Quy hoạch & Chỉ giới', color: '#a855f7', visible: true, locked: false },
+        { id: 'DIA_VAT', name: 'Địa vật & Cột mốc phụ', color: '#f97316', visible: true, locked: false },
+        { id: 'GHI_CHU', name: 'Ghi chú & Nhãn kích thước', color: '#94a3b8', visible: true, locked: false }
+    ],
+    currentLayer: 'RANH_THUA',
+
+    // === ƯU TIÊN 1 & 2: TRẠNG THÁI CÔNG CỤ 2D CAO CẤP ===
+    toolAction: null, // null | 'split' | 'merge' | 'trim' | 'extend'
+    splitTargetShapeIdx: -1,
+    splitLinePoints: [],
+    mergeFirstShapeIdx: -1,
+    trimTargetLineIdx: -1,
+    extendTargetLineIdx: -1,
+
+    initLayersTable() {
+        try {
+            const raw = localStorage.getItem('vn2k_cad_layers_v1');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    this.layersTable = parsed;
+                }
+            }
+        } catch (e) {}
+        this.updateCurrentLayerBadge();
+    },
+
+    saveLayersTable() {
+        try {
+            localStorage.setItem('vn2k_cad_layers_v1', JSON.stringify(this.layersTable));
+        } catch (e) {}
+    },
+
+    getLayerById(id) {
+        if (!this.layersTable) this.initLayersTable();
+        return this.layersTable.find(l => l.id === id) || this.layersTable[0];
+    },
+
+    setCurrentLayer(layerId) {
+        const ly = this.getLayerById(layerId);
+        if (!ly) return;
+        this.currentLayer = layerId;
+        this.saveLayersTable();
+        this.updateCurrentLayerBadge();
+        showToast(`📑 Đã chọn lớp hiện hành: [${ly.name}]`);
+    },
+
+    updateCurrentLayerBadge() {
+        const ly = this.getLayerById(this.currentLayer);
+        const nameEl = document.getElementById('cadCurrentLayerName');
+        const pillEl = document.getElementById('cadCurrentLayerPill');
+        if (nameEl && ly) {
+            nameEl.innerText = ly.name;
+            nameEl.style.color = ly.color;
+        }
+        if (pillEl && ly) {
+            pillEl.style.borderColor = ly.color;
+        }
+    },
+
+    toggleLayerVisibility(layerId) {
+        const ly = this.getLayerById(layerId);
+        if (!ly) return;
+        ly.visible = !ly.visible;
+        this.saveLayersTable();
+        this.renderGeometry();
+        this.renderLayersList();
+        showToast(ly.visible ? `👁️ Đã hiện lớp: ${ly.name}` : `🙈 Đã ẩn lớp: ${ly.name}`);
+    },
+
+    toggleLayerLock(layerId) {
+        const ly = this.getLayerById(layerId);
+        if (!ly) return;
+        ly.locked = !ly.locked;
+        this.saveLayersTable();
+        this.renderGeometry();
+        this.renderLayersList();
+        showToast(ly.locked ? `🔒 Đã khóa lớp: ${ly.name} (chống sửa nhầm)` : `🔓 Đã mở khóa lớp: ${ly.name}`);
+    },
+
+    openLayerManagerModal() {
+        if (!this.layersTable) this.initLayersTable();
+        this.renderLayersList();
+        const modal = document.getElementById('modalCadLayers');
+        if (modal) modal.classList.add('active', 'show');
+    },
+
+    closeLayerManagerModal() {
+        const modal = document.getElementById('modalCadLayers');
+        if (modal) modal.classList.remove('active', 'show');
+    },
+
+    renderLayersList() {
+        const tbody = document.getElementById('cadLayersTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const counts = {};
+        this.layersTable.forEach(l => { counts[l.id] = 0; });
+        (this.savedShapes || []).forEach(s => {
+            const lid = s.layer || 'RANH_THUA';
+            counts[lid] = (counts[lid] || 0) + 1;
+        });
+
+        this.layersTable.forEach(l => {
+            const isCurrent = (this.currentLayer === l.id);
+            const cnt = counts[l.id] || 0;
+            const tr = document.createElement('tr');
+            tr.style.cssText = `border-bottom: 1px solid rgba(255,255,255,0.06); ${isCurrent ? 'background: rgba(56, 189, 248, 0.12);' : ''}`;
+            tr.innerHTML = `
+                <td style="padding: 6px 8px;">
+                    <div style="width: 18px; height: 18px; border-radius: 4px; background: ${l.color}; border: 1px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4);"></div>
+                </td>
+                <td style="padding: 6px 8px; font-weight: 700; color: ${isCurrent ? '#38bdf8' : '#e2e8f0'}; font-family: ui-monospace, monospace;">
+                    ${l.id} ${isCurrent ? '<span style="font-size: 10px; color: #38bdf8; font-weight: 800;">[HIỆN HÀNH]</span>' : ''}
+                </td>
+                <td style="padding: 6px 8px; color: #cbd5e1; font-weight: 600;">
+                    ${l.name}
+                </td>
+                <td style="padding: 6px 6px; text-align: center; color: #94a3b8; font-weight: 700;">
+                    ${cnt}
+                </td>
+                <td style="padding: 6px 8px; text-align: center;">
+                    <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+                        <button type="button" class="btn-sm" style="height: 24px; padding: 0 6px; font-size: 11px; background: ${l.visible !== false ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${l.visible !== false ? '#6ee7b7' : '#fca5a5'};"
+                            onclick="appCadTool.toggleLayerVisibility('${l.id}')" title="${l.visible !== false ? 'Bấm để ẩn layer này' : 'Bấm để hiện layer này'}">
+                            ${l.visible !== false ? '👁️' : '🙈'}
+                        </button>
+                        <button type="button" class="btn-sm" style="height: 24px; padding: 0 6px; font-size: 11px; background: ${l.locked ? 'rgba(245, 158, 11, 0.25)' : 'rgba(100, 116, 139, 0.2)'}; color: ${l.locked ? '#fbbf24' : '#94a3b8'};"
+                            onclick="appCadTool.toggleLayerLock('${l.id}')" title="${l.locked ? 'Lớp đang khóa (chống sửa nhầm) - Bấm để mở' : 'Bấm để khóa lớp chống sửa nhầm'}">
+                            ${l.locked ? '🔒' : '🔓'}
+                        </button>
+                        ${!isCurrent ? `
+                        <button type="button" class="btn-sm" style="height: 24px; padding: 0 6px; font-size: 10.5px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700;"
+                            onclick="appCadTool.setCurrentLayer('${l.id}'); appCadTool.renderLayersList();" title="Đặt làm lớp vẽ hiện hành">
+                            Vẽ lớp này
+                        </button>
+                        ` : ''}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    },
+
+    promptAddNewLayer() {
+        const id = prompt('Nhập mã layer mới (viết hoa không dấu, ví dụ: DUONG_DIEN, CO_QUAN):');
+        if (!id) return;
+        const cleanId = id.toUpperCase().trim().replace(/[^A-Z0-9_]/g, '_');
+        if (this.layersTable.some(l => l.id === cleanId)) {
+            showToast('⚠️ Mã lớp này đã tồn tại!', true);
+            return;
+        }
+        const name = prompt('Nhập tên tiếng Việt diễn giải cho lớp:', cleanId) || cleanId;
+        const color = this.palette[this.layersTable.length % this.palette.length];
+        this.layersTable.push({
+            id: cleanId,
+            name: name.trim(),
+            color: color,
+            visible: true,
+            locked: false
+        });
+        this.saveLayersTable();
+        this.renderLayersList();
+        showToast(`✓ Đã thêm lớp mới: [${cleanId}]`);
+    },
+
+    promptAssignLayer() {
+        if (!this.selectedItem || this.selectedItem.type !== 'shape') {
+            showToast('⚠️ Vui lòng chọn 1 khối/thửa đất để gán lớp!', true);
+            return;
+        }
+        const s = this.savedShapes[this.selectedItem.index];
+        if (!s) return;
+        const curLayer = s.layer || 'RANH_THUA';
+
+        const layerOptions = this.layersTable.map((l, i) => `${i + 1}. [${l.id}] ${l.name}`).join('\n');
+        const choice = prompt(`Chọn lớp cho khối [${s.name}]:\n(Hiện tại: ${curLayer})\n\n${layerOptions}\n\nNhập số thứ tự (1 - ${this.layersTable.length}) hoặc mã lớp:`, '1');
+        if (!choice) return;
+
+        let selectedLayer = null;
+        const num = parseInt(choice, 10);
+        if (!isNaN(num) && num >= 1 && num <= this.layersTable.length) {
+            selectedLayer = this.layersTable[num - 1];
+        } else {
+            selectedLayer = this.layersTable.find(l => l.id.toLowerCase() === choice.trim().toLowerCase());
+        }
+
+        if (!selectedLayer) {
+            showToast('⚠️ Lựa chọn lớp không hợp lệ!', true);
+            return;
+        }
+
+        this.pushHistoryState(`Gán lớp [${selectedLayer.id}] cho [${s.name}]`);
+        s.layer = selectedLayer.id;
+        s.color = selectedLayer.color;
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        showToast(`✓ Đã chuyển [${s.name}] sang lớp: [${selectedLayer.name}]`);
+    },
+
+    // === ƯU TIÊN 1: TÁCH THỬA (SPLIT POLYGON) & HỢP THỬA (MERGE POLYGONS) ===
+    startSplitTool() {
+        if (!this.selectedItem || this.selectedItem.type !== 'shape') {
+            showToast('⚠️ Vui lòng chọn thửa đất (đa giác khép kín) cần tách trước!', true);
+            this.switchToolTab('select');
+            return;
+        }
+        const shape = this.savedShapes[this.selectedItem.index];
+        if (!shape || shape.mode !== 'polygon' || !shape.vertices || shape.vertices.length < 3) {
+            showToast('⚠️ Đối tượng được chọn phải là đa giác khép kín hợp lệ để tách thửa!', true);
+            return;
+        }
+
+        this.toolAction = 'split';
+        this.splitTargetShapeIdx = this.selectedItem.index;
+        this.splitLinePoints = [];
+
+        showToast(`✂️ CHẾ ĐỘ TÁCH THỬA [${shape.name}]: Hãy nhấp 2 điểm mốc ranh để cắt ngang thửa đất (Esc để hủy)`);
+    },
+
+    executeSplit() {
+        if (this.splitTargetShapeIdx < 0 || !this.savedShapes[this.splitTargetShapeIdx]) {
+            this.toolAction = null;
+            return;
+        }
+        if (this.splitLinePoints.length < 2) return;
+
+        const targetShape = this.savedShapes[this.splitTargetShapeIdx];
+        const p1 = this.splitLinePoints[0];
+        const p2 = this.splitLinePoints[1];
+
+        const result = CadGeometryEngine.splitPolygon(targetShape.vertices, p1, p2);
+        if (!result || !result.success) {
+            showToast(`⚠️ Tách thửa không thành công: ${result?.error || 'Đường cắt chưa cắt qua 2 cạnh của thửa đất'}`, true);
+            this.splitLinePoints = [];
+            return;
+        }
+
+        const ensureWgs = (pts) => {
+            pts.forEach(p => {
+                if (!p.lat || !p.lng) {
+                    const wgs = convertVn2kToWgs(p.x, p.y, AppState.kttVal, AppState.scaleFactor);
+                    p.lat = parseFloat(wgs.lat.toFixed(7));
+                    p.lng = parseFloat(wgs.lng.toFixed(7));
+                }
+            });
+        };
+        ensureWgs(result.polygonA);
+        ensureWgs(result.polygonB);
+
+        const baseName = targetShape.name || 'Thửa';
+        const baseShort = targetShape.shortName || 'T';
+
+        const s1 = {
+            id: 'shape_' + Date.now() + '_1',
+            name: `${baseName}/1`,
+            shortName: `${baseShort}.1`,
+            mode: 'polygon',
+            vertices: result.polygonA,
+            stats: {
+                area: result.areaA,
+                areaFormatted: result.areaA.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                ha: result.areaA / 10000.0,
+                haFormatted: (result.areaA / 10000.0).toFixed(4),
+                perimeter: result.perimA,
+                perimeterFormatted: result.perimA.toFixed(2),
+                edges: []
+            },
+            color: '#10b981',
+            layer: targetShape.layer || 'RANH_THUA',
+            selected: true
+        };
+
+        const s2 = {
+            id: 'shape_' + Date.now() + '_2',
+            name: `${baseName}/2`,
+            shortName: `${baseShort}.2`,
+            mode: 'polygon',
+            vertices: result.polygonB,
+            stats: {
+                area: result.areaB,
+                areaFormatted: result.areaB.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                ha: result.areaB / 10000.0,
+                haFormatted: (result.areaB / 10000.0).toFixed(4),
+                perimeter: result.perimB,
+                perimeterFormatted: result.perimB.toFixed(2),
+                edges: []
+            },
+            color: '#38bdf8',
+            layer: targetShape.layer || 'RANH_THUA',
+            selected: true
+        };
+
+        this.pushHistoryState(`Tách thửa [${targetShape.name}]`);
+        this.savedShapes.splice(this.splitTargetShapeIdx, 1, s1, s2);
+
+        this.toolAction = null;
+        this.splitTargetShapeIdx = -1;
+        this.splitLinePoints = [];
+
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.openAreaTableModal();
+        }
+
+        triggerHaptic('success');
+        showToast(`✓ Đã tách thửa thành công!\n• ${s1.shortName}: ${result.areaA.toFixed(1)} m²\n• ${s2.shortName}: ${result.areaB.toFixed(1)} m²`);
+    },
+
+    startMergeTool() {
+        if (!this.selectedItem || this.selectedItem.type !== 'shape') {
+            showToast('⚠️ Vui lòng chọn thửa đất thứ nhất trước khi hợp thửa!', true);
+            this.switchToolTab('select');
+            return;
+        }
+        const shape = this.savedShapes[this.selectedItem.index];
+        if (!shape || shape.mode !== 'polygon') {
+            showToast('⚠️ Đối tượng được chọn phải là đa giác khép kín!', true);
+            return;
+        }
+
+        this.toolAction = 'merge';
+        this.mergeFirstShapeIdx = this.selectedItem.index;
+
+        showToast(`🔗 Đang chọn [${shape.name}]: Hãy nhấp vào thửa đất thứ hai tiếp giáp để hợp nhất (Esc để hủy)`);
+    },
+
+    executeMerge(idx1, idx2) {
+        if (idx1 === idx2) {
+            showToast('⚠️ Không thể hợp thửa với chính nó!', true);
+            return;
+        }
+        const s1 = this.savedShapes[idx1];
+        const s2 = this.savedShapes[idx2];
+        if (!s1 || !s2) return;
+
+        const result = CadGeometryEngine.mergePolygons(s1.vertices, s2.vertices, 0.25);
+        if (!result || !result.success) {
+            showToast(`⚠️ Hợp thửa thất bại: ${result?.error || 'Hai thửa đất không tiếp giáp chung cạnh ranh'}`, true);
+            this.toolAction = null;
+            return;
+        }
+
+        result.mergedPolygon.forEach(p => {
+            if (!p.lat || !p.lng) {
+                const wgs = convertVn2kToWgs(p.x, p.y, AppState.kttVal, AppState.scaleFactor);
+                p.lat = parseFloat(wgs.lat.toFixed(7));
+                p.lng = parseFloat(wgs.lng.toFixed(7));
+            }
+        });
+
+        const mergedName = `${s1.name}+${s2.name}`;
+        const mergedShort = `${s1.shortName || 'T'}+${s2.shortName || 'T'}`;
+
+        const mergedShape = {
+            id: 'shape_' + Date.now(),
+            name: mergedName,
+            shortName: mergedShort,
+            mode: 'polygon',
+            vertices: result.mergedPolygon,
+            stats: {
+                area: result.totalArea,
+                areaFormatted: result.totalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                ha: result.totalArea / 10000.0,
+                haFormatted: (result.totalArea / 10000.0).toFixed(4),
+                perimeter: result.perimeter,
+                perimeterFormatted: result.perimeter.toFixed(2),
+                edges: []
+            },
+            color: s1.color || '#10b981',
+            layer: s1.layer || 'RANH_THUA',
+            selected: true
+        };
+
+        this.pushHistoryState(`Hợp thửa [${s1.name}] và [${s2.name}]`);
+
+        const maxIdx = Math.max(idx1, idx2);
+        const minIdx = Math.min(idx1, idx2);
+        this.savedShapes.splice(maxIdx, 1);
+        this.savedShapes.splice(minIdx, 1, mergedShape);
+
+        this.toolAction = null;
+        this.mergeFirstShapeIdx = -1;
+
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.openAreaTableModal();
+        }
+
+        triggerHaptic('success');
+        showToast(`✓ Đã hợp thửa thành công: [${mergedShort}]! Diện tích mới: ${result.totalArea.toFixed(1)} m²`);
+    },
+
+    findShapeAtLatLng(lat, lng, excludeIdx = -1) {
+        if (!this.savedShapes || this.savedShapes.length === 0) return -1;
+        const curVn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        const cx = curVn.X, cy = curVn.Y;
+
+        for (let i = 0; i < this.savedShapes.length; i++) {
+            if (i === excludeIdx) continue;
+            const s = this.savedShapes[i];
+            const pts = s.vertices || [];
+            if (pts.length < 3) continue;
+
+            let inside = false;
+            for (let j = 0, k = pts.length - 1; j < pts.length; k = j++) {
+                const xj = pts[j].x, yj = pts[j].y;
+                const xk = pts[k].x, yk = pts[k].y;
+                const intersect = ((yj > cy) !== (yk > cy)) && (cx < (xk - xj) * (cy - yj) / (yk - yj) + xj);
+                if (intersect) inside = !inside;
+            }
+            if (inside) return i;
+        }
+
+        let closestIdx = -1;
+        let minDist = 10.0;
+        this.savedShapes.forEach((s, idx) => {
+            if (idx === excludeIdx) return;
+            (s.vertices || []).forEach(v => {
+                const d = Math.hypot(v.x - cx, v.y - cy);
+                if (d < minDist) {
+                    minDist = d;
+                    closestIdx = idx;
+                }
+            });
+        });
+
+        return closestIdx;
+    },
+
+    // === ƯU TIÊN 2: CẮT XÉN (TRIM) & KÉO DÀI (EXTEND) ===
+    startTrimTool() {
+        if (!this.selectedItem || this.selectedItem.type !== 'shape') {
+            showToast('⚠️ Vui lòng chọn tuyến thẳng cần xén ranh [TR]!', true);
+            this.switchToolTab('select');
+            return;
+        }
+        this.toolAction = 'trim';
+        this.trimTargetLineIdx = this.selectedItem.index;
+        showToast('✂️ CHẾ ĐỘ XÉN RANH [TR]: Nhấp vào đoạn ranh giới cắt ngang để tỉa bỏ phần thừa (Esc để hủy)');
+    },
+
+    executeTrim(cuttingShapeIdx, clickPt) {
+        if (this.trimTargetLineIdx < 0 || !this.savedShapes[this.trimTargetLineIdx]) {
+            this.toolAction = null;
+            return;
+        }
+        const targetShape = this.savedShapes[this.trimTargetLineIdx];
+        const cutShape = this.savedShapes[cuttingShapeIdx];
+        if (!cutShape) return;
+
+        const result = CadGeometryEngine.trimLine(targetShape.vertices, cutShape.vertices, clickPt);
+        if (!result || !result.success) {
+            showToast(`⚠️ Không thể xén ranh: ${result?.error || 'Không tìm thấy giao điểm cắt'}`, true);
+            this.toolAction = null;
+            return;
+        }
+
+        result.trimmedLine.forEach(p => {
+            if (!p.lat || !p.lng) {
+                const wgs = convertVn2kToWgs(p.x, p.y, AppState.kttVal, AppState.scaleFactor);
+                p.lat = parseFloat(wgs.lat.toFixed(7));
+                p.lng = parseFloat(wgs.lng.toFixed(7));
+            }
+        });
+
+        this.pushHistoryState(`Xén ranh [${targetShape.name}]`);
+        targetShape.vertices = result.trimmedLine;
+        targetShape.stats = this.calculateAreaAndPerimeter(targetShape.vertices, targetShape.mode, true);
+
+        this.toolAction = null;
+        this.trimTargetLineIdx = -1;
+
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        showToast(`✓ Đã xén ranh thành công! Chiều dài mới: ${targetShape.stats.perimeterFormatted}m`);
+    },
+
+    startExtendTool() {
+        if (!this.selectedItem || this.selectedItem.type !== 'shape') {
+            showToast('⚠️ Vui lòng chọn tuyến thẳng cần kéo dài [EX]!', true);
+            this.switchToolTab('select');
+            return;
+        }
+        this.toolAction = 'extend';
+        this.extendTargetLineIdx = this.selectedItem.index;
+        showToast('📏 CHẾ ĐỘ KÉO DÀI [EX]: Nhấp vào ranh giới đích cần phóng chạm tới (Esc để hủy)');
+    },
+
+    executeExtend(boundaryShapeIdx) {
+        if (this.extendTargetLineIdx < 0 || !this.savedShapes[this.extendTargetLineIdx]) {
+            this.toolAction = null;
+            return;
+        }
+        const targetShape = this.savedShapes[this.extendTargetLineIdx];
+        const boundShape = this.savedShapes[boundaryShapeIdx];
+        if (!boundShape) return;
+
+        const result = CadGeometryEngine.extendLine(targetShape.vertices, boundShape.vertices, 1000);
+        if (!result || !result.success) {
+            showToast(`⚠️ Không thể kéo dài: ${result?.error || 'Không tìm thấy ranh giới đích phía trước'}`, true);
+            this.toolAction = null;
+            return;
+        }
+
+        result.extendedLine.forEach(p => {
+            if (!p.lat || !p.lng) {
+                const wgs = convertVn2kToWgs(p.x, p.y, AppState.kttVal, AppState.scaleFactor);
+                p.lat = parseFloat(wgs.lat.toFixed(7));
+                p.lng = parseFloat(wgs.lng.toFixed(7));
+            }
+        });
+
+        this.pushHistoryState(`Kéo dài [${targetShape.name}]`);
+        targetShape.vertices = result.extendedLine;
+        targetShape.stats = this.calculateAreaAndPerimeter(targetShape.vertices, targetShape.mode, true);
+
+        this.toolAction = null;
+        this.extendTargetLineIdx = -1;
+
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        showToast(`✓ Đã kéo dài ranh thành công chạm mốc đích! Thêm +${result.extendDistance.toFixed(2)}m`);
+    },
+
     computeRectCorners(centerX, centerY, widthM, lengthM, rotationDeg = 0) {
         const w = Math.max(0.5, parseFloat(widthM) || 5);
         const l = Math.max(0.5, parseFloat(lengthM) || 10);
@@ -17298,6 +17842,7 @@ const appCadTool = {
         const btnColor = document.getElementById('btnCadColorSelected');
         const btnDel = document.getElementById('btnCadDeleteSelected');
         const btnDesel = document.getElementById('btnCadDeselect');
+        const btnAssignLayer = document.getElementById('btnCadAssignLayer');
 
         if (item) {
             let label = 'Đang chọn: ';
@@ -17341,6 +17886,7 @@ const appCadTool = {
             }
             if (btnEdit) btnEdit.style.display = 'inline-flex';
             if (btnColor) btnColor.style.display = (item.type === 'shape' || item.type === 'annotation') ? 'inline-flex' : 'none';
+            if (btnAssignLayer) btnAssignLayer.style.display = (item.type === 'shape') ? 'inline-flex' : 'none';
             if (btnDel) btnDel.style.display = 'inline-flex';
             if (btnDesel) btnDesel.style.display = 'inline-flex';
 
@@ -17364,6 +17910,7 @@ const appCadTool = {
         const btnColor = document.getElementById('btnCadColorSelected');
         const btnDel = document.getElementById('btnCadDeleteSelected');
         const btnDesel = document.getElementById('btnCadDeselect');
+        const btnAssignLayer = document.getElementById('btnCadAssignLayer');
 
         if (nameEl) {
             nameEl.innerText = 'Chưa chọn đối tượng nào';
@@ -17373,6 +17920,7 @@ const appCadTool = {
         }
         if (btnEdit) btnEdit.style.display = 'none';
         if (btnColor) btnColor.style.display = 'none';
+        if (btnAssignLayer) btnAssignLayer.style.display = 'none';
         if (btnDel) btnDel.style.display = 'none';
         if (btnDesel) btnDesel.style.display = 'none';
         this.renderGeometry();
@@ -18567,6 +19115,7 @@ const appCadTool = {
 
         this.ensureLayers();
         if (!this.displaySettings) this.initDisplaySettings();
+        if (this.initLayersTable) this.initLayersTable();
 
         // Tự động nạp hoặc tái tạo các khối của dự án nếu danh sách khối hiện đang rỗng
         try {
@@ -18732,10 +19281,26 @@ const appCadTool = {
                 curLng = cand.lng;
                 snapSource = cand.source || cand.name;
 
+                let iconClass = 'cad-osnap-box';
+                let glyph = '□';
+                if (cand.snapType === 'midpoint') {
+                    iconClass = 'cad-osnap-box osnap-mid';
+                    glyph = '△';
+                } else if (cand.snapType === 'edge' || cand.snapType === 'adjacent_edge') {
+                    iconClass = 'cad-osnap-box osnap-edge';
+                    glyph = '⧗';
+                } else if (cand.snapType === 'intersection') {
+                    iconClass = 'cad-osnap-box osnap-intersection';
+                    glyph = '✕';
+                } else if (cand.snapType === 'perpendicular') {
+                    iconClass = 'cad-osnap-box osnap-perp';
+                    glyph = '⟂';
+                }
+
                 // Osnap marker
                 const osnapIcon = L.divIcon({
                     className: '',
-                    html: `<div class="cad-osnap-box" title="Snap: ${snapSource}">□</div>`,
+                    html: `<div class="${iconClass}" title="Snap: ${snapSource}">${glyph}</div>`,
                     iconSize: [20, 20],
                     iconAnchor: [10, 10]
                 });
@@ -19855,6 +20420,43 @@ const appCadTool = {
             if (bestPerp) return bestPerp;
         }
 
+        // --- BƯỚC 1.9: DÓNG ĐIỂM MỞ RỘNG (POLAR / EXTENSION TRACKING) ---
+        if (this.vertices && this.vertices.length >= 2 && typeof CadGeometryEngine !== 'undefined') {
+            const lastIdx = this.vertices.length - 1;
+            const p1 = this.vertices[lastIdx - 1];
+            const p2 = this.vertices[lastIdx];
+            if (p1 && p2 && typeof p1.x === 'number' && typeof p2.x === 'number') {
+                const curMouseVn = convertWgsToVn2k(clickLat, clickLng, AppState.kttVal, AppState.scaleFactor);
+                const extPt = CadGeometryEngine.getPolarExtensionPoint(
+                    { x: p1.x, y: p1.y },
+                    { x: p2.x, y: p2.y },
+                    { x: curMouseVn.X, y: curMouseVn.Y },
+                    200, // cự ly dóng xa tối đa 200m
+                    3.5  // góc lệch cho phép 3.5 độ
+                );
+                if (extPt) {
+                    const extWgs = convertVn2kToWgs(extPt.x, extPt.y, AppState.kttVal, AppState.scaleFactor);
+                    const ptScreen = map.latLngToContainerPoint([extWgs.lat, extWgs.lng]);
+                    const distScreen = Math.hypot(ptScreen.x - clickPt.x, ptScreen.y - clickPt.y);
+                    if (distScreen <= 28) {
+                        return {
+                            lat: extWgs.lat,
+                            lng: extWgs.lng,
+                            x: parseFloat(extPt.x.toFixed(3)),
+                            y: parseFloat(extPt.y.toFixed(3)),
+                            h: parseFloat(((p2.h !== undefined ? p2.h : 0)).toFixed(3)),
+                            name: `Dóng[${p2.name} +${extPt.distance.toFixed(1)}m]`,
+                            snapType: 'extension',
+                            isSnapped: true,
+                            source: `Tia dóng nối dài ${p1.name}-${p2.name} (+${extPt.distance.toFixed(1)}m)`,
+                            v1: p2,
+                            v2: { lat: extWgs.lat, lng: extWgs.lng, x: extPt.x, y: extPt.y }
+                        };
+                    }
+                }
+            }
+        }
+
         // --- BƯỚC 2: TÌM ĐIỂM GIỮA CẠNH (MIDPOINT) & ĐIỂM TRÊN CẠNH (EDGE PROJECTION SNAP) ---
         let bestEdgeCandidate = null;
         if (this.snapLineEnabled !== false) {
@@ -20008,7 +20610,7 @@ const appCadTool = {
                 targetX = cand.x;
                 targetY = cand.y;
 
-                if (cand.snapType === 'edge' && cand.v1 && cand.v2) {
+                if ((cand.snapType === 'edge' || cand.snapType === 'extension') && cand.v1 && cand.v2) {
                     this.renderSnapEdgeGuide(cand.v1, cand.v2);
                 } else {
                     this.clearSnapEdgeGuide();
@@ -20029,6 +20631,9 @@ const appCadTool = {
                 } else if (snapType === 'perpendicular') {
                     iconClass = 'cad-osnap-box osnap-perp';
                     glyph = '⟂';
+                } else if (snapType === 'extension') {
+                    iconClass = 'cad-osnap-box osnap-extension';
+                    glyph = '☩';
                 }
 
                 const osnapIcon = L.divIcon({
@@ -20144,6 +20749,85 @@ const appCadTool = {
         }
         this._lastClickTime = now;
         this.ensureLayers();
+
+        // Xử lý các chế độ công cụ nâng cao: Tách thửa, Hợp thửa, Xén ranh, Kéo dài
+        if (this.toolAction === 'split') {
+            const cand = this.snapEnabled ? this.findSnapCandidate(lat, lng) : null;
+            const useLat = cand ? cand.lat : lat;
+            const useLng = cand ? cand.lng : lng;
+            const ptVn = cand ? { x: cand.x, y: cand.y } : (() => {
+                const vn = convertWgsToVn2k(useLat, useLng, AppState.kttVal, AppState.scaleFactor);
+                return { x: vn.X, y: vn.Y };
+            })();
+
+            this.splitLinePoints = this.splitLinePoints || [];
+            this.splitLinePoints.push(ptVn);
+
+            if (this.splitLinePoints.length === 1) {
+                showToast('📍 Đã chọn điểm cắt 1. Hãy nhấp tiếp điểm cắt 2 băng qua thửa đất...');
+                if (AppState.leafletMap) {
+                    const iconP1 = L.divIcon({
+                        className: '',
+                        html: '<div style="background:#ef4444; color:#fff; border-radius:50%; width:18px; height:18px; text-align:center; font-size:11px; line-height:18px; font-weight:bold; box-shadow:0 0 8px #ef4444;">1</div>',
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    if (this._tempSplitMarker) AppState.leafletMap.removeLayer(this._tempSplitMarker);
+                    this._tempSplitMarker = L.marker([useLat, useLng], { icon: iconP1, zIndexOffset: 3500 }).addTo(AppState.leafletMap);
+                }
+            } else if (this.splitLinePoints.length >= 2) {
+                if (this._tempSplitMarker && AppState.leafletMap) {
+                    AppState.leafletMap.removeLayer(this._tempSplitMarker);
+                    this._tempSplitMarker = null;
+                }
+                this.executeSplit();
+            }
+            return;
+        }
+
+        if (this.toolAction === 'merge') {
+            const hitShapeIdx = this.findShapeAtLatLng(lat, lng);
+            if (hitShapeIdx === null || hitShapeIdx < 0) {
+                showToast('⚠️ Vui lòng nhấp trực tiếp vào thửa đất thứ 2 tiếp giáp để hợp nhất!', true);
+                return;
+            }
+            if (hitShapeIdx === this.mergeFirstShapeIdx) {
+                showToast('⚠️ Thửa này đã được chọn. Vui lòng nhấp thửa thứ 2 kề cận!', true);
+                return;
+            }
+            this.executeMerge(this.mergeFirstShapeIdx, hitShapeIdx);
+            return;
+        }
+
+        if (this.toolAction === 'trim') {
+            const hitShapeIdx = this.findShapeAtLatLng(lat, lng);
+            if (hitShapeIdx === null || hitShapeIdx < 0) {
+                showToast('⚠️ Vui lòng nhấp vào đường ranh giới cắt ngang [Dao cắt]!', true);
+                return;
+            }
+            if (hitShapeIdx === this.trimTargetLineIdx) {
+                showToast('⚠️ Đây là tuyến đang xén. Hãy nhấp đường ranh khác làm dao cắt!', true);
+                return;
+            }
+            const clickVn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+            this.executeTrim(hitShapeIdx, { x: clickVn.X, y: clickVn.Y });
+            return;
+        }
+
+        if (this.toolAction === 'extend') {
+            const hitShapeIdx = this.findShapeAtLatLng(lat, lng);
+            if (hitShapeIdx === null || hitShapeIdx < 0) {
+                showToast('⚠️ Vui lòng nhấp vào đường ranh giới đích cần phóng chạm tới!', true);
+                return;
+            }
+            if (hitShapeIdx === this.extendTargetLineIdx) {
+                showToast('⚠️ Đây là tuyến đang kéo dài. Hãy nhấp vào ranh giới đích!', true);
+                return;
+            }
+            this.executeExtend(hitShapeIdx);
+            return;
+        }
+
         if (this.mode === 'select') {
             // Khi ở chế độ chọn, nếu click vào khoảng trống trên bản đồ thì bỏ chọn
             this.deselectCurrent();
@@ -22005,6 +22689,10 @@ const appCadTool = {
         // 0. Vẽ tất cả các cấu trúc / thửa đã lưu trước đó (có check có hiển thị, bỏ check thì ẩn)
         this.savedShapes.forEach((shape, sIdx) => {
             if (shape.selected === false) return;
+            const shapeLayer = this.getLayerById ? this.getLayerById(shape.layer || 'RANH_THUA') : null;
+            if (shapeLayer && shapeLayer.visible === false) return;
+            const isLayerLocked = shapeLayer && shapeLayer.locked === true;
+
             const sVerts = shape.vertices;
             const sLen = sVerts.length;
             if (sLen === 0) return;
@@ -22174,6 +22862,10 @@ const appCadTool = {
 
                     edgeMarker.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
+                        if (isLayerLocked) {
+                            showToast(`🔒 Lớp [${shapeLayer?.name || 'Hiện hành'}] đang bị khóa ranh giới! Không thể chèn đỉnh.`);
+                            return;
+                        }
                         this.insertVertexOnEdge(sIdx, eIdx);
                     });
 
@@ -22211,7 +22903,7 @@ const appCadTool = {
                 const isExpanded = (isShapeVertVisible === true) || shape._pinned === true;
                 const iconHtml = `<div class="cad-vertex-badge ${isExpanded ? 'expanded' : ''}" style="background: ${sColor}; border-color: #ffffff;" title="${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết / đổi tên)">${v.name}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
-                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: true }).addTo(this.layers.group);
+                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked }).addTo(this.layers.group);
                 marker._pinned = isExpanded;
                 vertexMarkers.push(marker);
 
@@ -22234,7 +22926,12 @@ const appCadTool = {
                 });
 
                 let isDragging = false;
-                marker.on('dragstart', () => {
+                marker.on('dragstart', (e) => {
+                    if (isLayerLocked) {
+                        showToast(`🔒 Lớp [${shapeLayer?.name || 'Hiện hành'}] đang bị khóa ranh giới!`);
+                        if (AppState.leafletMap) AppState.leafletMap.dragging.enable();
+                        return;
+                    }
                     this.pushHistoryState(`Dời đỉnh ${v.name}`);
                     isDragging = true;
                     if (AppState.leafletMap) AppState.leafletMap.dragging.disable();
@@ -26121,17 +26818,49 @@ const appCadTool = {
             case 'SNAPLINE':
                 this.toggleSnapLine();
                 break;
+            case 'SPLIT':
+            case 'TACH':
+            case 'TACHTHUA':
+                this.startSplitTool();
+                break;
+            case 'MERGE':
+            case 'HOP':
+            case 'HOPTHUA':
+            case 'JOIN':
+                this.startMergeTool();
+                break;
+            case 'TR':
+            case 'TRIM':
+            case 'XEN':
+                this.startTrimTool();
+                break;
+            case 'EX':
+            case 'EXTEND':
+            case 'KEODAI':
+                this.startExtendTool();
+                break;
+            case 'LA':
+            case 'LAYER':
+            case 'LAYERS':
+            case 'LOP':
+                this.openLayerManagerModal();
+                break;
             case 'DYN':
                 this.toggleDynamicInput();
                 break;
             case 'ESC':
             case 'THOAT':
+                this.toolAction = null;
+                if (this._tempSplitMarker && AppState.leafletMap) {
+                    AppState.leafletMap.removeLayer(this._tempSplitMarker);
+                    this._tempSplitMarker = null;
+                }
                 if (this.selectedItem) this.deselectCurrent();
                 if (this.mode === 'select') this.setMode('polygon');
                 showToast('✖ Đã thoát công cụ');
                 break;
             default:
-                showToast(`⚠️ Không nhận diện lệnh CAD: "${cmd}". Gõ L, P, REC, C, DIM, RO, O, E, EXP...`);
+                showToast(`⚠️ Không nhận diện lệnh CAD: "${cmd}". Gõ L, P, SPLIT, MERGE, TR, EX, LA, O, E, EXP...`);
                 break;
         }
 
@@ -30746,7 +31475,8 @@ const appDonate = {
             accountNumber: '0839656568',
             accountName: 'ĐẶNG NHƯ',
             memo: 'Ung ho VN2000 Pro',
-            qrUrl: 'https://img.vietqr.io/image/ICB-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU'
+            qrUrl: 'https://img.vietqr.io/image/ICB-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU',
+            openAppUrl: 'https://vietinbankipays.page.link/'
         },
         'bidv': {
             name: 'BIDV (Đầu tư và Phát triển VN)',
@@ -30754,7 +31484,8 @@ const appDonate = {
             accountNumber: '0839656568',
             accountName: 'ĐẶNG NHƯ',
             memo: 'Ung ho VN2000 Pro',
-            qrUrl: 'https://img.vietqr.io/image/BIDV-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU'
+            qrUrl: 'https://img.vietqr.io/image/BIDV-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU',
+            openAppUrl: 'https://bidvsmartbanking.page.link/'
         },
         'momo': {
             name: 'Ví Điện Tử MoMo (SĐT)',
@@ -30964,7 +31695,17 @@ const appDonate = {
             if (cur.openAppUrl) {
                 elBtnOpenApp.style.display = 'inline-flex';
                 elBtnOpenApp.href = cur.openAppUrl;
-                elBtnOpenApp.innerHTML = cur.bankCode === 'MOMO' ? '📲 Mở App MoMo Chuyển Tiền ➔' : '📲 Mở ZaloPay / Zalo Chuyển Tiền ➔';
+                let btnLabel = '📲 Chuyển Khoản Ngay (Mở App) ➔';
+                if (cur.bankCode === 'MOMO') {
+                    btnLabel = '📲 Mở Ví MoMo Chuyển Tiền ➔';
+                } else if (cur.bankCode === 'ZALOPAY') {
+                    btnLabel = '📲 Mở ZaloPay / Zalo Chuyển Tiền ➔';
+                } else if (cur.bankCode === 'ICB') {
+                    btnLabel = '📲 Mở App VietinBank iPay Chuyển Tiền ➔';
+                } else if (cur.bankCode === 'BIDV') {
+                    btnLabel = '📲 Mở App BIDV SmartBanking Chuyển Tiền ➔';
+                }
+                elBtnOpenApp.innerHTML = btnLabel;
             } else {
                 elBtnOpenApp.style.display = 'none';
             }

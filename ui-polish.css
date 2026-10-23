@@ -294,7 +294,7 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 @media (max-width: 480px) {
   #modalDonateCountdown.modal-overlay{top:8px!important;left:8px!important;right:8px!important;justify-content:center!important}
 }
-#modalDonateCountdown .modal-donate-box.support-modal{width:360px!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 20px)!important;background:rgba(15,23,42,0.96)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;color:var(--text-main,#f3f4f6)!important;border:1px solid rgba(56,189,248,0.28)!important;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.08)!important;display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important;pointer-events:auto!important}
+#modalDonateCountdown .modal-donate-box.support-modal{width:420px!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 20px)!important;background:rgba(15,23,42,0.96)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;color:var(--text-main,#f3f4f6)!important;border:1px solid rgba(56,189,248,0.28)!important;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.08)!important;display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important;pointer-events:auto!important}
 #modalDonateCountdown .support-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08);background:inherit}
 #modalDonateCountdown .support-title-wrap{min-width:0;flex:1}
 #modalDonateCountdown .support-title{margin:0;font-size:14px;font-weight:700;line-height:1.2;color:var(--text-main,#f3f4f6);letter-spacing:.2px}
@@ -309,13 +309,14 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 #modalDonateCountdown .donate-channel-pill.support-channel-btn:hover{background:var(--hover-bg,rgba(255,255,255,.06))}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn.active{border-color:var(--accent,#38bdf8);background:var(--accent-glow,rgba(56,189,248,.14));color:var(--text-main,#f3f4f6)}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
-#modalDonateCountdown .support-qr-panel{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:2px}
-#modalDonateCountdown .support-qr-box{width:140px;height:140px;background:#fff;border-radius:8px;border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;padding:4px;overflow:hidden}
-#modalDonateCountdown .support-qr-image{width:100%;height:100%;object-fit:contain;border-radius:4px;display:block}
+#modalDonateCountdown .support-qr-panel{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:2px}
+#modalDonateCountdown .support-qr-box{width:220px;height:220px;max-width:100%;background:#fff;border-radius:10px;border:1.5px solid rgba(56,189,248,0.35);display:flex;align-items:center;justify-content:center;padding:6px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.35)}
+#modalDonateCountdown .support-qr-image{width:100%;height:100%;object-fit:contain;border-radius:6px;display:block}
 #modalDonateCountdown .support-qr-image:not([src]){display:none}
 #modalDonateCountdown .support-qr-image[src]{display:block}
 #modalDonateCountdown .support-hint{margin:0;font-size:11.5px;text-align:center;color:var(--text-muted,#9ca3af);line-height:1.4}
-#modalDonateCountdown .support-app-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 14px;border-radius:8px;text-decoration:none;font-size:12.5px;font-weight:600;background:var(--support-action,#0369a1);color:#fff;border:none}
+#modalDonateCountdown .support-app-link{min-height:42px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;border-radius:8px;text-decoration:none;font-size:12.5px;font-weight:700;background:linear-gradient(135deg,#0284c7 0%,#0369a1 100%);color:#fff;border:1px solid rgba(56,189,248,0.3);box-shadow:0 2px 8px rgba(2,132,199,0.3);transition:transform .15s ease,filter .15s ease}
+#modalDonateCountdown .support-app-link:hover{filter:brightness(1.1);transform:translateY(-1px)}
 #modalDonateCountdown .support-meta-list{display:flex;flex-direction:column;gap:8px;padding-top:4px}
 #modalDonateCountdown .support-meta-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;min-height:28px}
 #modalDonateCountdown .support-meta-label{color:var(--text-muted,#9ca3af);flex-shrink:0}

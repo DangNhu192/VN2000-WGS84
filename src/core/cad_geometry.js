@@ -256,6 +256,408 @@ const CadGeometryEngine = {
     // Giữ tương thích ngược với các hàm gọi cũ
     exportDxfString(shapes, layerName = "RANH_DAT", options = {}) {
         return this.exportDwgString(shapes, layerName, options);
+    },
+
+    // =========================================================================
+    // THUẬT TOÁN HÌNH HỌC 2D NÂNG CAO CHO ĐỊA CHÍNH & KHẢO SÁT THỰC ĐỊA
+    // =========================================================================
+
+    // Tính giao điểm giữa 2 đoạn thẳng p1-p2 và p3-p4
+    intersectSegments(p1, p2, p3, p4) {
+        const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+        if (Math.abs(denom) < 1e-9) return null; // Song song hoặc trùng nhau
+
+        const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom;
+        const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom;
+
+        if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+            return {
+                x: p1.x + ua * (p2.x - p1.x),
+                y: p1.y + ua * (p2.y - p1.y),
+                ua,
+                ub
+            };
+        }
+        return null;
+    },
+
+    // Tính giao điểm của đường thẳng vô hạn đi qua lineP1-lineP2 với đoạn thẳng segA-segB
+    intersectLineWithSegment(lineP1, lineP2, segA, segB) {
+        const dxL = lineP2.x - lineP1.x;
+        const dyL = lineP2.y - lineP1.y;
+        const dxS = segB.x - segA.x;
+        const dyS = segB.y - segA.y;
+
+        const denom = dyL * dxS - dxL * dyS;
+        if (Math.abs(denom) < 1e-9) return null; // Song song
+
+        const t = (dxL * (segA.y - lineP1.y) - dyL * (segA.x - lineP1.x)) / denom;
+        if (t >= -1e-6 && t <= 1 + 1e-6) {
+            const clampedT = Math.max(0, Math.min(1, t));
+            return {
+                x: segA.x + clampedT * dxS,
+                y: segA.y + clampedT * dyS,
+                t: clampedT
+            };
+        }
+        return null;
+    },
+
+    // TÁCH THỬA ĐẤT: Chia đa giác khép kín thành 2 đa giác con qua đường cắt 2 điểm
+    splitPolygon(polygonPoints, cutP1, cutP2) {
+        if (!polygonPoints || polygonPoints.length < 3) {
+            return { success: false, error: 'Đa giác phải có tối thiểu 3 đỉnh để tách thửa' };
+        }
+        if (!cutP1 || !cutP2) {
+            return { success: false, error: 'Cần chỉ định đủ 2 điểm mốc xác định đường cắt' };
+        }
+
+        const n = polygonPoints.length;
+        const hits = [];
+
+        // Tìm tất cả các giao điểm của đường cắt với các cạnh đa giác
+        for (let i = 0; i < n; i++) {
+            const a = polygonPoints[i];
+            const b = polygonPoints[(i + 1) % n];
+            const hit = this.intersectLineWithSegment(cutP1, cutP2, a, b);
+            if (hit) {
+                // Kiểm tra trùng lặp với giao điểm đã tìm thấy trước đó
+                const isDuplicate = hits.some(h => Math.hypot(h.x - hit.x, h.y - hit.y) < 1e-3);
+                if (!isDuplicate) {
+                    // Nội suy các thuộc tính khác (lat, lng, h) theo tỉ lệ t
+                    const lat = (a.lat !== undefined && b.lat !== undefined) ? a.lat + hit.t * (b.lat - a.lat) : undefined;
+                    const lng = (a.lng !== undefined && b.lng !== undefined) ? a.lng + hit.t * (b.lng - a.lng) : undefined;
+                    const h = (a.h !== undefined && b.h !== undefined) ? a.h + hit.t * (b.h - a.h) : 0;
+
+                    hits.push({
+                        edgeIndex: i,
+                        t: hit.t,
+                        x: parseFloat(hit.x.toFixed(3)),
+                        y: parseFloat(hit.y.toFixed(3)),
+                        lat,
+                        lng,
+                        h,
+                        name: `M${hits.length + 1}`
+                    });
+                }
+            }
+        }
+
+        if (hits.length < 2) {
+            return {
+                success: false,
+                error: 'Đường cắt không cắt xuyên qua thửa đất (cần cắt qua ít nhất 2 cạnh). Hãy kiểm tra lại hướng cắt!'
+            };
+        }
+
+        // Lấy 2 giao điểm đầu tiên (sắp xếp theo thứ tự cạnh)
+        hits.sort((h1, h2) => h1.edgeIndex - h2.edgeIndex || h1.t - h2.t);
+        const hit1 = hits[0];
+        const hit2 = hits[1];
+
+        // Nếu 2 giao điểm cùng nằm trên 1 cạnh thì không tách được
+        if (hit1.edgeIndex === hit2.edgeIndex) {
+            return { success: false, error: 'Hai điểm cắt nằm trên cùng một cạnh, không thể tách thửa!' };
+        }
+
+        // Tạo 2 đa giác con
+        // Đa giác con A: [0 .. hit1.edgeIndex] -> hit1 -> hit2 -> [(hit2.edgeIndex + 1) .. n - 1]
+        const polyA = [];
+        for (let i = 0; i <= hit1.edgeIndex; i++) {
+            polyA.push({ ...polygonPoints[i] });
+        }
+        polyA.push({ ...hit1, name: `Ranh_T1` });
+        polyA.push({ ...hit2, name: `Ranh_T2` });
+        for (let i = hit2.edgeIndex + 1; i < n; i++) {
+            polyA.push({ ...polygonPoints[i] });
+        }
+
+        // Đa giác con B: hit1 -> [hit1.edgeIndex + 1 .. hit2.edgeIndex] -> hit2
+        const polyB = [];
+        polyB.push({ ...hit1, name: `Ranh_T1` });
+        for (let i = hit1.edgeIndex + 1; i <= hit2.edgeIndex; i++) {
+            polyB.push({ ...polygonPoints[i] });
+        }
+        polyB.push({ ...hit2, name: `Ranh_T2` });
+
+        // Đánh lại số thứ tự tên đỉnh chuẩn địa chính
+        polyA.forEach((pt, idx) => { pt.name = `Đ${idx + 1}`; });
+        polyB.forEach((pt, idx) => { pt.name = `Đ${idx + 1}`; });
+
+        const areaA = this.calculateArea(polyA);
+        const areaB = this.calculateArea(polyB);
+        const perimA = this.calculatePerimeter(polyA, true);
+        const perimB = this.calculatePerimeter(polyB, true);
+
+        return {
+            success: true,
+            polygonA: polyA,
+            polygonB: polyB,
+            areaA,
+            areaB,
+            perimA,
+            perimB,
+            intersections: [hit1, hit2]
+        };
+    },
+
+    // HỢP THỬA ĐẤT: Gộp 2 thửa liền kề có cạnh tiếp giáp thành 1 thửa bao ngoài
+    mergePolygons(polyA, polyB, tolerance = 0.08) {
+        if (!polyA || polyA.length < 3 || !polyB || polyB.length < 3) {
+            return { success: false, error: 'Cả hai thửa đất phải có tối thiểu 3 đỉnh khép kín' };
+        }
+
+        const isPtMatch = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y) <= tolerance;
+
+        // Tìm các cặp đỉnh tiếp xúc giữa PolyA và PolyB
+        const contactPairs = [];
+        polyA.forEach((pa, idxA) => {
+            polyB.forEach((pb, idxB) => {
+                if (isPtMatch(pa, pb)) {
+                    contactPairs.push({ idxA, idxB });
+                }
+            });
+        });
+
+        if (contactPairs.length < 2) {
+            return {
+                success: false,
+                error: 'Hai thửa đất không có cạnh tiếp giáp liền kề (cần tối thiểu 2 đỉnh chung ranh giới để hợp thửa)!'
+            };
+        }
+
+        // Tìm đoạn cạnh chung liên tiếp trên polyA và polyB
+        const c1 = contactPairs[0];
+        const c2 = contactPairs[1];
+
+        let startA = c1.idxA;
+        let endA = c2.idxA;
+        let startB = c1.idxB;
+        let endB = c2.idxB;
+
+        if ((endA - startA + polyA.length) % polyA.length > polyA.length / 2) {
+            const tmp = startA; startA = endA; endA = tmp;
+            const tmpB = startB; startB = endB; endB = tmpB;
+        }
+
+        // Đi theo viền ngoài polyA từ endA đến startA
+        const merged = [];
+        let currA = endA;
+        while (true) {
+            merged.push({ ...polyA[currA] });
+            if (currA === startA) break;
+            currA = (currA + 1) % polyA.length;
+        }
+
+        // Đi tiếp qua viền ngoài polyB từ startB đến endB (chọn chiều không trùng với cạnh chung)
+        const stepB = (endB === (startB + 1) % polyB.length) ? -1 : 1;
+        let currB = (startB + stepB + polyB.length) % polyB.length;
+        while (currB !== endB) {
+            if (!polyA.some(pa => isPtMatch(pa, polyB[currB]))) {
+                merged.push({ ...polyB[currB] });
+            }
+            currB = (currB + stepB + polyB.length) % polyB.length;
+        }
+
+        // Khử các điểm trùng lặp liên tiếp
+        const cleaned = [];
+        for (let i = 0; i < merged.length; i++) {
+            const next = merged[(i + 1) % merged.length];
+            if (!isPtMatch(merged[i], next)) {
+                cleaned.push(merged[i]);
+            }
+        }
+
+        if (cleaned.length < 3) {
+            return { success: false, error: 'Lỗi hình học: Không tạo được đa giác bao ngoài hợp lệ' };
+        }
+
+        // Đánh lại số hiệu đỉnh
+        cleaned.forEach((pt, idx) => { pt.name = `Đ${idx + 1}`; });
+        const totalArea = this.calculateArea(cleaned);
+        const perim = this.calculatePerimeter(cleaned, true);
+
+        return {
+            success: true,
+            mergedPolygon: cleaned,
+            totalArea,
+            perimeter: perim
+        };
+    },
+
+    // CẮT XÉN RANH (TRIM [TR]): Xén bớt đoạn thẳng vượt quá ranh giới cắt
+    trimLine(linePoints, cuttingPoints, clickNearPoint = null) {
+        if (!linePoints || linePoints.length < 2) {
+            return { success: false, error: 'Tuyến cần cắt phải có ít nhất 2 điểm' };
+        }
+        if (!cuttingPoints || cuttingPoints.length < 2) {
+            return { success: false, error: 'Đường ranh giới cắt cần tối thiểu 2 điểm' };
+        }
+
+        let bestHit = null;
+        let cutSegIdx = -1;
+
+        // Tìm giao điểm đầu tiên giữa tuyến và đường ranh cắt
+        for (let i = 0; i < linePoints.length - 1; i++) {
+            const p1 = linePoints[i];
+            const p2 = linePoints[i + 1];
+            for (let j = 0; j < cuttingPoints.length - 1; j++) {
+                const c1 = cuttingPoints[j];
+                const c2 = cuttingPoints[j + 1];
+                const hit = this.intersectSegments(p1, p2, c1, c2);
+                if (hit) {
+                    bestHit = hit;
+                    cutSegIdx = i;
+                    break;
+                }
+            }
+            if (bestHit) break;
+        }
+
+        if (!bestHit) {
+            return { success: false, error: 'Đường ranh giới không giao cắt với tuyến thẳng đã chọn!' };
+        }
+
+        // Chia tuyến thành 2 phần: phần đầu và phần đuôi tại điểm giao cắt
+        const headPart = linePoints.slice(0, cutSegIdx + 1);
+        headPart.push({
+            x: parseFloat(bestHit.x.toFixed(3)),
+            y: parseFloat(bestHit.y.toFixed(3)),
+            name: 'Giao_Xen'
+        });
+
+        const tailPart = [{
+            x: parseFloat(bestHit.x.toFixed(3)),
+            y: parseFloat(bestHit.y.toFixed(3)),
+            name: 'Giao_Xen'
+        }, ...linePoints.slice(cutSegIdx + 1)];
+
+        // Nếu có clickNearPoint, xóa phần gần clickNearPoint hơn, giữ lại phần kia
+        let resultLine = headPart;
+        if (clickNearPoint) {
+            const distHead = Math.hypot(linePoints[0].x - clickNearPoint.x, linePoints[0].y - clickNearPoint.y);
+            const distTail = Math.hypot(linePoints[linePoints.length - 1].x - clickNearPoint.x, linePoints[linePoints.length - 1].y - clickNearPoint.y);
+            resultLine = distTail < distHead ? headPart : tailPart;
+        }
+
+        return {
+            success: true,
+            trimmedLine: resultLine,
+            intersection: bestHit
+        };
+    },
+
+    // KÉO DÀI RANH (EXTEND [EX]): Phóng dài đoạn thẳng tới chạm vào ranh giới đích
+    extendLine(linePoints, boundaryPoints, maxExtendMeters = 500) {
+        if (!linePoints || linePoints.length < 2) {
+            return { success: false, error: 'Tuyến cần kéo dài phải có tối thiểu 2 điểm' };
+        }
+        if (!boundaryPoints || boundaryPoints.length < 2) {
+            return { success: false, error: 'Ranh giới đích phải có tối thiểu 2 điểm' };
+        }
+
+        const pPrev = linePoints[linePoints.length - 2];
+        const pLast = linePoints[linePoints.length - 1];
+
+        const dx = pLast.x - pPrev.x;
+        const dy = pLast.y - pPrev.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 1e-4) return { success: false, error: 'Đoạn cuối của tuyến quá ngắn, không xác định được hướng' };
+
+        const ux = dx / len;
+        const uy = dy / len;
+
+        // Tạo điểm kéo dài xa về phía trước
+        const pFar = {
+            x: pLast.x + ux * maxExtendMeters,
+            y: pLast.y + uy * maxExtendMeters
+        };
+
+        // Tìm giao điểm gần nhất với các cạnh của ranh giới đích
+        let closestHit = null;
+        let minDist = Infinity;
+        const numBounds = boundaryPoints.length;
+
+        for (let i = 0; i < numBounds; i++) {
+            const b1 = boundaryPoints[i];
+            const b2 = boundaryPoints[(i + 1) % numBounds];
+            const hit = this.intersectSegments(pLast, pFar, b1, b2);
+            if (hit) {
+                const d = Math.hypot(hit.x - pLast.x, hit.y - pLast.y);
+                if (d > 1e-3 && d < minDist) {
+                    minDist = d;
+                    closestHit = hit;
+                }
+            }
+        }
+
+        if (!closestHit) {
+            return { success: false, error: 'Không tìm thấy điểm giao cắt trên ranh giới đích trong phạm vi kéo dài!' };
+        }
+
+        const extended = [...linePoints];
+        extended.push({
+            x: parseFloat(closestHit.x.toFixed(3)),
+            y: parseFloat(closestHit.y.toFixed(3)),
+            name: `Đ_${extended.length + 1}`
+        });
+
+        return {
+            success: true,
+            extendedLine: extended,
+            intersection: closestHit,
+            extendDistance: minDist
+        };
+    },
+
+    // DÓNG ĐIỂM MỞ RỘNG (POLAR / EXTENSION TRACKING): Tính điểm dóng trên phương kéo dài cạnh
+    getPolarExtensionPoint(p1, p2, mousePt, maxDist = 300, angleTolDeg = 2.5) {
+        if (!p1 || !p2 || !mousePt) return null;
+
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 1e-4) return null;
+
+        const ux = dx / len;
+        const uy = dy / len;
+
+        const wX = mousePt.x - p2.x;
+        const wY = mousePt.y - p2.y;
+
+        // Chiếu lên phương kéo dài vector p1->p2
+        const proj = wX * ux + wY * uy;
+
+        // Chỉ xét khi con trỏ chuột nằm phía trước điểm p2 (phương kéo dài)
+        if (proj <= 0.1 || proj > maxDist) return null;
+
+        // Điểm hình chiếu trên đường thẳng
+        const projX = p2.x + proj * ux;
+        const projY = p2.y + proj * uy;
+
+        // Khoảng cách vuông góc từ chuột tới đường dóng
+        const perpDist = Math.hypot(mousePt.x - projX, mousePt.y - projY);
+
+        // Góc lệch
+        const mouseLen = Math.hypot(wX, wY);
+        const angleRad = Math.asin(Math.min(1.0, perpDist / mouseLen));
+        const angleDeg = (angleRad * 180.0) / Math.PI;
+
+        if (angleDeg <= angleTolDeg || perpDist <= 0.8) {
+            // Tính góc phương vị toán học (0° = Bắc, 90° = Đông)
+            let az = (Math.atan2(dx, dy) * 180.0) / Math.PI;
+            if (az < 0) az += 360.0;
+
+            return {
+                isAligned: true,
+                point: { x: parseFloat(projX.toFixed(3)), y: parseFloat(projY.toFixed(3)) },
+                extensionDistance: parseFloat(proj.toFixed(2)),
+                azimuthDeg: parseFloat(az.toFixed(1)),
+                perpDist: parseFloat(perpDist.toFixed(3))
+            };
+        }
+
+        return null;
     }
 };
 

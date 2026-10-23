@@ -55,3 +55,14 @@ test('=== 3. KIỂM THỬ ĐẦY ĐỦ CÁC TÍNH NĂNG MINICAD VỚI ĐA GIÁC 
     assert(area > 0, 'Diện tích phải lớn hơn 0');
     assert.strictEqual(area, 12500, 'Diện tích hình 5 đỉnh phải là 12,500 m²');
 });
+
+test('=== 4. KIỂM THỬ ĐỒNG BỘ GLYPH OSNAP CHUẨN AUTOCAD (MIDPOINT △, PERP ⟂, INTERSECTION ✕, EDGE ⧗) ===', () => {
+    // Kiểm tra class và ký hiệu glyph trong app.js
+    assert.ok(appJs.includes("snapType === 'midpoint'"), 'Phải có snapType midpoint');
+    assert.ok(appJs.includes("snapType === 'perpendicular'"), 'Phải có snapType perpendicular');
+    assert.ok(appJs.includes("snapType === 'intersection'"), 'Phải có snapType intersection');
+    assert.ok(appJs.includes("osnap-mid") && appJs.includes("△"), 'Midpoint phải có glyph △ và class osnap-mid');
+    assert.ok(appJs.includes("osnap-perp") && appJs.includes("⟂"), 'Perpendicular phải có glyph ⟂ và class osnap-perp');
+    assert.ok(appJs.includes("osnap-intersection") && appJs.includes("✕"), 'Intersection phải có glyph ✕ và class osnap-intersection');
+    assert.ok(appJs.includes("osnap-edge") && appJs.includes("⧗"), 'Edge phải có glyph ⧗ và class osnap-edge');
+});

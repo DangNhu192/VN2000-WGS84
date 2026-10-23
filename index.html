@@ -1940,16 +1940,18 @@
             </div>
 
             <!-- Segmented Tool Switcher Tabs -->
-            <!-- Segmented Tool Switcher Tabs: 5 Nhóm Tab Chuẩn AutoCAD / CADCraft -->
+            <!-- Segmented Tool Switcher Tabs: 6 Nhóm Tab Chuẩn AutoCAD / CADCraft -->
             <div class="cad-tab-group" id="cadTabGroup">
               <button type="button" class="cad-tab-btn active" id="cadTabDraw"
                 onclick="appCadTool.switchToolTab('draw')" title="Công cụ vẽ đối tượng: Đa giác [P], Tuyến [L], Khối nhà [REC], Bán kính [C]"><span class="cad-tab-icon">📐</span><span class="cad-tab-text"> Vẽ</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabSelect" onclick="appCadTool.switchToolTab('select')"
-                title="Biên tập: Chọn [V], Xoay nhãn [RO], Offset ranh [O], Đổi màu, Xóa [Del]"><span class="cad-tab-icon">✂️</span><span class="cad-tab-text"> Sửa</span></button>
+                title="Biên tập: Chọn [V], Tách thửa [SPLIT], Hợp thửa [MERGE], Xén [TR], Kéo dài [EX], Offset [O], Xoay [RO], Xóa [Del]"><span class="cad-tab-icon">✂️</span><span class="cad-tab-text"> Sửa</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabMarkup" onclick="appCadTool.switchToolTab('markup')"
                 title="Ghi chú kỹ thuật: Mũi tên CAD [DIM], Tem khung tên, Chữ [T], Bảng kê [E]"><span class="cad-tab-icon">🏹</span><span class="cad-tab-text"> Nhãn</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabLayers" onclick="appCadTool.switchToolTab('layers')"
-                title="Trợ vẽ & Bắt điểm: OSNAP nam châm [F3], Khóa vuông góc ORTHO [F8], Bắt line [B], Thước DYN"><span class="cad-tab-icon">🧲</span><span class="cad-tab-text"> Snap</span></button>
+                title="Trợ vẽ & Bắt điểm: OSNAP nam châm [F3], Dóng mở rộng, Khóa vuông góc ORTHO [F8], Bắt line [B], Thước DYN"><span class="cad-tab-icon">🧲</span><span class="cad-tab-text"> Snap</span></button>
+              <button type="button" class="cad-tab-btn" id="cadTabLayersManager" onclick="appCadTool.openLayerManagerModal()"
+                title="Quản lý Lớp (Layer) chuẩn Thông tư 25/2014/TT-BTNMT: Bật/Tắt, Khóa/Mở, Màu sắc"><span class="cad-tab-icon">📑</span><span class="cad-tab-text"> Lớp</span></button>
               <button type="button" class="cad-tab-btn" id="cadTabData" onclick="appCadTool.switchToolTab('data')"
                 title="Quản lý dự án: Dự án mới, Nạp mốc, Quản lý khối, Nhập/Xuất DWG, PDF, Excel"><span class="cad-tab-icon">📁</span><span class="cad-tab-text"> File</span></button>
             </div>
@@ -1993,6 +1995,12 @@
 
           <!-- TAB 1: CÔNG CỤ VẼ HÌNH HỌC (DRAW) -->
           <div id="cadPanelDraw" class="cad-actions-row cad-collapsible-row active">
+            <!-- Pill chọn lớp vẽ hiện hành (Chuẩn Thông tư 25) -->
+            <div id="cadCurrentLayerPill" class="cad-proj-pill" onclick="appCadTool.openLayerManagerModal()"
+              style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; font-weight: 700;"
+              title="Lớp vẽ hiện hành (Chuẩn TT 25/2014/TT-BTNMT) - Nhấp để chuyển hoặc quản lý lớp">
+              📑 <span id="cadCurrentLayerName" style="max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">Ranh thửa đất</span> ▾
+            </div>
             <button id="btnCadModePoly" class="cad-btn active" onclick="appCadTool.setMode('polygon')"
               title="Vẽ đa giác khép kín tính diện tích thửa đất (Phím tắt: P)">
               📐 Đa giác [P]
@@ -2046,6 +2054,39 @@
               style="font-size: 11px; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.15); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(251, 191, 36, 0.3); white-space: nowrap;">
               Chưa chọn đối tượng nào
             </span>
+            <!-- ƯU TIÊN 1: TÁCH THỬA & HỢP THỬA ĐỊA CHÍNH -->
+            <button id="btnCadToolSplit" class="cad-btn"
+              style="background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; font-weight: 700;"
+              onclick="appCadTool.startSplitTool()"
+              title="Tách thửa đất: Nhấp 2 điểm mốc ranh để cắt đa giác thành 2 thửa con (Phím tắt: SPLIT)">
+              ✂️ Tách thửa [SPLIT]
+            </button>
+            <button id="btnCadToolMerge" class="cad-btn"
+              style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); color: #6ee7b7; font-weight: 700;"
+              onclick="appCadTool.startMergeTool()"
+              title="Hợp thửa đất: Chọn 2 thửa tiếp giáp để gộp thành 1 thửa chung (Phím tắt: MERGE)">
+              🔗 Hợp thửa [MERGE]
+            </button>
+            <!-- ƯU TIÊN 2: CẮT XÉN (TRIM) & KÉO DÀI (EXTEND) -->
+            <button id="btnCadToolTrim" class="cad-btn"
+              style="background: rgba(239, 68, 68, 0.18); border-color: rgba(239, 68, 68, 0.45); color: #f87171;"
+              onclick="appCadTool.startTrimTool()"
+              title="Cắt xén ranh: Xén bớt phần thừa vượt qua đường biên cắt (Phím tắt: TR)">
+              ✂️ Xén ranh [TR]
+            </button>
+            <button id="btnCadToolExtend" class="cad-btn"
+              style="background: rgba(14, 165, 233, 0.18); border-color: rgba(56, 189, 248, 0.45); color: #38bdf8;"
+              onclick="appCadTool.startExtendTool()"
+              title="Kéo dài ranh: Phóng dài tuyến thẳng tới chạm ranh giới đích (Phím tắt: EX)">
+              📏 Kéo dài [EX]
+            </button>
+            <!-- ƯU TIÊN 3: GÁN LỚP ĐỐI TƯỢNG -->
+            <button id="btnCadAssignLayer" class="cad-btn"
+              style="display: none; background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;"
+              onclick="appCadTool.promptAssignLayer()"
+              title="Chuyển đối tượng đang chọn sang Lớp (Layer) khác chuẩn TT 25">
+              📑 Đổi Lớp
+            </button>
             <button id="btnCadRotateSelected" class="cad-btn"
               style="background: rgba(14, 165, 233, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;"
               onclick="appCadTool.promptRotateSelected()" title="Xoay nhãn / góc nghiêng đối tượng 0° - 360° (Phím tắt: RO)">
@@ -5772,6 +5813,49 @@
         <button class="btn-sm btn-red" onclick="appCadTool.closeCoordModal()">Hủy</button>
         <button class="btn-sm btn-green" style="height: 36px; padding: 0 16px; font-weight: 700;"
           onclick="appCadTool.submitCoordVertex()">+ Thêm đỉnh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL QUẢN LÝ LỚP (LAYER) CHUẨN THÔNG TƯ 25/2014/TT-BTNMT ================= -->
+  <div id="modalCadLayers" class="modal-overlay">
+    <div class="modal-box" style="max-width: 540px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-title" style="flex: none;">
+        <span style="color: #38bdf8;">📑 Quản Lý Lớp (Layer) Chuẩn TT 25/2014/TT-BTNMT</span>
+        <button class="btn-modal-close" onclick="appCadTool.closeLayerManagerModal()">✕</button>
+      </div>
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 8px; flex: none;">
+        Phân cấp layer kỹ thuật theo quy định bản đồ địa chính của Bộ TN&MT. Hỗ trợ bật/tắt hiển thị, khóa chống sửa nhầm và chọn lớp vẽ hiện hành.
+      </div>
+
+      <!-- Danh sách Layer -->
+      <div style="flex: 1; overflow-y: auto; margin-bottom: 12px; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; background: rgba(15, 23, 42, 0.7);">
+        <table class="cad-coord-table" style="width: 100%; font-size: 11.5px; border-collapse: collapse;">
+          <thead>
+            <tr style="background: rgba(30, 41, 59, 0.9); border-bottom: 1px solid rgba(56, 189, 248, 0.3);">
+              <th style="padding: 6px 8px; text-align: left; width: 40px;">Màu</th>
+              <th style="padding: 6px 8px; text-align: left;">Mã Lớp</th>
+              <th style="padding: 6px 8px; text-align: left;">Tên Ý Nghĩa</th>
+              <th style="padding: 6px 6px; text-align: center; width: 55px;">Số lượng</th>
+              <th style="padding: 6px 8px; text-align: center; width: 130px;">Trạng thái & Lệnh</th>
+            </tr>
+          </thead>
+          <tbody id="cadLayersTableBody">
+            <!-- Render động bằng JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; flex: none; gap: 8px;">
+        <button type="button" class="btn-sm"
+          style="height: 32px; padding: 0 10px; font-size: 11.5px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8;"
+          onclick="appCadTool.promptAddNewLayer()">
+          ➕ Thêm Lớp Mới
+        </button>
+        <button class="btn-sm btn-blue" style="height: 32px; padding: 0 16px; font-weight: 700;"
+          onclick="appCadTool.closeLayerManagerModal()">
+          ✓ Đóng
+        </button>
       </div>
     </div>
   </div>

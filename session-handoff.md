@@ -1,6 +1,17 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-23: Tối Ưu Hóa 60fps Bản Đồ & Hiển Thị Tỉ Lệ Zoom Tại Trỏ Chuột
+## Phiên hiện tại — 2026-10-23: Nâng Cấp MiniCAD 2D Tiệm Cận AutoCAD & MicroStation (Tách/Hợp Thửa, Trim/Extend, Quản Lý Layer TT 25)
+- **Yêu cầu từ người dùng**:
+  - `triển khai cả 3 ưu tiên cho MiniCAD` (Tách thửa/Hợp thửa bảo toàn diện tích VN2000, Cắt xén Trim/Kéo dài Extend ranh + Dóng mở rộng Polar Tracking, Quản lý Layer chuẩn Thông tư 25/2014/TT-BTNMT).
+- **Đã hoàn tất**:
+  1. Xây dựng thuật toán hình học cốt lõi trong `src/core/cad_geometry.js`: `splitPolygon`, `mergePolygons`, `trimLine`, `extendLine`, `getPolarExtensionPoint`.
+  2. Tích hợp UI vào `index.html`: Nút Tách thửa, Hợp thửa, Xén ranh, Kéo dài, Đổi Lớp trên `#cadPanelSelect`, Pill hiển thị Lớp hiện hành `#cadCurrentLayerPill`, Tab Lớp `#cadTabLayersManager` và Modal `#modalCadLayers`.
+  3. Bổ sung quản lý 7 Layer chuẩn TT 25, bắt điểm dóng mở rộng `extension` với tia dóng màu vàng trực quan, tích hợp lệnh CLI CADCraft: `SPLIT`, `MERGE`, `TR`, `EX`, `LA`.
+  4. Tuân thủ 100% UI Isolation Principle giữa MiniCAD và các phân hệ khác.
+  5. **288/288 bài test PASS 100%** (bao gồm 8 nhóm test chuyên sâu trong `tests/cad_2d_advanced_tools.test.js`).
+  6. Đồng bộ Hindsight Memory (`track`, `retain`, `reflect`).
+
+## Phiên trước — 2026-10-23: Tối Ưu Hóa 60fps Bản Đồ & Hiển Thị Tỉ Lệ Zoom Tại Trỏ Chuột
 - **Yêu cầu từ người dùng**:
   - `kiểm tra tại sao khi phóng to bản đồ thì khá giật lag, tìm hiểu và cho để xuất chỉnh sửa`
   - `hãy tiến hành triển khai, bên cạnh đó bổ sung hiển thị tỉ lệ phóng to (icon thông báo nhỏ khi thu nhỏ/phóng to ngay vị trí trỏ chuột)`

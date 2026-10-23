@@ -1,11 +1,7 @@
-import { test } from 'node:test';
-import assert from 'node:assert';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { test } = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 
 test('=== 1. KIỂM THỬ NÚT BẤM XUẤT DỮ LIỆU & BẢNG CẤU HÌNH THÔNG TIN BẢN VẼ ===', (t) => {
     const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');

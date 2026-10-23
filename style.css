@@ -7240,6 +7240,16 @@
       font-size: 12px;
     }
 
+    .cad-osnap-box.osnap-extension {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.55);
+      box-shadow: 0 0 14px #f59e0b;
+      border-radius: 3px;
+      color: #fef3c7;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
     /* CAD Realtime Status & Coordinates HUD Bar */
     .cad-status-hud {
       position: absolute;

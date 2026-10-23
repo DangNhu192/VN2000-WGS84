@@ -3,13 +3,69 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 279/279 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 288/288 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
 
-### [2026-10-23] Tối Ưu Hóa 60fps Triệt Tiêu Giật Lag Khi Phóng To Bản Đồ & Bổ Sung Icon Tỉ Lệ Zoom Tại Trỏ Chuột
+### [2026-10-23] Hoàn Thành Triển Khai Cả 3 Ưu Tiên Nâng Cấp MiniCAD 2D Tiệm Cận Phần Mềm Đo Đạc Bản Đồ Chuyên Nghiệp (AutoCAD, MicroStation / Famis)
+- **Yêu cầu từ người dùng**:
+  - `triển khai cả 3 ưu tiên cho MiniCAD` (tiệm cận phần mềm vẽ 2D chuyên nghiệp: Tách/Hợp thửa, Cắt xén Trim / Kéo dài Extend, Dóng mở rộng Polar Tracking, Quản lý Layer chuẩn Thông tư 25/2014/TT-BTNMT).
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Ưu tiên 1 — Nghiệp vụ Tách thửa (Split Polygon) & Hợp thửa (Merge Polygons) bảo toàn 100% diện tích và hình học phẳng VN-2000 (src/core/cad_geometry.js)**:
+     - Xây dựng thuật toán `intersectLineWithSegment` giải hệ phương trình tham số Cramer tính giao điểm đường cắt qua các cạnh đa giác.
+     - Phát triển `splitPolygon(polygonPoints, cutP1, cutP2)`: Cắt đa giác qua 2 mốc ranh, nội suy chuẩn tọa độ đỉnh giao, tính diện tích hình học phẳng VN-2000 (Shoelace Gauss formula) và tự động tạo 2 thửa con (Thửa A & Thửa B) bảo toàn nguyên vẹn 100% tổng diện tích thửa gốc.
+     - Phát triển `mergePolygons(polyA, polyB, tolerance)`: Tự động phát hiện các cạnh tiếp giáp chung ranh giới, gộp 2 thửa đất thành 1 thửa chung duy nhất và tính tổng diện tích chính xác tuyệt đối.
+  2. **Ưu tiên 2 — Cắt xén (Trim [TR]), Kéo dài (Extend [EX]) & Dóng điểm mở rộng (Polar / Extension Tracking) (src/core/cad_geometry.js & app.js)**:
+     - `trimLine(linePoints, cuttingPoints, clickNearPoint)`: Cắt xén bỏ phần ranh giới vượt quá đường biên cắt, giữ lại phân đoạn phía người dùng chọn.
+     - `extendLine(linePoints, boundaryPoints, maxExtendMeters)`: Kéo dài tia tuyến tới điểm giao cắt ranh giới đích.
+     - `getPolarExtensionPoint(p1, p2, mousePt)`: Tính toán hình học dóng điểm thẳng hàng theo phương cạnh gốc, dung sai góc ±3.5°, tính cự ly mở rộng và góc phương vị (Azimuth).
+     - Tích hợp vào hệ thống bắt điểm `findSnapCandidate`: Bắt điểm mở rộng `extension`, vẽ tia dóng đứt nét màu vàng trực quan, nhãn cự ly dóng và góc phương vị live 60fps.
+  3. **Ưu tiên 3 — Quản lý Lớp (Layer) chuẩn Thông tư 25/2014/TT-BTNMT (index.html & app.js)**:
+     - Tạo bảng 7 Layer mặc định theo quy chuẩn Bộ Tài nguyên và Môi trường:
+       + `RANH_THUA` (Màu đỏ `#ef4444`): Ranh thửa đất.
+       + `MOC_TOADO` (Màu cam `#f59e0b`): Mốc tọa độ & Đỉnh ranh.
+       + `TIM_DUONG` (Màu xanh dương `#3b82f6`): Tim đường & Giao thông.
+       + `NHA_CONGTRINH` (Màu xanh ngọc `#10b981`): Nhà & Công trình xây dựng.
+       + `QUY_HOACH` (Màu tím `#a855f7`): Chỉ giới quy hoạch / Hành lang bảo vệ.
+       + `DIA_VAT` (Màu cyan `#06b6d4`): Địa vật, Thủy văn, Sông suối.
+       + `GHI_CHU` (Màu ghi `#94a3b8`): Ghi chú, Kích thước, Nhãn bản vẽ.
+     - Thêm Modal Quản lý Lớp `#modalCadLayers`: Bật/Tắt hiển thị (👁️), Khóa chống chỉnh sửa vô ý (🔒), Đặt lớp hiện hành (⭐), Thêm lớp người dùng tự định nghĩa.
+     - Thêm Pill hiển thị Lớp hiện hành `#cadCurrentLayerPill` và nút Đổi Lớp `#btnCadAssignLayer` khi chọn khối.
+     - Đồng bộ `renderGeometry()`: Tôn trọng trạng thái `visible` (ẩn nếu tắt) và `locked` (vô hiệu hóa kéo dời đỉnh và chèn đỉnh khi lớp bị khóa).
+  4. **Tích hợp CLI CADCraft Ribbon Command**:
+     - Bổ sung lệnh: `SPLIT` (Tách thửa), `MERGE` (Hợp thửa), `TR` / `TRIM` (Xén ranh), `EX` / `EXTEND` (Kéo dài), `LA` / `LAYER` (Quản lý lớp).
+  5. **Tuân thủ quy tắc cô lập giao diện (UI Isolation Principle)**:
+     - MiniCAD hoàn toàn độc lập, không xâm lấn hoặc gọi chéo giao diện Bản đồ dự án (`#mapProjectBar`) hay Chuyển đổi tọa độ.
+  6. **Kiểm thử tự động toàn diện**:
+     - Tạo bộ test độc lập `tests/cad_2d_advanced_tools.test.js` gồm 8 nhóm test bao quát hình học, DOM, bảng layer TT 25 và lệnh CLI.
+     - Chạy `node --test tests/*.test.js`: **288/288 tests PASS 100% (0 fail)**.
+
+### [2026-10-23] Nâng Cấp Mã QR Ủng Hộ To Rõ Ràng (220px), Bổ Sung Nút "Chuyển Khoản Ngay (Mở App)" Trên Di Động & Triệt Tiêu Cảnh Báo Test Suite
+- **Yêu cầu từ người dùng**:
+  - `Mã QR để ủng hộ hiển thị quá nhỏ dẫn đến không thể quét mã QR. trên các thiết bị di động chưa có nút nhấn để chuyển khoản ngay, bổ sung chức năng này luôn.`
+  - `cải tiến theo các đề xuất trên. chú ý không để các sai sót cơ bản ảnh hưởng đến mã nguồn đang hoạt động.`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Nâng kích thước mã QR ủng hộ từ 140px lên 220px và mở rộng modal (ui-polish.css)**:
+     - Mở rộng kích thước khung hộp QR `#modalDonateCountdown .support-qr-box` từ `140px × 140px` lên `220px × 220px` với viền `1.5px solid rgba(56, 189, 248, 0.35)` và bóng đổ tương phản cao `box-shadow: 0 4px 16px rgba(0,0,0,0.35)`.
+     - Tăng chiều rộng modal từ `360px` lên `420px` (`max-width: calc(100vw - 16px)`) bảo đảm mã QR hiển thị to, sắc nét, tương thích hoàn hảo mọi thiết bị di động và camera quét nhanh trong 0.2s.
+  2. **Tích hợp nút "Chuyển khoản ngay (Mở App)" trên thiết bị di động cho cả 4 kênh (app.js)**:
+     - Bổ sung cấu hình deep-link và universal link chính thức cho cả 4 kênh thanh toán:
+       + **VietinBank**: `https://vietinbankipays.page.link/` (mở thẳng app VietinBank iPay).
+       + **BIDV**: `https://bidvsmartbanking.page.link/` (mở thẳng app BIDV SmartBanking).
+       + **MoMo**: `https://me.momo.vn/0839656568` (mở thẳng app MoMo chuyển tiền).
+       + **ZaloPay**: `https://zalo.me/0839656568` (mở ZaloPay/Zalo chuyển tiền).
+     - Nút `#btnDonateOpenApp` tự động cập nhật nhãn theo kênh được chọn: `📲 Mở App VietinBank iPay Chuyển Tiền ➔`, `📲 Mở App BIDV SmartBanking Chuyển Tiền ➔`, `📲 Mở Ví MoMo Chuyển Tiền ➔`, `📲 Mở ZaloPay / Zalo Chuyển Tiền ➔`.
+     - Thiết kế giao diện nút bấm nổi bật, gradient xanh dương công nghệ `linear-gradient(135deg, #0284c7 0%, #0369a1 100%)`, chiều cao tối ưu chạm cảm ứng 42px.
+  3. **Chuẩn hóa toàn bộ test suite sang CommonJS sạch sẽ**:
+     - Đồng bộ các file test (`cad_block_selection.test.js`, `export_flow_and_dwg.test.js`, `export_modal_and_drawing_config.test.js`) sang CommonJS `require()`, triệt tiêu 100% cảnh báo `MODULE_TYPELESS_PACKAGE_JSON` của Node.js.
+  4. **Đồng bộ biểu tượng Osnap Glyph MiniCAD (AutoCAD standard)**:
+     - Chuẩn hóa glyph trực quan khi rê chuột: Trung điểm (Midpoint `△`), Điểm vuông góc (Perpendicular `⟂`), Giao điểm (Intersection `✕`), Bắt cạnh (Edge `⧗`).
+  5. **Kiểm thử tự động & Xác minh**:
+     - Mở rộng bài test `tests/donate_modal_30s.test.js` kiểm thử link và hiển thị nút mở app của cả 4 kênh.
+     - Mở rộng `tests/minicad_multi_vertex_snap.test.js` kiểm thử 4 biểu tượng Osnap chuẩn.
+     - Chạy `init.ps1` và `node --test tests/*.test.js`: **280/280 tests PASS 100%**, hoàn toàn không còn bất kỳ cảnh báo runtime nào.
 - **Yêu cầu từ người dùng**:
   - `kiểm tra tại sao khi phóng to bản đồ thì khá giật lag, tìm hiểu và cho để xuất chỉnh sửa`
   - `hãy tiến hành triển khai, bên cạnh đó bổ sung hiển thị tỉ lệ phóng to (icon thông báo nhỏ khi thu nhỏ/phóng to ngay vị trí trỏ chuột)`

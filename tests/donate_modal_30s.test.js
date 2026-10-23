@@ -123,16 +123,21 @@ test('2. Startup handles blocked localStorage gracefully', () => {
   assert.doesNotThrow(() => appDonate.init(), 'init should not throw if localStorage is blocked');
 });
 
-test('3. Switching all 4 channels updates config and pill states', () => {
+test('3. Switching all 4 channels updates config and pill states and sets direct transfer link', () => {
   const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
-  const { document, channelPills } = createMockDom();
+  const { document, channelPills, getOrCreate } = createMockDom();
   const appDonate = extractAppDonate(appJs, { document, window: {} });
 
   const channels = ['vietinbank', 'bidv', 'momo', 'zalopay'];
+  const btnOpenApp = getOrCreate('btnDonateOpenApp');
+
   for (const ch of channels) {
     appDonate.setChannel(ch);
     assert.equal(appDonate.activeChannel, ch);
     assert.equal(appDonate.config.accountNumber, '0839656568');
+    assert.ok(appDonate.config.openAppUrl, `Kênh ${ch} phải có link mở ứng dụng chuyển khoản trực tiếp`);
+    assert.equal(btnOpenApp.style.display, 'inline-flex', `Kênh ${ch} phải hiển thị nút chuyển khoản ngay`);
+    assert.equal(btnOpenApp.href, appDonate.config.openAppUrl, `Nút chuyển khoản của ${ch} phải gắn đúng deeplink`);
     const activePills = channelPills.filter(p => p.classList.contains('active'));
     assert.equal(activePills.length, 1);
     assert.equal(activePills[0].getAttribute('data-channel'), ch);
