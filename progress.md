@@ -9,6 +9,29 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-23] Tối Ưu Hóa 60fps Triệt Tiêu Giật Lag Khi Phóng To Bản Đồ & Bổ Sung Icon Tỉ Lệ Zoom Tại Trỏ Chuột
+- **Yêu cầu từ người dùng**:
+  - `kiểm tra tại sao khi phóng to bản đồ thì khá giật lag, tìm hiểu và cho để xuất chỉnh sửa`
+  - `hãy tiến hành triển khai, bên cạnh đó bổ sung hiển thị tỉ lệ phóng to (icon thông báo nhỏ khi thu nhỏ/phóng to ngay vị trí trỏ chuột)`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Khử giật lag tầng CSS & Tăng tốc phần cứng GPU (style.css)**:
+     - Gỡ bỏ hoàn toàn `transition: filter 0.25s ease-out` trên thẻ `img.leaflet-tile` (chấm dứt hiện tượng trình duyệt phải re-rasterize filter qua 60fps làm tụt khung hình).
+     - Gỡ bỏ thuộc tính phi chuẩn `-webkit-optimize-contrast` ép CPU tính toán nội suy tương phản, thay bằng `image-rendering: auto` và `transform: translateZ(0)`.
+     - Kích hoạt cơ chế cách ly tầng GPU `will-change: transform` trên cả tile và `.leaflet-tile-container.leaflet-zoom-animated`.
+  2. **Cấu hình Smooth Fractional Zoom & Đồng bộ preferCanvas (app.js)**:
+     - Bổ sung `zoomSnap: 0.5`, `zoomDelta: 0.5`, `wheelPxPerZoomLevel: 100` cho cả 3 phân hệ bản đồ (`leaflet-map`, `leaflet-transform-map`, `transformLiveMap`), loại bỏ tình trạng nhảy nấc thô cứng.
+     - Bổ sung `preferCanvas: true` đồng bộ trên toàn bộ các bản đồ, triệt tiêu gánh nặng SVG DOM elements khi zoom.
+  3. **Xây dựng module hiển thị tỉ lệ phóng to tại vị trí trỏ chuột (appMapZoomIndicator)**:
+     - Tự động bắt vị trí con trỏ chuột (`mousemove`) và cảm ứng chạm (`touchmove`).
+     - Khi zoom, hiển thị badge kính mờ cao cấp (`map-zoom-cursor-badge`) ngay phía trên con trỏ chuột với icon kính lúp `🔍`, cấp độ zoom (ví dụ: `Zoom 19.5x`) và tỉ lệ bản đồ khảo sát xấp xỉ tương ứng theo chuẩn thực địa (`1:1.500`).
+     - Tự động ẩn nhẹ nhàng sau 900ms không thao tác.
+  4. **Khử trùng lặp listener zoomend trong appCadTool (app.js)**:
+     - Bọc cờ `_zoomListenerBound` ngăn chặn đăng ký đúp `renderGeometry()` khi kết thúc zoom.
+  5. **Kiểm thử tự động & Xác minh trực quan**:
+     - 279/279 tests trong `tests/*.test.js` PASS 100%.
+     - Kiểm chứng trên Chrome DevTools MCP: bản đồ zoom siêu mượt 60fps, badge tỉ lệ bám theo trỏ chuột chuẩn xác.
+
+
 ### [2026-10-23] Kiểm Duyệt Mã Nguồn Theo Chrome DevTools Pro, Đồng Bộ Hindsight Memory & Lên Phương Án Tinh Gọn Nội Dung
 - **Yêu cầu từ người dùng**:
   - `đọc qua từng dòng code phối hợp cùng /debug-fix-bug-chrome-pro để xây dựng và kiểm duyệt ứng dụng lưu về /hindsight-memory , sau đó lên phương án cải tạo nội dung (có kết hợp /viet-chuyen-nghiep để loại bỏ các nội dung dư thừa)`

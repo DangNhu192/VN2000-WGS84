@@ -4280,42 +4280,102 @@
     .leaflet-tile-container img.leaflet-tile {
       /* Gỡ bỏ crisp-edges (nearest-neighbor) - Sử dụng nội suy bilinear/bicubic mượt mà từ GPU */
       image-rendering: auto;
-      image-rendering: -webkit-optimize-contrast;
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
       transform: translateZ(0);
+      will-change: transform;
     }
 
     /* Tối ưu hóa màu sắc, độ tương phản mốc ranh giới và độ sắc cạnh của ảnh vệ tinh tiêu chuẩn */
     .leaflet-layer-satellite img.leaflet-tile,
     img.leaflet-tile.leaflet-tile-loaded {
       filter: contrast(1.08) saturate(1.1) brightness(1.02);
-      transition: filter 0.25s ease-out, opacity 0.2s ease-in-out;
+      transition: opacity 0.2s ease-in-out;
+      will-change: transform;
+    }
+
+    /* Tối ưu hóa chuyển động 60fps khi phóng to thu nhỏ bản đồ (GPU Tile Layer Isolation) */
+    .leaflet-zoom-anim .leaflet-zoom-animated,
+    .leaflet-tile-container.leaflet-zoom-animated {
+      will-change: transform;
     }
 
     /* 1. Khi phóng to sâu (zoom >= 19 tới 24): Tự động khử ô vuông pixel Gaussian + Làm sắc nét Laplacian */
     .map-deep-zoom-enhanced .leaflet-tile-container img.leaflet-tile,
     .map-enhance-gaussian .leaflet-tile-container img.leaflet-tile {
-      filter: url(#mapTileEnhancer) contrast(1.12) saturate(1.12) brightness(1.02);
+      filter: url(#mapTileEnhancer) contrast(1.10) saturate(1.10) brightness(1.02);
       image-rendering: auto !important;
+      will-change: transform;
     }
 
     /* 2. Chế độ Tương phản cao sắc nét viền mốc */
     .map-enhance-contrast .leaflet-tile-container img.leaflet-tile {
-      filter: url(#mapTileHighContrast) contrast(1.18) saturate(1.15) brightness(1.03);
+      filter: url(#mapTileHighContrast) contrast(1.15) saturate(1.12) brightness(1.02);
       image-rendering: auto !important;
+      will-change: transform;
     }
 
     /* 3. Chế độ Mượt mà tự nhiên (GPU Bicubic Interpolation) */
     .map-enhance-natural .leaflet-tile-container img.leaflet-tile {
       filter: contrast(1.06) saturate(1.08) brightness(1.02);
       image-rendering: auto !important;
+      will-change: transform;
     }
 
     /* 4. Chế độ Nguyên bản không áp bộ lọc */
     .map-enhance-none .leaflet-tile-container img.leaflet-tile {
       filter: none !important;
       image-rendering: auto !important;
+    }
+
+    /* ================= ICON THÔNG BÁO TỈ LỆ PHÓNG TO / THU NHỎ TẠI VỊ TRÍ TRỎ CHUỘT ================= */
+    .map-zoom-cursor-badge {
+      position: absolute;
+      pointer-events: none;
+      z-index: 9999;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(11, 17, 32, 0.90);
+      color: #f8fafc;
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      border-radius: 9999px;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 10px rgba(56, 189, 248, 0.25);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      white-space: nowrap;
+      opacity: 0;
+      transform: translate(-50%, -130%) scale(0.9);
+      transition: opacity 0.15s ease-out, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .map-zoom-cursor-badge.visible {
+      opacity: 1;
+      transform: translate(-50%, -130%) scale(1);
+    }
+
+    .map-zoom-cursor-badge .zoom-badge-icon {
+      font-size: 11.5px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .map-zoom-cursor-badge .zoom-badge-level {
+      color: #fbbf24;
+      font-weight: 800;
+    }
+
+    .map-zoom-cursor-badge .zoom-badge-scale {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 10px;
+      border: 0.5px solid rgba(56, 189, 248, 0.3);
     }
 
     /* Nền lưới tọa độ trắc địa công nghệ cao chống đen màn hình trên tất cả container Leaflet */

@@ -1,5 +1,18 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-10-23: Tối Ưu Hóa 60fps Bản Đồ & Hiển Thị Tỉ Lệ Zoom Tại Trỏ Chuột
+- **Yêu cầu từ người dùng**:
+  - `kiểm tra tại sao khi phóng to bản đồ thì khá giật lag, tìm hiểu và cho để xuất chỉnh sửa`
+  - `hãy tiến hành triển khai, bên cạnh đó bổ sung hiển thị tỉ lệ phóng to (icon thông báo nhỏ khi thu nhỏ/phóng to ngay vị trí trỏ chuột)`
+- **Đã hoàn tất**:
+  1. Loại bỏ `transition: filter` và `-webkit-optimize-contrast`, kích hoạt `will-change: transform` trên tile layer trong `style.css`.
+  2. Cấu hình Smooth Fractional Zoom (`zoomSnap: 0.5`, `zoomDelta: 0.5`, `wheelPxPerZoomLevel: 100`) và bật `preferCanvas: true` trên tất cả các instance bản đồ.
+  3. Xây dựng module `appMapZoomIndicator` hiển thị badge kính lúp mờ với cấp độ zoom và tỉ lệ khảo sát xấp xỉ (1:500 đến 1:2.000.000) bám sát vị trí trỏ chuột.
+  4. Khử listener `zoomend` trùng lặp trong `appCadTool`.
+  5. 100% tests PASS (**279/279 bài test**).
+  6. Lưu trữ `track`, `retain`, `reflect` vào Hindsight Memory tại `D:\Nhu\Memory Antigravity\banks\VN2000-PWA`.
+
+
 ## Phiên hiện tại — 2026-10-23: Kiểm Duyệt Toàn Diện Mã Nguồn Theo Chrome DevTools Pro & Lên Phương Án Tinh Gọn Nội Dung
 - **Yêu cầu từ người dùng**:
   - `đọc qua từng dòng code phối hợp cùng /debug-fix-bug-chrome-pro để xây dựng và kiểm duyệt ứng dụng lưu về /hindsight-memory , sau đó lên phương án cải tạo nội dung (có kết hợp /viet-chuyen-nghiep để loại bỏ các nội dung dư thừa)`

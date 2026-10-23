@@ -3977,8 +3977,16 @@ const appTransform = {
                 zoomControl: true,
                 attributionControl: false,
                 maxZoom: 24,
-                minZoom: 4
+                minZoom: 4,
+                preferCanvas: true,
+                zoomSnap: 0.5,
+                zoomDelta: 0.5,
+                wheelPxPerZoomLevel: 100
             }).setView([10.7769, 106.7009], 13); // Mặc định TP. Hồ Chí Minh
+
+            if (typeof appMapZoomIndicator !== 'undefined') {
+                appMapZoomIndicator.attach(this._liveMap, container);
+            }
 
             const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
                 ? window.PixOptimizer.getTileLayerOptions() 
@@ -4673,8 +4681,16 @@ const appTransformMap = {
             zoomControl: false,
             attributionControl: false,
             maxZoom: 24,
-            minZoom: 4
+            minZoom: 4,
+            preferCanvas: true,
+            zoomSnap: 0.5,
+            zoomDelta: 0.5,
+            wheelPxPerZoomLevel: 100
         }).setView([10.5, 106.0], 12);
+
+        if (typeof appMapZoomIndicator !== 'undefined') {
+            appMapZoomIndicator.attach(this.map, container);
+        }
 
         const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
             ? window.PixOptimizer.getTileLayerOptions() 
@@ -6332,6 +6348,112 @@ function calcGaussPolygonArea(pts) {
     return Math.abs(sum * R * R / 4.0);
 }
 
+// ================= TIỆN ÍCH HIỂN THỊ TỈ LỆ PHÓNG TO TẠI VỊ TRÍ TRỎ CHUỘT (60FPS HUD) =================
+const appMapZoomIndicator = {
+    // Bảng quy đổi cấp độ zoom sang tỉ lệ bản đồ khảo sát xấp xỉ tại Việt Nam (TCVN / UTM)
+    getScaleRatioText(zoom) {
+        const z = Math.round(zoom * 2) / 2;
+        const scaleTable = {
+            24: '1:50',
+            23.5: '1:75',
+            23: '1:100',
+            22.5: '1:150',
+            22: '1:200',
+            21.5: '1:300',
+            21: '1:500',
+            20.5: '1:750',
+            20: '1:1.000',
+            19.5: '1:1.500',
+            19: '1:2.000',
+            18.5: '1:3.000',
+            18: '1:5.000',
+            17.5: '1:7.500',
+            17: '1:10.000',
+            16.5: '1:15.000',
+            16: '1:25.000',
+            15.5: '1:35.000',
+            15: '1:50.000',
+            14.5: '1:75.000',
+            14: '1:100.000',
+            13.5: '1:150.000',
+            13: '1:200.000',
+            12.5: '1:350.000',
+            12: '1:500.000',
+            11: '1:1.000.000',
+            10: '1:2.000.000'
+        };
+        if (scaleTable[z]) return scaleTable[z];
+        const approxScale = Math.round(582664000 / Math.pow(2, zoom));
+        if (approxScale >= 1000000) return `1:${(approxScale / 1000000).toFixed(1)}M`;
+        if (approxScale >= 1000) return `1:${Math.round(approxScale / 100) * 100}`;
+        return `1:${Math.round(approxScale / 10) * 10}`;
+    },
+
+    attach(map, containerOrId) {
+        if (!map || !map.getContainer) return;
+        const container = (typeof containerOrId === 'string') 
+            ? document.getElementById(containerOrId) 
+            : (containerOrId || map.getContainer());
+        if (!container || container._hasZoomIndicator) return;
+        container._hasZoomIndicator = true;
+
+        let badge = container.querySelector('.map-zoom-cursor-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'map-zoom-cursor-badge';
+            badge.setAttribute('aria-hidden', 'true');
+            badge.innerHTML = `<span class="zoom-badge-icon">🔍</span><span class="zoom-badge-level">Zoom --</span><span class="zoom-badge-scale">--</span>`;
+            container.appendChild(badge);
+        }
+
+        let mouseX = null;
+        let mouseY = null;
+        let hideTimer = null;
+
+        const onMouseMove = (e) => {
+            const rect = container.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        };
+        container.addEventListener('mousemove', onMouseMove, { passive: true });
+
+        const onTouchMove = (e) => {
+            if (e.touches && e.touches.length > 0) {
+                const rect = container.getBoundingClientRect();
+                mouseX = e.touches[0].clientX - rect.left;
+                mouseY = e.touches[0].clientY - rect.top;
+            }
+        };
+        container.addEventListener('touchmove', onTouchMove, { passive: true });
+
+        const showBadge = () => {
+            const currentZoom = (typeof map.getZoom === 'function') ? map.getZoom() : 12;
+            const levelEl = badge.querySelector('.zoom-badge-level');
+            const scaleEl = badge.querySelector('.zoom-badge-scale');
+            if (levelEl) levelEl.textContent = `Zoom ${currentZoom.toFixed(1)}x`;
+            if (scaleEl) scaleEl.textContent = this.getScaleRatioText(currentZoom);
+
+            const posX = (mouseX !== null && mouseX >= 0 && mouseX <= container.clientWidth) 
+                ? mouseX 
+                : (container.clientWidth / 2);
+            const posY = (mouseY !== null && mouseY >= 0 && mouseY <= container.clientHeight) 
+                ? mouseY 
+                : (container.clientHeight / 2);
+
+            badge.style.left = `${posX}px`;
+            badge.style.top = `${posY}px`;
+            badge.classList.add('visible');
+
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = setTimeout(() => {
+                badge.classList.remove('visible');
+            }, 900);
+        };
+
+        map.on('zoom zoomstart zoomend', showBadge);
+    }
+};
+
 // ================= 7. PHÂN HỆ BẢN ĐỒ LEAFLET (MAP VIEWER & PICKER) =================
 const appMap = {
     initMap() {
@@ -6350,8 +6472,14 @@ const appMap = {
             attributionControl: false,
             maxZoom: 24,
             minZoom: 4,
-            preferCanvas: true
+            preferCanvas: true,
+            zoomSnap: 0.5,
+            zoomDelta: 0.5,
+            wheelPxPerZoomLevel: 100
         }).setView([10.5, 106.0], 12);
+
+        // Kích hoạt hiển thị tỉ lệ phóng to tại vị trí trỏ chuột
+        appMapZoomIndicator.attach(map, mapContainer);
 
         const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
             ? window.PixOptimizer.getTileLayerOptions() 
@@ -18349,11 +18477,14 @@ const appCadTool = {
             AppState.leafletMap.on('mouseout', () => {
                 this.clearDynamicHelpers();
             });
-            AppState.leafletMap.on('zoomend', () => {
-                if (this.isActive) {
-                    this.renderGeometry();
-                }
-            });
+            if (!this._zoomListenerBound) {
+                this._zoomListenerBound = true;
+                AppState.leafletMap.on('zoomend', () => {
+                    if (this.isActive) {
+                        this.renderGeometry();
+                    }
+                });
+            }
 
             // Chuột phải (Contextmenu) chuẩn CAD: Đóng vòng đa giác, lưu tuyến hoặc hủy nhãn
             AppState.leafletMap.on('contextmenu', (e) => {
