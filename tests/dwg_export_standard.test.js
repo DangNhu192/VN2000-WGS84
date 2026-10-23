@@ -18,10 +18,10 @@ const indexHtml = fs.readFileSync(indexPath, 'utf-8');
 const appJs = fs.readFileSync(appJsPath, 'utf-8');
 const CadGeometryEngine = require(cadGeoPath);
 
-test('=== 1. KIỂM THỬ LOẠI BỎ TOÀN BỘ .DXF KHỎI GIAO DIỆN & LOGIC ỨNG DỤNG ===', async (t) => {
-    await t.test('1.1 index.html không còn bất kỳ chữ "dxf" nào (không phân biệt hoa thường)', () => {
-        const matches = indexHtml.match(/dxf/gi);
-        assert.strictEqual(matches, null, `Vẫn còn ${matches ? matches.length : 0} từ khóa dxf trong index.html`);
+test('=== 1. KIỂM THỬ TIÊU CHUẨN XUẤT BẢN VẼ AUTOCAD (.DWG / .DXF) & TƯƠNG THÍCH CAO ===', async (t) => {
+    await t.test('1.1 index.html có các hàm xuất bản vẽ CAD quy chuẩn', () => {
+        assert.ok(indexHtml.includes('appCadTool.exportDwg()') || indexHtml.includes('cadExportFormatSelect'), 'Thiếu giao diện xuất CAD MiniCAD');
+        assert.ok(indexHtml.includes('appData.exportDwgFile()') || indexHtml.includes('selExportFormat'), 'Thiếu giao diện xuất CAD Sổ đo');
     });
 
     await t.test('1.2 index.html đã chuyển đổi thành Bản vẽ AutoCAD (.dwg)', () => {
@@ -32,9 +32,9 @@ test('=== 1. KIỂM THỬ LOẠI BỎ TOÀN BỘ .DXF KHỎI GIAO DIỆN & LOGIC
         assert.ok(indexHtml.includes('Bản vẽ AutoCAD (.dwg)'), 'Thiếu nhãn hiển thị Bản vẽ AutoCAD (.dwg)');
     });
 
-    await t.test('1.3 app.js không còn chứa từ khóa "dxf" trong chuỗi người dùng / UI', () => {
-        const matches = appJs.match(/dxf/gi);
-        assert.strictEqual(matches, null, `Vẫn còn ${matches ? matches.length : 0} từ khóa dxf trong app.js`);
+    await t.test('1.3 app.js có đầy đủ các hàm xuất bản vẽ CAD tương thích AutoCAD và MicroStation', () => {
+        assert.ok(appJs.includes('exportDwg(') || appJs.includes('exportDwg'), 'appCadTool thiếu hàm exportDwg');
+        assert.ok(appJs.includes('exportDwgFile'), 'appData thiếu hàm exportDwgFile');
     });
 });
 

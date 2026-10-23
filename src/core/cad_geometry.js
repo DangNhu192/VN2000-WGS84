@@ -51,7 +51,23 @@ const CadGeometryEngine = {
         return closestPt;
     },
 
-    // Xuất chuỗi định dạng bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính cho các khối đa giác
+    // Chuyển đổi ký tự tiếng Việt sang ASCII an toàn cho AutoCAD/MicroStation
+    toCadAscii(str) {
+        if (!str) return '';
+        return String(str)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[đ]/g, 'd')
+            .replace(/[Đ]/g, 'D')
+            .replace(/[²]/g, '2')
+            .replace(/[³]/g, '3')
+            .replace(/[°]/g, ' deg')
+            .replace(/[\r\n\t]/g, ' ')
+            .replace(/[^\x20-\x7E]/g, '')
+            .trim();
+    },
+
+    // Xuất chuỗi định dạng bản vẽ AutoCAD (.dwg / .dxf) chuẩn kỹ thuật địa chính cho các khối đa giác
     // Chuẩn TCVN 7285 & Thông tư 25/2014/TT-BTNMT - Tương thích 100% AutoCAD 2000-2026 không lỗi Missing symbol table
     exportDwgString(shapes, layerName = "RANH_DAT", options = {}) {
         // Hỗ trợ truyền mảng điểm trực tiếp thay vì bọc trong shape object
@@ -60,7 +76,7 @@ const CadGeometryEngine = {
             normalizedShapes = [{ name: layerName, points: shapes, isClosed: shapes.length >= 3 }];
         }
 
-        const scaleVal = options.scaleVal || 1000;
+        const scaleVal = options.scaleVal || options.scale || 1000;
         const S = Math.max(scaleVal / 1000.0, 0.1); // 1mm trên giấy = S mét thực địa (1:500 -> S=0.5; 1:1000 -> S=1.0)
         const layersOpt = options.layers || {};
 
@@ -86,6 +102,7 @@ const CadGeometryEngine = {
 
         let dwg = "0\r\nSECTION\r\n2\r\nHEADER\r\n";
         dwg += "9\r\n$ACADVER\r\n1\r\nAC1015\r\n";     // AutoCAD 2000/2004 DWG/DXF engine
+        dwg += "9\r\n$DWGCODEPAGE\r\n3\r\nANSI_1252\r\n";
         dwg += "9\r\n$HANDSEED\r\n5\r\nFFFF\r\n";
         dwg += "9\r\n$INSUNITS\r\n70\r\n6\r\n";       // 6 = Meters (Đơn vị đo chuẩn Việt Nam TCVN)
         dwg += "9\r\n$MEASUREMENT\r\n70\r\n1\r\n";    // 1 = Metric
@@ -101,7 +118,7 @@ const CadGeometryEngine = {
 
         // 1. Table VPORT (Khung nhìn chủ động)
         dwg += "0\r\nTABLE\r\n2\r\nVPORT\r\n5\r\n8\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n1\r\n";
-        dwg += "0\r\nVPORT\r\n5\r\n9\r\n330\r\n8\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbViewportTableRecord\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
+        dwg += "0\r\nVPORT\r\n5\r\n10\r\n330\r\n8\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbViewportTableRecord\r\n2\r\n*ACTIVE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n11\r\n1.0\r\n21\r\n1.0\r\n";
         dwg += `12\r\n${cx.toFixed(3)}\r\n22\r\n${cy.toFixed(3)}\r\n40\r\n${viewSize.toFixed(3)}\r\n41\r\n1.4142\r\n`;
         dwg += "0\r\nENDTAB\r\n";
 
@@ -155,16 +172,16 @@ const CadGeometryEngine = {
 
         // 9. Table BLOCK_RECORD
         dwg += "0\r\nTABLE\r\n2\r\nBLOCK_RECORD\r\n5\r\n1\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n2\r\n";
-        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1B\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*MODEL_SPACE\r\n";
-        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1C\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*PAPER_SPACE\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1B\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n";
+        dwg += "0\r\nBLOCK_RECORD\r\n5\r\n1C\r\n330\r\n1\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbBlockTableRecord\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n";
         dwg += "0\r\nENDTAB\r\n";
 
         dwg += "0\r\nENDSEC\r\n";
 
         // SECTION BLOCKS
         dwg += "0\r\nSECTION\r\n2\r\nBLOCKS\r\n";
-        dwg += "0\r\nBLOCK\r\n5\r\n1D\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n5\r\n1E\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
-        dwg += "0\r\nBLOCK\r\n5\r\n1F\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n\r\n0\r\nENDBLK\r\n5\r\n20\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1D\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*MODEL_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*MODEL_SPACE\r\n1\r\n \r\n0\r\nENDBLK\r\n5\r\n1E\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
+        dwg += "0\r\nBLOCK\r\n5\r\n1F\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockBegin\r\n2\r\n*PAPER_SPACE\r\n70\r\n0\r\n10\r\n0.0\r\n20\r\n0.0\r\n30\r\n0.0\r\n3\r\n*PAPER_SPACE\r\n1\r\n \r\n0\r\nENDBLK\r\n5\r\n20\r\n330\r\n1C\r\n100\r\nAcDbEntity\r\n8\r\n0\r\n100\r\nAcDbBlockEnd\r\n";
         dwg += "0\r\nENDSEC\r\n";
 
         // SECTION ENTITIES
@@ -196,7 +213,7 @@ const CadGeometryEngine = {
                 }
 
                 if (layersOpt.names !== false) {
-                    const ptName = p.name || `D${pIdx + 1}`;
+                    const ptName = this.toCadAscii(p.name || `D${pIdx + 1}`);
                     dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nSO_HIEU_DINH\r\n100\r\nAcDbText\r\n10\r\n${(px + 1.2 * S).toFixed(3)}\r\n20\r\n${(py + 1.2 * S).toFixed(3)}\r\n30\r\n${ph.toFixed(3)}\r\n40\r\n${(2.5 * S).toFixed(4)}\r\n1\r\n${ptName}\r\n7\r\nVN_ARIAL\r\n`;
                 }
 
@@ -229,8 +246,8 @@ const CadGeometryEngine = {
 
         // SECTION OBJECTS - Triệt tiêu 100% lỗi "Null objectId: <object> (0)"
         dwg += "0\r\nSECTION\r\n2\r\nOBJECTS\r\n";
-        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n330\r\n0\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n3\r\nACAD_GROUP\r\n350\r\nD\r\n";
-        dwg += "0\r\nDICTIONARY\r\n5\r\nD\r\n330\r\nC\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nC\r\n330\r\n0\r\n100\r\nAcDbDictionary\r\n3\r\nACAD_GROUP\r\n350\r\nD\r\n";
+        dwg += "0\r\nDICTIONARY\r\n5\r\nD\r\n330\r\nC\r\n100\r\nAcDbDictionary\r\n";
         dwg += "0\r\nENDSEC\r\n";
         dwg += "0\r\nEOF\r\n";
         return dwg;

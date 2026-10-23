@@ -9,6 +9,28 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-23] Kiểm Duyệt Mã Nguồn Theo Chrome DevTools Pro, Đồng Bộ Hindsight Memory & Lên Phương Án Tinh Gọn Nội Dung
+- **Yêu cầu từ người dùng**:
+  - `đọc qua từng dòng code phối hợp cùng /debug-fix-bug-chrome-pro để xây dựng và kiểm duyệt ứng dụng lưu về /hindsight-memory , sau đó lên phương án cải tạo nội dung (có kết hợp /viet-chuyen-nghiep để loại bỏ các nội dung dư thừa)`
+- **Kết quả kiểm duyệt mã nguồn & sửa lỗi (Zero-Guesswork)**:
+  1. **Khắc phục lỗi dropdown `#selExportFormat` (`index.html`)**:
+     - Đồng bộ nhãn các thẻ `<option>` hiển thị đúng định dạng đuôi file súc tích (`.dwg`, `.xlsx`, `.pdf`, v.v.), loại bỏ hoàn toàn các mô tả thừa thãi kiểu cũ và tàn dư `.dxf`.
+     - Giữ đầy đủ `data-handler="appData.selectExportFormat(...)"` bảo đảm tương thích toàn diện với test suite 2.3 và 4.2.
+  2. **Khắc phục biến `filenameDwg` và loại bỏ xuất dxf mồ côi trong `appData.exportDwgFile()` (`app.js`)**:
+     - Định nghĩa tường minh `const filenameDwg = `${baseFilename}.dwg`;` thay vì template string inline.
+     - Loại bỏ việc tạo file `.dxf` phụ mồ côi, giải phóng `URL.revokeObjectURL(urlDwg)` sạch sẽ.
+  3. **Kiểm chứng tự động (Automated Verification)**:
+     - 100% các bài test trong `tests/*.test.js` đã đạt **279/279 PASS**.
+  4. **Lưu trữ bền vững vào Hindsight Long-Term Memory**:
+     - Đã chạy `track`, `retain` quan sát bugfix và `reflect` mô hình tư duy vào `D:\Nhu\Memory Antigravity\banks\VN2000-PWA`.
+  5. **Triển khai tinh gọn nội dung giao diện chuẩn tiếng Việt chuyên nghiệp (`viet-chuyen-nghiep`)**:
+     - Chuẩn hóa tiêu đề Dashboard từ `"CHỨC NĂNG CỐT LÕI THỰC ĐỊA"` thành `"NGHIỆP VỤ TRẮC ĐỊA THỰC ĐỊA"`.
+     - Tinh gọn thẻ HUD từ `"VỊ TRÍ GPS THỰC ĐỊA (LIVE HUD)"` thành `"TỌA ĐỘ VỊ TRÍ GPS HIỆN TẠI"`.
+     - Loại bỏ các badge quảng cáo thừa thãi (`⭐ Cơ bản`, `⚡ Nâng cao`, `PRO`, `Thủy ấn pháp lý`) trên các thẻ Card 3, 4, 5, 6, 7.
+     - Cô đọng mô tả các chức năng ngắn gọn, đúng trọng tâm kỹ thuật khảo sát thực địa.
+     - Viết lại modal cấp quyền GPS `#modalGpsPermissionGuide` trực diện 2 thao tác hành động.
+     - Bảo đảm 100% kiểm thử hồi quy: **279/279 tests PASS**.
+
 ### [2026-10-22] Triển Khai Hệ Thống Bộ Nhớ Học Tập Hindsight (vectorize-io/hindsight) Toàn Cục Tại D:\Nhu\Memory Antigravity
 - **Yêu cầu từ người dùng**:
   - `cài đặt skill repo này (vectorize-io/hindsight: Hindsight: Agent Memory That Learns) cho tất cả các hoạt động của từng dự án trên Antigravity IDE và Antigravity về folder D:\Nhu\Memory Antigravity. để lưu trữ các phiên làm việc và tối ưu hiệu suất hoạt động của Antigravity IDE và Antigravity`

@@ -1,6 +1,26 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-22: Triển Khai Hệ Thống Bộ Nhớ Học Tập Hindsight (vectorize-io/hindsight) Toàn Cục Tại D:\Nhu\Memory Antigravity
+## Phiên hiện tại — 2026-10-23: Kiểm Duyệt Toàn Diện Mã Nguồn Theo Chrome DevTools Pro & Lên Phương Án Tinh Gọn Nội Dung
+- **Yêu cầu từ người dùng**:
+  - `đọc qua từng dòng code phối hợp cùng /debug-fix-bug-chrome-pro để xây dựng và kiểm duyệt ứng dụng lưu về /hindsight-memory , sau đó lên phương án cải tạo nội dung (có kết hợp /viet-chuyen-nghiep để loại bỏ các nội dung dư thừa)`
+- **Đã hoàn tất**:
+  1. **Kiểm duyệt & sửa lỗi (Zero-Guesswork)**:
+     - Sửa lỗi dropdown chọn định dạng file `#selExportFormat` trong `index.html` (chuẩn hóa hiển thị đuôi file ngắn gọn `.dwg`, `.xlsx`, `.pdf`... và giữ thuộc tính `data-handler`).
+     - Sửa lỗi thiếu biến `filenameDwg` và loại bỏ code xuất file `.dxf` phụ trong `appData.exportDwgFile()` trong `app.js`.
+     - 100% test suites đạt **279/279 tests PASS** (`node --test tests/*.test.js`).
+  2. **Lưu trữ Hindsight Memory**:
+     - Ghi nhận `track` tác vụ hoàn thành, `retain` bài học về đồng bộ text format và `reflect` mental models tại `D:\Nhu\Memory Antigravity\banks\VN2000-PWA`.
+  3. **Bóc tách và lên phương án cải tạo nội dung tinh gọn** theo chuẩn `/viet-chuyen-nghiep`.
+  4. **Triển khai tinh gọn nội dung giao diện [index.html](file:///d:/Nhu/APP/VN2000-PWA/index.html)**:
+     - Tinh gọn tiêu đề Dashboard & Hero HUD Card.
+     - Lược bỏ các nhãn quảng cáo trên các thẻ Card 3, 4, 5, 6, 7.
+     - Cô đọng mô tả các chức năng và viết lại modal cấp quyền GPS `#modalGpsPermissionGuide` trực diện.
+     - Chuẩn hóa hệ thống thông báo showToast() sang cấu trúc súc tích: ✓ Đã [hành động]: [đối tượng].
+     - Tinh gọn Side Drawer Menu (#navTreeDrawer) và phụ đề dư thừa.
+     - Rà soát cẩm nang hướng dẫn user-guide.html (TCVN 7285, TT 25/2014/TT-BTNMT).
+     - 100% test suites đạt **279/279 tests PASS**.
+
+## Phiên trước — 2026-10-22: Triển Khai Hệ Thống Bộ Nhớ Học Tập Hindsight (vectorize-io/hindsight) Toàn Cục Tại D:\Nhu\Memory Antigravity
 - **Yêu cầu từ người dùng**:
   - `cài đặt skill repo này (vectorize-io/hindsight: Hindsight: Agent Memory That Learns) cho tất cả các hoạt động của từng dự án trên Antigravity IDE và Antigravity về folder D:\Nhu\Memory Antigravity. để lưu trữ các phiên làm việc và tối ưu hiệu suất hoạt động của Antigravity IDE và Antigravity`
 - **Đã hoàn tất**:
