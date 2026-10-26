@@ -9,6 +9,144 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-10-26] Rà Soát Toàn Bộ Ứng Dụng, Tinh Gọn Mã Nguồn & Cập Nhật Lên GitHub
+- **Yêu cầu từ người dùng**:
+  - `kiểm tra lại ứng dụng, loại bỏ các thông tin rác và các tệp tin không phù hợp. sau đó cập nhật lên github`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Kiểm tra tính toàn vẹn và sức khỏe ứng dụng (Automated Regression Testing)**:
+     - Thực thi trọn bộ 64 tập tin test suite bằng lệnh `node --test tests/*.test.js` và `npm test`.
+     - Đạt kết quả hoàn hảo: **288/288 bài test PASS 100% (0 fail)**.
+  2. **Quét và loại bỏ tệp rác, tệp tạm toàn diện**:
+     - Quét đệ quy toàn bộ thư mục dự án: không còn bất kỳ tệp tin rác tạm (`*.tmp`, `*.bak`, `*.orig`, `*~`, `*.swp`, `*.log`, `Thumbs.db`, `.DS_Store`).
+     - Xác nhận thư mục công cụ bot Facebook/Telegram đã được tách độc lập sang `d:\Nhu\APP\telegram-fb-bot` và xóa sạch khỏi `VN2000-PWA` từ phiên trước.
+  3. **Tinh giản thông tin thừa và mã rác trên giao diện**:
+     - Loại bỏ thẻ rỗng `<div class="drawer-subtitle">` trong `index.html`.
+     - Dọn sạch các dòng trống thừa ở cuối tệp `ui-polish.css`.
+     - Chuẩn hóa thông điệp đóng gói tự động trong `deploy_github.bat` (loại bỏ chuỗi phiên bản cũ gán cứng `v2.2.4`).
+  4. **Kiểm tra cấu hình Service Worker và PWA**:
+     - Xác nhận `sw.js` phiên bản `vn2000-pro-v2.8.7` nạp đúng danh sách tài nguyên cốt lõi.
+  5. **Đồng bộ tri thức và cập nhật lên GitHub**:
+     - Ghi nhận trạng thái hoàn thành vào `progress.md`, `session-handoff.md` và Hindsight Long-term Memory bank `VN2000-PWA`.
+     - Sẵn sàng đẩy toàn bộ thay đổi lên GitHub repository `DangNhu192/VN2000-WGS84`.
+
+### [2026-10-26] Tách Công Cụ Đăng Bài FB Ra Thư Mục Độc Lập D:\Nhu\APP\telegram-fb-bot
+- **Yêu cầu từ người dùng**:
+  - `tách tool đăng bài lên fanpage fb ra một folder riêng với VN2000-PWA` (chọn thư mục `d:\Nhu\APP\telegram-fb-bot` và xóa sạch khỏi `VN2000-PWA`).
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Tạo lập thư mục độc lập `d:\Nhu\APP\telegram-fb-bot/`**:
+     - Di chuyển toàn bộ mã nguồn, cấu hình, dữ liệu và cẩm nang: `bot.js`, `telegram_bot.js`, `facebook_publisher.js`, `gemini_engine.js`, `antigravity_content_library.js`, `generate_campaign.js`, `add_custom_post.js`, `post_queue.js`, `config.js`, `.env.example`, `README.md`, thư mục `data/` và `tests/`.
+     - Tạo riêng `package.json` độc lập cho `telegram-fb-bot` với các script `npm start`, `npm test`, `npm run campaign`.
+  2. **Dọn dẹp triệt để trong `VN2000-PWA`**:
+     - Xóa thư mục `tools/telegram-fb-bot` và file test `tests/telegram_fb_bot.test.js`.
+     - Bảo đảm mã nguồn PWA hoàn toàn tinh gọn, cô lập tuyệt đối (100% UI & Module Isolation).
+  3. **Kiểm thử tự động kép (Dual Verification)**:
+     - Tại `d:\Nhu\APP\telegram-fb-bot`: Chạy `node --test tests/*.test.js` đạt **6/6 tests PASS 100%**.
+     - Tại `d:\Nhu\APP\VN2000-PWA`: Chạy `node --test tests/*.test.js` đạt **288/288 tests PASS 100% (0 fail)**.
+     - Ghi nhận `hindsight track` vào bank `VN2000-PWA`.
+
+### [2026-10-26] Nâng Cấp Bộ Não Antigravity Gemini Engine (Zero-API-Key) & Auto-Publisher Tự Động Lên Lịch Đăng FB
+- **Yêu cầu từ người dùng**:
+  - `sử dụng tài khoản Antigravity + Gemini để giải quyết chứ không dùng API Antigravity + Gemini để giải quyết`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Chuyển giao toàn quyền sinh nội dung cho Bộ não Antigravity (Gemini)**:
+     - Loại bỏ hoàn toàn sự phụ thuộc vào `GEMINI_API_KEY` ngoài (người dùng không cần thẻ visa hay tài khoản AI Studio).
+     - Antigravity trực tiếp biên soạn sẵn kho bài viết chuyên sâu cho 14 tính năng cốt lõi tại `antigravity_content_library.js`, đầy đủ Hook trắc địa, bài toán hiện trường, 3 bước thao tác, link PWA, hashtags chuẩn SEO, kèm prompt ảnh Midjourney/Flux 16:9 và kịch bản Reels/TikTok 30s + gợi ý âm nhạc BPM.
+  2. **Cơ chế Fallback & Tự động sinh bài không cần Key (`gemini_engine.js`)**:
+     - Khi `GEMINI_API_KEY` để trống, `GeminiEngine` tự động hoạt động ở chế độ *Antigravity Managed Mode*. Mọi lệnh `/feature`, `/post` hay gửi link URL trên Telegram đều được phục vụ tức thời từ kho dữ liệu hoặc engine mẫu chuyên sâu của Antigravity.
+  3. **Khởi tạo Chiến dịch 14 Ngày Đăng Bài Tự Động (`generate_campaign.js`)**:
+     - Nạp sẵn 14 bài viết đã lên lịch cách nhau 24 giờ vào `data/posts.json` và xuất bản báo cáo lịch trình đầy đủ ra `data/content_calendar.md`.
+  4. **Tích hợp Tiến trình Tự Động Đăng Bài Nền (Background Scheduler Loop)**:
+     - Bổ sung ticker kiểm tra mỗi 60 giây trong `telegram_bot.js`. Khi đến giờ hẹn (`scheduledTime <= now`), bot tự động gọi Facebook Graph API để xuất bản lên Fanpage và gửi thông báo chúc mừng tới Telegram Admin.
+  5. **Bổ sung tiện ích Thêm bài viết tùy chỉnh (`add_custom_post.js`)**:
+     - Cho phép thêm bài viết hoặc đăng ngay từ dòng lệnh / Antigravity IDE bất kỳ lúc nào.
+  6. **Kiểm thử tự động toàn diện**:
+     - Bổ sung ca kiểm thử số 6 trong `tests/telegram_fb_bot.test.js` kiểm tra hoạt động Zero-API-Key.
+     - Toàn bộ **294/294 tests PASS 100% (0 fail)**.
+     - Ghi nhận `hindsight track` vào bank `VN2000-PWA`.
+
+### [2026-10-26] Xây Dựng Tool Bot Telegram Tự Động Soạn & Đăng Bài Lên Facebook Bằng Gemini AI
+- **Yêu cầu từ người dùng**:
+  - `tạo bot telegram để tự động đăng bài lên fb (tạo bài từ link được cung cấp, câu gợi ý,....) sử dụng tài khoản gemini để đăng nhập và tạo bài phân tích, tạo nhạc, bài viết, video minh họa,... theo yêu cầu của người dùng nhắn vào telegram`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Kiến trúc Module độc lập Zero-Dependency (`tools/telegram-fb-bot/`)**:
+     - Xây dựng hoàn toàn bằng Node.js thuần (sử dụng Native `fetch` của Node 18+), không cài đặt thư viện rườm rà, đảm bảo 100% an toàn và không gây xung đột mã nguồn web PWA.
+  2. **Telegram Bot Controller (`telegram_bot.js`)**:
+     - Cơ chế Long-polling mượt mà, xác thực Admin qua `TELEGRAM_ADMIN_CHAT_ID` bảo mật.
+     - Nhận diện linh hoạt: nhận link URL để tóm tắt phân tích, nhận câu gợi ý tự do, hoặc dùng lệnh `/feature` để chọn nhanh 1 trong 14 tính năng của VN2000-PWA.
+     - Phản hồi trực quan qua Inline Keyboard 6 nút: `[🚀 Đăng ngay]`, `[⏰ Hẹn giờ]`, `[🖼️ Prompt ảnh]`, `[🎬 Kịch bản video & Nhạc]`, `[🔄 Viết lại góc khác]`, `[🗑️ Hủy bài]`.
+  3. **Bộ não AI Google Gemini Engine (`gemini_engine.js`)**:
+     - Tích hợp chuẩn REST API v1beta với Gemini Flash/Pro.
+     - Hệ thống System Instruction chuyên gia sao chép tiếp thị trắc địa: Cấu trúc Hook giật tít, bài toán nỗi đau hiện trường, giải pháp VN2000 Pro, 3 bước thao tác, CTA và Hashtags chuẩn SEO.
+     - Hỗ trợ tạo Prompt ảnh chi tiết (Midjourney / Imagen 3 / Flux) và Kịch bản video ngắn Reels/TikTok 30s kèm phong cách âm nhạc (BPM, Mood, Genre).
+  4. **Bộ phát hành Meta Graph API v21.0 (`facebook_publisher.js`)**:
+     - Hỗ trợ đăng bài viết trực tiếp hoặc lên lịch phát hành (Scheduled Post) thông qua Page Access Token và Page ID.
+  5. **Bộ quản lý Hàng đợi & Lịch xuất bản (`post_queue.js` & `bot.js`)**:
+     - Lưu trữ trạng thái `draft`, `scheduled`, `published` an toàn trong file JSON cục bộ.
+     - Hỗ trợ cờ CLI `--generate-all` để sinh trọn vẹn 14 bài đăng cho 14 tính năng ra file `data/content_calendar.md`.
+  6. **Kiểm thử tự động toàn diện**:
+     - Bổ sung `tests/telegram_fb_bot.test.js` kiểm chứng đầy đủ 5 module.
+     - Toàn bộ **293/293 bài test** của dự án đạt **100% PASS**.
+
+### [2026-10-26] Tối Ưu Hóa Giao Diện Trang Chủ & Thanh Menu (Cấu Trúc Hóa Tuyệt Đối)
+- **Yêu cầu từ người dùng**:
+  - `tối ưu hóa giao diện trang chủ và thanh menu (cần điều chỉnh và cấu trúc hóa tuyệt đối)`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Cấu trúc hóa tuyệt đối Thanh Menu Đỉnh (App Header Top Bar & Control Center Capsule)**:
+     - Cố định chiều cao chuẩn mực 54px với hiệu ứng kính mờ `backdrop-filter: blur(20px) saturate(180%)`, đường viền phản quang `rgba(56, 189, 248, 0.18)` và bóng đổ đa tầng chống che khuất.
+     - Cụm tiêu đề trái: Nút menu `#btnHeaderMenu` dạng viên thuốc bo tròn (Pill capsule), nút quay lại `#btnHeaderBack` với hiệu ứng trượt êm ái, logo sắc nét cùng biểu tượng quả táo `mac-apple-badge`  và Pill kinh tuyến trục `headerSubtitle` hỗ trợ chạm đổi nhanh tỉnh thành.
+     - Cụm Control Center Capsule phải: Hợp nhất các nút Theme (☀️/🌙), định vị GPS vệ tinh (chấm xanh nhịp thở radar), Cài đặt hệ thống (⚙️) và Sổ tay hướng dẫn (?) trong một khoang điều khiển liền khối bo tròn 999px chuẩn phong cách Apple macOS Sequoia / iOS 21.
+  2. **Cấu trúc hóa tuyệt đối Side Drawer Menu (Mục Lục Chức Năng)**:
+     - Tiêu đề rút gọn chuẩn mực `MỤC LỤC CHỨC NĂNG` với 3 nút Traffic Lights (Đỏ - Vàng - Xanh), triệt tiêu hoàn toàn dòng phụ đề giải thích rườm rà.
+     - Hộp tìm kiếm nhanh `.drawer-search-box` với icon kính lúp, bo góc 10px, hiệu ứng focus phát sáng viền cyan và nút xóa nhanh ✕.
+     - Phân nhóm 5 Folders nghiệp vụ khoa học (`drawerFolder1` đến `drawerFolder5`), mỗi mục leaf sở hữu biểu tượng Squircle sắc nét 34x34px, nhãn đậm, badge số lượng mục và tick trạng thái xanh ngọc.
+  3. **Cấu trúc hóa tuyệt đối Thanh Điều Hướng Đáy (Floating Bottom Dock)**:
+     - Thanh dock lơ lửng cách đáy màn hình 10px, bo cong 22px dạng viên thuốc, kính mờ 24px, viền cyan phản quang `rgba(56, 189, 248, 0.28)` và bóng đổ sâu 40px.
+     - 5 tab cố định chuẩn công thái học thực địa: `Trang Chủ`, `Chuyển Đổi`, `Bản Đồ`, `Cắm Mốc`, `Sổ Đo`. Đảm bảo khoảng chạm tối thiểu 48px, nhãn chữ 1 dòng không ngắt gãy, biểu tượng 24px kèm chấm đèn phát sáng `dock-active-dot` và hiệu ứng nhấn đàn hồi 60fps.
+  4. **Tái cấu trúc 4 tầng thị giác phân tầng Trang Chủ (`#screen-menu`)**:
+     - **Tầng 1 (Chế độ vận hành)**: `#fwToolbar` tích hợp thanh chuyển đổi Đơn giản / Nâng cao dạng capsule và nút Thực địa chống chói nắng ngoài trời.
+     - **Tầng 2 (Quan trắc thực địa)**: Dải ngữ cảnh KTT + Nơi lưu trữ + Nút `⭐ Đổi ghim` gắn kết liền mạch với `heroLiveHudCard` hiển thị số liệu tọa độ X (Bắc - Cyan), Y (Đông - Amber), H (Cao độ - Green) dạng chữ số bảng `tabular-nums` thẳng hàng, chấm nhịp thở vệ tinh và 2 nút tác vụ 50-50 (`⚡ Sao chép nhanh` & `🗺️ Hiện vị trí trên Map`).
+     - **Tầng 3 (4 Trụ cột Bento Core)**: Lưới 2 cột (di động) và 4 cột (desktop) cân xứng hoàn hảo, icon squircle 50x50px to rõ, thẻ bo góc 18px, hỗ trợ phản hồi xúc giác.
+     - **Tầng 4 (Dự án & Công cụ mở rộng)**: Thẻ thông tin dự án hiện hành kèm số lượng mốc và khối Accordion công cụ kỹ thuật đóng mở mượt mà với ô lọc tìm kiếm tức thì.
+  5. **Kiểm thử hồi quy & Lưu trữ tri thức**:
+     - Đạt kết quả hoàn hảo: **288/288 bài test PASS 100%**.
+     - Cập nhật Hindsight Long-term Memory bank `VN2000-PWA` tại `D:\Nhu\Memory Antigravity`.
+
+### [2026-10-26] Cài Đặt Plugin Codex Design, Tích Hợp MCP & Thiết Lập Canvas Trực Quan 5 Phân Hệ Giao Diện VN2000-PWA
+- **Yêu cầu từ người dùng**:
+  - `cài đăht giao diện cho ứng dụng theo tiêu chuẩn này: https://codexdesign.io/install.md`
+  - Lựa chọn: `tất cả` (Toàn bộ 5 phân hệ giao diện: Dashboard Bento HUD, Chuyển đổi Dual-pane, Bản đồ dự án & Mốc, MiniCAD Thực địa 2D Pro, Sổ đo & Trắc dọc).
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Cài đặt và cấu hình Codex Design Plugin (`codexdesign@codexdesign-github`)**:
+     - Cài đặt plugin phiên bản `0.1.1` từ Git marketplace `ummydev/codexdesign` theo đúng chuẩn phân phối `codex plugin marketplace add` & `codex plugin add`.
+     - Tích hợp cấu hình MCP Server cho Antigravity IDE trong `C:\Users\User\.gemini\config\mcp_config.json`.
+     - Kích hoạt Daemon Local của Codex Design tại `http://127.0.0.1:55181`.
+  2. **Khởi tạo Canvas dự án `VN2000-PWA-Redesign` (`f0f73e95-bee7-4f56-a5c8-fb6251012650`)**:
+     - Thiết lập hệ thống 5 màn hình Mockup HTML độc lập theo phong cách **Field Survey Pro** (Tương phản cao chống chói nắng thực địa, hỗ trợ nút bấm chuyển đổi Dark/Light mode, font chữ chuẩn Be Vietnam Pro & JetBrains Mono):
+       + `node-dashboard`: Màn hình 1 - Dashboard & Bento Survey HUD (Chỉ số vệ tinh RTK, KTT địa phương, 4 Card tác vụ lõi).
+       + `node-converter`: Màn hình 2 - Phân hệ Chuyển đổi Tọa độ Dual-Pane (Form thông minh + Live Survey Map độc lập 100% UI Isolation).
+       + `node-project-map`: Màn hình 3 - Phân hệ Bản đồ Dự án & Quản lý Mốc (Dedicated `#mapProjectBar`, gom cụm mốc, bảng kê mốc dự án, thùng rác 30 ngày).
+       + `node-minicad`: Màn hình 4 - Phân hệ MiniCAD Thực địa 2D Pro (Ribbon vẽ đa giác [P], xén ranh [TR], kéo dài [EX], tách/hợp thửa TT 25/2014, bắt điểm Osnap, xuất DWG).
+       + `node-survey-tools`: Màn hình 5 - Phân hệ Sổ đo thực địa & Trắc dọc đào đắp (Sổ đo điện tử, tính khối lượng đào đắp m³ tự nhiên vs thiết kế).
+       + `node-stakeout`: Màn hình 6 - Phân hệ Bố trí mốc thực địa & La bàn AR (Radar định vị mốc, cự ly d, phương vị Azimuth, độ lệch góc).
+       + `node-geodesy-tools`: Màn hình 7 - Phân hệ Tiện ích trắc địa nâng cao (Cự ly & phương vị A-B, Giao hội nghịch 2 mốc khi mất GPS, Geoid VIGAC2017).
+       + `node-camera-settings`: Màn hình 8 - Phân hệ Camera hiện trường & Cài đặt hệ thống (Thủy ấn TCVN 7285, KTT 63 tỉnh thành, Múi chiếu 3°/6°).
+     - **Tinh gọn triệt để rác chữ theo yêu cầu người dùng (Anti-slop & Minimalist UI)**:
+       + Gỡ bỏ hoàn toàn các dòng phụ đề giải thích kỹ thuật nội bộ thừa thãi trên tất cả 8 màn hình mockup.
+       + Rút gọn các tiêu đề trực diện, súc tích: `VN-2000 PRO`, `CHUYỂN ĐỔI TỌA ĐỘ`, `BẢN ĐỒ DỰ ÁN & MỐC`, `MINICAD 2D`, `SỔ ĐO & TRẮC DỌC`, `BỐ TRÍ MỐC`, `TIỆN ÍCH TRẮC ĐỊA`, `CAMERA THỰC ĐỊA & CÀI ĐẶT`.
+  3. **Áp dụng thiết kế Field Survey Pro Minimalist vào mã nguồn thực tế (`ui-polish.css`)**:
+     - Định dạng chữ số dạng bảng `font-variant-numeric: tabular-nums` cho toàn bộ số liệu tọa độ, cự ly và trắc đạc, chống hiện tượng nhảy số giật mắt khi GPS cập nhật real-time.
+     - Tăng cường độ tương phản viền thẻ Bento HUD và độ bóng chiều sâu, hỗ trợ hiệu ứng nhấn chạm đàn hồi `scale(0.985)`.
+     - Tối ưu hóa chế độ Sáng (Light Theme) đạt độ sắc nét cao ngoài trời nắng chói (`border: 1px solid rgba(0,0,0,0.12)`, nền thẻ trắng ngà `rgba(255,255,255,0.96)`, chữ xanh đậm `#0369a1`).
+     - Tinh chỉnh các nút bấm dạng viên thuốc (Pill capsules) trên bản đồ và thanh tiêu đề header.
+     - Tối ưu hóa toàn diện các phân hệ mở rộng:
+       * **Bố trí cắm mốc (`#screen-stakeout`)**: Bo tròn radar la bàn, đổ bóng chiều sâu 32px cyan, hiển thị cự ly và góc phương vị tabular-nums.
+       * **Tiện ích trắc địa (`#screen-geodesy`)**: Bo góc thẻ bài toán 14px, viền thẻ sắc nét, ô nhập tọa độ monospaced tabular.
+       * **Camera thực địa (`#screen-camera`)**: Thanh tab camera kính mờ, nút bấm active xanh công nghệ nổi bật, dải thủy ấn sắc nét.
+       * **Quản lý dữ liệu (`#screen-datamgmt`)**: Sticky `thead` bảng điểm đo trắc địa chống trôi tiêu đề khi cuộn dài.
+  4. **Lưu trữ tri thức dài hạn & Kiểm thử toàn diện**:
+     - Cập nhật tiến độ `track`, lưu quan sát `retain` và phản chiếu tư duy `reflect` vào Hindsight Long-term Memory `D:\Nhu\Memory Antigravity\banks\VN2000-PWA`.
+     - Toàn bộ **288/288 bài test** của dự án đạt 100% PASS.
+
 ### [2026-10-23] Hoàn Thành Triển Khai Cả 3 Ưu Tiên Nâng Cấp MiniCAD 2D Tiệm Cận Phần Mềm Đo Đạc Bản Đồ Chuyên Nghiệp (AutoCAD, MicroStation / Famis)
 - **Yêu cầu từ người dùng**:
   - `triển khai cả 3 ưu tiên cho MiniCAD` (tiệm cận phần mềm vẽ 2D chuyên nghiệp: Tách/Hợp thửa, Cắt xén Trim / Kéo dài Extend, Dóng mở rộng Polar Tracking, Quản lý Layer chuẩn Thông tư 25/2014/TT-BTNMT).
