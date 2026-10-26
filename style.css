@@ -4283,7 +4283,6 @@
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
       transform: translateZ(0);
-      will-change: transform;
     }
 
     /* Tối ưu hóa màu sắc, độ tương phản mốc ranh giới và độ sắc cạnh của ảnh vệ tinh tiêu chuẩn */
@@ -4291,7 +4290,6 @@
     img.leaflet-tile.leaflet-tile-loaded {
       filter: contrast(1.08) saturate(1.1) brightness(1.02);
       transition: opacity 0.2s ease-in-out;
-      will-change: transform;
     }
 
     /* Tối ưu hóa chuyển động 60fps khi phóng to thu nhỏ bản đồ (GPU Tile Layer Isolation) */
@@ -4300,26 +4298,41 @@
       will-change: transform;
     }
 
+    /* Chống giật lag 60fps trong quá trình tương tác/chuyển động phóng to thu nhỏ */
+    .leaflet-zoom-anim .leaflet-tile-container img.leaflet-tile,
+    .map-is-zooming .leaflet-tile-container img.leaflet-tile {
+      filter: none !important;
+    }
+
     /* 1. Khi phóng to sâu (zoom >= 19 tới 24): Tự động khử ô vuông pixel Gaussian + Làm sắc nét Laplacian */
     .map-deep-zoom-enhanced .leaflet-tile-container img.leaflet-tile,
     .map-enhance-gaussian .leaflet-tile-container img.leaflet-tile {
       filter: url(#mapTileEnhancer) contrast(1.10) saturate(1.10) brightness(1.02);
       image-rendering: auto !important;
-      will-change: transform;
+    }
+
+    /* 1b. Khi phóng to sâu vượt mức 20x (zoom > 20 tới 24): Chuyển sang bộ lọc GPU CSS nguyên bản siêu tốc chống giật lag */
+    .map-zoom-above-20 .leaflet-tile-container img.leaflet-tile,
+    .map-ultra-zoom .leaflet-tile-container img.leaflet-tile {
+      filter: contrast(1.08) saturate(1.10) brightness(1.02) !important;
+      image-rendering: auto !important;
     }
 
     /* 2. Chế độ Tương phản cao sắc nét viền mốc */
     .map-enhance-contrast .leaflet-tile-container img.leaflet-tile {
       filter: url(#mapTileHighContrast) contrast(1.15) saturate(1.12) brightness(1.02);
       image-rendering: auto !important;
-      will-change: transform;
+    }
+
+    .map-zoom-above-20.map-enhance-contrast .leaflet-tile-container img.leaflet-tile {
+      filter: contrast(1.15) saturate(1.12) brightness(1.02) !important;
+      image-rendering: auto !important;
     }
 
     /* 3. Chế độ Mượt mà tự nhiên (GPU Bicubic Interpolation) */
     .map-enhance-natural .leaflet-tile-container img.leaflet-tile {
       filter: contrast(1.06) saturate(1.08) brightness(1.02);
       image-rendering: auto !important;
-      will-change: transform;
     }
 
     /* 4. Chế độ Nguyên bản không áp bộ lọc */
@@ -9853,6 +9866,14 @@
   z-index: 3300;
 }
 
+.cad-cmd-autocomplete.drop-down {
+  top: 100% !important;
+  bottom: auto !important;
+  margin-top: 4px;
+  margin-bottom: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+}
+
 .cad-cmd-suggest-item {
   display: flex;
   align-items: center;
@@ -9966,7 +9987,7 @@
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
   padding: 8px 10px;
-  max-height: 260px;
+  max-height: min(240px, 45vh);
   overflow-y: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
   scrollbar-width: thin;

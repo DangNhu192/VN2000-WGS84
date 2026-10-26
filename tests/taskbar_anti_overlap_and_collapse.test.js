@@ -123,11 +123,11 @@ test('=== 3. KIỂM THỬ VẬN HÀNH THỰC TẾ LOGIC THU GỌN DOCK (SIMULATI
 });
 
 test('=== 4. KIỂM THỬ CSS CHỐNG ĐÈ GIAO DIỆN MINICAD & CÁC CHỨC NĂNG (UI-POLISH.CSS) ===', () => {
-    // 4.1 MiniCAD: CLI, Status HUD và Thumb Bar được nâng cao +72px..+76px chống đè Dock
+    // 4.1 MiniCAD: CLI, Status HUD và Thumb Bar được nâng cao chống đè Dock và chống đè lẫn nhau
     assert.ok(
-        uiPolishCss.includes('.cad-floating-cmd-bar {') &&
-        uiPolishCss.includes('bottom: calc(var(--sat-safe-bottom, 0px) + 74px) !important;'),
-        'MiniCAD CLI Floating CMD Bar được nâng +74px trên thanh Bottom Nav'
+        uiPolishCss.includes('.cad-floating-cmd-bar') &&
+        uiPolishCss.includes('bottom: calc(var(--sat-safe-bottom, 0px) + 112px) !important;'),
+        'MiniCAD CLI Floating CMD Bar được nâng +112px trên thanh Bottom Nav và nổi trên Status HUD'
     );
     assert.ok(
         uiPolishCss.includes('.cad-status-hud {') &&
@@ -140,16 +140,23 @@ test('=== 4. KIỂM THỬ CSS CHỐNG ĐÈ GIAO DIỆN MINICAD & CÁC CHỨC NĂ
         'MiniCAD Thumb Action Bar được nâng +76px trên thanh Bottom Nav'
     );
 
-    // 4.2 Khi Dock thu gọn (body.dock-collapsed), MiniCAD tự động trượt sát đáy (+12px..+16px) giải phóng canvas
+    // 4.2 Khi Dock thu gọn (body.dock-collapsed), Status HUD hạ xuống +12px, CLI nổi an toàn phía trên (+52px)
     assert.ok(
-        uiPolishCss.includes('body.dock-collapsed .cad-floating-cmd-bar {') &&
-        uiPolishCss.includes('bottom: calc(var(--sat-safe-bottom, 0px) + 16px) !important;'),
-        'MiniCAD CLI tự động hạ xuống +16px khi Dock thu gọn'
+        uiPolishCss.includes('body.dock-collapsed .cad-floating-cmd-bar') &&
+        uiPolishCss.includes('bottom: calc(var(--sat-safe-bottom, 0px) + 52px) !important;'),
+        'MiniCAD CLI tự động hạ xuống +52px nổi an toàn trên Status HUD khi Dock thu gọn'
     );
     assert.ok(
         uiPolishCss.includes('body.dock-collapsed .cad-status-hud {') &&
         uiPolishCss.includes('bottom: calc(var(--sat-safe-bottom, 0px) + 12px) !important;'),
         'MiniCAD Status HUD tự động hạ xuống +12px khi Dock thu gọn'
+    );
+
+    // 4.2b Khi người dùng kéo thả tự do, CLI không bị kẹt bottom !important
+    assert.ok(
+        uiPolishCss.includes('.cad-floating-cmd-bar.is-dragged') &&
+        uiPolishCss.includes('bottom: auto !important;'),
+        'CLI có luật is-dragged bottom: auto !important chống dính cạnh dưới'
     );
 
     // 4.3 Bản đồ chuyển đổi tọa độ (#transformMapCoordHud & .transform-bottom-sheet)

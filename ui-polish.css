@@ -2145,8 +2145,9 @@ body[data-theme="light"] nav#mobileBottomNav.mobile-bottom-nav .dock-expand-hand
 }
 
 /* 3. Chống đè triệt để trên MiniCAD (Full screen CAD Drafting Anti-Overlap) */
-.cad-floating-cmd-bar {
-  bottom: calc(var(--sat-safe-bottom, 0px) + 74px) !important;
+/* Vị trí neo cơ sở chuẩn AutoCAD: Floating CLI nổi phía trên Status HUD (+112px khi mở dock, +52px khi thu gọn dock) */
+.cad-floating-cmd-bar:not(.is-dragged) {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 112px) !important;
   z-index: 3200 !important;
   transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -2165,9 +2166,9 @@ body[data-theme="light"] nav#mobileBottomNav.mobile-bottom-nav .dock-expand-hand
   transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Khi thu gọn Taskbar trong MiniCAD (hoặc toàn ứng dụng), các thanh MiniCAD tự động hạ xuống sát đáy */
-body.dock-collapsed .cad-floating-cmd-bar {
-  bottom: calc(var(--sat-safe-bottom, 0px) + 16px) !important;
+/* Khi thu gọn Taskbar trong MiniCAD (hoặc toàn ứng dụng), Status HUD hạ sát đáy (+12px), CLI hạ xuống nổi an toàn phía trên Status HUD (+52px) */
+body.dock-collapsed .cad-floating-cmd-bar:not(.is-dragged) {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 52px) !important;
 }
 
 body.dock-collapsed #map-view-container.cad-active-map #cadStatusHud,
@@ -2178,6 +2179,16 @@ body.dock-collapsed .cad-status-hud {
 body.dock-collapsed #map-view-container.cad-active-map #cadThumbActionBar,
 body.dock-collapsed .cad-thumb-action-bar {
   bottom: calc(var(--sat-safe-bottom, 0px) + 16px) !important;
+}
+
+/* Khi người dùng kéo thả (drag) khung CADCraft 2D CLI tự do:
+   Triệt tiêu hoàn toàn bottom !important và right !important, giải phóng 100% không gian di chuyển, chống dính cạnh dưới và chống dãn chiều cao */
+.cad-floating-cmd-bar.is-dragged {
+  bottom: auto !important;
+  right: auto !important;
+  transition: none !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.45) !important;
+  cursor: grabbing !important;
 }
 
 /* 4. Chống đè trên Bản đồ Chuyển đổi Tọa độ & Live Map */

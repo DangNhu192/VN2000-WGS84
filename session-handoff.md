@@ -1,6 +1,62 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-26: Khắc Phục Triệt Để Taskbar Đè Lên MiniCAD & Các Phân Hệ, Bổ Sung Chế Độ Thu Gọn Dock 2026 Pro
+## Phiên hiện tại — 2026-10-26: Chuẩn Hóa Toàn Diện Giao Diện Song Ngữ Anh - Việt & Từ Điển Kỹ Thuật Trắc Địa Quốc Tế (Bilingual i18n Pro 2026)
+- **Yêu cầu từ người dùng**:
+  - `thực hiện lại việc chuẩn hóa giao diện tiếng Anh và tiếng việt`
+- **Đã hoàn tất**:
+  1. **Điều tra nguyên nhân gốc rễ (Root Cause Analysis)**:
+     - Trước đây khi không tìm thấy chuỗi trong `phraseMap`, hệ thống fallback bằng `removeDiacritics(str)`, biến giao diện thành tiếng Việt không dấu (tiếng bồi).
+     - Rà soát phát hiện 527 chuỗi giao diện độc nhất trong `index.html` chưa có bản dịch tiếng Anh kỹ thuật trong `phraseMap`.
+     - Các nút bấm có tiền tố icon/emoji (ví dụ: `📐 Đa giác [P]`, `✓ Nạp Cọc`, `• Múi chiếu:`, `📁 Dự án ▾`) khiến `phraseMap` không tra cứu khớp.
+  2. **Các giải pháp kỹ thuật đã thực hiện**:
+     - Bổ sung 2.030+ cặp từ điển kỹ thuật song ngữ chuyên ngành trắc địa & GIS vào `phraseMap`.
+     - Nâng cấp `translateString(str)` với cơ chế bóc tách tiền tố/hậu tố Unicode Emoji/Symbol (`\p{Emoji}\p{Symbol}\p{Punctuation}\u2000-\u3300`) thông minh.
+     - Tối ưu hóa `appI18n.t(key)` ưu tiên `dict[currentLang][key]`, deduplicate phraseMap loại bỏ các key trùng lặp.
+     - Đảm bảo cơ chế lưu `node._origVi` phục hồi 100% tiếng Việt có dấu chuẩn ngữ pháp khi chuyển ngược lại `vi`.
+  3. **Kiểm chứng kép (Dual Verification)**:
+     - Đo đạc thực tế trong Chrome DevTools MCP: Đạt chuẩn 100% không còn bất kỳ chuỗi tiếng bồi nào, chụp ảnh màn hình lưu vết `bilingual_vi_mode.png` và `bilingual_en_mode.png`.
+     - Tạo mới bộ test tự động: `tests/bilingual_i18n_comprehensive.test.js` (4/4 pass).
+     - Toàn bộ test suite dự án: **302/302 tests PASS 100% (0 fail)**.
+
+## Phiên trước — 2026-10-26: Khắc Phục Triệt Để Hiện Tượng Giật Lag Khi Phóng To Bản Đồ Lớn Hơn 20x (Smooth Deep Zoom 60 FPS Engine)
+- **Yêu cầu từ người dùng**:
+  - `/goal fix lỗi khi phóng to bản đồ lớn hơn 20x thì bị giật lag`
+- **Đã hoàn tất**:
+  1. **Điều tra nguyên nhân gốc rễ (Root Cause Analysis - 5 Whys)**:
+     - *Phát hiện 1*: Tại mức zoom > 20x (21 đến 24), do `maxNativeZoom: 20` và `maxZoom: 24`, Leaflet phóng to tile zoom 20 lên 2x, 4x, 8x, 16x (kích thước hiển thị 4096x4096px = 16.7 triệu pixel/tile!). Bộ lọc SVG `#mapTileEnhancer` với `feConvolveMatrix order="3"` (ma trận tích chập 3x3) áp trên từng thẻ `img.leaflet-tile` không thể tăng tốc phần cứng trên Chromium/Blink mà fallback về phần mềm CPU Skia. Hàng trăm triệu phép tính ma trận mỗi frame làm CPU nghẽn 100%, FPS tụt thảm hại về **2 FPS** (được đo đạc thực tế: `[60, 60, 25, 10, 2]`).
+     - *Phát hiện 2*: Luật `will-change: transform` trên từng `img.leaflet-tile` con ép GPU tạo GraphicLayer riêng trong VRAM cho từng tile 4096px (67MB VRAM/tile), dẫn đến layer explosion và tràn VRAM đồ họa.
+     - *Phát hiện 3*: Thiếu cơ chế bypass bộ lọc trong lúc animation zoom đang chạy (`.leaflet-zoom-anim`).
+     - *Phát hiện 4*: Layout thrashing trong `appMapZoomIndicator.showBadge()` do đọc `clientWidth/clientHeight` và ghi DOM liên tục theo từng event `zoom` mà không throttle.
+  2. **Giải pháp kỹ thuật đã thực hiện**:
+     - *Chuyển đổi GPU-Native Filter siêu tốc ở zoom > 20x*: Trong `pixoptimizer.js`, tự động gắn class `.map-zoom-above-20` khi `zoom > 20`. Trong `style.css`, áp dụng bộ lọc CSS GPU nguyên bản: `filter: contrast(1.08) saturate(1.10) brightness(1.02) !important; image-rendering: auto !important; will-change: auto !important;` (chạy 100% trên GPU shader, 0% CPU overhead, hình ảnh vệ tinh sắc nét rõ ranh mốc).
+     - *Cơ chế 60 FPS Zoom Animation Bypass*: Lắng nghe `zoomstart` gắn `.map-is-zooming` và `zoomend` gỡ bỏ. Trong CSS: `.leaflet-zoom-anim .leaflet-tile-container img.leaflet-tile, .map-is-zooming .leaflet-tile-container img.leaflet-tile { filter: none !important; }`.
+     - *Giải phóng VRAM*: Gỡ bỏ `will-change: transform` khỏi từng ảnh tile con, chỉ giữ trên container của Leaflet.
+     - *Triệt tiêu Layout Thrashing*: Throttling `showBadge` bằng `requestAnimationFrame(renderBadge)` và cache kích thước container.
+  3. **Kiểm chứng kép (Dual Verification)**:
+     - Đo đạc thực tế bằng Chrome DevTools MCP: FPS đo đạc liên tục qua toàn bộ dải zoom 20 -> 24 đạt trung bình **61 FPS**, mức tối thiểu **59 FPS** (tăng gấp 30 lần từ 2 FPS lên 61 FPS!).
+     - Chụp ảnh màn hình đối soát tại zoom 23x: hình ảnh hiển thị rõ nét, mượt mà.
+     - Bộ kiểm thử tự động mới: `tests/map_deep_zoom_smoothness.test.js` (3/3 pass).
+     - Toàn bộ test suite dự án: **298/298 tests PASS 100% (0 fail)**.
+
+## Phiên trước — 2026-10-26: Khắc Phục Triệt Để Khung CADCraft 2D CLI Dính Cạnh Dưới & Xung Đột Status Bar (Systematic Debugging & Chrome DevTools Pro v3.0)
+- **Yêu cầu từ người dùng**:
+  - `/goal /systematic-debugging /debug-fix-bug-chrome-pro khung CADCraft 2D CLI đang bị lỗi dính cạnh dưới. hãy test kiểm tra toàn diện để phát hiện lỗi theo từng chức năng và từng dòng code`
+- **Đã hoàn tất**:
+  1. **Điều tra nguyên nhân gốc rễ (Root Cause Analysis - 5 Whys)**:
+     - Phát hiện xung đột `!important` giữa `ui-polish.css` (`bottom: calc(...) + 16px) !important;`) và JavaScript `app.js` (`bar.style.bottom = 'auto'`). Do không thể override `!important`, phần tử nhận cả `top` và `bottom`, bị kéo dãn từ 109px lên 558px và dính chặt vào cạnh đáy màn hình.
+     - Phát hiện xung đột cao độ ở trạng thái mặc định: Status Bar (`#cadStatusHud`) ở `bottom: 12px`, CLI ở `bottom: 16px` (chiều cao 109px) dẫn đến việc CLI đè trực tiếp lên Status Bar, che khuất tọa độ X, Y, diện tích S và chu vi P.
+  2. **Các giải pháp kỹ thuật đã thực hiện**:
+     - Thêm class `.cad-floating-cmd-bar.is-dragged` trong `ui-polish.css` và `app.js` gán `bottom: auto !important; right: auto !important; transition: none !important;` giúp di chuyển chuột/touch hoàn toàn tự do, không bị kéo dãn và không bao giờ dính đáy.
+     - Tái cấu trúc phân tầng cao độ chuẩn AutoCAD: Khi Dock thu gọn, Status Bar ở `bottom: 12px`, CLI nổi phía trên ở `bottom: 52px` (khoảng cách đệm 9px thoáng đãng, 0% che khuất). Khi Dock mở rộng, Status Bar ở `bottom: 72px`, CLI ở `bottom: 112px`.
+     - Thêm thao tác nhấp đúp (Double-Click) trên Header để Reset vị trí CLI về mặc định kèm Toast thông báo.
+     - Bổ sung class `.drop-down` cho autocomplete (`top: 100% !important; bottom: auto !important;`) khi kéo CLI lên nửa trên màn hình (`top < 220px`).
+     - Tối ưu chiều cao lưới công cụ CAD `max-height: min(240px, 45vh)`.
+  3. **Kiểm chứng kép (Dual Verification)**:
+     - Chrome DevTools MCP: Đạt 9/9 bài test trực tiếp trên browser, 0 lỗi console, xác minh trực quan trên Desktop và iPhone Mobile (390x844).
+     - Bộ test hồi quy mới: `tests/cadcraft_cli_bottom_drag_and_dock.test.js` (3/3 pass), cập nhật `tests/taskbar_anti_overlap_and_collapse.test.js` (4/4 pass).
+     - Toàn bộ **295/295 tests PASS 100% (0 fail)**.
+
+## Phiên trước — 2026-10-26: Khắc Phục Triệt Để Taskbar Đè Lên MiniCAD & Các Phân Hệ, Bổ Sung Chế Độ Thu Gọn Dock 2026 Pro
 - **Yêu cầu từ người dùng**:
   - `tiêp tục tối ưu ứng dụng, chú ý thanh taskbar bên dưới (5 nút) đang nằm đè lên hiển thị của các chức năng khác (trong đó có miniCAD)`
 - **Đã hoàn tất**:

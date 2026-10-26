@@ -3,11 +3,97 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 292/292 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 302/302 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-10-26] Chuẩn Hóa Toàn Diện Giao Diện Song Ngữ Anh - Việt & Từ Điển Kỹ Thuật Trắc Địa Quốc Tế (Bilingual i18n Pro 2026)
+- **Yêu cầu từ người dùng**:
+  - `thực hiện lại việc chuẩn hóa giao diện tiếng Anh và tiếng việt`
+- **Các phát hiện điều tra gốc rễ (Root Cause Analysis)**:
+  1. *Lỗi Fallback Tiếng Bồi (Unaccented Vietnamese)*: Trước đây, khi không tìm thấy chuỗi trong `phraseMap`, hàm `translateString(str)` gọi `removeDiacritics(str)`, biến các chuỗi tiếng Việt thành tiếng Việt không dấu (ví dụ: "Cham ban do de lay toa do", "Da giac [P]", "Khep goc", "Xuat ban ve", v.v.).
+  2. *Thiếu hụt từ điển diện rộng*: Có tới 527 chuỗi giao diện độc nhất trong `index.html` chưa có bản dịch tiếng Anh kỹ thuật trong `phraseMap`.
+  3. *Tiền tố/Hậu tố Emoji & Biểu tượng*: Nhiều nút bấm trong MiniCAD, Toolbar và Drawer có kèm icon/emoji (ví dụ: `📐 Đa giác [P]`, `✓ Nạp Cọc`, `• Múi chiếu:`, `Dự án ▾`) khiến `phraseMap` tra cứu không khớp nếu so sánh chuỗi nguyên bản thô.
+  4. *Hàm `t(key)` chưa ưu tiên `appI18n.dict`*: Hàm `t(key)` bỏ qua `dict.en` / `dict.vi`, khiến các nhãn định danh dạng key (`bnav.transform`, `bnav.map`, `bnav.stakeout`) không chuyển ngữ chính xác.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. *Bổ sung 2.030+ cặp từ điển kỹ thuật song ngữ chuyên ngành trắc địa & GIS*:
+     - Bổ sung toàn diện các thuật ngữ MiniCAD, Chuyển đổi tọa độ, Bản đồ thực địa, Sổ đo mốc, Cài đặt hệ thống, RTK GNSS và PixOptimizer.
+  2. *Nâng cấp bộ bóc tách thông minh Unicode Emoji / Symbol*:
+     - `translateString(str)` sử dụng biểu thức chính quy Unicode `\p{Emoji}\p{Symbol}\p{Punctuation}\u2000-\u3300` để tự động tách icon và dịch chuẩn xác phần chữ (`📐 Đa giác [P]` ➔ `📐 Polygon [P]`, `📁 Dự án ▾` ➔ `📁 Project ▾`).
+  3. *Tối ưu hóa `appI18n.t(key)` & Khử trùng lặp `phraseMap`*:
+     - Ưu tiên tra cứu `dict[currentLang][key]` trước khi gọi `translateString(key)`.
+     - Chạy script deduplicate loại bỏ hoàn toàn các key trùng lặp và ghi đè giá trị kém chất lượng.
+  4. *Bảo toàn 100% tiếng Việt có dấu khi chuyển ngược lại*:
+     - Cơ chế `node._origVi` trên DOM TreeWalker đảm bảo khi chuyển về `vi`, toàn bộ nội dung tiếng Việt có dấu ban đầu được phục hồi nguyên vẹn 100%.
+- **Kiểm thử tự động & Xác minh thực nghiệm (Chrome DevTools Pro)**:
+  - Kiểm thử trực tiếp trong Chrome DevTools MCP: Đạt chuẩn 100% không còn bất kỳ chuỗi tiếng bồi nào, chụp ảnh màn hình lưu vết `bilingual_vi_mode.png` và `bilingual_en_mode.png`.
+  - Tạo mới bộ test `tests/bilingual_i18n_comprehensive.test.js` (4/4 pass).
+  - Toàn bộ test suite dự án: **302/302 tests PASS 100% (0 fail)** trên toàn bộ kho mã nguồn.
+
+### [2026-10-26] Khắc Phục Triệt Để Hiện Tượng Giật Lag Khi Phóng To Bản Đồ Lớn Hơn 20x (Smooth Deep Zoom 60 FPS Engine)
+- **Yêu cầu từ người dùng**:
+  - `/goal fix lỗi khi phóng to bản đồ lớn hơn 20x thì bị giật lag`
+- **Các phát hiện điều tra gốc rễ (Root Cause Analysis - 5 Whys)**:
+  1. *Nguyên nhân cốt lõi số 1 (GPU/CPU Filter Stall do SVG feConvolveMatrix trên texture kéo dãn)*:
+     - Khi `zoom >= 19`, `pixoptimizer.js` gắn class `.map-deep-zoom-enhanced` và `.map-enhance-gaussian`.
+     - CSS áp dụng `filter: url(#mapTileEnhancer)` chứa `feGaussianBlur` + `feConvolveMatrix order="3"` (ma trận tích chập 3x3) lên từng thẻ `img.leaflet-tile`.
+     - Ở mức zoom bình thường (<= 20), ảnh tile là native 256x256 px.
+     - Khi zoom lớn hơn 20x (21 đến 24), do `maxNativeZoom: 20` và `maxZoom: 24`, Leaflet phóng to tile zoom 20 lên bằng CSS transform: ở zoom 21 là 512x512, zoom 22 là 1024x1024, zoom 23 là 2048x2048, zoom 24 là 4096x4096 px (16.7 triệu pixel/tile!).
+     - Trình duyệt Chromium/Blink (Skia) không hỗ trợ GPU acceleration hoàn toàn cho `feConvolveMatrix` trên texture khổng lồ này mà fallback về phần mềm CPU. Hàng chục triệu pixel nhân với 9 phép tính toán ma trận mỗi frame khiến CPU bị nghẽn 100%, FPS rớt thảm hại từ 60 xuống chỉ còn **2 FPS** (được đo đạc thực nghiệm bằng Chrome DevTools MCP: `fpsSamples: [60, 60, 25, 10, 2]`).
+  2. *Nguyên nhân số 2 (Layer Explosion & VRAM Thrashing do will-change)*:
+     - Các luật CSS gắn `will-change: transform` trên từng thẻ `img.leaflet-tile` con, ép trình duyệt tạo Composited Layer riêng trong VRAM cho từng tile. Khi tile bị scale lên 2048x2048 và 4096x4096px, mỗi tile chiếm tới 67 MB VRAM, gây tràn bộ nhớ đồ họa và giật lag nghiêm trọng khi di chuyển bản đồ.
+  3. *Nguyên nhân số 3 (Thiếu cơ chế Bypass Filter trong lúc Zoom Animation)*:
+     - Trong khi animation phóng to/thu nhỏ đang chạy (`.leaflet-zoom-anim`), Leaflet liên tục thay đổi ma trận biến đổi. Trình duyệt cố tính toán lại bộ lọc ở từng khung hình 16ms thay vì dành trọn GPU cho chuyển động nội suy.
+  4. *Nguyên nhân số 4 (Forced Synchronous Layout Thrashing trong appMapZoomIndicator)*:
+     - Sự kiện `zoom` bắn liên tục trong lúc pinch hoặc cuộn chuột, hàm `showBadge()` liên tục đọc `container.clientWidth` và `container.clientHeight` (gây layout reflow) và ghi `badge.style.left/top` mà không được throttling.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. *Chuyển đổi GPU-Native Filter siêu tốc ở zoom > 20x (`map-zoom-above-20`)*:
+     - Trong `pixoptimizer.js`: Khi `zoom > 20`, tự động gắn class `.map-zoom-above-20`. Khi zoom nhỏ lại `<= 20`, tự động gỡ bỏ class.
+     - Trong `style.css`: Khi có `.map-zoom-above-20` hoặc `.map-ultra-zoom`, chuyển sang bộ lọc CSS GPU nguyên bản: `filter: contrast(1.08) saturate(1.10) brightness(1.02) !important; image-rendering: auto !important;`. Bộ lọc này chạy 100% trên GPU shader phần cứng, không tốn CPU, không lag đơ, bảo toàn độ sắc nét và tương phản mốc ranh giới của ảnh vệ tinh.
+  2. *Cơ chế 60 FPS Zoom Animation Bypass (`.map-is-zooming` & `.leaflet-zoom-anim`)*:
+     - Trong `pixoptimizer.js`: Lắng nghe sự kiện `zoomstart` để gắn `.map-is-zooming`, và `zoomend` để gỡ bỏ class.
+     - Trong `style.css`: Quy tắc `.leaflet-zoom-anim .leaflet-tile-container img.leaflet-tile, .map-is-zooming .leaflet-tile-container img.leaflet-tile { filter: none !important; }` tạm thời ngắt toàn bộ bộ lọc trong thời gian chuyển động phóng to/thu nhỏ, giải phóng 100% tài nguyên cho GPU chạy 60 FPS mượt như lụa.
+  3. *Giải phóng VRAM & Tối ưu GPU Compositing Layers*:
+     - Gỡ bỏ thuộc tính `will-change: transform` khỏi từng thẻ `img.leaflet-tile` con, chỉ duy trì trên container layer của Leaflet (`.leaflet-tile-container.leaflet-zoom-animated`).
+  4. *Triệt tiêu Layout Thrashing trong `appMapZoomIndicator`*:
+     - Bọc hàm hiển thị con trỏ tỷ lệ zoom bằng `requestAnimationFrame(renderBadge)`.
+     - Cache kích thước `cachedWidth` và `cachedHeight`, loại bỏ việc đọc `clientWidth/clientHeight` liên tục trong sự kiện `zoom`.
+- **Đo đạc & Xác minh thực nghiệm (Chrome DevTools Pro v3.0 Verification)**:
+  - Trước khi sửa: FPS rớt thảm hại về `[60, 60, 25, 10, 2]` (2 FPS).
+  - Sau khi sửa: FPS đo đạc thực tế trên trình duyệt đạt `[64, 60, 60, 60, 59, 61, 60]` - Trung bình **61 FPS**, mức tối thiểu **59 FPS**!
+  - Kiểm thử tự động: Bổ sung bộ test mới `tests/map_deep_zoom_smoothness.test.js` (3/3 pass).
+  - Toàn bộ test suite dự án: **298/298 tests PASS 100% (0 fail)**.
+
+### [2026-10-26] Khắc Phục Triệt Để Khung CADCraft 2D CLI Dính Cạnh Dưới & Xung Đột Status Bar (Systematic Debugging & Chrome DevTools Pro v3.0)
+- **Yêu cầu từ người dùng**:
+  - `/goal /systematic-debugging /debug-fix-bug-chrome-pro khung CADCraft 2D CLI đang bị lỗi dính cạnh dưới. hãy test kiểm tra toàn diện để phát hiện lỗi theo từng chức năng và từng dòng code`
+- **Các phát hiện điều tra (Root Cause Analysis - 5 Whys)**:
+  1. *Lỗi 1 (Dính cạnh đáy & dãn chiều cao khi kéo thả)*: Trong `app.js` (dòng 27198), khi kéo thanh lệnh hàm gán `bar.style.bottom = 'auto'`. Tuy nhiên trong `ui-polish.css` (dòng 2170), luật `body.dock-collapsed .cad-floating-cmd-bar` sử dụng `bottom: calc(...) + 16px) !important;`. Thuộc tính CSS `!important` kìm kẹp khiến inline style `bottom: auto` bị vô hiệu hóa hoàn toàn. Phần tử `position: absolute` nhận đồng thời cả `top` (từ JS) và `bottom: 16px !important`, dẫn đến chiều cao bị kéo dãn kỳ dị (từ 109px lên 558px!) và cạnh đáy bị dính chặt vào mép dưới (`computedBottom: 16px`).
+  2. *Lỗi 2 (Xung đột đè lên AutoCAD Status Bar ở trạng thái mặc định)*: Status Bar (`#cadStatusHud`) có chiều cao 31px, nằm ở `bottom: 12px` (kéo dài đến 43px). Khung CLI có chiều cao 109px, trước đây đặt ở `bottom: 16px`. Do cả hai thanh cùng nằm ở đáy bên trái (`left: 12px` và `left: 20px`), khung CLI đè trực tiếp lên Status Bar, che mất các thông số VN-2000 X, Y, diện tích S và chu vi P.
+  3. *Lỗi 3 (Thiếu cơ chế Reset vị trí kéo thả)*: Khi người dùng kéo thả CLI đi nơi khác, không có phím tắt hay thao tác nào để đưa CLI về lại vị trí neo chuẩn mực.
+  4. *Lỗi 4 (Mobile Drag Locking)*: Trên mobile (`max-width: 480px`), CSS có `right: 8px !important;` khiến việc di chuyển ngang bị kẹt hoặc co dãn bất thường.
+  5. *Lỗi 5 (Autocomplete tràn màn hình khi CLI ở trên cao)*: Khi CLI được kéo lên đỉnh màn hình (`top < 220px`), hộp autocomplete xổ ngược lên trên bị che khuất bởi Header.
+  6. *Lỗi 6 (Lưới công cụ Drawer tràn chiều cao)*: Bảng lưới `cadCmdAllToolsGrid` có `max-height: 260px` cố định, dễ vượt quá chiều cao màn hình trên điện thoại xoay ngang.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. *Giải phóng kéo thả không giới hạn (`.is-dragged`)*:
+     - Trong `ui-polish.css`: Bổ sung luật `.cad-floating-cmd-bar.is-dragged { bottom: auto !important; right: auto !important; transition: none !important; }`.
+     - Trong `app.js` (`initFloatingCmdBarDrag`): Tự động gán class `.is-dragged` và thiết lập `bar.style.setProperty('bottom', 'auto', 'important')`, `setProperty('right', 'auto', 'important')`, `transition = 'none'`.
+  2. *Phân tầng không gian chuẩn AutoCAD (Separation of Concerns)*:
+     - Khi Dock thu gọn: Status Bar ở `bottom: 12px`, khung CLI (`.cad-floating-cmd-bar:not(.is-dragged)`) nổi an toàn ở `bottom: calc(...) + 52px) !important;` (tạo khoảng cách đệm 9px thoáng đãng, `overlapsWithHud: false`, `verticalGap: 9px`).
+     - Khi Dock mở rộng: Status Bar ở `bottom: 72px`, khung CLI nổi an toàn ở `bottom: calc(...) + 112px) !important;`.
+  3. *Bổ sung thao tác nhấp đúp (Double-Click) để Reset vị trí*:
+     - Bổ sung sự kiện `dblclick` trên `cadFloatingCmdHeader` gọi `resetFloatingCmdBarPosition()` xóa bỏ `.is-dragged` và đưa CLI về vị trí neo mặc định kèm thông báo Toast trực quan.
+     - Tự động kẹp tọa độ trong viewport khi cửa sổ resize.
+  4. *Autocomplete thông minh đa hướng*:
+     - Bổ sung class `.drop-down` cho `.cad-cmd-autocomplete` trong `style.css` (`top: 100% !important; bottom: auto !important;`). Tự động xổ xuống dưới khi CLI ở nửa trên màn hình (`top < 220px`), và xổ lên trên khi CLI ở gần đáy.
+  5. *Tối ưu hóa lưới công cụ CAD*:
+     - Thiết lập `max-height: min(240px, 45vh)` cho `.cad-cmd-all-tools-grid` giúp tương thích hoàn hảo trên mọi kích thước màn hình.
+  6. *Xác minh kép (Dual Verification)*:
+     - Chrome DevTools MCP: Đạt 9/9 tiêu chí kiểm thử trực tiếp trên trình duyệt, 0 lỗi console (`<no console messages found>`), chụp ảnh kiểm chứng trực quan trên cả Desktop và Mobile iPhone (390x844).
+     - Test Suite hồi quy: Tạo mới `tests/cadcraft_cli_bottom_drag_and_dock.test.js` (3/3 pass), cập nhật `tests/taskbar_anti_overlap_and_collapse.test.js` (4/4 pass).
+     - Toàn bộ kho mã nguồn đạt **295/295 tests PASS (100%)** trên 66 tệp kiểm thử.
 
 ### [2026-10-26] Khắc Phục Triệt Để Taskbar Đè Lên MiniCAD & Các Phân Hệ Khác, Bổ Sung Chế Độ Thu Gọn Dock 2026 Pro
 - **Yêu cầu từ người dùng**:

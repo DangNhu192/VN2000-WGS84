@@ -228,7 +228,7 @@
                 const mode = this.settings.mapEnhanceMode || 'gaussian_hd';
 
                 // Xóa các class trạng thái cũ
-                container.classList.remove('map-deep-zoom-enhanced', 'map-enhance-gaussian', 'map-enhance-contrast', 'map-enhance-natural', 'map-enhance-none');
+                container.classList.remove('map-deep-zoom-enhanced', 'map-enhance-gaussian', 'map-enhance-contrast', 'map-enhance-natural', 'map-enhance-none', 'map-zoom-above-20');
 
                 if (mode === 'none') {
                     container.classList.add('map-enhance-none');
@@ -237,6 +237,9 @@
 
                 if (zoom >= 19) {
                     container.classList.add('map-deep-zoom-enhanced');
+                    if (zoom > 20) {
+                        container.classList.add('map-zoom-above-20');
+                    }
                     if (mode === 'gaussian_hd') container.classList.add('map-enhance-gaussian');
                     else if (mode === 'contrast') container.classList.add('map-enhance-contrast');
                     else if (mode === 'natural') container.classList.add('map-enhance-natural');
@@ -246,7 +249,18 @@
                 }
             };
 
-            map.on('zoomend', updateClasses);
+            const onZoomStart = () => {
+                container.classList.add('map-is-zooming');
+            };
+            const onZoomEnd = () => {
+                container.classList.remove('map-is-zooming');
+                updateClasses();
+            };
+
+            if (typeof map.on === 'function') {
+                map.on('zoomstart', onZoomStart);
+                map.on('zoomend', onZoomEnd);
+            }
             updateClasses();
 
             if (!this._registeredMaps) this._registeredMaps = new Set();
@@ -264,11 +278,14 @@
                         const zoom = (typeof map.getZoom === 'function') ? map.getZoom() : 0;
                         const mode = this.settings.mapEnhanceMode || 'gaussian_hd';
                         const container = map.getContainer();
-                        container.classList.remove('map-deep-zoom-enhanced', 'map-enhance-gaussian', 'map-enhance-contrast', 'map-enhance-natural', 'map-enhance-none');
+                        container.classList.remove('map-deep-zoom-enhanced', 'map-enhance-gaussian', 'map-enhance-contrast', 'map-enhance-natural', 'map-enhance-none', 'map-zoom-above-20');
                         if (mode === 'none') {
                             container.classList.add('map-enhance-none');
                         } else if (zoom >= 19) {
                             container.classList.add('map-deep-zoom-enhanced');
+                            if (zoom > 20) {
+                                container.classList.add('map-zoom-above-20');
+                            }
                             if (mode === 'gaussian_hd') container.classList.add('map-enhance-gaussian');
                             else if (mode === 'contrast') container.classList.add('map-enhance-contrast');
                             else if (mode === 'natural') container.classList.add('map-enhance-natural');
