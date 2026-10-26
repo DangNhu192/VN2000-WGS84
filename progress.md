@@ -3,13 +3,31 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 288/288 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 292/292 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
 
-### [2026-10-26] Rà Soát Toàn Bộ Ứng Dụng, Tinh Gọn Mã Nguồn & Cập Nhật Lên GitHub
+### [2026-10-26] Khắc Phục Triệt Để Taskbar Đè Lên MiniCAD & Các Phân Hệ Khác, Bổ Sung Chế Độ Thu Gọn Dock 2026 Pro
+- **Yêu cầu từ người dùng**:
+  - `tiêp tục tối ưu ứng dụng, chú ý thanh taskbar bên dưới (5 nút) đang nằm đè lên hiển thị của các chức năng khác (trong đó có miniCAD)`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Khắc phục triệt để lỗi Taskbar đè lên MiniCAD**:
+     - *Phát hiện nguyên nhân*: MiniCAD sở hữu thanh lệnh CADCraft CLI (`#cadFloatingCmdBar`, `bottom: 24px`), thanh HUD thông số tọa độ/diện tích (`#cadStatusHud`, `bottom: 12px`), và thanh thao tác 1 tay (`#cadThumbActionBar`, `bottom: 54px`). Thanh Taskbar dock 5 nút (`#mobileBottomNav`) cố định ở `bottom: 10px`, cao 58px (`z-index: 2400`) đã đè lên toàn bộ các công cụ này và che khuất không gian vẽ đáy màn hình.
+     - *Nâng cao độ an toàn (Anti-Collision Clearance)*: Nâng `#cadFloatingCmdBar` lên `bottom: calc(var(--sat-safe-bottom, 0px) + 74px) !important;` (`z-index: 3200`), `#cadStatusHud` lên `bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important;` (`z-index: 2450`), và `#cadThumbActionBar` lên `bottom: calc(var(--sat-safe-bottom, 0px) + 76px) !important;` (`z-index: 2470`).
+     - *Tự động thu gọn Taskbar khi vào MiniCAD*: `appNav.openCadMap()` và `appCadTool.openToolbar()` tự động thu gọn Dock xuống dạng viên thuốc mỏng (`.dock-collapsed`), gán `body.cad-mode`, giải phóng 100% không gian canvas thực địa. Các thanh công cụ tự động hạ xuống sát đáy (+12px..+16px). Khi rời MiniCAD, Taskbar tự động mở lại.
+  2. **Khắc phục lỗi Taskbar đè lên các chức năng khác trong ứng dụng**:
+     - *Bản đồ chuyển đổi tọa độ độc lập (`screen-transform-map`)*: Nâng HUD tọa độ thời gian thực `#transformMapCoordHud` từ `bottom: 12px` (bị dock che 100%) lên `bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important;` (`z-index: 2450`), hiển thị sắc nét; nâng `.transform-bottom-sheet` và `.live-map-coord-hud` lên +72px.
+     - *Bản đồ dự án & mốc (`map-view-container`)*: Nâng `.map-bottom-sheet` lên +72px, nâng thước đo tỷ lệ Leaflet (`.leaflet-bottom`) lên +68px trên mọi kích thước màn hình.
+     - *Tất cả các màn hình cuộn (`.screen-view`)*: Áp dụng `padding-bottom: calc(130px + env(safe-area-inset-bottom, 20px)) !important;` đồng bộ trên cả mobile, tablet và desktop cho `#screen-menu`, `#screen-transform`, `#screen-stakeout`, `#screen-camera`, `#screen-datamgmt`, `#screen-profile`, `#screen-geodesy`, `#screen-about`, `#screen-gps`. Khi cuộn hết cỡ, các nút hành động (Chuyển đổi, Lưu sổ đo, Chụp ảnh, v.v.) luôn có khoảng đệm thoáng đãng, không bị dock che.
+  3. **Hệ thống Nút Thu Nhỏ / Mở Rộng Dock Chủ Động (Collapsible Taskbar Dock 2026 Pro)**:
+     - Bổ sung nút thu nhỏ tròn 20px `#btnDockCollapse` (`▾`) ngay góc trên thanh Dock và khối tay nắm mở rộng `#dockExpandHandle` (`[ ▲ Phím tắt ]`).
+     - Người dùng có thể chủ động bấm `▾` ở bất kỳ đâu để thu nhỏ Dock xuống dạng viên thuốc siêu gọn 26px (`bottom: 6px`), hoặc chạm vào viên thuốc `▲` để mở lại 5 nút với hiệu ứng spring 60fps mượt mà.
+  4. **Kiểm thử tự động hồi quy toàn diện**:
+     - Bổ sung file kiểm thử `tests/taskbar_anti_overlap_and_collapse.test.js` kiểm tra trọn vẹn 4 nhóm tiêu chí.
+     - Toàn bộ **292/292 tests PASS 100% (0 fail)**.
+     - Đồng bộ tri thức vào Hindsight Long-term Memory bank `VN2000-PWA`.
 - **Yêu cầu từ người dùng**:
   - `kiểm tra lại ứng dụng, loại bỏ các thông tin rác và các tệp tin không phù hợp. sau đó cập nhật lên github`
 - **Các giải pháp kỹ thuật đã hoàn thành**:

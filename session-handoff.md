@@ -1,17 +1,24 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-26: Rà Soát Toàn Bộ Ứng Dụng, Tinh Gọn Mã Nguồn & Cập Nhật Lên GitHub
+## Phiên hiện tại — 2026-10-26: Khắc Phục Triệt Để Taskbar Đè Lên MiniCAD & Các Phân Hệ, Bổ Sung Chế Độ Thu Gọn Dock 2026 Pro
 - **Yêu cầu từ người dùng**:
-  - `kiểm tra lại ứng dụng, loại bỏ các thông tin rác và các tệp tin không phù hợp. sau đó cập nhật lên github`
+  - `tiêp tục tối ưu ứng dụng, chú ý thanh taskbar bên dưới (5 nút) đang nằm đè lên hiển thị của các chức năng khác (trong đó có miniCAD)`
 - **Đã hoàn tất**:
-  1. Kiểm thử toàn diện 64 file test qua `node --test tests/*.test.js` & `npm test`: **288/288 tests PASS 100% (0 fail)**.
-  2. Rà soát tệp rác / tệp tạm đệ quy: không còn tệp `.tmp`, `.bak`, `.orig`, `*~`, `.swp`, `.log`, `Thumbs.db`, `.DS_Store`.
-  3. Xác nhận thư mục bot FB/Telegram độc lập hoàn toàn tại `d:\Nhu\APP\telegram-fb-bot` và đã dọn sạch khỏi `VN2000-PWA`.
-  4. Tinh giản mã nguồn: loại bỏ thẻ rỗng trong Drawer menu `index.html`, làm sạch dòng trống cuối `ui-polish.css`, cập nhật thông điệp đóng gói tự động `deploy_github.bat`.
-  5. Đồng bộ tri thức dài hạn Hindsight Memory bank `VN2000-PWA`.
-  6. Sẵn sàng đóng gói và đẩy lên GitHub `DangNhu192/VN2000-WGS84` nhánh `main`.
+  1. **Khắc phục triệt để lỗi Taskbar đè lên MiniCAD**:
+     - Nâng an toàn các công cụ đáy MiniCAD: CLI Floating CMD Bar (`bottom: calc(var(--sat-safe-bottom, 0px) + 74px) !important; z-index: 3200`), Status HUD (`bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important; z-index: 2450`), và Thumb Bar (`bottom: calc(var(--sat-safe-bottom, 0px) + 76px) !important; z-index: 2470`).
+     - Tự động thu gọn Taskbar khi vào MiniCAD (`openCadMap()` & `openToolbar()`) xuống dạng viên thuốc mỏng 26px (`.dock-collapsed`), gán `body.cad-mode`, các thanh hạ xuống sát đáy (+12px..+16px) giải phóng 100% không gian canvas thực địa. Tự động phục hồi taskbar khi rời MiniCAD.
+  2. **Khắc phục lỗi Taskbar đè lên các chức năng khác**:
+     - *Bản đồ chuyển đổi tọa độ (`screen-transform-map`)*: Nâng HUD tọa độ thời gian thực `#transformMapCoordHud` từ 12px lên +72px (`z-index: 2450`), nâng `.transform-bottom-sheet` và `.live-map-coord-hud` lên +72px.
+     - *Bản đồ dự án & mốc (`map-view-container`)*: Nâng `.map-bottom-sheet` lên +72px, nâng thước tỷ lệ Leaflet (`.leaflet-bottom`) lên +68px trên mọi kích cỡ màn hình.
+     - *Toàn bộ màn hình cuộn (`.screen-view`)*: Áp dụng khoảng đệm đáy `padding-bottom: calc(130px + env(safe-area-inset-bottom, 20px)) !important;` đồng nhất trên cả mobile, tablet và desktop. Nút thao tác đáy không bao giờ bị taskbar che khuất.
+  3. **Hệ thống Nút Thu Nhỏ / Mở Rộng Dock Chủ Động**:
+     - Thêm nút thu nhỏ `#btnDockCollapse` (`▾`) và khối tay nắm mở rộng `#dockExpandHandle` (`[ ▲ Phím tắt ]`).
+     - Hỗ trợ người dùng chủ động thu nhỏ Taskbar bất cứ lúc nào để xem toàn màn hình hoặc mở lại với hiệu ứng 60fps mượt mà.
+  4. **Kiểm thử tự động 100%**:
+     - Bổ sung `tests/taskbar_anti_overlap_and_collapse.test.js` (4/4 test).
+     - Toàn bộ **292/292 tests PASS 100% (0 fail)**.
 
-## Phiên trước — 2026-10-26: Tách Công Cụ Đăng Bài FB Ra Thư Mục Riêng D:\Nhu\APP\telegram-fb-bot
+## Phiên trước — 2026-10-26: Rà Soát Toàn Bộ Ứng Dụng, Tinh Gọn Mã Nguồn & Cập Nhật Lên GitHub
 - **Yêu cầu từ người dùng**:
   - `tách tool đăng bài lên fanpage fb ra một folder riêng với VN2000-PWA`
 - **Đã hoàn tất**:

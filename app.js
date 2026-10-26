@@ -384,6 +384,12 @@ const appNav = window.appNav = {
         if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
             appCadTool.closeToolbar();
         }
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('cad-mode');
+        }
+        if (this.isTaskbarCollapsed && screenName !== 'cad') {
+            this.expandTaskbar();
+        }
         if (screenName !== 'camera' && typeof appCamera !== 'undefined' && appCamera.stopCameraStream) {
             appCamera.stopCameraStream();
         }
@@ -508,6 +514,12 @@ const appNav = window.appNav = {
     },
 
     goToMenu() {
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('cad-mode');
+        }
+        if (this.isTaskbarCollapsed) {
+            this.expandTaskbar();
+        }
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
             mapView.classList.remove('active');
@@ -759,10 +771,41 @@ const appNav = window.appNav = {
             <span class="bottom-nav-text" data-i18n="bnav.datamgmt">${dataMgmtLabel}</span>
             <span class="dock-active-dot"></span>
           </button>
+          <button type="button" class="dock-collapse-btn" id="btnDockCollapse" onclick="appNav.toggleTaskbarDock()" title="${isEn ? 'Collapse Dock' : 'Thu nhỏ thanh tác vụ'}">▾</button>
+          <div id="dockExpandHandle" class="dock-expand-handle" onclick="appNav.toggleTaskbarDock()" title="${isEn ? 'Expand Dock' : 'Mở thanh tác vụ'}"><span class="dock-expand-icon">▲</span><span class="dock-expand-text">${isEn ? 'Shortcuts' : 'Phím tắt'}</span></div>
         `;
 
         nav.innerHTML = html;
+        if (this.isTaskbarCollapsed) {
+            nav.classList.add('dock-collapsed');
+        }
         this.syncBottomNav(AppState.currentScreen || 'menu');
+    },
+
+    isTaskbarCollapsed: false,
+
+    toggleTaskbarDock(forceState) {
+        if (typeof triggerHaptic === 'function') triggerHaptic('light');
+        if (typeof forceState === 'boolean') {
+            this.isTaskbarCollapsed = forceState;
+        } else {
+            this.isTaskbarCollapsed = !this.isTaskbarCollapsed;
+        }
+        const nav = document.getElementById('mobileBottomNav');
+        if (nav) {
+            nav.classList.toggle('dock-collapsed', this.isTaskbarCollapsed);
+        }
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.toggle('dock-collapsed', this.isTaskbarCollapsed);
+        }
+    },
+
+    collapseTaskbar() {
+        this.toggleTaskbarDock(true);
+    },
+
+    expandTaskbar() {
+        this.toggleTaskbarDock(false);
     },
 
     syncBottomNav(screenName) {
@@ -1285,6 +1328,12 @@ const appNav = window.appNav = {
             mapView.classList.add('active', 'cad-active-map');
             mapView.style.display = 'block';
             void mapView.offsetHeight;
+        }
+
+        // Tự động thu gọn thanh taskbar khi vào MiniCAD để giải phóng tối đa không gian vẽ
+        this.collapseTaskbar();
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.add('cad-mode');
         }
 
         // Đồng bộ Header trên cùng
@@ -19112,6 +19161,12 @@ const appCadTool = {
         // Kích hoạt ngay lập tức class cad-active-map trên map container để gỡ bỏ triệt để rào chắn CSS
         const mapContainer = document.getElementById('map-view-container');
         if (mapContainer) mapContainer.classList.add('cad-active-map');
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.add('cad-mode');
+        }
+        if (typeof appNav !== 'undefined' && appNav.collapseTaskbar) {
+            appNav.collapseTaskbar();
+        }
 
         this.ensureLayers();
         if (!this.displaySettings) this.initDisplaySettings();
@@ -19193,6 +19248,12 @@ const appCadTool = {
         // Khôi phục con trỏ bình thường
         const mapContainer = document.getElementById('map-view-container');
         if (mapContainer) mapContainer.classList.remove('cad-active-map');
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('cad-mode');
+        }
+        if (typeof appNav !== 'undefined' && appNav.expandTaskbar) {
+            appNav.expandTaskbar();
+        }
 
         this.clearDynamicHelpers();
         if (typeof appNav !== 'undefined' && appNav.syncBottomNav) appNav.syncBottomNav('map');

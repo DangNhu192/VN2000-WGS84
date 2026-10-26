@@ -77,6 +77,7 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item:not
 
 /* Dock clearance: Cho phép vuốt trọn vẹn mọi chức năng ở đáy màn hình vượt thanh Bottom Dock */
 #screen-menu,
+#screen-transform:not(.fullscreen-mode),
 #screen-datamgmt,
 #screen-about,
 #screen-gps,
@@ -88,6 +89,10 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item:not
   box-sizing: border-box !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y !important;
+}
+
+body.dock-collapsed :is(#screen-menu, #screen-transform, #screen-datamgmt, #screen-about, #screen-gps, #screen-geodesy, #screen-camera, #screen-stakeout, #screen-profile) {
+  padding-bottom: calc(44px + env(safe-area-inset-bottom, 12px)) !important;
 }
 
 @media (max-width: 767px) {
@@ -2031,3 +2036,201 @@ body[data-theme="light"] .accordion-header-btn {
 .accordion-header-btn[aria-expanded="true"] .accordion-chevron {
   transform: rotate(180deg) !important;
 }
+
+/* ================= 16. CHỐNG ĐÈ GIAO DIỆN TASKBAR & CHẾ ĐỘ THU GỌN THÔNG MINH (2026 PRO) ================= */
+/* 1. Nút thu nhỏ Dock & Khối tay nắm mở rộng */
+nav#mobileBottomNav.mobile-bottom-nav .dock-collapse-btn {
+  position: absolute !important;
+  top: -8px !important;
+  right: 14px !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 2410 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  transition: transform 0.18s ease, color 0.18s ease, border-color 0.18s ease !important;
+  padding: 0 !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .dock-collapse-btn:hover {
+  color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  transform: scale(1.15) !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .dock-expand-handle {
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  font-family: var(--font-family, system-ui, sans-serif) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #38bdf8 !important;
+  letter-spacing: 0.3px !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav .dock-expand-handle .dock-expand-icon {
+  font-size: 10px !important;
+  line-height: 1 !important;
+  transition: transform 0.2s ease !important;
+}
+
+/* 2. Trạng thái Dock thu gọn (Collapsible Pill) */
+nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed {
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  width: auto !important;
+  max-width: 130px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  bottom: calc(var(--sat-safe-bottom, 0px) + 6px) !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), 0 0 10px rgba(56, 189, 248, 0.2) !important;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .bottom-nav-item,
+nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .dock-collapse-btn {
+  display: none !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .dock-expand-handle {
+  display: flex !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed:hover {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.35) !important;
+  transform: translateY(-2px) !important;
+}
+
+nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed:hover .dock-expand-icon {
+  transform: translateY(-2px) !important;
+}
+
+/* Light Theme cho Dock Toggle */
+body[data-theme="light"] nav#mobileBottomNav.mobile-bottom-nav .dock-collapse-btn {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(2, 132, 199, 0.3) !important;
+  color: #475569 !important;
+}
+
+body[data-theme="light"] nav#mobileBottomNav.mobile-bottom-nav .dock-collapse-btn:hover {
+  color: #0284c7 !important;
+  border-color: #0284c7 !important;
+}
+
+body[data-theme="light"] nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(2, 132, 199, 0.3) !important;
+}
+
+body[data-theme="light"] nav#mobileBottomNav.mobile-bottom-nav .dock-expand-handle {
+  color: #0284c7 !important;
+}
+
+/* 3. Chống đè triệt để trên MiniCAD (Full screen CAD Drafting Anti-Overlap) */
+.cad-floating-cmd-bar {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 74px) !important;
+  z-index: 3200 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#map-view-container.cad-active-map #cadStatusHud,
+.cad-status-hud {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important;
+  z-index: 2450 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#map-view-container.cad-active-map #cadThumbActionBar,
+.cad-thumb-action-bar {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 76px) !important;
+  z-index: 2470 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Khi thu gọn Taskbar trong MiniCAD (hoặc toàn ứng dụng), các thanh MiniCAD tự động hạ xuống sát đáy */
+body.dock-collapsed .cad-floating-cmd-bar {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 16px) !important;
+}
+
+body.dock-collapsed #map-view-container.cad-active-map #cadStatusHud,
+body.dock-collapsed .cad-status-hud {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 12px) !important;
+}
+
+body.dock-collapsed #map-view-container.cad-active-map #cadThumbActionBar,
+body.dock-collapsed .cad-thumb-action-bar {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 16px) !important;
+}
+
+/* 4. Chống đè trên Bản đồ Chuyển đổi Tọa độ & Live Map */
+#transformMapCoordHud,
+.transform-map-coord-hud {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important;
+  z-index: 2450 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.live-map-coord-hud {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important;
+  z-index: 2450 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.transform-bottom-sheet {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important;
+  z-index: 2500 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.dock-collapsed #transformMapCoordHud,
+body.dock-collapsed .transform-map-coord-hud {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 12px) !important;
+}
+
+body.dock-collapsed .live-map-coord-hud {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 12px) !important;
+}
+
+body.dock-collapsed .transform-bottom-sheet {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 12px) !important;
+}
+
+/* 5. Chống đè trên Bản đồ Dự án & Leaflet Map Controls */
+.map-bottom-sheet {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 72px) !important;
+  z-index: 2500 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#map-view-container .leaflet-bottom {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 68px) !important;
+  z-index: 1000 !important;
+  transition: bottom 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.dock-collapsed .map-bottom-sheet {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 12px) !important;
+}
+
+body.dock-collapsed #map-view-container .leaflet-bottom {
+  bottom: calc(var(--sat-safe-bottom, 0px) + 10px) !important;
+}
+
