@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.5.9';
+const CACHE_NAME = 'vn2000-pro-v2.7.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,18 +10,28 @@ const ASSETS_TO_CACHE = [
   './dong_thap_communes.js',
   './offline_regions.js',
   './icon.png',
+  './icon-192.png',
   './apple-touch-icon.png',
   './favicon.png',
   './VN2k-WGS84.png',
-  './manifest.json'
+  './manifest.json',
+  './jspdf.umd.min.js'
 ];
 
 // 1. Cài đặt Service Worker và nạp sẵn tài nguyên cốt lõi vào Cache
+// Cache từng tài nguyên độc lập: một tệp lỗi/404 không được phép làm hỏng toàn bộ tiến trình cài đặt,
+// nếu không Service Worker sẽ không kích hoạt được và ứng dụng mất hoàn toàn chế độ offline.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Đang nạp bộ nhớ đệm offline tài nguyên trắc địa v2.5.7...');
-      return cache.addAll(ASSETS_TO_CACHE);
+      console.log(`[Service Worker] Đang nạp bộ nhớ đệm offline ${CACHE_NAME}...`);
+      return Promise.all(
+        ASSETS_TO_CACHE.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('[Service Worker] Bỏ qua tài nguyên không nạp được:', url, err);
+          })
+        )
+      );
     }).then(() => self.skipWaiting())
   );
 });
@@ -102,7 +112,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // C. TÀI NGUYÊN NGOẠI VI (Google Tile, OSM Tile, Phông chữ) - Cache cả phản hồi Opaque (status: 0)
+  // D. TÀI NGUYÊN NGOẠI VI (Google Tile, OSM Tile, Phông chữ) - Cache cả phản hồi Opaque (status: 0)
   event.respondWith(
     caches.match(req).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;

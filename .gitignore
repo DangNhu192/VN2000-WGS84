@@ -25,3 +25,8 @@ yarn-error.log*
 # Thư mục kiểm thử tạm
 scratch/
 .system_generated/
+
+# Tài liệu trình bày & thư mục phân tích tạm (không đưa vào bản build)
+*.pptx
+*.ppt
+.tmp_analysis/

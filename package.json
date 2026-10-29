@@ -1,10 +1,11 @@
 {
   "name": "vn2000-pro-pwa",
-  "version": "2.5.9",
+  "version": "2.7.3",
   "description": "Ứng dụng chuyển đổi tọa độ WGS-84 & VN-2000, trắc địa số liệu công trình và bản đồ thực địa PWA",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/geodesy.test.js && node tests/minicad_overrides.test.js && node tests/layout_anti_collision.test.js && node tests/smart_import_and_blocks.test.js && node tests/project_trash.test.js && node tests/ui_partitioning.test.js && node tests/field_ux_cad.test.js && node tests/field_ux_enhancements.test.js && node tests/project_map_readonly_and_table.test.js && node tests/cadcraft_layers.test.js && node tests/cadcraft_dynamic_input.test.js && node tests/cadcraft_dimensions.test.js && node tests/cadcraft_points.test.js && node tests/minicad_snap_runtime.test.js && node tests/minicad_select_and_delete.test.js && node tests/minicad_toolbar_collapse.test.js && node tests/minicad_draw_history.test.js"
   },
   "keywords": [
     "vn2000",

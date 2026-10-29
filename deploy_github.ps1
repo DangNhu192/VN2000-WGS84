@@ -130,7 +130,7 @@ if ([string]::IsNullOrWhiteSpace($RemoteUrl)) {
 # 9. Xác định thông điệp commit
 if ([string]::IsNullOrWhiteSpace($CommitMessage)) {
     $nowStr = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $appVer = "v2.2.4"
+    $appVer = "v2.7.3"
     if (Test-Path "sw.js") {
         $swContent = Get-Content -Raw "sw.js" -ErrorAction SilentlyContinue
         if ($swContent -match "CACHE_NAME\s*=\s*'vn2000-pro-(v[\d\.]+)'") {
