@@ -18119,6 +18119,21 @@ const appCadTool = {
         if (!saved || typeof saved.showBoundaries !== 'boolean') this.displaySettings.showBoundaries = true;
         if (!saved || typeof saved.showCenterLabels !== 'boolean') this.displaySettings.showCenterLabels = true;
 
+        // Lỗi cũ: hộp thoại Xuất ghi cờ của ảnh xuất ngược vào cài đặt hiển thị => mọi thành phần bị tắt,
+        // bản đồ CAD trông như trống không. Nhận diện trạng thái "tắt sạch" đó và khôi phục mặc định một lần.
+        const allOff = ['showVertices', 'showDistances', 'showCenterLabels', 'showAnnotations', 'showBoundaries']
+            .every(k => saved && saved[k] === false);
+        if (allOff) {
+            this.displaySettings.showVertices = true;
+            this.displaySettings.showDistances = true;
+            this.displaySettings.showCenterLabels = true;
+            this.displaySettings.showAnnotations = true;
+            this.displaySettings.showBoundaries = true;
+            try {
+                localStorage.setItem('vn2k_cad_display_settings_v3', JSON.stringify(this.displaySettings));
+            } catch (e) {}
+        }
+
         this.showAnnotations = this.displaySettings.showAnnotations !== false;
 
         let savedSnapLine = null;
@@ -18549,16 +18564,8 @@ const appCadTool = {
         }
     },
 
-    pushHistoryState(description = '') {
-        if (this.isHistoryAction) return;
-        this.initHistory();
-
-        // Cắt bỏ các nhánh tương lai nếu người dùng vẽ tiếp sau khi lùi
-        if (this.historyIndex < this.historyStack.length - 1) {
-            this.historyStack = this.historyStack.slice(0, this.historyIndex + 1);
-        }
-
-        const snapshot = {
+    _snapshotHistory(description = '') {
+        return {
             vertices: (this.vertices || []).map(v => ({ ...v })),
             savedShapes: (this.savedShapes || []).map(s => ({
                 ...s,
@@ -18570,8 +18577,21 @@ const appCadTool = {
                 corners: a.corners ? a.corners.map(c => [...c]) : undefined
             })),
             mode: this.mode,
+            pointLayerId: this.pointLayerId,
             desc: description
         };
+    },
+
+    pushHistoryState(description = '') {
+        if (this.isHistoryAction) return;
+        this.initHistory();
+
+        // Cắt bỏ các nhánh tương lai nếu người dùng vẽ tiếp sau khi lùi
+        if (this.historyIndex < this.historyStack.length - 1) {
+            this.historyStack = this.historyStack.slice(0, this.historyIndex + 1);
+        }
+
+        const snapshot = this._snapshotHistory(description);
 
         this.historyStack.push(snapshot);
         if (this.historyStack.length > this.maxHistory) {
@@ -18590,12 +18610,15 @@ const appCadTool = {
             return;
         }
 
-        if (this.historyIndex > 0) {
+        const entry = this.historyStack[this.historyIndex];
+        if (this.historyIndex > 0 && entry) {
+            // historyStack[i] là ảnh TRƯỚC thao tác i, nên phải ghi ảnh SAU (after)
+            // để Ctrl+Y làm lại đúng nét vừa lùi; nếu không redo sẽ khôi phục ảnh cũ.
+            entry.after = this._snapshotHistory(entry.desc);
+            this.applyHistoryState(entry);
             this.historyIndex--;
-            const state = this.historyStack[this.historyIndex];
-            this.applyHistoryState(state);
             triggerHaptic('selection');
-            showToast(`↩ Đã lùi: ${state.desc || 'Thao tác trước'} [Ctrl+Z]`);
+            showToast(`↩ Đã lùi: ${entry.desc || 'Thao tác trước'} [Ctrl+Z]`);
         } else if (this.vertices && this.vertices.length > 0) {
             this.undoVertex();
         } else {
@@ -18604,12 +18627,12 @@ const appCadTool = {
     },
 
     redo() {
-        if (this.historyIndex < this.historyStack.length - 1) {
+        const future = this.historyStack[this.historyIndex + 1];
+        if (future && future.after) {
             this.historyIndex++;
-            const state = this.historyStack[this.historyIndex];
-            this.applyHistoryState(state);
+            this.applyHistoryState(future.after);
             triggerHaptic('selection');
-            showToast(`↪ Đã tiến: ${state.desc || 'Thao tác sau'} [Ctrl+Y]`);
+            showToast(`↪ Đã tiến: ${future.desc || 'Thao tác sau'} [Ctrl+Y]`);
         } else {
             showToast("⚠️ Đang ở thao tác mới nhất, không thể tiến thêm!", true);
         }
@@ -18634,8 +18657,11 @@ const appCadTool = {
             this.renderGeometry();
             this.renderAnnotations();
             this.saveAnnotations();
+            // Lùi/làm lại phải ghi xuống bộ nhớ ngay, nếu không reload sẽ "hồi sinh" khối vừa xóa
+            this.saveShapesForProject(AppState.currentProject);
             this.updateUi();
             this.renderBlocksPanel();
+            if (this.syncToolButtons) this.syncToolButtons();
             if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
                 this.openAreaTableModal();
             }
@@ -18649,7 +18675,10 @@ const appCadTool = {
         const btnUndo = document.getElementById('btnCadUndo');
         const btnRedo = document.getElementById('btnCadRedo');
         const canUndo = this.historyIndex > 0 || (this.vertices && this.vertices.length > 0);
-        const canRedo = this.historyIndex < this.historyStack.length - 1;
+        // Chỉ bật nút Tiến khi mốc tương lai đã có ảnh SAU (do undo() ghi lại),
+        // nếu không bấm Ctrl+Y sẽ áp ảnh trước của hành động kế tiếp → vẽ sai.
+        const future = this.historyStack[this.historyIndex + 1];
+        const canRedo = !!(future && future.after);
 
         if (btnUndo) {
             btnUndo.disabled = !canUndo;
@@ -18984,7 +19013,8 @@ const appCadTool = {
                 this.toggleSnapLine();
             } else if (key === 'C') {
                 e.preventDefault();
-                if (this.mode === 'polygon' && this.vertices.length >= 3) {
+                // Đang chấm nét vẽ (đa giác hoặc tuyến) thì C là khép góc, chỉ khi rảnh mới đổi sang Circle
+                if (this.vertices.length >= 3 && (this.mode === 'polygon' || this.mode === 'polyline')) {
                     this.closeLoop();
                 } else {
                     this.setMarkupMode(this.markupMode === 'circle' ? null : 'circle');
@@ -19049,6 +19079,7 @@ const appCadTool = {
                     this.setMarkupMode(null);
                     showToast('Đã hủy thao tác nhãn [Esc]');
                 } else if (this.vertices.length > 0) {
+                    this.pushHistoryState('Hủy nét vẽ đang dở');
                     this.vertices = [];
                     this.renderGeometry();
                     this.updateUi();
@@ -21005,10 +21036,12 @@ const appCadTool = {
             showToast("⚠️ Chưa có đỉnh nào để hoàn tác!", true);
             return;
         }
+        // Del phải ghi lịch sử, nếu không Ctrl+Z không cứu lại được đỉnh vừa xóa
+        this.pushHistoryState(`Lùi đỉnh ${this.vertices[this.vertices.length - 1].name}`);
         const removed = this.vertices.pop();
         this.renderGeometry();
         this.updateUi();
-        showToast(`↩ Đã lùi đỉnh: ${removed.name} [U]`);
+        showToast(`↩ Đã lùi đỉnh: ${removed.name} [Del]`);
     },
 
     closeLoop() {
@@ -21116,11 +21149,11 @@ const appCadTool = {
     },
 
     clearDrawing() {
-        this.pushHistoryState('Xóa bản vẽ CAD');
         if (this.vertices.length === 0 && this.savedShapes.length === 0) {
             showToast("Bản vẽ hiện đang trống!");
             return;
         }
+        this.pushHistoryState('Xóa bản vẽ CAD');
         if (this.savedShapes.length > 0 && this.vertices.length > 0) {
             const clearAll = confirm(`Xác nhận dọn bản vẽ:\r\n- Nhấn OK để XÓA TOÀN BỘ (cả ${this.savedShapes.length} cấu trúc đã lưu & nét vẽ đang dở)\r\n- Nhấn Cancel để chỉ xóa nét vẽ đang chấm dở.`);
             if (clearAll) {
@@ -21140,9 +21173,15 @@ const appCadTool = {
         if (this.layers.group) {
             this.layers.group.clearLayers();
         }
+        this.layers.offsetLayer = null;
         this.clearDynamicHelpers();
+        // Ghi xuống bộ nhớ: nếu không thì tải lại trang sẽ nạp ngược khối cũ từ khóa vn2k_cad_shapes_*
+        this.saveShapesForProject(AppState.currentProject);
+        // syncShapesToProjectPoints bỏ qua khi bản vẽ trống nên phải tự dọn đỉnh "ma" khỏi Sổ đo
+        if (this.savedShapes.length === 0) this.pruneCadProjectPoints();
         this.renderGeometry();
         this.updateUi();
+        this.renderBlocksPanel();
         showToast("Đã dọn dẹp bản vẽ CAD!");
     },
 
@@ -22758,6 +22797,9 @@ const appCadTool = {
         this.layers.group.clearLayers();
         this.layers.shape = null;
         this.layers.centerMarker = null;
+        // Đường Offset là layer độc lập, clearLayers() xóa trắng khỏi map nên phải gắn lại
+        // nếu không Offset biến mất ngay khi vừa chấm thêm đỉnh.
+        if (this.layers.offsetLayer) this.layers.group.addLayer(this.layers.offsetLayer);
 
         if (!this.displaySettings) this.initDisplaySettings();
         const showBoundaries = this.displaySettings.showBoundaries !== false;
@@ -23205,7 +23247,9 @@ const appCadTool = {
         }
 
         // 1. Vẽ đường bao (Polyline hoặc Polygon)
-        if (showBoundaries && n >= 2) {
+        // Nét vẽ ĐANG CHẤM luôn hiển thị: cờ "Nét ranh khối" chỉ ẩn/hiện các khối đã lưu,
+        // nếu áp dụng cả nét vẽ dở thì người dùng bấm bản đồ mà không thấy gì và tưởng công cụ vẽ chết.
+        if (n >= 2) {
             if (this.mode === 'polygon' && n >= 3) {
                 this.layers.shape = L.polygon(latlngs, {
                     color: isSelfIntersecting ? '#ef4444' : '#06b6d4',
@@ -24139,13 +24183,21 @@ const appCadTool = {
                         document.getElementById('cadShowBlockInfo').checked = savedMeta.showBlockInfo;
                     }
                 }
-                if (this.displaySettings) {
-                    if (typeof savedMeta.showCenterLabels === 'boolean') this.displaySettings.showCenterLabels = savedMeta.showCenterLabels;
-                    if (typeof savedMeta.showAnnotations === 'boolean') this.displaySettings.showAnnotations = savedMeta.showAnnotations;
-                    if (typeof savedMeta.showBoundaries === 'boolean') this.displaySettings.showBoundaries = savedMeta.showBoundaries;
-                }
             }
             this.syncDisplayCheckboxes();
+            // Cờ thành phần chỉ áp dụng cho FILE XUẤT: kế thừa lựa chọn lần trước trong hộp thoại,
+            // tuyệt đối không ghi ngược vào cài đặt hiển thị trên bản đồ (từng làm ẩn hết nét ranh).
+            if (savedMeta) {
+                const setBox = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && typeof val === 'boolean') el.checked = val;
+                };
+                setBox('cadExportCheckVertices', savedMeta.showVertices);
+                setBox('cadExportCheckDistances', savedMeta.showDistances);
+                setBox('cadExportCheckCenterLabels', savedMeta.showCenterLabels);
+                setBox('cadExportCheckAnnotations', savedMeta.showAnnotations);
+                setBox('cadExportCheckBoundaries', savedMeta.showBoundaries);
+            }
         } catch (e) {}
 
         this.renderExportBlockPicker();
@@ -27579,6 +27631,8 @@ const appCadTool = {
         this.mode = s.mode || 'polygon';
         this.isActive = true;
         this.savedShapes.splice(index, 1);
+        // Khối vừa rút ra để vẽ tiếp phải mất trong bộ nhớ, nếu không F5 sẽ thành 2 bản
+        this.saveShapesForProject(AppState.currentProject);
         const nameInput = document.getElementById('cadActiveShapeName');
         if (nameInput) {
             nameInput.value = s.name || '';
@@ -27589,13 +27643,28 @@ const appCadTool = {
         showToast(`✏️ Đang tiếp tục vẽ khối "${s.name}". Hãy nhấp trên bản đồ để thêm đỉnh hoặc khép góc.`);
     },
 
+    pruneCadProjectPoints(shapeId) {
+        try {
+            if (typeof appData === 'undefined' || !appData.getPoints || !appData.savePoints) return;
+            const pts = appData.getPoints(AppState.currentProject) || [];
+            const kept = pts.filter(p => shapeId ? p.shapeId !== shapeId : !p.shapeId);
+            if (kept.length !== pts.length) appData.savePoints(AppState.currentProject, kept);
+        } catch (e) {
+            console.warn('Dọn điểm Sổ đo của khối CAD thất bại:', e);
+        }
+    },
+
     deleteShape(index, skipConfirm = false) {
         if (!this.savedShapes || !this.savedShapes[index]) return;
         const name = this.savedShapes[index].name || this.savedShapes[index].shortName || 'Khối';
         if (!skipConfirm && !confirm(`Bạn có chắc muốn xóa khối "${name}" không?`)) return;
         this.pushHistoryState(`Xóa khối "${name}"`);
+        const removedShape = this.savedShapes[index];
         this.savedShapes.splice(index, 1);
         this.saveShapesForProject(AppState.currentProject);
+        // syncShapesToProjectPoints không chạy khi hết khối, nên phải tự dọn điểm của khối vừa xóa
+        // để danh sách Sổ đo không còn đỉnh "ma" của thửa đã xóa.
+        this.pruneCadProjectPoints(removedShape && removedShape.id);
         this.persistSession();
         this.deselectCurrent();
         this.renderGeometry();
@@ -27642,8 +27711,10 @@ const appCadTool = {
             }
         }
         if (!center) center = map.getCenter();
-        map.setView(center, 23);
-        showToast("🔍 Đã phóng to cực đại (Mức 23 - Chuẩn từng centimet, không bị hút điểm nhầm)");
+        // Leaflet giới hạn zoom theo lớp nền đang bật, nên phải lấy mức thực dụng được thay vì cứng 23
+        const targetZoom = Math.min(23, map.getMaxZoom());
+        map.setView(center, targetZoom);
+        showToast(`🔍 Siêu Zoom mức ${targetZoom} (độ nét tối đa của lớp nền đang bật)`);
     },
 
     zoomExtents() {
