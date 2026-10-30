@@ -33,7 +33,7 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.11">
+  <link rel="stylesheet" href="style.css?v=2.8.12">
   <link rel="stylesheet" href="field-workspace.css">
   <link rel="stylesheet" href="ui-polish.css?v=2.8.2">
 </head>
@@ -2297,6 +2297,10 @@
             <button id="btnCadQSelect" class="cad-btn" onclick="appCadTool.openQSelectModal()"
               title="Chọn nhanh đối tượng theo lớp, tên, loại, diện tích hoặc số đỉnh (Phím tắt: Q)">
               🔎 Chọn nhanh (QSELECT)
+            </button>
+            <button id="btnCadSymbols" class="cad-btn" onclick="appCadTool.openSymbolPanel()"
+              title="Một nhánh thao tác: bật/tắt 3 nhóm hiển thị và đặt hình dạng + màu ký hiệu cho điểm rời lẫn đỉnh khối/tuyến theo từng lớp CAD">
+              🎨 Ký hiệu &amp; Hiển thị
             </button>
             <span class="cad-display-group-tag">HIỂN THỊ</span>
             <label class="cad-check-label" title="Hiện hoặc ẩn hoàn toàn các điểm rời của lớp điểm (P1, P2...) trên bản đồ">
@@ -5162,6 +5166,8 @@
                 <th style="text-align: right; padding-right: 10px;">X (Bắc) [m]</th>
                 <th style="text-align: right; padding-right: 10px;">Y (Đông) [m]</th>
                 <th style="text-align: right; padding-right: 10px;">Cạnh [m]</th>
+                <th style="text-align: center; width: 92px;">Ký hiệu</th>
+                <th style="text-align: center; width: 44px;">Màu</th>
                 <th style="text-align: center; width: 75px;">Hiện đỉnh</th>
                 <th style="text-align: center; min-width: 90px;">Thao tác</th>
               </tr>
@@ -5631,6 +5637,73 @@
       <div class="modal-footer"
         style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding-top: 10px; border-top: 1px solid rgba(56, 189, 248, 0.2);">
         <button class="btn-sm btn-red" style="height: 34px; padding: 0 14px;" onclick="appCadTool.closeQSelectModal()">
+          Đóng</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============ MODAL NHÁNH GỘP MINICAD: HIỂN THỊ & KÝ HIỆU (điểm rời + đỉnh khối/tuyến) ============ -->
+  <div id="modalCadSymbols" class="modal-overlay" onclick="if(event.target === this) appCadTool.closeSymbolPanel()">
+    <div class="modal-box" style="max-width: 720px; width: 94%;">
+      <div class="modal-header"
+        style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <h3 style="margin: 0; font-size: 15px; color: #f8fafc;">🎨 Ký hiệu &amp; Hiển thị — một nhánh thao tác</h3>
+        <button class="btn-sm" style="height: 28px; padding: 0 10px;" onclick="appCadTool.closeSymbolPanel()">✖</button>
+      </div>
+
+      <!-- Nhóm 1: ba cờ hiển thị tách riêng (đồng bộ hai chiều với checkbox trên thanh công cụ CAD) -->
+      <div class="cad-sym-section">
+        <div class="cad-sym-section-title">1️⃣ Nhóm hiển thị (tắt/mở riêng từng dạng)</div>
+        <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
+          <label class="cad-check-label" title="Ẩn hiện toàn bộ điểm rời của các lớp điểm">
+            <input type="checkbox" id="cadSymShowPoints" checked
+              onchange="appCadTool.toggleDisplayOption('showPoints', this.checked)">
+            <span>📍 Điểm rời</span>
+          </label>
+          <label class="cad-check-label" title="Ẩn hiện ký hiệu đỉnh của khối đa giác và tuyến">
+            <input type="checkbox" id="cadSymShowVertices"
+              onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
+            <span>📐 Đỉnh khối &amp; tuyến</span>
+          </label>
+          <label class="cad-check-label" title="Tắt nhãn tên thì điểm/đỉnh xuống dạng ký hiệu hình, bật thì thành viên thuốc có chữ">
+            <input type="checkbox" id="cadSymShowLabels" checked
+              onchange="appCadTool.toggleDisplayOption('showLabels', this.checked)">
+            <span>🏷️ Nhãn tên</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Nhóm 2: mặc định hình dạng + màu theo lớp CAD -->
+      <div class="cad-sym-section">
+        <div class="cad-sym-section-title">2️⃣ Ký hiệu mặc định theo lớp CAD</div>
+        <div class="cad-table-wrap" style="max-height: 260px; overflow-y: auto;">
+          <table class="cad-coord-table">
+            <thead>
+              <tr>
+                <th style="text-align: left; min-width: 130px;">Lớp</th>
+                <th style="text-align: center; width: 130px;">Hình dạng</th>
+                <th style="text-align: center; width: 60px;">Màu</th>
+                <th style="text-align: left; min-width: 110px;">Mã lớp</th>
+                <th style="text-align: center; width: 46px;">↺</th>
+              </tr>
+            </thead>
+            <tbody id="cadSymbolLayerRows"><!-- Render JS --></tbody>
+          </table>
+        </div>
+        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">
+          Tùy chỉnh riêng từng điểm/đỉnh (trong Bảng điểm hoặc tab Đỉnh) luôn ưu tiên cao hơn mặc định lớp.
+        </div>
+      </div>
+
+      <div class="modal-footer"
+        style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding-top: 10px; border-top: 1px solid rgba(56, 189, 248, 0.2);">
+        <span style="font-size: 11px; color: #94a3b8; margin-right: auto;">
+          Đang có <b id="cadSymOverrideCount" style="color: #fbbf24;">0</b> điểm/đỉnh tùy chỉnh riêng
+        </span>
+        <button class="btn-sm" style="height: 32px; padding: 0 12px;" onclick="appCadTool.clearAllVertexGlyphOverrides()"
+          title="Xóa mọi tùy chỉnh riêng để toàn bộ điểm/đỉnh quay về mặc định lớp">↺ Đặt lại mọi đỉnh</button>
+        <button class="btn-sm btn-red" style="height: 32px; padding: 0 14px;" onclick="appCadTool.closeSymbolPanel()">
           Đóng</button>
       </div>
     </div>
@@ -7492,7 +7565,7 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.11"></script>
+  <script src="app.js?v=2.8.12"></script>
   <script src="field-workspace.js?v=2.8.5"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->

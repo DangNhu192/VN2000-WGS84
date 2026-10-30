@@ -70,7 +70,7 @@ const CAD_MODAL_IDS = [
     'modalCadAreaTable', 'modalCadPointTable', 'modalCadExportConfig',
     'modalCadLoadProject', 'modalCadPolarInput', 'modalCadCoordInput',
     'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow',
-    'modalCadGisImport', 'modalCadInquiry', 'modalCadQSelect'
+    'modalCadGisImport', 'modalCadInquiry', 'modalCadQSelect', 'modalCadSymbols'
 ];
 
 // =====================================================================
@@ -102,7 +102,7 @@ console.log('\n— closeCadWindows: dọn cửa sổ CAD khi rời MiniCAD —')
 
     assert(popupClosed, 'Đóng popup Leaflet đang mở trên bản đồ dùng chung');
     assert(CAD_MODAL_IDS.every(id => elements[id].style.display === 'none'),
-        `Ẩn đủ ${CAD_MODAL_IDS.length} cửa sổ CAD (bảng kê/điểm/xuất/nạp/cực/tọa độ/lớp/chú thích/mũi tên/GIS/trắc lượng/QSELECT)`);
+        `Ẩn đủ ${CAD_MODAL_IDS.length} cửa sổ CAD (bảng kê/điểm/xuất/nạp/cực/tọa độ/lớp/chú thích/mũi tên/GIS/trắc lượng/QSELECT/ký hiệu)`);
     assert(CAD_MODAL_IDS.every(id => !elements[id].classList.contains('active') && !elements[id].classList.contains('show')),
         'Gỡ cả class active lẫn show khỏi mọi cửa sổ CAD');
     assert(elements.cadBlocksStatsPanel.style.display === 'none', 'Ẩn bảng thống kê khối CAD nếu đang mở');

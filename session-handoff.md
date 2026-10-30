@@ -1,6 +1,31 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-30: WP-C — Dóng góc [F10] + Trắc Lượng (Inquiry) + Chọn Nhanh (QSELECT)
+## Phiên hiện tại — 2026-10-30: WP-D — Kiểu & màu ký hiệu cho ĐỈNH KHỐI/TUYẾN + nhánh "Ký hiệu & Hiển thị"
+- **Yêu cầu từ người dùng**: `- bổ sung cho phép điều chỉnh hình dạng và màu sắc các điểm được vẽ trong MiniCAD. cho phép tắt/mở hiển thị các điểm, các đỉnh của khối và tuyến (chia riêng từng dạng chứ không gộp chung, có thể gộp chung 1 nhánh thao tác)` — hiển thị 3 nhóm + kiểu/màu **điểm rời** đã có từ WP-A; phạm vi chốt qua AskUserQuestion: **đổi kiểu+màu đỉnh khối/tuyến** và **gộp thành 1 nhánh thao tác**.
+- **Kiến trúc đã dựng**:
+  1. **Một chuỗi ưu tiên duy nhất** [app.js:20438](app.js): `getGlyphLayerOf(shape)` + `getPointStyleFor(shape, v)` / `getPointColorFor(shape, v)` = *đỉnh (`v.style`/`v.color`) → khối (`shape.style`, màu của lớp điểm) → mặc định lớp CAD (`layersTable[].vStyle`/`vColor`) → mặc định hệ thống* (`circle` / `#10b981`). **Mỗi ứng viên được kiểm tra riêng** (`find(ok)` / `map(hex).find(Boolean)`) — giá trị rác tầng trên không che giá trị hợp lệ tầng dưới.
+  2. **Badge thống nhất trong `renderGeometry()`** [app.js:24945-24967](app.js): đỉnh khối/tuyến nhận `sty-<kiểu>` + màu thật + `dot-visible`; `showLabels` nay chi phối cả đỉnh (trước đây bị bỏ qua); `marker._pinned = isExpanded || isDotGlyph` để `mouseout` của khối không gỡ `dot-visible`.
+  3. **Đỉnh đang vẽ thừa kế ký hiệu lớp đang chọn**: `draftGlyphShape/draftGlyphStyle/draftGlyphColor` tính trước vòng lặp `this.vertices`.
+  4. **Mutator từng đỉnh**: `setVertexGlyph(shapeIdx, vIdx, field, value)` / `resetVertexGlyph(shapeIdx, vIdx)` — validate `pointStyles` + `#RRGGBB`, bỏ qua giá trị không đổi, tôn trọng `isShapeLocked`, `pushHistoryState` rồi chuỗi persist `saveShapesForProject → persistSession → renderGeometry → renderBlocksPanel → refreshAreaTableIfOpen → renderModalVerticesTable (nếu tab Đỉnh) → refreshSymbolPanelIfOpen`. Tab Đỉnh thêm cột "Ký hiệu"/"Màu" + nút "↺" (amber khi đỉnh tùy chỉnh).
+  5. **Nhánh gộp** `#modalCadSymbols` + nút `#btnCadSymbols` "🎨 Ký hiệu & Hiển thị": 3 công tắc hiển thị dùng chung `displaySettings` (`syncDisplayCheckboxes()` mirror checkbox thanh công cụ) + bảng "Ký hiệu mặc định theo lớp CAD" (`applyLayerGlyph`/`resetLayerGlyph`, trữ `vn2k_cad_layers_v1`) + footer `countVertexGlyphOverrides()` / `clearAllVertexGlyphOverrides()`.
+  6. **4 exporter (DXF/PDF/SVG/PNG) hết gate `isPointLayer`** → hình và màu trong tệp đúng bằng những gì thấy trên bản đồ. `exportGlyphFlag(meta, isPointLayer)` vẫn giữ cho việc bật/tắt hiển thị.
+- **Điểm cần nhớ khi sửa tiếp**:
+  - **Ký hiệu chỉ có MỘT nguồn quyết định**: `getPointStyleFor`/`getPointColorFor`. Thêm chỗ vẽ/xuất điểm mới thì gọi hai helper này, **không** đọc `v.style`/`shape.style` trực tiếp và không hard-code `'circle'`/`'#ef4444'`.
+  - `refreshSymbolPanelIfOpen()` là bắt buộc sau mọi mutator ký hiệu: thiếu nó bộ đếm "đỉnh tùy chỉnh riêng" và bảng lớp đứng yên khi modal đang mở (lỗi thật phát hiện lúc test live).
+  - Đặt mặc định theo **lớp CAD** ảnh hưởng cả **lớp điểm** gán lớp đó khi lớp điểm chưa đặt kiểu riêng — kiểu của điểm/đỉnh luôn thắng.
+  - Đăng ký giao diện theo AGENTS.md §2: `modalCadSymbols` đã vào `closeCadWindows()` [app.js:19830](app.js) — tổng **13 modal CAD**, `tests/cad_ui_isolation.test.js` kiểm đúng danh sách này.
+  - **Đừng test bằng `svgPaths`**: CAD map dùng `preferCanvas: true`; chứng minh render bằng `layers.group.getLayers().length`, class badge (`/expanded/`, `sty-*`, `dot-visible`) và computed style.
+  - Stack hoàn tác tên là `historyStack`/`historyIndex` (KHÔNG phải `history`), `maxHistory` cho trần.
+  - Assertion phiên bản trong `tests/cad_inquiry_qselect_polar.test.js` giờ **đối chiếu sw.js ↔ app.js ↔ style.css** thay vì hard-code; đợt bump sau chỉ cần sửa 3 chỗ tài nguyên, test không phá.
+- **Kết quả kiểm chứng**: `tests/point_styling_visibility.test.js` **93 → 142/142** (4 nhóm mới chạy hàm thật trong sandbox `new Function`), `cad_ui_isolation` **13 modal**, `cad_inquiry_qselect_polar` **177/177**, `node --check app.js` đạt, toàn dự án **313/313 PASS (0 fail)**. Live localhost:8080 (`?v=2.8.12`): lớp `RANH_THUA` = thoi/đỏ → 12 badge `sty-diamond` nền `rgb(239,68,68)`; tắt Nhãn → `sty-diamond dot-visible` + `clip-path`; Đ1 của `Tuyến 2` = ring xanh → bộ đếm 0→1, SVG `<circle class="cad-pt-glyph" fill="none" stroke="#22c55e">`; `resetVertexGlyph` → 0. **Bản vẽ người dùng khôi phục nguyên trạng**: `resetLayerGlyph('RANH_THUA')`, bật lại Nhãn, `historyStack` còn 1, 3 đối tượng `selected=true`, `layers.group=31`, modal đóng. (Không chụp được ảnh vì surface Browser trong app ẩn — dùng computed style/DOM làm bằng chứng.)
+- **Đăng ký tài nguyên**: `index.html` thêm `#btnCadSymbols` + `#modalCadSymbols` (cạnh các modal CAD), `style.css` `.cad-sym-section`/`.cad-sym-section-title` + `?v=2.8.12`, `app.js?v=2.8.12`, `sw.js` `CACHE_NAME = vn2000-pro-v2.8.12`; 11 mục `phraseMap` Anh–Việt.
+- **Còn lại / việc kế tiếp**:
+  1. **Backlog CADCraft port**: **Hatch** và **Import DXF** (task #23); kéo `cadcraft_dynamic_input`, `minicad_snap_runtime`, `minicad_toolbar_collapse`, `minicad_select_and_delete` vào `npm test`.
+  2. **Ý định chưa làm**: kiểu ký hiệu theo *từng loại mốc* trong sổ đo, sao chép ký hiệu đỉnh hàng loạt, hoàn tác chéo giữa các phân hệ.
+  3. **Ràng buộc của người dùng vẫn hiệu lực**: "Tôi tự rever — đừng đẩy lại" → chỉ push `integration-draw-fixes`, không đụng `main`; rồi fast-forward mirror `D:\Nhu\APP\VN2000-PWA`. "Port lần lượt, ưu tiên Dimension".
+  4. **Không chạy `npm install`** trong `I:\My Drive\...`; stage đúng tên tệp (`app.js`, `index.html`, `style.css`, `sw.js`, `tests/point_styling_visibility.test.js`, `tests/cad_ui_isolation.test.js`, `tests/cad_inquiry_qselect_polar.test.js`, `progress.md`, `session-handoff.md`), không `git add -A` — `git status` còn nhiều tệp skill/asset/`geodesy.js`/`src/core/cad_geometry.js` `M` không thuộc đợt này.
+
+## Phiên trước — 2026-10-30: WP-C — Dóng góc [F10] + Trắc Lượng (Inquiry) + Chọn Nhanh (QSELECT)
 - **Yêu cầu từ người dùng**: `Inquiry/QSELECT (Dynamic Input còn thiếu phần polar tracking)` — nối tiếp chỉ đạo "Port lần lượt, ưu tiên Dimension" (Dimension đã xong ở phiên trước đó).
 - **Kiến trúc đã dựng**:
   1. **Một hàm chốt điểm duy nhất** `appCadTool.lockDraftPoint(lat, lng)` — Ortho [F8] áp trước, rồi Polar [F10] — được gọi ở **cả** `handleMapClick` lẫn `_processMouseMove`. Đây là chỗ sửa lỗi "xem một đằng, vẽ một nẻo" của bản cũ (hai bản sao logic khóa trục).

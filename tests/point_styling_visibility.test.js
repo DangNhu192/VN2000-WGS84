@@ -9,6 +9,8 @@
  *  - updatePointField('style'|'color'), applyPointLayerStyle, resetPointStyleOverrides
  *  - drawPointGlyph / pointGlyphSvg / exportGlyphFlag cho DXF, PDF, SVG, PNG
  *  - Đồng bộ style/color xuống mốc dự án và dựng lại từ mốc dự án
+ *  - WP-D: đỉnh của KHỐI/TUYẾN cũng mang kiểu + màu (đỉnh → khối → mặc định lớp CAD → mặc định hệ thống),
+ *    setVertexGlyph/resetVertexGlyph, nhánh thao tác gộp "Hiển thị & Ký hiệu" và 4 exporter
  *
  * Chạy: node tests/point_styling_visibility.test.js
  */
@@ -197,8 +199,8 @@ console.log('\n— resolveGroupVisibility: phân giải cờ theo nhóm và theo
 // =====================================================================
 console.log('\n— Kiểu & màu ký hiệu: riêng từng điểm, mặc định theo lớp —');
 {
-    const api = new Function(`return ({ ${extractMethod('getPointStyleFor')}, ${extractMethod('getPointColorFor')}, ${extractMethod('resolveGroupVisibility')} });`)();
-    const ctx = { pointStyles: STYLE_IDS.map(id => ({ id, label: id })) };
+    const api = new Function(`return ({ ${extractMethod('getGlyphLayerOf')}, ${extractMethod('getPointStyleFor')}, ${extractMethod('getPointColorFor')}, ${extractMethod('resolveGroupVisibility')} });`)();
+    const ctx = { pointStyles: STYLE_IDS.map(id => ({ id, label: id })), getGlyphLayerOf: api.getGlyphLayerOf };
     const style = (shape, v) => api.getPointStyleFor.call(ctx, shape, v);
     const color = (shape, v) => api.getPointColorFor.call(ctx, shape, v);
 
@@ -236,7 +238,7 @@ console.log('\n— Bảng điểm: cột kiểu/màu từng điểm và áp dụ
     const escapeHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     const src = ['renderPointTable', 'syncPointStyleBulkControls', 'applyPointLayerStyle',
-        'resetPointStyleOverrides', 'updatePointField', 'getPointStyleFor', 'getPointColorFor']
+        'resetPointStyleOverrides', 'updatePointField', 'getGlyphLayerOf', 'getPointStyleFor', 'getPointColorFor']
         .map(n => extractMethod(n)).join(', ');
     const api = new Function('document', 'escapeHtml', 'showToast', 'AppState', `return ({ ${src} });`)(
         fakeDoc, escapeHtml, () => {}, { kttVal: 105.75, scaleFactor: 0.9999, currentProject: 'p' });
@@ -256,6 +258,7 @@ console.log('\n— Bảng điểm: cột kiểu/màu từng điểm và áp dụ
         refreshPointLayerBar: () => {},
         renderPointTable: () => api.renderPointTable.call(ctx),
         syncPointStyleBulkControls: (l) => api.syncPointStyleBulkControls.call(ctx, l),
+        getGlyphLayerOf: (s) => api.getGlyphLayerOf.call(ctx, s),
         getPointStyleFor: (s, v) => api.getPointStyleFor.call(ctx, s, v),
         getPointColorFor: (s, v) => api.getPointColorFor.call(ctx, s, v),
         calculateAreaAndPerimeter: () => ({})
@@ -339,7 +342,7 @@ console.log('\n— renderGeometry: dựng ký hiệu theo kiểu/màu và theo n
     const geomBody = appJs.slice(appJs.indexOf('renderGeometry() {'), appJs.indexOf('renderGeometry() {') + 26000);
     assert(geomBody.includes('if (isPointLayer && !groupVis.visible) return;'),
         'Điểm rời khi tắt nhóm: KHÔNG dựng marker (ẩn hẳn trên bản đồ, không chỉ mờ)');
-    assert(geomBody.includes("badgeCls.push('sty-' + ptStyle)"),
+    assert(geomBody.includes("'sty-' + ptStyle"),
         'Ký hiệu điểm mang class kiểu (sty-square / sty-diamond / ...)');
     assert(geomBody.includes('this.getPointColorFor(shape, v)') && geomBody.includes('background: ${ptColor}'),
         'Ký hiệu điểm dùng màu.resolve của riêng điểm hoặc lớp');
@@ -495,6 +498,237 @@ console.log('\n— Markup: đủ ô điều khiển —');
         'Nút "Đặt lại" gỡ tùy chỉnh riêng của từng điểm');
     assert(/<th[^>]*>Kiểu<\/th>[\s\S]{0,220}<th[^>]*>Màu<\/th>/.test(indexHtml),
         'Bảng điểm có 2 cột Kiểu và Màu');
+}
+
+// =====================================================================
+// 14. Đỉnh khối & tuyến: ký hiệu kế thừa mặc định của LỚP CAD (WP-D)
+// =====================================================================
+console.log('\n— Chuỗi ưu tiên ký hiệu: đỉnh → khối → lớp CAD → mặc định hệ thống —');
+{
+    const api = new Function(`return ({ ${['getGlyphLayerOf', 'getPointStyleFor', 'getPointColorFor']
+        .map(n => extractMethod(n)).join(', ')} });`)();
+    const layers = [
+        { id: 'RANH_THUA', name: 'Ranh thửa', color: '#38bdf8', vStyle: 'diamond', vColor: '#ef4444' },
+        { id: 'GIAO_THONG', name: 'Giao thông', color: '#f59e0b' },
+        { id: 'MOCHIEU', name: 'Mốc chỉ giới', color: '#a78bfa', vStyle: 'bogus', vColor: 'red' }
+    ];
+    const ctx = {
+        pointStyles: STYLE_IDS.map(id => ({ id, label: id })),
+        getGlyphLayerOf: (s) => api.getGlyphLayerOf.call(ctx, s),
+        getLayerById: (id) => layers.find(l => l.id === id) || null,
+        getShapeLayerId: (s) => (s && s.layer) || 'RANH_THUA'
+    };
+    const style = (s, v) => api.getPointStyleFor.call(ctx, s, v);
+    const color = (s, v) => api.getPointColorFor.call(ctx, s, v);
+
+    assert(style({ mode: 'polygon', layer: 'RANH_THUA', color: '#38bdf8' }, {}) === 'diamond',
+        'Đỉnh khối chưa tùy chỉnh: dùng hình mặc định của lớp CAD (không còn cứng "circle")');
+    assert(color({ mode: 'polygon', layer: 'RANH_THUA', color: '#38bdf8' }, {}) === '#ef4444',
+        'Đỉnh khối chưa tùy chỉnh: dùng màu mặc định của lớp CAD');
+    assert(style({ mode: 'polygon', layer: 'RANH_THUA' }, { style: 'ring' }) === 'ring',
+        'Kiểu riêng của từng đỉnh thắng mặc định lớp');
+    assert(color({ mode: 'polyline', layer: 'GIAO_THONG', color: '#f59e0b' }, {}) === '#f59e0b',
+        'Lớp chưa đặt màu mặc định: đỉnh lùi về màu vẽ của đối tượng');
+    assert(style({ mode: 'polygon', layer: 'MOCHIEU' }, {}) === 'circle',
+        'Mặc định lớp không hợp lệ bị loại, đỉnh quay về tròn');
+    assert(color({ mode: 'polygon', layer: 'MOCHIEU', color: '#22c55e' }, {}) === '#22c55e',
+        'Mặc định màu lớp không hợp lệ (không phải #RRGGBB) bị loại');
+
+    const ptLayer = { mode: 'point', layer: 'RANH_THUA', color: '#22c55e', style: 'triangle' };
+    assert(style(ptLayer, {}) === 'triangle',
+        'Điểm rời: kiểu mặc định của chính lớp điểm vẫn trên mặc định lớp CAD');
+    assert(color(ptLayer, {}) === '#22c55e',
+        'Điểm rời: màu ký hiệu lấy theo màu lớp điểm, không lấy màu mặc định của lớp CAD');
+    const bare = { pointStyles: STYLE_IDS.map(id => ({ id, label: id })), getGlyphLayerOf: api.getGlyphLayerOf };
+    assert(api.getPointStyleFor.call(bare, { mode: 'polygon' }, {}) === 'circle' &&
+        api.getPointColorFor.call(bare, { mode: 'polygon' }, {}) === '#10b981',
+        'Bảng chưa tra được lớp CAD: vẫn an toàn về mặc định hệ thống (không ném lỗi)');
+}
+
+// =====================================================================
+// 15. setVertexGlyph / resetVertexGlyph chạy thật (bảng Đỉnh)
+// =====================================================================
+console.log('\n— Đặt / đặt lại ký hiệu cho từng đỉnh khối —');
+{
+    const api = new Function('AppState', 'showToast', 'document',
+        `return ({ ${['setVertexGlyph', 'resetVertexGlyph', 'countVertexGlyphOverrides', 'refreshSymbolPanelIfOpen']
+            .map(n => extractMethod(n)).join(', ')} });`)(
+            { currentProject: 'p.dangky' }, () => {}, { getElementById: () => ({ classList: { contains: () => true } }) });
+
+    const mk = (locked) => {
+        const calls = { hist: [], save: 0, persist: 0, geom: 0, blocks: 0, repaint: 0, symPanel: 0 };
+        const ctx = {
+            savedShapes: [{
+                mode: 'polygon', layer: 'RANH_THUA', color: '#38bdf8',
+                vertices: [{ name: 'Đ1' }, { name: 'Đ2', style: 'x', color: '#ff0000' }]
+            }],
+            pointStyles: STYLE_IDS.map(id => ({ id, label: id })),
+            getPointStyleFor: () => 'circle',
+            getPointColorFor: () => '#10b981',
+            isShapeLocked: () => !!locked,
+            pushHistoryState: (t) => calls.hist.push(t),
+            saveShapesForProject: () => calls.save++,
+            persistSession: () => calls.persist++,
+            renderGeometry: () => calls.geom++,
+            renderBlocksPanel: () => calls.blocks++,
+            refreshAreaTableIfOpen: () => {},
+            modalTableActiveTab: 'vertices',
+            renderModalVerticesTable: () => calls.repaint++,
+            renderSymbolPanel: () => calls.symPanel++,
+            refreshSymbolPanelIfOpen: function () { return api.refreshSymbolPanelIfOpen.call(this); }
+        };
+        return { ctx, calls, v0: ctx.savedShapes[0].vertices[0], v1: ctx.savedShapes[0].vertices[1] };
+    };
+
+    const a = mk(false);
+    api.setVertexGlyph.call(a.ctx, 0, 0, 'style', 'triangle');
+    assert(a.v0.style === 'triangle', 'setVertexGlyph("style") ghi kiểu riêng vào đúng đỉnh');
+    assert(a.calls.hist.length === 1 && a.calls.save === 1 && a.calls.persist === 1,
+        'Đổi kiểu đỉnh: vào lịch sử hoàn tác + lưu dự án + lưu phiên');
+    assert(a.calls.geom === 1 && a.calls.repaint === 1,
+        'Đổi kiểu đỉnh: vẽ lại bản đồ và dựng lại bảng đỉnh (bảng đang mở tab Đỉnh)');
+    assert(a.calls.symPanel === 1,
+        'Nhánh gộp đang mở: bảng lớp + bộ đếm ký hiệu tùy chỉnh cập nhật ngay theo đỉnh vừa đổi');
+
+    api.setVertexGlyph.call(a.ctx, 0, 0, 'style', 'khong-ton-tai');
+    assert(a.v0.style === 'triangle' && a.calls.hist.length === 1,
+        'Kiểu không có trong pointStyles bị từ chối, không thêm lịch sử');
+    api.setVertexGlyph.call(a.ctx, 0, 0, 'color', 'red');
+    assert(!a.v0.color && a.calls.hist.length === 1,
+        'Màu không đúng dạng #RRGGBB bị từ chối');
+    api.setVertexGlyph.call(a.ctx, 0, 0, 'style', 'circle');
+    assert(a.calls.hist.length === 1,
+        'Đỉnh đang có kiểu = kiểu vừa chọn: bỏ qua, không ghi lịch sử thừa');
+    api.setVertexGlyph.call(a.ctx, 9, 0, 'style', 'square');
+    assert(a.calls.hist.length === 1, 'Chỉ số ngoài danh sách đối tượng: không làm gì');
+
+    const b = mk(true);
+    api.setVertexGlyph.call(b.ctx, 0, 1, 'color', '#00ff00');
+    assert(b.v1.color === '#ff0000' && b.calls.hist.length === 0,
+        'Lớp bị khóa: không đổi được ký hiệu đỉnh');
+
+    assert(api.countVertexGlyphOverrides.call(b.ctx) === 1,
+        'countVertexGlyphOverrides đếm đúng số đỉnh đang tùy chỉnh riêng');
+    api.resetVertexGlyph.call(b.ctx, 0, 1);
+    assert(b.v1.color === '#ff0000' && b.calls.hist.length === 0,
+        'Lớp bị khóa: nút "↺" đặt lại cũng bị chặn');
+    const c = mk(false);
+    api.resetVertexGlyph.call(c.ctx, 0, 1);
+    assert(!c.v1.style && !c.v1.color && c.calls.hist.length === 1,
+        'resetVertexGlyph gỡ cả kiểu lẫn màu, đỉnh quay về mặc định lớp');
+    api.resetVertexGlyph.call(c.ctx, 0, 0);
+    assert(c.calls.hist.length === 1, 'Đỉnh vốn không có tùy chỉnh: không ghi lịch sử');
+}
+
+// =====================================================================
+// 16. Nhánh gộp "Hiển thị & Ký hiệu": mặc định theo lớp + đặt lại toàn bộ
+// =====================================================================
+console.log('\n— Nhánh gộp: bảng mặc định theo lớp CAD + đặt lại mọi đỉnh —');
+{
+    const src = ['renderSymbolPanel', 'applyLayerGlyph', 'resetLayerGlyph', 'clearAllVertexGlyphOverrides',
+        'countVertexGlyphOverrides'].map(n => extractMethod(n)).join(', ');
+    const store = {};
+    const dom = {};
+    const fakeDoc = { getElementById: (id) => dom[id] || null };
+    const escapeHtml = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const api = new Function('document', 'escapeHtml', 'showToast', 'AppState', 'localStorage',
+        `return ({ ${src} });`)(fakeDoc, escapeHtml, () => {}, { currentProject: 'p' },
+        { getItem: (k) => store[k] || null, setItem: (k, v) => { store[k] = v; } });
+
+    const mkCtx = () => {
+        const calls = { hist: [], geom: 0, blocks: 0, repaint: 0, saved: 0 };
+        return { ctx: {
+            pointStyles: STYLE_IDS.map(id => ({ id, label: id })),
+            layersTable: [{ id: 'RANH_THUA', name: 'Ranh thửa', color: '#38bdf8' }],
+            getLayerById: () => null,
+            savedShapes: [{ mode: 'polygon', vertices: [{ name: 'Đ1', style: 'x' }, { name: 'Đ2' }] }],
+            saveLayersTable() { calls.saved++; store.layers = JSON.stringify(this.layersTable); },
+            pushHistoryState: (t) => calls.hist.push(t),
+            saveShapesForProject: () => {}, persistSession: () => {},
+            renderGeometry: () => calls.geom++, renderBlocksPanel: () => calls.blocks++,
+            refreshAreaTableIfOpen: () => {}, renderModalVerticesTable: () => calls.repaint++,
+            renderSymbolPanel: () => {}, modalTableActiveTab: 'vertices',
+            countVertexGlyphOverrides: function () { return api.countVertexGlyphOverrides.call(this); }
+        }, calls };
+    };
+
+    // applyLayerGlyph đọc select + color input rồi ghi vào layersTable
+    const m = mkCtx();
+    m.ctx.getLayerById = (id) => m.ctx.layersTable.find(l => l.id === id);
+    dom.cadSymStyle_RANH_THUA = { value: 'triangle' };
+    dom.cadSymColor_RANH_THUA = { value: '#ef4444' };
+    api.applyLayerGlyph.call(m.ctx, 'RANH_THUA');
+    assert(m.ctx.layersTable[0].vStyle === 'triangle' && m.ctx.layersTable[0].vColor === '#ef4444',
+        'applyLayerGlyph ghi hình + màu mặc định của lớp CAD từ nhánh gộp');
+    assert(m.calls.saved === 1 && JSON.parse(store.layers)[0].vStyle === 'triangle',
+        'Mặc định lớp được lưu vào localStorage (sống sau khi tải lại trang)');
+    assert(m.calls.geom === 1, 'Đổi mặc định lớp: bản vẽ được dựng lại ngay');
+
+    dom.cadSymStyle_RANH_THUA = { value: 'khong-phai-kieu' };
+    api.applyLayerGlyph.call(m.ctx, 'RANH_THUA');
+    assert(m.ctx.layersTable[0].vStyle === 'circle',
+        'Giá trị kiểu không hợp lệ ở select bị chặn về "circle" (không ghi rác vào lớp)');
+
+    const r = mkCtx();
+    r.ctx.getLayerById = (id) => r.ctx.layersTable.find(l => l.id === id);
+    r.ctx.layersTable[0].vStyle = 'diamond';
+    api.resetLayerGlyph.call(r.ctx, 'RANH_THUA');
+    assert(!r.ctx.layersTable[0].vStyle && !r.ctx.layersTable[0].vColor,
+        'resetLayerGlyph xóa mặc định riêng của lớp để quay về ký hiệu hệ thống');
+
+    const cl = mkCtx();
+    api.clearAllVertexGlyphOverrides.call(cl.ctx);
+    const vs = cl.ctx.savedShapes[0].vertices;
+    assert(!vs[0].style && cl.calls.hist.length === 1 && cl.calls.geom === 1,
+        '"↺ Đặt lại mọi đỉnh" gỡ tùy chỉnh riêng của từng đỉnh + vào lịch sử hoàn tác');
+    const cl2 = mkCtx();
+    cl2.ctx.savedShapes = [{ mode: 'polygon', vertices: [{ name: 'Đ1' }] }];
+    api.clearAllVertexGlyphOverrides.call(cl2.ctx);
+    assert(cl2.calls.hist.length === 0, 'Không có đỉnh tùy chỉnh nào: nút đặt lại không ghi lịch sử');
+
+    // Bảng lớp trong nhánh gộp phải có đủ ô kiểu + màu + nút đặt lại cho từng lớp
+    const rp = mkCtx();
+    rp.ctx.getLayerById = (id) => rp.ctx.layersTable.find(l => l.id === id);
+    dom.cadSymbolLayerRows = { innerHTML: '' };
+    dom.cadSymOverrideCount = { innerText: '' };
+    api.renderSymbolPanel.call(rp.ctx);
+    const html = dom.cadSymbolLayerRows.innerHTML;
+    assert(html.includes('id="cadSymStyle_RANH_THUA"') && html.includes('id="cadSymColor_RANH_THUA"'),
+        'Nhánh gộp sinh ô kiểu + ô màu cho từng lớp CAD');
+    assert(html.includes('applyLayerGlyph(') && html.includes('resetLayerGlyph('),
+        'Mỗi dòng lớp nối vào applyLayerGlyph và có nút đặt lại mặc định lớp');
+    assert(dom.cadSymOverrideCount.innerText === 1,
+        'Bộ đếm "đang có N điểm/đỉnh tùy chỉnh riêng" tính đúng');
+}
+
+// =====================================================================
+// 17. Xuất bản vẽ + giao diện: không còn cứng ký hiệu cho đỉnh khối
+// =====================================================================
+console.log('\n— Exporter / markup / CSS cho đỉnh khối —');
+{
+    assert(!/isPointLayer\s*\?\s*this\.getPoint(Style|Color)For/.test(appJs),
+        'Không còn nhánh "đỉnh khối cứng circle/màu cố định" trong 4 exporter');
+    assert(appJs.includes('const glyph = this.getPointStyleFor(shape, p);'),
+        'DXF: hình đỉnh mốc lấy theo kiểu đã chọn cho cả khối và điểm');
+    assert(/svgContent \+= `  \$\{this\.pointGlyphSvg\(this\.getPointStyleFor\(shape, p\)/.test(appJs),
+        'SVG: mọi đỉnh xuất qua pointGlyphSvg (mang kiểu + màu thật)');
+    const canvasGlyphCalls = (appJs.match(/this\.drawPointGlyph\(ctx, [^;]*this\.getPointStyleFor\(shape, p\)/g) || []).length;
+    assert(canvasGlyphCalls === 2, 'PDF + PNG: cả hai canvas dùng kiểu/màu thật của đỉnh');
+
+    ['modalCadSymbols', 'btnCadSymbols', 'cadSymShowPoints', 'cadSymShowVertices', 'cadSymShowLabels',
+        'cadSymbolLayerRows', 'cadSymOverrideCount'].forEach(id => {
+        assert(indexHtml.includes(`id="${id}"`), `index.html có #${id} trong nhánh gộp`);
+    });
+    assert(indexHtml.includes('appCadTool.openSymbolPanel()') && indexHtml.includes('appCadTool.closeSymbolPanel()'),
+        'Nút 🎨 mở/đóng nhánh gộp qua openSymbolPanel/closeSymbolPanel');
+    assert(/<th[^>]*>Ký hiệu<\/th>[\s\S]{0,200}<th[^>]*>Màu<\/th>/.test(indexHtml),
+        'Bảng đỉnh có 2 cột Ký hiệu và Màu');
+    assert(appJs.includes("setVal('cadSymShowVertices', s.showVertices)"),
+        'syncDisplayCheckboxes nhân bản trạng thái 3 nhóm hiển thị sang nhánh gộp');
+    assert(styleCss.includes('.cad-sym-section-title'),
+        'style.css định dạng các khối của nhánh gộp');
+    assert(appJs.includes("'modalCadSymbols'"),
+        'closeCadWindows đăng ký modal nhánh gộp (AGENTS.md §2)');
 }
 
 // =====================================================================

@@ -749,9 +749,11 @@ console.log('\n— 12. Đăng ký modal, nút, phím tắt, dòng lệnh và CSS
         .forEach(cls => assert(styleCss.includes(cls), `style.css định nghĩa ${cls}`));
 
     const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-    assert(/CACHE_NAME = 'vn2000-pro-v2\.8\.11'/.test(sw), 'sw.js nâng CACHE_NAME lên v2.8.11 cho đợt WP-C');
-    assert(indexHtml.includes('app.js?v=2.8.11') && indexHtml.includes('style.css?v=2.8.11'),
-        'index.html cache-bust app.js + style.css lên 2.8.11');
+    const swVer = (sw.match(/CACHE_NAME = 'vn2000-pro-v([\d.]+)'/) || [])[1];
+    const appVer = (indexHtml.match(/app\.js\?v=([\d.]+)/) || [])[1];
+    const cssVer = (indexHtml.match(/style\.css\?v=([\d.]+)/) || [])[1];
+    assert(!!swVer && swVer === appVer && swVer === cssVer,
+        `Phiên bản dùng chung ở sw.js + app.js + style.css (hiện là ${swVer})`);
 }
 
 // =====================================================================
