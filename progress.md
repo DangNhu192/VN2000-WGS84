@@ -870,3 +870,41 @@
 - Cache PWA tăng lên vn2000-pro-v2.8.4.
 - Kiểm chứng: 218/218 tests PASS, node --check và git diff --check đạt. Thử UI localhost: chấm điểm và Áp dụng về Form trả đúng tọa độ, X/Y khớp bản đồ.
 - Chưa commit/deploy. Người dùng đã cho phép Codex hoàn thiện trực tiếp.
+
+## 2026-10-30 — Port nhóm Chấm điểm / Bảng điểm lên nền 37k dòng (commit b65da20)
+- Tính năng `mode: 'point'` (lớp điểm rời) đã có trên nền mới: nút 📍 Chấm điểm [I], 📋 Bảng điểm, `#cadPointLayerBar` chọn lớp + ➕ Lớp mới.
+- `appCadTool`: `getPointLayers / getActivePointLayer / createPointLayer / addPointToLayer / nextPointName`, bảng điểm (`renderPointTable`, `updatePointField`, `deletePointRow`, `zoomToPointRow`, `addPointFromTable`) và `exportPointCsv` (BOM + phân cách `;`).
+- Khôi phục hàm toàn cục `escapeHtml()` (thiếu trên nền mới → lỗi tiềm ẩn tại `app.js:1684`).
+- `renderGeometry`: đỉnh lớp điểm luôn bung nhãn, tooltip hiện X/Y/H/ghi chú; `calculateAreaAndPerimeter` trả rỗng cho mode point.
+- `findSnapCandidate`: 4 vòng lặp cạnh bỏ qua lớp điểm (`shape.mode === 'point'`) → hết hiện tượng hít vào "cạnh ảo" nối hai điểm rời.
+- Exporter DXF/PDF/SVG/Ảnh + bảng kê, danh sách khối, Sổ đo đều nhận diện khối kiểu Điểm.
+- Persistence: `pointLayerId` lưu trong session (`vn2k_cad_session_v2`) và khôi phục khi reload; undo/redo giữ nguyên lớp điểm đang chọn.
+- Kiểm chứng: `node --check` đạt, `npm test` 305/305 PASS (thêm `tests/cadcraft_points.test.js` 75/75), thử trực tiếp trên localhost:8080 với dự án tạm `_ZTest_Points.csv` (chấm điểm, sửa X/Y/H, thêm điểm từ bảng, xuất CSV, undo, xóa dòng, zoom, export SVG/DXF/PDF).
+- Đẩy `integration-draw-fixes` (không đụng `main` theo yêu cầu), fast-forward `D:\Nhu\APP\VN2000-PWA` tới `b65da20`.
+
+## 2026-10-30 — Sửa lỗi công cụ Vẽ MiniCAD (commit 99c2815)
+- **Nguyên nhân gốc**: `src/core/cad_geometry.js` không được nạp trong `index.html` → `CadGeometryEngine` undefined, làm Tách thửa, Hợp thửa, Xén ranh, Kéo dài và bắt điểm kéo dài cực đều ném `ReferenceError` khi dùng.
+  - Đã thêm `<script src="src/core/cad_geometry.js?v=2.8.5">` trước `app.js` và precache trong `sw.js` (CACHE_NAME → v2.8.8).
+- **Tên khối sai chế độ**: ô `#cadActiveShapeName` được điền tự động "Tuyến N", sang chế độ Đa giác vẫn lưu tiếp tên đó. Thêm `syncShapeNameSuggestion()` (gọi trong `setMode`) đổi gợi ý theo chế độ, giữ nguyên tên người dùng tự đặt.
+- **Offset ở tab Chọn không dùng được**: trước đây `promptOffset()` chỉ đọc nét vẽ dở nên luôn báo "Cần 2 đỉnh". Nay nếu đang chọn khối thì tạo khối mới song song `"<tên> (Offset)"`, tính lại diện tích, ghi lịch sử/lưu dự án; nét dở vẫn cho xem trước đường tím như cũ.
+- Kiểm chứng trực tiếp trên localhost:8080: đa giác, tuyến, điểm rời, khối nhà, bán kính, chữ, mũi tên, la bàn, bắn điểm cực, nhập X/Y, khép góc, lưu, xóa, undo/redo, Ortho (khóa trục đúng), Tách (6211 m² → 2×3105 m²), Hợp (giữ 6211 m²), Xén (442.8 → 221.4 m), Kéo dài (166.1 → 221.4 m), Offset (+10 m tạo khối 7911 m²).
+- Test: thêm `tests/draw_tools_runtime.test.js` (39/39), toàn bộ `npm test` = 306/306 PASS.
+- Đẩy `integration-draw-fixes`, fast-forward `D:\Nhu\APP\VN2000-PWA` tới `99c2815`.
+
+## 2026-10-30 — Layer Manager gắn thật với khối vẽ và xuất DXF
+- **Trước đây**: bảng lớp `layersTable` chỉ để trang trí — khối vẽ không lưu `layer`, DXF luôn ghi mọi đường ranh vào `RANH_THUA`, đổi màu/khóa lớp không ảnh hưởng dữ liệu.
+- **Gán lớp khi tạo khối**: `saveAndStartNewShape` lấy lớp hiện hành (`currentLayer`), khối mới mang `layer` + màu theo lớp (BYLAYER). Lớp điểm mới thuộc `MOC_TOADO`; khối Offset kế thừa lớp/màu khối gốc; nạp từ dự án/Excel/CSV cũng gán lớp hiện hành.
+- **Helper mới**: `getShapeLayerId`, `isShapeLayerLocked`, `cadLayerColorToAci` (hex → ACI 1–9 gần nhất), `sanitizeLayerId` (bỏ dấu tiếng Việt, chỉ A-Z0-9_), `collectExportLayers`, `setLayerColor`.
+- **Layer Manager**: ô chọn màu trong từng dòng lớp → `setLayerColor` đổi màu lớp + mọi khối thuộc lớp (thuộc tính hiển thị nên không tạo mốc undo, giống ẩn/khóa lớp). Thêm lớp mới gõ tên có dấu vẫn ra mã ASCII chuẩn CAD (`Đường điện` → `DUONG_DIEN`), tên tiếng Việt giữ nguyên để hiển thị.
+- **Khóa lớp**: chặn `deleteShape`, `startSplitTool`, `startMergeTool` (trước đó chỉ chặn kéo đỉnh/chèn đỉnh).
+- **DXF**: `_getAllExportShapes` giữ `layer`; `exportDwg` khai báo lớp động vào bảng LAYER (màu ACI theo màu lớp) và ghi LWPOLYLINE ranh vào đúng lớp của khối thay vì hard-code `RANH_THUA`.
+- Test: thêm `tests/cadcraft_layers.test.js` (61/61), cập nhật stub `tests/minicad_draw_history.test.js`; `npm test` = 307/307 PASS.
+- Kiểm chứng live localhost:8080 (dự án tạm `_ZLayerTest`): vẽ khối ở lớp TIM_DUONG → `layer=TIM_DUONG`, màu `#eab308`; đổi màu lớp → khối đổi theo; khóa lớp → xóa/tách bị chặn đúng thông báo; ẩn lớp → 0 overlay, hiện lại → 11; DXF có `AcDbLayerTableRecord … TIM_DUONG … 62 … 2` và polyline `8 … TIM_DUONG`; lớp `Đường điện` tạo từ tên có dấu xuất thành `DUONG_DIEN`. Đã dọn dẹp: xóa dữ liệu test, khôi phục 7 lớp mặc định, xóa session/key thử nghiệm, trả `currentProject`.
+
+## 2026-10-30 — Cách ly cửa sổ giữa các phân hệ (UI Isolation)
+- **Lỗi**: rời MiniCAD sang Bản đồ dự án / Chấm điểm / Chuyển đổi vẫn còn layer CAD trên bản đồ dùng chung; bấm khối/đỉnh mở popup sửa nhanh + modal chú thích CAD, kéo/chuột phải xóa đỉnh được dù `isActive=false`; bảng kê CAD còn treo đè lên phân hệ khác.
+- **Guard**: `selectItem`, `showQuickEditPopup`, `openAnnotationModal`, `handleMapClick` (CAD) trả về ngay khi `!this.isActive`; marker đỉnh chỉ `draggable` khi CAD bật; chặn `dragstart` / `contextmenu`.
+- **Helper mới**: `closeCadWindows()` (đóng popup Leaflet + 9 modal CAD + bảng thống kê khối), `clearCadOverlays()` (xóa `layers.group` + `layers.annotationsGroup`).
+- **Nối vào luồng**: `closeToolbar()` gọi `closeCadWindows`; `openProjectMap` / `openCoordPickerMap` / `openConvertedMap` gọi cả hai trước khi hiển thị; `openTransformCoordScreen` / `openTransformMap` tắt toolbar nếu CAD đang mở.
+- **Modal thiếu class**: `openDefaultStampSettingsModal` và `promptOpenConvertedMap` trước chỉ thêm `show` (CSS chỉ hiển thị khi có `active`) → nay thêm `active + show`; `closePromptMap` gỡ cả hai.
+- Test: thêm `tests/cad_ui_isolation.test.js` 26/26; `node --check` đạt; `npm test` = 308/308 PASS. Live localhost:8080: modal bảng kê `flex` trong CAD → `none` sau khi rời; sang Chuyển đổi tọa độ tắt CAD và đóng bảng điểm; đã dọn dự án tạm `_ZModalAudit.csv`.

@@ -493,3 +493,26 @@
 - Cache PWA tăng lên vn2000-pro-v2.8.4.
 - Kiểm chứng: 218/218 tests PASS, node --check và git diff --check đạt. Thử UI localhost: chấm điểm và Áp dụng về Form trả đúng tọa độ, X/Y khớp bản đồ.
 - Chưa commit/deploy. Người dùng đã cho phép Codex hoàn thiện trực tiếp.
+
+## 2026-10-30 — Nhóm Chấm điểm / Bảng điểm (đã xong)
+- Commit `b65da20` trên `integration-draw-fixes` (app.js + index.html + tests/cadcraft_points.test.js). Không push `main`.
+- `D:\Nhu\APP\VN2000-PWA` đã fast-forward tới `b65da20`; `npm test` = 305/305.
+- Còn lại theo thứ tự ưu tiên port: (1) icon mốc theo lớp (`pointStyle`, `openPointIconModal`, `showPointIcons`, CSS `--cad-pt-size`), (2) Layer Manager ẩn/khóa/màu (`toggleShapeHidden`, `toggleShapeLocked`, `setShapeColor`, `renderLayerManager`), (3) Dynamic Input, (4) Hatch, (5) Import DXF, (6) Inquiry/QSELECT — kèm các suite `cadcraft_layers`, `cadcraft_dynamic_input`, `minicad_snap_runtime`, `minicad_toolbar_collapse`, `minicad_select_and_delete` chưa chuyển sang nền mới.
+- Lưu ý dữ liệu: dự án thật `VN2000_SoLieu_DoDac` vẫn còn 1 lớp điểm thử nghiệm "Lớp điểm 1" (điểm P1) do lần kiểm thử trước để lại — đã giữ nguyên khóa localStorage, người dùng tự xóa nếu không cần.
+
+## 2026-10-30 — Công cụ Vẽ MiniCAD (đã sửa, commit 99c2815)
+- Đã nạp `CadGeometryEngine` cho trình duyệt; Tách/Hợp/Xén/Kéo dài chạy đúng, có test hồi quy `tests/draw_tools_runtime.test.js`.
+- Đã sửa gợi ý tên khối theo chế độ và Offset từ khối đang chọn.
+- Việc tiếp theo: port nhóm **Layer Manager** (gán `layer` cho khối khi lưu, xuất DXF theo lớp, ẩn/khóa/màu theo lớp, `renderLayerManager`) rồi icon mốc theo lớp (`pointStyle`).
+
+## 2026-10-30 — Layer Manager (đã xong trên working tree)
+- Khối vẽ/nạp/offset giờ mang `layer` + màu BYLAYER; Layer Manager có ô đổi màu lớp (áp cho mọi khối thuộc lớp), khóa lớp chặn xóa/tách/hợp; DXF khai báo lớp động và ghi ranh vào đúng lớp.
+- Helper mới: `getShapeLayerId`, `isShapeLayerLocked`, `cadLayerColorToAci`, `sanitizeLayerId`, `collectExportLayers`, `setLayerColor`; `_getAllExportShapes` giữ `layer`.
+- Test: `tests/cadcraft_layers.test.js` 61/61; `npm test` 307/307. Đã kiểm chứng live với dự án tạm, không ghi vào dự án thật.
+- Lưu ý dữ liệu: trong lúc dọn môi trường test đã xóa lớp điểm thử nghiệm "Lớp điểm 1" còn sót từ lần kiểm thử Chấm điểm trước (127.0.0.1:8080). Bản triển khai thật (vercel) vốn đã để trống `savedShapes` nên không mất dữ liệu người dùng.
+- Việc tiếp theo: icon mốc theo lớp (`pointStyle`, `openPointIconModal`, `showPointIcons`, CSS `--cad-pt-size`), rồi Dynamic Input, Hatch, Import DXF, Inquiry/QSELECT.
+
+## 2026-10-30 — Cách ly cửa sổ chéo phân hệ (đã xong trên working tree)
+- MiniCAD không còn rò cửa sổ/hình khối sang Bản đồ dự án, Chấm điểm, Chuyển đổi tọa độ: guard `isActive` ở `selectItem/showQuickEditPopup/openAnnotationModal/handleMapClick`, marker chỉ kéo khi CAD bật, `closeCadWindows` + `clearCadOverlays` gọi khi rời phân hệ.
+- Test hồi quy `tests/cad_ui_isolation.test.js` (26/26), `npm test` 308/308.
+- Việc tiếp theo: icon mốc theo lớp (`pointStyle`), Dynamic Input, Hatch, Import DXF, Inquiry/QSELECT.

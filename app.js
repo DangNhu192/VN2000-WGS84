@@ -901,6 +901,11 @@ const appNav = window.appNav = {
         AppState.currentScreen = 'transform';
         AppState.mapMode = 'transform';
 
+        // Rời MiniCAD khi vào Chuyển đổi tọa độ: đóng thanh công cụ, popup và cửa sổ CAD
+        if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
+            appCadTool.closeToolbar();
+        }
+
         document.querySelectorAll('.screen-view').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
@@ -1143,6 +1148,11 @@ const appNav = window.appNav = {
         AppState.currentScreen = 'transform_map';
         AppState.mapMode = 'transform_map';
 
+        // Bản đồ chuyển đổi là không gian riêng, tắt MiniCAD nếu đang mở
+        if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
+            appCadTool.closeToolbar();
+        }
+
         document.querySelectorAll('.screen-view').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
@@ -1197,6 +1207,11 @@ const appNav = window.appNav = {
         // Tắt toàn bộ MiniCAD và đo đạc
         if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
             appCadTool.closeToolbar();
+        }
+        // Bản đồ chấm điểm chuyển đổi phải sạch, không lẫn khối/hình vẽ của MiniCAD
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
+            if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
         }
         const cadBar = document.getElementById('mapCadToolbar');
         if (cadBar) cadBar.style.display = 'none';
@@ -1264,6 +1279,11 @@ const appNav = window.appNav = {
         // Tắt toàn bộ MiniCAD và thanh đo đạc
         if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
             appCadTool.closeToolbar();
+        }
+        // Không để cửa sổ CAD treo lại trên Bản đồ dự án; hình khối sẽ được nạp lại ở chế độ chỉ xem
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
+            if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
         }
         const cadBar = document.getElementById('mapCadToolbar');
         if (cadBar) cadBar.style.display = 'none';
@@ -1415,6 +1435,11 @@ const appNav = window.appNav = {
         // Tắt toàn bộ MiniCAD
         if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
             appCadTool.closeToolbar();
+        }
+        // Màn hình xem vị trí điểm chuyển đổi không hiển thị hình vẽ CAD
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
+            if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
         }
         const cadBar = document.getElementById('mapCadToolbar');
         if (cadBar) cadBar.style.display = 'none';
@@ -3888,12 +3913,12 @@ const appTransform = {
         if (pLng) pLng.innerText = formatLatLong(pt.lng, AppState.formatType);
         if (pKtt) pKtt.innerText = `${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
 
-        modal.classList.add('show');
+        modal.classList.add('active', 'show');
     },
 
     closePromptMap() {
         const modal = document.getElementById('modalPromptConvertedMap');
-        if (modal) modal.classList.remove('show');
+        if (modal) modal.classList.remove('active', 'show');
     },
 
     confirmOpenConvertedMap() {
@@ -18010,6 +18035,8 @@ const appCadTool = {
 
     // === CÔNG CỤ CHỌN ĐỐI TƯỢNG (SELECT & EDIT TOOL ↖️) ===
     selectItem(item) {
+        // Bản đồ dự án / Chuyển đổi chỉ hiển thị khối ở chế độ xem, không được mở công cụ sửa CAD
+        if (!this.isActive) return;
         this.selectedItem = item;
         const nameEl = document.getElementById('cadSelectedObjectName');
         const btnEdit = document.getElementById('btnCadEditSelected');
@@ -19397,8 +19424,33 @@ const appCadTool = {
         showToast("📐 MiniCAD 2D CADCraft sẵn sàng! Gõ lệnh hoặc bấm nút để vẽ & biên tập!");
     },
 
+    // Đóng toàn bộ cửa sổ/popup riêng của MiniCAD khi rời phân hệ,
+    // tránh cửa sổ CAD treo lại đè lên Bản đồ dự án hoặc Chuyển đổi tọa độ
+    closeCadWindows() {
+        if (AppState.leafletMap && AppState.leafletMap.closePopup) AppState.leafletMap.closePopup();
+        [
+            'modalCadAreaTable', 'modalCadPointTable', 'modalCadExportConfig',
+            'modalCadLoadProject', 'modalCadPolarInput', 'modalCadCoordInput',
+            'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow'
+        ].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('active', 'show');
+            el.style.display = 'none';
+        });
+        const blocks = document.getElementById('cadBlocksStatsPanel') || document.getElementById('cadBlocksPanel');
+        if (blocks) blocks.style.display = 'none';
+    },
+
+    // Gỡ hình khối CAD khỏi bản đồ dùng chung (Chuyển đổi tọa độ / bản đồ mới sạch)
+    clearCadOverlays() {
+        if (this.layers.group) this.layers.group.clearLayers();
+        if (this.layers.annotationsGroup) this.layers.annotationsGroup.clearLayers();
+    },
+
     closeToolbar() {
         this.isActive = false;
+        this.closeCadWindows();
         this.setToolbarCollapsed(false);
         const bar = document.getElementById('mapCadToolbar');
         if (bar) bar.style.display = 'none';
@@ -19884,7 +19936,7 @@ const appCadTool = {
         if (document.getElementById('txtCadEditAnnColor')) document.getElementById('txtCadEditAnnColor').value = col;
         if (document.getElementById('lblCadEditAnnColorHex')) document.getElementById('lblCadEditAnnColorHex').innerText = col;
 
-        modal.classList.add('show');
+        modal.classList.add('active', 'show');
     },
 
     syncToolButtons() {
@@ -21505,6 +21557,8 @@ const appCadTool = {
     },
 
     handleMapClick(lat, lng) {
+        // Chỉ nhận chạm vẽ khi MiniCAD đang bật (không vẽ nhầm khi đang xem Bản đồ dự án)
+        if (!this.isActive) return;
         this.scheduleToolbarCollapse(1500);
         const now = Date.now();
         if (this._lastClickTime && (now - this._lastClickTime < 120)) {
@@ -22989,6 +23043,8 @@ const appCadTool = {
     },
 
     openAnnotationModal(annId) {
+        // Chỉ mở cửa sổ sửa chú thích khi MiniCAD đang thực sự bật
+        if (!this.isActive) return;
         const ann = (this.annotations || []).find(a => a.id === annId);
         if (!ann) return;
 
@@ -24179,7 +24235,7 @@ const appCadTool = {
                     : `${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết / đổi tên)`;
                 const iconHtml = `<div class="cad-vertex-badge ${isExpanded ? 'expanded' : ''}" style="background: ${sColor}; border-color: #ffffff;" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
-                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked }).addTo(this.layers.group);
+                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked && this.isActive }).addTo(this.layers.group);
                 marker._pinned = isExpanded;
                 vertexMarkers.push(marker);
 
@@ -24203,6 +24259,7 @@ const appCadTool = {
 
                 let isDragging = false;
                 marker.on('dragstart', (e) => {
+                    if (!this.isActive) return;
                     if (isLayerLocked) {
                         showToast(`🔒 Lớp [${shapeLayer?.name || 'Hiện hành'}] đang bị khóa ranh giới!`);
                         if (AppState.leafletMap) AppState.leafletMap.dragging.enable();
@@ -24380,6 +24437,8 @@ const appCadTool = {
                     });
                 });
                 marker.on('contextmenu', (e) => {
+                    // Chỉ xóa đỉnh khi MiniCAD đang bật (xem khối ở Bản đồ dự án không được sửa dữ liệu)
+                    if (!this.isActive) return;
                     L.DomEvent.stopPropagation(e);
                     if (confirm(`Bạn có chắc muốn xóa đỉnh ${v.name} của [${shape.shortName}]?`)) {
                         appCadTool.deleteVertex(sIdx, vIdx);
@@ -27688,7 +27747,8 @@ const appCadTool = {
 
     // === POPUP CHỈNH SỬA NHANH TÊN / THUỘC TÍNH TRỰC TIẾP TRÊN BẢN ĐỒ ===
     showQuickEditPopup(latlng, targetData) {
-        if (!AppState.leafletMap) return;
+        // Popup sửa nhanh là công cụ CAD: không được bật lên khi đang ở Bản đồ dự án / Chuyển đổi
+        if (!this.isActive || !AppState.leafletMap) return;
         this.currentQuickTarget = targetData;
 
         let title = '';
