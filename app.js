@@ -17338,6 +17338,77 @@ const appCadTool = {
         return this.layersTable.find(l => l.id === id) || this.layersTable[0];
     },
 
+    getShapeLayerId(shape) {
+        return (shape && shape.layer) || 'RANH_THUA';
+    },
+
+    isShapeLayerLocked(shape) {
+        const ly = this.getLayerById(this.getShapeLayerId(shape));
+        return !!(ly && ly.locked);
+    },
+
+    // Quy đổi màu hex của lớp sang chỉ số màu AutoCAD (ACI) gần nhất để ghi vào bảng LAYER
+    cadLayerColorToAci(hex) {
+        const aci = [
+            [1, '#ff0000'], [2, '#ffff00'], [3, '#00ff00'], [4, '#00ffff'], [5, '#0000ff'],
+            [6, '#ff00ff'], [7, '#ffffff'], [8, '#808080'], [9, '#c0c0c0']
+        ];
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+        if (!m) return 7;
+        const r = parseInt(m[1].slice(0, 2), 16), g = parseInt(m[1].slice(2, 4), 16), b = parseInt(m[1].slice(4, 6), 16);
+        let best = 7, bestDist = Infinity;
+        aci.forEach(([idx, col]) => {
+            const dr = r - parseInt(col.slice(1, 3), 16);
+            const dg = g - parseInt(col.slice(3, 5), 16);
+            const db = b - parseInt(col.slice(5, 7), 16);
+            const dist = dr * dr + dg * dg + db * db;
+            if (dist < bestDist) { bestDist = dist; best = idx; }
+        });
+        return best;
+    },
+
+    // Mã lớp an toàn cho DXF (chỉ A-Z0-9_, bỏ dấu tiếng Việt)
+    sanitizeLayerId(id) {
+        const clean = String(id || '')
+            .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9_]+/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_+|_+$/g, '');
+        return clean || 'RANH_THUA';
+    },
+
+    // Gộp bảng lớp cố định của khung bản vẽ với các lớp người dùng đang dùng (Layer Manager)
+    collectExportLayers(baseLayers, selectedShapes) {
+        const layers = (baseLayers || []).map(l => ({ name: l.name, color: l.color }));
+        const used = new Set((selectedShapes || []).map(s => this.sanitizeLayerId(this.getShapeLayerId(s))));
+        used.forEach(layerId => {
+            if (layers.some(ly => ly.name === layerId)) return;
+            const src = (this.layersTable || []).find(ly => this.sanitizeLayerId(ly.id) === layerId);
+            layers.push({ name: layerId, color: this.cadLayerColorToAci(src && src.color) });
+        });
+        return layers;
+    },
+
+    setLayerColor(layerId, hex) {
+        const ly = this.getLayerById(layerId);
+        if (!ly || !/^#[0-9a-f]{6}$/i.test(String(hex || ''))) return;
+        // Màu lớp là thuộc tính hiển thị (như ẩn/khóa lớp), không ghi vào lịch sử vẽ
+        ly.color = hex;
+        this.saveLayersTable();
+        (this.savedShapes || []).forEach(s => {
+            if (s.layer === ly.id) s.color = hex;
+        });
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        this.renderLayersList();
+        this.updateCurrentLayerBadge();
+        showToast(`🎨 Đã đổi màu lớp [${ly.name}]`);
+    },
+
     setCurrentLayer(layerId) {
         const ly = this.getLayerById(layerId);
         if (!ly) return;
@@ -17411,7 +17482,9 @@ const appCadTool = {
             tr.style.cssText = `border-bottom: 1px solid rgba(255,255,255,0.06); ${isCurrent ? 'background: rgba(56, 189, 248, 0.12);' : ''}`;
             tr.innerHTML = `
                 <td style="padding: 6px 8px;">
-                    <div style="width: 18px; height: 18px; border-radius: 4px; background: ${l.color}; border: 1px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4);"></div>
+                    <input type="color" value="${l.color}" title="Đổi màu lớp (áp dụng cho mọi khối thuộc lớp này)"
+                        onchange="appCadTool.setLayerColor('${l.id}', this.value)"
+                        style="width: 22px; height: 22px; padding: 0; border: 1px solid #fff; border-radius: 4px; background: ${l.color}; box-shadow: 0 1px 4px rgba(0,0,0,0.4); cursor: pointer;">
                 </td>
                 <td style="padding: 6px 8px; font-weight: 700; color: ${isCurrent ? '#38bdf8' : '#e2e8f0'}; font-family: ui-monospace, monospace;">
                     ${l.id} ${isCurrent ? '<span style="font-size: 10px; color: #38bdf8; font-weight: 800;">[HIỆN HÀNH]</span>' : ''}
@@ -17446,10 +17519,10 @@ const appCadTool = {
     },
 
     promptAddNewLayer() {
-        const id = prompt('Nhập mã layer mới (viết hoa không dấu, ví dụ: DUONG_DIEN, CO_QUAN):');
+        const id = prompt('Nhập tên/mã layer mới (ví dụ: Đường điện, CO_QUAN):');
         if (!id) return;
-        const cleanId = id.toUpperCase().trim().replace(/[^A-Z0-9_]/g, '_');
-        if (this.layersTable.some(l => l.id === cleanId)) {
+        const cleanId = this.sanitizeLayerId(id);
+        if (this.layersTable.some(l => this.sanitizeLayerId(l.id) === cleanId)) {
             showToast('⚠️ Mã lớp này đã tồn tại!', true);
             return;
         }
@@ -17513,6 +17586,10 @@ const appCadTool = {
         const shape = this.savedShapes[this.selectedItem.index];
         if (!shape || shape.mode !== 'polygon' || !shape.vertices || shape.vertices.length < 3) {
             showToast('⚠️ Đối tượng được chọn phải là đa giác khép kín hợp lệ để tách thửa!', true);
+            return;
+        }
+        if (this.isShapeLayerLocked(shape)) {
+            showToast(`🔒 Khối "${shape.name}" thuộc lớp đang khóa — mở khóa lớp trước khi tách thửa!`, true);
             return;
         }
 
@@ -17624,6 +17701,10 @@ const appCadTool = {
         const shape = this.savedShapes[this.selectedItem.index];
         if (!shape || shape.mode !== 'polygon') {
             showToast('⚠️ Đối tượng được chọn phải là đa giác khép kín!', true);
+            return;
+        }
+        if (this.isShapeLayerLocked(shape)) {
+            showToast(`🔒 Khối "${shape.name}" thuộc lớp đang khóa — mở khóa lớp trước khi hợp thửa!`, true);
             return;
         }
 
@@ -19940,7 +20021,8 @@ const appCadTool = {
             mode: 'point',
             vertices: [],
             stats: this.calculateAreaAndPerimeter([], 'point'),
-            color: this.palette[(this.savedShapes.length) % this.palette.length],
+            color: (this.getLayerById('MOC_TOADO') || {}).color || this.palette[(this.savedShapes.length) % this.palette.length],
+            layer: 'MOC_TOADO',
             symbol: String(this.savedShapes.length + 1)
         };
 
@@ -20532,6 +20614,7 @@ const appCadTool = {
                 customPerimeter: s.customPerimeter,
                 customEdges: s.customEdges,
                 color: s.color || '#10b981',
+                layer: s.layer || 'RANH_THUA',
                 selected: s.selected !== false
             });
         });
@@ -20547,6 +20630,7 @@ const appCadTool = {
                 vertices: vertices,
                 stats: this.calculateAreaAndPerimeter(vertices, this.mode),
                 color: '#06b6d4',
+                layer: this.currentLayer || 'RANH_THUA',
                 selected: this._draftSelected !== false
             });
         }
@@ -21695,6 +21779,7 @@ const appCadTool = {
             });
         }
 
+        const shapeLayer = this.getLayerById(this.currentLayer || 'RANH_THUA');
         this.pushHistoryState(`Lưu khối "${chosenName}"`);
         this.savedShapes.push({
             id: 'shape_' + Date.now(),
@@ -21703,7 +21788,8 @@ const appCadTool = {
             mode: this.mode,
             vertices: [...this.vertices],
             stats: stats,
-            color: color,
+            color: (shapeLayer && shapeLayer.color) || color,
+            layer: (shapeLayer && shapeLayer.id) || 'RANH_THUA',
             selected: true
         });
 
@@ -25116,7 +25202,8 @@ const appCadTool = {
                 mode: newMode,
                 vertices: offsetVerts,
                 stats: this.calculateAreaAndPerimeter(offsetVerts, newMode),
-                color: this.palette[this.savedShapes.length % this.palette.length],
+                color: sourceShape.color || this.palette[this.savedShapes.length % this.palette.length],
+                layer: sourceShape.layer || this.currentLayer || 'RANH_THUA',
                 selected: true
             });
             this.saveShapesForProject(AppState.currentProject);
@@ -26160,6 +26247,7 @@ const appCadTool = {
                 mode: s.mode || 'polygon',
                 vertices: newVertices,
                 color: newColor,
+                layer: s.layer || this.currentLayer || 'RANH_THUA',
                 selected: true,
                 stats: this.calculateAreaAndPerimeter(newVertices, s.mode)
             };
@@ -26360,6 +26448,7 @@ const appCadTool = {
                 mode: mode,
                 vertices: vertices,
                 color: shapeColor,
+                layer: this.currentLayer || 'RANH_THUA',
                 selected: true,
                 stats: this.calculateAreaAndPerimeter(vertices, mode)
             };
@@ -26381,6 +26470,7 @@ const appCadTool = {
                         mode: sMode,
                         vertices: sObj.vertices,
                         color: sColor,
+                        layer: sObj.layer || this.currentLayer || 'RANH_THUA',
                         selected: true,
                         stats: this.calculateAreaAndPerimeter(sObj.vertices, sMode)
                     };
@@ -28780,6 +28870,10 @@ const appCadTool = {
     deleteShape(index, skipConfirm = false) {
         if (!this.savedShapes || !this.savedShapes[index]) return;
         const name = this.savedShapes[index].name || this.savedShapes[index].shortName || 'Khối';
+        if (this.isShapeLayerLocked(this.savedShapes[index])) {
+            showToast(`🔒 Khối "${name}" thuộc lớp [${this.getLayerById(this.getShapeLayerId(this.savedShapes[index])).name}] đang khóa — mở khóa lớp trước khi xóa!`, true);
+            return;
+        }
         const wasPointLayer = this.pointLayerId && this.savedShapes[index].id === this.pointLayerId;
         if (!skipConfirm && !confirm(`Bạn có chắc muốn xóa khối "${name}" không?`)) return;
         this.pushHistoryState(`Xóa khối "${name}"`);
@@ -29481,6 +29575,7 @@ const appCadTool = {
                 mode: s.mode,
                 vertices: s.vertices,
                 color: sColor,
+                layer: this.currentLayer || 'RANH_THUA',
                 selected: true,
                 stats: stats
             };
@@ -30666,8 +30761,10 @@ const appCadTool = {
             { name: "TEXT_SO_LIEU", color: 3 },
             { name: "HUONG_BAC", color: 4 }
         ];
-        dwg += `0\r\nTABLE\r\n2\r\nLAYER\r\n5\r\n2\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n${cadLayers.length}\r\n`;
-        cadLayers.forEach(ly => {
+        // Bổ sung các lớp do người dùng định nghĩa trong Layer Manager nếu có khối xuất thuộc lớp đó
+        const exportLayers = this.collectExportLayers(cadLayers, selectedShapes);
+        dwg += `0\r\nTABLE\r\n2\r\nLAYER\r\n5\r\n2\r\n330\r\n0\r\n100\r\nAcDbSymbolTable\r\n70\r\n${exportLayers.length}\r\n`;
+        exportLayers.forEach(ly => {
             dwg += `0\r\nLAYER\r\n5\r\n${nextH()}\r\n330\r\n2\r\n100\r\nAcDbSymbolTableRecord\r\n100\r\nAcDbLayerTableRecord\r\n2\r\n${ly.name}\r\n70\r\n0\r\n62\r\n${ly.color}\r\n6\r\nCONTINUOUS\r\n`;
         });
         dwg += "0\r\nENDTAB\r\n";
@@ -30815,7 +30912,7 @@ const appCadTool = {
 
             // Đường ranh thửa nét đậm 0.50mm bằng LWPOLYLINE chuẩn AC1015 (lớp điểm rời không có đường ranh)
             if (meta.showBoundaries !== false && !isPointLayer) {
-                addLwPolyline("RANH_THUA", pts.map(p => ({ x: p.y, y: p.x })), isClosed);
+                addLwPolyline(this.sanitizeLayerId(this.getShapeLayerId(shape)), pts.map(p => ({ x: p.y, y: p.x })), isClosed);
             }
 
             // Điểm đỉnh mốc & Nhãn tên mốc (Hiển thị khi meta.showVertices !== false)

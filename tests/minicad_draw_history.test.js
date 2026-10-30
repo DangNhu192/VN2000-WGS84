@@ -87,6 +87,8 @@ function makeCtx() {
         mode: 'polygon',
         isActive: true,
         pointLayerId: null,
+        currentLayer: 'RANH_THUA',
+        getLayerById() { return { id: 'RANH_THUA', name: 'Ranh thửa đất', color: '#ef4444', visible: true, locked: false }; },
         palette: ['#10b981', '#38bdf8'],
         historyStack: [],
         historyIndex: -1,
