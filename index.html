@@ -2154,6 +2154,24 @@
               title="Văn bản ghi chú tùy biến (Text Annotation) trên bản đồ">
               🔤 Chữ [Text]
             </button>
+            <button id="btnCadMarkupDimLin" class="cad-btn"
+              style="background: rgba(251, 191, 36, 0.16); border-color: rgba(251, 191, 36, 0.45); color: #fbbf24;"
+              onclick="appCadTool.setMarkupMode('dim_linear')"
+              title="Ghi kích thước cạnh ranh (DIMLINEAR): Click 2 mốc liền nhau, ghi nối tiếp như DIMCONTINUE, kéo nhãn để chỉnh khoảng cách đường kích. Phím tắt: M">
+              📏 Kích thước cạnh [M]
+            </button>
+            <button id="btnCadMarkupDimAng" class="cad-btn"
+              style="background: rgba(167, 139, 250, 0.16); border-color: rgba(167, 139, 250, 0.45); color: #a78bfa;"
+              onclick="appCadTool.setMarkupMode('dim_angle')"
+              title="Ghi góc tại đỉnh (DIMANGULAR): Click cạnh 1 → đỉnh → cạnh 2, xuất Độ-Phút-Giây. Phím tắt: G">
+              📐 Góc tại đỉnh [G]
+            </button>
+            <button id="btnCadMarkupDimRad" class="cad-btn"
+              style="background: rgba(34, 211, 238, 0.14); border-color: rgba(34, 211, 238, 0.4); color: #22d3ee;"
+              onclick="appCadTool.setMarkupMode('dim_radius')"
+              title="Ghi bán kính cung tròn / đoạn cong ranh (DIMRADIUS): Click tâm rồi click điểm trên cung">
+              🎯 Bán kính cung
+            </button>
             <button id="btnCadMarkupToggle" class="cad-btn"
               style="background: rgba(100, 116, 139, 0.2); border-color: rgba(148, 163, 184, 0.3); color: #94a3b8;"
               onclick="appCadTool.toggleAnnotationsVisible()" title="Ẩn / Hiện tất cả chú thích & hình khối">
@@ -6004,6 +6022,50 @@
             <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Bán
               kính bảo vệ (mét):</label>
             <input type="number" step="0.5" id="txtCadEditAnnRadius" class="form-control" placeholder="10.0"
+              style="width: 100%; height: 34px;">
+          </div>
+        </div>
+
+        <!-- Trường dành cho DIMENSION (kích thước cạnh / góc / bán kính) -->
+        <div id="grpCadEditAnnDim" style="display: none; flex-direction: column; gap: 8px;">
+          <div id="lblCadEditAnnDimValue"
+            style="font-size: 10.5px; color: #fbbf24; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.28); border-radius: 5px; padding: 4px 8px;">
+            Giá trị đo: --</div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Chế độ
+              hiển thị nhãn:</label>
+            <select id="selCadEditAnnDimMode" class="app-select" style="height: 34px; font-size: 11px; width: 100%;"></select>
+          </div>
+          <div id="rowCadEditDimOffset" style="display: none;">
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Khoảng
+              cách đường kích đến cạnh (m, âm = phía bên kia):</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="number" step="0.25" id="txtCadEditAnnDimOffset" class="form-control" placeholder="1.5"
+                style="width: 100%; height: 34px;">
+              <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 10px; white-space: nowrap;"
+                onclick="document.getElementById('txtCadEditAnnDimOffset').value=1.5">1.5m</button>
+              <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 10px; white-space: nowrap;"
+                onclick="document.getElementById('txtCadEditAnnDimOffset').value=3">3m</button>
+              <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 10px; white-space: nowrap;"
+                onclick="document.getElementById('txtCadEditAnnDimOffset').value=-1.5">-1.5m</button>
+            </div>
+          </div>
+          <div id="rowCadEditDimArc" style="display: none;">
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Bán kính
+              cung góc (m):</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="number" step="0.25" min="0.3" id="txtCadEditAnnDimArc" class="form-control" placeholder="2.0"
+                style="width: 100%; height: 34px;">
+              <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 10px; white-space: nowrap;"
+                onclick="document.getElementById('txtCadEditAnnDimArc').value=1.5">1.5m</button>
+              <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 10px; white-space: nowrap;"
+                onclick="document.getElementById('txtCadEditAnnDimArc').value=3">3m</button>
+            </div>
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Nhãn tự
+              nhập (chỉ dùng khi chọn "Nhãn tự nhập"):</label>
+            <input type="text" id="txtCadEditAnnDimText" class="form-control" placeholder="Ví dụ: 25.40m (bổ đo)"
               style="width: 100%; height: 34px;">
           </div>
         </div>

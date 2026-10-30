@@ -9668,7 +9668,9 @@ function doGet(e) {
                     rect: 'Khối nhà / Công trình',
                     circle: 'Vùng đệm bảo vệ',
                     stamp: 'Tem nhãn thửa đất',
-                    text: 'Chữ ghi chú'
+                    text: 'Chữ ghi chú',
+                    dim_linear: 'Kích thước cạnh',
+                    dim_angle: 'Kích thước góc'
                 };
                 this.annotations.forEach((ann, aIdx) => {
                     let desc = '', dim = '', area = '--', lat = ann.lat, lng = ann.lng;
@@ -9691,6 +9693,19 @@ function doGet(e) {
                         dim = 'Loại đất: ' + ann.landType;
                     } else if (ann.type === 'text') {
                         desc = ann.text || '';
+                    } else if (ann.type === 'dim_linear') {
+                        const dg = this.computeDimLinearGeom(ann);
+                        if (ann.dimStyle === 'radius') desc = 'Bán kính R = ' + (dg ? dg.lenM.toFixed(2) : '--') + 'm';
+                        else desc = 'Cạnh ' + (dg ? dg.lenM.toFixed(2) : '--') + 'm';
+                        dim = dg ? this.dimLabelText(ann, dg, false) : '--';
+                        lat = ((ann.p1Lat || 0) + (ann.p2Lat || 0)) / 2;
+                        lng = ((ann.p1Lng || 0) + (ann.p2Lng || 0)) / 2;
+                        if (ann.dimStyle === 'radius' && dg) area = (Math.PI * dg.lenM * dg.lenM).toFixed(2);
+                    } else if (ann.type === 'dim_angle') {
+                        const ag = this.computeDimAngleGeom(ann);
+                        desc = ag ? this.dimLabelText(ann, ag, false) : '--';
+                        dim = 'Góc tại đỉnh ' + desc;
+                        lat = ann.vLat; lng = ann.vLng;
                     }
                     const vn = convertWgsToVn2k(lat || 0, lng || 0, AppState.kttVal, AppState.scaleFactor);
                     annRows.push([
@@ -17941,6 +17956,14 @@ const appCadTool = {
                     else if (a.type === 'rect') label += `Khối "${a.rectName || 'Nhà'}" (${a.widthM || 0}x${a.lengthM || 0}m)`;
                     else if (a.type === 'circle') label += `Vùng đệm R=${a.radiusM || 0}m`;
                     else if (a.type === 'text') label += `Chữ "${a.text || ''}"`;
+                    else if (a.type === 'dim_linear') {
+                        const g = this.computeDimLinearGeom(a);
+                        label += `${a.dimStyle === 'radius' ? 'Bán kính' : 'Kích thước cạnh'} ${g ? this.dimLabelText(a, g, false) : '--'}`;
+                    }
+                    else if (a.type === 'dim_angle') {
+                        const g = this.computeDimAngleGeom(a);
+                        label += `Kích thước góc ${g ? this.dimLabelText(a, g, false) : '--'}`;
+                    }
                     else label += 'Chú thích';
                 }
             }
@@ -19031,6 +19054,12 @@ const appCadTool = {
             } else if (key === 'T') {
                 e.preventDefault();
                 this.setMarkupMode(this.markupMode === 'text' ? null : 'text');
+            } else if (key === 'M') {
+                e.preventDefault();
+                this.setMarkupMode(this.markupMode === 'dim_linear' ? null : 'dim_linear');
+            } else if (key === 'G') {
+                e.preventDefault();
+                this.setMarkupMode(this.markupMode === 'dim_angle' ? null : 'dim_angle');
             } else if (key === 'N') {
                 e.preventDefault();
                 this.saveAndStartNewShape();
@@ -19589,6 +19618,90 @@ const appCadTool = {
                 break;
             }
 
+            case 'dim_linear':
+            case 'dim_radius': {
+                const isRad = this.markupMode === 'dim_radius';
+                const dCol = isRad ? '#22d3ee' : '#fbbf24';
+                const mkLl = pt => this.latLngFromMetric(pt.x, pt.y);
+                if (!this.markupStepData) {
+                    const tipHtml = `
+                        <div style="background: rgba(15,23,42,0.88); border: 1.5px dashed ${dCol}; border-radius: 6px; padding: 3px 8px; color: ${dCol}; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                            ${isRad ? '🎯 1. Click TÂM cung' : '📏 1. Click mốc đầu'}${snapSource ? ` [${snapSource}]` : ''}
+                        </div>`;
+                    const tipIcon1 = L.divIcon({ className: '', html: tipHtml, iconSize: [190, 24], iconAnchor: [-10, -10] });
+                    L.marker([curLat, curLng], { icon: tipIcon1, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                    L.circleMarker([curLat, curLng], { radius: 6, color: dCol, weight: 2, fillOpacity: 0.3 }).addTo(this.layers.markupPreviewGroup);
+                } else {
+                    const ghost = {
+                        type: 'dim_linear',
+                        dimStyle: isRad ? 'radius' : 'aligned',
+                        p1Lat: this.markupStepData.p1Lat,
+                        p1Lng: this.markupStepData.p1Lng,
+                        p2Lat: curLat,
+                        p2Lng: curLng,
+                        offsetM: isRad ? 0 : 1.5
+                    };
+                    const g = this.computeDimLinearGeom(ghost);
+                    if (!g) break;
+                    g.ext.forEach(seg => {
+                        L.polyline(seg.map(mkLl), { color: dCol, weight: 1, dashArray: '4,4', opacity: 0.8, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                    });
+                    L.polyline([mkLl(g.d1), mkLl(g.d2)], { color: dCol, weight: 2, dashArray: '6,4', opacity: 0.95, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                    L.circleMarker([ghost.p1Lat, ghost.p1Lng], { radius: 5, color: dCol, fillColor: dCol, fillOpacity: 1 }).addTo(this.layers.markupPreviewGroup);
+
+                    const tipHtml = `
+                        <div style="background: rgba(15,23,42,0.92); border: 1.5px solid ${dCol}; border-radius: 6px; padding: 4px 8px; color: #f8fafc; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
+                            <span style="color:${dCol}; font-weight:800;">${this.dimLabelText(ghost, g, false)}</span>
+                            ${isRad ? '' : ` &nbsp;∠ ${this.formatAngleDMS(g.azDeg, false)}<br><span style="font-size:10px; color:#94a3b8;">Click mốc cuối • Esc để kết thúc</span>`}
+                        </div>`;
+                    const tipIcon = L.divIcon({ className: '', html: tipHtml, iconSize: [170, 34], iconAnchor: [-10, -10] });
+                    L.marker([curLat, curLng], { icon: tipIcon, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                }
+                break;
+            }
+
+            case 'dim_angle': {
+                const aCol = '#a78bfa';
+                const mkLl = pt => this.latLngFromMetric(pt.x, pt.y);
+                const st = this.markupStepData;
+                if (!st) {
+                    const tipHtml = `
+                        <div style="background: rgba(15,23,42,0.88); border: 1.5px dashed ${aCol}; border-radius: 6px; padding: 3px 8px; color: ${aCol}; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                            📐 1. Click điểm trên CẠNH 1${snapSource ? ` [${snapSource}]` : ''}
+                        </div>`;
+                    const tipIcon1 = L.divIcon({ className: '', html: tipHtml, iconSize: [210, 24], iconAnchor: [-10, -10] });
+                    L.marker([curLat, curLng], { icon: tipIcon1, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                    L.circleMarker([curLat, curLng], { radius: 6, color: aCol, weight: 2, fillOpacity: 0.3 }).addTo(this.layers.markupPreviewGroup);
+                } else if (st.vLat === undefined) {
+                    const d = map.distance([st.aLat, st.aLng], [curLat, curLng]);
+                    L.polyline([[st.aLat, st.aLng], [curLat, curLng]], { color: aCol, weight: 2, dashArray: '5,5', opacity: 0.85, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                    L.circleMarker([st.aLat, st.aLng], { radius: 5, color: aCol, fillColor: aCol, fillOpacity: 1 }).addTo(this.layers.markupPreviewGroup);
+                    const tipHtml = `
+                        <div style="background: rgba(15,23,42,0.92); border: 1.5px solid ${aCol}; border-radius: 6px; padding: 4px 8px; color: #f8fafc; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
+                            <span style="color:${aCol}; font-weight:800;">📐 2. Click ĐỈNH góc</span> (cạnh 1 = ${d.toFixed(2)}m)
+                        </div>`;
+                    const tipIcon = L.divIcon({ className: '', html: tipHtml, iconSize: [180, 26], iconAnchor: [-10, -10] });
+                    L.marker([curLat, curLng], { icon: tipIcon, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                } else {
+                    const ghost = { type: 'dim_angle', aLat: st.aLat, aLng: st.aLng, vLat: st.vLat, vLng: st.vLng, bLat: curLat, bLng: curLng };
+                    const g = this.computeDimAngleGeom(ghost);
+                    if (!g) break;
+                    [g.a, g.b].forEach(pt => {
+                        L.polyline([mkLl(g.v), mkLl(pt)], { color: aCol, weight: 1.6, dashArray: '5,5', opacity: 0.85, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                    });
+                    L.polyline(g.arcPts.map(mkLl), { color: aCol, weight: 2, opacity: 0.95, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                    L.circleMarker([ghost.vLat, ghost.vLng], { radius: 5, color: aCol, fillColor: aCol, fillOpacity: 1 }).addTo(this.layers.markupPreviewGroup);
+                    const tipHtml = `
+                        <div style="background: rgba(15,23,42,0.92); border: 1.5px solid ${aCol}; border-radius: 6px; padding: 4px 8px; color: #f8fafc; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
+                            <span style="color:${aCol}; font-weight:800;">📐 ${this.dimLabelText(ghost, g, false)}</span><br>
+                            <span style="font-size:10px; color:#94a3b8;">Click điểm trên CẠNH 2 để chốt</span>
+                        </div>`;
+                    const tipIcon = L.divIcon({ className: '', html: tipHtml, iconSize: [170, 34], iconAnchor: [-10, -10] });
+                    L.marker([curLat, curLng], { icon: tipIcon, interactive: false }).addTo(this.layers.markupPreviewGroup);
+                }
+                break;
+            }
+
             case 'text': {
                 const tipHtml = `
                     <div style="background: rgba(15,23,42,0.85); border: 1.5px dashed #38bdf8; border-radius: 6px; padding: 4px 8px; color: #38bdf8; font-size: 11px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
@@ -19689,10 +19802,14 @@ const appCadTool = {
 
         const modeBtns = {
             arrow: 'btnCadMarkupArrow',
+            north_arrow: 'btnCadMarkupNorth',
             stamp: 'btnCadMarkupStamp',
             rect: 'btnCadMarkupRect',
             circle: 'btnCadMarkupCircle',
-            text: 'btnCadMarkupText'
+            text: 'btnCadMarkupText',
+            dim_linear: 'btnCadMarkupDimLin',
+            dim_angle: 'btnCadMarkupDimAng',
+            dim_radius: 'btnCadMarkupDimRad'
         };
 
         Object.keys(modeBtns).forEach(k => {
@@ -19722,7 +19839,7 @@ const appCadTool = {
             return;
         }
         if (this.markupMode) {
-            const modeNames = { arrow: 'Mũi tên', stamp: 'Tem nhãn', rect: 'Khối nhà', circle: 'Bán kính', text: 'Chữ' };
+            const modeNames = { arrow: 'Mũi tên', stamp: 'Tem nhãn', rect: 'Khối nhà', circle: 'Bán kính', text: 'Chữ', dim_linear: 'Đường kích', dim_angle: 'Kích thước góc', dim_radius: 'Bán kính cung' };
             const mName = modeNames[this.markupMode] || this.markupMode;
             tipEl.innerHTML = `<span class="cad-hud-tip-text">🏷️ <b>${mName}</b>: Rê chuột xem bóng mờ • Click đặt • <b>Esc/Chuột phải</b>: Hủy</span>`;
         } else if (this.mode === 'select') {
@@ -21211,7 +21328,10 @@ const appCadTool = {
             rect: 'btnCadMarkupRect',
             circle: 'btnCadMarkupCircle',
             stamp: 'btnCadMarkupStamp',
-            text: 'btnCadMarkupText'
+            text: 'btnCadMarkupText',
+            dim_linear: 'btnCadMarkupDimLin',
+            dim_angle: 'btnCadMarkupDimAng',
+            dim_radius: 'btnCadMarkupDimRad'
         };
 
         Object.keys(modeBtns).forEach(k => {
@@ -21254,6 +21374,18 @@ const appCadTool = {
                         statusEl.innerText = '🔤 Click 1 điểm trên bản đồ để chèn Chữ ghi chú';
                         showToast('🔤 Chữ: Click vị trí muốn viết chữ ghi chú');
                         break;
+                    case 'dim_linear':
+                        statusEl.innerText = '📏 Click 2 mốc ranh liền nhau để ghi kích thước cạnh • [Esc] để kết thúc';
+                        showToast('📏 Kích thước cạnh [M]: Click mốc đầu rồi mốc cuối (giữ nguyên chế độ để ghi nối tiếp)');
+                        break;
+                    case 'dim_angle':
+                        statusEl.innerText = '📐 Click CẠNH 1 → ĐỈNH GÓC → CẠNH 2 để ghi góc tại đỉnh';
+                        showToast('📐 Ghi góc [G]: Click cạnh 1, sau đó đỉnh, rồi cạnh 2');
+                        break;
+                    case 'dim_radius':
+                        statusEl.innerText = '🎯 Click TÂM (hoặc đầu kia dây cung) rồi click điểm trên cung để ghi bán kính';
+                        showToast('🎯 Bán kính cung: Click tâm rồi click điểm trên cung');
+                        break;
                 }
             }
         }
@@ -21264,6 +21396,11 @@ const appCadTool = {
         if (this.updateCmdRibbonActiveStates) {
             this.updateCmdRibbonActiveStates();
         }
+    },
+
+    newAnnotationId() {
+        this._annSeq = (this._annSeq || 0) + 1;
+        return 'ann_' + Date.now() + '_' + this._annSeq;
     },
 
     handleMarkupClick(lat, lng) {
@@ -21321,7 +21458,7 @@ const appCadTool = {
 
                     this.pushHistoryState('Thêm khối công trình');
                     const ann = {
-                        id: 'ann_' + Date.now(),
+                        id: this.newAnnotationId(),
                         type: 'rect',
                         lat: cWgs.lat,
                         lng: cWgs.lng,
@@ -21352,7 +21489,7 @@ const appCadTool = {
                     const name = prompt('Tên đối tượng bảo vệ (giếng khoan, trụ điện, hành lang lộ giới...):', 'Vùng bảo vệ') || 'Vùng bảo vệ';
                     this.pushHistoryState('Thêm vùng đệm bán kính');
                     const ann = {
-                        id: 'ann_' + Date.now(),
+                        id: this.newAnnotationId(),
                         type: 'circle',
                         lat: clickLat,
                         lng: clickLng,
@@ -21395,7 +21532,7 @@ const appCadTool = {
 
                 this.pushHistoryState('Đóng tem nhãn bản vẽ');
                 const ann = {
-                    id: 'ann_' + Date.now(),
+                    id: this.newAnnotationId(),
                     type: 'stamp',
                     stampType: cfg.stampType || 'parcel',
                     lat: clickLat,
@@ -21419,12 +21556,109 @@ const appCadTool = {
                 break;
             }
 
+            case 'dim_linear':
+            case 'dim_radius': {
+                const isRad = this.markupMode === 'dim_radius';
+                const statusEl = document.getElementById('cadMarkupStatus');
+                if (!this.markupStepData) {
+                    this.markupStepData = { p1Lat: clickLat, p1Lng: clickLng };
+                    if (statusEl) {
+                        statusEl.innerText = isRad
+                            ? '🎯 Đã chọn gốc bán kính. Click điểm trên cung tròn để chốt R…'
+                            : '📏 Đã chọn mốc đầu. Click mốc cuối để ghi kích thước cạnh…';
+                    }
+                    break;
+                }
+
+                this.pushHistoryState(isRad ? 'Thêm kích thước bán kính' : 'Thêm kích thước cạnh');
+                const dim = {
+                    id: this.newAnnotationId(),
+                    type: 'dim_linear',
+                    dimStyle: isRad ? 'radius' : 'aligned',
+                    p1Lat: this.markupStepData.p1Lat,
+                    p1Lng: this.markupStepData.p1Lng,
+                    p2Lat: clickLat,
+                    p2Lng: clickLng,
+                    offsetM: isRad ? 0 : 1.5,
+                    dimLabelMode: 'len',
+                    dimText: '',
+                    color: isRad ? '#22d3ee' : '#fbbf24'
+                };
+                const g = this.computeDimLinearGeom(dim);
+                if (!g) {
+                    showToast('⚠️ Hai điểm trùng nhau — không tạo được đường kích!', true);
+                    this.markupStepData = null;
+                    break;
+                }
+                this.annotations.push(dim);
+                this.saveAnnotations();
+                this.renderAnnotations();
+                triggerHaptic('success');
+                showToast(`✓ ${isRad ? 'Bán kính' : 'Kích thước'}: ${this.dimLabelText(dim, g, false)}`);
+
+                if (isRad) {
+                    this.markupStepData = null;
+                    this.setMarkupMode(null);
+                } else {
+                    // DIMCONTINUE: điểm cuối trở thành điểm đầu của đường kích kế tiếp
+                    this.markupStepData = { p1Lat: clickLat, p1Lng: clickLng };
+                    if (statusEl) statusEl.innerText = `📏 Nối tiếp từ ${this.dimLabelText(dim, g, false)} — click mốc kế tiếp • [Esc] kết thúc`;
+                }
+                break;
+            }
+
+            case 'dim_angle': {
+                const statusEl = document.getElementById('cadMarkupStatus');
+                if (!this.markupStepData) {
+                    this.markupStepData = { aLat: clickLat, aLng: clickLng };
+                    if (statusEl) statusEl.innerText = '📐 Đã chọn cạnh 1. Click ĐỈNH của góc…';
+                    break;
+                }
+                if (!this.markupStepData.vLat && this.markupStepData.vLat !== 0) {
+                    this.markupStepData.vLat = clickLat;
+                    this.markupStepData.vLng = clickLng;
+                    if (statusEl) statusEl.innerText = '📐 Đã chọn đỉnh. Click điểm trên cạnh 2 để chốt góc…';
+                    break;
+                }
+
+                const ang = {
+                    id: this.newAnnotationId(),
+                    type: 'dim_angle',
+                    aLat: this.markupStepData.aLat,
+                    aLng: this.markupStepData.aLng,
+                    vLat: this.markupStepData.vLat,
+                    vLng: this.markupStepData.vLng,
+                    bLat: clickLat,
+                    bLng: clickLng,
+                    arcR: 0,
+                    dimLabelMode: 'dms',
+                    dimText: '',
+                    color: '#a78bfa'
+                };
+                const ag = this.computeDimAngleGeom(ang);
+                if (!ag) {
+                    showToast('⚠️ Cạnh góc quá ngắn / trùng đỉnh — không tạo được kích góc!', true);
+                    this.markupStepData = null;
+                    break;
+                }
+                ang.arcR = parseFloat(ag.r.toFixed(3));
+                this.pushHistoryState('Thêm kích thước góc');
+                this.annotations.push(ang);
+                this.saveAnnotations();
+                this.renderAnnotations();
+                triggerHaptic('success');
+                showToast(`✓ Góc tại đỉnh: ${this.dimLabelText(ang, ag, false)}`);
+                this.markupStepData = null;
+                this.setMarkupMode(null);
+                break;
+            }
+
             case 'text': {
                 const txt = prompt('Nhập nội dung chữ ghi chú:', 'Ghi chú kỹ thuật');
                 if (txt !== null && txt.trim() !== '') {
                     this.pushHistoryState('Thêm chữ ghi chú');
                     const ann = {
-                        id: 'ann_' + Date.now(),
+                        id: this.newAnnotationId(),
                         type: 'text',
                         lat: clickLat,
                         lng: clickLng,
@@ -21443,6 +21677,152 @@ const appCadTool = {
                 break;
             }
         }
+    },
+
+    metricFromLatLng(lat, lng) {
+        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        return { x: parseFloat(vn.X), y: parseFloat(vn.Y) };
+    },
+
+    // ================= DIMENSION: KÍCH THƯỚC CẠNH / GÓC / BÁN KÍNH =================
+    // (nâng cấp theo CADCraft cmd/annotate/linear, angular, radial — đường kích chuẩn CAD có đường dóng + mũi + nhãn)
+    // Quy ước đơn vị dự án: x = BẮC (VN2000 X), y = ĐÔNG (VN2000 Y), phương vị thuận chiều kim đồng hồ từ Bắc.
+
+    dimColor(ann) {
+        return (ann && ann.color) ? ann.color : '#fbbf24';
+    },
+
+    latLngFromMetric(mx, my) {
+        const w = convertVn2kToWgs(mx, my, AppState.kttVal, AppState.scaleFactor);
+        return [w.lat, w.lng];
+    },
+
+    // Độ - Phút - Giây; useAscii = true cho DXF (tránh ký tự ngoài BMP ASCII)
+    formatAngleDMS(degTotal, useAscii) {
+        let d = (parseFloat(degTotal) || 0) % 360;
+        if (d < 0) d += 360;
+        const totalSec = Math.round(d * 3600);
+        const dd = Math.floor(totalSec / 3600) % 360;
+        const mm = Math.floor((totalSec % 3600) / 60);
+        const ss = totalSec % 60;
+        const degCh = useAscii ? 'd' : '°';
+        return `${dd}${degCh}${String(mm).padStart(2, '0')}'${String(ss).padStart(2, '0')}"`;
+    },
+
+    computeDimLinearGeom(ann) {
+        if (!ann) return null;
+        const p1 = this.metricFromLatLng(ann.p1Lat, ann.p1Lng);
+        const p2 = this.metricFromLatLng(ann.p2Lat, ann.p2Lng);
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const lenM = Math.hypot(dx, dy);
+        if (!isFinite(lenM) || lenM < 0.01) return null;
+
+        const ux = dx / lenM, uy = dy / lenM;   // đơn vị dọc cạnh
+        const nx = -uy, ny = ux;                // pháp tuyến (tay trái chiều đi)
+        const isRadius = ann.dimStyle === 'radius';
+        const off = isRadius ? 0 : (typeof ann.offsetM === 'number' ? ann.offsetM : 1.5);
+        const sgn = off >= 0 ? 1 : -1;
+        const over = Math.max(0.12, Math.min(1.2, lenM * 0.04));
+        const gap = isRadius ? 0 : Math.min(0.3, lenM * 0.02);
+
+        const t1 = { x: p1.x + nx * off, y: p1.y + ny * off };
+        const t2 = { x: p2.x + nx * off, y: p2.y + ny * off };
+        const d1 = { x: t1.x - ux * over, y: t1.y - uy * over };
+        const d2 = { x: t2.x + ux * over, y: t2.y + uy * over };
+        const reach = Math.abs(off) + over;
+        const ext = isRadius ? [] : [
+            [{ x: p1.x + nx * sgn * gap, y: p1.y + ny * sgn * gap }, { x: p1.x + nx * sgn * reach, y: p1.y + ny * sgn * reach }],
+            [{ x: p2.x + nx * sgn * gap, y: p2.y + ny * sgn * gap }, { x: p2.x + nx * sgn * reach, y: p2.y + ny * sgn * reach }]
+        ];
+
+        return {
+            p1, p2, t1, t2, d1, d2, ext, ux, uy, nx, ny, isRadius,
+            lenM,
+            azDeg: (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360,
+            mid: { x: (t1.x + t2.x) / 2, y: (t1.y + t2.y) / 2 }
+        };
+    },
+
+    computeDimAngleGeom(ann) {
+        if (!ann) return null;
+        const v = this.metricFromLatLng(ann.vLat, ann.vLng);
+        const a = this.metricFromLatLng(ann.aLat, ann.aLng);
+        const b = this.metricFromLatLng(ann.bLat, ann.bLng);
+        const la = Math.hypot(a.x - v.x, a.y - v.y);
+        const lb = Math.hypot(b.x - v.x, b.y - v.y);
+        if (la < 0.05 || lb < 0.05) return null;
+
+        const azA = (Math.atan2(a.y - v.y, a.x - v.x) * 180 / Math.PI + 360) % 360;
+        const azB = (Math.atan2(b.y - v.y, b.x - v.x) * 180 / Math.PI + 360) % 360;
+        const cw = (azB - azA + 360) % 360;
+        const dir = cw <= 180 ? 1 : -1;
+        const interiorDeg = dir === 1 ? cw : 360 - cw;
+
+        const defR = Math.max(0.6, Math.min(la, lb) * 0.32);
+        const r = (typeof ann.arcR === 'number' && ann.arcR > 0.2) ? ann.arcR : defR;
+
+        const arcPts = [];
+        const steps = 24;
+        for (let i = 0; i <= steps; i++) {
+            const tAz = (azA + dir * interiorDeg * (i / steps)) * Math.PI / 180;
+            arcPts.push({ x: v.x + r * Math.cos(tAz), y: v.y + r * Math.sin(tAz) });
+        }
+        const midAzRad = ((azA + dir * interiorDeg / 2) * Math.PI) / 180;
+        const labelR = r + Math.max(0.5, r * 0.22);
+
+        return {
+            v, a, b, la, lb, azA, azB, dir, interiorDeg, r, arcPts,
+            arcStart: arcPts[0],
+            arcEnd: arcPts[steps],
+            // tiếp tuyến tại 2 đầu cung (chiều mũi tên thuận/nghịch chiều quét)
+            startTanDeg: (azA + 90 * dir + 180) % 360,
+            endTanDeg: (azB + 90 * dir + 360) % 360,
+            label: { x: v.x + labelR * Math.cos(midAzRad), y: v.y + labelR * Math.sin(midAzRad) }
+        };
+    },
+
+    // Nội dung nhãn đường kích (useAscii=true khi xuất DXF)
+    dimLabelText(ann, geom, useAscii) {
+        if (!ann) return '';
+        if (ann.dimLabelMode === 'custom' && ann.dimText) {
+            const t = String(ann.dimText);
+            return useAscii ? this.toCadAscii(t) : t;
+        }
+
+        if (ann.type === 'dim_angle') {
+            if (!geom) return '';
+            if (ann.dimLabelMode === 'deg') {
+                return geom.interiorDeg.toFixed(2) + (useAscii ? ' deg' : '°');
+            }
+            return this.formatAngleDMS(geom.interiorDeg, useAscii);
+        }
+
+        if (!geom) return '';
+        const len = geom.lenM.toFixed(2);
+        const prefix = geom.isRadius ? 'R=' : '';
+        if (ann.dimLabelMode === 'len_az') {
+            return `${prefix}${len}m / ${this.formatAngleDMS(geom.azDeg, useAscii)}`;
+        }
+        return `${prefix}${len}m`;
+    },
+
+    // Kéo nhãn đường kích cạnh → suy lại khoảng cách đường kích (offset vuông góc, có dấu)
+    setDimLinearOffsetFromPoint(ann, lat, lng) {
+        const p1 = this.metricFromLatLng(ann.p1Lat, ann.p1Lng);
+        const p2 = this.metricFromLatLng(ann.p2Lat, ann.p2Lng);
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const m = this.metricFromLatLng(lat, lng);
+        ann.offsetM = parseFloat(((m.x - p1.x) * nx + (m.y - p1.y) * ny).toFixed(3));
+    },
+
+    // Kéo nhãn góc → suy lại bán kính cung góc
+    setDimArcRadiusFromPoint(ann, lat, lng) {
+        const v = this.metricFromLatLng(ann.vLat, ann.vLng);
+        const m = this.metricFromLatLng(lat, lng);
+        const r = Math.hypot(m.x - v.x, m.y - v.y);
+        ann.arcR = parseFloat(Math.max(0.3, r).toFixed(3));
     },
 
     renderAnnotations() {
@@ -21836,6 +22216,160 @@ const appCadTool = {
                     break;
                 }
 
+                case 'dim_linear': {
+                    const g = this.computeDimLinearGeom(ann);
+                    if (!g) break;
+                    const col = isSelected ? '#facc15' : this.dimColor(ann);
+                    const ll = pt => this.latLngFromMetric(pt.x, pt.y);
+                    const labelText = this.dimLabelText(ann, g, false);
+                    const dimName = (g.isRadius ? 'Bán kính ' : 'Kích thước ') + labelText;
+                    const openDim = () => {
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: dimName });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
+                    };
+                    const bindDimClick = lyr => {
+                        lyr.on('click', e => { L.DomEvent.stopPropagation(e); openDim(); });
+                        return lyr.addTo(this.layers.annotationsGroup);
+                    };
+
+                    // 1. Đường dóng (extension lines)
+                    const extLines = g.ext.map(seg => L.polyline(seg.map(ll), {
+                        color: col, weight: 1, opacity: 0.75, interactive: false
+                    }).addTo(this.layers.annotationsGroup));
+
+                    // 2. Đường kích
+                    const dimLine = bindDimClick(L.polyline([ll(g.d1), ll(g.d2)], {
+                        color: col, weight: isSelected ? 2.4 : 1.6, opacity: 0.95, interactive: true
+                    }));
+
+                    // 3. Mũi 2 đầu (bán kính chỉ 1 mũi tại điểm trên cung)
+                    const heads = g.isRadius ? [{ pt: g.t2, rot: g.azDeg }] : [{ pt: g.t1, rot: (g.azDeg + 180) % 360 }, { pt: g.t2, rot: g.azDeg }];
+                    const headIcon = rot => L.divIcon({
+                        className: 'cad-dim-tick-icon',
+                        html: `<svg width="20" height="20" viewBox="-10 -10 20 20" style="transform: rotate(${rot}deg); overflow: visible; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.85)); pointer-events: none;">
+                            <path d="M0,-8 L3.6,6.5 L0,3.2 L-3.6,6.5 Z" fill="${col}" stroke="#0f172a" stroke-width="0.9" /></svg>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+                    const headMarkers = heads.map(h => bindDimClick(L.marker(ll(h.pt), {
+                        icon: headIcon(h.rot), interactive: true, zIndexOffset: 3300
+                    })));
+
+                    // 4. Nhãn số đo (kéo dọc theo pháp tuyến để chỉnh khoảng cách đường kích)
+                    const lblIcon = L.divIcon({
+                        className: 'cad-dim-label-icon',
+                        html: `<div style="background: rgba(15,23,42,0.9); border: 1.5px solid ${col}; color: #f8fafc; font-size: ${ann.fontSize || 12}px; font-weight: 800; letter-spacing: .3px; padding: 2px 7px; border-radius: 5px; white-space: nowrap; box-shadow: 0 3px 10px rgba(0,0,0,0.6); cursor: move; user-select: none; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">${g.isRadius ? '🎯' : '📏'} ${labelText}</div>`,
+                        iconSize: null,
+                        iconAnchor: [34, 11]
+                    });
+                    const label = L.marker(ll(g.mid), { icon: lblIcon, draggable: true, zIndexOffset: 3400 });
+
+                    const refreshDim = () => {
+                        const ng = this.computeDimLinearGeom(ann);
+                        if (!ng) return;
+                        const nHeads = ng.isRadius ? [ng.t2] : [ng.t1, ng.t2];
+                        dimLine.setLatLngs([ll(ng.d1), ll(ng.d2)]);
+                        extLines.forEach((ln, i) => { if (ng.ext[i]) ln.setLatLngs(ng.ext[i].map(ll)); });
+                        headMarkers.forEach((m, i) => { if (nHeads[i]) m.setLatLng(ll(nHeads[i])); });
+                        label.setLatLng(ll(ng.mid));
+                    };
+
+                    label.on('dragstart', () => this.pushHistoryState('Dời đường kích'));
+                    label.on('drag', e => {
+                        const pos = e.target.getLatLng();
+                        this.setDimLinearOffsetFromPoint(ann, pos.lat, pos.lng);
+                        refreshDim();
+                    });
+                    label.on('dragend', () => {
+                        this.saveAnnotations();
+                        this.renderAnnotations();
+                        showToast(`📏 Khoảng cách đường kích: ${ann.offsetM} m`);
+                    });
+                    label.on('click', e => { L.DomEvent.stopPropagation(e); openDim(); });
+                    label.addTo(this.layers.annotationsGroup);
+                    break;
+                }
+
+                case 'dim_angle': {
+                    const g = this.computeDimAngleGeom(ann);
+                    if (!g) break;
+                    const col = isSelected ? '#facc15' : this.dimColor(ann);
+                    const ll = pt => this.latLngFromMetric(pt.x, pt.y);
+                    const labelText = this.dimLabelText(ann, g, false);
+                    const openDim = () => {
+                        if (this.mode === 'select') {
+                            this.selectItem({ type: 'annotation', id: ann.id, name: 'Góc ' + labelText });
+                        } else {
+                            this.openAnnotationModal(ann.id);
+                        }
+                    };
+                    const bindDimClick = lyr => {
+                        lyr.on('click', e => { L.DomEvent.stopPropagation(e); openDim(); });
+                        return lyr.addTo(this.layers.annotationsGroup);
+                    };
+
+                    // 2 cạnh dóng từ đỉnh
+                    const arms = [g.a, g.b].map(pt => bindDimClick(L.polyline([ll(g.v), ll(pt)], {
+                        color: col, weight: isSelected ? 2.4 : 1.6, opacity: 0.9, interactive: true
+                    })));
+
+                    // Cung góc
+                    const arcLine = L.polyline(g.arcPts.map(ll), {
+                        color: col, weight: isSelected ? 2.2 : 1.5, opacity: 0.95, interactive: true
+                    });
+                    arcLine.on('click', e => { L.DomEvent.stopPropagation(e); openDim(); });
+                    arcLine.addTo(this.layers.annotationsGroup);
+
+                    // Mũi 2 đầu cung
+                    const arcHeads = [{ pt: g.arcStart, rot: g.startTanDeg }, { pt: g.arcEnd, rot: g.endTanDeg }];
+                    const arcIcon = rot => L.divIcon({
+                        className: 'cad-dim-tick-icon',
+                        html: `<svg width="18" height="18" viewBox="-9 -9 18 18" style="transform: rotate(${rot}deg); overflow: visible; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.85)); pointer-events: none;">
+                            <path d="M0,-7.5 L3.2,6 L0,2.8 L-3.2,6 Z" fill="${col}" stroke="#0f172a" stroke-width="0.9" /></svg>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    const headMarkers = arcHeads.map(h => L.marker(ll(h.pt), { icon: arcIcon(h.rot), interactive: false }).addTo(this.layers.annotationsGroup));
+
+                    // Nhãn góc (kéo để chỉnh bán kính cung)
+                    const lblIcon = L.divIcon({
+                        className: 'cad-dim-label-icon',
+                        html: `<div style="background: rgba(15,23,42,0.9); border: 1.5px solid ${col}; color: #f8fafc; font-size: ${ann.fontSize || 12}px; font-weight: 800; padding: 2px 7px; border-radius: 5px; white-space: nowrap; box-shadow: 0 3px 10px rgba(0,0,0,0.6); cursor: move; user-select: none; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">📐 ${labelText}</div>`,
+                        iconSize: null,
+                        iconAnchor: [34, 11]
+                    });
+                    const label = L.marker(ll(g.label), { icon: lblIcon, draggable: true, zIndexOffset: 3400 });
+
+                    const refreshAngle = () => {
+                        const ng = this.computeDimAngleGeom(ann);
+                        if (!ng) return;
+                        arms[0].setLatLngs([ll(ng.v), ll(ng.a)]);
+                        arms[1].setLatLngs([ll(ng.v), ll(ng.b)]);
+                        arcLine.setLatLngs(ng.arcPts.map(ll));
+                        headMarkers[0].setLatLng(ll(ng.arcStart));
+                        headMarkers[1].setLatLng(ll(ng.arcEnd));
+                        label.setLatLng(ll(ng.label));
+                    };
+
+                    label.on('dragstart', () => this.pushHistoryState('Dời cung góc'));
+                    label.on('drag', e => {
+                        const pos = e.target.getLatLng();
+                        this.setDimArcRadiusFromPoint(ann, pos.lat, pos.lng);
+                        refreshAngle();
+                    });
+                    label.on('dragend', () => {
+                        this.saveAnnotations();
+                        this.renderAnnotations();
+                        showToast(`📐 Bán kính cung góc: ${ann.arcR} m`);
+                    });
+                    label.on('click', e => { L.DomEvent.stopPropagation(e); openDim(); });
+                    label.addTo(this.layers.annotationsGroup);
+                    break;
+                }
+
                 case 'text': {
                     const textRot = ann.labelRotationDeg || 0;
                     const textHtml = `<div style="background: ${ann.bgColor || 'rgba(15, 23, 42, 0.9)'}; border: 1.5px solid ${annColor}; border-radius: 6px; padding: 3px 8px; color: ${ann.color || '#f8fafc'}; font-size: ${ann.fontSize || 12}px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: move; user-select: none; transform: rotate(${textRot}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
@@ -21925,12 +22459,18 @@ const appCadTool = {
         const grpRect = document.getElementById('grpCadEditAnnRect');
         const grpCircle = document.getElementById('grpCadEditAnnCircle');
         const grpFont = document.getElementById('grpCadEditAnnFontSize');
+        const grpDim = document.getElementById('grpCadEditAnnDim');
+        const dimOffRow = document.getElementById('rowCadEditDimOffset');
+        const dimArcRow = document.getElementById('rowCadEditDimArc');
 
         if (grpText) grpText.style.display = 'none';
         if (grpStamp) grpStamp.style.display = 'none';
         if (grpRect) grpRect.style.display = 'none';
         if (grpCircle) grpCircle.style.display = 'none';
         if (grpFont) grpFont.style.display = 'none';
+        if (grpDim) grpDim.style.display = 'none';
+        if (dimOffRow) dimOffRow.style.display = 'none';
+        if (dimArcRow) dimArcRow.style.display = 'none';
 
         const titleEl = document.getElementById('lblCadEditAnnTitle');
 
@@ -21986,6 +22526,39 @@ const appCadTool = {
                 document.getElementById('txtCadEditAnnCircleName').value = ann.circleName || '';
                 document.getElementById('txtCadEditAnnRadius').value = ann.radiusM || 10;
                 break;
+
+            case 'dim_linear':
+            case 'dim_angle': {
+                const isAngle = ann.type === 'dim_angle';
+                const isRadius = ann.dimStyle === 'radius';
+                if (titleEl) titleEl.innerText = isAngle ? '📐 Sửa Kích Thước Góc Tại Đỉnh' : (isRadius ? '🎯 Sửa Kích Thước Bán Kính Cung' : '📏 Sửa Kích Thước Cạnh');
+                if (grpDim) grpDim.style.display = 'flex';
+                if (grpFont) grpFont.style.display = 'block';
+
+                const g = isAngle ? this.computeDimAngleGeom(ann) : this.computeDimLinearGeom(ann);
+                const selMode = document.getElementById('selCadEditAnnDimMode');
+                if (selMode) {
+                    selMode.innerHTML = isAngle
+                        ? '<option value="dms">Độ - Phút - Giây (82°15\'30")</option><option value="deg">Thập phân (82.258°)</option><option value="custom">Nhãn tự nhập</option>'
+                        : '<option value="len">Chỉ độ dài (12.34m)</option><option value="len_az">Dài + phương vị (12.34m / 82°15\'30")</option><option value="custom">Nhãn tự nhập</option>';
+                    selMode.value = ann.dimLabelMode || (isAngle ? 'dms' : 'len');
+                }
+                const txtEl = document.getElementById('txtCadEditAnnDimText');
+                if (txtEl) txtEl.value = ann.dimText || '';
+                const hintEl = document.getElementById('lblCadEditAnnDimValue');
+                if (hintEl) hintEl.innerText = 'Giá trị đo: ' + (g ? this.dimLabelText(ann, g, false) : '--') + ' • Kéo nhãn trên bản đồ để chỉnh vị trí đường kích';
+
+                if (dimOffRow && !isAngle && !isRadius) {
+                    dimOffRow.style.display = 'block';
+                    document.getElementById('txtCadEditAnnDimOffset').value = (typeof ann.offsetM === 'number' ? ann.offsetM : 1.5);
+                }
+                if (dimArcRow && isAngle) {
+                    dimArcRow.style.display = 'block';
+                    document.getElementById('txtCadEditAnnDimArc').value = (typeof ann.arcR === 'number' && ann.arcR > 0) ? ann.arcR : (g ? parseFloat(g.r.toFixed(2)) : 2);
+                }
+                document.getElementById('txtCadEditAnnFontSize').value = ann.fontSize || 12;
+                break;
+            }
         }
 
         modal.classList.add('active', 'show');
@@ -22075,6 +22648,21 @@ const appCadTool = {
                 ann.circleName = document.getElementById('txtCadEditAnnCircleName').value.trim() || 'Vùng bảo vệ';
                 ann.radiusM = parseFloat(document.getElementById('txtCadEditAnnRadius').value) || 10;
                 break;
+
+            case 'dim_linear':
+            case 'dim_angle': {
+                ann.dimLabelMode = document.getElementById('selCadEditAnnDimMode')?.value || (ann.type === 'dim_angle' ? 'dms' : 'len');
+                ann.dimText = (document.getElementById('txtCadEditAnnDimText')?.value || '').trim();
+                ann.fontSize = parseInt(document.getElementById('txtCadEditAnnFontSize')?.value, 10) || 12;
+                if (ann.type === 'dim_angle') {
+                    const ar = parseFloat(document.getElementById('txtCadEditAnnDimArc')?.value);
+                    if (isFinite(ar) && ar > 0.2) ann.arcR = ar;
+                } else if (ann.dimStyle !== 'radius') {
+                    const off = parseFloat(document.getElementById('txtCadEditAnnDimOffset')?.value);
+                    if (isFinite(off)) ann.offsetM = off;
+                }
+                break;
+            }
         }
 
         this.saveAnnotations();
@@ -26188,8 +26776,8 @@ const appCadTool = {
     zoomToAnnotation(annId) {
         const ann = (this.annotations || []).find(a => a.id === annId);
         if (!ann || !AppState.leafletMap) return;
-        const targetLat = ann.lat || ann.startLat;
-        const targetLng = ann.lng || ann.startLng;
+        const targetLat = ann.lat || ann.startLat || ann.p1Lat || ann.aLat;
+        const targetLng = ann.lng || ann.startLng || ann.p1Lng || ann.aLng;
         if (targetLat && targetLng) {
             AppState.leafletMap.setView([targetLat, targetLng], 21, { animate: true });
             this.closeAreaTableModal();
@@ -26304,7 +26892,7 @@ const appCadTool = {
 
         this.pushHistoryState('Thêm mũi tên CAD');
         const ann = {
-            id: 'ann_' + Date.now(),
+            id: this.newAnnotationId(),
             type: 'arrow',
             arrowType: this.newArrowType || 'single',
             startLat: this.pendingArrowData.startLat,
@@ -27737,6 +28325,10 @@ const appCadTool = {
                 if (isFinite(a.lat) && isFinite(a.lng)) coords.push([a.lat, a.lng]);
                 if (isFinite(a.startLat) && isFinite(a.startLng)) coords.push([a.startLat, a.startLng]);
                 if (isFinite(a.endLat) && isFinite(a.endLng)) coords.push([a.endLat, a.endLng]);
+                ['p1', 'p2', 'a', 'v', 'b'].forEach(k => {
+                    const la = a[k + 'Lat'], ln = a[k + 'Lng'];
+                    if (isFinite(la) && isFinite(ln)) coords.push([la, ln]);
+                });
             });
         }
         if (coords.length > 0) {
@@ -29609,6 +30201,10 @@ const appCadTool = {
             dwg += `0\r\nSOLID\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n${layer}\r\n100\r\nAcDbTrace\r\n10\r\n${x1.toFixed(3)}\r\n20\r\n${y1.toFixed(3)}\r\n30\r\n0.0\r\n11\r\n${x2.toFixed(3)}\r\n21\r\n${y2.toFixed(3)}\r\n31\r\n0.0\r\n12\r\n${x3.toFixed(3)}\r\n22\r\n${y3.toFixed(3)}\r\n32\r\n0.0\r\n13\r\n${x4.toFixed(3)}\r\n23\r\n${y4.toFixed(3)}\r\n33\r\n0.0\r\n`;
         };
 
+        const addArc = (layer, cx, cy, r, startDeg, endDeg) => {
+            dwg += `0\r\nARC\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n${layer}\r\n100\r\nAcDbCircle\r\n10\r\n${cx.toFixed(3)}\r\n20\r\n${cy.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${r.toFixed(3)}\r\n100\r\nAcDbArc\r\n50\r\n${startDeg.toFixed(2)}\r\n51\r\n${endDeg.toFixed(2)}\r\n`;
+        };
+
         // === A. KHUNG BẢN VẼ CHUẨN XÁC THEO KHỔ GIẤY (A3/A4) DÙNG LWPOLYLINE CHUẨN AC1015 ===
         // 1. Khung Ngoài (Mép cắt khổ giấy A3/A4 chuẩn mm)
         addLwPolyline("KHUNG_NGOAI", [
@@ -29840,6 +30436,68 @@ const appCadTool = {
                         addText("CAD_TEXT", cX - stampW / 2 + 1.2 * S, cY + stampH / 2 - 6.5 * S, 1.5 * S, h2);
                         addText("CAD_TEXT", cX - stampW / 2 + 1.2 * S, cY + stampH / 2 - 9.5 * S, 1.5 * S, h3);
                         addText("CAD_TEXT", cX - stampW / 2 + 1.2 * S, cY + stampH / 2 - 12.5 * S, 1.5 * S, h4);
+                        break;
+                    }
+
+                    case 'dim_linear': {
+                        const g = this.computeDimLinearGeom(ann);
+                        if (!g) break;
+                        // Quy ước DXF: X = ĐÔNG (metric.y), Y = BẮC (metric.x)
+                        addLine("KICH_THUOC", g.d1.y, g.d1.x, g.d2.y, g.d2.x);
+                        g.ext.forEach(seg => addLine("KICH_THUOC", seg[0].y, seg[0].x, seg[1].y, seg[1].x));
+
+                        const addHead = (pt, azDeg) => {
+                            const rad = azDeg * Math.PI / 180;
+                            const eD = Math.sin(rad), nD = Math.cos(rad);
+                            const tipX = pt.y, tipY = pt.x;
+                            const aLen = 2.5 * S, aWid = 0.9 * S;
+                            const bx = tipX - eD * aLen, by = tipY - nD * aLen;
+                            const wX = -nD * aWid, wY = eD * aWid;
+                            addSolid("KICH_THUOC", tipX, tipY, bx - wX, by - wY, bx + wX, by + wY, tipX, tipY);
+                        };
+                        if (g.isRadius) {
+                            addHead(g.t2, g.azDeg);
+                        } else {
+                            addHead(g.t1, g.azDeg + 180);
+                            addHead(g.t2, g.azDeg);
+                        }
+
+                        let rot = 90 - g.azDeg;
+                        while (rot < 0) rot += 360;
+                        while (rot >= 180) rot -= 180;
+                        const sgnOff = (g.isRadius ? 1 : (ann.offsetM >= 0 ? 1 : -1));
+                        const tx = { x: g.mid.x + g.nx * sgnOff * 0.9 * S, y: g.mid.y + g.ny * sgnOff * 0.9 * S };
+                        addText("KICH_THUOC", tx.y, tx.x, 1.8 * S, this.dimLabelText(ann, g, true), rot);
+                        break;
+                    }
+
+                    case 'dim_angle': {
+                        const g = this.computeDimAngleGeom(ann);
+                        if (!g) break;
+                        addLine("KICH_THUOC", g.v.y, g.v.x, g.a.y, g.a.x);
+                        addLine("KICH_THUOC", g.v.y, g.v.x, g.b.y, g.b.x);
+
+                        const cadStart = 90 - g.azA;
+                        const cadEnd = 90 - (g.azA + g.dir * g.interiorDeg);
+                        const a0 = ((Math.min(cadStart, cadEnd) % 360) + 360) % 360;
+                        const a1 = ((Math.max(cadStart, cadEnd) % 360) + 360) % 360;
+                        addArc("KICH_THUOC", g.v.y, g.v.x, g.r, a0, a1);
+
+                        const addArcHead = (pt, azDeg) => {
+                            const rad = azDeg * Math.PI / 180;
+                            const eD = Math.sin(rad), nD = Math.cos(rad);
+                            const tipX = pt.y, tipY = pt.x;
+                            const aLen = 2.5 * S, aWid = 0.9 * S;
+                            const bx = tipX - eD * aLen, by = tipY - nD * aLen;
+                            const wX = -nD * aWid, wY = eD * aWid;
+                            addSolid("KICH_THUOC", tipX, tipY, bx - wX, by - wY, bx + wX, by + wY, tipX, tipY);
+                        };
+                        addArcHead(g.arcStart, g.startTanDeg);
+                        addArcHead(g.arcEnd, g.endTanDeg);
+
+                        const txt = this.dimLabelText(ann, g, true);
+                        const tw = txt.length * 0.9 * S;
+                        addText("KICH_THUOC", g.label.y - tw / 2, g.label.x - 0.6 * S, 1.8 * S, txt);
                         break;
                     }
 
@@ -30302,6 +30960,21 @@ const appCadTool = {
         });
 
         // 7.5. Vẽ các Chú Thích & Hình Khối Kỹ Thuật (MiniCAD Annotations)
+        const cvPt = (m) => ({ x: toCvX(m.y), y: toCvY(m.x) });
+        // Vector đơn vị trong hệ canvas (trục Y đảo ngược) từ phương vị đo đạc
+        const cvAzVec = (azDeg) => {
+            const rad = azDeg * Math.PI / 180;
+            return { x: Math.sin(rad), y: -Math.cos(rad) };
+        };
+        const cvArrow = (tip, dir, headLen, headWid) => {
+            const base = { x: tip.x - dir.x * headLen, y: tip.y - dir.y * headLen };
+            ctx.beginPath();
+            ctx.moveTo(tip.x, tip.y);
+            ctx.lineTo(base.x - dir.y * headWid, base.y + dir.x * headWid);
+            ctx.lineTo(base.x + dir.y * headWid, base.y - dir.x * headWid);
+            ctx.closePath();
+            ctx.fill();
+        };
         if (meta.showAnnotations !== false && this.annotations && this.annotations.length > 0) {
             this.annotations.forEach(ann => {
                 switch (ann.type) {
@@ -30442,6 +31115,83 @@ const appCadTool = {
                         ctx.fillText('DT: ' + (ann.area || '--'), left + Math.round(1.5 * pxPerMm), top + Math.round(8.5 * pxPerMm));
                         ctx.fillText('Chủ: ' + (ann.owner || '--'), left + Math.round(1.5 * pxPerMm), top + Math.round(12.0 * pxPerMm));
                         ctx.fillText('Loại: ' + (ann.landType || '--'), left + Math.round(1.5 * pxPerMm), top + Math.round(15.5 * pxPerMm));
+                        break;
+                    }
+
+                    case 'dim_linear': {
+                        const g = this.computeDimLinearGeom(ann);
+                        if (!g) break;
+                        ctx.strokeStyle = ann.color || (g.isRadius ? '#0891b2' : '#b45309');
+                        ctx.fillStyle = ctx.strokeStyle;
+                        ctx.lineWidth = Math.max(1, Math.round(0.25 * pxPerMm));
+                        const cvLine = (p, q) => { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); };
+                        g.ext.forEach(s => cvLine(cvPt(s[0]), cvPt(s[1])));
+                        const c1 = cvPt(g.d1), c2 = cvPt(g.d2);
+                        cvLine(c1, c2);
+
+                        const dl = Math.hypot(c2.x - c1.x, c2.y - c1.y) || 1;
+                        const sdir = { x: (c2.x - c1.x) / dl, y: (c2.y - c1.y) / dl };
+                        const hl = 2.5 * pxPerMm, hw = 0.9 * pxPerMm;
+                        if (g.isRadius) {
+                            cvArrow(cvPt(g.t2), sdir, hl, hw);
+                        } else {
+                            cvArrow(cvPt(g.t1), { x: -sdir.x, y: -sdir.y }, hl, hw);
+                            cvArrow(cvPt(g.t2), sdir, hl, hw);
+                        }
+
+                        const sgnOff = g.isRadius ? 1 : (ann.offsetM >= 0 ? 1 : -1);
+                        const lm = cvPt(g.mid);
+                        const anchor = { x: lm.x + g.ny * sgnOff * 0.9 * pxPerMm, y: lm.y - g.nx * sgnOff * 0.9 * pxPerMm };
+                        let rot = Math.atan2(sdir.y, sdir.x) * 180 / Math.PI;
+                        if (rot > 90 || rot <= -90) rot += 180;
+
+                        ctx.save();
+                        ctx.translate(anchor.x, anchor.y);
+                        ctx.rotate(rot * Math.PI / 180);
+                        ctx.font = 'bold ' + Math.max(6, Math.round(1.8 * pxPerMm)) + 'px Arial';
+                        ctx.fillStyle = '#0f172a';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(this.dimLabelText(ann, g, false), 0, 0);
+                        ctx.restore();
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'alphabetic';
+                        break;
+                    }
+
+                    case 'dim_angle': {
+                        const g = this.computeDimAngleGeom(ann);
+                        if (!g) break;
+                        ctx.strokeStyle = ann.color || '#6d28d9';
+                        ctx.fillStyle = ctx.strokeStyle;
+                        ctx.lineWidth = Math.max(1, Math.round(0.25 * pxPerMm));
+                        const vc = cvPt(g.v);
+                        [g.a, g.b].forEach(pt => {
+                            const c = cvPt(pt);
+                            ctx.beginPath();
+                            ctx.moveTo(vc.x, vc.y);
+                            ctx.lineTo(c.x, c.y);
+                            ctx.stroke();
+                        });
+                        ctx.beginPath();
+                        g.arcPts.forEach((p, i) => {
+                            const c = cvPt(p);
+                            if (i === 0) ctx.moveTo(c.x, c.y); else ctx.lineTo(c.x, c.y);
+                        });
+                        ctx.stroke();
+
+                        const hl = 2.5 * pxPerMm, hw = 0.9 * pxPerMm;
+                        cvArrow(cvPt(g.arcStart), cvAzVec(g.startTanDeg), hl, hw);
+                        cvArrow(cvPt(g.arcEnd), cvAzVec(g.endTanDeg), hl, hw);
+
+                        const lc = cvPt(g.label);
+                        ctx.font = 'bold ' + Math.max(6, Math.round(1.8 * pxPerMm)) + 'px Arial';
+                        ctx.fillStyle = '#0f172a';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(this.dimLabelText(ann, g, false), lc.x, lc.y);
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'alphabetic';
                         break;
                     }
 
@@ -30906,6 +31656,60 @@ const appCadTool = {
                         svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+36).toFixed(1) + '" font-size="9.5" fill="#0f172a">DT: ' + (ann.area || '--') + '</text>\r\n';
                         svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+50).toFixed(1) + '" font-size="9.5" fill="#0f172a">Chủ: ' + (ann.owner || '--') + '</text>\r\n';
                         svgContent += '  <text x="' + (left+8).toFixed(1) + '" y="' + (top+64).toFixed(1) + '" font-size="9.5" fill="#0f172a">Loại: ' + (ann.landType || '--') + '</text>\r\n';
+                        break;
+                    }
+                    case 'dim_linear': {
+                        const g = this.computeDimLinearGeom(ann);
+                        if (!g) break;
+                        const col = ann.color || (g.isRadius ? '#0891b2' : '#b45309');
+                        const spt = p => ({ x: toSvgX(p.y), y: toSvgY(p.x) });
+                        const sline = (p, q) => '  <line x1="' + p.x.toFixed(1) + '" y1="' + p.y.toFixed(1) + '" x2="' + q.x.toFixed(1) + '" y2="' + q.y.toFixed(1) + '" stroke="' + col + '" stroke-width="1.4"/>\r\n';
+                        const hl = Math.max(5, Math.min(11, 2.5 * sc)), hw = hl * 0.36;
+                        const sHead = (tip, dx, dy) => {
+                            const bx = tip.x - dx * hl, by = tip.y - dy * hl;
+                            return '  <polygon points="' + tip.x.toFixed(1) + ',' + tip.y.toFixed(1) + ' ' + (bx - dy * hw).toFixed(1) + ',' + (by + dx * hw).toFixed(1) + ' ' + (bx + dy * hw).toFixed(1) + ',' + (by - dx * hw).toFixed(1) + '" fill="' + col + '"/>\r\n';
+                        };
+                        const c1 = spt(g.d1), c2 = spt(g.d2);
+                        g.ext.forEach(s => { svgContent += sline(spt(s[0]), spt(s[1])); });
+                        svgContent += sline(c1, c2);
+                        const dl = Math.hypot(c2.x - c1.x, c2.y - c1.y) || 1;
+                        const sux = (c2.x - c1.x) / dl, suy = (c2.y - c1.y) / dl;
+                        if (g.isRadius) {
+                            svgContent += sHead(spt(g.t2), sux, suy);
+                        } else {
+                            svgContent += sHead(spt(g.t1), -sux, -suy);
+                            svgContent += sHead(spt(g.t2), sux, suy);
+                        }
+                        const sgnOff = g.isRadius ? 1 : (ann.offsetM >= 0 ? 1 : -1);
+                        const lm = spt(g.mid);
+                        const sTx = lm.x + g.ny * sgnOff * 0.9 * sc, sTy = lm.y - g.nx * sgnOff * 0.9 * sc;
+                        let sRot = Math.atan2(suy, sux) * 180 / Math.PI;
+                        if (sRot > 90 || sRot <= -90) sRot += 180;
+                        svgContent += '  <text x="' + sTx.toFixed(1) + '" y="' + sTy.toFixed(1) + '" font-size="' + (ann.fontSize || 11) + '" font-weight="bold" text-anchor="middle" dominant-baseline="middle" transform="rotate(' + sRot.toFixed(2) + ',' + sTx.toFixed(1) + ',' + sTy.toFixed(1) + ')" fill="#0f172a">' + this.dimLabelText(ann, g, false) + '</text>\r\n';
+                        break;
+                    }
+                    case 'dim_angle': {
+                        const g = this.computeDimAngleGeom(ann);
+                        if (!g) break;
+                        const col = ann.color || '#6d28d9';
+                        const spt = p => ({ x: toSvgX(p.y), y: toSvgY(p.x) });
+                        const vc = spt(g.v);
+                        [g.a, g.b].forEach(pt => {
+                            const c = spt(pt);
+                            svgContent += '  <line x1="' + vc.x.toFixed(1) + '" y1="' + vc.y.toFixed(1) + '" x2="' + c.x.toFixed(1) + '" y2="' + c.y.toFixed(1) + '" stroke="' + col + '" stroke-width="1.4"/>\r\n';
+                        });
+                        svgContent += '  <polyline fill="none" stroke="' + col + '" stroke-width="1.4" points="' + g.arcPts.map(p => { const c = spt(p); return c.x.toFixed(1) + ',' + c.y.toFixed(1); }).join(' ') + '"/>\r\n';
+                        const hl = Math.max(5, Math.min(11, 2.5 * sc)), hw = hl * 0.36;
+                        const sHead = (deg, tip) => {
+                            const rad = deg * Math.PI / 180;
+                            const dx = Math.sin(rad), dy = -Math.cos(rad);
+                            const bx = tip.x - dx * hl, by = tip.y - dy * hl;
+                            return '  <polygon points="' + tip.x.toFixed(1) + ',' + tip.y.toFixed(1) + ' ' + (bx - dy * hw).toFixed(1) + ',' + (by + dx * hw).toFixed(1) + ' ' + (bx + dy * hw).toFixed(1) + ',' + (by - dx * hw).toFixed(1) + '" fill="' + col + '"/>\r\n';
+                        };
+                        svgContent += sHead(g.startTanDeg, spt(g.arcStart));
+                        svgContent += sHead(g.endTanDeg, spt(g.arcEnd));
+                        const lc = spt(g.label);
+                        svgContent += '  <text x="' + lc.x.toFixed(1) + '" y="' + lc.y.toFixed(1) + '" font-size="' + (ann.fontSize || 11) + '" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#0f172a">' + this.dimLabelText(ann, g, false) + '</text>\r\n';
                         break;
                     }
                     case 'text': {
