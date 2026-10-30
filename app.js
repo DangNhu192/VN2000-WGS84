@@ -10085,6 +10085,8 @@ function doGet(e) {
                 dgn: '🚀 XUẤT FILE .DGN',
                 kml: '🚀 XUẤT FILE .KML',
                 geojson: '🚀 XUẤT FILE .GEOJSON',
+                gpx: '🚀 XUẤT FILE .GPX',
+                wkt: '🚀 XUẤT FILE .WKT',
                 svg: '🚀 XUẤT FILE .SVG',
                 txt: '🚀 XUẤT FILE .TXT',
                 csv: '🚀 XUẤT FILE .CSV',
@@ -10320,6 +10322,12 @@ function doGet(e) {
                 break;
             case 'geojson':
                 this.exportGeoJsonFile();
+                break;
+            case 'gpx':
+                this.exportGpxFile();
+                break;
+            case 'wkt':
+                this.exportWktFile();
                 break;
             case 'svg':
                 this.exportSvgFile();
@@ -10873,7 +10881,9 @@ function doGet(e) {
                     ktt: p.ktt || kttStr,
                     mui: p.mui || (AppState.muiVal || 3),
                     time: p.time || '',
-                    note: p.note || ''
+                    note: p.note || '',
+                    point_style: p.pointStyle || p.style || 'circle',
+                    point_color: p.pointColor || p.color || ''
                 }
             });
         });
@@ -10932,6 +10942,84 @@ function doGet(e) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         showToast(`✓ Đã xuất tệp dữ liệu Vector GeoJSON: ${filename}`);
+    },
+
+    // ===== Bộ xuất vector GIS dùng chung cho sổ đo dự án (GPX / WKT) =====
+    _exportBaseName() {
+        return AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
+    },
+
+    _downloadText(content, filename, mime) {
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
+    // Mốc của phân hệ dự án chỉ có một ranh/tuyến nối tuần tự, khác với CAD (nhiều khối riêng lẻ)
+    getExportGeometry() {
+        const raw = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
+        const points = raw
+            .map(p => ({
+                lat: parseFloat(p.lat), lng: parseFloat(p.lng), h: parseFloat(p.h) || 0,
+                name: p.name || '', note: p.note || '',
+                x: parseFloat(p.x) || 0, y: parseFloat(p.y) || 0,
+                style: p.pointStyle || p.style || 'circle', color: p.pointColor || p.color || ''
+            }))
+            .filter(p => isFinite(p.lat) && isFinite(p.lng) && p.lat !== 0 && p.lng !== 0);
+
+        const geometry = [];
+        const projName = this._exportBaseName();
+        if (points.length >= 2) {
+            const ring = points.map(p => ({ lng: p.lng, lat: p.lat, h: p.h }));
+            if (points.length >= 3) {
+                ring.push({ lng: ring[0].lng, lat: ring[0].lat, h: ring[0].h });
+                geometry.push({ kind: 'polygon', name: `Ranh_${projName}`, note: '', crs: 'wgs84', rings: [ring] });
+            } else {
+                geometry.push({ kind: 'line', name: `Tuyen_${projName}`, note: '', crs: 'wgs84', rings: [ring] });
+            }
+        }
+        return { points, geometry };
+    },
+
+    // Xuất GPS Exchange (.gpx): waypoint + track mở bằng Google Earth, Garmin, QGIS
+    exportGpxFile() {
+        if (typeof GisIO === 'undefined') {
+            showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        const g = this.getExportGeometry();
+        if (!g.points.length) {
+            showToast('⚠️ Chưa có mốc tọa độ hợp lệ nào để xuất GPX!', true);
+            return;
+        }
+        const projName = this._exportBaseName();
+        const text = GisIO.toGpxText(appGis.featuresFromPoints(g.points).concat(g.geometry), { creator: 'VN2000-PWA' });
+        this._downloadText(text, `${projName}.gpx`, 'application/gpx+xml;charset=utf-8');
+        showToast(`✓ Đã xuất GPX: ${projName}.gpx (${g.points.length} waypoint · ${g.geometry.length} ranh/tuyến)`);
+    },
+
+    // Xuất Well-Known Text (.wkt): mỗi đối tượng một dòng kinh/vĩ độ WGS84, QGIS mở trực tiếp
+    exportWktFile() {
+        if (typeof GisIO === 'undefined') {
+            showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        const g = this.getExportGeometry();
+        if (!g.points.length) {
+            showToast('⚠️ Chưa có mốc tọa độ hợp lệ nào để xuất WKT!', true);
+            return;
+        }
+        const projName = this._exportBaseName();
+        const feats = appGis.featuresFromPoints(g.points).concat(g.geometry);
+        const header = `# VN2000-PWA · ${projName} · ${feats.length} đối tượng · kinh độ trước, vĩ độ sau (WGS84)\n`;
+        this._downloadText(header + GisIO.toWktText(feats, { precision: 7 }), `${projName}.wkt`, 'text/plain;charset=utf-8');
+        showToast(`✓ Đã xuất WKT: ${projName}.wkt (${feats.length} đối tượng)`);
     },
 
     // 4. Xuất Bản Vẽ Vector SVG (.svg) Đồ Họa Sắc Nét Chuẩn W3C
@@ -11597,6 +11685,58 @@ function doGet(e) {
             reader.readAsText(file, "UTF-8");
         }
         event.target.value = "";
+    },
+
+    // ================= NẠP TỆP GIS VÀO SỔ ĐO DỰ ÁN (GEOJSON / KML / GPX / WKT) =================
+    // Surface riêng của phân hệ Bản đồ dự án: dùng chung động cơ GisIO + appGis nhưng không mở cửa sổ MiniCAD.
+    onGisProjectFilePicked(event) {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = '';
+        if (!file) return;
+        appGis.fillKttSelect(document.getElementById('projGisKtt'));
+        const box = document.getElementById('projGisSummary');
+        const btn = document.getElementById('btnProjGisImport');
+        if (box) box.textContent = `⏳ Đang phân tích ${file.name}...`;
+        if (btn) btn.disabled = true;
+        appGis.readFromFile(file, (result) => {
+            this._gisProjectResult = result;
+            if (box) box.textContent = `${file.name} ➜ ${appGis.summarize(result)}`;
+            if (!result.ok) {
+                showToast('❌ Không nạp được tệp: ' + appGis.summarize(result), true);
+                return;
+            }
+            if (btn) btn.disabled = false;
+            showToast(`✅ ${appGis.summarize(result)}`);
+        });
+    },
+
+    applyGisToProject() {
+        const result = this._gisProjectResult;
+        if (!result || !result.ok) {
+            showToast('⚠️ Hãy chọn một tệp GIS hợp lệ trước khi nạp mốc.', true);
+            return;
+        }
+        const k = appGis.resolveKtt(
+            document.getElementById('projGisKtt')?.value,
+            document.getElementById('projGisMui')?.value);
+        // Áp KTT trước: toàn bộ quy đổi trong sổ đo phải theo đúng kinh tuyến trục vừa chọn
+        appGis.applyKtt(k);
+        const onlyPoints = document.getElementById('projGisSource')?.value === 'points';
+        const source = onlyPoints
+            ? Object.assign({}, result, { features: (result.features || []).filter(f => f.kind === 'point') })
+            : result;
+        const { pts, meta } = appGis.featuresToProjectPoints(source, {
+            ktt: k,
+            crs: document.getElementById('projGisCrs')?.value || 'auto',
+            axis: document.getElementById('projGisAxis')?.value || 'EN',
+            tagShape: true
+        });
+        if (!pts.length) {
+            showToast(`⚠️ Không quy đổi được mốc nào (${meta.skipped} đỉnh ngoài vùng Việt Nam hoặc sai hệ tọa độ).`, true);
+            return;
+        }
+        this.saveImportedPoints(pts, `${(result.fileName || 'GIS').replace(/\.[^.]+$/, '')}.csv`);
+        if (meta.skipped) showToast(`⚠️ Đã bỏ ${meta.skipped} đỉnh không quy đổi được hệ tọa độ.`, true);
     },
 
     extractPointsFromWorkbook(wb) {
@@ -17238,6 +17378,266 @@ const appElevationProfile = {
 
 // ================= 9.4 QUY ĐỔI CAO ĐỘ (ĐÃ GỠ BỎ GEOID THEO YÊU CẦU) =================
 
+// ================= 9.5 CẦU NỐI GIS (GEOJSON / KML / GPX / WKT) =================
+// Lớp dữ liệu thuần: chỉ quy đổi hệ quy chiếu và đóng gói hình học.
+// Không đụng tới DOM ngoài các <select> mà chính panel gọi nó truyền vào,
+// nên cả Bản đồ dự án lẫn MiniCAD dùng chung mà không vay giao diện của nhau (AGENTS.md §2).
+const appGis = {
+    ACCEPT: '.geojson,.json,.kml,.kmz,.gpx,.wkt,.txt',
+
+    // Danh sách tỉnh đã chuẩn hóa để nạp vào <select> KTT của mọi panel
+    fillKttSelect(sel) {
+        if (!sel || sel.options.length > 1) return;
+        const cur = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`;
+        const opts = [`<option value="current">Giữ KTT hiện tại — ${escapeHtml(AppState.provinceName || 'Tùy chỉnh')} (${cur})</option>`];
+        if (typeof VN_PROVINCES !== 'undefined') {
+            VN_PROVINCES.forEach((p, i) => {
+                opts.push(`<option value="${i}">${escapeHtml(p.name)} (${p.deg}°${String(p.min).padStart(2, '0')}' = ${p.ktt})</option>`);
+            });
+        }
+        sel.innerHTML = opts.join('');
+    },
+
+    // Giá trị chọn → bộ kinh tuyến trục + k0 dùng để quy đổi
+    resolveKtt(selValue, muiSelValue) {
+        const mui = parseInt(muiSelValue || AppState.muiVal || 3, 10) || 3;
+        const k0 = mui === 6 ? 0.9996 : 0.9999;
+        const idx = parseInt(selValue, 10);
+        if (!isNaN(idx) && typeof VN_PROVINCES !== 'undefined' && VN_PROVINCES[idx]) {
+            const p = VN_PROVINCES[idx];
+            return { ktt: p.ktt, k0, deg: p.deg, min: p.min, name: p.name, provinceIndex: idx, changed: true };
+        }
+        return { ktt: AppState.kttVal, k0: AppState.scaleFactor, deg: AppState.kttDeg, min: AppState.kttMin, name: AppState.provinceName, changed: false };
+    },
+
+    // Nạp tệp GIS theo KTT của tỉnh khác thì phải đồng bộ KTT toàn dự án,
+    // nếu không các đỉnh sẽ bị _normalizeVertex tính lại theo KTT cũ.
+    applyKtt(k) {
+        if (!k || !k.changed) return false;
+        AppState.kttDeg = k.deg;
+        AppState.kttMin = k.min;
+        AppState.kttVal = k.ktt;
+        AppState.muiVal = k.k0 === 0.9996 ? 6 : 3;
+        AppState.scaleFactor = k.k0;
+        AppState.provinceName = k.name;
+        if (Number.isFinite(k.provinceIndex)) AppState.provinceIndex = k.provinceIndex;
+        if (typeof appSettings !== 'undefined' && appSettings.save) appSettings.save();
+        if (typeof appNav !== 'undefined' && appNav.updateBanner) appNav.updateBanner();
+        return true;
+    },
+
+    readFromFile(file, onDone) {
+        if (!file) return;
+        if (typeof GisIO === 'undefined') {
+            showToast('❌ Chưa nạp được động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const result = GisIO.read(e.target.result, file.name);
+            result.fileName = file.name;
+            onDone(result);
+        };
+        reader.onerror = () => { showToast('❌ Không đọc được tệp! Kiểm tra lại quyền truy cập file.', true); };
+        reader.readAsText(file, 'UTF-8');
+    },
+
+    summarize(result) {
+        if (!result) return '';
+        if (!result.ok) {
+            const map = {
+                KMZ_CAN_CONVERT_SANG_KML: 'KMZ là KML nén ZIP — hãy mở trong QGIS/Google Earth rồi xuất ra .kml',
+                FILE_RONG: 'tệp rỗng',
+                KHONG_NHAN_DANG_DUOC_DINH_DANG: 'không nhận dạng được định dạng (chỉ hỗ trợ GeoJSON / KML / GPX / WKT)',
+                KHONG_TIM_THAY_HINH_HOC: 'không tìm thấy hình học nào'
+            };
+            return map[result.error] || String(result.error || 'tệp lỗi');
+        }
+        const c = result.counts || {};
+        return `${(result.format || '').toUpperCase()} • ${c.points || 0} điểm rời • ${c.lines || 0} tuyến • ${c.polygons || 0} khối (${c.vertices || 0} đỉnh)`;
+    },
+
+    inVietnam(lat, lng) {
+        return isFinite(lat) && isFinite(lng) && lat >= 3 && lat <= 24 && lng >= 99 && lng <= 117;
+    },
+
+    // Tệp GIS không có thuộc tính tên thì GisIO trả về 'Feature' — phải tự sinh tên đếm được, không trùng
+    isGenericName(name) {
+        return !name || name === 'Feature';
+    },
+
+    uniqueName(used, base) {
+        const root = String(base || 'M');
+        let n = root;
+        for (let i = 2; used.has(n); i++) n = `${root}_${i}`;
+        used.add(n);
+        return n;
+    },
+
+    // Một vị trí đã chuẩn hóa của GisIO -> {lat, lng, x, y, h} theo hệ quy chiếu đã chọn
+    projectPos(p, featureCrs, k, crsMode, axis) {
+        const projected = crsMode === 'vn2000' || (crsMode !== 'wgs84' && featureCrs === 'projected');
+        let lat, lng, x, y;
+        try {
+            if (!projected) {
+                lat = Number(p.lat); lng = Number(p.lng);
+                if (!this.inVietnam(lat, lng)) return null;
+                const c = convertWgsToVn2k(lat, lng, k.ktt, k.k0);
+                x = parseFloat(c.X); y = parseFloat(c.Y);
+            } else {
+                // Tệp chiếu: trục 1 = Đông (Y), trục 2 = Bắc (X) theo chuẩn QGIS/GDAL
+                x = axis === 'NE' ? Number(p.lng) : Number(p.lat);
+                y = axis === 'NE' ? Number(p.lat) : Number(p.lng);
+                if (!isFinite(x) || !isFinite(y) || x <= 0) return null;
+                const w = convertVn2kToWgs(x, y, k.ktt, k.k0);
+                lat = parseFloat(w.lat); lng = parseFloat(w.lng);
+            }
+        } catch (e) { return null; }
+        if (!isFinite(lat) || !isFinite(lng) || !isFinite(x) || !isFinite(y)) return null;
+        return { lat: parseFloat(lat.toFixed(7)), lng: parseFloat(lng.toFixed(7)), x: parseFloat(x.toFixed(3)), y: parseFloat(y.toFixed(3)), h: Number(p.h) || 0 };
+    },
+
+    // Kết quả GisIO.read -> {shapes, pointLayer, skipped, holes} cho MiniCAD
+    featuresToCadShapes(result, opts) {
+        const k = opts.ktt, out = { shapes: [], pointLayer: null, skipped: 0, holes: 0 };
+        const pointVerts = [];
+        const used = new Set();
+        (result.features || []).forEach((f, i) => {
+            const rings = f.rings || [];
+            const build = (ring, label) => {
+                const verts = [];
+                (ring || []).forEach((p, j) => {
+                    const q = this.projectPos(p, f.crs, k, opts.crs, opts.axis);
+                    if (!q) { out.skipped++; return; }
+                    const baseName = (f.kind === 'point' && !this.isGenericName(f.name))
+                        ? f.name : `Đ${pointVerts.length + j + 1}`;
+                    verts.push(Object.assign(q, {
+                        name: this.uniqueName(used, baseName),
+                        note: f.note || '',
+                        isSnapped: false,
+                        snapSource: `${(result.format || 'GIS').toUpperCase()}: ${result.fileName || ''}`
+                    }));
+                });
+                if (!verts.length) return;
+                if (f.kind === 'point') { pointVerts.push(...verts); return; }
+                const closed = f.kind === 'polygon' && verts.length >= 3;
+                out.shapes.push({ name: this.uniqueName(used, label), mode: closed ? 'polygon' : 'polyline', vertices: verts });
+            };
+
+            const named = !this.isGenericName(f.name) ? f.name : null;
+            if (f.kind === 'polygon') {
+                // MiniCAD chưa hỗ trợ quỹ tích có lỗ: chỉ giữ vòng ngoài, báo rõ số vòng đã bỏ
+                if (rings.length > 1) out.holes += rings.length - 1;
+                build(rings[0], named || `Khối ${i + 1}`);
+                return;
+            }
+            if (f.kind === 'line' && rings.length > 1) {
+                rings.forEach((r, j) => build(r, `${named || 'Tuyến'} ${j + 1}`));
+                return;
+            }
+            build(rings[0], named || `Đối tượng ${i + 1}`);
+        });
+        if (pointVerts.length) out.pointLayer = { name: opts.layerName || `Điểm ${(result.fileName || 'GIS').replace(/\.[^.]+$/, '')}`, vertices: pointVerts };
+        return out;
+    },
+
+    // Kết quả GisIO.read -> danh sách mốc cho Sổ đo dự án (appData)
+    featuresToProjectPoints(result, opts) {
+        const k = opts.ktt, pts = [], meta = { skipped: 0 };
+        const used = new Set();
+        const push = (q, f) => pts.push({
+            id: Date.now() + pts.length + Math.random(),
+            name: q.name,
+            x: q.x, y: q.y,
+            lat: q.lat, lng: q.lng,
+            h: q.h,
+            note: q.note || f.note || '',
+            ktt: `${k.deg}°${String(k.min).padStart(2, '0')}'`,
+            mui: k.k0 === 0.9996 ? 6 : 3,
+            time: new Date().toLocaleString('vi-VN'),
+            source: `${(result.format || 'GIS').toUpperCase()}`
+        });
+        (result.features || []).forEach((f, i) => {
+            (f.rings || []).forEach(ring => ring.forEach((p, idx) => {
+                const q = this.projectPos(p, f.crs, k, opts.crs, opts.axis);
+                if (!q) { meta.skipped++; return; }
+                const named = this.uniqueName(used, (f.kind === 'point' && !this.isGenericName(f.name))
+                    ? f.name : `${opts.namePrefix || 'M'}${pts.length + 1}`);
+                push(Object.assign(q, {
+                    name: named,
+                    note: (opts.tagShape && f.kind !== 'point') ? `${(this.isGenericName(f.name) ? 'Khối ' + (i + 1) : f.name)} • đỉnh ${idx + 1}` : (f.note || '')
+                }), f);
+            }));
+        });
+        return { pts, meta };
+    },
+
+    // Gộp mốc dự án / đỉnh CAD thành feature GIS để xuất tệp.
+    // Tệp GIS luôn ghi theo kinh/vĩ độ WGS84 nên mốc chưa có lat/lng bị bỏ qua.
+    featuresFromPoints(points) {
+        const out = [];
+        (points || []).forEach((p) => {
+            const lat = Number(p.lat), lng = Number(p.lng);
+            if (!isFinite(lat) || !isFinite(lng) || lat === 0 || lng === 0) return;
+            out.push({
+                kind: 'point',
+                name: p.name || `M${out.length + 1}`,
+                note: p.note || '',
+                crs: 'wgs84',
+                rings: [[{ lng, lat, h: Number(p.h) || 0 }]],
+                properties: {
+                    stt: out.length + 1,
+                    x_vn2000: Number(p.x) || 0,
+                    y_vn2000: Number(p.y) || 0,
+                    point_style: p.pointStyle || p.style || '',
+                    point_color: p.pointColor || p.color || ''
+                }
+            });
+        });
+        return out;
+    },
+
+    featuresFromShapes(shapes) {
+        const out = [];
+        (shapes || []).forEach((s) => {
+            const verts = (s.vertices || []).filter(v => isFinite(v.lat) && isFinite(v.lng) && Number(v.lat) !== 0 && Number(v.lng) !== 0);
+            if (!verts.length) return;
+            if ((s.mode || 'polygon') === 'point') {
+                verts.forEach((v, i) => out.push({
+                    kind: 'point',
+                    name: v.name || `${s.name || 'Diem'}_${i + 1}`,
+                    note: v.note || '',
+                    crs: 'wgs84',
+                    rings: [[{ lng: Number(v.lng), lat: Number(v.lat), h: Number(v.h) || 0 }]],
+                    properties: {
+                        block: s.name || '',
+                        x_vn2000: Number(v.x) || 0,
+                        y_vn2000: Number(v.y) || 0,
+                        point_style: v.style || s.style || 'circle',
+                        point_color: v.color || s.color || ''
+                    }
+                }));
+                return;
+            }
+            out.push({
+                kind: s.mode === 'polyline' ? 'line' : 'polygon',
+                name: s.name || 'Khoi',
+                note: '',
+                crs: 'wgs84',
+                rings: [verts.map(v => ({ lng: Number(v.lng), lat: Number(v.lat), h: Number(v.h) || 0 }))],
+                properties: {
+                    block: s.name || '',
+                    cad_layer: s.layer || 'RANH_THUA',
+                    vertices_count: verts.length,
+                    area_m2: Number((Number((s.stats || {}).area) || 0).toFixed(2)),
+                    perimeter_m: Number((Number((s.stats || {}).perimeter) || 0).toFixed(2))
+                }
+            });
+        });
+        return out;
+    }
+};
+
 // ================= 10. BỘ CÔNG CỤ VẼ MẶT BẰNG CÔNG TRÌNH CAD MINI (NHÓM 3.5) =================
 // Tích hợp chuẩn thiết kế TCVN & kiểm soát chất lượng từ vn-autocad-skill
 const appCadTool = {
@@ -19411,7 +19811,8 @@ const appCadTool = {
         [
             'modalCadAreaTable', 'modalCadPointTable', 'modalCadExportConfig',
             'modalCadLoadProject', 'modalCadPolarInput', 'modalCadCoordInput',
-            'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow'
+            'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow',
+            'modalCadGisImport'
         ].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -25623,6 +26024,8 @@ const appCadTool = {
                 img: '🚀 XUẤT FILE .PNG',
                 kml: '🚀 XUẤT FILE .KML',
                 geojson: '🚀 XUẤT FILE .GEOJSON',
+                gpx: '🚀 XUẤT FILE .GPX',
+                wkt: '🚀 XUẤT FILE .WKT',
                 txt: '🚀 XUẤT FILE .TXT',
                 csv: '🚀 XUẤT FILE .CSV',
                 share: '🚀 CHIA SẺ BẢN VẼ'
@@ -25651,6 +26054,10 @@ const appCadTool = {
                 return this.exportKml();
             case 'geojson':
                 return this.exportGeoJson();
+            case 'gpx':
+                return this.exportGpx();
+            case 'wkt':
+                return this.exportWkt();
             case 'txt':
                 return this.exportTxt();
             case 'csv':
@@ -29186,6 +29593,138 @@ const appCadTool = {
             modal.style.display = 'none';
             modal.classList.remove('active');
         }
+    },
+
+    // ================= NẠP GIS VÀO BẢN VẺ (GEOJSON / KML / GPX / WKT) =================
+    // Panel riêng của MiniCAD: chỉ mượn lớp dữ liệu appGis + GisIO, không vay giao diện dự án.
+    openGisImportModal() {
+        const modal = document.getElementById('modalCadGisImport');
+        if (!modal) return;
+        if (typeof GisIO === 'undefined') {
+            showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        this._gisResult = null;
+        appGis.fillKttSelect(document.getElementById('cadGisKtt'));
+        const summary = document.getElementById('cadGisSummary');
+        if (summary) summary.textContent = 'Chưa chọn tệp — hỗ trợ .geojson · .kml · .gpx · .wkt';
+        const fileInput = document.getElementById('cadFileInputGis');
+        if (fileInput) fileInput.value = '';
+        const layerName = document.getElementById('cadGisLayerName');
+        if (layerName) layerName.placeholder = `Mặc định: "Điểm <tên tệp>"`;
+        const projectedRow = document.getElementById('cadGisTargetProjected');
+        if (projectedRow) projectedRow.style.display = 'none';
+        modal.style.display = 'flex';
+    },
+
+    closeGisImportModal() {
+        const modal = document.getElementById('modalCadGisImport');
+        if (modal) modal.style.display = 'none';
+    },
+
+    _gisRadioValue(group, fallback) {
+        const sel = document.querySelector(`input[name="${group}"]:checked`);
+        return sel ? sel.value : fallback;
+    },
+
+    _gisSetRadio(group, value) {
+        const el = document.querySelector(`input[name="${group}"][value="${value}"]`);
+        if (el) el.checked = true;
+    },
+
+    onGisFilePicked(event) {
+        const file = event.target.files && event.target.files[0];
+        event.target.value = '';
+        if (!file) return;
+        const summary = document.getElementById('cadGisSummary');
+        if (summary) summary.textContent = `⏳ Đang phân tích ${file.name}...`;
+        appGis.readFromFile(file, (result) => {
+            this._gisResult = result;
+            const box = document.getElementById('cadGisSummary');
+            if (box) box.textContent = `${file.name} ➜ ${appGis.summarize(result)}`;
+            if (!result.ok) {
+                showToast('❌ Không nạp được tệp: ' + appGis.summarize(result), true);
+                return;
+            }
+            // Tự chỉnh cầu truyền / trục tọa độ theo bản chất tệp vừa đọc
+            const projected = (result.features || []).some(f => f.crs === 'projected');
+            this._gisSetRadio('cadGisCrs', projected ? 'vn2000' : 'wgs84');
+            const target = document.getElementById('cadGisTargetProjected');
+            if (target) target.style.display = projected ? 'inline-flex' : 'none';
+            showToast(`✅ ${appGis.summarize(result)}`);
+        });
+    },
+
+    applyGisImport() {
+        const result = this._gisResult;
+        if (!result || !result.ok) {
+            showToast('⚠️ Hãy chọn một tệp GIS hợp lệ trước khi nạp.', true);
+            return;
+        }
+        const k = appGis.resolveKtt(
+            (document.getElementById('cadGisKtt') || {}).value,
+            (document.getElementById('cadGisMui') || {}).value);
+        // Áp KTT trước: _normalizeVertex đồng bộ lại X/Y theo kinh tuyến trục đang hoạt động
+        const kttDoi = appGis.applyKtt(k);
+        const converted = appGis.featuresToCadShapes(result, {
+            ktt: k,
+            crs: this._gisRadioValue('cadGisCrs', 'auto'),
+            axis: this._gisRadioValue('cadGisAxis', 'EN'),
+            layerName: ((document.getElementById('cadGisLayerName') || {}).value || '').trim()
+        });
+        const target = this._gisRadioValue('cadGisTarget', 'both');
+
+        const wantShapes = target === 'shapes' || target === 'both';
+        const wantPoints = target === 'points' || target === 'both';
+        const shapes = wantShapes ? converted.shapes : [];
+        const pointLayer = wantPoints ? converted.pointLayer : null;
+
+        if (!shapes.length && !pointLayer) {
+            showToast('⚠️ Tệp không có đối tượng nào khớp lựa chọn nạp (đã bỏ ' + converted.skipped + ' đỉnh lỗi hệ tọa độ).', true);
+            return;
+        }
+
+        this.closeGisImportModal();
+        if (shapes.length) this._applyImportedShapes(shapes, result.fileName);
+        if (pointLayer) this._importPointLayer(pointLayer);
+
+        const notes = [];
+        if (kttDoi) notes.push(`đã chuyển KTT sang ${k.name} (${k.deg}°${String(k.min).padStart(2, '0')}')`);
+        if (converted.skipped) notes.push(`${converted.skipped} đỉnh bị bỏ ngoài vùng Việt Nam`);
+        if (converted.holes) notes.push(`${converted.holes} vòng lỗ bị bỏ (MiniCAD chưa hỗ trợ quỹ tích có lỗ)`);
+        showToast(`✅ Nạp GIS: ${shapes.length} khối/tuyến` +
+            (pointLayer ? ` + ${pointLayer.vertices.length} điểm rời` : '') +
+            (notes.length ? ' — ' + notes.join(', ') : ''));
+    },
+
+    // Lớp điểm rời từ tệp GIS -> một shape mode 'point' của MiniCAD (giữ nguyên kiểu/mặc định của createPointLayer)
+    _importPointLayer(layerData) {
+        if (!layerData || !layerData.vertices || !layerData.vertices.length) return null;
+        const verts = layerData.vertices.map((v, i) => this._normalizeVertex(v, i)).filter(Boolean);
+        if (!verts.length) return null;
+        const label = (layerData.name || `Điểm GIS ${this.getPointLayers().length + 1}`).trim();
+        const shape = {
+            id: 'gispoint_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            name: label,
+            shortName: label,
+            mode: 'point',
+            vertices: verts,
+            stats: this.calculateAreaAndPerimeter(verts, 'point'),
+            color: (this.getLayerById('MOC_TOADO') || {}).color || this.palette[this.savedShapes.length % this.palette.length],
+            style: 'circle',
+            layer: 'MOC_TOADO',
+            symbol: String(this.savedShapes.length + 1)
+        };
+        this.pushHistoryState(`Nạp GIS lớp điểm "${label}"`);
+        this.savedShapes.push(shape);
+        this.pointLayerId = shape.id;
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.updateUi();
+        this.renderBlocksPanel();
+        this.refreshPointLayerBar();
+        return shape;
     },
 
     // Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xls, .xlsx) hoặc CSV
@@ -33212,52 +33751,69 @@ const appCadTool = {
         showToast("✓ Đã xuất tệp Google Earth 3D (.kml)");
     },
 
-    exportGeoJson() {
-        const allShapes = this._getAllExportShapes();
-        const selectedShapes = allShapes.filter(s => s.selected !== false);
-        if (selectedShapes.length === 0) {
-            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất GeoJSON!", true);
-            return;
+    // Khối đang được chọn để xuất (các exporter vector GIS dùng chung bộ lọc này)
+    _selectedExportShapes(hint) {
+        const selected = this._getAllExportShapes().filter(s => s.selected !== false);
+        if (!selected.length) {
+            showToast(`⚠️ Vui lòng chọn ít nhất 1 khối để xuất ${hint}!`, true);
+            return null;
         }
+        return selected;
+    },
 
-        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
-        const features = [];
+    _cadBaseName() {
+        return AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
+    },
 
-        selectedShapes.forEach((s, idx) => {
-            const ring = (s.vertices || []).map(v => [+(v.lng || 0).toFixed(7), +(v.lat || 0).toFixed(7)]);
-            if (ring.length > 0) ring.push([...ring[0]]);
-            features.push({
-                type: "Feature",
-                properties: {
-                    name: s.name || `Khối ${idx + 1}`,
-                    area_m2: +(s.stats?.area || 0).toFixed(2),
-                    perimeter_m: +(s.stats?.perimeter || 0).toFixed(2),
-                    vertices_count: s.vertices?.length || 0
-                },
-                geometry: {
-                    type: "Polygon",
-                    coordinates: [ring]
-                }
-            });
-        });
-
-        const geojson = {
-            type: "FeatureCollection",
-            name: projName,
-            crs: { type: "name", properties: { name: "urn:ogc:def:crs:OGC:1.3:CRS84" } },
-            features: features
-        };
-
-        const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/geo+json;charset=utf-8;" });
+    _downloadText(content, filename, mime) {
+        const blob = new Blob([content], { type: mime });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${projName}_Vector.geojson`;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast("✓ Đã xuất tệp GeoJSON RFC 7946");
+    },
+
+    exportGeoJson() {
+        const selected = this._selectedExportShapes('GeoJSON');
+        if (!selected || typeof GisIO === 'undefined') {
+            if (selected) showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        const projName = this._cadBaseName();
+        const text = GisIO.toGeoJsonText(appGis.featuresFromShapes(selected), { name: projName });
+        this._downloadText(text, `${projName}_Vector.geojson`, 'application/geo+json;charset=utf-8');
+        showToast("✓ Đã xuất GeoJSON RFC 7946 — kèm diện tích, lớp CAD và kiểu/màu điểm rời");
+    },
+
+    // GPX: waypoint cho từng điểm rời, track cho ranh/tuyến — dùng cho máy định vị & app thực địa
+    exportGpx() {
+        const selected = this._selectedExportShapes('GPX');
+        if (!selected || typeof GisIO === 'undefined') {
+            if (selected) showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        const projName = this._cadBaseName();
+        const feats = appGis.featuresFromShapes(selected);
+        this._downloadText(GisIO.toGpxText(feats, { creator: 'VN2000-PWA MiniCAD' }), `${projName}.gpx`, 'application/gpx+xml;charset=utf-8');
+        showToast(`✓ Đã xuất GPX: ${projName}.gpx (${feats.length} đối tượng)`);
+    },
+
+    // WKT: một đối tượng một dòng, kinh độ trước vĩ độ sau — mở trực tiếp bằng QGIS / PostGIS
+    exportWkt() {
+        const selected = this._selectedExportShapes('WKT');
+        if (!selected || typeof GisIO === 'undefined') {
+            if (selected) showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        const projName = this._cadBaseName();
+        const feats = appGis.featuresFromShapes(selected);
+        const header = `# VN2000-PWA MiniCAD · ${projName} · ${feats.length} đối tượng · kinh độ trước, vĩ độ sau (WGS84)\n`;
+        this._downloadText(header + GisIO.toWktText(feats, { precision: 7 }), `${projName}.wkt`, 'text/plain;charset=utf-8');
+        showToast(`✓ Đã xuất WKT: ${projName}.wkt (${feats.length} đối tượng)`);
     },
 
     exportTxt() {

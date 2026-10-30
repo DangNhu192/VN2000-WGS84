@@ -1,6 +1,29 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-30: WP-A MiniCAD — Kiểu/Màu Điểm Rời & 3 Nhóm Hiển Thị Tách Biệt
+## Phiên hiện tại — 2026-10-30: WP-B — Nạp/Xuất GIS & QGIS (GeoJSON / KML / GPX / WKT)
+- **Yêu cầu từ người dùng**:
+  - `Bổ sung tính năng nạp/xuất dữ liệu map dự án từ các định dạng phổ biến trong GIS/QGIS. tối ưu hóa sử dụng để hoàn thiện các chức năng trong MiniCAD`
+  - Phạm vi chốt qua AskUserQuestion: GeoJSON + KML + GPX + WKT, JavaScript thuần (không thêm vendor lib), không Shapefile/GeoPackage/DXF.
+- **Kiến trúc đã dựng (3 tầng, cũng là cách mở rộng cho các định dạng sau)**:
+  1. **Engine** `window.GisIO` — [src/core/gis_io.js](src/core/gis_io.js): `read/detectFormat/parseGeoJson/parseKml/parseGpx/parseWkt/toGeoJsonText/toGpxText/toWktText`. Không chạm DOM nên test được bằng Node. Feature chuẩn: `{kind:'point'|'line'|'polygon', name, note, crs:'wgs84'|'projected', rings:[[{lng,lat,h}]], properties}`.
+  2. **Cầu** `appGis` — [app.js:17245](app.js#L17245): `resolveKtt/applyKtt/readFromFile/summarize/featuresToCadShapes/featuresToProjectPoints/featuresFromPoints/featuresFromShapes/isGenericName/uniqueName`. Nơi quyết định hệ quy chiếu, trục EN/NE, KTT và đặt tên chống trùng.
+  3. **Bề mặt**: `appCadTool.openGisImportModal/onGisFilePicked/applyGisImport/_importPointLayer` (modal riêng `#modalCadGisImport`) và `appData.onGisProjectFilePicked/applyGisToProject` (Phân vùng 2.5 trong `#modalImportProject`). Hai phân hệ chỉ chung tầng dữ liệu — có test chốt AGENTS.md §2.
+- **Điểm cần nhớ khi sửa tiếp**:
+  - **Thứ tự bắt buộc**: `resolveKtt` → `applyKtt` → *rồi mới* đổi feature sang shape. Đảo ngược làm `_normalizeVertex` tính X/Y theo KTT cũ (lệch hàng trăm mét, không báo lỗi).
+  - Tính năng vô danh từ parser mang tên `Feature`; mọi tên đỉnh/mốc/khối đi qua `uniqueName(used, base)` để không trùng.
+  - `GisIO.read(...).counts.vertices` **chỉ đếm đỉnh của tuyến/khối**, không tính điểm rời — đừng dùng làm "tổng số điểm".
+  - Tệp phẳng (X Bắc/Y Đông) phải bật hàng `#cadGisTargetProjected`/`#projGisAxis`; `onGisFilePicked` tự nhận và bật radio `vn2000`.
+  - `openGisImportModal()` cố ý xóa `_gisResult` (đặt lại phiên nạp), nên code kiểm thử phải "nạp lại" kết quả sau khi mở modal.
+  - Export GPX/WKT dùng `_downloadText` + `getExportGeometry()` (dự án) / `_selectedExportShapes()` (CAD); mốc thiếu kinh/vĩ độ bị loại và báo `skipped`; ≥3 mốc tự sinh `Ranh_<project>`.
+- **Kết quả kiểm chứng**: `tests/gis_io_interop.test.js` 67/67, `tests/gis_import_export_bridge.test.js` 125/125, `node --check app.js` đạt, toàn dự án **312/312 PASS (0 fail)**. Live localhost:8080 (`?v=2.8.10`): nạp GeoJSON ra `Tuyen demo:polyline:3`, `Thua demo:polygon:5`, `Điểm GIS:point:2`; bằng chứng vẽ thật `layers.group=47`, 32 marker, 18 `.cad-vertex-badge` (bản đồ CAD dùng `preferCanvas:true` nên không có `<path>` SVG — đừng bắt lỗi `svgPaths=0`). Dọn vết test: stub `saveShapesForProject/persistSession/appSettings.save/saveImportedPoints`, rút shape tạm, render lại.
+- **Đăng ký tài nguyên**: `src/core/gis_io.js?v=2.8.10` nạp trước `app.js`, `sw.js` `CACHE_NAME = vn2000-pro-v2.8.10` + precache `./src/core/gis_io.js`, `style.css?v=2.8.10`; `closeCadWindows()` thêm `modalCadGisImport`.
+- **Còn lại / việc kế tiếp**:
+  1. **Backlog CADCraft port**: Dynamic Input, Hatch, Import DXF, Inquiry/QSELECT; kéo các suite `cadcraft_dynamic_input`, `minicad_snap_runtime`, `minicad_toolbar_collapse`, `minicad_select_and_delete` vào `npm test` (task #23 kiểm kê nhóm còn thiếu).
+  2. **Ý định chưa làm** (ngoài phạm vi đã chốt): nhập Shapefile/GeoPackage, KMZ (hiện báo lỗi hướng dẫn giải nén), quỹ tích có lỗ trong MiniCAD (đang bỏ vòng lỗ và báo đếm `holes`), liên kết CRS động theo EPSG.
+  3. **Ràng buộc của người dùng vẫn hiệu lực**: "Tôi tự rever — đừng đẩy lại" → chỉ push `integration-draw-fixes`, không đụng `main`; "Port lần lượt, ưu tiên Dimension".
+  4. **Không chạy `npm install`** trong `I:\My Drive\...`; stage đúng tên tệp (`src/core/gis_io.js`, `app.js`, `index.html`, `sw.js`, `tests/gis_io_interop.test.js`, `tests/gis_import_export_bridge.test.js`, `progress.md`, `session-handoff.md`), không `git add -A`.
+
+## Phiên trước — 2026-10-30: WP-A MiniCAD — Kiểu/Màu Điểm Rời & 3 Nhóm Hiển Thị Tách Biệt
 - **Yêu cầu từ người dùng**:
   - `bổ sung cho phép điều chỉnh hình dạng và màu sắc các điểm được vẽ trong MiniCAD. cho phép tắt/mở hiển thị các điểm, các đỉnh của khối và tuyến (chia riêng từng dạng chứ không gộp chung, có thể gộp chung 1 nhánh thao tác)`
   - Phạm vi đã chốt: GIS import chỉ GeoJSON/KML/GPX/WKT (WP-B, chưa làm); style riêng từng điểm + mặc định theo lớp + áp hàng loạt; thêm nhóm thứ 3 (nhãn/ký hiệu).

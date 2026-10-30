@@ -3,11 +3,38 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 310/310 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 312/312 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-10-30] WP-B Nạp/Xuất GIS–QGIS: GeoJSON / KML / GPX / WKT cho MiniCAD và Bản đồ dự án
+- **Yêu cầu từ người dùng**:
+  - `Bổ sung tính năng nạp/xuất dữ liệu map dự án từ các định dạng phổ biến trong GIS/QGIS. tối ưu hóa sử dụng để hoàn thiện các chức năng trong MiniCAD`
+  - Phạm vi chốt qua AskUserQuestion: 4 định dạng **GeoJSON + KML + GPX + WKT**, tự đọc/tự ghi bằng JavaScript thuần (không thêm thư viện vendor, không Shapefile/GeoPackage/DXF).
+- **Các phát hiện điều tra gốc rễ (Root Cause Analysis)**:
+  1. *Không có lớp động cơ*: việc "phân tích tệp" trước đây nằm rải trong code đọc Excel/CSV, không kiểm chứng được bằng Node và mỗi lần thêm định dạng lại phải sửa UI.
+  2. *Tệp GIS projected dễ bị hiểu sai*: GeoJSON/KML của QGIS thường mang **tọa độ phẳng VN-2000 (X Bắc, Y Đông)** trong khi app quen hệ WGS84 — nếu đổi KTT *sau* khi chuẩn hóa đỉnh thì `_normalizeVertex` tính lại X/Y theo **KTT cũ** ⇒ lệch hàng trăm mét, sai âm thầm.
+  3. *Tính năng vô danh trùng tên*: parser GIS đặt tên mặc định `Feature`, nạp vào CAD/sổ đo sẽ ra cả loạt đỉnh và mốc trùng "Feature" ⇒ không tra lại được nguồn.
+  4. *Vòng lặp kín tự sinh ranh*: `featuresToProjectPoints` gộp nhiều vòng polygon làm mốc "đỉnh khối" lẫn vào mốc rời; ngược lại `getExportGeometry` phải dựng lại ranh khi sổ đo chỉ có điểm.
+  5. *Lỗi thật trong engine GPX (do test tìm ra)*: `parseGpx` chỉ bắt cặp `<wpt>…</wpt>`, bỏ qua dạng tự đóng `<wpt .../>` / `<trkpt .../>` — một tệp GPX chuẩn của máy định vị vẫn cho **0 đối tượng** mà không báo lỗi; nhãn dự phòng của `trk` ghi nhầm là "Route".
+  6. *Trùng lặp vòng lặp kiểm tra cache*: `sw.js`/`?v=` chưa tăng thì `gis_io.js` không được precache, máy cũ không bao giờ có động cơ GIS.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. *Kiến trúc 3 tầng* — engine `window.GisIO` mới ở [src/core/gis_io.js](src/core/gis_io.js) (thuần JS, không DOM, `read/detectFormat/parseGeoJson/parseKml/parseGpx/parseWkt/toGeoJsonText/toGpxText/toWktText/summarizeCounts`) → cầu `appGis` ở [app.js:17245](app.js#L17245) (chính sách CRS/KTT/trục + biến đổi feature ⇄ hình dạng) → hai bề mặt `appCadTool` (MiniCAD) và `appData` (sổ đo dự án). Feature chuẩn: `{kind:'point'|'line'|'polygon', name, note, crs:'wgs84'|'projected', rings:[[{lng,lat,h}]], properties}`.
+  2. *Sửa GPX* bằng helper `gpxPoints(block, tag)` nhận cả `/>` lẫn cặp thẻ, nhãn dự phòng `Track` cho `trk` [src/core/gis_io.js](src/core/gis_io.js).
+  3. *Đồng bộ KTT trước khi chuyển đổi*: `appGis.resolveKtt()` → `applyKtt()` **trước** `featuresToCadShapes/featuresToProjectPoints`, KTT tỉnh khác tự đổi toàn dự án và toast nêu rõ.
+  4. *Chống trùng tên*: `isGenericName()` + `uniqueName(used, base)` gắn hậu tố `_2, _3…` cho đỉnh, mốc, khối và lớp điểm vô danh; giữ tên thật từ tệp (`M1`, `Thua 17`) [app.js:17260](app.js#L17260).
+  5. *MiniCAD*: modal riêng `#modalCadGisImport` (định dạng, CRS tự nhận `wgs84/vn2000`, trục EN/NE cho tệp phẳng, KTT + múi chiếu, mục tiêu `both|shapes|points`, tên lớp) + `openGisImportModal/onGisFilePicked/applyGisImport/_importPointLayer` [app.js:29600](app.js#L29600); lớp điểm GIS vào thẳng `MOC_TOADO` với `_normalizeVertex`, history, panel khối và `#cadPointLayerBar`.
+  6. *Bản đồ dự án*: "Phân vùng 2.5 NẠP TỆP GIS" trong `#modalImportProject` + `onGisProjectFilePicked/applyGisToProject` [app.js:11695](app.js#L11695) dùng lại `saveImportedPoints` (tôn trọng radio "Tạo dự án mới / Thêm vào dự án hiện tại").
+  7. *Xuất*: `getExportGeometry()` lọc mốc chưa có kinh/vĩ độ và tự sinh `Ranh_`/`Tuyen_` từ ≥3/=2 mốc; thêm `exportGpxFile/exportWktFile/_downloadText/_exportBaseName` cho dự án và `exportGpx/exportWkt/_selectedExportShapes/_cadBaseName` cho CAD; GeoJSON dự án nay mang `point_style`/`point_color`, GeoJSON CAD mang `cad_layer/vertices_count/area_m2/perimeter_m2`; hai hộp xuất + `executeExport()` nhận `.gpx/.wkt`.
+  8. *Đăng ký tài nguyên*: `<script src="src/core/gis_io.js?v=2.8.10">` trước `app.js`, `CACHE_NAME` → `vn2000-pro-v2.8.10`, `gis_io.js` vào `ASSETS_TO_CACHE`, `style.css?v=2.8.10`; `closeCadWindows()` đóng thêm `modalCadGisImport`.
+- **Kiểm thử tự động & Xác minh thực nghiệm**:
+  - `tests/gis_io_interop.test.js` **67/67** (7 nhóm: nhận dạng định dạng theo tên tệp & nội dung, đọc GeoJSON/KML/GPX/WKT, ghi GeoJSON+WKT+GPX, và lỗi đầu vào không được ném exception lên tầng UI).
+  - `tests/gis_import_export_bridge.test.js` **125/125** (10 nhóm: đăng ký UI/tài nguyên, `readFromFile`/`summarize` chuỗi chính xác, CRS phẳng + trục + KTT 3°/6° + mutated `AppState`, `featuresToProjectPoints` tên riêng/note nguồn, round-trip GeoJSON/GPX/WKT, luồng modal CAD với fake DOM (reset `_gisResult`, 2 vòng nạp), `_importPointLayer` (mode/layer/thứ tự gọi lại), luồng dự án (3 điểm lọc, tệp lỗi không ghi, **không gọi chéo MiniCAD** — chốt AGENTS.md §2), `getExportGeometry`/`exportGpxFile`/`exportWktFile`, chu trình KML/GPX/WKT → CAD).
+  - `npm test` = **312/312 PASS (0 fail)**; `node --check app.js` đạt.
+  - Live http://127.0.0.1:8080 (`?v=2.8.10`): `GisIO`/`appGis` tồn tại, 8 id mới có mặt, `gpx/wkt options = 2/2`; nạp Geojson 2 điểm + 1 tuyến + 1 khối → bảng khối `Tuyen demo:polyline:3`, `Thua demo:polygon:5`, `Điểm GIS:point:2`, đỉnh có X/Y VN-2000 đúng KTT, `modalCadGisImport` tự đóng; **xác minh vẽ thật**: `layers.group` = 47 layer, 32 marker icon, 18 `.cad-vertex-badge`, 14 `.leaflet-interactive` (`svgPaths=0` vì bản đồ CAD dùng `preferCanvas:true` — hình học vẽ ra `<canvas>`, không phải `<path>`); luồng dự án tạo `quy_hoach_dac_biet.csv` 8 mốc. Dọn vết thử nghiệm: stub toàn bộ `saveShapesForProject/persistSession/appSettings.save/saveImportedPoints`, rút các shape tạm, `renderGeometry()` lại, baseline còn `Thua Audit`/`Lớp điểm 2` + 20 layer.
+  - Tuân thủ AGENTS.md §2: MiniCAD dùng `#modalCadGisImport` của riêng mình, dự án dùng phân vùng trong `#modalImportProject`; chỉ chia sẻ tầng dữ liệu (`GisIO`/`appGis`), có test chặn lời gọi chéo.
 
 ### [2026-10-30] WP-A MiniCAD: Kiểu & Màu Điểm Rời + Tách 3 Nhóm Hiển Thị Độc Lập (Point Styling & Visibility Pro)
 - **Yêu cầu từ người dùng**:

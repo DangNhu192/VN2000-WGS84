@@ -33,7 +33,7 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.9">
+  <link rel="stylesheet" href="style.css?v=2.8.10">
   <link rel="stylesheet" href="field-workspace.css">
   <link rel="stylesheet" href="ui-polish.css?v=2.8.2">
 </head>
@@ -2246,6 +2246,14 @@
             </button>
             <input type="file" id="cadFileInputExcel" accept=".xls,.xlsx,.csv,.txt" style="display: none;"
               onchange="appCadTool.importExcel(event)">
+            <button class="cad-btn"
+              style="background: rgba(139, 92, 246, 0.25); border-color: #8b5cf6; color: #c4b5fd; font-weight: 700;"
+              onclick="appCadTool.openGisImportModal()"
+              title="Nạp hình vẽ / mốc từ các định dạng GIS phổ biến: GeoJSON, KML, GPX, WKT (QGIS, Google Earth)">
+              🌐 Nạp GIS
+            </button>
+            <input type="file" id="cadFileInputGis" accept=".geojson,.json,.kml,.kmz,.gpx,.wkt,.txt"
+              style="display: none;" onchange="appCadTool.onGisFilePicked(event)">
           </div>
 
           <!-- TAB 4: TRỢ VẼ & OSNAP BẮT ĐIỂM (ASSIST & OSNAP) -->
@@ -5287,6 +5295,82 @@
   </div>
 
 
+  <!-- ================= MODAL NẠP GIS (GEOJSON / KML / GPX / WKT) — MINI CAD ================= -->
+  <div id="modalCadGisImport" class="modal-overlay" onclick="if(event.target === this) appCadTool.closeGisImportModal()">
+    <div class="modal-box" style="max-width: 720px;">
+      <div class="modal-title">
+        <span style="color: #c4b5fd;">🌐 Nạp dữ liệu GIS vào bản vẽ</span>
+        <button class="btn-modal-close" onclick="appCadTool.closeGisImportModal()">✕</button>
+      </div>
+
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+        <button class="btn-sm"
+          style="height: 36px; padding: 0 14px; font-weight: 800; background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%); color: #fff; border: 1.5px solid #8b5cf6;"
+          onclick="document.getElementById('cadFileInputGis').click()">
+          📂 Chọn tệp GIS
+        </button>
+        <span style="font-size: 11px; color: #94a3b8;">GeoJSON · KML · GPX · WKT (mở QGIS/Google Earth rồi lưu ra các định dạng này)</span>
+      </div>
+
+      <div
+        style="padding: 8px 10px; margin-bottom: 10px; background: rgba(15,23,42,0.85); border: 1px solid rgba(139,92,246,0.35); border-radius: 8px; font-size: 12px; color: #c4b5fd; word-break: break-word;">
+        <b id="cadGisSummary">Chưa chọn tệp — hỗ trợ .geojson · .kml · .gpx · .wkt</b>
+      </div>
+
+      <!-- Hệ quy chiếu của tệp -->
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+        <span style="font-size: 11.5px; color: #94a3b8; min-width: 130px;">Tọa độ trong tệp</span>
+        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="auto" checked><span>Tự nhận diện</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="wgs84"><span>WGS84 (kinh độ/vĩ độ)</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="vn2000"><span>VN2000 (X/Y mét)</span></label>
+      </div>
+
+      <!-- Trục + KTT: chỉ cần thiết khi tệp đã chiếu -->
+      <div id="cadGisTargetProjected"
+        style="display: none; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; padding: 7px 10px; background: rgba(30,41,59,0.55); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px;">
+        <span style="font-size: 11.5px; color: #94a3b8;">Thứ tự trục</span>
+        <label class="cad-check-label"><input type="radio" name="cadGisAxis" value="EN" checked><span>(Y Đông, X Bắc)</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisAxis" value="NE"><span>(X Bắc, Y Đông)</span></label>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+        <span style="font-size: 11.5px; color: #94a3b8;">Kinh tuyến trục</span>
+        <select id="cadGisKtt" class="app-input"
+          style="height: 30px; min-width: 250px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"></select>
+        <span style="font-size: 11.5px; color: #94a3b8;">Lưới chiếu</span>
+        <select id="cadGisMui" class="app-input"
+          style="height: 30px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
+          <option value="3">3° (k0 = 0.9999)</option>
+          <option value="6">6° (k0 = 0.9996)</option>
+        </select>
+      </div>
+
+      <!-- Đối tượng sẽ nạp -->
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+        <span style="font-size: 11.5px; color: #94a3b8; min-width: 130px;">Nạp vào bản vẽ</span>
+        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="both" checked><span>Khối/tuyến + điểm rời</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="shapes"><span>Chỉ khối &amp; tuyến</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="points"><span>Chỉ lớp điểm rời</span></label>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+        <span style="font-size: 11.5px; color: #94a3b8;">Tên lớp điểm</span>
+        <input type="text" id="cadGisLayerName" class="app-input" placeholder='Mặc định: "Điểm <tên tệp>"'
+          style="height: 30px; flex: 1; min-width: 200px; font-size: 12px; padding: 0 8px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button class="btn-sm"
+          style="height: 36px; padding: 0 16px; font-weight: 800; background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: #fff; border: 1.5px solid #8b5cf6;"
+          onclick="appCadTool.applyGisImport()">
+          ⬇ Nạp vào bản vẽ
+        </button>
+        <button class="btn-sm btn-red" style="height: 36px; padding: 0 14px;"
+          onclick="appCadTool.closeGisImportModal()">Hủy</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= MODAL BẢNG ĐIỂM (CHẤM ĐIỂM MỐC / CỌC THEO LỚP) ================= -->
   <div id="modalCadPointTable" class="modal-overlay" onclick="if(event.target === this) appCadTool.closePointTableModal()">
     <div class="modal-box" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
@@ -5423,6 +5507,8 @@
               <option value="dgn" data-format="dgn" title="MicroStation &amp; Famis (.dat / .cmd / .dgn)">.dgn / .dat</option>
               <option value="kml" data-format="kml" title="Google Earth 3D (.kml)">.kml</option>
               <option value="geojson" data-format="geojson" title="Vector GIS GeoJSON (.geojson)">.geojson</option>
+              <option value="gpx" data-format="gpx" title="GPS Exchange cho máy định vị và app thực địa (.gpx)">.gpx</option>
+              <option value="wkt" data-format="wkt" title="Well-Known Text cho QGIS / PostGIS (.wkt)">.wkt</option>
               <option value="svg" data-format="svg" title="Bản vẽ Vector SVG (.svg)">.svg</option>
               <option value="txt" data-format="txt" title="Tọa độ máy toàn đạc (.txt)">.txt</option>
               <option value="csv" data-format="csv" title="Tập tin CSV (.csv)">.csv</option>
@@ -6471,6 +6557,74 @@
         </div>
       </div>
 
+      <!-- Phân vùng 2.5: Nạp tệp GIS vào Sổ đo dự án -->
+      <div
+        style="background: rgba(139, 92, 246, 0.08); border: 1.5px dashed #8b5cf6; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+        <div style="font-weight: 800; color: #c4b5fd; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+          <span>🌐 2.5 NẠP TỆP GIS (.GEOJSON, .KML, .GPX, .WKT)</span>
+        </div>
+        <div style="font-size: 12px; color: #94a3b8; margin: 6px 0 10px 0; line-height: 1.4;">
+          Xuất từ QGIS / Google Earth / AutoCAD Map. quy đổi về VN2000 theo kinh tuyến trục bạn chọn.
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+          <input type="file" id="fileInputProjectGis" accept=".geojson,.json,.kml,.kmz,.gpx,.wkt,.txt"
+            style="display: none;" onchange="appData.onGisProjectFilePicked(event)">
+          <button class="btn-sm" style="height: 36px; padding: 0 14px; font-weight: 700; color: #c4b5fd; border: 1px solid #8b5cf6;"
+            onclick="document.getElementById('fileInputProjectGis').click()">
+            📁 Chọn tệp GIS...
+          </button>
+          <b id="projGisSummary" style="font-size: 11.5px; color: #c4b5fd; flex: 1; min-width: 180px;">Chưa chọn tệp GIS</b>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px;">
+          <div>
+            <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Hệ tọa độ
+              trong tệp:</label>
+            <select id="projGisCrs" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+              <option value="auto">⚡ Tự nhận diện</option>
+              <option value="wgs84">🌐 WGS-84 (kinh/vĩ độ)</option>
+              <option value="vn2000">📐 VN-2000 (X/Y mét)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Kinh
+              tuyến trục (KTT):</label>
+            <select id="projGisKtt" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+              <option value="current">Giữ KTT hiện tại</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Múi chiếu:</label>
+            <select id="projGisMui" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+              <option value="3">3° (k0 = 0.9999)</option>
+              <option value="6">6° (k0 = 0.9996)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Nguồn mốc:</label>
+            <select id="projGisSource" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+              <option value="all">Mọi đối tượng (điểm + đỉnh khối/tuyến)</option>
+              <option value="points">Chỉ điểm rời (Point)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Thứ tự trục
+              (tệp VN2000):</label>
+            <select id="projGisAxis" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+              <option value="EN">Trục 1 = Y Đông, trục 2 = X Bắc</option>
+              <option value="NE">Trục 1 = X Bắc, trục 2 = Y Đông</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="btnProjGisImport" class="btn-sm" disabled
+          style="margin-top: 10px; width: 100%; height: 38px; font-weight: 800; background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: #fff; border: 1.5px solid #8b5cf6;"
+          onclick="appData.applyGisToProject()">
+          ⬇ Nạp mốc GIS vào Sổ đo dự án
+        </button>
+      </div>
+
       <!-- Phân vùng 3: Nhập / Dán Tọa Độ Thủ Công -->
       <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 12px;">
         <div
@@ -7171,7 +7325,8 @@
   <!-- APPLICATION CORE SCRIPT -->
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
-  <script src="app.js?v=2.8.9"></script>
+  <script src="src/core/gis_io.js?v=2.8.10"></script>
+  <script src="app.js?v=2.8.10"></script>
   <script src="field-workspace.js?v=2.8.5"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
@@ -7605,6 +7760,8 @@
               <option value="dgn" data-format="dgn" title="MicroStation &amp; Famis (.dat / .cmd / .dgn)" data-handler="appData.selectExportFormat('dgn')">.dgn / .dat</option>
               <option value="kml" data-format="kml" title="Google Earth 3D (.kml)" data-handler="appData.selectExportFormat('kml')">.kml</option>
               <option value="geojson" data-format="geojson" title="Vector GIS GeoJSON (.geojson)" data-handler="appData.selectExportFormat('geojson')">.geojson</option>
+              <option value="gpx" data-format="gpx" title="GPS Exchange cho máy định vị và app thực địa (.gpx)" data-handler="appData.selectExportFormat('gpx')">.gpx</option>
+              <option value="wkt" data-format="wkt" title="Well-Known Text cho QGIS / PostGIS (.wkt)" data-handler="appData.selectExportFormat('wkt')">.wkt</option>
               <option value="svg" data-format="svg" title="Bản vẽ Vector SVG (.svg)" data-handler="appData.selectExportFormat('svg')">.svg</option>
               <option value="txt" data-format="txt" title="Tọa độ máy toàn đạc (.txt)" data-handler="appData.selectExportFormat('txt')">.txt</option>
               <option value="csv" data-format="csv" title="Tập tin CSV (.csv)" data-handler="appData.selectExportFormat('csv')">.csv</option>
