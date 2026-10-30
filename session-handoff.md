@@ -1,6 +1,30 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-30: WP-B — Nạp/Xuất GIS & QGIS (GeoJSON / KML / GPX / WKT)
+## Phiên hiện tại — 2026-10-30: WP-C — Dóng góc [F10] + Trắc Lượng (Inquiry) + Chọn Nhanh (QSELECT)
+- **Yêu cầu từ người dùng**: `Inquiry/QSELECT (Dynamic Input còn thiếu phần polar tracking)` — nối tiếp chỉ đạo "Port lần lượt, ưu tiên Dimension" (Dimension đã xong ở phiên trước đó).
+- **Kiến trúc đã dựng**:
+  1. **Một hàm chốt điểm duy nhất** `appCadTool.lockDraftPoint(lat, lng)` — Ortho [F8] áp trước, rồi Polar [F10] — được gọi ở **cả** `handleMapClick` lẫn `_processMouseMove`. Đây là chỗ sửa lỗi "xem một đằng, vẽ một nẻo" của bản cũ (hai bản sao logic khóa trục).
+  2. **Polar Tracking**: `togglePolarTracking/setPolarStep/polarLockPoint/azimuthDegOf/syncPolarGuides` + nhóm `layers.polarGroup` (4 tia đứt nét, nhãn `.cad-polar-angle-tag`), suy giảm vẽ lại bằng `this._polarGuideKey`; UI `#btnCadPolarTrack`, `#btnCadRibbonPolar`, `#cadPolarStepSelect` (disabled khi Ortho bật vì Ortho thắng).
+  3. **Inquiry** (§15B): state `inquiry = {mode, pts, log, lastResult, shapeIdx}`, `toolAction === 'inquiry'` trong `handleMapClick` → `handleInquiryPick(lat,lng)`; 4 chế độ `dist|area|point|shape`; modal `#modalCadInquiry`; `zoomToSelection()` (bí danh `ZS`); xuất CSV `;` BOM.
+  4. **QSELECT** (§15C): `qSelectKindOf` + `qSelectMatches(shape, crit)` **thuần, không chạm DOM** (dễ test bằng Node) + `collectQSelectCriteria` (đọc UI) + `applyQSelect(mode)` 3 chế độ `replace|append|exclude`; modal `#modalCadQSelect`; phím `Q`.
+- **Điểm cần nhớ khi sửa tiếp**:
+  - **DIỆN TÍCH/CHU VI KHÔNG TÍNH Ở HAI CHỖ**: `inquiryChain()` gọi `calculateAreaAndPerimeter(list,'polygon')`, `qSelectMatches` đọc `getEffectiveStats(shape)`. Thêm phép đo mới thì ủy quyền cho chuẩn này, đừng viết shoelace riêng.
+  - `GisIO.read(...).counts.vertices` không liên quan; ở CAD, `shape.selected !== false` = ĐANG CHỌN (true khi thiếu trường) — dùng `toggleBlockSelect(idx, bool)` / `toggleSelectAllBlocks(bool)`, không có `clearSelection()`.
+  - `renderInquiryGraphics()` phải dùng `this.inquiry.shapeIdx`, **không** dùng `this.selectedItem` (con trỏ của công cụ vẽ, không được set khi trắc lượng).
+  - `pushInquiryLog(result, isLive=true)` cập nhật tại chỗ dòng đầu nếu cùng `kind` — nhờ vậy chấm 20 đỉnh không sinh 20 dòng; log chặn ở 20 dòng cho điện thoại.
+  - Tùy chọn polar nằm ở khóa RIÊNG `localStorage['vn2k_cad_polar_v1']` (`{on, step}`), KHÔNG nằm trong `persistSession()`, vì `restoreSession()` return sớm khi hình vẽ đến từ dự án.
+  - `refreshAreaTableIfOpen()` mở lại bảng kê rồi **phải khôi phục `scrollTop`** của `#cadBlockList` và `.modal-box`; đây là method dùng chung, đừng nhân bản khối `openAreaTableModal()` ở nơi khác.
+  - `executeCommandLine()` **không nhận tham số** — nó đọc `#txtCadCommandLine` và tự xóa; test CLI phải gán `input.value` rồi gọi.
+  - Bí danh CLI: `DIST|KHOANGCACH|DO`, `AREA|DIENTICH|TINH`, `ID|TODO`, `LIST|TRATHONGTIN`, `QSELECT|QSEL|CHONNHANH`, `ZOOMSEL|ZS`, `POLAR`. Lệnh lạ rơi vào `default` (chỉ toast, không nguy hại).
+- **Kết quả kiểm chứng**: `tests/cad_inquiry_qselect_polar.test.js` **178/178**, `tests/cad_ui_isolation.test.js` **27/27**, `node --check app.js` đạt, toàn dự án **313/313 PASS (0 fail)** (lưu ý: `node --test tests/` vẫn MODULE_NOT_FOUND trên Node 24 → dùng `node --test tests/*.test.js`). Live localhost:8080 (`?v=2.8.11`): DIST `55,063 m • Az 36°30'16"`, AREA `725,33 m²/131,79 m`, ID 6 dòng, LIST `Thửa 2` 9 nhãn, CSV `DuAn_Moi_TracLuong.csv` 5 dòng BOM, polar khóa 90° kéo điểm 2,604 m + 4 tia/4 nhãn, Ortho đè polar, `ZOOMSEL` gọi `fitBounds(padding:[48,48])`, QSELECT lọc loại/tên/diện tích đúng. **Bản vẽ người dùng đã được khôi phục nguyên trạng**: 3 đối tượng (`Thửa 2`/`Tuyến 2`/`Lớp điểm 3`) đều `selected=true`, `group: 31` layer, `polarGroup/inquiryGroup = 0`, modal đóng, `vn2k_cad_polar_v1 = {"on":false,"step":90}`.
+- **Đăng ký tài nguyên**: `index.html` thêm `#modalCadInquiry` + `#modalCadQSelect` (đặt cạnh các modal CAD, trước khối "MODAL STUDIO CẤU HÌNH & XUẤT BẢN VẼ MINICAD"), `style.css?v=2.8.11`, `app.js?v=2.8.11`, `sw.js` `CACHE_NAME = vn2000-pro-v2.8.11`; `closeCadWindows()` thêm 2 modal (tổng 12), `clearCadOverlays()` thêm `polarGroup` + `inquiryGroup`; ~38 mục `phraseMap` Anh–Việt.
+- **Còn lại / việc kế tiếp**:
+  1. **Backlog CADCraft port**: **Hatch** và **Import DXF** (task #23); kéo các suite `cadcraft_dynamic_input`, `minicad_snap_runtime`, `minicad_toolbar_collapse`, `minicad_select_and_delete` vào `npm test`.
+  2. **Ý định chưa làm**: Hatch theo tỉ lệ mẫu, DXF import (chỉ mới có export), Inquiry chế độ measure góc giữa 3 điểm / list theo lớp, QSELECT lưu bộ lọc yêu thích.
+  3. **Ràng buộc của người dùng vẫn hiệu lực**: "Tôi tự rever — đừng đẩy lại" → chỉ push `integration-draw-fixes`, không đụng `main`; "Port lần lượt, ưu tiên Dimension".
+  4. **Không chạy `npm install`** trong `I:\My Drive\...`; stage đúng tên tệp (`app.js`, `index.html`, `style.css`, `sw.js`, `tests/cad_inquiry_qselect_polar.test.js`, `tests/cad_ui_isolation.test.js`, `tests/cadcraft_cli_and_ortho.test.js`, `progress.md`, `session-handoff.md`), không `git add -A` — `git status` còn nhiều tệp skill/asset/`geodesy.js`/`src/core/cad_geometry.js` `M` không thuộc đợt này.
+
+## Phiên trước — 2026-10-30: WP-B — Nạp/Xuất GIS & QGIS (GeoJSON / KML / GPX / WKT)
 - **Yêu cầu từ người dùng**:
   - `Bổ sung tính năng nạp/xuất dữ liệu map dự án từ các định dạng phổ biến trong GIS/QGIS. tối ưu hóa sử dụng để hoàn thiện các chức năng trong MiniCAD`
   - Phạm vi chốt qua AskUserQuestion: GeoJSON + KML + GPX + WKT, JavaScript thuần (không thêm vendor lib), không Shapefile/GeoPackage/DXF.

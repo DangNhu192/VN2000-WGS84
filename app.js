@@ -18787,6 +18787,8 @@ const appCadTool = {
         dynamicInputMarker: null,
         osnapMarker: null,
         snapEdgeLine: null,
+        polarGroup: null,
+        inquiryGroup: null,
         markupPreviewGroup: null
     },
 
@@ -18802,6 +18804,8 @@ const appCadTool = {
         this.initDraggablePanel();
         this.loadDefaultStampConfig();
         this.initDisplaySettings();
+        this.loadPolarPrefs();
+        this.syncPolarControls();
         this.restoreSession();
         this.loadAnnotations();
         this.initHistory();
@@ -19534,6 +19538,12 @@ const appCadTool = {
             } else if (e.key === 'F8') {
                 e.preventDefault();
                 this.toggleOrthoMode();
+            } else if (e.key === 'F10') {
+                e.preventDefault();
+                this.togglePolarTracking();
+            } else if (key === 'Q') {
+                e.preventDefault();
+                this.openQSelectModal();
             } else if (key === 'B') {
                 e.preventDefault();
                 this.toggleSnapLine();
@@ -19639,6 +19649,12 @@ const appCadTool = {
         }
         if (!this.layers.markupPreviewGroup) {
             this.layers.markupPreviewGroup = L.layerGroup().addTo(AppState.leafletMap);
+        }
+        if (!this.layers.polarGroup) {
+            this.layers.polarGroup = L.layerGroup().addTo(AppState.leafletMap);
+        }
+        if (!this.layers.inquiryGroup) {
+            this.layers.inquiryGroup = L.layerGroup().addTo(AppState.leafletMap);
         }
         // Gắn sự kiện chuột di chuyển, zoom và click trực tiếp trên bản đồ cho CAD Tool
         if (!this._mapEventsBound && AppState.leafletMap) {
@@ -19812,7 +19828,7 @@ const appCadTool = {
             'modalCadAreaTable', 'modalCadPointTable', 'modalCadExportConfig',
             'modalCadLoadProject', 'modalCadPolarInput', 'modalCadCoordInput',
             'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow',
-            'modalCadGisImport'
+            'modalCadGisImport', 'modalCadInquiry', 'modalCadQSelect'
         ].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -19827,6 +19843,8 @@ const appCadTool = {
     clearCadOverlays() {
         if (this.layers.group) this.layers.group.clearLayers();
         if (this.layers.annotationsGroup) this.layers.annotationsGroup.clearLayers();
+        if (this.layers.polarGroup) this.layers.polarGroup.clearLayers();
+        if (this.layers.inquiryGroup) this.layers.inquiryGroup.clearLayers();
     },
 
     closeToolbar() {
@@ -19889,6 +19907,7 @@ const appCadTool = {
         if (this.clearSnapEdgeGuide) {
             this.clearSnapEdgeGuide();
         }
+        this.clearPolarGuides();
         if (this.clearMarkupPreview) {
             this.clearMarkupPreview();
         }
@@ -22002,6 +22021,22 @@ const appCadTool = {
             curY = vn2k.Y;
         }
 
+        // 3.0 Khóa hướng xem trước bằng chính hàm dùng khi nhấp (Ortho F8 → Polar F10),
+        // nếu không mũi tên trên màn hình và đỉnh thật sự tạo ra sẽ không trùng nhau.
+        let lockInfo = null;
+        if (!targetName && (this.orthoMode || this.polarTracking)) {
+            const locked = this.lockDraftPoint(targetLat, targetLng);
+            if (locked.locked) {
+                targetLat = locked.lat;
+                targetLng = locked.lng;
+                const lvn = convertWgsToVn2k(targetLat, targetLng, AppState.kttVal, AppState.scaleFactor);
+                curX = lvn.X;
+                curY = lvn.Y;
+                lockInfo = locked;
+            }
+        }
+        this.syncPolarGuides(last, lockInfo);
+
         const dx = curX - last.x;
         const dy = curY - last.y;
         const dist = Math.hypot(dx, dy);
@@ -22024,9 +22059,10 @@ const appCadTool = {
 
         // 3.2 Cập nhật Dynamic Input Tooltip chạy theo con trỏ chuột
         const snapLabel = snapSource ? ` <span style="color:#fbbf24; font-weight:800;">🧲 [${snapSource}]</span>` : '';
+        const lockLabel = lockInfo ? ` <span class="cad-dyn-lock">${lockInfo.mode === 'polar' ? '🧭 ' + lockInfo.angleDeg + '°' : '📐 Ortho'}</span>` : '';
         const tooltipHtml = `
             <div class="cad-dynamic-tooltip">
-                <b>📏 S: ${dist.toFixed(2)}m</b> • Az: ${azInfo.dDeg}°${String(azInfo.dMin).padStart(2,'0')}'${snapLabel}
+                <b>📏 S: ${dist.toFixed(2)}m</b> • Az: ${azInfo.dDeg}°${String(azInfo.dMin).padStart(2,'0')}'${lockLabel}${snapLabel}
             </div>
         `;
         const tipIcon = L.divIcon({
@@ -22057,6 +22093,12 @@ const appCadTool = {
         }
         this._lastClickTime = now;
         this.ensureLayers();
+
+        // Trắc lượng (DIST/AREA/ID/LIST) là công cụ đọc, không được thêm đỉnh vào nét vẽ
+        if (this.toolAction === 'inquiry') {
+            this.handleInquiryPick(lat, lng);
+            return;
+        }
 
         // Xử lý các chế độ công cụ nâng cao: Tách thửa, Hợp thửa, Xén ranh, Kéo dài
         if (this.toolAction === 'split') {
@@ -22184,23 +22226,17 @@ const appCadTool = {
             triggerHaptic('success');
             showToast(`🧲 Đã bắt trùng: ${candidate.source || candidate.name}`);
         } else {
-            // Áp dụng Ortho Mode (F8) nếu đang bật và đã có >= 1 đỉnh
-            if (this.orthoMode && this.vertices && this.vertices.length > 0) {
-                const lastV = this.vertices[this.vertices.length - 1];
-                const curVn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
-                const dx = Math.abs(curVn.X - lastV.x);
-                const dy = Math.abs(curVn.Y - lastV.y);
-                if (dx >= dy) {
-                    curVn.Y = lastV.y; // khóa phương ngang
-                } else {
-                    curVn.X = lastV.x; // khóa phương dọc
-                }
-                const backWgs = convertVn2kToWgs(curVn.X, curVn.Y, AppState.kttVal, AppState.scaleFactor);
-                lat = backWgs.lat;
-                lng = backWgs.lng;
+            // Áp dụng Ortho (F8) rồi Polar Tracking (F10) nếu đang bật và đã có >= 1 đỉnh
+            const locked = this.lockDraftPoint(lat, lng);
+            if (locked.locked) {
+                lat = locked.lat;
+                lng = locked.lng;
             }
             const nextIdx = this.vertices.length + 1;
             this.addVertex(lat, lng, `Đ${nextIdx}`, false, null);
+            if (locked.locked && locked.mode === 'polar') {
+                showToast(`🧭 Đã dóng góc ${locked.angleDeg}° (polar tracking)`);
+            }
         }
     },
 
@@ -28562,6 +28598,9 @@ const appCadTool = {
         if (rBtn) {
             rBtn.classList.toggle('active', this.orthoMode);
         }
+        // Ortho lấn polar khi vẽ, nên ô chọn bước góc chỉ dùng được lúc tắt Ortho
+        this.syncPolarControls();
+        this.clearPolarGuides();
         showToast(this.orthoMode ? '📐 Đã BẬT Ortho Mode: Khóa vẽ vuông góc 90° [F8]' : '📐 Đã TẮT Ortho Mode [F8]');
     },
 
@@ -28577,6 +28616,658 @@ const appCadTool = {
             rBtn.classList.toggle('active', this.dynamicInputEnabled);
         }
         showToast(this.dynamicInputEnabled ? '📏 Đã BẬT Dynamic Input (Thước đo động)' : '📏 Đã TẮT Dynamic Input');
+    },
+
+    // ---------- POLAR TRACKING (F10): dóng tia theo bội số góc phương vị ----------
+    polarTracking: false,
+    polarStepDeg: 90,
+    polarTolDeg: 3,
+
+    // Góc phương vị chuẩn trắc địa: 0° là Bắc (+X), quay thuận chiều kim đồng hồ về +Y (Đông)
+    azimuthDegOf(dx, dy) {
+        return (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+    },
+
+    // Điểm đã khóa vào tia polar gần nhất trong dung sai; trả null nếu con trỏ chưa "bắt" tia nào
+    polarLockPoint(last, cur, stepDeg = this.polarStepDeg, tolDeg = this.polarTolDeg) {
+        if (!last || !cur || !isFinite(last.x) || !isFinite(last.y) || !isFinite(cur.x) || !isFinite(cur.y)) return null;
+        const dx = cur.x - last.x;
+        const dy = cur.y - last.y;
+        const dist = Math.hypot(dx, dy);
+        if (!(dist > 1e-6) || !(stepDeg > 0)) return null;
+        const az = this.azimuthDegOf(dx, dy);
+        const step = Number(stepDeg);
+        const target = (Math.round(az / step) * step) % 360;
+        let diff = Math.abs(az - target);
+        if (diff > 180) diff = 360 - diff;
+        if (diff > tolDeg) return null;
+        const rad = target * Math.PI / 180;
+        return {
+            x: +(last.x + dist * Math.cos(rad)).toFixed(3),
+            y: +(last.y + dist * Math.sin(rad)).toFixed(3),
+            angleDeg: target,
+            distance: dist,
+            deviation: +diff.toFixed(3)
+        };
+    },
+
+    // Một chỗ duy nhất quyết định điểm chốt khi vẽ: Ortho (F8) thắng, rồi mới tới Polar (F10)
+    lockDraftPoint(lat, lng) {
+        const last = (this.vertices || [])[this.vertices.length - 1];
+        const plain = { lat, lng, locked: false, angleDeg: null, mode: null };
+        if (!last || !isFinite(last.x) || !isFinite(last.y)) return plain;
+        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        if (this.orthoMode) {
+            const dx = Math.abs(vn.X - last.x);
+            const dy = Math.abs(vn.Y - last.y);
+            if (dx >= dy) vn.Y = last.y; else vn.X = last.x;
+            const back = convertVn2kToWgs(vn.X, vn.Y, AppState.kttVal, AppState.scaleFactor);
+            return { lat: back.lat, lng: back.lng, locked: true, angleDeg: this.azimuthDegOf(vn.X - last.x, vn.Y - last.y), mode: 'ortho' };
+        }
+        if (!this.polarTracking) return plain;
+        const p = this.polarLockPoint(last, { x: vn.X, y: vn.Y });
+        if (!p) return plain;
+        const back = convertVn2kToWgs(p.x, p.y, AppState.kttVal, AppState.scaleFactor);
+        return { lat: back.lat, lng: back.lng, locked: true, angleDeg: p.angleDeg, mode: 'polar' };
+    },
+
+    clearPolarGuides() {
+        if (this.layers && this.layers.polarGroup) this.layers.polarGroup.clearLayers();
+    },
+
+    // Chỉ vẽ lại khi đỉnh gốc / bước góc / tia đang khóa thực sự đổi (tránh churn mỗi frame)
+    syncPolarGuides(last, lockInfo) {
+        if (!this.polarTracking || this.orthoMode || !last) {
+            if (this.layers && this.layers.polarGroup && this.layers.polarGroup.getLayers().length) this.clearPolarGuides();
+            this._polarGuideKey = null;
+            return;
+        }
+        const reach = lockInfo ? Math.round(lockInfo.distance / 5) * 5 : 0;
+        const key = `${last.id || (last.x + ',' + last.y)}|${this.polarStepDeg}|${lockInfo ? lockInfo.angleDeg : 'free'}|${reach}`;
+        if (this._polarGuideKey === key) return;
+        this._polarGuideKey = key;
+        this.renderPolarGuides(last, lockInfo ? Object.assign({}, lockInfo, { distance: Math.max(reach, 20) }) : null);
+    },
+
+    // Vẽ bộ tia dóng (bật F10) + tia đang khóa (sáng hơn) quanh đỉnh cuối
+    renderPolarGuides(last, locked) {
+        if (!AppState.leafletMap || !this.layers || !this.layers.polarGroup) return;
+        this.layers.polarGroup.clearLayers();
+        const reach = locked && isFinite(locked.distance) ? locked.distance * 1.35 + 5 : 0;
+        const step = Number(this.polarStepDeg) || 90;
+        for (let az = 0; az < 360; az += step) {
+            const isHot = locked && Math.abs(((az - locked.angleDeg + 540) % 360) - 180) < 1e-6;
+            const lenM = isHot ? reach : Math.max(reach * 0.75, 20);
+            const rad = az * Math.PI / 180;
+            const tip = convertVn2kToWgs(last.x + lenM * Math.cos(rad), last.y + lenM * Math.sin(rad),
+                AppState.kttVal, AppState.scaleFactor);
+            L.polyline([[last.lat, last.lng], [tip.lat, tip.lng]], {
+                color: isHot ? '#22d3ee' : '#64748b',
+                weight: isHot ? 2.2 : 1.2,
+                dashArray: isHot ? '8, 6' : '3, 7',
+                opacity: isHot ? 0.95 : 0.5,
+                interactive: false
+            }).addTo(this.layers.polarGroup);
+            const tag = convertVn2kToWgs(last.x + (lenM + 6) * Math.cos(rad), last.y + (lenM + 6) * Math.sin(rad),
+                AppState.kttVal, AppState.scaleFactor);
+            L.marker([tag.lat, tag.lng], {
+                interactive: false,
+                zIndexOffset: 3050,
+                icon: L.divIcon({
+                    className: '',
+                    html: `<div class="cad-polar-angle-tag${isHot ? ' hot' : ''}">${az}°</div>`,
+                    iconSize: [40, 16],
+                    iconAnchor: [20, 8]
+                })
+            }).addTo(this.layers.polarGroup);
+        }
+    },
+
+    setPolarStep(value) {
+        const step = parseFloat(value);
+        if (!(step > 0 && step <= 180)) return;
+        this.polarStepDeg = step;
+        const sel = document.getElementById('cadPolarStepSelect');
+        if (sel) sel.value = String(step);
+        this._polarGuideKey = null;
+        this.savePolarPrefs();
+        showToast(`🧭 Bước dóng góc: ${step}°`);
+    },
+
+    // Tùy tính dóng góc là sở thích người dùng, không phải dữ liệu bản vẽ → giữ key riêng
+    POLAR_PREF_KEY: 'vn2k_cad_polar_v1',
+
+    savePolarPrefs() {
+        try {
+            localStorage.setItem(this.POLAR_PREF_KEY, JSON.stringify({ on: this.polarTracking, step: this.polarStepDeg }));
+        } catch (e) { /* localStorage đầy / chế độ ẩn danh */ }
+    },
+
+    loadPolarPrefs() {
+        try {
+            const raw = localStorage.getItem(this.POLAR_PREF_KEY);
+            if (!raw) return;
+            const p = JSON.parse(raw);
+            if (typeof p.on === 'boolean') this.polarTracking = p.on;
+            if (p.step > 0 && p.step <= 180) this.polarStepDeg = p.step;
+        } catch (e) { /* blob hỏng thì dùng mặc định */ }
+    },
+
+    syncPolarControls() {
+        const btn = document.getElementById('btnCadPolarTrack');
+        if (btn) {
+            btn.classList.toggle('active', this.polarTracking);
+            btn.innerText = this.polarTracking ? '🧭 Dóng góc: BẬT [F10]' : '🧭 Dóng góc: TẮT [F10]';
+        }
+        const rBtn = document.getElementById('btnCadRibbonPolar');
+        if (rBtn) rBtn.classList.toggle('active', this.polarTracking);
+        const sel = document.getElementById('cadPolarStepSelect');
+        if (sel) {
+            sel.value = String(this.polarStepDeg);
+            sel.disabled = !this.polarTracking || this.orthoMode;
+        }
+    },
+
+    togglePolarTracking(forceVal) {
+        this.polarTracking = (typeof forceVal === 'boolean') ? forceVal : !this.polarTracking;
+        if (!this.polarTracking) this.clearPolarGuides();
+        this._polarGuideKey = null;
+        this.syncPolarControls();
+        this.savePolarPrefs();
+        showToast(this.polarTracking
+            ? `🧭 Đã BẬT Dóng góc (Polar Tracking): khóa theo bội số ${this.polarStepDeg}° [F10]`
+            : '🧭 Đã TẮT Dóng góc [F10]');
+    },
+
+    // ================= 15B. TRẮC LƯỢNG (INQUIRY): DIST / AREA / ID / LIST =================
+    inquiry: { mode: 'dist', pts: [], log: [], lastResult: null, shapeIdx: null },
+
+    dmsText(deg) {
+        if (!isFinite(deg)) return '--';
+        let d = Math.floor(deg);
+        let m = Math.floor((deg - d) * 60);
+        let s = Math.round((((deg - d) * 60) - m) * 60);
+        if (s >= 60) { s -= 60; m += 1; }
+        if (m >= 60) { m -= 60; d += 1; }
+        return `${d}°${String(m).padStart(2, '0')}'${String(s).padStart(2, '0')}"`;
+    },
+
+    inquiryPointFromLatLng(lat, lng, h = 0, name = '') {
+        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        return {
+            lat: parseFloat(lat), lng: parseFloat(lng),
+            x: +vn.X.toFixed(3), y: +vn.Y.toFixed(3),
+            h: parseFloat(h) || 0, name: name || ''
+        };
+    },
+
+    // Cự ly phẳng theo lưới VN-2000 + kiểm chứng địa tĩnh WGS84 (nếu có hàm cầu)
+    inquiryDistance(a, b) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dz = (parseFloat(b.h) || 0) - (parseFloat(a.h) || 0);
+        const dPlan = Math.hypot(dx, dy);
+        const out = {
+            dx: +dx.toFixed(3), dy: +dy.toFixed(3), dz: +dz.toFixed(3),
+            dPlan, dSlope: Math.hypot(dPlan, dz),
+            azimuth: this.azimuthDegOf(dx, dy), azFormatted: this.dmsText(this.azimuthDegOf(dx, dy)),
+            wgs: null
+        };
+        if (typeof calcGeoDistanceAndAzimuth === 'function' && isFinite(a.lat) && isFinite(a.lng)) {
+            const g = calcGeoDistanceAndAzimuth(a.lat, a.lng, b.lat, b.lng);
+            if (g && isFinite(g.distance)) {
+                out.wgs = { distance: g.distance, azimuth: g.azimuth, azFormatted: this.dmsText(g.azimuth) };
+            }
+        }
+        return out;
+    },
+
+    // Diện tích dùng lại đúng hàm của khối vẽ (shoelace Gauss trên lưới VN-2000) để số liệu không hai chuẩn
+    inquiryChain(pts) {
+        const list = pts || [];
+        let open = 0;
+        for (let i = 1; i < list.length; i++) open += Math.hypot(list[i].x - list[i - 1].x, list[i].y - list[i - 1].y);
+        const stats = this.calculateAreaAndPerimeter(list, 'polygon');
+        return { count: list.length, openLength: open, stats, edges: stats.edges || [] };
+    },
+
+    shapeKindLabel(shape) {
+        if (shape.mode === 'point') return 'Lớp điểm rời';
+        if (shape.mode === 'polyline') return 'Tuyến hở';
+        if (shape.mode === 'rectangle') return 'Khối chữ nhật';
+        return 'Khối đa giác';
+    },
+
+    inquiryDistanceRows(a, b, d) {
+        const rows = [
+            { label: 'Điểm 1', value: `${a.name || 'P1'}  X=${a.x.toFixed(3)}  Y=${a.y.toFixed(3)}` },
+            { label: 'Điểm 2', value: `${b.name || 'P2'}  X=${b.x.toFixed(3)}  Y=${b.y.toFixed(3)}` },
+            { label: 'ΔX (Bắc)', value: `${d.dx.toFixed(3)} m` },
+            { label: 'ΔY (Đông)', value: `${d.dy.toFixed(3)} m` },
+            { label: 'Cự ly lưới VN-2000', value: `${d.dPlan.toFixed(3)} m` },
+            { label: 'Góc phương vị Az', value: d.azFormatted }
+        ];
+        if (d.wgs) rows.push({ label: 'Cự ly địa tĩnh WGS84', value: `${d.wgs.distance.toFixed(3)} m • Az ${d.wgs.azFormatted}` });
+        if (d.dz) rows.push({ label: 'Chênh cao ΔH', value: `${d.dz.toFixed(3)} m` },
+            { label: 'Cự ly nghiêng 3D', value: `${d.dSlope.toFixed(3)} m` });
+        return rows;
+    },
+
+    inquiryChainRows(chain) {
+        const st = chain.stats;
+        const rows = [
+            { label: 'Số đỉnh đã chấm', value: String(chain.count) },
+            { label: 'Diện tích khép kín', value: `${st.areaFormatted} m²  (${st.haFormatted} ha)` },
+            { label: 'Chu vi khép kín', value: `${st.perimeterFormatted} m` },
+            { label: 'Chiều dài chuỗi hở', value: `${chain.openLength.toFixed(3)} m` }
+        ];
+        (chain.edges || []).forEach((e, i) => {
+            rows.push({ label: `Cạnh ${i + 1} (${e.from || 'Đ' + (i + 1)}→${e.to || 'Đ' + (i + 2)})`, value: `${e.lengthFormatted} m • Az ${e.azFormatted}` });
+        });
+        return rows;
+    },
+
+    inquiryPointRows(p) {
+        const rows = [
+            { label: 'Tên điểm', value: p.name || 'Điểm chạm' },
+            { label: 'X (Bắc)', value: `${p.x.toFixed(3)} m` },
+            { label: 'Y (Đông)', value: `${p.y.toFixed(3)} m` },
+            { label: 'Vĩ độ B', value: p.lat.toFixed(7) },
+            { label: 'Kinh độ L', value: p.lng.toFixed(7) }
+        ];
+        if (p.h) rows.push({ label: 'Cao độ H', value: `${p.h.toFixed(3)} m` });
+        rows.push({ label: 'Kinh tuyến trục', value: `${AppState.kttVal}°${String(AppState.kttMin).padStart(2, '0')}' • múi ${AppState.muiVal}° • k=${AppState.scaleFactor}` });
+        return rows;
+    },
+
+    inquiryShapeRows(shape) {
+        const st = this.getEffectiveStats(shape);
+        const layer = this.getLayerById ? this.getLayerById(shape.layer || 'RANH_THUA') : null;
+        const verts = shape.vertices || [];
+        const rows = [
+            { label: 'Tên đối tượng', value: shape.name || shape.shortName || '(không tên)' },
+            { label: 'Loại', value: this.shapeKindLabel(shape) },
+            { label: 'Lớp CAD', value: `${shape.layer || 'RANH_THUA'}${layer && layer.name ? ' — ' + layer.name : ''}` },
+            { label: 'Màu', value: shape.color || (layer ? layer.color : '') || '--' },
+            { label: 'Số đỉnh', value: String(verts.length) },
+            { label: 'Diện tích', value: st && st.area ? `${st.areaFormatted} m² (${st.haFormatted} ha)` : '— (tuyến/điểm)' },
+            { label: 'Chu vi / chiều dài', value: st ? `${st.perimeterFormatted} m` : '--' }
+        ];
+        if (verts.length) {
+            rows.push({ label: 'Đỉnh đầu', value: `${verts[0].name || 'Đ1'} X=${(verts[0].x || 0).toFixed(3)} Y=${(verts[0].y || 0).toFixed(3)}` });
+            rows.push({ label: 'Đỉnh cuối', value: `${verts[verts.length - 1].name || ''} X=${(verts[verts.length - 1].x || 0).toFixed(3)} Y=${(verts[verts.length - 1].y || 0).toFixed(3)}` });
+        }
+        return rows;
+    },
+
+    openInquiryModal(mode) {
+        const modal = document.getElementById('modalCadInquiry');
+        if (!modal) return;
+        modal.classList.add('active', 'show');
+        this.setInquiryMode(mode || (this.inquiry && this.inquiry.mode) || 'dist');
+    },
+
+    closeInquiryModal() {
+        const modal = document.getElementById('modalCadInquiry');
+        if (modal) modal.classList.remove('active', 'show');
+        if (this.toolAction === 'inquiry') this.toolAction = null;
+        this.inquiry.pts = [];
+        this.inquiry.shapeIdx = null;
+        this.clearInquiryGraphics();
+    },
+
+    setInquiryMode(mode) {
+        this.inquiry.mode = mode;
+        this.inquiry.pts = [];
+        this.inquiry.shapeIdx = null;
+        this.inquiry.lastResult = null;
+        this.toolAction = 'inquiry';
+        const sel = document.getElementById('cadInquiryMode');
+        if (sel) sel.value = mode;
+        this.clearInquiryGraphics();
+        this.updateInquiryHint();
+        this.renderInquiryResult();
+    },
+
+    updateInquiryHint() {
+        const el = document.getElementById('cadInquiryHint');
+        if (!el) return;
+        const hints = {
+            dist: 'Chạm điểm 1 rồi điểm 2 trên bản đồ (có thể hít vào đỉnh khối đang có).',
+            area: 'Chạm lần lượt các đỉnh tạo thành vùng; từ 3 đỉnh sẽ tự tính diện tích khép kín.',
+            point: 'Chạm một vị trí để tra tọa độ VN-2000 và WGS84.',
+            shape: 'Chạm vào một khối/tuyến/điểm rời để xem đầy đủ thông tin đối tượng.'
+        };
+        el.innerText = hints[this.inquiry.mode] || '';
+    },
+
+    handleInquiryPick(lat, lng) {
+        const mode = this.inquiry.mode || 'dist';
+        if (mode === 'shape') {
+            const idx = this.findShapeAtLatLng(lat, lng);
+            const shape = idx !== null && idx >= 0 ? this.savedShapes[idx] : null;
+            if (!shape) {
+                showToast('⚠️ Không có đối tượng nào tại vị trí chạm — hãy nhấp trúng khối/tuyến.', true);
+                return;
+            }
+            this.inquiry.shapeIdx = idx;
+            this.inquiry.lastResult = { kind: 'shape', title: shape.name || 'Đối tượng', rows: this.inquiryShapeRows(shape) };
+            this.pushInquiryLog(this.inquiry.lastResult);
+            this.renderInquiryResult();
+            this.renderInquiryGraphics();
+            return;
+        }
+        const cand = this.snapEnabled ? this.findSnapCandidate(lat, lng) : null;
+        const p = (cand && cand.isSnapped)
+            ? this.inquiryPointFromLatLng(cand.lat, cand.lng, cand.h || 0, cand.name || cand.source || '')
+            : this.inquiryPointFromLatLng(lat, lng);
+        if (mode === 'point') {
+            this.inquiry.lastResult = { kind: 'point', title: 'Tọa độ điểm chạm', rows: this.inquiryPointRows(p) };
+            this.inquiry.pts = [p];
+            this.pushInquiryLog(this.inquiry.lastResult);
+            this.renderInquiryResult();
+            this.renderInquiryGraphics();
+            return;
+        }
+        if (mode === 'dist') {
+            this.inquiry.pts.push(p);
+            if (this.inquiry.pts.length < 2) {
+                this.updateInquiryStatus(`📍 Đã chọn điểm 1: X=${p.x.toFixed(3)} Y=${p.y.toFixed(3)} — hãy chạm điểm 2.`);
+                this.renderInquiryGraphics();
+                return;
+            }
+            const [a, b] = this.inquiry.pts;
+            const d = this.inquiryDistance(a, b);
+            this.inquiry.lastResult = { kind: 'dist', title: `Khoảng cách ${a.name || 'P1'} → ${b.name || 'P2'}`, rows: this.inquiryDistanceRows(a, b, d) };
+            this.inquiry.pts = [];
+            this.pushInquiryLog(this.inquiry.lastResult);
+            this.renderInquiryResult();
+            this.renderInquiryGraphics();
+            showToast(`📏 S = ${d.dPlan.toFixed(3)} m • Az ${d.azFormatted}`);
+            return;
+        }
+        // area
+        this.inquiry.pts.push(p);
+        const chain = this.inquiryChain(this.inquiry.pts);
+        this.inquiry.lastResult = { kind: 'area', title: `Vùng ${chain.count} đỉnh`, rows: this.inquiryChainRows(chain) };
+        this.pushInquiryLog(this.inquiry.lastResult, true);
+        this.renderInquiryResult();
+        this.renderInquiryGraphics();
+    },
+
+    // Nhật ký chỉ giữ 20 dòng gần nhất để không phình bộ nhớ trên điện thoại
+    pushInquiryLog(result, isLive = false) {
+        const entry = {
+            kind: result.kind,
+            title: result.title,
+            summary: (result.rows[0] ? `${result.rows[0].label}: ${result.rows[0].value}` : ''),
+            detail: result.rows.map(r => `${r.label}\t${r.value}`).join('\n'),
+            at: new Date().toLocaleString('vi-VN'),
+            live: isLive
+        };
+        const head = this.inquiry.log[0];
+        // Chuỗi đang chấm (area) cập nhật tại chỗ, không bắn 20 dòng cho 20 đỉnh
+        if (isLive && head && head.live && head.kind === result.kind) this.inquiry.log[0] = entry;
+        else this.inquiry.log.unshift(entry);
+        if (this.inquiry.log.length > 20) this.inquiry.log.length = 20;
+        this.renderInquiryLog();
+    },
+
+    updateInquiryStatus(text) {
+        const el = document.getElementById('cadInquiryStatus');
+        if (el) el.innerText = text;
+    },
+
+    renderInquiryResult() {
+        const box = document.getElementById('cadInquiryResult');
+        const res = this.inquiry.lastResult;
+        this.updateInquiryStatus(res ? `✅ ${res.title}` : 'Chưa có phép đo nào.');
+        this.renderInquiryLog();
+        if (!box) return;
+        if (!res) { box.innerHTML = ''; return; }
+        box.innerHTML = `<table class="cad-inq-table"><tbody>` + res.rows.map(r =>
+            `<tr><th>${escapeHtml(r.label)}</th><td>${escapeHtml(r.value)}</td></tr>`).join('') + `</tbody></table>`;
+    },
+
+    renderInquiryLog() {
+        const list = document.getElementById('cadInquiryLogList');
+        if (!list) return;
+        if (!this.inquiry.log.length) {
+            list.innerHTML = '<div class="cad-inq-empty">Chưa có lịch sử trắc lượng trong phiên này.</div>';
+            return;
+        }
+        list.innerHTML = this.inquiry.log.map((e, i) =>
+            `<div class="cad-inq-log-row"><b>${escapeHtml(e.title)}</b><span>${escapeHtml(e.summary)}</span><em>${escapeHtml(e.at)}</em></div>`).join('');
+    },
+
+    clearInquiryLog() {
+        this.inquiry.log = [];
+        this.renderInquiryLog();
+    },
+
+    exportInquiryCsv() {
+        if (!this.inquiry.log.length) {
+            showToast('⚠️ Chưa có phép đo nào để xuất!', true);
+            return;
+        }
+        const lines = ['STT;Nhóm;Đối tượng;Nội dung;Thời điểm'];
+        this.inquiry.log.slice().reverse().forEach((e, i) => {
+            const oneLine = e.detail.replace(/\n/g, ' | ').replace(/;/g, ',');
+            lines.push(`${i + 1};${e.kind};${e.title.replace(/;/g, ',')};${oneLine};${e.at}`);
+        });
+        const name = (AppState.currentProject || 'MiniCAD').replace(/\.[^/.]+$/, '');
+        this._downloadText('\uFEFF' + lines.join('\r\n'), `${name}_TracLuong.csv`, 'text/csv;charset=utf-8;');
+        showToast(`📤 Đã xuất ${this.inquiry.log.length} phép đo ra CSV`);
+    },
+
+    clearInquiryGraphics() {
+        if (this.layers && this.layers.inquiryGroup) this.layers.inquiryGroup.clearLayers();
+    },
+
+    // Bắt đầu lại chuỗi đang chấm mà không đổi chế độ đo
+    resetInquiryChain() {
+        if (!this.inquiry) return;
+        this.inquiry.pts = [];
+        this.inquiry.lastResult = null;
+        this.clearInquiryGraphics();
+        this.updateInquiryHint();
+        this.renderInquiryResult();
+    },
+
+    renderInquiryGraphics() {
+        if (!AppState.leafletMap || !this.layers || !this.layers.inquiryGroup) return;
+        const g = this.layers.inquiryGroup;
+        g.clearLayers();
+        const pts = this.inquiry.pts || [];
+        const kind = this.inquiry.lastResult ? this.inquiry.lastResult.kind : this.inquiry.mode;
+        if (kind === 'shape') {
+            const sel = this.inquiry.shapeIdx != null ? (this.savedShapes || [])[this.inquiry.shapeIdx] : null;
+            if (sel) this.drawInquiryShape(sel, '#fbbf24');
+            return;
+        }
+        pts.forEach((p, i) => {
+            L.circleMarker([p.lat, p.lng], { radius: 5, color: '#22d3ee', weight: 2, fillOpacity: 0.6, interactive: false })
+                .addTo(g)
+                .bindTooltip(`${i + 1}. ${p.name || ''} X=${p.x.toFixed(2)} Y=${p.y.toFixed(2)}`, { permanent: false });
+        });
+        if (kind === 'dist' && pts.length === 2) {
+            L.polyline([[pts[0].lat, pts[0].lng], [pts[1].lat, pts[1].lng]],
+                { color: '#22d3ee', weight: 3, interactive: false }).addTo(g);
+        } else if (kind === 'area' && pts.length >= 2) {
+            L.polygon(pts.map(p => [p.lat, p.lng]),
+                { color: '#22d3ee', weight: 2.5, dashArray: '6, 5', fillOpacity: 0.12, interactive: false }).addTo(g);
+        }
+    },
+
+    drawInquiryShape(shape, color) {
+        const g = this.layers.inquiryGroup;
+        const ll = (shape.vertices || []).map(v => [v.lat, v.lng]);
+        if (ll.length < 2) return;
+        if (shape.mode === 'polygon') L.polygon(ll, { color, weight: 3, fillOpacity: 0.15, interactive: false }).addTo(g);
+        else L.polyline(ll, { color, weight: 3, interactive: false }).addTo(g);
+    },
+
+    // Phóng khung vừa đúng tập đối tượng đang được chọn
+    zoomToSelection() {
+        const shapes = (this.savedShapes || []).filter(s => s.selected !== false && (s.vertices || []).length);
+        if (!shapes.length) {
+            showToast('⚠️ Không có đối tượng nào đang được chọn để vừa khung!', true);
+            return;
+        }
+        const bounds = L.latLngBounds([]);
+        shapes.forEach(s => (s.vertices || []).forEach(v => {
+            if (isFinite(v.lat) && isFinite(v.lng)) bounds.extend([v.lat, v.lng]);
+        }));
+        if (!bounds.isValid()) return;
+        AppState.leafletMap.fitBounds(bounds, { padding: [48, 48] });
+        showToast(`🔍 Vừa khung ${shapes.length} đối tượng đang chọn`);
+    },
+
+    // ================= 15C. QSELECT: CHỌN NHANH THEO THUỘC TÍNH =================
+    qSelect: { crit: null, matchedIds: [] },
+
+    qSelectKindOf(shape) {
+        if (shape.mode === 'point') return 'point';
+        if (shape.mode === 'polyline') return 'line';
+        return 'poly';
+    },
+
+    // Bộ lọc thuần: một vào/ra, không đụng DOM nên kiểm thử được bằng Node
+    qSelectMatches(shape, crit) {
+        if (!shape || !crit) return false;
+        const verts = shape.vertices || [];
+        if (crit.kind && crit.kind !== 'all' && this.qSelectKindOf(shape) !== crit.kind) return false;
+        if (crit.layer && crit.layer !== 'ALL') {
+            const lid = this.getShapeLayerId ? this.getShapeLayerId(shape) : (shape.layer || 'RANH_THUA');
+            if (lid !== crit.layer) return false;
+        }
+        if (crit.name) {
+            const needle = String(crit.name).toLowerCase().trim();
+            const hay = `${shape.name || ''} ${shape.shortName || ''}`.toLowerCase();
+            if (!hay.includes(needle)) return false;
+        }
+        const st = this.getEffectiveStats ? this.getEffectiveStats(shape) : (shape.stats || {});
+        const area = Number(st.area) || 0;
+        if (isFinite(crit.areaMin) && area < crit.areaMin) return false;
+        if (isFinite(crit.areaMax) && area > crit.areaMax) return false;
+        if (crit.vMin > 0 && verts.length < crit.vMin) return false;
+        if (crit.vMax > 0 && verts.length > crit.vMax) return false;
+        return true;
+    },
+
+    collectQSelectCriteria() {
+        const num = (id) => {
+            const el = document.getElementById(id);
+            const v = el ? parseFloat(String(el.value).replace(',', '.')) : NaN;
+            return isFinite(v) ? v : NaN;
+        };
+        const only = document.getElementById('cadQSelOnlySelected');
+        return {
+            kind: ((document.getElementById('cadQSelKind') || {}).value) || 'all',
+            layer: ((document.getElementById('cadQSelLayer') || {}).value) || 'ALL',
+            name: (((document.getElementById('cadQSelName') || {}).value) || '').trim(),
+            areaMin: num('cadQSelAreaMin'),
+            areaMax: num('cadQSelAreaMax'),
+            vMin: num('cadQSelVMin') || 0,
+            vMax: num('cadQSelVMax') || 0,
+            onlySelected: !!(only && only.checked)
+        };
+    },
+
+    qSelectSummary(list) {
+        let area = 0, per = 0, verts = 0;
+        const byLayer = {};
+        (list || []).forEach(s => {
+            const st = this.getEffectiveStats ? this.getEffectiveStats(s) : (s.stats || {});
+            area += Number(st.area) || 0;
+            per += Number(st.perimeter) || 0;
+            verts += (s.vertices || []).length;
+            const lid = this.getShapeLayerId ? this.getShapeLayerId(s) : (s.layer || 'RANH_THUA');
+            byLayer[lid] = (byLayer[lid] || 0) + 1;
+        });
+        return { count: (list || []).length, area, perimeter: per, vertices: verts, byLayer };
+    },
+
+    // mode: 'replace' (thế lựa chọn) | 'append' (cộng thêm) | 'exclude' (loại bớt) — đúng như QSELECT của AutoCAD
+    applyQSelect(mode = 'replace') {
+        const crit = this.collectQSelectCriteria();
+        this.qSelect.crit = crit;
+        const all = this.savedShapes || [];
+        const pool = crit.onlySelected ? all.filter(s => s.selected !== false) : all;
+        const hit = pool.filter(s => this.qSelectMatches(s, crit));
+        const ids = new Set(hit.map(s => s.id));
+        all.forEach(s => {
+            if (mode === 'append') { if (ids.has(s.id)) s.selected = true; }
+            else if (mode === 'exclude') { if (ids.has(s.id)) s.selected = false; }
+            else s.selected = ids.has(s.id);
+        });
+        this.qSelect.matchedIds = hit.map(s => s.id);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        this.refreshAreaTableIfOpen();
+        this.renderQSelectSummary(hit);
+        const label = mode === 'append' ? 'cộng thêm' : mode === 'exclude' ? 'loại bớt' : 'đã chọn';
+        showToast(`🔎 ${label} ${hit.length}/${all.length} đối tượng khớp bộ lọc`);
+    },
+
+    // Bảng kê đang mở thì vẽ lại ngay, giữ nguyên vị trí cuộn để người dùng không bị nhảy khung
+    refreshAreaTableIfOpen() {
+        const modal = document.getElementById('modalCadAreaTable');
+        const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+        if (!isModalOpen) return;
+        const cadBlockList = document.getElementById('cadBlockList');
+        const modalBox = modal.querySelector('.modal-box');
+        const scrollBlockList = cadBlockList ? cadBlockList.scrollTop : 0;
+        const scrollModal = modalBox ? modalBox.scrollTop : 0;
+        this.openAreaTableModal();
+        if (cadBlockList) cadBlockList.scrollTop = scrollBlockList;
+        if (modalBox) modalBox.scrollTop = scrollModal;
+    },
+
+    renderQSelectSummary(hit) {
+        const box = document.getElementById('cadQSelSummary');
+        if (!box) return;
+        const sum = this.qSelectSummary(hit);
+        const layerRows = Object.keys(sum.byLayer).map(l =>
+            `<span class="cad-qsel-chip">${escapeHtml(l)}: ${sum.byLayer[l]}</span>`).join('');
+        box.innerHTML = `
+            <div class="cad-qsel-total">
+                <b>${sum.count}</b> / ${(this.savedShapes || []).length} đối tượng khớp
+                <span>S = ${sum.area.toFixed(2)} m² (${(sum.area / 10000).toFixed(4)} ha)</span>
+                <span>P = ${sum.perimeter.toFixed(2)} m</span>
+                <span>${sum.vertices} đỉnh</span>
+            </div>
+            <div class="cad-qsel-layers">${layerRows || '<em>Không có đối tượng khớp bộ lọc.</em>'}</div>`;
+    },
+
+    openQSelectModal() {
+        const modal = document.getElementById('modalCadQSelect');
+        if (!modal) return;
+        const sel = document.getElementById('cadQSelLayer');
+        if (sel) {
+            const keep = sel.value;
+            const rows = (this.layersTable || []).map(l => `<option value="${l.id}">${escapeHtml(l.name || l.id)}</option>`);
+            sel.innerHTML = '<option value="ALL">— Mọi lớp —</option>' + rows.join('');
+            sel.value = keep && Array.from(sel.options).some(o => o.value === keep) ? keep : 'ALL';
+        }
+        modal.classList.add('active', 'show');
+        this.renderQSelectSummary((this.savedShapes || []).filter(s => s.selected !== false));
+    },
+
+    closeQSelectModal() {
+        const modal = document.getElementById('modalCadQSelect');
+        if (modal) modal.classList.remove('active', 'show');
+    },
+
+    clearQSelectCriteria() {
+        ['cadQSelName', 'cadQSelAreaMin', 'cadQSelAreaMax', 'cadQSelVMin', 'cadQSelVMax'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const kind = document.getElementById('cadQSelKind'); if (kind) kind.value = 'all';
+        const layer = document.getElementById('cadQSelLayer'); if (layer) layer.value = 'ALL';
+        const only = document.getElementById('cadQSelOnlySelected'); if (only) only.checked = false;
     },
 
     cadCommandList: [
@@ -28601,6 +29292,12 @@ const appCadTool = {
         { cmd: 'CLEAR', desc: '🗑️ Xóa toàn bộ bản vẽ MiniCAD [Clear All]' },
         { cmd: 'X', desc: '🗑️ Xóa toàn bộ bản vẽ [Clear]' },
         { cmd: 'ORTHO', desc: '📐 Bật/Tắt khóa vẽ vuông góc 90° [F8]' },
+        { cmd: 'POLAR', desc: '🧭 Bật/Tắt dóng góc theo bội số (90/45/30°) [F10]' },
+        { cmd: 'DIST', desc: '📏 Trắc lượng: đo 2 điểm (ΔX, ΔY, azimuth) [Inquiry]' },
+        { cmd: 'AREA', desc: '🧮 Trắc lượng: đo diện tích & chu vi chuỗi điểm [Inquiry]' },
+        { cmd: 'ID', desc: '🎯 Trắc lượng: tra tọa độ điểm vừa chạm [Inquiry]' },
+        { cmd: 'LIST', desc: '📋 Trắc lượng: thông tin đối tượng đã chọn [Inquiry]' },
+        { cmd: 'QSELECT', desc: '🔎 Chọn nhanh theo lớp / tên / diện tích / số đỉnh [Q]' },
         { cmd: 'OSNAP', desc: '🧲 Bật/Tắt tự động bắt điểm nam châm [F3/S]' },
         { cmd: 'SNAPLINE', desc: '🔗 Bật/Tắt bắt cạnh khối liền kề [B]' },
         { cmd: 'DYN', desc: '📏 Bật/Tắt thước đo cự ly & góc động [DYN]' },
@@ -28749,6 +29446,11 @@ const appCadTool = {
             case 'ORTHO':
                 this.toggleOrthoMode();
                 break;
+            case 'POLAR':
+            case 'DONGGOC':
+            case 'F10':
+                this.togglePolarTracking();
+                break;
             case 'OSNAP':
             case 'SNAP':
                 this.toggleSnap();
@@ -28783,12 +29485,40 @@ const appCadTool = {
             case 'LOP':
                 this.openLayerManagerModal();
                 break;
+            case 'DIST':
+            case 'KHOANGCACH':
+            case 'DO':
+                this.openInquiryModal('dist');
+                break;
+            case 'AREA':
+            case 'DIENTICH':
+            case 'TINH':
+                this.openInquiryModal('area');
+                break;
+            case 'ID':
+            case 'TODO':
+                this.openInquiryModal('point');
+                break;
+            case 'LIST':
+            case 'TRATHONGTIN':
+                this.openInquiryModal('shape');
+                break;
+            case 'QSEL':
+            case 'QSELECT':
+            case 'CHONNHANH':
+                this.openQSelectModal();
+                break;
+            case 'ZS':
+            case 'ZOOMSEL':
+                this.zoomToSelection();
+                break;
             case 'DYN':
                 this.toggleDynamicInput();
                 break;
             case 'ESC':
             case 'THOAT':
                 this.toolAction = null;
+                this.resetInquiryChain();
                 if (this._tempSplitMarker && AppState.leafletMap) {
                     AppState.leafletMap.removeLayer(this._tempSplitMarker);
                     this._tempSplitMarker = null;
@@ -28827,6 +29557,7 @@ const appCadTool = {
         if (rOrtho) rOrtho.classList.toggle('active', !!this.orthoMode);
         if (rSnapLine) rSnapLine.classList.toggle('active', !!this.snapLineEnabled);
         if (rDyn) rDyn.classList.toggle('active', !!this.dynamicInputEnabled);
+        this.syncPolarControls();
     },
 
     quickExecCmd(cmdStr) {
@@ -35749,6 +36480,45 @@ const appI18n = {
         "-- Chọn mốc từ sổ đo --": "-- select point tu Field Book --",
         "Chọn Mốc B (hoặc nhập X, Y):": "select point B (or import X, Y):",
         "📐 TÍNH CỰ LY & PHƯƠNG VỊ": "📐 COMPUTE DISTANCE & AZIMUTH",
+        "🧭 Dóng góc: BẬT [F10]": "🧭 Polar Tracking: ON [F10]",
+        "🧭 Dóng góc: TẮT [F10]": "🧭 Polar Tracking: OFF [F10]",
+        " Dóng góc [F10]": " Polar [F10]",
+        "Bước góc": "Angle step",
+        "📐 Trắc lượng": "📐 Inquiry",
+        " Trắc lượng": " Inquiry",
+        "🧮 Trắc Lượng — Khoảng Cách / Diện Tích / Tọa Độ / Thông Tin": "🧮 Inquiry — Distance / Area / Coordinates / Object Info",
+        "Phép đo:": "Measurement:",
+        "📏 DIST — Khoảng cách 2 điểm": "📏 DIST — Distance between 2 points",
+        "⬢ AREA — Diện tích chuỗi đỉnh": "⬢ AREA — Area of vertex chain",
+        "🎯 ID — Tọa độ điểm chạm": "🎯 ID — Picked point coordinates",
+        "📋 LIST — Thông tin đối tượng": "📋 LIST — Object information",
+        "↺ Đo lại": "↺ Restart",
+        "🔍 Vừa khung chọn": "🔍 Zoom to selection",
+        "📜 Nhật ký phép đo phiên làm việc": "📜 Session measurement log",
+        "🗑 Xóa nhật ký": "🗑 Clear log",
+        "🔎 Chọn nhanh (QSELECT)": "🔎 Quick Select (QSELECT)",
+        " Chọn nhanh [Q]": " Quick Select [Q]",
+        "🔎 QSELECT — Chọn Nhanh Theo Thuộc Tính": "🔎 QSELECT — Quick Select by Property",
+        "Loại đối tượng": "Object type",
+        "Lớp CAD": "CAD layer",
+        "— Mọi loại —": "— All types —",
+        "Khối đa giác / chữ nhật": "Polygon / Rectangle",
+        "Tuyến hở": "Open polyline",
+        "Điểm rời": "Point objects",
+        "— Mọi lớp —": "— All layers —",
+        "Tên chứa (không phân biệt hoa thường)": "Name contains (case-insensitive)",
+        "S tối thiểu (m²)": "Min area (m²)",
+        "S tối đa (m²)": "Max area (m²)",
+        "Số đỉnh ≥": "Min vertices",
+        "Số đỉnh ≤": "Max vertices",
+        "Chỉ tìm trong nhóm đang chọn (chọn lồng dần)": "Search within current selection only (nested filter)",
+        "✅ Chọn thay thế": "✅ Replace selection",
+        "➕ Cộng thêm": "➕ Append",
+        "➖ Loại bớt": "➖ Exclude",
+        "☑️ Tất cả": "☑️ Select all",
+        "⬜ Bỏ hết": "⬜ Deselect all",
+        "↺ Xóa bộ lọc": "↺ Clear filter",
+        "🔍 Vừa khung": "🔍 Zoom to selection",
         "📋 Sao chép kết quả": "📋 Copy Results",
         "📐 2. Tính Diện Tích & Chu Vi Đa Giác": "📐 2. Compute Polygon Area & Perimeter",
         "Thêm các đỉnh theo thứ tự cùng hoặc ngược chiều kim đồng hồ để tính diện tích thửa đất.": "Add vertices clockwise or counterclockwise to calculate land parcel area.",

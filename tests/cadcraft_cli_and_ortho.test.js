@@ -39,11 +39,24 @@ test('=== 2. KIỂM THỬ KHÓA VẼ VUÔNG GÓC ORTHO MODE 90 ĐỘ [F8] ===', 
     assert.ok(appJsContent.includes('this.toggleOrthoMode()'),
         'Phím F8 kích hoạt toggleOrthoMode');
 
-    // 2. Logic khóa trục X hoặc Y trong handleMapClick
-    assert.ok(appJsContent.includes('if (this.orthoMode && this.vertices && this.vertices.length > 0)'),
-        'handleMapClick kiểm tra điều kiện orthoMode');
-    assert.ok(appJsContent.includes('curVn.Y = lastV.y') && appJsContent.includes('curVn.X = lastV.x'),
-        'handleMapClick khóa ngang/dọc theo hiệu số dx và dy');
+    // 2. Logic khóa trục X/Y nay nằm trong lockDraftPoint() dùng chung cho NHẬT và XEM TRƯỚC,
+    //    nếu để hai đường riêng thì mũi tên trên màn hình và đỉnh thật tạo ra sẽ lệch nhau.
+    assert.ok(/if \(this\.orthoMode\) \{[\s\S]{0,400}vn\.Y = last\.y[\s\S]{0,200}vn\.X = last\.x/.test(appJsContent),
+        'lockDraftPoint khóa ngang/dọc theo hiệu số dx và dy khi bật Ortho');
+    assert.ok(appJsContent.includes('const locked = this.lockDraftPoint(lat, lng);'),
+        'handleMapClick chốt điểm qua lockDraftPoint (Ortho rồi tới Polar)');
+    assert.ok(appJsContent.includes('const locked = this.lockDraftPoint(targetLat, targetLng);'),
+        '_processMouseMove cũng chốt điểm qua lockDraftPoint để xem trùng với kết quả thật');
+
+    // 3. Polar Tracking [F10]
+    assert.ok(appJsContent.includes("e.key === 'F10'") && appJsContent.includes('this.togglePolarTracking()'),
+        'Phím F10 bật/tắt Dóng góc');
+    assert.ok(appJsContent.includes('togglePolarTracking'),
+        'Có hàm togglePolarTracking đồng bộ nút + ô bước góc');
+    assert.ok(indexHtmlContent.includes('id="btnCadPolarTrack"') && indexHtmlContent.includes('id="btnCadRibbonPolar"'),
+        'Nút Dóng góc có mặt ở bảng công cụ và ribbon');
+    assert.ok(indexHtmlContent.includes('id="cadPolarStepSelect"'),
+        'Ô chọn bước góc 90/60/45/30/15/10° cho polar tracking');
 });
 
 test('=== 3. KIỂM THỬ TIỆN ÍCH XOAY NHÃN THỐNG NHẤT 0 - 360 ĐỘ CHO TOÀN BỘ ĐỐI TƯỢNG ===', (t) => {

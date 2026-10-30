@@ -3,11 +3,39 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 312/312 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 313/313 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-10-30] WP-C MiniCAD: Polar Tracking [F10] + Trắc Lượng (INQUIRY) + Chọn Nhanh (QSELECT)
+- **Yêu cầu từ người dùng**:
+  - `Inquiry/QSELECT (Dynamic Input còn thiếu phần polar tracking)` — port tiếp nhóm CADCraft đã hoãn ở WP-B, theo đúng ý chỉ đạo "Port lần lượt, ưu tiên Dimension" (Dimension đã xong trước đó).
+- **Các phát hiện điều tra gốc rễ (Root Cause Analysis)**:
+  1. *Dynamic Input mới khóa được trục vuông góc*: chỉ có Ortho [F8], muốn vẽ theo một góc bất kỳ (70°, 120°…) người dùng phải gõ đúng tọa độ cực, không có "nam châm góc" như AutoCAD ⇒ thiếu một nửa tính năng.
+  2. *Xem trước ≠ kết quả thật*: `handleMapClick` áp Ortho còn `_processMouseMove` (đường rubber-band + tooltip) thì không, nên mũi tên trên màn hình hay lệch đỉnh thật tạo ra. gốc là logic khóa trục bị nhân bản ở hai nơi.
+  3. *Nguy cơ hai nguồn số liệu*: Inquiry mà tự tính diện tích/chu vi bằng công thức riêng sẽ lệch với bảng kê và exporter (chuẩn chung là `calculateAreaAndPerimeter()` — Gauss shoelace trên lưới VN-2000).
+  4. *Lệnh gọi hàm không tồn tại*: `applyQSelect()` gọi `this.refreshAreaTableIfOpen()` trong khi method này chưa có → bảng kê diện tích mở sẽ ném `TypeError` ngay sau khi chọn nhanh.
+  5. *Tham số chết*: `renderQSelectSummary(hit, crit, mode)` nhận `crit`/`mode` nhưng không dùng.
+  6. *Bôi màu đối tượng tra được dựa vào state sai*: `renderInquiryGraphics()` đọc `this.selectedItem` — con trỏ chọn của phân hệ vẽ, không bao giờ được set trong chế độ trac lượng → LIST không tô sáng được khối vừa tra.
+  7. *Rác giao diện trên bản đồ dùng chung*: `closeInquiryModal()` chỉ ẩn modal, các marker/nhãn cyan vẫn nằm trên `leafletMap`; `clearCadOverlays()` cũng không gỡ `polarGroup`/`inquiryGroup` (chệch AGENTS.md §2).
+  8. *Nhật ký ẩn khi chưa có kết quả*: `renderInquiryResult()` return sớm khi `lastResult` rỗng nên bảng "Nhật ký phép đo" không vẽ lại.
+  9. *Tiên quyết khóa góc*: khi bật cả F8 lẫn F10, AutoCAD ưu tiên Ortho — bản cũ không định nghĩa thứ tự.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. *Một hàm chốt điểm duy nhất*: `lockDraftPoint(lat, lng)` — Ortho trước, Polar sau — được cả `handleMapClick` và `_processMouseMove` gọi, nên xem trùng với kết quả thật và hết tình trạng hai bản sao logic (app.js §15A).
+  2. *Polar Tracking [F10]*: `togglePolarTracking()`, `setPolarStep()`, `polarLockPoint()`, `azimuthDegOf()`, `syncPolarGuides()` vẽ 4 tia đứt nét + nhãn góc DMS vào lớp `layers.polarGroup` (tạo trong `ensureLayers()`), tự suy giảm vẽ lại nhờ `_polarGuideKey`; nút `#btnCadPolarTrack`, `#btnCadRibbonPolar` và ô chọn bước góc `#cadPolarStepSelect` (bị disable khi Ortho bật); tùy chọn lưu ở khóa riêng `vn2k_cad_polar_v1` vì `restoreSession()` return sớm khi hình vẽ đến từ dự án.
+  3. *Inquiry (DIST / AREA / ID / LIST / ZOOM Sel)*: `inquiryPointFromLatLng` + `inquiryDistance` (cự ly lưới, ΔX/ΔY, Az DMS, ΔH và cự ly 3D, kiểm chéo `calcGeoDistanceAndAzimuth`), `inquiryChain()` **ủy quyền cho `calculateAreaAndPerimeter(list,'polygon')`** — không tạo nguồn số liệu thứ hai; `handleInquiryPick()` định tuyến qua `toolAction === 'inquiry'` trong `handleMapClick`, có hít điểm nam châm; bảng kết quả `.cad-inq-table`, nhật ký 20 dòng (`pushInquiryLog` cập nhật tại chỗ cho chuỗi đang chấm, không bắn 20 dòng cho 20 đỉnh), xuất CSV `;` có BOM, tô sáng bằng `inquiry.shapeIdx`.
+  4. *QSELECT*: modal riêng `#modalCadQSelect`, bộ lọc thuần `qSelectMatches(shape, crit)` (loại poly/line/point — gom rectangle vào khối — + lớp + tên + diện tích min/max + số đỉnh min/max + "chỉ trong đối tượng đang chọn"), ba chế độ `replace|append|exclude` dùng lại `toggleBlockSelect`/`toggleSelectAllBlocks` theo quy ước `selected !== false`; `collectQSelectCriteria` chấp nhận số phân tách bằng dấu phẩy kiểu Việt; `renderQSelectSummary` báo tổng S/P/số đỉnh + chip theo lớp; `clearQSelectCriteria`.
+  5. *Sửa `refreshAreaTableIfOpen()`*: thay vì nhân bản khối mở-lại-bảng-kê lần thứ ba, thêm method thật (kiểm tra modal đang mở → `openAreaTableModal()` → **giữ nguyên `scrollTop`** của `#cadBlockList` và `.modal-box` để người dùng không bị nhảy khung); cắt bớt tham số chết của `renderQSelectSummary(hit)`.
+  6. *Dọn giao diện dùng chung*: `closeInquiryModal()` gọi `clearInquiryGraphics()` và reset `pts/shapeIdx/toolAction`; `clearCadOverlays()` gỡ thêm `polarGroup` + `inquiryGroup`; `closeCadWindows()` đóng thêm `modalCadInquiry`, `modalCadQSelect` (bên cạnh `modalCadGisImport`) — tổng 12 modal CAD.
+  7. *Tiện ích mở rộng*: `zoomToSelection()` gộp bounds mọi đỉnh của đối tượng đang chọn rồi `fitBounds(bounds, {padding:[48,48]})`, cảnh báo khi không có gì chọn thay vì phóng sai; CLI thêm `DIST/KHOANGCACH/DO`, `AREA/DIENTICH/TINH`, `ID/TODO`, `LIST/TRATHONGTIN`, `QSELECT/QSEL/CHONNHANH`, `ZOOMSEL/ZS`, `POLAR` + đăng ký `cadCommandList`; phím `F10` và `Q` trong `bindEvents()`; ~38 mục `phraseMap` Anh–Việt mới; CSS `.cad-inq-table`, `.cad-inq-log*`, `.cad-qsel-*`; `CACHE_NAME`/`?v=` → **2.8.11**.
+- **Kiểm thử tự động & Xác minh thực nghiệm**:
+  - Bộ test mới `tests/cad_inquiry_qselect_polar.test.js`: **178/178 PASS** (13 nhóm, chạy hàm *thật* cắt từ app.js trong sandbox `new Function` với projection tuyến tính: azimuth/polarLockPoint theo bước & sai số, tiên quyết Ortho-over-Polar + round-trip WGS84, suy giảm `syncPolarGuides`, `dmsText`, `inquiryDistance/Chain`, 4 loại bảng kết quả, `handleInquiryPick` đủ 4 chế độ, nhật ký 20-cap + cập nhật live, CSV (BOM, `;`→`,`), `zoomToSelection`, `qSelectMatches`/`applyQSelect` 3 chế độ + thứ tự callback, thu thập tiêu chí, static wiring modal/phím/CLI/không trùng `case`, thoát XSS trong `renderInquiryResult/Log`).
+  - `tests/cad_ui_isolation.test.js` **27/27** (danh sách 12 modal CAD + `clearCadOverlays` phải gỡ cả `polarGroup` lẫn `inquiryGroup`); `tests/cadcraft_cli_and_ortho.test.js` cập nhật sang `lockDraftPoint` và thêm assertion F10/bước góc.
+  - `node --check app.js` đạt; `npm test` = **313/313 PASS (0 fail)** — `node --test tests/` vẫn lỗi MODULE_NOT_FOUND trên Node 24, dùng `node --test tests/*.test.js`.
+  - Live http://localhost:8080 (`app.js?v=2.8.11`): DIST hai điểm cho `55,063 m • Az 36°30'16"` kèm dòng kiểm chéo WGS84 `55,309 m`; AREA chuỗi 3 đỉnh `725,33 m² / chu vi 131,79 m`; ID 6 dòng số liệu + KTT `105.75°45' • múi 6° • k=0.9996`; LIST `Thửa 2` đủ 9 nhãn (loại "Tuyến hở", lớp `RANH_THUA`, màu `#06b6d4`, 6 đỉnh, 49,97 m) và chạm vùng trống chỉ cảnh báo, không mất kết quả cũ; CSV `DuAn_Moi_TracLuong.csv` 5 dòng có BOM; Polar: khóa `mode:"polar" angle:90` kéo điểm 2,604 m về đúng tia, 4 tia + 4 nhãn `0°,90°,180°,270°`, Ortho bật thắng (`mode:"ortho"`), `clearPolarGuides()` → 0 layer; QSELECT: `line` → `1/3` khớp + chip `RANH_THUA: 1`, `append point`, `exclude poly`, lọc theo tên `thửa`, lọc `S ≥ 100 m²` → 0 đối tượng; `ZOOMSEL` gọi `fitBounds(padding:[48,48])` đổi thật view và cảnh báo khi bỏ chọn hết; CLI thử 17 bí danh đều mở đúng modal/chế độ, `PURGE` rơi vào `default` vô hại. **Dọn vết thử nghiệm**: khôi phục `savedShapes` cả 3 đối tượng về trạng thái chọn `true`, xóa `inquiry.log/lastResult/shapeIdx`, `qSelect = {crit:null, matchedIds:[]}`, tắt dóng góc (`vn2k_cad_polar_v1 = {"on":false,"step":90}`), đóng 2 modal, `layers.inquiryGroup/polarGroup = 0`, bản vẽ gốc còn `group: 31` layer.
+  - Tuân thủ AGENTS.md §2: hai bề mặt mới đều thuộc MiniCAD, đặt cạnh các modal CAD khác trong `index.html`, bị `closeCadWindows()` đóng khi rời phân hệ và `clearCadOverlays()` dọn overlay; Inquiry không đụng `selectedItem` của công cụ vẽ.
 
 ### [2026-10-30] WP-B Nạp/Xuất GIS–QGIS: GeoJSON / KML / GPX / WKT cho MiniCAD và Bản đồ dự án
 - **Yêu cầu từ người dùng**:

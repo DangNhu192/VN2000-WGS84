@@ -69,7 +69,8 @@ function extractMethod(name, from = 0) {
 const CAD_MODAL_IDS = [
     'modalCadAreaTable', 'modalCadPointTable', 'modalCadExportConfig',
     'modalCadLoadProject', 'modalCadPolarInput', 'modalCadCoordInput',
-    'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow'
+    'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow',
+    'modalCadGisImport', 'modalCadInquiry', 'modalCadQSelect'
 ];
 
 // =====================================================================
@@ -101,7 +102,7 @@ console.log('\n— closeCadWindows: dọn cửa sổ CAD khi rời MiniCAD —')
 
     assert(popupClosed, 'Đóng popup Leaflet đang mở trên bản đồ dùng chung');
     assert(CAD_MODAL_IDS.every(id => elements[id].style.display === 'none'),
-        `Ẩn đủ ${CAD_MODAL_IDS.length} cửa sổ CAD (bảng kê/điểm/xuất/nạp/cực/tọa độ/lớp/chú thích/mũi tên)`);
+        `Ẩn đủ ${CAD_MODAL_IDS.length} cửa sổ CAD (bảng kê/điểm/xuất/nạp/cực/tọa độ/lớp/chú thích/mũi tên/GIS/trắc lượng/QSELECT)`);
     assert(CAD_MODAL_IDS.every(id => !elements[id].classList.contains('active') && !elements[id].classList.contains('show')),
         'Gỡ cả class active lẫn show khỏi mọi cửa sổ CAD');
     assert(elements.cadBlocksStatsPanel.style.display === 'none', 'Ẩn bảng thống kê khối CAD nếu đang mở');
@@ -114,15 +115,21 @@ console.log('\n— clearCadOverlays: gỡ hình khối CAD khỏi bản đồ �
 {
     let groupCleared = 0;
     let annoCleared = 0;
+    let polarCleared = 0;
+    let inqCleared = 0;
     const api = new Function(`return ({ ${extractMethod('clearCadOverlays', cadStart)} });`)();
     api.clearCadOverlays.call({
         layers: {
             group: { clearLayers() { groupCleared++; } },
-            annotationsGroup: { clearLayers() { annoCleared++; } }
+            annotationsGroup: { clearLayers() { annoCleared++; } },
+            polarGroup: { clearLayers() { polarCleared++; } },
+            inquiryGroup: { clearLayers() { inqCleared++; } }
         }
     });
     assert(groupCleared === 1, 'Xóa toàn bộ khối/hình vẽ CAD khỏi lớp bản đồ');
     assert(annoCleared === 1, 'Xóa toàn bộ chú thích CAD khỏi lớp bản đồ');
+    assert(polarCleared === 1 && inqCleared === 1,
+        'Xóa cả tia dóng góc (F10) lẫn hình vẽ trắc lượng — không để sót trên bản đồ phân hệ khác');
 }
 
 // =====================================================================
