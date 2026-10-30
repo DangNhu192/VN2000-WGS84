@@ -2009,6 +2009,22 @@
               title="Vẽ đường tim tuyến / bờ ranh hở (Phím tắt: L)">
               📏 Tuyến [L]
             </button>
+            <button id="btnCadModePoint" class="cad-btn" onclick="appCadTool.setMode('point')"
+              title="Chấm từng điểm mốc rời (không nối tuyến) — lưu ngay khi chạm bản đồ (Phím tắt: I)">
+              📍 Chấm điểm [I]
+            </button>
+            <button id="btnCadPointTable" class="cad-btn" onclick="appCadTool.openPointTableModal()"
+              title="Mở Bảng Điểm: sửa tên / X / Y / H / ghi chú và xuất CSV theo lớp điểm">
+              📋 Bảng điểm
+            </button>
+            <div id="cadPointLayerBar" style="display: none; align-items: center; gap: 6px;">
+              <select id="cadPointLayerSelect" class="app-input"
+                onchange="appCadTool.selectPointLayer(this.value)"
+                title="Lớp điểm đang nhận các điểm mới chấm"
+                style="height: 26px; max-width: 150px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px;"></select>
+              <button type="button" class="cad-btn" onclick="appCadTool.createPointLayer()"
+                title="Tạo thêm lớp điểm mới (Mốc GPS, Cọc ranh, ...)">➕ Lớp mới</button>
+            </div>
             <button class="cad-btn" onclick="appCadTool.setMarkupMode('rect')"
               title="Vẽ khối công trình / Nhà ở (Phím tắt: REC)">
               🏠 Nhà [REC]
@@ -5260,6 +5276,87 @@
             Đóng
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL BẢNG ĐIỂM (CHẤM ĐIỂM MỐC / CỌC THEO LỚP) ================= -->
+  <div id="modalCadPointTable" class="modal-overlay" onclick="if(event.target === this) appCadTool.closePointTableModal()">
+    <div class="modal-box" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-title">
+        <span style="color: #38bdf8;">📍 Bảng Điểm — Chấm Điểm Mốc / Cọc</span>
+        <button class="btn-modal-close" onclick="appCadTool.closePointTableModal()">✕</button>
+      </div>
+
+      <!-- Chọn lớp điểm + tổng số điểm -->
+      <div
+        style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.3); border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <span style="font-size: 11px; color: #94a3b8;">Lớp điểm:</span>
+          <select id="cadPtTableLayerSelect" class="app-input"
+            style="height: 28px; max-width: 200px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"
+            onchange="appCadTool.selectPointTableLayer(this.value)" title="Chọn lớp điểm cần xem/sửa"></select>
+          <button type="button" class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;"
+            onclick="appCadTool.createPointLayerFromTable()" title="Tạo lớp điểm mới">➕ Lớp mới</button>
+        </div>
+        <span id="cadPtTableCount" style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">0 điểm</span>
+      </div>
+
+      <!-- Bảng điểm: sửa trực tiếp tên, X, Y, H, ghi chú -->
+      <div class="cad-table-wrap" style="flex: 1; margin-bottom: 10px;">
+        <table class="cad-coord-table">
+          <thead>
+            <tr>
+              <th style="width: 34px; text-align: center;">STT</th>
+              <th style="text-align: left; min-width: 78px;">Tên điểm</th>
+              <th style="text-align: right; min-width: 96px;">X (Bắc) [m]</th>
+              <th style="text-align: right; min-width: 96px;">Y (Đông) [m]</th>
+              <th style="text-align: right; min-width: 72px;">H [m]</th>
+              <th style="text-align: left; min-width: 100px;">Ghi chú</th>
+              <th style="width: 62px; text-align: center;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="cadPtTableBody">
+            <!-- Render JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Thêm điểm bằng tọa độ VN-2000 -->
+      <div
+        style="background: rgba(30,41,59,0.7); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;">
+        <div style="font-size: 11px; font-weight: 800; color: #7dd3fc; margin-bottom: 6px;">➕ Thêm điểm bằng tọa độ
+          VN-2000</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px;">
+          <input type="text" id="cadPtNewName" class="app-input" placeholder="Tên (P1)"
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+          <input type="number" step="0.001" id="cadPtNewX" class="app-input" placeholder="X (Bắc) *"
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+          <input type="number" step="0.001" id="cadPtNewY" class="app-input" placeholder="Y (Đông) *"
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+          <input type="number" step="0.01" id="cadPtNewH" class="app-input" placeholder="H (m)"
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+          <input type="text" id="cadPtNewNote" class="app-input" placeholder="Ghi chú"
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px; grid-column: span 2;">
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-sm btn-blue" style="height: 32px; padding: 0 12px;"
+            onclick="appCadTool.addPointFromTable()">➕ Thêm điểm</button>
+          <span style="font-size: 10.5px; color: #64748b; align-self: center;">X = Bắc (Northing), Y = Đông (Easting)
+            • Hệ VN-2000 mũi chiếu hiện tại</span>
+        </div>
+      </div>
+
+      <div class="modal-footer"
+        style="display: flex; gap: 8px; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid rgba(56, 189, 248, 0.2); flex-wrap: wrap;">
+        <button class="btn-sm"
+          style="height: 34px; padding: 0 12px; font-weight: 700; background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);"
+          onclick="appCadTool.exportPointCsv()" title="Xuất danh sách điểm của lớp đang chọn ra file CSV">
+          📄 Xuất CSV
+        </button>
+        <button class="btn-sm btn-red" style="height: 34px; padding: 0 14px;"
+          onclick="appCadTool.closePointTableModal()">Đóng</button>
       </div>
     </div>
   </div>

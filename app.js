@@ -309,6 +309,16 @@ function fallbackCopy(text) {
     document.body.removeChild(ta);
 }
 
+// ================= HTML ESCAPE (CHỐNG CHÈN MARKUP KHI NỐI CHUỖI ĐỘNG) =================
+function escapeHtml(str) {
+    return String(str === undefined || str === null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ================= HAPTIC FEEDBACK (CHUẨN UI/UX PRO MAX - PHẢN HỒI RUNG THỰC ĐỊA) =================
 function triggerHaptic(type = 'light') {
     if (typeof localStorage !== 'undefined' && localStorage.getItem('app_haptic_enabled') === 'false') {
@@ -17263,8 +17273,9 @@ const appCadTool = {
     customProjectArea: null,
     vertices: [], // [{ id, name, lat, lng, x, y, h, isSnapped, snapSource }]
     savedShapes: [], // [{ id, name, shortName, mode, vertices, stats, color }]
+    pointLayerId: null, // Lớp điểm rời (mode 'point') đang nhận các điểm mới chấm trên bản đồ
     annotations: [], // [{ id, type, lat, lng, color, ... }]
-    markupMode: null, // null | 'arrow' | 'north_arrow' | 'rect' | 'circle' | 'stamp' | 'text'
+    markupMode: null, // null | 'arrow' | 'north_arrow' | 'rect' | 'circle' | 'stamp' | 'text' | 'dim_linear' | 'dim_angle' | 'dim_radius'
     markupStepData: null,
     showAnnotations: true,
     palette: ['#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#38bdf8', '#84cc16', '#f97316'],
@@ -18676,6 +18687,7 @@ const appCadTool = {
                 corners: a.corners ? a.corners.map(c => [...c]) : undefined
             }));
             this.mode = state.mode || this.mode;
+            this.pointLayerId = state.pointLayerId || null;
 
             this.renderGeometry();
             this.renderAnnotations();
@@ -19025,6 +19037,9 @@ const appCadTool = {
             } else if (key === 'L') {
                 e.preventDefault();
                 this.setMode('polyline');
+            } else if (key === 'I') {
+                e.preventDefault();
+                this.setMode('point');
             } else if (key === 'S' || e.key === 'F3') {
                 e.preventDefault();
                 this.toggleSnap();
@@ -19283,10 +19298,15 @@ const appCadTool = {
         this.bindTouchLoupeEvents();
 
         this.syncDisplayCheckboxes();
+        if (this.mode === 'point') {
+            const activePoint = this.getActivePointLayer();
+            this.pointLayerId = activePoint ? activePoint.id : null;
+        }
         this.renderGeometry();
         this.updateUi();
         if (this.updateCmdRibbonActiveStates) this.updateCmdRibbonActiveStates();
         if (this.renderBlocksPanel) this.renderBlocksPanel();
+        this.refreshPointLayerBar();
         this.updateCurrentProjectBadge();
         this.loadAnnotations();
         this.initToolbarAutoCollapse();
@@ -19789,16 +19809,21 @@ const appCadTool = {
     syncToolButtons() {
         const isPoly = (this.mode === 'polygon');
         const isLine = (this.mode === 'polyline');
+        const isPoint = (this.mode === 'point');
         const isSelect = (this.mode === 'select');
         const mMode = this.markupMode;
 
         const btnPoly = document.getElementById('btnCadModePoly');
         const btnLine = document.getElementById('btnCadModeLine');
+        const btnPoint = document.getElementById('btnCadModePoint');
         const btnSelect = document.getElementById('btnCadToolSelectMode');
 
         if (btnPoly) btnPoly.classList.toggle('active', isPoly && !mMode);
         if (btnLine) btnLine.classList.toggle('active', isLine && !mMode);
+        if (btnPoint) btnPoint.classList.toggle('active', isPoint && !mMode);
         if (btnSelect) btnSelect.classList.toggle('active', isSelect && !mMode);
+
+        this.refreshPointLayerBar();
 
         const modeBtns = {
             arrow: 'btnCadMarkupArrow',
@@ -19844,11 +19869,411 @@ const appCadTool = {
             tipEl.innerHTML = `<span class="cad-hud-tip-text">🏷️ <b>${mName}</b>: Rê chuột xem bóng mờ • Click đặt • <b>Esc/Chuột phải</b>: Hủy</span>`;
         } else if (this.mode === 'select') {
             tipEl.innerHTML = `<span class="cad-hud-tip-text">↖️ <b>Chọn [V]</b>: Click đối tượng • Kéo để dời • <b>Del</b>: Xóa • <b>Esc</b>: Bỏ chọn</span>`;
+        } else if (this.mode === 'point') {
+            const layer = this.getActivePointLayer();
+            const layerName = layer ? layer.name : 'chưa có lớp';
+            tipEl.innerHTML = `<span class="cad-hud-tip-text">📍 <b>Chấm điểm [I]</b>: Chạm đặt điểm rời • Lớp: <b>${escapeHtml(layerName)}</b> • <b>U</b>: Lùi • <b>Esc</b>: Về đa giác</span>`;
         } else if (this.mode === 'polyline') {
             tipEl.innerHTML = `<span class="cad-hud-tip-text">📏 <b>Tuyến [L]</b>: Click đặt mốc • <b>Space/Chuột phải</b>: Lưu tuyến • <b>U</b>: Lùi • <b>Esc</b>: Hủy</span>`;
         } else {
             tipEl.innerHTML = `<span class="cad-hud-tip-text">📐 <b>Đa giác [P]</b>: Click mốc • <b>Space/Chuột phải</b>: Khép góc [C] • <b>U</b>: Lùi • <b>Esc</b>: Hủy</span>`;
         }
+    },
+
+    // =========================================================================
+    // LỚP ĐIỂM RỜI: vẽ điểm đơn lẻ, gán vào từng lớp riêng (mỗi lớp 1 kiểu icon/màu)
+    // =========================================================================
+    isShapeLocked(shape) {
+        return !!(shape && shape.locked === true);
+    },
+
+    getPointLayers() {
+        return (this.savedShapes || []).filter(s => s.mode === 'point');
+    },
+
+    getActivePointLayer() {
+        const layers = this.getPointLayers();
+        if (layers.length === 0) return null;
+        return layers.find(s => s.id === this.pointLayerId) || layers[layers.length - 1];
+    },
+
+    refreshPointLayerBar() {
+        const bar = document.getElementById('cadPointLayerBar');
+        const sel = document.getElementById('cadPointLayerSelect');
+        const isPointMode = this.mode === 'point';
+        if (bar) bar.style.display = isPointMode ? 'inline-flex' : 'none';
+        if (!sel || !isPointMode) return;
+
+        const layers = this.getPointLayers();
+        const active = this.getActivePointLayer();
+        if (active) this.pointLayerId = active.id;
+        sel.innerHTML = layers.length
+            ? layers.map(s => `<option value="${escapeHtml(s.id)}" ${active && s.id === active.id ? 'selected' : ''}>${escapeHtml(s.name || 'Lớp điểm')} (${(s.vertices || []).length})</option>`).join('')
+            : '<option value="">— Chưa có lớp điểm —</option>';
+    },
+
+    selectPointLayer(id) {
+        const layer = this.getPointLayers().find(s => s.id === id);
+        if (!layer) return;
+        this.pointLayerId = layer.id;
+        layer.selected = true;
+        this.refreshPointLayerBar();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        showToast(`📍 Các điểm mới sẽ được thêm vào lớp "${layer.name}"`);
+    },
+
+    createPointLayer(name) {
+        const pointLayers = this.getPointLayers();
+        const idx = pointLayers.length + 1;
+        let chosen = (typeof name === 'string' ? name : '').trim();
+        if (!chosen) {
+            const input = prompt('Nhập tên lớp điểm mới (ví dụ: Mốc GPS, Cọc ranh, Điểm khảo sát):', `Lớp điểm ${idx}`);
+            if (input === null) return null;
+            chosen = input.trim() || `Lớp điểm ${idx}`;
+        }
+
+        const shape = {
+            id: 'pointlayer_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            name: chosen,
+            shortName: chosen,
+            mode: 'point',
+            vertices: [],
+            stats: this.calculateAreaAndPerimeter([], 'point'),
+            color: this.palette[(this.savedShapes.length) % this.palette.length],
+            symbol: String(this.savedShapes.length + 1)
+        };
+
+        this.pushHistoryState(`Tạo lớp điểm "${chosen}"`);
+        this.savedShapes.push(shape);
+        this.pointLayerId = shape.id;
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.updateUi();
+        this.renderBlocksPanel();
+        this.refreshPointLayerBar();
+        showToast(`✅ Đã tạo lớp điểm "${chosen}". Chạm bản đồ để đặt từng điểm rời.`);
+        return shape;
+    },
+
+    // Sinh tên điểm kế tiếp theo kiểu Pn, dựa trên số lớn nhất đang có (tránh trùng sau khi xóa)
+    nextPointName(layer) {
+        let max = 0;
+        ((layer && layer.vertices) || []).forEach(v => {
+            const m = /^P(\d+)$/.exec(String(v.name || ''));
+            if (m) max = Math.max(max, parseInt(m[1], 10));
+        });
+        return 'P' + (max + 1);
+    },
+
+    addPointToLayer(lat, lng) {
+        let layer = this.getActivePointLayer();
+        if (!layer) {
+            layer = this.createPointLayer(`Lớp điểm ${this.getPointLayers().length + 1}`);
+            if (!layer) return; // Người dùng hủy hộp thoại đặt tên
+        }
+
+        const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        const v = {
+            id: Date.now() + Math.random(),
+            name: this.nextPointName(layer),
+            lat: parseFloat(lat),
+            lng: parseFloat(lng),
+            x: parseFloat(parseFloat(vn.X).toFixed(3)),
+            y: parseFloat(parseFloat(vn.Y).toFixed(3)),
+            h: 0,
+            note: '',
+            isSnapped: false,
+            snapSource: ''
+        };
+
+        this.pushHistoryState(`Thêm điểm ${v.name} vào lớp "${layer.name}"`);
+        layer.selected = true;
+        layer.vertices.push(v);
+        layer.stats = this.calculateAreaAndPerimeter(layer.vertices, 'point', true);
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.updateUi();
+        this.renderBlocksPanel();
+        this.refreshPointLayerBar();
+        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            this.openAreaTableModal();
+        }
+        if (document.getElementById('modalCadPointTable')?.style.display === 'flex') {
+            this.renderPointTable();
+        }
+        triggerHaptic('light');
+        showToast(`📍 Đã đặt điểm ${v.name} (lớp "${layer.name}"): X=${v.x.toFixed(3)}, Y=${v.y.toFixed(3)}`);
+    },
+
+    // =========================================================================
+    // BẢNG ĐIỂM: sửa tên / X / Y / H / ghi chú, thêm điểm bằng tọa độ, xuất CSV
+    // =========================================================================
+    openPointTableModal() {
+        const modal = document.getElementById('modalCadPointTable');
+        if (!modal) return;
+        const areaModal = document.getElementById('modalCadAreaTable');
+        if (areaModal) areaModal.style.display = 'none';
+        document.getElementById('modalCadExportConfig')?.classList.remove('active');
+        if (this.getPointLayers().length === 0) {
+            const layer = this.createPointLayer(`Lớp điểm ${this.savedShapes.length + 1}`);
+            if (!layer) return;
+        }
+        const active = this.getActivePointLayer();
+        if (active) this.pointLayerId = active.id;
+        this.renderPointTable();
+        modal.style.display = 'flex';
+    },
+
+    closePointTableModal() {
+        const modal = document.getElementById('modalCadPointTable');
+        if (modal) modal.style.display = 'none';
+    },
+
+    selectPointTableLayer(id) {
+        if (!this.getPointLayers().some(s => s.id === id)) return;
+        this.pointLayerId = id;
+        this.refreshPointLayerBar();
+        this.renderPointTable();
+    },
+
+    createPointLayerFromTable() {
+        const layer = this.createPointLayer();
+        if (!layer) return;
+        this.renderPointTable();
+    },
+
+    renderPointTable() {
+        const sel = document.getElementById('cadPtTableLayerSelect');
+        const tbody = document.getElementById('cadPtTableBody');
+        const cnt = document.getElementById('cadPtTableCount');
+        const layers = this.getPointLayers();
+        const active = this.getActivePointLayer();
+        if (active) this.pointLayerId = active.id;
+
+        if (sel) {
+            sel.innerHTML = layers.length
+                ? layers.map(s => `<option value="${escapeHtml(s.id)}" ${active && s.id === active.id ? 'selected' : ''}>${escapeHtml(s.name || 'Lớp điểm')} (${(s.vertices || []).length})</option>`).join('')
+                : '<option value="">— Chưa có lớp điểm —</option>';
+        }
+        if (cnt) cnt.innerText = `${active ? (active.vertices || []).length : 0} điểm`;
+        if (!tbody) return;
+
+        if (!active || !active.vertices || active.vertices.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; padding:14px; font-size:11.5px;">Lớp chưa có điểm nào. Chạm bản đồ ở chế độ 📍 Chấm điểm [I] hoặc nhập tọa độ X,Y bên dưới.</td></tr>`;
+            return;
+        }
+
+        const cellInp = 'height:24px; font-size:11.5px; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:4px; padding:0 4px; color:#f8fafc;';
+        tbody.innerHTML = active.vertices.map((v, i) => {
+            const isSnap = v.isSnapped;
+            const noteTitle = isSnap ? `Nguồn: ${v.snapSource || 'Hít mốc'}` : 'Chấm tay trên bản đồ';
+            return `
+                <tr>
+                    <td style="text-align:center; color:#94a3b8;">${i + 1}</td>
+                    <td style="text-align:left;">
+                        <input type="text" value="${escapeHtml(v.name || '')}" style="${cellInp} width:100%; font-weight:700; color:#38bdf8;" title="${noteTitle}" onchange="appCadTool.updatePointField(${i}, 'name', this.value)">
+                    </td>
+                    <td style="text-align:right;">
+                        <input type="number" step="0.001" value="${(v.x || 0).toFixed(3)}" style="${cellInp} width:100%; text-align:right; font-family:ui-monospace, monospace;" onchange="appCadTool.updatePointField(${i}, 'x', this.value)">
+                    </td>
+                    <td style="text-align:right;">
+                        <input type="number" step="0.001" value="${(v.y || 0).toFixed(3)}" style="${cellInp} width:100%; text-align:right; font-family:ui-monospace, monospace;" onchange="appCadTool.updatePointField(${i}, 'y', this.value)">
+                    </td>
+                    <td style="text-align:right;">
+                        <input type="number" step="0.01" value="${(v.h || 0).toFixed(2)}" style="${cellInp} width:100%; text-align:right; font-family:ui-monospace, monospace;" onchange="appCadTool.updatePointField(${i}, 'h', this.value)">
+                    </td>
+                    <td style="text-align:left;">
+                        <input type="text" value="${escapeHtml(v.note || '')}" style="${cellInp} width:100%;" placeholder="—" onchange="appCadTool.updatePointField(${i}, 'note', this.value)">
+                    </td>
+                    <td style="text-align:center; white-space:nowrap;">
+                        <button type="button" class="btn-sm" style="height:22px; padding:0 5px; font-size:11px;" onclick="appCadTool.zoomToPointRow(${i})" title="Phóng đến điểm trên bản đồ">🔍</button>
+                        <button type="button" class="btn-sm" style="height:22px; padding:0 5px; font-size:11px; background:rgba(239,68,68,0.15); color:#fca5a5; border:1px solid rgba(239,68,68,0.35);" onclick="appCadTool.deletePointRow(${i})" title="Xóa điểm này">🗑</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    updatePointField(vi, field, value) {
+        const layer = this.getActivePointLayer();
+        const v = (layer && layer.vertices) ? layer.vertices[vi] : null;
+        if (!v) return;
+        if (this.isShapeLocked(layer)) {
+            showToast(`🔒 Lớp "${layer.name}" đang bị khóa, không thể sửa điểm!`, true);
+            this.renderPointTable();
+            return;
+        }
+
+        if (field === 'name') {
+            const nm = String(value || '').trim();
+            if (!nm) { showToast('⚠️ Tên điểm không được để trống!', true); this.renderPointTable(); return; }
+            if (nm === v.name) return;
+            this.pushHistoryState(`Đổi tên điểm ${v.name} → ${nm}`);
+            v.name = nm;
+        } else if (field === 'note') {
+            const note = String(value || '').trim();
+            if (note === (v.note || '')) return;
+            this.pushHistoryState(`Sửa ghi chú điểm ${v.name}`);
+            v.note = note;
+        } else if (field === 'h') {
+            const h = parseFloat(value);
+            if (isNaN(h)) { showToast('⚠️ Cao độ H không hợp lệ!', true); this.renderPointTable(); return; }
+            if (h === (v.h || 0)) return;
+            this.pushHistoryState(`Sửa cao độ điểm ${v.name}`);
+            v.h = h;
+        } else if (field === 'x' || field === 'y') {
+            const num = parseFloat(value);
+            if (isNaN(num)) { showToast('⚠️ Tọa độ không hợp lệ!', true); this.renderPointTable(); return; }
+            const nx = field === 'x' ? num : (v.x || 0);
+            const ny = field === 'y' ? num : (v.y || 0);
+            const wgs = convertVn2kToWgs(nx, ny, AppState.kttVal, AppState.scaleFactor);
+            if (!wgs || isNaN(wgs.lat) || isNaN(wgs.lng)) { showToast('⚠️ Không đổi được tọa độ VN-2000 sang WGS84!', true); this.renderPointTable(); return; }
+            this.pushHistoryState(`Sửa tọa độ điểm ${v.name}`);
+            v.x = parseFloat(nx.toFixed(3));
+            v.y = parseFloat(ny.toFixed(3));
+            v.lat = wgs.lat;
+            v.lng = wgs.lng;
+            v.isSnapped = false;
+            v.snapSource = '';
+        } else {
+            return;
+        }
+
+        layer.stats = this.calculateAreaAndPerimeter(layer.vertices, 'point', true);
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        this.refreshPointLayerBar();
+        this.renderPointTable();
+    },
+
+    deletePointRow(vi) {
+        const layer = this.getActivePointLayer();
+        if (!layer || !layer.vertices || !layer.vertices[vi]) return;
+        if (this.isShapeLocked(layer)) {
+            showToast(`🔒 Lớp "${layer.name}" đang bị khóa, không thể xóa điểm!`, true);
+            return;
+        }
+        this.pushHistoryState(`Xóa điểm ${layer.vertices[vi].name} [${layer.name}]`);
+        const removed = layer.vertices.splice(vi, 1);
+        layer.stats = this.calculateAreaAndPerimeter(layer.vertices, 'point', true);
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.updateUi();
+        this.renderBlocksPanel();
+        this.refreshPointLayerBar();
+        this.renderPointTable();
+        showToast(`🗑️ Đã xóa điểm ${removed[0]?.name || ''}. Nhấn Ctrl+Z để hoàn tác.`);
+    },
+
+    zoomToPointRow(vi) {
+        const layer = this.getActivePointLayer();
+        const v = layer && layer.vertices ? layer.vertices[vi] : null;
+        if (!v) return;
+        const map = AppState.leafletMap;
+        if (!map) { showToast('⚠️ Bản đồ chưa sẵn sàng!', true); return; }
+        map.setView([parseFloat(v.lat), parseFloat(v.lng)], Math.max(map.getZoom() || 0, 19));
+        this.closePointTableModal();
+        showToast(`🔍 Đã phóng đến điểm ${v.name} (X=${(v.x || 0).toFixed(3)}, Y=${(v.y || 0).toFixed(3)})`);
+    },
+
+    addPointFromTable() {
+        const nameEl = document.getElementById('cadPtNewName');
+        const xEl = document.getElementById('cadPtNewX');
+        const yEl = document.getElementById('cadPtNewY');
+        const hEl = document.getElementById('cadPtNewH');
+        const noteEl = document.getElementById('cadPtNewNote');
+        const x = parseFloat(xEl?.value);
+        const y = parseFloat(yEl?.value);
+        if (isNaN(x) || isNaN(y)) {
+            showToast('⚠️ Vui lòng nhập X (Bắc) và Y (Đông) hợp lệ!', true);
+            return;
+        }
+        const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+        if (!wgs || isNaN(wgs.lat) || isNaN(wgs.lng)) {
+            showToast('⚠️ Tọa độ VN-2000 không hợp lệ!', true);
+            return;
+        }
+        let layer = this.getActivePointLayer();
+        if (!layer) {
+            layer = this.createPointLayer(`Lớp điểm ${this.getPointLayers().length + 1}`);
+            if (!layer) return;
+        }
+        const h = parseFloat(hEl?.value);
+        const v = {
+            id: Date.now() + Math.random(),
+            name: String(nameEl?.value || '').trim() || this.nextPointName(layer),
+            lat: wgs.lat,
+            lng: wgs.lng,
+            x: parseFloat(x.toFixed(3)),
+            y: parseFloat(y.toFixed(3)),
+            h: isNaN(h) ? 0 : h,
+            note: String(noteEl?.value || '').trim(),
+            isSnapped: false,
+            snapSource: ''
+        };
+        this.pushHistoryState(`Thêm điểm ${v.name} (X,Y) vào lớp "${layer.name}"`);
+        layer.selected = true;
+        layer.vertices.push(v);
+        layer.stats = this.calculateAreaAndPerimeter(layer.vertices, 'point', true);
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.updateUi();
+        this.renderBlocksPanel();
+        this.refreshPointLayerBar();
+        this.renderPointTable();
+        [nameEl, xEl, yEl, hEl, noteEl].forEach(el => { if (el) el.value = ''; });
+        triggerHaptic('light');
+        showToast(`📍 Đã thêm điểm ${v.name}: X=${v.x.toFixed(3)}, Y=${v.y.toFixed(3)}`);
+    },
+
+    exportPointCsv() {
+        const layer = this.getActivePointLayer();
+        if (!layer || !layer.vertices || layer.vertices.length === 0) {
+            showToast('⚠️ Lớp điểm đang chọn chưa có điểm nào để xuất!', true);
+            return;
+        }
+        const q = s => '"' + String(s === undefined || s === null ? '' : s).replace(/"/g, '""') + '"';
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, '') : 'Project';
+        const ktt = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`;
+
+        let csv = '\uFEFF';
+        csv += 'DANH SÁCH ĐIỂM — ' + layer.name + '\n';
+        csv += 'Dự án;' + q(projName) + ';Hệ tọa độ;' + q('VN-2000 (' + (AppState.provinceName || '') + '), KTT ' + ktt) + '\n';
+        csv += 'Ngày xuất;' + q(new Date().toLocaleString('vi-VN')) + ';Số điểm;' + layer.vertices.length + '\n\n';
+        csv += 'STT;Tên điểm;X (Bắc) [m];Y (Đông) [m];Cao độ H [m];Vĩ độ WGS84;Kinh độ WGS84;Ghi chú;Nguồn\n';
+        layer.vertices.forEach((v, i) => {
+            csv += [
+                i + 1,
+                q(v.name || ''),
+                (v.x || 0).toFixed(3),
+                (v.y || 0).toFixed(3),
+                (v.h || 0).toFixed(3),
+                (v.lat || 0).toFixed(7),
+                (v.lng || 0).toFixed(7),
+                q(v.note || ''),
+                q(v.isSnapped ? (v.snapSource || 'Hít mốc') : 'Chấm tay')
+            ].join(';') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeName = String(layer.name || 'Diem').replace(/[\\/:*?"<>|]/g, '_');
+        const filename = `Diem_${projName}_${safeName}.csv`;
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`✓ Đã xuất ${layer.vertices.length} điểm ra CSV: ${filename}`);
     },
 
     setMode(mode) {
@@ -19876,6 +20301,7 @@ const appCadTool = {
         if (badge) {
             if (mode === 'polygon') badge.innerText = "Đa giác ranh";
             else if (mode === 'polyline') badge.innerText = "Đường tim tuyến";
+            else if (mode === 'point') badge.innerText = "Điểm rời 📍";
             else if (mode === 'select') badge.innerText = "Chọn đối tượng ↖️";
         }
 
@@ -19885,8 +20311,20 @@ const appCadTool = {
             showToast("📐 Chế độ vẽ: Đa giác khép kín (Chạm bản đồ để dựng mốc)");
         } else if (mode === 'polyline') {
             showToast("📏 Chế độ vẽ: Tim tuyến hở (Chạm bản đồ để dựng mốc)");
+        } else if (mode === 'point') {
+            showToast("📍 Chế độ Điểm: Chạm bản đồ để đặt từng điểm rời vào lớp đang chọn");
         }
 
+        if (mode === 'point') {
+            if (this.getPointLayers().length === 0) {
+                this.createPointLayer(`Lớp điểm ${this.savedShapes.length + 1}`);
+            } else {
+                const active = this.getActivePointLayer();
+                if (active) this.pointLayerId = active.id;
+            }
+        }
+
+        this.refreshPointLayerBar();
         this.syncToolButtons();
         this.renderGeometry();
         this.updateUi();
@@ -20230,7 +20668,7 @@ const appCadTool = {
                 if (shape.selected === false) return;
                 const verts = shape.vertices || [];
                 const n = verts.length;
-                if (n < 2) return;
+                if (n < 2 || shape.mode === 'point') return;
                 const isClosed = (shape.mode === 'polygon' && n >= 3);
                 const numEdges = isClosed ? n : n - 1;
 
@@ -20535,7 +20973,7 @@ const appCadTool = {
         shapesForInt.forEach((shape, sIdx) => {
             const verts = shape.vertices;
             const n = verts.length;
-            if (n < 2) return;
+            if (n < 2 || shape.mode === 'point') return;
             const isClosed = (shape.mode === 'polygon' && n >= 3);
             const numEdges = isClosed ? n : n - 1;
             for (let i = 0; i < numEdges; i++) {
@@ -20603,7 +21041,7 @@ const appCadTool = {
             this.savedShapes.forEach((shape, sIdx) => {
                 const verts = shape.vertices;
                 const n = verts.length;
-                if (n < 2) return;
+                if (n < 2 || shape.mode === 'point') return;
                 const isClosed = (shape.mode === 'polygon' && n >= 3);
                 const numEdges = isClosed ? n : n - 1;
 
@@ -20701,7 +21139,7 @@ const appCadTool = {
             shapesToCheck.forEach((shape, sIdx) => {
                 const verts = shape.vertices;
                 const n = verts.length;
-                if (n < 2) return;
+                if (n < 2 || shape.mode === 'point') return;
                 const isClosed = (shape.mode === 'polygon' && n >= 3);
                 const numEdges = isClosed ? n : n - 1;
 
@@ -21064,6 +21502,11 @@ const appCadTool = {
             this.handleMarkupClick(lat, lng);
             return;
         }
+        if (this.mode === 'point') {
+            // Điểm rời: mỗi lần chạm thêm một điểm độc lập vào lớp điểm đang chọn
+            this.addPointToLayer(lat, lng);
+            return;
+        }
         let candidate = null;
         if (this.snapEnabled) {
             candidate = this.findSnapCandidate(lat, lng);
@@ -21174,6 +21617,10 @@ const appCadTool = {
     },
 
     saveAndStartNewShape() {
+        if (this.mode === 'point') {
+            showToast("📍 Chế độ Điểm: mỗi điểm đã được lưu ngay khi chạm bản đồ. Đổi lớp bằng ô chọn lớp điểm ở thanh công cụ.");
+            return;
+        }
         if (this.vertices.length === 0) {
             this.isActive = true;
             this.setMode('polygon');
@@ -21292,6 +21739,7 @@ const appCadTool = {
         }
         this.layers.offsetLayer = null;
         this.clearDynamicHelpers();
+        this.pointLayerId = null;
         // Ghi xuống bộ nhớ: nếu không thì tải lại trang sẽ nạp ngược khối cũ từ khóa vn2k_cad_shapes_*
         this.saveShapesForProject(AppState.currentProject);
         // syncShapesToProjectPoints bỏ qua khi bản vẽ trống nên phải tự dọn đỉnh "ma" khỏi Sổ đo
@@ -21299,6 +21747,7 @@ const appCadTool = {
         this.renderGeometry();
         this.updateUi();
         this.renderBlocksPanel();
+        this.refreshPointLayerBar();
         showToast("Đã dọn dẹp bản vẽ CAD!");
     },
 
@@ -22890,6 +23339,18 @@ const appCadTool = {
     calculateAreaAndPerimeter(customPts = null, customMode = null, forceSyncVn2k = false) {
         const rawPts = customPts || this.vertices;
         const mode = customMode || this.mode;
+        // Lớp điểm rời: các điểm độc lập, không có cạnh nên không có chu vi/diện tích
+        if (mode === 'point') {
+            return {
+                area: 0,
+                areaFormatted: '0.00',
+                ha: 0,
+                haFormatted: '0.0000',
+                perimeter: 0,
+                perimeterFormatted: '0.00',
+                edges: []
+            };
+        }
         if (!rawPts || rawPts.length < 2) {
             return {
                 area: 0,
@@ -23070,7 +23531,7 @@ const appCadTool = {
                         h: parseFloat(parseFloat(v.h || 0).toFixed(3)),
                         mui: AppState.muiVal || 3,
                         ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`,
-                        note: v.snapSource || (v.isSnapped ? 'Hít mốc' : (isPoly ? `Đỉnh ranh ${sName}` : `Đỉnh tuyến ${sName}`)),
+                        note: v.snapSource || (v.isSnapped ? 'Hít mốc' : (shape.mode === 'point' ? `Điểm ${sName}` : (isPoly ? `Đỉnh ranh ${sName}` : `Đỉnh tuyến ${sName}`))),
                         project: curProj,
                         shapeId: shape.id,
                         shapeName: sName,
@@ -23215,7 +23676,7 @@ const appCadTool = {
         clearTimeout(this._persistTimer);
         this._persistTimer = setTimeout(() => {
             try {
-                const data = { savedShapes: this.savedShapes || [], vertices: this.vertices || [], mode: this.mode };
+                const data = { savedShapes: this.savedShapes || [], vertices: this.vertices || [], mode: this.mode, pointLayerId: this.pointLayerId };
                 const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
                 localStorage.setItem(this.SESSION_KEY, json);
                 this.saveShapesForProject(AppState.currentProject);
@@ -23250,6 +23711,7 @@ const appCadTool = {
                     }).filter(s => s.vertices.length > 0);
                     this.vertices = (data.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                     if (data.mode) this.mode = data.mode;
+                    if (data.pointLayerId) this.pointLayerId = data.pointLayerId;
                 }
             }
             const wasActive = localStorage.getItem('vn2k_cad_active') === '1';
@@ -23409,6 +23871,7 @@ const appCadTool = {
             shape.stats = this.getEffectiveStats(shape);
             const sLatLngs = sVerts.map(v => [v.lat, v.lng]);
             const sColor = shape.color || '#10b981';
+            const isPointLayer = shape.mode === 'point';
 
             let sShapeLayer = null;
             let sCenterMarker = null;
@@ -23467,7 +23930,7 @@ const appCadTool = {
                     });
                 });
 
-                if (showCenterLabels) {
+                if (showCenterLabels && !isPointLayer) {
                 // Nhãn tâm khối: Vị trí tâm trực quan tối ưu (Pole of Inaccessibility cho cả khối chữ L)
                 // và Scale kích thước vừa khít theo khoảng cách mép trong lòng khối
                 const [cLat, cLng, clearanceDeg] = this.calculatePolygonVisualCenter(sVerts);
@@ -23527,7 +23990,7 @@ const appCadTool = {
                     this.showQuickEditPopup(e.latlng, { type: 'shape', shapeIndex: sIdx, shape: shape });
                 });
                 }
-            } else if (showBoundaries && sLen >= 2) {
+            } else if (showBoundaries && !isPointLayer && sLen >= 2) {
                 const isSelected = this.selectedItem && this.selectedItem.type === 'shape' && this.selectedItem.index === sIdx;
                 sShapeLayer = L.polyline(sLatLngs, {
                     color: isSelected ? '#facc15' : sColor,
@@ -23545,7 +24008,7 @@ const appCadTool = {
             }
 
             // Nhãn cạnh và cự ly: Ẩn mặc định, hiển thị khi click hoặc rê chuột đến đỉnh/cạnh
-            if (sLen >= 2 && shape.stats?.edges) {
+            if (sLen >= 2 && !isPointLayer && shape.stats?.edges) {
                 const isClosed = shape.mode === 'polygon' && sLen >= 3;
                 const edgeCount = isClosed ? sLen : sLen - 1;
 
@@ -23609,8 +24072,12 @@ const appCadTool = {
             {
             sVerts.forEach((v, vIdx) => {
                 const isShapeVertVisible = shape.showVertices !== undefined ? shape.showVertices : showVertices;
-                const isExpanded = (isShapeVertVisible === true) || shape._pinned === true;
-                const iconHtml = `<div class="cad-vertex-badge ${isExpanded ? 'expanded' : ''}" style="background: ${sColor}; border-color: #ffffff;" title="${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết / đổi tên)">${v.name}</div>`;
+                // Lớp điểm rời: luôn bung nhãn vì bản thân điểm chính là đối tượng cần nhìn thấy
+                const isExpanded = isPointLayer || (isShapeVertVisible === true) || shape._pinned === true;
+                const ptTitle = isPointLayer
+                    ? `${shape.shortName} - ${v.name} • X=${(v.x || 0).toFixed(3)} Y=${(v.y || 0).toFixed(3)} H=${(v.h || 0).toFixed(2)}${v.note ? ' • ' + v.note : ''} (Kéo thả để di chuyển, bấm để xem chi tiết)`
+                    : `${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết / đổi tên)`;
+                const iconHtml = `<div class="cad-vertex-badge ${isExpanded ? 'expanded' : ''}" style="background: ${sColor}; border-color: #ffffff;" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked }).addTo(this.layers.group);
                 marker._pinned = isExpanded;
@@ -25078,14 +25545,14 @@ const appCadTool = {
                 if (s.mode === 'polygon') selArea += (s.stats?.area || 0);
             }
 
-            const nameMatch = !filter || s.name.toLowerCase().includes(filter) || (s.shortName && s.shortName.toLowerCase().includes(filter)) || (s.mode === 'polygon' ? 'đa giác' : 'tuyến').includes(filter);
+            const nameMatch = !filter || s.name.toLowerCase().includes(filter) || (s.shortName && s.shortName.toLowerCase().includes(filter)) || (s.mode === 'polygon' ? 'đa giác' : (s.mode === 'point' ? 'điểm' : 'tuyến')).includes(filter);
             if (!nameMatch) return;
 
-            const modeText = s.mode === 'polygon' ? 'Đa giác' : 'Tuyến';
+            const modeText = s.mode === 'polygon' ? 'Đa giác' : (s.mode === 'point' ? 'Điểm' : 'Tuyến');
             const vCount = s.vertices ? s.vertices.length : 0;
             const areaText = s.mode === 'polygon' 
                 ? `${(s.stats?.area || 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} m²` 
-                : `${(s.stats?.perimeter || 0).toFixed(1)} m`;
+                : (s.mode === 'point' ? `${vCount} điểm` : `${(s.stats?.perimeter || 0).toFixed(1)} m`);
 
             html += `
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 5px; border-left: 3px solid ${s.color || '#38bdf8'}; font-size: 11px;">
@@ -25537,16 +26004,16 @@ const appCadTool = {
 
         shapes.forEach((s, idx) => {
             const nameStr = (s.name || s.shortName || ('Khối ' + (idx + 1))).toLowerCase();
-            const modeStr = (s.mode === 'polygon' ? 'đa giác' : 'tuyến').toLowerCase();
+            const modeStr = (s.mode === 'polygon' ? 'đa giác' : (s.mode === 'point' ? 'điểm' : 'tuyến')).toLowerCase();
             if (filter && !nameStr.includes(filter) && !modeStr.includes(filter)) return;
             matchCount++;
 
             const vertCount = (s.vertices || []).length;
             const stats = s.stats || this.getEffectiveStats(s);
             const isPoly = s.mode === 'polygon';
-            const statText = isPoly 
+            const statText = isPoly
                 ? `${stats.area.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} m²`
-                : `${stats.perimeter.toFixed(2)} m`;
+                : (s.mode === 'point' ? `${vertCount} điểm` : `${stats.perimeter.toFixed(2)} m`);
             const colorPill = s.color || '#38bdf8';
 
             html += `
@@ -25556,7 +26023,7 @@ const appCadTool = {
                         <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colorPill}; display: inline-block;"></span>
                         <span style="font-weight: 700; color: #f8fafc;">${s.name || s.shortName || ('Khối ' + (idx + 1))}</span>
                         <span style="font-size: 10px; padding: 1px 5px; border-radius: 3px; background: ${isPoly ? 'rgba(16, 185, 129, 0.2)' : 'rgba(56, 189, 248, 0.2)'}; color: ${isPoly ? '#6ee7b7' : '#38bdf8'}; font-weight: 600;">
-                            ${isPoly ? 'Đa giác' : 'Tuyến'}
+                            ${isPoly ? 'Đa giác' : (s.mode === 'point' ? 'Điểm' : 'Tuyến')}
                         </span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -25957,7 +26424,7 @@ const appCadTool = {
                                         onchange="appCadTool.toggleBlockSelect(${shapeIdx}, this.checked)"
                                         onclick="event.stopPropagation();"
                                         style="accent-color: #38bdf8; width: 16px; height: 16px; cursor: pointer; flex: none;">
-                                    <span style="color: ${isSelected ? shape.color : '#94a3b8'}; font-weight: 800; font-size: 12px;">📁 ${shape.name} [${isPoly ? 'Đa giác' : 'Tuyến'}] • S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m</span>
+                                    <span style="color: ${isSelected ? shape.color : '#94a3b8'}; font-weight: 800; font-size: 12px;">📁 ${shape.name} [${isPoly ? 'Đa giác' : (shape.mode === 'point' ? 'Điểm' : 'Tuyến')}] • ${shape.mode === 'point' ? (`Tổng số ${shape.vertices.length} điểm`) : (`S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m`)}</span>
                                 </label>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     ${!isSelected ? `
@@ -28209,6 +28676,15 @@ const appCadTool = {
     continueShape(index) {
         if (!this.savedShapes || !this.savedShapes[index]) return;
         const s = this.savedShapes[index];
+        if (s.mode === 'point') {
+            // Lớp điểm rời: không "nạp" vào nét vẽ — chỉ chuyển sang chế độ Chấm điểm và chọn đúng lớp
+            this.isActive = true;
+            this.pointLayerId = s.id;
+            this.setMode('point');
+            this.renderBlocksPanel();
+            showToast(`📍 Đang thêm điểm vào lớp "${s.name}". Chạm bản đồ để đặt điểm mới.`);
+            return;
+        }
         if (this.vertices && this.vertices.length > 0) {
             if (!confirm(`Bạn đang có nét vẽ dở (${this.vertices.length} đỉnh). Tiếp tục vẽ khối "${s.name}" sẽ nạp các đỉnh của khối này vào nét vẽ hiện tại. Bạn có muốn tiếp tục?`)) {
                 return;
@@ -28245,10 +28721,12 @@ const appCadTool = {
     deleteShape(index, skipConfirm = false) {
         if (!this.savedShapes || !this.savedShapes[index]) return;
         const name = this.savedShapes[index].name || this.savedShapes[index].shortName || 'Khối';
+        const wasPointLayer = this.pointLayerId && this.savedShapes[index].id === this.pointLayerId;
         if (!skipConfirm && !confirm(`Bạn có chắc muốn xóa khối "${name}" không?`)) return;
         this.pushHistoryState(`Xóa khối "${name}"`);
         const removedShape = this.savedShapes[index];
         this.savedShapes.splice(index, 1);
+        if (wasPointLayer) this.pointLayerId = null;
         this.saveShapesForProject(AppState.currentProject);
         // syncShapesToProjectPoints không chạy khi hết khối, nên phải tự dọn điểm của khối vừa xóa
         // để danh sách Sổ đo không còn đỉnh "ma" của thửa đã xóa.
@@ -28258,6 +28736,7 @@ const appCadTool = {
         this.renderGeometry();
         this.updateUi();
         this.renderBlocksPanel();
+        this.refreshPointLayerBar();
         if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
             this.openAreaTableModal();
         }
@@ -30270,17 +30749,18 @@ const appCadTool = {
             const rawPts = shape.vertices || [];
             const pts = rawPts.map((p, i) => this._normalizeVertex(p, i)).filter(p => isFinite(p.x) && isFinite(p.y) && p.x > 1000);
             const n = pts.length;
-            if (n < 2) return;
+            const isPointLayer = shape.mode === 'point';
+            if (n < (isPointLayer ? 1 : 2)) return;
             const isClosed = (shape.mode === 'polygon' && n >= 3);
             const stats = shape.stats || this.calculateAreaAndPerimeter(pts, shape.mode);
 
-            // Đường ranh thửa nét đậm 0.50mm bằng LWPOLYLINE chuẩn AC1015
-            if (meta.showBoundaries !== false) {
+            // Đường ranh thửa nét đậm 0.50mm bằng LWPOLYLINE chuẩn AC1015 (lớp điểm rời không có đường ranh)
+            if (meta.showBoundaries !== false && !isPointLayer) {
                 addLwPolyline("RANH_THUA", pts.map(p => ({ x: p.y, y: p.x })), isClosed);
             }
 
             // Điểm đỉnh mốc & Nhãn tên mốc (Hiển thị khi meta.showVertices !== false)
-            if (meta.showVertices !== false) {
+            if (meta.showVertices !== false || isPointLayer) {
                 const mRadius = 1.0 * S; // Bán kính mốc 1mm trên giấy
                 pts.forEach((p, idx) => {
                     const cadX = p.y;
@@ -30339,7 +30819,7 @@ const appCadTool = {
                     // Chế độ mặc định: CHỈ HIỂN THỊ SỐ THỨ TỰ HOẶC KÝ HIỆU KHỐI TẠI TÂM
                     addText("DIEN_TICH", cX - 2.5 * S, cY - 1.2 * S, 3.5 * S, cleanSymbol);
                 }
-            } else if (!isClosed && shape.mode !== 'polygon') {
+            } else if (!isClosed && !isPointLayer && shape.mode !== 'polygon') {
                 if (!showBlockInfo) {
                     const midIdx = Math.floor(pts.length / 2);
                     const mp = pts[midIdx] || pts[0];
@@ -30865,7 +31345,8 @@ const appCadTool = {
             const rawPts = shape.vertices || [];
             const pts = rawPts.map((p, i) => this._normalizeVertex(p, i)).filter(p => isFinite(p.x) && isFinite(p.y) && p.x > 1000);
             const n = pts.length;
-            if (n < 2) return;
+            const isPointLayer = shape.mode === 'point';
+            if (n < (isPointLayer ? 1 : 2)) return;
             const isClosed = (shape.mode === 'polygon' && n >= 3);
             const stats = shape.stats || this.calculateAreaAndPerimeter(pts, shape.mode);
 
@@ -30879,17 +31360,19 @@ const appCadTool = {
                 ctx.fill();
             }
 
-            // Đường viền ranh thửa đất
-            ctx.strokeStyle = '#0284c7';
-            ctx.lineWidth = Math.round(0.5 * pxPerMm);
-            ctx.beginPath();
-            ctx.moveTo(toCvX(pts[0].y), toCvY(pts[0].x));
-            for (let i = 1; i < n; i++) ctx.lineTo(toCvX(pts[i].y), toCvY(pts[i].x));
-            if (isClosed) ctx.closePath();
-            ctx.stroke();
+            // Đường viền ranh thửa đất (lớp điểm rời chỉ có mốc, không có đường viền)
+            if (!isPointLayer) {
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = Math.round(0.5 * pxPerMm);
+                ctx.beginPath();
+                ctx.moveTo(toCvX(pts[0].y), toCvY(pts[0].x));
+                for (let i = 1; i < n; i++) ctx.lineTo(toCvX(pts[i].y), toCvY(pts[i].x));
+                if (isClosed) ctx.closePath();
+                ctx.stroke();
+            }
 
             // Điểm đỉnh mốc ranh & Tên đỉnh
-            if (meta.showVertices !== false) {
+            if (meta.showVertices !== false || isPointLayer) {
                 pts.forEach((p, idx) => {
                     const px = toCvX(p.y);
                     const py = toCvY(p.x);
@@ -30948,7 +31431,7 @@ const appCadTool = {
                     ctx.fillText(blockSymbol, cX, cY + Math.round(1.5 * pxPerMm));
                     ctx.textAlign = 'left';
                 }
-            } else if (!isClosed && shape.mode !== 'polygon') {
+            } else if (!isClosed && !isPointLayer && shape.mode !== 'polygon') {
                 if (!showBlockInfo) {
                     const midIdx = Math.floor(pts.length / 2);
                     const mp = pts[midIdx] || pts[0];
@@ -31544,11 +32027,12 @@ const appCadTool = {
         // Vẽ các đối tượng được chọn
         selectedShapes.forEach((shape, shapeIdx) => {
             const pts = shape.vertices;
-            if (pts.length < 2) return;
+            const isPointLayer = shape.mode === 'point';
+            if (pts.length < (isPointLayer ? 1 : 2)) return;
             const isClosed = shape.mode === 'polygon' && pts.length >= 3;
             const svgPts = pts.map(p => `${toSvgX(p.y).toFixed(1)},${toSvgY(p.x).toFixed(1)}`).join(' ');
 
-            if (meta.showBoundaries !== false) {
+            if (meta.showBoundaries !== false && !isPointLayer) {
                 if (isClosed) {
                     svgContent += `  <polygon class="layer-ranh" points="${svgPts}" fill="${shape.color || '#38bdf8'}30"/>\r\n`;
                 } else {
@@ -31557,7 +32041,7 @@ const appCadTool = {
             }
 
             // Điểm mốc & ký hiệu đỉnh
-            if (meta.showVertices !== false) {
+            if (meta.showVertices !== false || isPointLayer) {
                 pts.forEach((p, idx) => {
                     const sx2 = toSvgX(p.y);
                     const sy2 = toSvgY(p.x);
@@ -31594,7 +32078,7 @@ const appCadTool = {
                 } else {
                     svgContent += `  <text class="layer-dien-tich" x="${toSvgX(cx).toFixed(1)}" y="${(toSvgY(cy) + 5).toFixed(1)}" text-anchor="middle" font-size="15" font-weight="bold" fill="#0D47A1">${blockSymbol}</text>\r\n`;
                 }
-            } else if (!isClosed && shape.mode !== 'polygon') {
+            } else if (!isClosed && !isPointLayer && shape.mode !== 'polygon') {
                 const midIdx = Math.floor(pts.length / 2);
                 const mp = pts[midIdx] || pts[0];
                 svgContent += `  <text class="layer-dien-tich" x="${toSvgX(mp.y).toFixed(1)}" y="${toSvgY(mp.x).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="bold" fill="#0D47A1">${shape.name}</text>\r\n`;
@@ -31937,7 +32421,8 @@ const appCadTool = {
         // Vẽ các đối tượng được chọn
         selectedShapes.forEach((shape) => {
             const pts = shape.vertices;
-            if (pts.length < 2) return;
+            const isPointLayer = shape.mode === 'point';
+            if (pts.length < (isPointLayer ? 1 : 2)) return;
             const isClosed = shape.mode === 'polygon' && pts.length >= 3;
 
             if (isClosed) {
@@ -31949,17 +32434,19 @@ const appCadTool = {
                 ctx.fill();
             }
 
-            // Ranh thửa
-            ctx.beginPath();
-            ctx.strokeStyle = '#1565C0';
-            ctx.lineWidth = 2.5;
-            ctx.moveTo(toX(pts[0].y), toY(pts[0].x));
-            pts.slice(1).forEach(p => ctx.lineTo(toX(p.y), toY(p.x)));
-            if (isClosed) ctx.closePath();
-            ctx.stroke();
+            // Ranh thửa (lớp điểm rời chỉ có mốc, không có đường ranh)
+            if (!isPointLayer) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#1565C0';
+                ctx.lineWidth = 2.5;
+                ctx.moveTo(toX(pts[0].y), toY(pts[0].x));
+                pts.slice(1).forEach(p => ctx.lineTo(toX(p.y), toY(p.x)));
+                if (isClosed) ctx.closePath();
+                ctx.stroke();
+            }
 
             // Điểm mốc & ký hiệu đỉnh
-            if (meta.showVertices !== false) {
+            if (meta.showVertices !== false || isPointLayer) {
                 pts.forEach((p) => {
                     const px = toX(p.y), py = toY(p.x);
                     ctx.strokeStyle = '#C62828'; ctx.lineWidth = 1;
@@ -32004,7 +32491,7 @@ const appCadTool = {
                     ctx.fillText(blockSymbol, toX(cx), toY(cy) + 5);
                     ctx.textAlign = 'left';
                 }
-            } else if (!isClosed && shape.mode !== 'polygon') {
+            } else if (!isClosed && !isPointLayer && shape.mode !== 'polygon') {
                 const midIdx = Math.floor(pts.length / 2);
                 const mp = pts[midIdx] || pts[0];
                 ctx.font = 'bold 13px Arial'; ctx.fillStyle = '#0D47A1';
