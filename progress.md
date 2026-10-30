@@ -908,3 +908,12 @@
 - **Nối vào luồng**: `closeToolbar()` gọi `closeCadWindows`; `openProjectMap` / `openCoordPickerMap` / `openConvertedMap` gọi cả hai trước khi hiển thị; `openTransformCoordScreen` / `openTransformMap` tắt toolbar nếu CAD đang mở.
 - **Modal thiếu class**: `openDefaultStampSettingsModal` và `promptOpenConvertedMap` trước chỉ thêm `show` (CSS chỉ hiển thị khi có `active`) → nay thêm `active + show`; `closePromptMap` gỡ cả hai.
 - Test: thêm `tests/cad_ui_isolation.test.js` 26/26; `node --check` đạt; `npm test` = 308/308 PASS. Live localhost:8080: modal bảng kê `flex` trong CAD → `none` sau khi rời; sang Chuyển đổi tọa độ tắt CAD và đóng bảng điểm; đã dọn dự án tạm `_ZModalAudit.csv`.
+
+## 2026-10-30 — Rà soát toàn bộ cửa sổ chéo phân hệ trên bản đồ dùng chung
+- **Lỗi**: `openLiveGpsMap` không gán `mapMode`, không tắt MiniCAD, không dọn thanh cũ → từ Bản đồ dự án mở GPS còn `#mapProjectBar`; từ MiniCAD còn `#cadStatusHud` + `#cadFloatingCmdBar`; từ Chấm điểm còn `#barCoordPicker` và mode `pick` khiến chạm bản đồ GPS lại chấm tọa độ.
+- **Helper mới** `appNav.resetMapChrome()` ẩn 13 thanh/cửa sổ nổi dùng chung (thanh dự án, thanh chấm điểm, toolbar/HUD/loupe/bảng khối CAD, bảng kê dự án, Bottom Sheet, hộp đo khoảng cách). Gọi ở đầu `openProjectMap`, `openCoordPickerMap`, `openCadMap`, `openConvertedMap`, `openLiveGpsMap` trước khi bật thanh của chính phân hệ.
+- **GPS thực địa**: thêm chế độ `live_gps`, tắt MiniCAD + `clearCadOverlays`, gỡ `cad-active-map`, FAB riêng (ẩn toàn bộ nút dự án/điểm chuyển đổi).
+- **Chạm bản đồ**: `onMapClick` bỏ qua hoàn toàn ở `live_gps` / `view_converted` / `converted_point` → không bật Bottom Sheet dự án.
+- **Bottom Sheet dùng chung**: bỏ hai nút chéo phân hệ "📌 Nạp tọa độ" (`loadSelectedToMain`) và "💾 Lưu mốc" (`savePickedPoint` ghi thẳng vào dự án); xóa hai method chết. Chấm điểm đã có "✓ Lấy tọa độ" trên `#barCoordPicker`; popup điểm chuyển đổi đã có nút nạp.
+- Test: thêm `tests/map_chrome_isolation.test.js` 21/21; `cad_ui_isolation` 26/26; `project_map_readonly_and_table` 14/14; `npm test` 309/309 PASS.
+- Live localhost:8080 (ma trận chuyển cảnh): project → chỉ `mapProjectBar`; cad → chỉ toolbar/HUD CAD; cad→GPS và project→GPS → 0 chrome, `cadActive=false`; picker → chỉ `barCoordPicker`; converted → chỉ Bottom Sheet thông tin; chạm bản đồ GPS/điểm chuyển đổi không mở thêm cửa sổ.

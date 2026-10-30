@@ -1143,6 +1143,20 @@ const appNav = window.appNav = {
         }
     },
 
+    // Ẩn toàn bộ thanh/cửa sổ nổi của bản đồ dùng chung trước khi phân hệ khác tiếp quản.
+    // Mỗi hàm mở bản đồ chỉ được bật lại đúng thanh công cụ thuộc phân hệ của mình.
+    resetMapChrome() {
+        [
+            'mapProjectBar', 'barCoordPicker', 'mapCadToolbar', 'mapDistanceHud',
+            'cadStatusHud', 'cadFloatingCmdBar', 'cadThumbActionBar', 'cadTouchLoupe',
+            'cadBlocksStatsPanel', 'cadBlocksPanel', 'projectMarksBlocksPanel',
+            'mapBottomSheet', 'mapPointMeasureBox'
+        ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+    },
+
     openTransformMap(options = { mode: 'pick' }) {
         AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'transform_map') ? AppState.currentScreen : 'transform';
         AppState.currentScreen = 'transform_map';
@@ -1181,6 +1195,7 @@ const appNav = window.appNav = {
         AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'transform';
         AppState.currentScreen = 'map';
         AppState.mapMode = 'pick';
+        this.resetMapChrome();
         document.querySelectorAll('.screen-view').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
@@ -1213,14 +1228,6 @@ const appNav = window.appNav = {
             if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
             if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
         }
-        const cadBar = document.getElementById('mapCadToolbar');
-        if (cadBar) cadBar.style.display = 'none';
-        const cadHud = document.getElementById('cadStatusHud');
-        if (cadHud) cadHud.style.display = 'none';
-        const cadBlocks = document.getElementById('cadBlocksStatsPanel') || document.getElementById('cadBlocksPanel');
-        if (cadBlocks) cadBlocks.style.display = 'none';
-        const distHud = document.getElementById('mapDistanceHud');
-        if (distHud) distHud.style.display = 'none';
 
         appNav.setActiveMenuItem('drawerItem_transform');
         this.syncBottomNav('transform');
@@ -1253,6 +1260,7 @@ const appNav = window.appNav = {
         AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'menu';
         AppState.currentScreen = 'map';
         AppState.mapMode = 'project';
+        this.resetMapChrome();
         document.querySelectorAll('.screen-view').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
@@ -1285,14 +1293,6 @@ const appNav = window.appNav = {
             if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
             if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
         }
-        const cadBar = document.getElementById('mapCadToolbar');
-        if (cadBar) cadBar.style.display = 'none';
-        const cadHud = document.getElementById('cadStatusHud');
-        if (cadHud) cadHud.style.display = 'none';
-        const cadBlocks = document.getElementById('cadBlocksStatsPanel') || document.getElementById('cadBlocksPanel');
-        if (cadBlocks) cadBlocks.style.display = 'none';
-        const distHud = document.getElementById('mapDistanceHud');
-        if (distHud) distHud.style.display = 'none';
         const bSheet = document.getElementById('mapBottomSheet');
         if (bSheet) bSheet.style.display = 'none';
         const pmbPanel = document.getElementById('projectMarksBlocksPanel');
@@ -1349,6 +1349,7 @@ const appNav = window.appNav = {
         AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'menu';
         AppState.currentScreen = 'map';
         AppState.mapMode = 'cad';
+        this.resetMapChrome();
         document.querySelectorAll('.screen-view').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
@@ -1370,12 +1371,6 @@ const appNav = window.appNav = {
         const btnBack = document.getElementById('btnHeaderBack');
         if (btnBack) btnBack.style.display = 'inline-flex';
         this.syncHeader('📐 3.5 VẼ MẶT BẰNG & BẢNG KÊ MINICAD', '📐 3.5 MINICAD PLAN DRAWING & TABLE');
-
-        // Ẩn thanh dự án và thanh chấm điểm
-        const barProject = document.getElementById('mapProjectBar');
-        if (barProject) barProject.style.display = 'none';
-        const barPicker = document.getElementById('barCoordPicker');
-        if (barPicker) barPicker.style.display = 'none';
 
         // Xóa marker chấm điểm nếu có
         if (AppState.pickerMarker && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
@@ -1409,6 +1404,7 @@ const appNav = window.appNav = {
         AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'transform';
         AppState.currentScreen = 'map';
         AppState.mapMode = 'view_converted';
+        this.resetMapChrome();
         document.querySelectorAll('.screen-view').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
@@ -1426,12 +1422,6 @@ const appNav = window.appNav = {
         if (btnBack) btnBack.style.display = 'inline-flex';
         this.syncHeader('📍 VỊ TRÍ ĐIỂM CHUYỂN ĐỔI', '📍 CONVERTED POINT LOCATION');
 
-        // Ẩn các thanh trên đỉnh bản đồ
-        const barProject = document.getElementById('mapProjectBar');
-        if (barProject) barProject.style.display = 'none';
-        const barPicker = document.getElementById('barCoordPicker');
-        if (barPicker) barPicker.style.display = 'none';
-
         // Tắt toàn bộ MiniCAD
         if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
             appCadTool.closeToolbar();
@@ -1441,14 +1431,6 @@ const appNav = window.appNav = {
             if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
             if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
         }
-        const cadBar = document.getElementById('mapCadToolbar');
-        if (cadBar) cadBar.style.display = 'none';
-        const cadHud = document.getElementById('cadStatusHud');
-        if (cadHud) cadHud.style.display = 'none';
-        const cadBlocks = document.getElementById('cadBlocksStatsPanel') || document.getElementById('cadBlocksPanel');
-        if (cadBlocks) cadBlocks.style.display = 'none';
-        const distHud = document.getElementById('mapDistanceHud');
-        if (distHud) distHud.style.display = 'none';
 
         appNav.setActiveMenuItem('drawerItem_transform');
         this.syncBottomNav('transform');
@@ -1485,6 +1467,15 @@ const appNav = window.appNav = {
     openLiveGpsMap() {
         AppState.prevScreen = AppState.currentScreen;
         AppState.currentScreen = 'map';
+        AppState.mapMode = 'live_gps';
+
+        // Sạch hoàn toàn không gian bản đồ: không kế thừa thanh/cửa sổ của phân hệ trước
+        this.resetMapChrome();
+        if (typeof appCadTool !== 'undefined') {
+            if (appCadTool.isActive) appCadTool.closeToolbar();
+            if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
+        }
+
         document.querySelectorAll('.screen-view').forEach(el => {
             el.classList.remove('active');
             el.style.display = 'none';
@@ -1492,6 +1483,7 @@ const appNav = window.appNav = {
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
             mapView.classList.add('active');
+            mapView.classList.remove('cad-active-map');
             mapView.style.display = 'block';
             void mapView.offsetHeight;
         }
@@ -1502,6 +1494,7 @@ const appNav = window.appNav = {
         this.syncHeader('🛰️ VỊ TRÍ GPS THỰC ĐIỆA', '🛰️ FIELD GPS LOCATION');
 
         appMap.initMap();
+        if (appMap.updateFabControlsVisibility) appMap.updateFabControlsVisibility('live_gps');
 
         // Mở bản đồ sạch không mở sẵn dự án của các chức năng khác
         if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
@@ -1510,8 +1503,6 @@ const appNav = window.appNav = {
             AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
             AppState.projectPolygonLayer = null;
         }
-        const hud = document.getElementById('mapDistanceHud');
-        if (hud) hud.style.display = 'none';
 
         appMap.populateMapProjectSelect(null);
 
@@ -7459,6 +7450,12 @@ const appMap = {
             if (btnDt) btnDt.style.display = 'none';
             if (btnFitProj) btnFitProj.style.display = 'none';
             if (btnFitBoth) btnFitBoth.style.display = 'none';
+        } else if (mode === 'live_gps') {
+            // Chỉ xem vị trí GPS: không hiện công cụ của dự án hay điểm chuyển đổi
+            if (btn34) btn34.style.display = 'none';
+            if (btnDt) btnDt.style.display = 'none';
+            if (btnFitProj) btnFitProj.style.display = 'none';
+            if (btnFitBoth) btnFitBoth.style.display = 'none';
         } else {
             // 'project' (Bản đồ dự án)
             if (btn34) btn34.style.display = 'flex';
@@ -7489,7 +7486,13 @@ const appMap = {
             return;
         }
 
-        // 4. Các chế độ xem điểm khác (nếu có): Chỉ hiển thị thông tin
+        // 4. Chế độ chỉ xem vị trí (GPS thực địa / điểm chuyển đổi):
+        // chỉ hiển thị vị trí, không bật Bottom Sheet của phân hệ Bản đồ dự án.
+        if (AppState.mapMode === 'live_gps' || AppState.mapMode === 'view_converted' || AppState.mapMode === 'converted_point') {
+            return;
+        }
+
+        // 5. Các chế độ xem điểm khác (nếu có): Chỉ hiển thị thông tin
         const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         const sheet = document.getElementById('mapBottomSheet');
         if (sheet) {
@@ -7737,16 +7740,6 @@ const appMap = {
         }
     },
 
-    loadSelectedToMain() {
-        if (!AppState.pickedCoord) return;
-        appMap.loadPointDirect(
-            AppState.pickedCoord.lat,
-            AppState.pickedCoord.lng,
-            AppState.pickedCoord.x,
-            AppState.pickedCoord.y
-        );
-    },
-
     loadPointDirect(lat, lng, x, y) {
         // Nạp tọa độ vào màn hình chính nhưng TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TÍNH CHUYỂN
         document.getElementById('txtWgsLat').value = formatLatLong(parseFloat(lat), AppState.formatType);
@@ -7758,39 +7751,6 @@ const appMap = {
         appNav.closeMap();
         appNav.showScreen('transform');
         showToast("📌 Đã nạp tọa độ vào màn hình chính! (Nhấn nút chuyển đổi nếu muốn tính lại)", true);
-    },
-
-    savePickedPoint() {
-        if (!AppState.pickedCoord) return;
-        const pts = appData.getPoints(AppState.currentProject);
-        const name = prompt("Nhập tên mốc chấm trên bản đồ:", `Mốc ${pts.length + 1}`);
-        if (!name) return;
-
-        const now = new Date();
-        const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-
-        const newPoint = {
-            id: Date.now(),
-            time: timeStr,
-            name: name,
-            x: AppState.pickedCoord.x,
-            y: AppState.pickedCoord.y,
-            lat: AppState.pickedCoord.lat.toFixed(6),
-            lng: AppState.pickedCoord.lng.toFixed(6),
-            mui: AppState.muiVal,
-            ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
-            note: "Chấm trên bản đồ",
-            project: AppState.currentProject
-        };
-
-        appData.addPoint(AppState.currentProject, newPoint);
-        appMap.loadProjectMarkers();
-        appMap.closeBottomSheet();
-        if (AppState.storageMode === 'auto_google' && AppState.googleScriptUrl) {
-            showToast(`✓ Đã lưu mốc "${name}" và gửi Google Sheets!`, true);
-        } else {
-            showToast(`✓ Đã lưu mốc "${name}"!`);
-        }
     },
 
     showConvertedPoint(lat, lng, x, y, name, ktt, k0) {

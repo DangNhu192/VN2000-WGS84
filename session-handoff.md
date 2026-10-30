@@ -516,3 +516,10 @@
 - MiniCAD không còn rò cửa sổ/hình khối sang Bản đồ dự án, Chấm điểm, Chuyển đổi tọa độ: guard `isActive` ở `selectItem/showQuickEditPopup/openAnnotationModal/handleMapClick`, marker chỉ kéo khi CAD bật, `closeCadWindows` + `clearCadOverlays` gọi khi rời phân hệ.
 - Test hồi quy `tests/cad_ui_isolation.test.js` (26/26), `npm test` 308/308.
 - Việc tiếp theo: icon mốc theo lớp (`pointStyle`), Dynamic Input, Hatch, Import DXF, Inquiry/QSELECT.
+
+## 2026-10-30 — Rà soát toàn bộ cửa sổ chéo phân hệ (đã xong trên working tree)
+- `openLiveGpsMap` nay là không gian riêng: `mapMode='live_gps'`, tắt MiniCAD, dọn sạch chrome, FAB riêng; không còn kế thừa thanh dự án / thanh chấm điểm / HUD CAD.
+- `appNav.resetMapChrome()` được gọi ở cả 5 lối vào bản đồ dùng chung; `onMapClick` chỉ xử lý chấm điểm/dự án ở đúng chế độ của nó.
+- Bottom Sheet bản đồ bỏ "Nạp tọa độ" và "Lưu mốc" chéo phân hệ (xóa `loadSelectedToMain`, `savePickedPoint`).
+- Test hồi quy `tests/map_chrome_isolation.test.js` 21/21; `npm test` 309/309.
+- Việc tiếp theo: icon mốc theo lớp (`pointStyle`), Dynamic Input, Hatch, Import DXF, Inquiry/QSELECT.
