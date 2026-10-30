@@ -59,8 +59,12 @@ console.log('--- NHÓM 1: NẠP CadGeometryEngine (TÁCH / HỢP / XÉN / KÉO D
     assert(geomTag > -1 && appTag > -1 && geomTag < appTag, 'cad_geometry.js được nạp TRƯỚC app.js');
     assert(fs.existsSync(path.join(ROOT, 'src/core/cad_geometry.js')), 'Tệp src/core/cad_geometry.js tồn tại trên đĩa');
     assert(swJs.includes("'./src/core/cad_geometry.js'"), 'Service Worker nạp sẵn cad_geometry.js để dùng offline');
-    const cacheMatch = swJs.match(/const CACHE_NAME = 'vn2000-pro-(v[\d.]+)';/);
-    assert(cacheMatch && cacheMatch[1] === 'v2.8.8', 'CACHE_NAME đã tăng lên v2.8.8 để buộc nạp lại tài nguyên mới');
+    const cacheMatch = swJs.match(/const CACHE_NAME = 'vn2000-pro-v([\d.]+)';/);
+    const MIN_CACHE = '2.8.8';
+    const cmp = (a, b) => a.split('.').map(Number)
+        .reduce((r, n, i) => r || Math.sign(n - (b.split('.')[i] || 0)), 0);
+    assert(cacheMatch && cmp(cacheMatch[1], MIN_CACHE) >= 0,
+        `CACHE_NAME đã tăng lên ít nhất v${MIN_CACHE} để buộc nạp lại tài nguyên mới (hiện: v${cacheMatch && cacheMatch[1]})`);
     ['splitPolygon', 'mergePolygons', 'trimLine', 'extendLine', 'getPolarExtensionPoint'].forEach(fn => {
         assert(typeof CadGeometryEngine[fn] === 'function', `CadGeometryEngine.${fn}() tồn tại`);
     });

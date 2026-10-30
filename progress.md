@@ -3,11 +3,37 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 302/302 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 310/310 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-10-30] WP-A MiniCAD: Kiểu & Màu Điểm Rời + Tách 3 Nhóm Hiển Thị Độc Lập (Point Styling & Visibility Pro)
+- **Yêu cầu từ người dùng**:
+  - `bổ sung cho phép điều chỉnh hình dạng và màu sắc các điểm được vẽ trong MiniCAD. cho phép tắt/mở hiển thị các điểm, các đỉnh của khối và tuyến (chia riêng từng dạng chứ không gộp chung, có thể gộp chung 1 nhánh thao tác)`
+  - Phạm vi chốt qua AskUserQuestion: style+color riêng từng điểm, mặc định theo lớp, áp hàng loạt từ bảng điểm; 3 nhóm cờ tách biệt (Điểm rời / Đỉnh khối & tuyến / Nhãn–ký hiệu) kèm ghi đè theo lớp.
+- **Các phát hiện điều tra gốc rễ (Root Cause Analysis)**:
+  1. *Một cờ dùng chung hai việc*: `displaySettings.showVertices` vừa điều khiển đỉnh của khối/tuyến vừa điều khiển điểm rời, nên không thể tắt riêng từng loại.
+  2. *Nhãn và ký hiệu dính liền*: badge `.cad-vertex-badge` mặc định là chấm 8px `opacity:0`, chỉ hiện tên khi bật `.expanded` — không có trạng thái " hiện ký hiệu, ẩn tên".
+  3. *Điểm rời bị mất khi chỉ có 1 mốc*: `reconstructShapesFromPoints` lọc `validVerts.length >= 2` làm rớt lớp điểm đơn lẻ.
+  4. *Kịch bản "tắt hết" tự bật lại*: cơ chế self-heal trong `initDisplaySettings` đếm đủ 7 cờ; nếu thêm cờ mới mà không tính cờ đang thiếu sẽ ghi đè lựa chọn của người dùng.
+  5. *CSS `<style>` trong SVG thắng thuộc tính trình bày*: `.layer-ky-hieu { fill:#ef4444 }` chặn màu tùy chỉnh trong SVG export.
+  6. *Service Worker phát `style.css` cũ*: `CACHE_NAME` và `?v=` chưa tăng nên kiểu glyph mới không được nạp (đã kiểm chứng `getComputedStyle` = `none`).
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. *Tách 3 nhóm cờ hiển thị* trong `app.js`: `showPoints` (điểm rời), `showVertices` (đỉnh khối & tuyến), `showLabels` (nhãn tên); giữ nguyên 4 cờ cũ, tự mặc định `true` cho blob cũ và self-heal theo `presentKeys` (đọc đúng số cờ thực sự có trong localStorage, không bật lại khi người dùng chỉ tắt 1 ô).
+  2. *Model style/color 7 kiểu glyph* (`circle, square, diamond, triangle, cross, x, ring`) với precedence điểm → lớp → mặc định,Validate màu `#rrggbb` qua `getPointStyleFor` / `getPointColorFor`.
+  3. *Render dùng chung một điểm*: `resolveGroupVisibility(shape)` quyết định `visible`/`labels` cho cả lớp điểm lẫn khối; lớp điểm tắt nhóm thì bỏ hẳn marker, khối vẫn tạo marker (CSS `opacity` giữ hiệu ứng hover); glyph hiển thị ở dạng `sty-* dot-visible`, nhãn ở dạng `sty-* expanded`.
+  4. *CSS glyph*: chuỗi `.cad-vertex-badge.sty-*:not(.expanded)` dùng `clip-path`/`border-radius` + `drop-shadow` trắng, khóa `.dot-visible` ở 13px; pill `.expanded` không bị ảnh hưởng.
+  5. *Bảng điểm (Chấm điểm)*: 2 cột Kiểu/Màu mỗi dòng, thanh áp hàng loạt `#cadPtBulkStyle` / `#cadPtBulkColor` ("Áp dụng cả lớp" ghi vào lớp và xóa ghi đè từng điểm, "Đặt lại" gỡ tùy chỉnh), điều khiển đồng bộ `syncPointStyleBulkControls`.
+  6. *Xuất bản vẽ*: `exportGlyphFlag`, `drawPointGlyph` (Canvas cho PDF/PNG) và `pointGlyphSvg` (SVG, dùng class `cad-pt-glyph` không bị CSS ghi đè) được nối vào cả 4 exporter DXF/PDF/SVG/PNG; DXF thêm thực thể LWPOLYLINE/LINE/CIRCLE theo kiểu và `TEN_MOC` có nhãn `S`; checkbox `cadExportCheckPoints` / `cadExportCheckLabels` trong hộp Xuất không còn ghi ngược vào `displaySettings`.
+  7. *Vòng trữ dữ liệu*: `syncShapesToProjectPoints` lưu `pointStyle`/`pointColor` vào mốc dự án, `reconstructShapesFromPoints` khôi phục về điểm CAD và sửa ngưỡng dựng lại thành `>= (mode === 'point' ? 1 : 2)`.
+  8. *Đồng bộ phiên bản tài nguyên*: `sw.js` `CACHE_NAME` → `vn2000-pro-v2.8.9`, `index.html` `style.css?v=2.8.9` / `app.js?v=2.8.9`; `tests/draw_tools_runtime.test.js` đổi kiểm tra CACHE_NAME từ so sánh cứng sang chặn dưới (>= 2.8.8) để không vỡ khi tăng phiên bản.
+- **Kiểm thử tự động & Xác minh thực nghiệm**:
+  - Bộ test mới `tests/point_styling_visibility.test.js`: **94/94 PASS** (thực thi hàm thật của `app.js` trong sandbox: init/sync/toggle/resolve/style/color/renderPointTable/bulk/export/round-trip/markup).
+  - Toàn bộ suite dự án: **310/310 tests PASS 100% (0 fail)**.
+  - Xác minh live trên http://127.0.0.1:8080 (`?v=2.8.9` đã nạp): stylesheet có 7 quy tắc `sty-*`; `sty-diamond dot-visible` = `polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)` 13px opacity 1; `sty-square` `border-radius:2px`; `expanded` vẫn 22px `clip:none`; badge gốc 8px opacity 0. Ma trận tách nhóm đã verify ở phiên trước: tắt `showPoints` chỉ mất điểm rời, tắt `showLabels` thu nhãn về glyph, tắt `showVertices` chỉ sập đỉnh khối.
+  - Tuân thủ AGENTS.md §2: mọi điều khiển mới nằm trong thanh công cụ MiniCAD, hộp Xuất của MiniCAD và modal `#modalCadPointTable`; không có lời gọi chéo phân hệ.
 
 ### [2026-10-26] Chuẩn Hóa Toàn Diện Giao Diện Song Ngữ Anh - Việt & Từ Điển Kỹ Thuật Trắc Địa Quốc Tế (Bilingual i18n Pro 2026)
 - **Yêu cầu từ người dùng**:

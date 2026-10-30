@@ -1,6 +1,23 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-10-26: Chuẩn Hóa Toàn Diện Giao Diện Song Ngữ Anh - Việt & Từ Điển Kỹ Thuật Trắc Địa Quốc Tế (Bilingual i18n Pro 2026)
+## Phiên hiện tại — 2026-10-30: WP-A MiniCAD — Kiểu/Màu Điểm Rời & 3 Nhóm Hiển Thị Tách Biệt
+- **Yêu cầu từ người dùng**:
+  - `bổ sung cho phép điều chỉnh hình dạng và màu sắc các điểm được vẽ trong MiniCAD. cho phép tắt/mở hiển thị các điểm, các đỉnh của khối và tuyến (chia riêng từng dạng chứ không gộp chung, có thể gộp chung 1 nhánh thao tác)`
+  - Phạm vi đã chốt: GIS import chỉ GeoJSON/KML/GPX/WKT (WP-B, chưa làm); style riêng từng điểm + mặc định theo lớp + áp hàng loạt; thêm nhóm thứ 3 (nhãn/ký hiệu).
+- **Đã hoàn tất**:
+  1. **Kiến trúc hiển thị**: `displaySettings` thành 7 cờ, trong đó 3 cờ mới `showPoints` / `showVertices` / `showLabels` đọc riêng qua `resolveGroupVisibility(shape)`; mỗi shape ghi đè được bằng `shape.showPoints` / `shape.showVertices` / `shape.showLabels`, nút toàn cục `toggleAllVerticesVisible` và `toggleShapeVerticesVisibility` / `toggleShapeLabelsVisibility` định tuyến theo `shape.mode === 'point'`.
+  2. **Tương thích ngược**: blob cũ 5-6 khóa vẫn nhận mặc định `true`; self-heal "tắt hết" đếm theo `presentKeys` nên blob cũ không bị bỏ qua; người dùng tự tắt 1 ô tuyệt đối không bị app bật lại.
+  3. **Style & màu điểm**: `pointStyles` 7 kiểu, `getPointStyleFor`/`getPointColorFor` (điểm → lớp → mặc định, validate `#rrggbb`), bảng điểm thêm cột Kiểu/Màu + thanh "Áp dụng cả lớp"/"Đặt lại", round-trip qua mốc dự án bằng `pointStyle`/`pointColor`, sửa ngưỡng dựng lại lớp điểm còn 1 mốc.
+  4. **Xuất bản vẽ**: 4 exporter (DXF/PDF/SVG/PNG) dùng `exportGlyphFlag` + `drawPointGlyph`/`pointGlyphSvg`; SVG dùng class `cad-pt-glyph` để màu tùy chỉnh không bị `.layer-ky-hieu` ghi đè; PNG giữ diện mạo cũ bằng mặc định `ring`/`#C62828`; hộp Xuất không còn ghi cờ meta ngược vào `displaySettings`.
+  5. **CSS & cache**: chuỗi `.sty-*:not(.expanded)` với `clip-path` + `drop-shadow`, `.dot-visible` 13px; `sw.js` → `vn2000-pro-v2.8.9`, `index.html` → `style.css?v=2.8.9`, `app.js?v=2.8.9`; test CACHE_NAME đổi thành chặn dưới `>= 2.8.8`.
+- **Kết quả kiểm chứng**: `tests/point_styling_visibility.test.js` 94/94 PASS; toàn dự án **310/310 PASS**; live browser xác nhận stylesheet mới đã nạp và glyph áp dụng đúng (13px, clip-path hoạt động, pill `expanded` không đổi).
+- **Còn lại / việc kế tiếp**:
+  1. **WP-B (chưa bắt đầu)**: import thuần JS GeoJSON / KML / GPX / WKT (chọn hệ quy chiếu + KTT, ghi đè hay cộng thêm) vào `_normalizeVertex` → `_applyImportedShapes` → mốc dự án; xuất thêm GPX/WKT và bổ sung `point_style`/`point_color` vào property GeoJSON. Panels phải tách riêng cho Bản đồ dự án và MiniCAD (AGENTS.md §2).
+  2. **Backlog CADCraft port**: Dynamic Input, Hatch, Import DXF, Inquiry/QSELECT; kéo các suite `cadcraft_dynamic_input`, `minicad_snap_runtime`, `minicad_toolbar_collapse`, `minicad_select_and_delete` vào `npm test`.
+  3. **Ràng buộc của người dùng vẫn còn hiệu lực**: "Tôi tự rever — đừng đẩy lại" → chỉ push nhánh `integration-draw-fixes`, không push `main`; "Port lần lượt, ưu tiên Dimension" (Dimension đã xong).
+  4. **Không chạy `npm install`** trong `I:\My Drive\...` (Drive I/O làm nghẽn node_modules); build bằng Docker. `git status` có nhiều tệp tài liệu/skill/asset `M` không thuộc đợt sửa này — chỉ stage đúng 7 tệp: `app.js`, `index.html`, `style.css`, `sw.js`, `tests/point_styling_visibility.test.js`, `tests/draw_tools_runtime.test.js`, `progress.md`, `session-handoff.md`.
+
+## Phiên trước — 2026-10-26: Chuẩn Hóa Toàn Diện Giao Diện Song Ngữ Anh - Việt & Từ Điển Kỹ Thuật Trắc Địa Quốc Tế (Bilingual i18n Pro 2026)
 - **Yêu cầu từ người dùng**:
   - `thực hiện lại việc chuẩn hóa giao diện tiếng Anh và tiếng việt`
 - **Đã hoàn tất**:

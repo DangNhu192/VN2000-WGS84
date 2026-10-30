@@ -17264,13 +17264,26 @@ const appCadTool = {
     markupStepData: null,
     showAnnotations: true,
     palette: ['#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#38bdf8', '#84cc16', '#f97316'],
+    // 3 nhóm hiển thị tách riêng trên bản vẽ CAD (không gộp chung một cờ):
+    // showPoints = điểm rời (lớp điểm), showVertices = đỉnh của khối & tuyến, showLabels = nhãn tên.
     displaySettings: {
+        showPoints: true,
         showVertices: false,
+        showLabels: true,
         showDistances: false,
         showCenterLabels: true,
         showAnnotations: true,
         showBoundaries: true
     },
+    pointStyles: [
+        { id: 'circle', label: '● Tròn' },
+        { id: 'square', label: '■ Vuông' },
+        { id: 'diamond', label: '◆ Thoi' },
+        { id: 'triangle', label: '▲ Tam giác' },
+        { id: 'cross', label: '✚ Chữ thập' },
+        { id: 'x', label: '❈ Chữ X' },
+        { id: 'ring', label: '◎ Vành khuyên' }
+    ],
     modalTableActiveTab: 'ranh',
     panelActiveTab: 'blocks',
     newArrowType: 'single',
@@ -18208,29 +18221,30 @@ const appCadTool = {
         } catch (e) {}
 
         this.displaySettings = Object.assign({
+            showPoints: true,
             showVertices: true,
+            showLabels: true,
             showDistances: true,
             showCenterLabels: true,
             showAnnotations: true,
             showBoundaries: true
         }, saved || {});
 
-        // Mặc định hiển thị đầy đủ các thành phần tương quan bản vẽ (đỉnh, cự ly cạnh, ranh, tâm khối)
+        // Mặc định hiển thị đầy đủ các thành phần tương quan bản vẽ (điểm, đỉnh, cự ly cạnh, ranh, tâm khối)
+        if (!saved || typeof saved.showPoints !== 'boolean') this.displaySettings.showPoints = true;
         if (!saved || typeof saved.showVertices !== 'boolean') this.displaySettings.showVertices = true;
+        if (!saved || typeof saved.showLabels !== 'boolean') this.displaySettings.showLabels = true;
         if (!saved || typeof saved.showDistances !== 'boolean') this.displaySettings.showDistances = true;
         if (!saved || typeof saved.showBoundaries !== 'boolean') this.displaySettings.showBoundaries = true;
         if (!saved || typeof saved.showCenterLabels !== 'boolean') this.displaySettings.showCenterLabels = true;
 
         // Lỗi cũ: hộp thoại Xuất ghi cờ của ảnh xuất ngược vào cài đặt hiển thị => mọi thành phần bị tắt,
         // bản đồ CAD trông như trống không. Nhận diện trạng thái "tắt sạch" đó và khôi phục mặc định một lần.
-        const allOff = ['showVertices', 'showDistances', 'showCenterLabels', 'showAnnotations', 'showBoundaries']
-            .every(k => saved && saved[k] === false);
+        const allOffKeys = ['showPoints', 'showVertices', 'showLabels', 'showDistances', 'showCenterLabels', 'showAnnotations', 'showBoundaries'];
+        const presentKeys = allOffKeys.filter(k => typeof (saved || {})[k] === 'boolean');
+        const allOff = presentKeys.length > 0 && presentKeys.every(k => saved[k] === false);
         if (allOff) {
-            this.displaySettings.showVertices = true;
-            this.displaySettings.showDistances = true;
-            this.displaySettings.showCenterLabels = true;
-            this.displaySettings.showAnnotations = true;
-            this.displaySettings.showBoundaries = true;
+            allOffKeys.forEach(k => { this.displaySettings[k] = true; });
             try {
                 localStorage.setItem('vn2k_cad_display_settings_v3', JSON.stringify(this.displaySettings));
             } catch (e) {}
@@ -18261,7 +18275,9 @@ const appCadTool = {
         };
 
         // Checkboxes trên thanh công cụ CAD
+        setVal('cadCheckShowPoints', s.showPoints);
         setVal('cadCheckShowVertices', s.showVertices);
+        setVal('cadCheckShowLabels', s.showLabels);
         setVal('cadCheckShowDistances', s.showDistances);
         setVal('cadCheckShowCenterLabels', s.showCenterLabels);
         setVal('cadCheckShowAnnotations', s.showAnnotations);
@@ -18269,7 +18285,9 @@ const appCadTool = {
         setVal('cadCheckSnapLine', this.snapLineEnabled);
 
         // Checkboxes trong Modal Xuất bản vẽ
+        setVal('cadExportCheckPoints', s.showPoints);
         setVal('cadExportCheckVertices', s.showVertices);
+        setVal('cadExportCheckLabels', s.showLabels);
         setVal('cadExportCheckDistances', s.showDistances);
         setVal('cadExportCheckCenterLabels', s.showCenterLabels);
         setVal('cadExportCheckAnnotations', s.showAnnotations);
@@ -18346,7 +18364,9 @@ const appCadTool = {
         this.renderAnnotations();
 
         const labels = {
-            showVertices: '📍 Ký hiệu đỉnh',
+            showPoints: '📍 Điểm rời (lớp điểm)',
+            showVertices: '📐 Đỉnh khối & tuyến',
+            showLabels: '🏷️ Nhãn tên điểm / đỉnh',
             showDistances: '📏 Khoảng cách đỉnh (cự ly cạnh)',
             showCenterLabels: '🏷️ Ký hiệu & Tâm khối',
             showAnnotations: '🏹 Ghi chú kỹ thuật',
@@ -19990,6 +20010,31 @@ const appCadTool = {
         return layers.find(s => s.id === this.pointLayerId) || layers[layers.length - 1];
     },
 
+    // === KIỂU & MÀU ĐIỂM RỜI: ưu tiên điểm → mặc định lớp → mặc định hệ thống ===
+    getPointStyleFor(shape, v) {
+        const ok = (id) => this.pointStyles.some(s => s.id === id);
+        const raw = (v && v.style) || (shape && shape.style) || 'circle';
+        return ok(raw) ? raw : 'circle';
+    },
+
+    getPointColorFor(shape, v) {
+        const raw = (v && v.color) || (shape && shape.color) || '#10b981';
+        return /^#[0-9a-fA-F]{6}$/.test(String(raw).trim()) ? String(raw).trim() : '#10b981';
+    },
+
+    // Nhóm hiển thị của một đối tượng: 'point' → nhóm Điểm rời, khác → nhóm Đỉnh khối & tuyến
+    resolveGroupVisibility(shape) {
+        if (!this.displaySettings) this.initDisplaySettings();
+        const s = this.displaySettings;
+        const isPoints = shape && shape.mode === 'point';
+        const globalFlag = isPoints ? (s.showPoints !== false) : (s.showVertices === true);
+        const shapeFlag = isPoints ? shape.showPoints : shape.showVertices;
+        return {
+            visible: shapeFlag !== undefined ? !!shapeFlag : globalFlag,
+            labels: shape.showLabels !== undefined ? !!shape.showLabels : (s.showLabels !== false)
+        };
+    },
+
     refreshPointLayerBar() {
         const bar = document.getElementById('cadPointLayerBar');
         const sel = document.getElementById('cadPointLayerSelect');
@@ -20034,6 +20079,7 @@ const appCadTool = {
             vertices: [],
             stats: this.calculateAreaAndPerimeter([], 'point'),
             color: (this.getLayerById('MOC_TOADO') || {}).color || this.palette[(this.savedShapes.length) % this.palette.length],
+            style: 'circle',
             layer: 'MOC_TOADO',
             symbol: String(this.savedShapes.length + 1)
         };
@@ -20156,14 +20202,19 @@ const appCadTool = {
         if (!tbody) return;
 
         if (!active || !active.vertices || active.vertices.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; padding:14px; font-size:11.5px;">Lớp chưa có điểm nào. Chạm bản đồ ở chế độ 📍 Chấm điểm [I] hoặc nhập tọa độ X,Y bên dưới.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#64748b; padding:14px; font-size:11.5px;">Lớp chưa có điểm nào. Chạm bản đồ ở chế độ 📍 Chấm điểm [I] hoặc nhập tọa độ X,Y bên dưới.</td></tr>`;
+            this.syncPointStyleBulkControls(null);
             return;
         }
 
         const cellInp = 'height:24px; font-size:11.5px; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:4px; padding:0 4px; color:#f8fafc;';
+        const styleOpts = (cur) => this.pointStyles.map(st => `<option value="${st.id}"${st.id === cur ? ' selected' : ''}>${st.label}</option>`).join('');
         tbody.innerHTML = active.vertices.map((v, i) => {
             const isSnap = v.isSnapped;
             const noteTitle = isSnap ? `Nguồn: ${v.snapSource || 'Hít mốc'}` : 'Chấm tay trên bản đồ';
+            const vStyle = this.getPointStyleFor(active, v);
+            const vColor = this.getPointColorFor(active, v);
+            const isOverridden = !!(v.style || v.color);
             return `
                 <tr>
                     <td style="text-align:center; color:#94a3b8;">${i + 1}</td>
@@ -20179,6 +20230,12 @@ const appCadTool = {
                     <td style="text-align:right;">
                         <input type="number" step="0.01" value="${(v.h || 0).toFixed(2)}" style="${cellInp} width:100%; text-align:right; font-family:ui-monospace, monospace;" onchange="appCadTool.updatePointField(${i}, 'h', this.value)">
                     </td>
+                    <td style="text-align:center;">
+                        <select title="Hình dạng ký hiệu của riêng điểm này" style="${cellInp} width:100%; color:${isOverridden ? '#fde047' : '#94a3b8'};" onchange="appCadTool.updatePointField(${i}, 'style', this.value)">${styleOpts(vStyle)}</select>
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="color" value="${vColor}" title="Màu riêng của điểm này (mặc định lấy theo lớp)" style="width:100%; height:24px; padding:0; border:1px solid rgba(56,189,248,0.25); border-radius:4px; background:rgba(15,23,42,0.85);" onchange="appCadTool.updatePointField(${i}, 'color', this.value)">
+                    </td>
                     <td style="text-align:left;">
                         <input type="text" value="${escapeHtml(v.note || '')}" style="${cellInp} width:100%;" placeholder="—" onchange="appCadTool.updatePointField(${i}, 'note', this.value)">
                     </td>
@@ -20189,6 +20246,67 @@ const appCadTool = {
                 </tr>
             `;
         }).join('');
+        this.syncPointStyleBulkControls(active);
+    },
+
+    // Ô chọn kiểu + màu "mặc định theo lớp" phía trên bảng điểm
+    syncPointStyleBulkControls(layer) {
+        const styleSel = document.getElementById('cadPtBulkStyle');
+        const colorInp = document.getElementById('cadPtBulkColor');
+        if (styleSel) {
+            styleSel.innerHTML = this.pointStyles
+                .map(st => `<option value="${st.id}">${st.label}</option>`)
+                .join('');
+            styleSel.value = layer ? this.getPointStyleFor(layer, null) : 'circle';
+            styleSel.disabled = !layer;
+        }
+        if (colorInp) {
+            colorInp.value = layer ? this.getPointColorFor(layer, null) : '#10b981';
+            colorInp.disabled = !layer;
+        }
+        const title = document.getElementById('cadPtBulkLayerName');
+        if (title) title.innerText = layer ? (layer.name || 'Lớp điểm') : '—';
+    },
+
+    // Đặt kiểu + màu cho cả lớp điểm (ghi đè lên tùy chỉnh riêng từng điểm trước đó)
+    applyPointLayerStyle() {
+        const layer = this.getActivePointLayer();
+        if (!layer) { showToast('⚠️ Chưa có lớp điểm nào để áp dụng!', true); return; }
+        if (this.isShapeLocked(layer)) {
+            showToast(`🔒 Lớp "${layer.name}" đang bị khóa, không thể đổi kiểu điểm!`, true);
+            return;
+        }
+        const styleSel = document.getElementById('cadPtBulkStyle');
+        const colorInp = document.getElementById('cadPtBulkColor');
+        const style = this.pointStyles.some(s => s.id === styleSel?.value) ? styleSel.value : 'circle';
+        const color = /^#[0-9a-fA-F]{6}$/.test(String(colorInp?.value || '')) ? colorInp.value : (layer.color || '#10b981');
+
+        this.pushHistoryState(`Đặt kiểu & màu điểm cho lớp "${layer.name}"`);
+        layer.style = style;
+        layer.color = color;
+        (layer.vertices || []).forEach(v => { delete v.style; delete v.color; });
+
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        this.renderPointTable();
+        showToast(`🎨 Cả lớp "${layer.name}" dùng ký hiệu ${style.toUpperCase()} màu ${color}.`);
+    },
+
+    // Bỏ tùy chỉnh riêng của từng điểm để quay về mặc định theo lớp
+    resetPointStyleOverrides() {
+        const layer = this.getActivePointLayer();
+        if (!layer) return;
+        const cnt = (layer.vertices || []).filter(v => v.style || v.color).length;
+        if (cnt === 0) { showToast('ℹ️ Không có điểm nào được tùy chỉnh riêng trong lớp này.'); return; }
+        this.pushHistoryState(`Đặt lại kiểu điểm cho lớp "${layer.name}"`);
+        (layer.vertices || []).forEach(v => { delete v.style; delete v.color; });
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderPointTable();
+        showToast(`↺ Đã đặt lại kiểu/màu riêng của ${cnt} điểm theo mặc định lớp.`);
     },
 
     updatePointField(vi, field, value) {
@@ -20218,6 +20336,18 @@ const appCadTool = {
             if (h === (v.h || 0)) return;
             this.pushHistoryState(`Sửa cao độ điểm ${v.name}`);
             v.h = h;
+        } else if (field === 'style') {
+            const st = String(value || '').trim();
+            if (!this.pointStyles.some(s => s.id === st)) { this.renderPointTable(); return; }
+            if (st === this.getPointStyleFor(layer, v)) return;
+            this.pushHistoryState(`Đổi kiểu ký hiệu điểm ${v.name}`);
+            v.style = st;
+        } else if (field === 'color') {
+            const c = String(value || '').trim();
+            if (!/^#[0-9a-fA-F]{6}$/.test(c)) { this.renderPointTable(); return; }
+            if (c === this.getPointColorFor(layer, v)) return;
+            this.pushHistoryState(`Đổi màu điểm ${v.name}`);
+            v.color = c;
         } else if (field === 'x' || field === 'y') {
             const num = parseFloat(value);
             if (isNaN(num)) { showToast('⚠️ Tọa độ không hợp lệ!', true); this.renderPointTable(); return; }
@@ -23653,6 +23783,8 @@ const appCadTool = {
                         shapeName: sName,
                         shapeMode: shape.mode || 'polygon',
                         shapeColor: sColor,
+                        pointStyle: v.style || (shape.mode === 'point' ? (shape.style || '') : ''),
+                        pointColor: v.color || '',
                         shapeOrder: vIdx + 1
                     });
                 });
@@ -23706,11 +23838,15 @@ const appCadTool = {
                         snapSource: `Dự án: ${curProj}`,
                         shapeName: sName,
                         shapeMode: sObj.mode,
+                        // Kiểu & màu ký hiệu điểm rời được lưu ngược từ pointStyle/pointColor của mốc dự án
+                        style: v.pointStyle || undefined,
+                        color: v.pointColor || undefined,
                         shapeOrder: i + 1
                     };
                 }).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
 
-                if (validVerts.length >= 2) {
+                // Lớp điểm rời: một mốc cũng là một đối tượng hợp lệ, không yêu cầu tối thiểu 2
+                if (validVerts.length >= (sObj.mode === 'point' ? 1 : 2)) {
                     const sColor = sObj.color || colorPalette[cIdx % colorPalette.length];
                     cIdx++;
                     const sMode = (validVerts.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
@@ -23970,6 +24106,7 @@ const appCadTool = {
         if (!this.displaySettings) this.initDisplaySettings();
         const showBoundaries = this.displaySettings.showBoundaries !== false;
         const showVertices = this.displaySettings.showVertices === true;
+        const showLabels = this.displaySettings.showLabels !== false;
         const showDistances = this.displaySettings.showDistances === true;
         const showCenterLabels = this.displaySettings.showCenterLabels !== false;
 
@@ -24184,16 +24321,33 @@ const appCadTool = {
                 }
             }
 
-            // Đỉnh của cấu trúc đã lưu: Ký hiệu Đ1, Đ2... Ẩn mặc định, chỉ hiển thị khi rê chuột đến hoặc bật tùy chọn showVertices
+            // Đỉnh của cấu trúc đã lưu & điểm rời của lớp điểm.
+            // Nhóm "Đỉnh khối & tuyến" (showVertices) chỉ bung nhãn đỉnh; nhóm "Điểm rời" (showPoints)
+            // ẩn hẳn marker; nhóm "Nhãn tên" (showLabels) quyết định có hiện chữ tên điểm/đỉnh hay không.
             {
+            const groupVis = this.resolveGroupVisibility(shape);
             sVerts.forEach((v, vIdx) => {
-                const isShapeVertVisible = shape.showVertices !== undefined ? shape.showVertices : showVertices;
-                // Lớp điểm rời: luôn bung nhãn vì bản thân điểm chính là đối tượng cần nhìn thấy
-                const isExpanded = isPointLayer || (isShapeVertVisible === true) || shape._pinned === true;
+                if (isPointLayer && !groupVis.visible) return;
+                const isShapeVertVisible = groupVis.visible;
+                const isExpanded = isPointLayer
+                    ? (groupVis.labels === true)
+                    : ((isShapeVertVisible === true) || shape._pinned === true);
                 const ptTitle = isPointLayer
                     ? `${shape.shortName} - ${v.name} • X=${(v.x || 0).toFixed(3)} Y=${(v.y || 0).toFixed(3)} H=${(v.h || 0).toFixed(2)}${v.note ? ' • ' + v.note : ''} (Kéo thả để di chuyển, bấm để xem chi tiết)`
                     : `${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết / đổi tên)`;
-                const iconHtml = `<div class="cad-vertex-badge ${isExpanded ? 'expanded' : ''}" style="background: ${sColor}; border-color: #ffffff;" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
+                const ptStyle = isPointLayer ? this.getPointStyleFor(shape, v) : 'circle';
+                const ptColor = isPointLayer ? this.getPointColorFor(shape, v) : sColor;
+                const badgeCls = ['cad-vertex-badge'];
+                if (isPointLayer) {
+                    badgeCls.push('sty-' + ptStyle);
+                    if (!isExpanded) badgeCls.push('dot-visible');
+                }
+                if (isExpanded) badgeCls.push('expanded');
+                // Vành khuyên: nền trong suốt, viền mang màu điểm + quầng trắng để nổi trên nền bản đồ
+                const badgeStyle = ptStyle === 'ring'
+                    ? `background: transparent; border-color: ${ptColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
+                    : `background: ${ptColor}; border-color: #ffffff;`;
+                const iconHtml = `<div class="${badgeCls.join(' ')}" style="${badgeStyle}" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked && this.isActive }).addTo(this.layers.group);
                 marker._pinned = isExpanded;
@@ -24513,7 +24667,7 @@ const appCadTool = {
 
         // 3. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển mượt mà kèm cập nhật cự ly tức thì)
         this.vertices.forEach((v, idx) => {
-            const isActExp = (showVertices === true || this._pinned === true) ? 'expanded' : '';
+            const isActExp = ((showVertices === true || this._pinned === true) && showLabels) ? 'expanded' : '';
             const iconHtml = `<div class="cad-vertex-badge dot-visible ${isActExp}" style="cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
             const icon = L.divIcon({
                 className: '',
@@ -25412,7 +25566,9 @@ const appCadTool = {
                     const el = document.getElementById(id);
                     if (el && typeof val === 'boolean') el.checked = val;
                 };
+                setBox('cadExportCheckPoints', savedMeta.showPoints);
                 setBox('cadExportCheckVertices', savedMeta.showVertices);
+                setBox('cadExportCheckLabels', savedMeta.showLabels);
                 setBox('cadExportCheckDistances', savedMeta.showDistances);
                 setBox('cadExportCheckCenterLabels', savedMeta.showCenterLabels);
                 setBox('cadExportCheckAnnotations', savedMeta.showAnnotations);
@@ -27078,7 +27234,9 @@ const appCadTool = {
             const sVerts = shape.vertices || [];
             const shapeColor = shape.color || '#38bdf8';
             const shapeName = shape.name || shape.shortName || `Khối ${sIdx + 1}`;
-            const isShapeVisible = shape.showVertices !== false;
+            const isShapeVisible = shape.mode === 'point'
+                ? shape.showPoints !== false
+                : shape.showVertices !== false;
 
             sVerts.forEach((v, vIdx) => {
                 const vName = v.name || `Đ${vIdx + 1}`;
@@ -27307,24 +27465,42 @@ const appCadTool = {
 
     toggleAllVerticesVisible(isVisible) {
         this.displaySettings.showVertices = isVisible;
-        (this.savedShapes || []).forEach(s => { s.showVertices = isVisible; });
+        this.displaySettings.showPoints = isVisible;
+        (this.savedShapes || []).forEach(s => {
+            // Điểm rời thuộc nhóm "Điểm rời", đỉnh khối/tuyến thuộc nhóm "Đỉnh" — ghi đúng cờ của từng dạng
+            if (s.mode === 'point') s.showPoints = isVisible;
+            else s.showVertices = isVisible;
+        });
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
         this.renderModalVerticesTable();
+        this.syncDisplayCheckboxes();
         const chk = document.getElementById('cadCheckShowVertices');
         if (chk) chk.checked = isVisible;
-        showToast(isVisible ? '✓ Đã hiển thị toàn bộ đỉnh trên bản đồ' : '👁️ Đã ẩn các đỉnh trên bản đồ');
+        showToast(isVisible ? '✓ Đã hiển thị toàn bộ điểm và đỉnh trên bản đồ' : '👁️ Đã ẩn các điểm, đỉnh trên bản đồ');
     },
 
     toggleShapeVerticesVisibility(shapeIdx, isVisible) {
         if (this.savedShapes && this.savedShapes[shapeIdx]) {
-            this.savedShapes[shapeIdx].showVertices = isVisible;
+            const shape = this.savedShapes[shapeIdx];
+            if (shape.mode === 'point') shape.showPoints = isVisible;
+            else shape.showVertices = isVisible;
             this.saveShapesForProject(AppState.currentProject);
             this.persistSession();
             this.renderGeometry();
             this.renderModalVerticesTable();
-            showToast(`✓ Đã ${isVisible ? 'hiển thị' : 'ẩn'} đỉnh cho [${this.savedShapes[shapeIdx].shortName}]`);
+            showToast(`✓ Đã ${isVisible ? 'hiển thị' : 'ẩn'} ${shape.mode === 'point' ? 'điểm' : 'đỉnh'} cho [${shape.shortName}]`);
+        }
+    },
+
+    toggleShapeLabelsVisibility(shapeIdx, isVisible) {
+        if (this.savedShapes && this.savedShapes[shapeIdx]) {
+            this.savedShapes[shapeIdx].showLabels = isVisible;
+            this.saveShapesForProject(AppState.currentProject);
+            this.persistSession();
+            this.renderGeometry();
+            showToast(`✓ Đã ${isVisible ? 'hiển thị' : 'ẩn'} nhãn tên cho [${this.savedShapes[shapeIdx].shortName}]`);
         }
     },
 
@@ -30388,6 +30564,12 @@ const appCadTool = {
         const showVertices = document.getElementById('cadExportCheckVertices')
             ? document.getElementById('cadExportCheckVertices').checked
             : (this.displaySettings ? (this.displaySettings.showVertices === true) : false);
+        const showPoints = document.getElementById('cadExportCheckPoints')
+            ? document.getElementById('cadExportCheckPoints').checked
+            : (this.displaySettings ? (this.displaySettings.showPoints !== false) : true);
+        const showLabels = document.getElementById('cadExportCheckLabels')
+            ? document.getElementById('cadExportCheckLabels').checked
+            : (this.displaySettings ? (this.displaySettings.showLabels !== false) : true);
         const showDistances = document.getElementById('cadExportCheckDistances')
             ? document.getElementById('cadExportCheckDistances').checked
             : (this.displaySettings ? (this.displaySettings.showDistances === true) : false);
@@ -30417,18 +30599,75 @@ const appCadTool = {
         try {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
                 drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, scaleVal, paper, showPercent, showBlockInfo, customTotalArea,
-                showVertices, showDistances, showCenterLabels, showAnnotations, showBoundaries
+                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries
             }));
         } catch (e) {}
 
         const paperW = paper === 'A3' ? 420 : 297;
         const paperH = paper === 'A3' ? 297 : 210;
-        return { 
-            scaleVal, paper, paperW, paperH, 
+        return {
+            scaleVal, paper, paperW, paperH,
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
-            showVertices, showDistances, showCenterLabels, showAnnotations, showBoundaries
+            showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries
         };
+    },
+
+    // Cờ nhóm cho một đối tượng khi xuất: điểm rời dùng "Điểm rời", khối/tuyến dùng "Đỉnh"
+    exportGlyphFlag(meta, isPointLayer) {
+        return isPointLayer ? (meta.showPoints !== false) : (meta.showVertices !== false);
+    },
+
+    // Vẽ ký hiệu điểm bằng Canvas (PDF / PNG) theo kiểu hình đã chọn cho điểm hoặc lớp
+    drawPointGlyph(ctx, px, py, r, styleId, color) {
+        const lineStyles = ['cross', 'x'];
+        ctx.save();
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        if (styleId === 'square') {
+            ctx.rect(px - r, py - r, r * 2, r * 2);
+        } else if (styleId === 'diamond') {
+            ctx.moveTo(px, py - r); ctx.lineTo(px + r, py); ctx.lineTo(px, py + r); ctx.lineTo(px - r, py); ctx.closePath();
+        } else if (styleId === 'triangle') {
+            ctx.moveTo(px, py - r); ctx.lineTo(px + r, py + r); ctx.lineTo(px - r, py + r); ctx.closePath();
+        } else if (styleId === 'cross') {
+            ctx.moveTo(px - r, py); ctx.lineTo(px + r, py); ctx.moveTo(px, py - r); ctx.lineTo(px, py + r);
+        } else if (styleId === 'x') {
+            ctx.moveTo(px - r, py - r); ctx.lineTo(px + r, py + r); ctx.moveTo(px + r, py - r); ctx.lineTo(px - r, py + r);
+        } else if (styleId === 'ring') {
+            ctx.arc(px, py, r, 0, Math.PI * 2);
+        } else {
+            ctx.arc(px, py, r, 0, Math.PI * 2);
+        }
+
+        if (lineStyles.includes(styleId) || styleId === 'ring') {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = Math.max(0.6, r * 0.55);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(0.4, r * 0.35);
+            ctx.stroke();
+        }
+        ctx.restore();
+    },
+
+    // Chuỗi SVG cho một ký hiệu điểm (SVG export). Dùng class riêng .cad-pt-glyph để màu
+    // chỉ định theo điểm/lớp (thuộc tính presentation) không bị ghi đè bởi .layer-ky-hieu.
+    pointGlyphSvg(styleId, cx, cy, r, color) {
+        const at = (dx, dy) => `${(cx + dx * r).toFixed(1)},${(cy + dy * r).toFixed(1)}`;
+        const solid = `fill="${color}" stroke="#ffffff" stroke-width="${(r * 0.3).toFixed(2)}"`;
+        const stroked = `fill="none" stroke="${color}" stroke-width="${(r * 0.55).toFixed(2)}" stroke-linecap="round"`;
+        if (styleId === 'square') return `<rect class="cad-pt-glyph" x="${(cx - r).toFixed(1)}" y="${(cy - r).toFixed(1)}" width="${(r * 2).toFixed(1)}" height="${(r * 2).toFixed(1)}" ${solid}/>`;
+        if (styleId === 'diamond') return `<polygon class="cad-pt-glyph" points="${at(0, -1)} ${at(1, 0)} ${at(0, 1)} ${at(-1, 0)}" ${solid}/>`;
+        if (styleId === 'triangle') return `<polygon class="cad-pt-glyph" points="${at(0, -1)} ${at(1, 1)} ${at(-1, 1)}" ${solid}/>`;
+        if (styleId === 'cross') return `<path class="cad-pt-glyph" d="M${(cx - r).toFixed(1)},${cy.toFixed(1)} L${(cx + r).toFixed(1)},${cy.toFixed(1)} M${cx.toFixed(1)},${(cy - r).toFixed(1)} L${cx.toFixed(1)},${(cy + r).toFixed(1)}" ${stroked}/>`;
+        if (styleId === 'x') return `<path class="cad-pt-glyph" d="M${at(-1, -1)} L${at(1, 1)} M${at(1, -1)} L${at(-1, 1)}" ${stroked}/>`;
+        if (styleId === 'ring') return `<circle class="cad-pt-glyph" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" ${stroked}/>`;
+        return `<circle class="cad-pt-glyph" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" ${solid}/>`;
     },
 
     _getFontSizeForScale(scale) {
@@ -30935,17 +31174,45 @@ const appCadTool = {
                 addLwPolyline(this.sanitizeLayerId(this.getShapeLayerId(shape)), pts.map(p => ({ x: p.y, y: p.x })), isClosed);
             }
 
-            // Điểm đỉnh mốc & Nhãn tên mốc (Hiển thị khi meta.showVertices !== false)
-            if (meta.showVertices !== false || isPointLayer) {
+            // Điểm đỉnh mốc & Nhãn tên mốc: điểm rời theo cờ "Điểm rời", đỉnh khối theo cờ "Đỉnh"
+            if (this.exportGlyphFlag(meta, isPointLayer)) {
                 const mRadius = 1.0 * S; // Bán kính mốc 1mm trên giấy
                 pts.forEach((p, idx) => {
                     const cadX = p.y;
                     const cadY = p.x;
-                    addCircle("DINH_MOC", cadX, cadY, mRadius);
-                    addPoint("DINH_MOC", cadX, cadY);
+                    const glyph = isPointLayer ? this.getPointStyleFor(shape, p) : 'circle';
+                    const r = mRadius;
+                    if (glyph === 'square') {
+                        addLwPolyline("DINH_MOC", [
+                            { x: cadX - r, y: cadY - r }, { x: cadX + r, y: cadY - r },
+                            { x: cadX + r, y: cadY + r }, { x: cadX - r, y: cadY + r }
+                        ], true);
+                    } else if (glyph === 'diamond') {
+                        addLwPolyline("DINH_MOC", [
+                            { x: cadX, y: cadY + r }, { x: cadX + r, y: cadY },
+                            { x: cadX, y: cadY - r }, { x: cadX - r, y: cadY }
+                        ], true);
+                    } else if (glyph === 'triangle') {
+                        addLwPolyline("DINH_MOC", [
+                            { x: cadX, y: cadY + r }, { x: cadX + r, y: cadY - r }, { x: cadX - r, y: cadY - r }
+                        ], true);
+                    } else if (glyph === 'cross') {
+                        addLine("DINH_MOC", cadX - r, cadY, cadX + r, cadY);
+                        addLine("DINH_MOC", cadX, cadY - r, cadX, cadY + r);
+                    } else if (glyph === 'x') {
+                        addLine("DINH_MOC", cadX - r, cadY - r, cadX + r, cadY + r);
+                        addLine("DINH_MOC", cadX + r, cadY - r, cadX - r, cadY + r);
+                    } else if (glyph === 'ring') {
+                        addCircle("DINH_MOC", cadX, cadY, r);
+                    } else {
+                        addCircle("DINH_MOC", cadX, cadY, mRadius);
+                        addPoint("DINH_MOC", cadX, cadY);
+                    }
 
-                    const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
-                    addText("TEN_MOC", cadX + 1.5 * S, cadY + 1.2 * S, 2.0 * S, cleanName);
+                    if (meta.showLabels !== false) {
+                        const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
+                        addText("TEN_MOC", cadX + 1.5 * S, cadY + 1.2 * S, 2.0 * S, cleanName);
+                    }
                 });
             }
 
@@ -31547,22 +31814,21 @@ const appCadTool = {
                 ctx.stroke();
             }
 
-            // Điểm đỉnh mốc ranh & Tên đỉnh
-            if (meta.showVertices !== false || isPointLayer) {
+            // Điểm đỉnh mốc ranh & Tên đỉnh (điểm rời / đỉnh khối tách cờ riêng)
+            if (this.exportGlyphFlag(meta, isPointLayer)) {
                 pts.forEach((p, idx) => {
                     const px = toCvX(p.y);
                     const py = toCvY(p.x);
-                    ctx.fillStyle = '#ef4444';
-                    ctx.beginPath();
-                    ctx.arc(px, py, Math.round(1.2 * pxPerMm), 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = Math.round(0.4 * pxPerMm);
-                    ctx.stroke();
+                    const r = Math.round(1.2 * pxPerMm);
+                    this.drawPointGlyph(ctx, px, py, r,
+                        isPointLayer ? this.getPointStyleFor(shape, p) : 'circle',
+                        isPointLayer ? this.getPointColorFor(shape, p) : '#ef4444');
 
-                    ctx.font = `bold ${Math.round(2.2 * pxPerMm)}px Arial`;
-                    ctx.fillStyle = '#0f172a';
-                    ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
+                    if (meta.showLabels !== false) {
+                        ctx.font = `bold ${Math.round(2.2 * pxPerMm)}px Arial`;
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
+                    }
                 });
             }
 
@@ -32216,13 +32482,17 @@ const appCadTool = {
                 }
             }
 
-            // Điểm mốc & ký hiệu đỉnh
-            if (meta.showVertices !== false || isPointLayer) {
+            // Điểm mốc & ký hiệu đỉnh (điểm rời dùng kiểu + màu riêng của điểm/lớp)
+            if (this.exportGlyphFlag(meta, isPointLayer)) {
                 pts.forEach((p, idx) => {
                     const sx2 = toSvgX(p.y);
                     const sy2 = toSvgY(p.x);
-                    svgContent += `  <circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="4"/>\r\n`;
-                    svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}">${p.name || ('Đ' + (idx+1))}</text>\r\n`;
+                    svgContent += `  ${isPointLayer
+                        ? this.pointGlyphSvg(this.getPointStyleFor(shape, p), sx2, sy2, 4, this.getPointColorFor(shape, p))
+                        : `<circle class="layer-ky-hieu" cx="${sx2.toFixed(1)}" cy="${sy2.toFixed(1)}" r="4"/>`}\r\n`;
+                    if (meta.showLabels !== false) {
+                        svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}">${p.name || ('Đ' + (idx+1))}</text>\r\n`;
+                    }
                 });
             }
 
@@ -32622,14 +32892,17 @@ const appCadTool = {
             }
 
             // Điểm mốc & ký hiệu đỉnh
-            if (meta.showVertices !== false || isPointLayer) {
+            if (this.exportGlyphFlag(meta, isPointLayer)) {
                 pts.forEach((p) => {
                     const px = toX(p.y), py = toY(p.x);
-                    ctx.strokeStyle = '#C62828'; ctx.lineWidth = 1;
-                    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.stroke();
-                    ctx.font = 'bold 10px Arial';
-                    ctx.fillStyle = '#0f172a';
-                    ctx.fillText(p.name || '', px + 5, py - 5);
+                    this.drawPointGlyph(ctx, px, py, 4,
+                        isPointLayer ? this.getPointStyleFor(shape, p) : 'ring',
+                        isPointLayer ? this.getPointColorFor(shape, p) : '#C62828');
+                    if (meta.showLabels !== false) {
+                        ctx.font = 'bold 10px Arial';
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillText(p.name || '', px + 5, py - 5);
+                    }
                 });
             }
 

@@ -7153,6 +7153,67 @@
       }
     }
 
+    /* ==== KIỂU KÝ HIỆU ĐIỂM RỜI (MiniCAD): mỗi lớp hoặc mỗi điểm chọn một hình ==== */
+    /* Chỉ áp hình dạng khi điểm ở trạng thái ký hiệu nhỏ; khi bung nhãn (.expanded) vẫn là viên thuốc chữ nhật bo tròn */
+    .cad-vertex-badge.sty-square:not(.expanded) {
+      border-radius: 2px;
+    }
+
+    .cad-vertex-badge.sty-diamond:not(.expanded) {
+      border-radius: 0;
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    }
+
+    .cad-vertex-badge.sty-triangle:not(.expanded) {
+      border-radius: 0;
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    }
+
+    .cad-vertex-badge.sty-cross:not(.expanded) {
+      border-radius: 0;
+      clip-path: polygon(35% 0%, 65% 0%, 65% 35%, 100% 35%, 100% 65%, 65% 65%, 65% 100%, 35% 100%, 35% 65%, 0% 65%, 0% 35%, 35% 35%);
+    }
+
+    .cad-vertex-badge.sty-x:not(.expanded) {
+      border-radius: 0;
+      clip-path: polygon(20% 0%, 50% 30%, 80% 0%, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0% 80%, 30% 50%, 0% 20%);
+    }
+
+    /* clip-path cắt luôn viền trắng nên dùng quầng đổ bóng để giữ tương phản trên nền bản đồ */
+    .cad-vertex-badge.sty-diamond:not(.expanded),
+    .cad-vertex-badge.sty-triangle:not(.expanded),
+    .cad-vertex-badge.sty-cross:not(.expanded),
+    .cad-vertex-badge.sty-x:not(.expanded) {
+      filter: drop-shadow(0 0 1px #ffffff) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+    }
+
+    /* Điểm rời hiển thị nguyên vẹn hình ký hiệu, không mờ như đỉnh khối */
+    .cad-vertex-badge[class*="sty-"].dot-visible:not(.expanded) {
+      width: 13px !important;
+      height: 13px !important;
+      min-width: 13px !important;
+      opacity: 1 !important;
+    }
+
+    /* Nhãn nhóm hiển thị trên thanh công cụ CAD */
+    .cad-display-group-tag {
+      align-self: center;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      color: #7dd3fc;
+      padding: 2px 4px;
+      white-space: nowrap;
+    }
+
+    .cad-display-group-sep {
+      align-self: center;
+      width: 1px;
+      height: 18px;
+      background: rgba(148, 163, 184, 0.35);
+      flex: none;
+    }
+
     .cad-center-divicon {
       background: transparent !important;
       border: none !important;
@@ -8886,7 +8947,7 @@
     .compact-tool-card:active {
       transform: scale(0.97) !important;
       border-color: var(--hud-border-glow) !important;
-    }
+    }
 
     /* ==========================================================================
        HỆ THỐNG TỐI ƯU HÓA MÀN HÌNH NHỎ DẠNG ĐỨNG (MOBILE PORTRAIT RESPONSIVE SYSTEM)

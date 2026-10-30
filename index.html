@@ -33,7 +33,7 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.1">
+  <link rel="stylesheet" href="style.css?v=2.8.9">
   <link rel="stylesheet" href="field-workspace.css">
   <link rel="stylesheet" href="ui-polish.css?v=2.8.2">
 </head>
@@ -2266,11 +2266,23 @@
               title="Thước đo động: Hiển thị cự ly cạnh và góc phương vị thời gian thực theo trỏ chuột">
               📏 Thước DYN: BẬT
             </button>
-            <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh (Đ1, Đ2, Đ3...) trên bản vẽ">
+            <span class="cad-display-group-tag">HIỂN THỊ</span>
+            <label class="cad-check-label" title="Hiện hoặc ẩn hoàn toàn các điểm rời của lớp điểm (P1, P2...) trên bản đồ">
+              <input type="checkbox" id="cadCheckShowPoints" checked
+                onchange="appCadTool.toggleDisplayOption('showPoints', this.checked)">
+              <span>📍 Điểm rời</span>
+            </label>
+            <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh của khối và tuyến (Đ1, Đ2, Đ3...)">
               <input type="checkbox" id="cadCheckShowVertices"
                 onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
-              <span>📍 Ký hiệu đỉnh</span>
+              <span>📐 Đỉnh khối &amp; tuyến</span>
             </label>
+            <label class="cad-check-label" title="Hiện hoặc ẩn chữ nhãn tên đi kèm ký hiệu điểm/đỉnh (tắt đi thì chỉ còn hình ký hiệu)">
+              <input type="checkbox" id="cadCheckShowLabels" checked
+                onchange="appCadTool.toggleDisplayOption('showLabels', this.checked)">
+              <span>🏷️ Nhãn tên</span>
+            </label>
+            <span class="cad-display-group-sep"></span>
             <label class="cad-check-label" title="Hiện hoặc ẩn khoảng cách giữa các đỉnh (cự ly cạnh theo mét)">
               <input type="checkbox" id="cadCheckShowDistances"
                 onchange="appCadTool.toggleDisplayOption('showDistances', this.checked)">
@@ -5277,7 +5289,7 @@
 
   <!-- ================= MODAL BẢNG ĐIỂM (CHẤM ĐIỂM MỐC / CỌC THEO LỚP) ================= -->
   <div id="modalCadPointTable" class="modal-overlay" onclick="if(event.target === this) appCadTool.closePointTableModal()">
-    <div class="modal-box" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="modal-box" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-title">
         <span style="color: #38bdf8;">📍 Bảng Điểm — Chấm Điểm Mốc / Cọc</span>
         <button class="btn-modal-close" onclick="appCadTool.closePointTableModal()">✕</button>
@@ -5297,17 +5309,36 @@
         <span id="cadPtTableCount" style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">0 điểm</span>
       </div>
 
-      <!-- Bảng điểm: sửa trực tiếp tên, X, Y, H, ghi chú -->
+      <!-- Kiểu & màu ký hiệu điểm: mặc định cho cả lớp, từng điểm vẫn chỉnh riêng được ở bảng dưới -->
+      <div
+        style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 7px 10px; margin-bottom: 8px; background: rgba(30,41,59,0.55); border: 1px solid rgba(250,204,21,0.25); border-radius: 8px;">
+        <span style="font-size: 11px; color: #94a3b8;">🎨 Ký hiệu mặc định lớp</span>
+        <b id="cadPtBulkLayerName" style="font-size: 11px; color: #fde047;">—</b>
+        <select id="cadPtBulkStyle" class="app-input"
+          style="height: 28px; max-width: 130px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"
+          title="Hình dạng ký hiệu dùng cho toàn bộ điểm của lớp"></select>
+        <input type="color" id="cadPtBulkColor"
+          style="width: 34px; height: 28px; padding: 0; border: 1px solid rgba(56,189,248,0.4); border-radius: 4px; background: rgba(30,41,59,0.9);"
+          title="Màu ký hiệu dùng cho toàn bộ điểm của lớp">
+        <button type="button" class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;"
+          onclick="appCadTool.applyPointLayerStyle()" title="Áp kiểu + màu cho tất cả điểm của lớp đang chọn">⬇ Áp dụng cả lớp</button>
+        <button type="button" class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;"
+          onclick="appCadTool.resetPointStyleOverrides()" title="Bỏ mọi tùy chỉnh riêng để các điểm quay về mặc định của lớp">↺ Đặt lại</button>
+      </div>
+
+      <!-- Bảng điểm: sửa trực tiếp tên, X, Y, H, kiểu, màu, ghi chú -->
       <div class="cad-table-wrap" style="flex: 1; margin-bottom: 10px;">
         <table class="cad-coord-table">
           <thead>
             <tr>
               <th style="width: 34px; text-align: center;">STT</th>
-              <th style="text-align: left; min-width: 78px;">Tên điểm</th>
-              <th style="text-align: right; min-width: 96px;">X (Bắc) [m]</th>
-              <th style="text-align: right; min-width: 96px;">Y (Đông) [m]</th>
-              <th style="text-align: right; min-width: 72px;">H [m]</th>
-              <th style="text-align: left; min-width: 100px;">Ghi chú</th>
+              <th style="text-align: left; min-width: 70px;">Tên điểm</th>
+              <th style="text-align: right; min-width: 88px;">X (Bắc) [m]</th>
+              <th style="text-align: right; min-width: 88px;">Y (Đông) [m]</th>
+              <th style="text-align: right; min-width: 66px;">H [m]</th>
+              <th style="text-align: center; min-width: 92px;">Kiểu</th>
+              <th style="text-align: center; width: 46px;">Màu</th>
+              <th style="text-align: left; min-width: 90px;">Ghi chú</th>
               <th style="width: 62px; text-align: center;">Thao tác</th>
             </tr>
           </thead>
@@ -5578,10 +5609,24 @@
               </div>
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px;">
                 <label class="cad-export-check-item">
+                  <input type="checkbox" id="cadExportCheckPoints" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <div>
+                    <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📍 Điểm rời (lớp điểm)</div>
+                    <div style="font-size: 10.5px; color: #94a3b8;">Mốc ký hiệu của các lớp điểm P1, P2...</div>
+                  </div>
+                </label>
+                <label class="cad-export-check-item">
                   <input type="checkbox" id="cadExportCheckVertices" onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
                   <div>
-                    <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📍 Ký hiệu đỉnh mốc</div>
-                    <div style="font-size: 10.5px; color: #94a3b8;">Hiện tên mốc Đ1, Đ2... tại các góc ranh</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📐 Đỉnh khối &amp; tuyến</div>
+                    <div style="font-size: 10.5px; color: #94a3b8;">Mốc ký hiệu tại các góc ranh Đ1, Đ2...</div>
+                  </div>
+                </label>
+                <label class="cad-export-check-item">
+                  <input type="checkbox" id="cadExportCheckLabels" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <div>
+                    <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🏷️ Nhãn tên điểm / đỉnh</div>
+                    <div style="font-size: 10.5px; color: #94a3b8;">Chữ tên đi kèm mốc (tắt = chỉ còn ký hiệu)</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
@@ -7126,7 +7171,7 @@
   <!-- APPLICATION CORE SCRIPT -->
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
-  <script src="app.js?v=2.8.5"></script>
+  <script src="app.js?v=2.8.9"></script>
   <script src="field-workspace.js?v=2.8.5"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
