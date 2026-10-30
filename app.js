@@ -20325,10 +20325,24 @@ const appCadTool = {
         }
 
         this.refreshPointLayerBar();
+        this.syncShapeNameSuggestion();
         this.syncToolButtons();
         this.renderGeometry();
         this.updateUi();
         if (this.updateCmdRibbonActiveStates) this.updateCmdRibbonActiveStates();
+    },
+
+    // Đồng bộ gợi ý tên khối trên toolbar khi đổi chế độ vẽ, tránh lưu đa giác với tên "Tuyến N" còn sót
+    syncShapeNameSuggestion() {
+        const input = document.getElementById('cadActiveShapeName');
+        if (!input) return;
+        const isPoly = this.mode === 'polygon';
+        const next = `${isPoly ? 'Thửa' : 'Tuyến'} ${this.savedShapes.length + 1}`;
+        const current = input.value.trim();
+        input.placeholder = `Tên khối (${next})`;
+        if (!current || /^(Thửa|Tuyến) \d+$/.test(current)) {
+            input.value = next;
+        }
     },
 
     togglePercentRatio(checked) {
@@ -25006,8 +25020,15 @@ const appCadTool = {
     },
 
     promptOffset() {
-        if (this.vertices.length < 2) {
-            showToast("⚠️ Cần vẽ ít nhất 2 đỉnh để tạo đường song song (Offset)!", true);
+        // Ở tab Chọn: Offset áp dụng cho khối đang chọn (tạo khối mới song song), không đòi nét vẽ dở
+        const sourceShape = (this.mode === 'select' && this.selectedItem && this.selectedItem.type === 'shape')
+            ? (this.savedShapes || [])[this.selectedItem.index]
+            : null;
+        const basePts = (sourceShape && sourceShape.vertices && sourceShape.vertices.length >= 2)
+            ? sourceShape.vertices
+            : this.vertices;
+        if (!basePts || basePts.length < 2) {
+            showToast("⚠️ Cần vẽ ít nhất 2 đỉnh (hoặc chọn 1 khối) để tạo đường song song Offset!", true);
             return;
         }
         const input = prompt("Nhập khoảng cách song song Offset (mét):\r\n(Nhập số dương: mở rộng ra ngoài/phải; số âm: thu vào trong/trái)", "5.0");
@@ -25018,11 +25039,16 @@ const appCadTool = {
             return;
         }
 
-        this.pushHistoryState('Dựng đường Offset');
-        const pts = this.vertices;
+        if (sourceShape) {
+            this.pushHistoryState(`Offset khối "${sourceShape.name}"`);
+        } else {
+            this.pushHistoryState('Dựng đường Offset');
+        }
+        const pts = basePts;
         const n = pts.length;
-        const isClosed = (this.mode === 'polygon' && n >= 3);
+        const isClosed = sourceShape ? (sourceShape.mode === 'polygon' && n >= 3) : (this.mode === 'polygon' && n >= 3);
         const offsetPts = [];
+        const offsetVerts = [];
 
         // Tính toán các vector pháp tuyến đơn vị của từng cạnh
         const normals = [];
@@ -25067,6 +25093,39 @@ const appCadTool = {
             }
             const wgs = convertVn2kToWgs(ox, oy, AppState.kttVal, AppState.scaleFactor);
             offsetPts.push([wgs.lat, wgs.lng]);
+            offsetVerts.push({
+                id: Date.now() + i,
+                name: (pts[i] && pts[i].name) || `Đ${i + 1}`,
+                lat: wgs.lat,
+                lng: wgs.lng,
+                x: +ox.toFixed(3),
+                y: +oy.toFixed(3),
+                h: (pts[i] && pts[i].h) || 0,
+                isSnapped: false,
+                snapSource: `Offset ${d > 0 ? '+' : ''}${d}m từ "${sourceShape ? sourceShape.name : 'nét vẽ'}"`
+            });
+        }
+
+        if (sourceShape) {
+            const newMode = isClosed ? 'polygon' : 'polyline';
+            const newName = `${sourceShape.name} (Offset)`;
+            this.savedShapes.push({
+                id: 'shape_' + Date.now() + '_off',
+                name: newName,
+                shortName: newName,
+                mode: newMode,
+                vertices: offsetVerts,
+                stats: this.calculateAreaAndPerimeter(offsetVerts, newMode),
+                color: this.palette[this.savedShapes.length % this.palette.length],
+                selected: true
+            });
+            this.saveShapesForProject(AppState.currentProject);
+            this.persistSession();
+            this.renderGeometry();
+            this.updateUi();
+            this.renderBlocksPanel();
+            showToast(`✓ Đã tạo khối "${newName}" song song ${d > 0 ? '+' : ''}${d}m`);
+            return;
         }
 
         if (this.layers.offsetLayer && this.layers.group) {
