@@ -14424,9 +14424,9 @@ const appCamera = {
 
         if (container) {
             if (item.type === 'video') {
-                container.innerHTML = `<video src="${item.dataUrl}" controls autoplay style="width: 100%; max-height: 50vh; object-fit: contain;"></video>`;
+                container.innerHTML = `<video src="${item.dataUrl}" controls autoplay style="width: 100%; max-height: calc(var(--ui-avail-h) * 0.5); object-fit: contain;"></video>`;
             } else {
-                container.innerHTML = `<img src="${item.dataUrl}" alt="${item.markName}" style="width: 100%; max-height: 50vh; object-fit: contain;">`;
+                container.innerHTML = `<img src="${item.dataUrl}" alt="${item.markName}" style="width: 100%; max-height: calc(var(--ui-avail-h) * 0.5); object-fit: contain;">`;
             }
         }
 
@@ -27500,8 +27500,8 @@ const appCadTool = {
         if (this.isAreaModalMaximized) {
             box.style.maxWidth = '98vw';
             box.style.width = '98vw';
-            box.style.maxHeight = '96vh';
-            box.style.height = '96vh';
+            box.style.maxHeight = 'calc(var(--ui-avail-h) * 0.96)';
+            box.style.height = 'calc(var(--ui-avail-h) * 0.96)';
             if (iconEl) iconEl.textContent = '❐';
             if (btnEl) btnEl.title = 'Thu nhỏ kích thước bảng kê [⛶]';
             const spanText = btnEl?.querySelector('span:last-child');
@@ -27509,7 +27509,7 @@ const appCadTool = {
         } else {
             box.style.maxWidth = '960px';
             box.style.width = '94vw';
-            box.style.maxHeight = '92vh';
+            box.style.maxHeight = 'calc(var(--ui-avail-h) * 0.92)';
             box.style.height = '';
             if (iconEl) iconEl.textContent = '⛶';
             if (btnEl) btnEl.title = 'Phóng to toàn màn hình để xem rộng rãi, không bị che khuất [⛶]';
@@ -34804,6 +34804,51 @@ const appCadTool = {
     }
 };
 
+// ================= 10.8 VÙNG NHÌN THẤY & VÙNG AN TOÀN THIẾT BỊ (VIEWPORT MEASURER) =================
+// 100vh/100dvh không đủ tin trên di động: thanh trình duyệt thu vào, bàn phím ảo và tai thỏ
+// đều làm vùng thật nhỏ hơn đơn vị viewport. Module đo thật rồi đẩy vào CSS custom properties
+// (--app-vh, --kb-inset) để mọi bề mặt dán cạnh tự phân phối lại.
+const appViewport = {
+    _raf: 0,
+
+    init() {
+        this.root = document.documentElement;
+        this.sync();
+        window.addEventListener('resize', () => this.requestSync());
+        window.addEventListener('orientationchange', () => {
+            // Trình duyệt chỉ đổi kích thước sau khi xoay khoảng một khung hình, phải đo lại lần hai.
+            this.requestSync();
+            setTimeout(() => this.sync(), 260);
+        });
+        const vv = window.visualViewport;
+        if (vv) {
+            vv.addEventListener('resize', () => this.requestSync());
+            vv.addEventListener('scroll', () => this.requestSync());
+        }
+    },
+
+    requestSync() {
+        if (this._raf) return;
+        this._raf = requestAnimationFrame(() => {
+            this._raf = 0;
+            this.sync();
+        });
+    },
+
+    sync() {
+        if (!this.root) return;
+        this.root.style.setProperty('--app-vh', `${Math.round(window.innerHeight)}px`);
+        this.root.style.setProperty('--kb-inset', `${Math.round(this.keyboardInset())}px`);
+    },
+
+    // Bàn phím ảo chiếm bao nhiêu px ở đáy (0 khi đóng) — chỉ visualViewport báo được con số này.
+    keyboardInset() {
+        const vv = window.visualViewport;
+        if (!vv) return 0;
+        return Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    }
+};
+
 // ================= 10.9 HỆ THỐNG GIAO DIỆN CHUẨN LOVABLE (THEME CONTROLLER) =================
 const appTheme = {
     current: 'dark',
@@ -35235,6 +35280,7 @@ const appDonate = {
 window.addEventListener('DOMContentLoaded', () => {
 // Menu button handled via debounced appNav.toggleTreeMenu
 
+    if (typeof appViewport !== 'undefined') appViewport.init();
     appTheme.init();
     if (typeof appModal !== 'undefined' && appModal.initUiIconMode) appModal.initUiIconMode();
     if (typeof appI18n !== 'undefined') appI18n.init();

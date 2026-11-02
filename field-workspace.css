@@ -84,7 +84,7 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
   #fwInputs { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   #fwForm { gap: 16px; }
   #fwSecondary { gap: 8px; }
-  body.field-mode header.app-header { padding: calc(var(--sat-safe-top) + 2px) 8px 2px !important; gap: 6px !important; }
+  body.field-mode header.app-header { padding: calc(var(--sat-safe-top) + 2px) calc(var(--sat-safe-right) + 8px) 2px calc(var(--sat-safe-left) + 8px) !important; gap: 6px !important; }
   body.field-mode header.app-header .header-left { width: auto !important; min-width: 0; flex: 0 0 auto !important; }
   body.field-mode header.app-header .header-right { width: auto !important; flex: 0 1 auto !important; min-width: 0; }
   body.field-mode header.app-header .mac-control-center-capsule { justify-content: space-between; gap: 6px !important; }

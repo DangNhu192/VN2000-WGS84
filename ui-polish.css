@@ -108,7 +108,7 @@ body.dock-collapsed :is(#screen-menu, #screen-transform, #screen-datamgmt, #scre
 @media (max-width: 767px) {
   .transform-split-layout:not(.map-full-focus):not(.mode-map-dominant):not(.mode-form-only) {
     min-height: 680px !important;
-    height: max(680px, calc(100dvh - 140px)) !important;
+    height: max(680px, calc(var(--app-vh) - 140px)) !important;
     max-height: none !important;
   }
   .transform-subtabs {
@@ -154,14 +154,14 @@ body.dock-collapsed :is(#screen-menu, #screen-transform, #screen-datamgmt, #scre
     font-size: 12px !important;
   }
   .transform-bottom-sheet:not(.sheet-peek) {
-    bottom: 66px !important;
+    bottom: calc(var(--sat-safe-bottom) + 66px) !important;
     min-height: 0 !important;
-    max-height: min(50dvh, calc(100dvh - 280px)) !important;
+    max-height: min(calc(var(--app-vh) * 0.5), calc(var(--app-vh) - 280px)) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
   .transform-bottom-sheet.sheet-peek {
-    bottom: 66px !important;
+    bottom: calc(var(--sat-safe-bottom) + 66px) !important;
     max-height: 52px !important;
     overflow: hidden !important;
   }
@@ -299,7 +299,7 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 @media (max-width: 480px) {
   #modalDonateCountdown.modal-overlay{top:8px!important;left:8px!important;right:8px!important;justify-content:center!important}
 }
-#modalDonateCountdown .modal-donate-box.support-modal{width:420px!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 20px)!important;background:rgba(15,23,42,0.96)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;color:var(--text-main,#f3f4f6)!important;border:1px solid rgba(56,189,248,0.28)!important;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.08)!important;display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important;pointer-events:auto!important}
+#modalDonateCountdown .modal-donate-box.support-modal{width:420px!important;max-width:calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 16px)!important;max-height:calc(var(--app-vh) - 20px)!important;background:rgba(15,23,42,0.96)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;color:var(--text-main,#f3f4f6)!important;border:1px solid rgba(56,189,248,0.28)!important;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.08)!important;display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important;pointer-events:auto!important}
 #modalDonateCountdown .support-header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08);background:inherit}
 #modalDonateCountdown .support-title-wrap{min-width:0;flex:1}
 #modalDonateCountdown .support-title{margin:0;font-size:14px;font-weight:700;line-height:1.2;color:var(--text-main,#f3f4f6);letter-spacing:.2px}
@@ -834,10 +834,9 @@ body[data-theme="light"] .export-format-tile div > div:first-child {
   left: 0 !important;
   bottom: 0 !important;
   width: 360px !important;
-  max-width: 88vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  max-height: 100dvh !important;
+  max-width: calc(88vw - var(--sat-safe-left) - var(--sat-safe-right)) !important;
+  height: var(--app-vh) !important;
+  max-height: var(--app-vh) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -1487,8 +1486,8 @@ body[data-theme="light"] .drawer-leaf-title {
 nav#mobileBottomNav.mobile-bottom-nav.mac-floating-dock {
   position: fixed !important;
   bottom: calc(var(--sat-safe-bottom, 0px) + 10px) !important;
-  left: 14px !important;
-  right: 14px !important;
+  left: calc(var(--sat-safe-left) + 14px) !important;
+  right: calc(var(--sat-safe-right) + 14px) !important;
   max-width: 480px !important;
   margin-inline: auto !important;
   height: 58px !important;
@@ -2245,3 +2244,59 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
   bottom: calc(var(--sat-safe-bottom, 0px) + 10px) !important;
 }
 
+
+/* 6. MÀN NGANG HẸP (điện thoại xoay ngang, cao thật chỉ ~380–620px)
+   ui-polish.css là lớp cuối nên mọi ngưỡng neo của nó chỉ chỉnh được ở đây:
+   viết lại trong style.css sẽ bị chính các rule !important phía trên thắng.
+   Dock hạ còn 46px áp sát đáy, header còn 44px; các bề mặt dưới né đúng dải 4→50px của dock. */
+@media (orientation: landscape) and (max-height: 620px) {
+  header.app-header,
+  header.app-header.mac-top-bar {
+    min-height: calc(var(--sat-safe-top, 0px) + 44px) !important;
+    max-height: calc(var(--sat-safe-top, 0px) + 44px) !important;
+  }
+
+  nav#mobileBottomNav.mobile-bottom-nav,
+  nav#mobileBottomNav.mobile-bottom-nav.mac-floating-dock,
+  nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed {
+    height: 46px !important;
+    min-height: 46px !important;
+    bottom: calc(var(--sat-safe-bottom, 0px) + 4px) !important;
+  }
+
+  .bottom-nav-text,
+  nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-text {
+    font-size: 9.5px !important;
+  }
+
+  .cad-status-hud,
+  #map-view-container.cad-active-map #cadStatusHud,
+  .map-bottom-sheet,
+  .live-map-coord-hud,
+  #transformMapCoordHud,
+  .transform-map-coord-hud,
+  .transform-bottom-sheet,
+  .transform-bottom-sheet:not(.sheet-peek),
+  .transform-bottom-sheet.sheet-peek,
+  #map-view-container .leaflet-bottom,
+  body.dock-collapsed .cad-status-hud,
+  body.dock-collapsed #map-view-container.cad-active-map #cadStatusHud,
+  body.dock-collapsed .map-bottom-sheet,
+  body.dock-collapsed .live-map-coord-hud,
+  body.dock-collapsed .transform-bottom-sheet,
+  body.dock-collapsed #map-view-container .leaflet-bottom {
+    bottom: calc(var(--sat-safe-bottom, 0px) + 56px) !important;
+  }
+
+  .cad-thumb-action-bar,
+  #map-view-container.cad-active-map #cadThumbActionBar,
+  body.dock-collapsed .cad-thumb-action-bar,
+  body.dock-collapsed #map-view-container.cad-active-map #cadThumbActionBar {
+    bottom: calc(var(--sat-safe-bottom, 0px) + 60px) !important;
+  }
+
+  .cad-floating-cmd-bar:not(.is-dragged),
+  body.dock-collapsed .cad-floating-cmd-bar:not(.is-dragged) {
+    bottom: calc(var(--sat-safe-bottom, 0px) + 96px) !important;
+  }
+}

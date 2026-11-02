@@ -17,8 +17,30 @@
       --text-muted: #94a3b8;
       --text-accent: #38bdf8;
       --text-gold: #fbbf24;
+
+      /* VÙNG AN TOÀN 4 MÉP — tai thỏ / camera nốt ruồi / dock cảm ứng.
+         Màn ngang: inset rơi sang TRÁI/PHẢI chứ không còn ở trên, nên cả 4 cạnh đều phải là biến.
+         --kb-inset (do appViewport đo) gộp vào mép dưới để mọi bề mặt đang dùng --sat-safe-bottom
+         tự nâng lên khi bàn phím ảo mở, không phải sửa từng rule. */
       --sat-safe-top: env(safe-area-inset-top, 0px);
-      --sat-safe-bottom: env(safe-area-inset-bottom, 0px);
+      --sat-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--kb-inset));
+      --sat-safe-left: env(safe-area-inset-left, 0px);
+      --sat-safe-right: env(safe-area-inset-right, 0px);
+      /* Bàn phím ảo: appViewport đo bằng visualViewport và ghi đè (0px khi đóng). */
+      --kb-inset: 0px;
+      /* Chiều cao thật nhìn thấy được — app.js đo window.innerHeight và ghi đè ngay khi khởi động
+         (100vh trên di động tính cả vùng trình duyệt đang thu, khiến nội dung đáy ngoài tầm chạm). */
+      --app-vh: 100vh;
+
+      /* Mép thao tác = vùng an toàn + khoảng đệm vận hành; mọi bề mặt dán cạnh phải dùng bộ này. */
+      --ui-edge-top: calc(var(--sat-safe-top) + 8px);
+      --ui-edge-bottom: calc(var(--sat-safe-bottom) + 8px);
+      --ui-edge-left: calc(var(--sat-safe-left) + 8px);
+      --ui-edge-right: calc(var(--sat-safe-right) + 8px);
+      /* Vùng trống phía trên dock nổi ở di động (dock ~60px + lề 8px). */
+      --ui-dock-clear: calc(var(--sat-safe-bottom) + 68px);
+      /* Chiều cao khả dụng cho modal/panel: đã trừ 2 mép đứng và bàn phím. */
+      --ui-avail-h: calc(var(--app-vh) - var(--sat-safe-top) - var(--sat-safe-bottom));
 
       /* HUD 2026 BENTO SURVEY DESIGN SYSTEM TOKENS */
       --hud-bg-glass: rgba(15, 23, 42, 0.82);
@@ -36,6 +58,17 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
       -webkit-user-select: none;
+    }
+
+    /* Pinch-zoom đã mở lại ở viewport meta: control vẫn không dính double-tap zoom. */
+    button,
+    select,
+    textarea,
+    input,
+    label,
+    .mobile-bottom-nav,
+    .bottom-nav-item {
+      touch-action: manipulation;
     }
 
     input,
@@ -100,7 +133,7 @@
       flex-direction: column;
       width: 100%;
       height: 100%;
-      height: 100dvh;
+      height: var(--app-vh);
       overflow: hidden;
       position: relative;
     }
@@ -110,8 +143,8 @@
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
       padding-top: calc(var(--sat-safe-top) + 6px);
       padding-bottom: 8px;
-      padding-left: 10px;
-      padding-right: 10px;
+      padding-left: calc(var(--sat-safe-left) + 10px);
+      padding-right: calc(var(--sat-safe-right) + 10px);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -361,7 +394,7 @@
       height: 100%;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 12px 14px calc(var(--sat-safe-bottom) + 20px) 14px;
+      padding: 12px calc(var(--sat-safe-right) + 14px) calc(var(--sat-safe-bottom) + 20px) calc(var(--sat-safe-left) + 14px);
       display: none;
       opacity: 0;
       transform: translateY(10px) scale(0.985);
@@ -2331,8 +2364,8 @@
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
-        height: calc(100vh - var(--sat-safe-top) - 120px) !important;
-        max-height: calc(100vh - var(--sat-safe-top) - 120px) !important;
+        height: calc(var(--app-vh) - var(--sat-safe-top) - 120px) !important;
+        max-height: calc(var(--app-vh) - var(--sat-safe-top) - 120px) !important;
         overflow: hidden !important;
         gap: 0 !important;
       }
@@ -2459,10 +2492,10 @@
     .transform-map-column.fullscreen-mode,
     .transform-map-column.is-fullscreen {
       position: fixed !important;
-      top: calc(var(--sat-safe-top) + 6px) !important;
-      left: 8px !important;
-      right: 8px !important;
-      bottom: calc(var(--sat-safe-bottom) + 8px) !important;
+      top: var(--ui-edge-top) !important;
+      left: var(--ui-edge-left) !important;
+      right: var(--ui-edge-right) !important;
+      bottom: var(--ui-edge-bottom) !important;
       width: auto !important;
       height: auto !important;
       max-width: none !important;
@@ -2474,7 +2507,7 @@
     /* Floating Coordinate HUD on Live Map */
     .live-map-coord-hud {
       position: absolute;
-      bottom: 12px;
+      bottom: var(--ui-edge-bottom);
       left: 50%;
       transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.88);
@@ -2505,8 +2538,8 @@
       .transform-split-layout {
         flex-direction: row !important;
         align-items: stretch !important;
-        height: calc(100vh - var(--sat-safe-top) - 85px) !important;
-        max-height: calc(100vh - var(--sat-safe-top) - 85px) !important;
+        height: calc(var(--app-vh) - var(--sat-safe-top) - 85px) !important;
+        max-height: calc(var(--app-vh) - var(--sat-safe-top) - 85px) !important;
         overflow: hidden !important;
         gap: 0 !important;
       }
@@ -2686,7 +2719,7 @@
         right: 10px;
         bottom: calc(var(--sat-safe-bottom) + 72px);
         border-radius: 20px;
-        max-height: calc(85vh - 72px);
+        max-height: calc(var(--ui-avail-h) - 80px);
         min-height: 56px;
         z-index: 2350;
       }
@@ -2702,11 +2735,11 @@
 
     @media (min-width: 769px) {
       .transform-bottom-sheet {
-        top: 60px;
-        left: 14px;
-        bottom: 14px;
+        top: calc(var(--sat-safe-top) + 60px);
+        left: calc(var(--sat-safe-left) + 14px);
+        bottom: calc(var(--sat-safe-bottom) + 14px);
         width: 440px;
-        max-width: calc(100vw - 28px);
+        max-width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 28px);
         border-radius: 20px;
         z-index: 2350;
       }
@@ -3323,7 +3356,7 @@
 
     /* UNIFIED SETTINGS MODAL & TABS (LƯỚI 2x2 CỐ ĐỊNH, CHỐNG CHE KHUẤT) */
     .modal-settings-box {
-      max-height: 90vh;
+      max-height: calc(var(--ui-avail-h) - 12px);
       display: flex;
       flex-direction: column;
       padding: 0 !important;
@@ -4023,7 +4056,7 @@
       border: 1.5px solid #334155;
       width: 100%;
       aspect-ratio: 4 / 3;
-      max-height: 60vh;
+      max-height: calc(var(--ui-avail-h) * 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -4400,8 +4433,8 @@
     .map-top-bar {
       position: absolute;
       top: calc(var(--sat-safe-top) + 10px);
-      left: 10px;
-      right: 10px;
+      left: calc(var(--sat-safe-left) + 10px);
+      right: calc(var(--sat-safe-right) + 10px);
       height: 50px;
       background: rgba(11, 17, 32, 0.95);
       backdrop-filter: blur(16px);
@@ -4427,7 +4460,7 @@
     .map-right-controls {
       position: absolute;
       top: calc(var(--sat-safe-top) + 58px);
-      right: 10px;
+      right: calc(var(--sat-safe-right) + 10px);
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -4504,8 +4537,8 @@
     .map-bottom-sheet {
       position: absolute;
       bottom: calc(var(--sat-safe-bottom) + 12px);
-      left: 10px;
-      right: 10px;
+      left: calc(var(--sat-safe-left) + 10px);
+      right: calc(var(--sat-safe-right) + 10px);
       background: rgba(11, 17, 32, 0.96);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
@@ -4561,8 +4594,8 @@
     .map-project-bar {
       position: absolute;
       top: calc(var(--sat-safe-top) + 10px);
-      left: 10px;
-      right: 10px;
+      left: calc(var(--sat-safe-left) + 10px);
+      right: calc(var(--sat-safe-right) + 10px);
       height: 40px;
       background: rgba(15, 23, 42, 0.94);
       backdrop-filter: blur(12px);
@@ -4588,8 +4621,8 @@
     .bar-coord-picker {
       position: absolute;
       top: calc(var(--sat-safe-top) + 10px);
-      left: 10px;
-      right: 10px;
+      left: calc(var(--sat-safe-left) + 10px);
+      right: calc(var(--sat-safe-right) + 10px);
       min-height: 42px;
       background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(14px);
@@ -4864,8 +4897,8 @@
     .map-distance-hud {
       position: absolute;
       top: calc(var(--sat-safe-top) + 110px);
-      left: 10px;
-      max-width: calc(100% - 76px);
+      left: calc(var(--sat-safe-left) + 10px);
+      max-width: calc(100% - var(--sat-safe-left) - var(--sat-safe-right) - 76px);
       background: rgba(15, 23, 42, 0.94);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
@@ -4916,8 +4949,8 @@
     .map-measure-box {
       position: absolute;
       bottom: calc(var(--sat-safe-bottom) + 82px);
-      left: 10px;
-      right: 10px;
+      left: calc(var(--sat-safe-left) + 10px);
+      right: calc(var(--sat-safe-right) + 10px);
       background: rgba(15, 23, 42, 0.96);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -4949,12 +4982,14 @@
     }
 
     /* MODAL SETTINGS POPUP */
+        /* Lớp phủ toàn màn hình: padding 4 mép đẩy hộp nội dung vào vùng an toàn (tai thỏ, nốt ruồi, dock). */
     .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
-      height: 100%;
+      height: var(--app-vh);
+      padding: var(--ui-edge-top) var(--ui-edge-right) var(--ui-edge-bottom) var(--ui-edge-left);
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
@@ -4981,7 +5016,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      max-height: 90vh;
+      max-height: calc(var(--ui-avail-h) - 12px);
       overflow-y: auto;
     }
 
@@ -5069,7 +5104,8 @@
     #toast-msg {
       position: fixed;
       bottom: calc(var(--sat-safe-bottom) + 30px);
-      left: 50%;
+      /* canh giữa vùng an toàn, không rơi vào tai thỏ khi xoay ngang */
+      left: calc(50% + (var(--sat-safe-left) - var(--sat-safe-right)) / 2);
       transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid #38bdf8;
@@ -5084,7 +5120,7 @@
       pointer-events: none;
       transition: opacity 0.25s ease, transform 0.25s ease;
       text-align: center;
-      max-width: 90%;
+      max-width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 24px);
     }
 
     #toast-msg.show {
@@ -5144,9 +5180,9 @@
     /* RESPONSIVE OPTIMIZATION FOR MINICAD, MODALS & SURVEYING TABLES */
     @media (max-width: 640px) {
       .modal-box {
-        width: 96vw !important;
-        max-width: 96vw !important;
-        max-height: 94vh !important;
+        width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 16px) !important;
+        max-width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 16px) !important;
+        max-height: calc(var(--ui-avail-h) - 8px) !important;
         padding: 10px 12px !important;
       }
 
@@ -5911,7 +5947,7 @@
       top: 0;
       left: 0;
       width: 100vw;
-      height: 100vh;
+      height: var(--app-vh);
       background: rgba(15, 23, 42, 0.75);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
@@ -5933,9 +5969,8 @@
       top: 0;
       left: 0;
       width: 360px;
-      max-width: 88vw;
-      height: 100vh;
-      height: 100dvh;
+      max-width: calc(88vw - var(--sat-safe-left) - var(--sat-safe-right));
+      height: var(--app-vh);
       background: linear-gradient(180deg, #0b1120 0%, #0f172a 100%);
       border-right: 1px solid rgba(56, 189, 248, 0.25);
       box-shadow: 10px 0 35px rgba(0, 0, 0, 0.65);
@@ -5953,7 +5988,7 @@
     }
 
     .drawer-header {
-      padding: calc(var(--sat-safe-top) + 12px) 14px 12px 14px;
+      padding: calc(var(--sat-safe-top) + 12px) 14px 12px calc(var(--sat-safe-left) + 14px);
       background: linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%);
       display: flex;
       align-items: center;
@@ -6073,7 +6108,7 @@
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 10px 10px calc(var(--sat-safe-bottom) + 20px) 10px;
+      padding: 10px calc(var(--sat-safe-right) + 10px) calc(var(--sat-safe-bottom) + 20px) calc(var(--sat-safe-left) + 10px);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -6252,8 +6287,8 @@
     /* FLOATING QUICK NAV BUTTON */
     .btn-floating-quicknav {
       position: fixed;
-      bottom: calc(var(--sat-safe-bottom, 16px) + 20px);
-      right: 16px;
+      bottom: calc(var(--sat-safe-bottom) + 20px);
+      right: calc(var(--sat-safe-right) + 16px);
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       border: 1px solid rgba(255, 255, 255, 0.3);
       color: #ffffff;
@@ -6544,12 +6579,12 @@
     .cad-blocks-panel {
       position: absolute;
       top: calc(var(--sat-safe-top) + 215px);
-      left: 10px;
+      left: calc(var(--sat-safe-left) + 10px);
       width: 360px;
       min-width: 320px;
       min-height: 200px;
-      max-width: calc(100vw - 20px);
-      max-height: calc(100vh - 120px);
+      max-width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 20px);
+      max-height: calc(var(--ui-avail-h) - 120px);
       resize: both;
       overflow: hidden;
       background: rgba(15, 23, 42, 0.96);
@@ -6606,12 +6641,12 @@
     .project-marks-blocks-panel {
       position: absolute;
       top: calc(var(--sat-safe-top) + 65px);
-      left: 12px;
+      left: calc(var(--sat-safe-left) + 12px);
       width: 520px;
-      max-width: calc(100vw - 24px);
+      max-width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 24px);
       min-width: 320px;
       min-height: 200px;
-      max-height: calc(100vh - 140px);
+      max-height: calc(var(--ui-avail-h) - 140px);
       background: rgba(15, 23, 42, 0.96);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -6629,9 +6664,9 @@
     .project-marks-blocks-panel.maximized {
       top: calc(var(--sat-safe-top) + 45px) !important;
       left: 10px !important;
-      width: calc(100vw - 20px) !important;
-      height: calc(100vh - 90px) !important;
-      max-height: calc(100vh - 90px) !important;
+      width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 20px) !important;
+      height: calc(var(--ui-avail-h) - 90px) !important;
+      max-height: calc(var(--ui-avail-h) - 90px) !important;
       resize: none;
     }
 
@@ -6718,8 +6753,8 @@
     .map-cad-toolbar {
       position: absolute;
       top: calc(var(--sat-safe-top) + 10px);
-      left: 10px;
-      right: 10px;
+      left: calc(var(--sat-safe-left) + 10px);
+      right: calc(var(--sat-safe-right) + 10px);
       background: rgba(15, 23, 42, 0.94);
       border: 1px solid rgba(56, 189, 248, 0.35);
       border-radius: 12px;
@@ -7503,10 +7538,10 @@
     /* CAD Realtime Status & Coordinates HUD Bar */
     .cad-status-hud {
       position: absolute;
-      bottom: 12px;
-      left: 12px;
+      bottom: calc(var(--sat-safe-bottom) + 12px);
+      left: calc(var(--sat-safe-left) + 12px);
       right: auto;
-      max-width: calc(100% - 24px);
+      max-width: calc(100% - var(--sat-safe-left) - var(--sat-safe-right) - 24px);
       background: rgba(15, 23, 42, 0.94);
       border: 1px solid rgba(56, 189, 248, 0.4);
       border-radius: 8px;
@@ -7644,8 +7679,8 @@
     /* Floating One-Hand Thumb Action Bar cho MiniCAD Thực Địa */
     .cad-thumb-action-bar {
       position: absolute;
-      bottom: 54px;
-      right: 12px;
+      bottom: calc(var(--sat-safe-bottom) + 54px);
+      right: calc(var(--sat-safe-right) + 12px);
       display: none;
       align-items: center;
       gap: 6px;
@@ -7970,7 +8005,7 @@
       border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 8px;
       background: rgba(15, 23, 42, 0.6);
-      max-height: 48vh;
+      max-height: calc(var(--ui-avail-h) * 0.48);
       scrollbar-width: thin;
     }
 
@@ -8104,6 +8139,8 @@
       width: 100%;
       height: calc(56px + var(--sat-safe-bottom));
       padding-bottom: var(--sat-safe-bottom);
+      padding-left: var(--sat-safe-left);
+      padding-right: var(--sat-safe-right);
       background: rgba(11, 17, 32, 0.94);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -8127,14 +8164,16 @@
       /* Nâng CAD Status HUD lên trên thanh Mobile Bottom Nav, chống đè nút SNAP/LINE/EXTENTS */
       .cad-status-hud {
         bottom: calc(var(--sat-safe-bottom) + 64px) !important;
-        left: 8px !important;
-        max-width: calc(100vw - 16px) !important;
+        left: calc(var(--sat-safe-left) + 8px) !important;
+        max-width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 16px) !important;
         z-index: 2450 !important;
       }
 
       /* Nâng Map Bottom Inspection Sheet lên trên thanh Mobile Bottom Nav */
       .map-bottom-sheet {
         bottom: calc(var(--sat-safe-bottom) + 66px) !important;
+        left: var(--ui-edge-left) !important;
+        right: var(--ui-edge-right) !important;
         z-index: 2500 !important;
       }
 
@@ -8146,6 +8185,17 @@
       /* Đảm bảo thanh nút FAB bên phải bản đồ nằm dưới thanh công cụ MiniCAD khi mở */
       .cad-active-map .map-right-controls {
         top: calc(var(--sat-safe-top) + 155px) !important;
+        right: calc(var(--sat-safe-right) + 10px) !important;
+      }
+
+      /* Nút nổi và HUD tọa độ phải né dock nổi, không nằm ẩn dưới dock */
+      .btn-floating-quicknav {
+        bottom: calc(var(--ui-dock-clear) + 8px) !important;
+      }
+
+      .live-map-coord-hud {
+        bottom: calc(var(--ui-dock-clear) + 6px) !important;
+        max-width: calc(100% - var(--sat-safe-left) - var(--sat-safe-right) - 24px);
       }
 
       /* Kích thước FAB lớn, dễ chạm trên màn hình nhỏ (Chuẩn Apple 44px) */
@@ -8164,10 +8214,10 @@
 
       /* Panel danh sách khối MiniCAD co giãn linh hoạt theo màn hình di động */
       .cad-blocks-panel {
-        width: calc(100vw - 16px) !important;
+        width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 16px) !important;
         max-width: 360px !important;
-        left: 8px !important;
-        max-height: calc(100dvh - var(--sat-safe-top) - 160px) !important;
+        left: var(--ui-edge-left) !important;
+        max-height: calc(var(--app-vh) - var(--sat-safe-top) - var(--ui-dock-clear) - 220px) !important;
         z-index: 2460 !important;
       }
 
@@ -8177,7 +8227,7 @@
       }
 
       .cad-blocks-panel-body {
-        max-height: calc(100dvh - var(--sat-safe-top) - 240px) !important;
+        max-height: calc(var(--app-vh) - var(--sat-safe-top) - var(--ui-dock-clear) - 300px) !important;
       }
     }
 
@@ -8391,8 +8441,8 @@
     nav#mobileBottomNav.mobile-bottom-nav {
       position: fixed !important;
       bottom: calc(var(--sat-safe-bottom) + 8px) !important;
-      left: 12px !important;
-      right: 12px !important;
+      left: calc(var(--sat-safe-left) + 12px) !important;
+      right: calc(var(--sat-safe-right) + 12px) !important;
       max-width: 600px !important;
       margin: 0 auto !important;
       border-radius: 20px !important;
@@ -9254,7 +9304,7 @@
         right: 8px !important;
         bottom: calc(var(--sat-safe-bottom) + 66px) !important;
         border-radius: 18px !important;
-        max-height: calc(85vh - 66px) !important;
+        max-height: calc(var(--ui-avail-h) - 74px) !important;
         min-height: 52px !important;
         z-index: 2350 !important;
       }
@@ -9597,9 +9647,9 @@
 
       /* 5. Mobile Bottom Navigation: Icon to 26px, không gian chạm chuẩn 48px */
       nav#mobileBottomNav.mobile-bottom-nav {
-        left: 8px !important;
-        right: 8px !important;
-        padding: 4px 6px !important;
+        left: calc(var(--sat-safe-left) + 8px) !important;
+        right: calc(var(--sat-safe-right) + 8px) !important;
+        padding: 4px calc(var(--sat-safe-right) + 6px) 4px calc(var(--sat-safe-left) + 6px) !important;
         bottom: calc(var(--sat-safe-bottom) + 6px) !important;
         border-radius: 18px !important;
       }
@@ -9853,7 +9903,7 @@
 .modal-help-guide-box {
   max-width: 560px;
   width: 92%;
-  max-height: 88vh;
+  max-height: calc(var(--ui-avail-h) - 12px);
   display: flex;
   flex-direction: column;
   background: #0b1526;
@@ -9976,8 +10026,8 @@
 /* ================= CADCRAFT 2D: FLOATING HUD CLI & DRAFTING STATUS RIBBON ================= */
 .cad-floating-cmd-bar {
   position: absolute;
-  bottom: 24px;
-  left: 20px;
+  bottom: calc(var(--sat-safe-bottom) + 24px);
+  left: calc(var(--sat-safe-left) + 20px);
   z-index: 3200;
   width: 360px;
   max-width: calc(100vw - 40px);
@@ -10224,7 +10274,7 @@
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1.5px solid rgba(56, 189, 248, 0.35);
   padding: 8px 10px;
-  max-height: min(240px, 45vh);
+  max-height: min(240px, calc(var(--ui-avail-h) * 0.45));
   overflow-y: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
   scrollbar-width: thin;
@@ -10376,7 +10426,7 @@
   width: 580px !important;
   max-width: 95vw !important;
   height: 620px !important;
-  max-height: 88vh !important;
+  max-height: calc(var(--ui-avail-h) - 12px) !important;
   display: flex !important;
   flex-direction: column !important;
   border-radius: 20px !important;
@@ -10400,10 +10450,10 @@
 }
 
 .mac-window-box.mac-maximized {
-  max-width: 96vw !important;
-  width: 96vw !important;
-  height: 94vh !important;
-  max-height: 94vh !important;
+  max-width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 16px) !important;
+  width: calc(100vw - var(--sat-safe-left) - var(--sat-safe-right) - 16px) !important;
+  height: calc(var(--ui-avail-h) - 8px) !important;
+  max-height: calc(var(--ui-avail-h) - 8px) !important;
 }
 
 /* CỐ ĐỊNH HEADER CÀI ĐẶT Ở TRÊN CÙNG */
@@ -11606,3 +11656,52 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+    /* ============ MÀN NGANG HẸP (điện thoại xoay ngang: rộng >768px nhưng cao chỉ ~380–620px) ============
+       Bộ layout mobile trước đây khoá trong @media (max-width: 768px), nên khi xoay ngang điện thoại
+       ứng dụng rơi vào nhánh desktop: mất dock điều hướng, panel/modal cao hơn màn hình và nội dung
+       đáy nằm ngoài tầm chạm. Khối này gọi lại các hành vi mobile theo CHIỀU CAO, không theo CHIỀU RỘNG. */
+    @media (orientation: landscape) and (max-height: 620px) {
+      .mobile-bottom-nav {
+        display: flex !important;
+      }
+
+      .screen-view {
+        padding-top: 8px;
+        padding-bottom: calc(var(--sat-safe-bottom) + 72px) !important;
+      }
+
+      /* Modal/panel không được cao hơn vùng nhìn thấy còn lại */
+      .modal-box,
+      .modal-settings-box,
+      .modal-help-guide-box,
+      .mac-window-box {
+        max-height: calc(var(--ui-avail-h) - 8px) !important;
+        height: auto !important;
+      }
+
+      .mac-window-box.mac-maximized {
+        height: calc(var(--ui-avail-h) - 8px) !important;
+        max-height: calc(var(--ui-avail-h) - 8px) !important;
+      }
+
+      .cad-blocks-panel,
+      .project-marks-blocks-panel {
+        top: calc(var(--sat-safe-top) + 64px) !important;
+        max-height: calc(var(--ui-avail-h) - 84px) !important;
+      }
+
+      .cad-blocks-panel-body {
+        max-height: calc(var(--ui-avail-h) - 150px) !important;
+      }
+
+      /* Bố cục form + bản đồ: bỏ sàn 680px vốn chỉ hợp lý ở màn dọc */
+      .transform-split-layout {
+        min-height: 0 !important;
+        height: calc(var(--app-vh) - var(--sat-safe-top) - var(--sat-safe-bottom) - 108px) !important;
+        max-height: calc(var(--app-vh) - var(--sat-safe-top) - var(--sat-safe-bottom) - 108px) !important;
+      }
+
+      /* Bề mặt dưới phải né dock: các rule neo đáy ở khối này đều bị lớp ui-polish.css (nạp sau,
+          !important, đặc hiệu bằng/nhỏ hơn) thắng, nên phần chỉnh ngưỡng đáy đặt trong ui-polish.css. */
+    }

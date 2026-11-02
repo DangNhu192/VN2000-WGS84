@@ -3,11 +3,41 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 313/313 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 314/314 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-02] WP-E Giao diện tổng thể: TỰ PHÂN PHỐI THEO VÙNG AN TOÀN 4 MÉP (tai thỏ / nốt ruồi / ngang / bàn phím)
+- **Yêu cầu từ người dùng**: `giao diện tổng thể của ứng dụng chưa đáp ứng tự động phân phối phù hợp cho tất cả các màn hình do có thể nằm ở khu vực không thao tác được của các thiết bị có camera dạng tai thỏ hoặc nốt ruồi`. Phạm vi chốt qua AskUserQuestion: **"Trọn gói: tai thỏ + nốt ruồi + ngang + bàn phím"** và **"Cho pinch-zoom toàn ứng dụng"**.
+- **Các phát hiện điều tra gốc rễ (Root Cause Analysis)**:
+  1. *Chỉ có 2 mép được xử lý*: toàn bộ ứng dụng chỉ dùng `--sat-safe-top` / `--sat-safe-bottom`; **không có token trái/phải nào**. Ở màn ngang, inset của camera lệch viền rơi đúng vào **trái/phải** (mép trên gần bằng 0) ⇒ mọi thanh bám cạnh (`map-top-bar`, `map-right-controls`, `bar-coord-picker`, `map-measure-box`, CLI CADCraft) nằm trong vùng bị cắt.
+  2. *Bề mặt dán cạnh vẫn hard-code px*: `.cad-status-hud` `left: 12px`, `.cad-thumb-action-bar` `right: 12px`, `.cad-floating-cmd-bar` `left: 20px`, `.mac-floating-dock` `left/right: 14px`…
+  3. *22 chỗ dùng `vh` thô* (kể cả **19 inline `max-height: NNvh` trong index.html**) — `100vh` trên di động tính cả vùng thanh trình duyệt đang thu ⇒ đáy modal và ô nhập cuối cùng nằm ngoài tầm chạm. Thử dùng `--x: 100vh; --x: 100dvh;` **không phải fallback hợp lệ** (custom property giải tại computed-value time, đơn vị không hỗ trợ ⇒ IACVT ⇒ `unset`), nên phải đo bằng JS.
+  4. *Màn ngang mất dock*: mọi layout mobile bị khoá trong `@media (max-width: 768px)`; điện thoại xoay ngang có bề rộng ~850px ⇒ rơi vào nhánh desktop, mất `#mobileBottomNav`, panel/modal lấy chiều cao desktop (sàn 680px của `.transform-split-layout`) tràn quá chiều cao thật ~390px.
+  5. *`ui-polish.css` (lớp cuối) vô hiệu hoá token*: `.transform-bottom-sheet { bottom: 66px !important }` thắng rule có inset ở style.css. Đồng thời phát hiện nguyên lý quan trọng: **ngưỡng neo đặt trong style.css không có tác dụng với các selector mà ui-polish đã `!important`** (đặc hiệu bằng ⇒ file sau thắng).
+  6. *Bàn phím ảo không được tính*: các bề mặt nhập liệu bị bàn phím che vì `--sat-safe-bottom` chỉ chứa `env(safe-area-inset-bottom)`.
+  7. *`user-scalable=no` + `maximum-scale=1.0`*: người dùng không thu phóng được để đọc chữ trong vùng quá nhỏ — không còn là lựa chọn an toàn khi layout đã tin cậy.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Lưới token 4 mép** trong `:root` [style.css:25-43](style.css): `--sat-safe-top/left/right` từ `env(...)`; **`--sat-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--kb-inset))`** — gộp bàn phím vào mép dưới nên ~26 rule đang dùng token (kể cả mọi literal `!important` trong ui-polish mà test đang khoá) tự nâng theo bàn phím **không phải sửa từng rule**; cộng `--kb-inset: 0px`, `--app-vh: 100vh`, `--ui-edge-{top,right,bottom,left}`, `--ui-dock-clear`, `--ui-avail-h`.
+  2. **`appViewport`** [app.js:34811](app.js): đo `--app-vh = window.innerHeight` và `--kb-inset = max(0, innerHeight - visualViewport.height - visualViewport.offsetTop)` (nguồn duy nhất đọc được bàn phím), gộp trong một `requestAnimationFrame`, nghe `resize` + `orientationchange` + `visualViewport.{resize,scroll}`; **`init()` gọi trước `appTheme.init()`** [app.js:35283](app.js) để đo xong mới dựng giao diện.
+  3. **Khung ứng dụng**: `#app-container` cao `var(--app-vh)`; header + `.screen-view` + dock + `.btn-floating-quicknav` + `#toast-msg` (trục giữa hiệu chỉnh `(left − right)/2`) + `.nav-tree-drawer`/`.drawer-header`/`.drawer-tree-body` trừ đủ inset 4 mép.
+  4. **Bề mặt bản đồ & MiniCAD**: `map-top-bar`, `map-project-bar`, `bar-coord-picker`, `map-cad-toolbar`, `map-right-controls`, `map-bottom-sheet`, `map-measure-box`, `map-distance-hud`, `cad-status-hud`, `cad-thumb-action-bar`, `cad-floating-cmd-bar`, `cad-blocks-panel`, `project-marks-blocks-panel` (+ `.maximized`), `transform-bottom-sheet`, `transform-map-column.is-fullscreen` dùng `calc(var(--sat-safe-{left,right}) + Npx)`; **`max-width` của `.cad-status-hud` / `.map-distance-hud` trừ thêm hai inset** (neo trái mà tính `100% - 24px` là tràn mép phải khi có nốt ruồi bên).
+  5. **Hết `vh` thô**: 22 rule trong style.css + 5 trong ui-polish.css + **19 inline style trong index.html** + 5 chỗ gán JS trong app.js đều quy về `--app-vh` / `--ui-avail-h` (tỉ lệ giữ nguyên: `94vh → calc(var(--ui-avail-h) * 0.94)`).
+  6. **Màn ngang compact theo CHIỀU CAO**: `@media (orientation: landscape) and (max-height: 620px)` ở style.css (gọi lại dock, trần modal theo `--ui-avail-h`, bỏ sàn 680px) **và khối cùng điều kiện ở ui-polish.css** vì chính lớp này nắm `!important`: header 44px, dock 46px áp đáy `+4px` (chỉ chiếm dải 4→50px), nhãn dock 9.5px, HUD/sheet/Leaflet `+56px`, thumb bar `+60px`, CLI `+96px` — cả biến thể `body.dock-collapsed`.
+  7. **Pinch-zoom mở lại**: viewport meta bỏ `user-scalable=no`, đặt `maximum-scale=6.0`; bù bằng `touch-action: manipulation` trên `button/select/textarea/input/label/.mobile-bottom-nav/.bottom-nav-item` [style.css:63-72](style.css) để không bị trễ chạm do double-tap zoom.
+- **Kiểm chứng**:
+  - **Test tĩnh**: `tests/safe_area_cutout_fit.test.js` mới — 71 kiểm tra chia 10 nhóm (lưới token, viewport meta/pinch-zoom, khung ứng dụng, bề mặt bản đồ/CAD, quét `vh` thô, module `appViewport`, màn ngang, lớp cuối ui-polish, **guard cấu trúc CSS**, phiên bản cache). Toàn bộ `npm test`: **314/314 PASS**.
+  - **Guard cấu trúc CSS (bắt lỗi thật trong chính đợt vá này)**: script patch đã tạo 13 khai báo **mất tên thuộc tính** (`calc(var(--sat-safe-bottom) + 12px)` đứng trần ở `.cad-status-hud`, `.cad-thumb-action-bar`, `.cad-floating-cmd-bar`, `.bar-coord-picker`, `.map-measure-box`, `.map-distance-hud`, `.cad-blocks-panel`, `.project-marks-blocks-panel`) ⇒ bề mặt mất neo mà không test nào báo. Đã phục hồi đúng tên thuộc tính theo diff và thêm nhóm test 9 để chặn vĩnh viễn (quét dòng bắt đầu bằng `calc(/var(/env(` + cân bằng `{}`).
+  - **Live (không chụp màn hình được ⇒ dùng computed style + getBoundingClientRect)**:
+    * `--app-vh` được đo thật: 785px trên trang chính, 390px trong iframe 851×390.
+    * Giả lập cắt góc (left/right 28px, bottom 34px): `.cad-floating-cmd-bar` +28px trái & phải, `.map-right-controls` dịch 28px vào trong, HUD/dock/CLI nâng đúng +34px.
+    * Màn ngang thật (iframe 851×390): `matchMedia('(orientation: landscape) and (max-height: 620px)')` = true, **dock hiện lại** (disp flex, cao 46px, dải 4→50px), header 44px, HUD `bottom: 72px` = 56+16 inset, CLI 112 = 96+16, `hudGapToDockTop = 0` (kề sát không đè), `overRight = false` sau khi sửa `max-width`.
+    * Bàn phím (iframe 390×844): đặt `--kb-inset: 260px` ⇒ `--sat-safe-bottom` resolve 260px và dock `bottom` **10px → 270px** (tự nâng trên bàn phím mà không sửa rule nào).
+- **Còn lại / việc kế tiếp**: mô phỏng `env(safe-area-inset-*)` thật trên máy (chrome://flags "Simulate display with notches" hoặc Safari Responsive) vì chỉ có thể kiểm chứng bằng cách ghi đè token; WP Hatch và Import DXF của chuỗi CADCraft vẫn còn (task #23); cân nhắc chuyển nốt `@media (orientation: landscape)` của style.css về ui-polish nếu còn mở rộng ngưỡng neo.
+
+---
 
 ### [2026-10-30] WP-D MiniCAD: Kiểu & màu ký hiệu cho ĐỈNH KHỐI/TUYẾN + nhánh thao tác gộp
 - **Yêu cầu từ người dùng**:
