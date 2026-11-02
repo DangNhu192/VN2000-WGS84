@@ -310,7 +310,7 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 #modalDonateCountdown .support-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
 #modalDonateCountdown .support-intro{margin:0;font-size:11.5px;line-height:1.45;color:var(--text-muted,#9ca3af)}
 #modalDonateCountdown .support-channels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-#modalDonateCountdown .donate-channel-pill.support-channel-btn{min-height:36px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;font-size:11.5px;font-weight:600;border-radius:6px;border:1px solid var(--border-color,rgba(255,255,255,.14));background:transparent;color:var(--text-main,#f3f4f6);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+#modalDonateCountdown .donate-channel-pill.support-channel-btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;font-size:11.5px;font-weight:600;border-radius:6px;border:1px solid var(--border-color,rgba(255,255,255,.14));background:transparent;color:var(--text-main,#f3f4f6);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn:hover{background:var(--hover-bg,rgba(255,255,255,.06))}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn.active{border-color:var(--accent,#38bdf8);background:var(--accent-glow,rgba(56,189,248,.14));color:var(--text-main,#f3f4f6)}
 #modalDonateCountdown .donate-channel-pill.support-channel-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
@@ -503,7 +503,7 @@ body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-
 }
 
 :is(#screen-stakeout, #screen-datamgmt) .card-header .card-tools .btn-sm {
-  min-height: 36px !important;
+  min-height: 40px !important;
   padding: 6px 12px !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -2298,5 +2298,221 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
   .cad-floating-cmd-bar:not(.is-dragged),
   body.dock-collapsed .cad-floating-cmd-bar:not(.is-dragged) {
     bottom: calc(var(--sat-safe-bottom, 0px) + 96px) !important;
+  }
+}
+
+/* ============================================================
+   6. SÀN CHẠM TỐI THIỂU (WP-F) — MỞ RỘNG VÙNG CHẠM KHÔNG LỖI NHÃN
+   Vùng chạm mở rộng bằng ::after trong suốt nên kích thước thật
+   không đổi → mật độ hàng nút (bảng đỉnh, bảng điểm) không bị giãn.
+   Riêng ô nhập thì nâng bằng `min-height` vì media query không tăng
+   mức ưu tiên, và ::after bất lực trước replaced element.
+   ============================================================ */
+.btn-header-action, .mac-ctrl-btn, .mac-pill-btn, .btn-map-action,
+.btn-help-circle-sm, .btn-help-circle, .camera-icon-btn, .btn-modal-close, .btn-corner-opt,
+.btn-customize-pins, .quick-chip-pill, .btn-hud-action, .btn-subtab,
+.profile-mode-btn, .btn-mui-toggle, .btn-sm, .cad-ribbon-btn,
+.cad-cmd-btn-toggle, .cad-cmd-submit-btn, .cad-hud-btn, .support-close-btn,
+#btnDockCollapse, #fwSimple, #fwAdvanced, #fwField,
+.btn-drawer-clear, .btn-resizer-quick-toggle {
+  position: relative;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  /* Nhát 1: nút trong hàng dọc → chỉ mở CHIỀU DỌC lên 44px để không
+     trộm chạm của láng giềng. Định tâm bằng margin trừ nửa chiều cao
+     thay vì transform vì dock collapse / resizer đã có transform !important. */
+  .btn-header-action::after, .mac-ctrl-btn::after, .mac-pill-btn::after,
+  .btn-map-action::after, #fwSimple::after, #fwAdvanced::after, #fwField::after,
+  .btn-customize-pins::after, .quick-chip-pill::after,
+  .btn-hud-action::after, .btn-subtab::after, .profile-mode-btn::after,
+  .btn-mui-toggle::after, .btn-corner-opt::after, .cad-hud-btn::after,
+  .cad-ribbon-btn::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    margin-top: -22px;
+  }
+
+  /* Nhát 2: nút tròn / nút icon lấp ở góc → mở cả hai chiều 44x44 */
+  #btnDockCollapse::after, .btn-drawer-clear::after,
+  .btn-resizer-quick-toggle::after, .support-close-btn::after,
+  .cad-cmd-btn-toggle::after, .cad-cmd-submit-btn::after,
+  .btn-help-circle-sm::after, .btn-help-circle::after, .camera-icon-btn::after, .btn-modal-close::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+  }
+
+  /* 3 chấm cửa sổ drawer nằm sát nhau → 34px để không trộm chạm nhau */
+  .mac-traffic-dot::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+  }
+
+  /* Nút bảng (dòng sát nhau): tăng chiều cao THẬT lên 40px vì ::after bị
+     cha có overflow:hidden cắt mất (nhóm .card-tools màn Cắm mốc). */
+  .btn-sm {
+    min-height: 40px;
+  }
+
+  .btn-sm::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    margin-top: -22px;
+  }
+
+  /* Nút icon chỉ 23-26px ngang (✕ đóng, Lùi/Tiến CAD) → nền 40px.
+     Hàng bên phải thanh CAD chiếm 296/360px nên vẫn đủ chỗ cho 6 nút. */
+  button.btn-sm {
+    min-width: 40px;
+  }
+
+  .cad-btn-icon {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Ribbon MiniCAD: bỏ chế độ "nén 15 nút về 17px", chuyển sang dải dài
+     cuộn ngang — mỗi nút 46x40, nhãn [P]/[L] đọc được bằng ngón cái. */
+  .cad-ribbon-btn {
+    flex: 0 0 auto !important;
+    min-width: 46px !important;
+    height: 40px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Thanh lệnh CAD: ô nhập + nút Gửi + 3 nút gập/mở/keyboard */
+  .cad-cmd-input {
+    min-height: 38px;
+  }
+
+  .cad-cmd-submit-btn {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .cad-cmd-btn-toggle {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .cad-hud-btn {
+    min-height: 32px;
+  }
+
+  /* Thanh công cụ bản đồ dự án: nút icon chỉ 32px rộng */
+  .map-project-bar .btn-map-action {
+    min-width: 38px !important;
+  }
+
+  /* Ô tick "không tự động hiện lại" 13px → 26px, hàng có sẵn 40px */
+  #chkGuideDontShowAgain {
+    width: 26px;
+    height: 26px;
+    accent-color: #38bdf8;
+  }
+
+  .modal-help-guide-footer label {
+    min-height: 40px;
+  }
+
+  /* Liên kết email trong màn About cao 14px → thêm lớp chạm quanh chữ */
+  a[href^="mailto:"] {
+    display: inline-block;
+    padding: 11px 4px;
+  }
+
+  /* Ô nhập/ô chọn không dùng được ::after (là replaced element) nên phải
+     nâng chiều cao thật. min-height là tính chất khác nên thắng được
+     khai báo nội tuyến "height: 30px/34px" trong index.html mà không cần !important. */
+  input.app-input,
+  select,
+  select.app-select,
+  .map-project-bar .map-proj-select {
+    min-height: 40px;
+  }
+
+  /* Ô chọn/ô nhập trong modal (class app-input dùng cho SELECT) bị inline
+     height:28px ép xuống dưới sàn chạm. Modal của app dùng class
+     "modal-overlay" nên phải chọn [class*="modal"] chứ không phải ".modal". */
+  [class*="modal"] select,
+  [class*="modal"] input[type="text"],
+  [class*="modal"] input[type="number"] {
+    min-height: 36px;
+  }
+
+  /* Ô tick 13-16px trong Bảng kê / Xuất file / Nạp GIS: không thể mở ::after
+     (replaced element) nên phải nâng kích thước thật, hàng nhãn cao 34px. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  .cad-check-label,
+  .cad-export-check-item {
+    min-height: 34px;
+  }
+
+  /* Ô chọn màu 28px → vùng chạm 34px */
+  input[type="color"] {
+    min-height: 34px;
+  }
+
+  /* nhãn "chuyển hướng" trong modal hướng dẫn: 121x16 -> có lớp chạm 34px */
+  [class*="modal"] a[href] {
+    display: inline-block;
+    min-height: 34px;
+    padding: 8px 0;
+  }
+
+  /* Nút siêu nhỏ của modal OCR toạ độ (bản cũ 25x26) → sàn 34x38 */
+  .btn-micro {
+    min-width: 34px;
+    min-height: 38px;
+  }
+
+  /* Pill kênh chuyển khoản (36px) -> 44px cho vừa tầm ngón cái */
+  .donate-channel-pill {
+    min-height: 44px;
+  }
+
+  /* Nút gập bảng ▾ trong Bảng Kê: <button> trần, inline 17x14, không class */
+  button[title="Gập / Mở bảng này"] {
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  /* Nâng 6 nhãn chuyển tab của CAD (28px) lên sàn 38px */
+  .cad-tab-btn {
+    min-height: 38px;
+  }
+
+  /* Nút phóng to/thu nhỏ Leaflet mặc định 30px — quá nhỏ để chạm */
+  .leaflet-bar a,
+  .leaflet-touch .leaflet-bar a {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 20px;
   }
 }

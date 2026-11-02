@@ -3,11 +3,41 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 314/314 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 315/315 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-02] WP-F Giao diện tổng thể: SÀN CHẠM TỐI THIỂU CHO MỌI NÚT & Ô NHẬP (điện thoại 390×844)
+- **Yêu cầu từ người dùng**: `tiếp tục kiểm tra các nút và giao diện của app`. Diễn giải thành một **kiểm kê trực tiếp theo từng bề mặt**: mở từng màn hình trong trình duyệt, đo vùng chạm thật của mọi điều khiển, rồi sửa những cái dưới sàn ngón tay.
+- **Phương pháp kiểm kê (không chụp màn hình)**: `<iframe>` same-origin **390×844** (media query bên trong iframe tính theo viewport của nó), cache-buster `index.html?cb=…`. Với mỗi màn: `appNav.showScreen(...)` → duyệt `button, input, select, a[href]` → **vùng chạm hiệu dụng = max(rect, min-height, kích thước `::after`)**. Modal được quét bằng cách tạm ép `display:flex/visibility:visible` rồi khôi phục `cssText`. Kèm **canh gác tràn ngang** bằng `scrollWidth − clientWidth` để mỗi lần nâng sàn không làm vỡ layout.
+- **Kết quả kiểm kê TRƯỚC khi sửa**: **0 tràn ngang ở cả 10 màn** — mọi khiếm khuyết đều là **kích thước chạm**, không phải bố cục hỏng:
+  * `btnCadUndo/btnCadRedo` **26×26**, nút ✕ đóng thanh CAD **23×40**, 6 nhãn chuyển tab **28px cao**.
+  * Ribbon MiniCAD bị `style.css:10196 + @media(max-width:400px)` **nén 18 nút xuống 17×26** → không đếm nổi nhãn [P]/[L].
+  * Ô tick "Không tự động hiện lại" **13px**, ô tick trong Bảng kê/Xuất file/Nạp GIS **13-16px**, ô chọn màu **28px**, `select.app-input` **28px**, `#selFormatWgs` **30px**, ô hồ sơ **34px**, Leaflet zoom **30×30**, `#btnDockCollapse` **20×20**, `.btn-resizer-quick-toggle` **26×26**, `.btn-help-circle` (modal Cài đặt) **26×26**, `.btn-micro` (modal OCR) **25×26**, pill kênh chuyển khoản **36px**, liên kết `mailto:` màn About **14px**, nhãn "chuyển hướng" trong modal Google Sheet **121×16**, nút gập bảng ▾ **17×14**.
+- **Các giải pháp kỹ thuật đã hoàn thành** (tất cả trong `ui-polish.css` §6, chặn `@media (max-width: 900px), (pointer: coarse)` nên **máy tính không đổi gì**):
+  1. **Hai nhát mở rộng vùng chạm bằng `::after` trong suốt** — kích thước thật giữ nguyên nên **mật độ hàng nút (bảng đỉnh, bảng điểm) không bị giãn**: *Nhát 1* cho nút nằm trong hàng dọc chỉ mở **CHIỀU DỌC** lên 44px (`left/right:0`, `height:44px`, `margin-top:-22px`) để **không trộm chạm của láng giềng**; *Nhát 2* cho nút tròn/icon góc mở **cả hai chiều 44×44**. Định tâm bằng **margin trừ nửa chiều cao**, không dùng `translate()` vì `#btnDockCollapse` đã có `transform … !important` (kiểm chứng: computed `transform: none` khi thử translate).
+  2. **Sàn thật cho replaced element** (`input`/`select` không có `::after`): gộp `input.app-input, select, select.app-select, .map-project-bar .map-proj-select` vào `min-height: 40px`; `[class*="modal"] select/input[type=text|number]` 36px; ô tick/radio 20px; `input[type=color]` 34px; `#chkGuideDontShowAgain` 26px; hàng nhãn `.cad-check-label/.cad-export-check-item` 34px. **Mấu chốt**: `min-height` **thắng** khai báo nội tuyến `height: 30px/34px` vì là *tính chất khác* được giải bằng ràng buộc hộp ⇒ **không cần `!important`**, sửa **một rule** phủ hết ~59 chỗ inline `height: 3xpx` trong index.html.
+  3. **Ribbon MiniCAD**: bỏ nén, mỗi nút `flex: 0 0 auto / 46×40 / font 12px` → thành **dải dài cuộn ngang** (`scrollWidth 895 > clientWidth 368`), `button.btn-sm` +`.cad-btn-icon` nâng 40×40 (hàng phải thanh CAD chỉ chiếm **340/386px** nên không tràn).
+  4. **Sửa tại nguồn khi rule đặc hiệu hơn nắm `!important`**: sàn cũ `:is(#screen-stakeout,#screen-datamgmt) .card-header .card-tools .btn-sm { min-height: 36px !important }` [ui-polish.css:505](ui-polish.css) và `#modalDonateCountdown .donate-channel-pill.support-channel-btn { min-height: 36px }` [ui-polish.css:313](ui-polish.css) **đều được nâng lên 40px/44px** thay vì chồng rule mới (đặc hiệu thấp hơn sẽ thua).
+  5. Liên kết: `a[href^="mailto:"] { padding: 11px 4px }`, `[class*="modal"] a[href] { min-height: 34px; padding: 8px 0 }`, nút gập bảng `button[title="Gập / Mở bảng này"]` 38×38 (nút này **không có class/id** nên buộc chọn bằng attribute title).
+  6. Leaflet `.leaflet-bar a` **30 → 40px** (kích thước thật, không phải pseudo).
+- **Kiểm chứng**:
+  - **Test tĩnh mới** `tests/touch_target_floor.test.js` — **54/54**, 7 nhóm: neo `position:relative` cho 17 lớp, hai nhát `::after` (44 dọc / 44×44 + ràng buộc *không còn translate()*), sàn cho replaced element, sàn trong modal (kể cả **cấm quay lại sàn 36px cũ**), ribbon & thanh lệnh CAD, **ràng buộc thủ tục** (mọi sàn phải nằm trong `@media (max-width:900px),(pointer:coarse)`), phiên bản cache. Toàn bộ `npm test`: **315/315 PASS (0 fail)**.
+  - **Live 390×844**: sau khi sửa, **10 màn hình (menu/transform/transform-map/gps/camera/datamgmt/geodesy/about/profile/stakeout) + 6 tab MiniCAD + Layer Manager + Bản đồ dự án + drawer = 0 cờ và OVF=0**; quét **toàn bộ modal** (ép hiện) = **0 cờ**. Số liệu tiêu biểu: header 44×32 → **44×44**, `#btnDockCollapse` 20×20 → **44×44**, `.btn-help-circle` 26×26 → **44×44**, undo/redo 26×26 → **40×40**, ribbon 17×26 → **46×40**, tab CAD 28 → **38**, `.btn-micro` 25×26 → **34×38**, pill chuyển khoản 36 → **44**, Leaflet 30×30 → **40×40**, `#btnStakeoutBeep` 116×28 → **116×40**.
+  - **Không hồi quy desktop**: iframe **1280×800** → `matchMedia('(max-width:900px)')=false`, `(pointer:coarse)=false`, `::after content: none`, header vẫn **79×36**, `select min-height: 0px` ⇒ sàn chạm chỉ áp dụng cho thiết bị chạm/màn hẹp.
+- **Điểm cần nhớ (bài học trong chính đợt này)**:
+  1. `::after` **không chạy trên `input`/`select`** (replaced element) — những ô này bắt buộc tăng kích thước thật.
+  2. `::after` **bị cha có `overflow:hidden` cắt** (nhóm `.card-tools` màn Cắm mốc) ⇒ ở đó phải dùng `min-height` thật, không dựa vào pseudo.
+  3. **Media query không tăng mức ưu tiên**: rule cùng đặc hiệu nằm sau vẫn thắng, nhưng rule có `!important` đặc hiệu hơn ở đầu file thì **phải sửa ngay tại đó**.
+  4. `transform: translateY(-50%)` định tâm sẽ bị **`transform … !important` của chính nút** vô hiệu hoá ⇒ định tâm bằng `margin: -22px 0 0 -22px`.
+  5. Mỗi lần bump `CACHE_NAME`, `index.html:7585` tự `location.reload()` sau 1.5s ⇒ **iframe kiểm kê bị xoá**; phải tạo lại iframe sau mỗi lần bump (đừng bump nhiều lần trong một vòng sửa).
+  6. Probe `elementFromPoint` phải đo **từ biên rect trở ra** và chỉ nhận `t === el || el.contains(t)` — đo từ tâm + `contains` hai chiều từng cho kết luận "đủ 44px" sai.
+- **Đăng ký tài nguyên**: `ui-polish.css` (§6 mới + 2 rule sàn ở §3), `index.html` (`style.css?v` / `ui-polish.css?v` / `app.js?v` = **2.8.21**), `sw.js` `CACHE_NAME = vn2000-pro-v2.8.21`, `tests/touch_target_floor.test.js` (mới). **Không sửa** `style.css`, `app.js`, `field-workspace.css` trong đợt này.
+- **Còn lại / việc kế tiếp**: xác nhận lại trên **điện thoại thật** (trình duyệt để bàn không giả lập được `pointer: coarse` + `env(safe-area-inset-*)` cùng lúc); cân nhắc chuẩn hoá nốt nhóm `.cad-cmd-btn-toggle` (30×30, hiện được pseudo 44×44 đỡ) nếu người dùng muốn nhãn to hơn; **WP Hatch + Import DXF** của chuỗi CADCraft vẫn còn (task #23).
+
+---
 
 ### [2026-11-02] WP-E Giao diện tổng thể: TỰ PHÂN PHỐI THEO VÙNG AN TOÀN 4 MÉP (tai thỏ / nốt ruồi / ngang / bàn phím)
 - **Yêu cầu từ người dùng**: `giao diện tổng thể của ứng dụng chưa đáp ứng tự động phân phối phù hợp cho tất cả các màn hình do có thể nằm ở khu vực không thao tác được của các thiết bị có camera dạng tai thỏ hoặc nốt ruồi`. Phạm vi chốt qua AskUserQuestion: **"Trọn gói: tai thỏ + nốt ruồi + ngang + bàn phím"** và **"Cho pinch-zoom toàn ứng dụng"**.
