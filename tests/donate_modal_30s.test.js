@@ -53,7 +53,22 @@ function createMockDom() {
       querySelectorAll(sel) {
         if (sel === '.donate-channel-pill') return channelPills;
         return [];
-      }
+      },
+      createElement(tag) {
+        return {
+          tagName: tag.toUpperCase(),
+          style: {},
+          value: '',
+          select() {},
+          appendChild() {},
+          removeChild() {}
+        };
+      },
+      body: {
+        appendChild() {},
+        removeChild() {}
+      },
+      execCommand() { return true; }
     },
     channelPills
   };
@@ -217,4 +232,49 @@ test('6. Escape key listener respects modal active state', () => {
   modal.classList.add('active');
   keydownHandler({ key: 'Escape' });
   assert.equal(closeCalled, true, 'Escape must trigger close when modal is active');
+});
+
+test('7. handleOpenApp copies account number and prevents dead page.link URLs', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const { document } = createMockDom();
+  let copiedText = null;
+  const mockNavigator = {
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
+    clipboard: {
+      writeText: async (t) => { copiedText = t; }
+    }
+  };
+  let toastMsg = '';
+  const mockShowToast = (msg) => { toastMsg = msg; };
+  const mockWindow = { navigator: mockNavigator, addEventListener() {} };
+
+  const appDonate = extractAppDonate(appJs, { document, window: mockWindow, showToast: mockShowToast });
+  
+  // Kiểm tra 4 kênh không được chứa firebase dynamic link chết (page.link)
+  for (const ch of ['vietinbank', 'bidv', 'momo', 'zalopay']) {
+    appDonate.setChannel(ch);
+    assert.ok(!appDonate.config.openAppUrl.includes('page.link'), `Kênh ${ch} không được dùng page.link đã bị khai tử`);
+    assert.ok(appDonate.config.openAppUrl.startsWith('https://'), `Kênh ${ch} phải dùng URL HTTPS an toàn`);
+  }
+
+  // Gọi handleOpenApp
+  appDonate.setChannel('vietinbank');
+  appDonate.handleOpenApp();
+  assert.ok(toastMsg.includes('0839656568'), 'Phải thông báo đã sao chép STK cho người dùng');
+});
+
+test('8. downloadQrImage function exists and handles empty/ready QR safely', async () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const { document, getOrCreate } = createMockDom();
+  let toastMsg = '';
+  const mockShowToast = (msg) => { toastMsg = msg; };
+  const appDonate = extractAppDonate(appJs, { document, window: {}, showToast: mockShowToast });
+
+  assert.equal(typeof appDonate.downloadQrImage, 'function', 'appDonate phải có hàm downloadQrImage');
+
+  // Khi chưa có ảnh QR
+  const qr = getOrCreate('imgDonateVietQR');
+  qr.src = '';
+  await appDonate.downloadQrImage();
+  assert.ok(toastMsg.includes('Chưa có mã QR'), 'Báo lỗi nhẹ nếu chưa có ảnh QR');
 });

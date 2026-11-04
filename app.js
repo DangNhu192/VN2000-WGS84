@@ -9293,6 +9293,232 @@ function doGet(e) {
         this.moveToTrash(cur);
     },
 
+    // Quản lý tập hợp mốc được tích chọn (Multi-select) & xuất/chia sẻ chọn lọc
+    selectedPointIds: new Set(),
+    _customExportPoints: null,
+
+    toggleSelectAllPoints(checked) {
+        const pts = this.getPoints(AppState.currentProject);
+        if (checked) {
+            pts.forEach(p => this.selectedPointIds.add(String(p.id)));
+        } else {
+            this.selectedPointIds.clear();
+        }
+        const checkboxes = document.querySelectorAll('#tablePointsList .chk-point-item');
+        checkboxes.forEach(cb => { cb.checked = !!checked; });
+        this.updateBatchActionsBar();
+    },
+
+    onPointCheckboxChange(id, checked) {
+        if (checked) {
+            this.selectedPointIds.add(String(id));
+        } else {
+            this.selectedPointIds.delete(String(id));
+        }
+        const pts = this.getPoints(AppState.currentProject);
+        const chkAll = document.getElementById('chkSelectAllPoints');
+        if (chkAll) {
+            if (this.selectedPointIds.size === 0) {
+                chkAll.checked = false;
+                chkAll.indeterminate = false;
+            } else if (this.selectedPointIds.size === pts.length && pts.length > 0) {
+                chkAll.checked = true;
+                chkAll.indeterminate = false;
+            } else {
+                chkAll.checked = false;
+                chkAll.indeterminate = true;
+            }
+        }
+        this.updateBatchActionsBar();
+    },
+
+    clearPointsSelection() {
+        this.selectedPointIds.clear();
+        const chkAll = document.getElementById('chkSelectAllPoints');
+        if (chkAll) {
+            chkAll.checked = false;
+            chkAll.indeterminate = false;
+        }
+        const checkboxes = document.querySelectorAll('#tablePointsList .chk-point-item');
+        checkboxes.forEach(cb => { cb.checked = false; });
+        this.updateBatchActionsBar();
+    },
+
+    updateBatchActionsBar() {
+        const bar = document.getElementById('barBatchPointsActions');
+        const countEl = document.getElementById('txtSelectedPointsCount');
+        const count = this.selectedPointIds ? this.selectedPointIds.size : 0;
+        if (countEl) countEl.innerText = count;
+        if (bar) {
+            bar.style.display = count > 0 ? 'flex' : 'none';
+        }
+    },
+
+    getSelectedPoints() {
+        const allPts = this.getPoints(AppState.currentProject) || [];
+        if (this.selectedPointIds && this.selectedPointIds.size > 0) {
+            return allPts.filter(p => this.selectedPointIds.has(String(p.id)));
+        }
+        return allPts;
+    },
+
+    formatPointsToText(points) {
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc";
+        const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
+        const kttStr = `${AppState.kttDeg || 105}°${String(minVal).padStart(2, '0')}' (Múi ${AppState.muiVal || 3}°)`;
+        const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
+        const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        let text = `📋 SỔ ĐO TỌA ĐỘ MỐC — DỰ ÁN: ${projName}\n`;
+        text += `• Kinh tuyến trục: ${kttStr} | Hệ tọa độ: VN-2000\n`;
+        text += `• Thời gian xuất: ${dateStr}\n`;
+        text += `• Tổng số mốc: ${points.length} điểm\n`;
+        text += `------------------------------------------------------------\n`;
+        text += `STT | Tên mốc | X (Bắc) [m] | Y (Đông) [m] | Vĩ độ (Lat) | Kinh độ (Long) | Ghi chú\n`;
+
+        points.forEach((p, idx) => {
+            const x = (p.x !== undefined && p.x !== null && !isNaN(parseFloat(p.x))) ? parseFloat(p.x).toFixed(3) : (p.x || '--');
+            const y = (p.y !== undefined && p.y !== null && !isNaN(parseFloat(p.y))) ? parseFloat(p.y).toFixed(3) : (p.y || '--');
+            const lat = (p.lat !== undefined && p.lat !== null && !isNaN(parseFloat(p.lat))) ? parseFloat(p.lat).toFixed(7) : (p.lat || '--');
+            const lng = (p.lng !== undefined && p.lng !== null && !isNaN(parseFloat(p.lng))) ? parseFloat(p.lng).toFixed(7) : (p.lng || '--');
+            const note = p.note || '';
+            text += `${idx + 1} | ${p.name || ('M' + (idx + 1))} | ${x} | ${y} | ${lat} | ${lng} | ${note}\n`;
+        });
+
+        text += `------------------------------------------------------------\n`;
+        text += `(Được xuất từ VN-2000 Pro Geodetic Survey App)\n`;
+        return text;
+    },
+
+    async shareSelectedPoints() {
+        const pts = this.getSelectedPoints();
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Dự án hiện chưa có mốc nào để chia sẻ!", true);
+            return;
+        }
+
+        const isPartial = this.selectedPointIds.size > 0 && this.selectedPointIds.size < this.getPoints(AppState.currentProject).length;
+        const textData = this.formatPointsToText(pts);
+        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc";
+        const filename = `SoDo_${projName}_${pts.length}Moc.csv`;
+
+        // Tạo nội dung file CSV UTF-8 có BOM
+        let csvContent = '\uFEFFSTT,Tên Mốc,X (m),Y (m),Vĩ độ (Lat),Kinh độ (Long),Ghi Chú\r\n';
+        pts.forEach((p, idx) => {
+            const x = (p.x !== undefined && p.x !== null && !isNaN(parseFloat(p.x))) ? parseFloat(p.x).toFixed(3) : (p.x || '');
+            const y = (p.y !== undefined && p.y !== null && !isNaN(parseFloat(p.y))) ? parseFloat(p.y).toFixed(3) : (p.y || '');
+            const lat = (p.lat !== undefined && p.lat !== null && !isNaN(parseFloat(p.lat))) ? parseFloat(p.lat).toFixed(7) : (p.lat || '');
+            const lng = (p.lng !== undefined && p.lng !== null && !isNaN(parseFloat(p.lng))) ? parseFloat(p.lng).toFixed(7) : (p.lng || '');
+            const name = `"${(p.name || ('M' + (idx + 1))).replace(/"/g, '""')}"`;
+            const note = `"${(p.note || '').replace(/"/g, '""')}"`;
+            csvContent += `${idx + 1},${name},${x},${y},${lat},${lng},${note}\r\n`;
+        });
+
+        const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        if (navigator.share) {
+            try {
+                let sharePayload = {
+                    title: `Sổ đo tọa độ VN-2000 (${projName})`,
+                    text: textData
+                };
+
+                // Thử đính kèm file CSV nếu trình duyệt hỗ trợ chia sẻ file
+                if (typeof File !== 'undefined' && navigator.canShare) {
+                    const csvFile = new File([csvBlob], filename, { type: 'text/csv' });
+                    if (navigator.canShare({ files: [csvFile] })) {
+                        sharePayload.files = [csvFile];
+                    }
+                }
+
+                await navigator.share(sharePayload);
+                showToast(`✓ Đã mở chia sẻ ${pts.length} mốc${isPartial ? ' đã chọn' : ''}!`);
+                return;
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.warn("Navigator share failed, fallback to copy:", err);
+            }
+        }
+
+        // Fallback khi không có navigator.share (Desktop): Sao chép text & tải file CSV
+        this.copySelectedPointsText(true);
+        const link = document.createElement('a');
+        const blobUrl = URL.createObjectURL(csvBlob);
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+        }, 2000);
+        showToast(`✓ Đã sao chép bảng ${pts.length} mốc vào bộ nhớ tạm & tải tệp CSV về máy!`);
+    },
+
+    copySelectedPointsText(silent = false) {
+        const pts = this.getSelectedPoints();
+        if (!pts || pts.length === 0) {
+            showToast("⚠️ Chưa có mốc nào để sao chép!", true);
+            return;
+        }
+        const textData = this.formatPointsToText(pts);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textData).then(() => {
+                if (!silent) showToast(`✓ Đã sao chép bảng ${pts.length} mốc tọa độ vào bộ nhớ tạm!`);
+            }).catch(() => {
+                this.fallbackCopyText(textData, silent, pts.length);
+            });
+        } else {
+            this.fallbackCopyText(textData, silent, pts.length);
+        }
+    },
+
+    fallbackCopyText(text, silent, count) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            if (!silent) showToast(`✓ Đã sao chép bảng ${count} mốc tọa độ vào bộ nhớ tạm!`);
+        } catch (e) {
+            showToast("⚠️ Không thể tự động sao chép text!", true);
+        }
+        document.body.removeChild(ta);
+    },
+
+    deleteSelectedPoints() {
+        if (!this.selectedPointIds || this.selectedPointIds.size === 0) {
+            showToast("⚠️ Vui lòng tích chọn ít nhất 1 mốc để xóa!", true);
+            return;
+        }
+        const count = this.selectedPointIds.size;
+        if (!confirm(`Bạn có chắc chắn muốn xóa ${count} mốc đã chọn khỏi dự án này? Thao tác này không thể hoàn tác!`)) {
+            return;
+        }
+        let allPts = this.getPoints(AppState.currentProject);
+        allPts = allPts.filter(p => !this.selectedPointIds.has(String(p.id)));
+        this.savePoints(AppState.currentProject, allPts);
+        this.clearPointsSelection();
+        appNav.updateBanner();
+        this.refreshTable();
+        this.updateSyncUI();
+        showToast(`✓ Đã xóa thành công ${count} mốc đã chọn!`);
+    },
+
+    exportSelectedPoints() {
+        const selected = this.getSelectedPoints();
+        if (!selected || selected.length === 0) {
+            showToast("⚠️ Vui lòng tích chọn mốc trước khi xuất!", true);
+            return;
+        }
+        this._customExportPoints = selected;
+        this.openExportModal('survey');
+        showToast(`📁 Đang mở xuất riêng ${selected.length} mốc đã chọn...`);
+    },
+
     refreshTable() {
         const tbody = document.getElementById('tbodyPointsList');
         if (!tbody) return;
@@ -9303,7 +9529,11 @@ function doGet(e) {
         if (cntEl) cntEl.innerText = pts.length;
 
         if (pts.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:16px; color:#94a3b8;">Chưa có mốc đo nào trong dự án này.</td></tr>`;
+            if (this.selectedPointIds) this.selectedPointIds.clear();
+            const chkAll = document.getElementById('chkSelectAllPoints');
+            if (chkAll) { chkAll.checked = false; chkAll.indeterminate = false; }
+            this.updateBatchActionsBar();
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:16px; color:#94a3b8;">Chưa có mốc đo nào trong dự án này.</td></tr>`;
             if (typeof this.updateSyncUI === 'function') this.updateSyncUI();
             return;
         }
@@ -9314,8 +9544,12 @@ function doGet(e) {
             const yVal = (p.y !== undefined && p.y !== null && !isNaN(parseFloat(p.y))) ? parseFloat(p.y).toFixed(3) : (p.y || '--');
             const latVal = (p.lat !== undefined && p.lat !== null && !isNaN(parseFloat(p.lat))) ? parseFloat(p.lat).toFixed(7) : (p.lat || '--');
             const lngVal = (p.lng !== undefined && p.lng !== null && !isNaN(parseFloat(p.lng))) ? parseFloat(p.lng).toFixed(7) : (p.lng || '--');
+            const isChecked = this.selectedPointIds && this.selectedPointIds.has(String(p.id));
 
             tr.innerHTML = `
+                <td style="text-align: center;">
+                    <input type="checkbox" class="chk-point-item" data-point-id="${p.id}" ${isChecked ? 'checked' : ''} onchange="appData.onPointCheckboxChange('${p.id}', this.checked)" style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
+                </td>
                 <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
                 <td style="text-align: left;"><b style="color:#fbbf24;">${p.name || ('M' + (idx+1))}</b></td>
                 <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${xVal}</td>
@@ -9331,6 +9565,23 @@ function doGet(e) {
             tbody.appendChild(tr);
         });
 
+        // Đồng bộ trạng thái checkbox Chọn tất cả và thanh thao tác
+        const chkAll = document.getElementById('chkSelectAllPoints');
+        if (chkAll) {
+            const selCount = this.selectedPointIds ? this.selectedPointIds.size : 0;
+            if (selCount === 0) {
+                chkAll.checked = false;
+                chkAll.indeterminate = false;
+            } else if (selCount === pts.length) {
+                chkAll.checked = true;
+                chkAll.indeterminate = false;
+            } else {
+                chkAll.checked = false;
+                chkAll.indeterminate = true;
+            }
+        }
+        this.updateBatchActionsBar();
+
         if (typeof this.updateSyncUI === 'function') this.updateSyncUI();
     },
 
@@ -9338,6 +9589,7 @@ function doGet(e) {
         if (!confirm("Xóa mốc đo này?")) return;
         let pts = appData.getPoints(AppState.currentProject);
         pts = pts.filter(p => String(p.id) !== String(id));
+        if (this.selectedPointIds) this.selectedPointIds.delete(String(id));
         appData.savePoints(AppState.currentProject, pts);
         appNav.updateBanner();
         appData.refreshTable();
@@ -9971,11 +10223,15 @@ function doGet(e) {
     },
 
     closeExportModal() {
+        this._customExportPoints = null;
         const modal = document.getElementById('modalExportData');
         if (modal) modal.style.display = 'none';
     },
 
     getExportPoints() {
+        if (this._customExportPoints && Array.isArray(this._customExportPoints) && this._customExportPoints.length > 0) {
+            return this._customExportPoints;
+        }
         if (this.exportContext === 'transform') {
             const raw = (typeof appTransform !== 'undefined' && appTransform.multiConvertedResults) ? appTransform.multiConvertedResults : [];
             return raw.map((r, i) => ({
@@ -14401,6 +14657,7 @@ const appCamera = {
                 </div>
                 <div class="camera-card-actions">
                   <button type="button" class="camera-card-btn" title="Xem chi tiết" onclick="appCamera.openMediaViewer(${item.id})">👁️</button>
+                  <button type="button" class="camera-card-btn btn-share" title="Chia sẻ (Zalo / Thiết bị)" onclick="appCamera.shareSingleMedia(${item.id})" style="color: #38bdf8;">📤</button>
                   <button type="button" class="camera-card-btn" title="Tải về máy" onclick="appCamera.downloadSingleMedia(${item.id})">💾</button>
                   <button type="button" class="camera-card-btn btn-del" title="Xóa" onclick="appCamera.deleteSingleMedia(${item.id})">🗑️</button>
                 </div>
@@ -14476,19 +14733,115 @@ const appCamera = {
         this.deleteSingleMedia(id);
     },
 
+    // Chuyển đổi an toàn chuỗi Data URL Base64 thành Blob nhị phân chuẩn W3C
+    dataUrlToBlob(dataUrl) {
+        if (!dataUrl || typeof dataUrl !== 'string') return null;
+        try {
+            const parts = dataUrl.split(',');
+            if (parts.length < 2) return null;
+            const mimeMatch = parts[0].match(/:(.*?);/);
+            const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+            const bstr = atob(parts[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], { type: mime });
+        } catch (e) {
+            console.warn("Lỗi chuyển dataUrl sang Blob:", e);
+            return null;
+        }
+    },
+
     async downloadSingleMedia(id) {
         const list = await this.db.getAll();
         const item = list.find(x => x.id === id);
         if (!item) return;
 
-        const link = document.createElement("a");
-        const ext = item.type === 'video' ? 'webm' : 'jpg';
-        link.download = `${item.type === 'video' ? 'Video' : 'Anh'}_Moc_${item.markName}_${item.id}.${ext}`;
-        link.href = item.dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        showToast(`✓ Đã tải ${item.type === 'video' ? 'video' : 'ảnh'} về thiết bị!`);
+        const isVideo = item.type === 'video';
+        const ext = isVideo ? 'webm' : 'jpg';
+        const filename = `${isVideo ? 'Video' : 'Anh'}_Moc_${item.markName}_${item.id}.${ext}`;
+        const blob = this.dataUrlToBlob(item.dataUrl);
+
+        if (blob) {
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.download = filename;
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            }, 3000);
+        } else {
+            const link = document.createElement("a");
+            link.download = filename;
+            link.href = item.dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        showToast(`✓ Đã tải ${isVideo ? 'video' : 'ảnh'} đóng dấu về thiết bị!`);
+    },
+
+    async shareSingleMedia(id) {
+        const list = await this.db.getAll();
+        const item = list.find(x => x.id === id);
+        if (!item) return;
+
+        const isVideo = item.type === 'video';
+        const ext = isVideo ? 'webm' : 'jpg';
+        const mimeType = isVideo ? 'video/webm' : 'image/jpeg';
+        const filename = `${isVideo ? 'Video' : 'Anh'}_Moc_${item.markName}_${item.id}.${ext}`;
+        const blob = this.dataUrlToBlob(item.dataUrl);
+
+        const shareTitle = `${isVideo ? 'Video' : 'Ảnh'} nghiệm thu mốc ${item.markName}`;
+        const shareText = `📍 MỐC: ${item.markName} | DỰ ÁN: ${item.projectName || AppState.currentProject || ''}\n• VN-2000: X = ${item.x || '--'} m | Y = ${item.y || '--'} m\n• WGS-84: Lat = ${item.lat || '--'} | Lng = ${item.lng || '--'}\n• Thời gian: ${item.dateStr || ''}\n(VN-2000 Pro Geodetic Survey App)`;
+
+        if (blob && typeof File !== 'undefined' && navigator.share) {
+            try {
+                const file = new File([blob], filename, { type: mimeType });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: shareTitle,
+                        text: shareText,
+                        files: [file]
+                    });
+                    showToast(`✓ Đã chia sẻ ${isVideo ? 'video' : 'ảnh'} nghiệm thu thành công!`);
+                    return;
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.warn("Share file error:", err);
+            }
+        }
+
+        // Nếu không share file được: thử share text
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: shareTitle,
+                    text: shareText
+                });
+                // Đồng thời tải file về
+                this.downloadSingleMedia(id);
+                showToast(`✓ Đã chia sẻ thông số mốc & tải ${isVideo ? 'video' : 'ảnh'} về thiết bị!`);
+                return;
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+            }
+        }
+
+        // Fallback: Tải file về máy
+        this.downloadSingleMedia(id);
+        showToast(`💡 Thiết bị không hỗ trợ chia sẻ trực tiếp, đã tự động tải ${isVideo ? 'video' : 'ảnh'} về máy!`);
+    },
+
+    shareCurrentViewerMedia() {
+        if (!this.currentViewerItem) return;
+        this.shareSingleMedia(this.currentViewerItem.id);
     },
 
     async deleteSingleMedia(id) {
@@ -14511,13 +14864,30 @@ const appCamera = {
         let delay = 0;
         list.forEach((item, index) => {
             setTimeout(() => {
-                const link = document.createElement("a");
-                const ext = item.type === 'video' ? 'webm' : 'jpg';
-                link.download = `${index + 1}_${item.type === 'video' ? 'Video' : 'Anh'}_${item.markName}.${ext}`;
-                link.href = item.dataUrl;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const isVideo = item.type === 'video';
+                const ext = isVideo ? 'webm' : 'jpg';
+                const filename = `${index + 1}_${isVideo ? 'Video' : 'Anh'}_${item.markName}.${ext}`;
+                const blob = appCamera.dataUrlToBlob(item.dataUrl);
+
+                if (blob) {
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.download = filename;
+                    link.href = blobUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(blobUrl);
+                    }, 4000);
+                } else {
+                    const link = document.createElement("a");
+                    link.download = filename;
+                    link.href = item.dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
             }, delay);
             delay += 350;
         });
@@ -34948,7 +35318,7 @@ const appDonate = {
             accountName: 'ĐẶNG NHƯ',
             memo: 'Ung ho VN2000 Pro',
             qrUrl: 'https://img.vietqr.io/image/ICB-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU',
-            openAppUrl: 'https://vietinbankipays.page.link/'
+            openAppUrl: 'https://ipay.vietinbank.vn/'
         },
         'bidv': {
             name: 'BIDV (Đầu tư và Phát triển VN)',
@@ -34957,7 +35327,7 @@ const appDonate = {
             accountName: 'ĐẶNG NHƯ',
             memo: 'Ung ho VN2000 Pro',
             qrUrl: 'https://img.vietqr.io/image/BIDV-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU',
-            openAppUrl: 'https://bidvsmartbanking.page.link/'
+            openAppUrl: 'https://smartbanking.bidv.com.vn/'
         },
         'momo': {
             name: 'Ví Điện Tử MoMo (SĐT)',
@@ -34966,7 +35336,7 @@ const appDonate = {
             accountName: 'ĐẶNG NHƯ',
             memo: 'Ung ho VN2000 Pro',
             qrUrl: 'https://img.vietqr.io/image/momo-0839656568-compact2.png?amount=0&addInfo=Ung%20ho%20VN2000%20Pro&accountName=DANG%20NHU',
-            openAppUrl: 'https://me.momo.vn/0839656568'
+            openAppUrl: 'https://nhantien.momo.vn/0839656568'
         },
         'zalopay': {
             name: 'Ví Điện Tử ZaloPay (SĐT)',
@@ -35250,29 +35620,94 @@ const appDonate = {
         }
     },
 
-    copyAccountNumber() {
+    handleOpenApp(event) {
+        const cur = this.config;
+        this.copyAccountNumber(true);
+        if (typeof showToast === 'function') {
+            showToast(`✓ Đã sao chép STK: ${cur.accountNumber} (${cur.name}). Đang mở ứng dụng chuyển tiền...`);
+        }
+        if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && /android|iphone|ipad|ipod/i.test(navigator.userAgent)) {
+            let appScheme = null;
+            if (cur.bankCode === 'ICB') {
+                appScheme = 'vietinbankipay://';
+            } else if (cur.bankCode === 'BIDV') {
+                appScheme = 'bidvsmartbanking://';
+            } else if (cur.bankCode === 'MOMO') {
+                appScheme = 'momo://';
+            } else if (cur.bankCode === 'ZALOPAY') {
+                appScheme = 'zalopay://';
+            }
+
+            if (appScheme && typeof document !== 'undefined' && typeof document.createElement === 'function' && document.body) {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = appScheme;
+                document.body.appendChild(iframe);
+                setTimeout(() => {
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                }, 1500);
+            }
+        }
+    },
+
+    async downloadQrImage() {
+        const img = (typeof document !== 'undefined') ? document.getElementById('imgDonateVietQR') : null;
+        if (!img || !img.src) {
+            if (typeof showToast === 'function') showToast('⚠️ Chưa có mã QR để tải về!', true);
+            return;
+        }
+        if (typeof showToast === 'function') showToast('⏳ Đang tải mã QR chuyển khoản...');
+        try {
+            const res = await fetch(img.src);
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `VietQR_UngHo_VN2000_${this.activeChannel}_${this.config.accountNumber}.png`;
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                if (link.parentNode) link.parentNode.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            }, 3000);
+            if (typeof showToast === 'function') showToast('✓ Đã tải mã QR về máy! Mở app ngân hàng chọn "Quét ảnh QR" để ủng hộ.');
+        } catch(e) {
+            const link = document.createElement('a');
+            link.target = '_blank';
+            link.href = img.src;
+            link.download = `VietQR_UngHo_VN2000.png`;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                if (link.parentNode) link.parentNode.removeChild(link);
+            }, 1000);
+            if (typeof showToast === 'function') showToast('✓ Đã mở ảnh mã QR để lưu về máy!');
+        }
+    },
+
+    copyAccountNumber(silent = false) {
         if (!this.config.accountNumber) return;
         const self = this;
         if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(this.config.accountNumber)
                 .then(() => {
-                    if (typeof showToast === 'function') showToast('✓ Đã sao chép STK: ' + self.config.accountNumber);
+                    if (!silent && typeof showToast === 'function') showToast('✓ Đã sao chép STK: ' + self.config.accountNumber);
                 })
-                .catch(() => self.fallbackCopy(self.config.accountNumber));
+                .catch(() => self.fallbackCopy(self.config.accountNumber, silent));
         } else {
-            self.fallbackCopy(this.config.accountNumber);
+            self.fallbackCopy(this.config.accountNumber, silent);
         }
     },
 
-    fallbackCopy(text) {
-        if (typeof document === 'undefined') return;
+    fallbackCopy(text, silent = false) {
+        if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.body) return;
         const input = document.createElement('input');
         input.value = text;
         document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
+        if (typeof input.select === 'function') input.select();
+        if (typeof document.execCommand === 'function') document.execCommand('copy');
         document.body.removeChild(input);
-        if (typeof showToast === 'function') showToast('✓ Đã sao chép STK: ' + text);
+        if (!silent && typeof showToast === 'function') showToast('✓ Đã sao chép STK: ' + text);
     }
 };
 

@@ -3,11 +3,59 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 315/315 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 321/321 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-04] WP-H Khắc phục nút Chuyển tiền qua App ủng hộ tác giả & Tải mã VietQR về máy
+- **Yêu cầu từ người dùng**: `nhấn nút chuyển tiền qua app để ủng hộ tác giả bị lỗi`.
+- **Nguyên nhân gốc rễ**:
+  1. Các kênh VietinBank và BIDV trước đây sử dụng liên kết `*.page.link` (Firebase Dynamic Links đã bị Google ngưng hỗ trợ và trả về lỗi 404/Dynamic Link Not Found).
+  2. Nút bấm mở app chưa tự động sao chép số tài khoản vào Clipboard, không có scheme app tương thích trên điện thoại, khiến người dùng bị kẹt khi mở tab mới.
+- **Giải pháp kỹ thuật đã triển khai**:
+  1. **Cập nhật URL cổng thanh toán chính thức & Deep Link ứng dụng**:
+     - VietinBank: `https://ipay.vietinbank.vn/` + Mobile scheme `vietinbankipay://`.
+     - BIDV: `https://smartbanking.bidv.com.vn/` + Mobile scheme `bidvsmartbanking://`.
+     - MoMo: `https://nhantien.momo.vn/0839656568` + Mobile scheme `momo://`.
+     - ZaloPay: `https://zalo.me/0839656568` + Mobile scheme `zalopay://`.
+  2. **Tự động sao chép STK khi bấm chuyển tiền (`appDonate.handleOpenApp`)**:
+     - Tự động copy STK `0839656568` vào Clipboard và hiển thị thông báo hướng dẫn rõ ràng: `✓ Đã sao chép STK: 0839656568 (Ngân hàng...). Đang mở ứng dụng chuyển tiền...`.
+     - Người dùng chỉ cần Dán (Paste) khi ứng dụng ngân hàng/ví mở ra.
+  3. **Thêm tính năng Tải ảnh mã VietQR về máy (`appDonate.downloadQrImage`)**:
+     - Bổ sung nút `💾 Tải mã VietQR về máy (để quét ảnh)` ngay dưới mã QR.
+     - Cho phép tải ảnh mã QR dạng PNG về Album/Thư viện máy để mở bất kỳ app ngân hàng nào (VCB, TCB, MB, Vietin, BIDV, Agribank...) chọn tính năng "Quét ảnh QR".
+  4. **Nâng cấp Cache & Kiểm thử**:
+     - Nâng cấp phiên bản tài nguyên PWA lên `v2.8.23` (`sw.js`, `style.css`, `ui-polish.css`, `app.js`).
+     - Mở rộng bộ kiểm thử `tests/donate_modal_30s.test.js` (8/8 tests pass).
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **321/321 tests PASS 100%**.
+
+### [2026-11-04] WP-G Quản Lý Dữ Liệu & Camera Đóng Dấu: TÍCH CHỌN NHIỀU MỐC, CHIA SẺ SỔ ĐO & TẢI/CHIA SẺ ẢNH ĐÓNG DẤU CHUẨN BLOB
+- **Yêu cầu từ người dùng**:
+  1. `đối với các chức năng về quản lý dữ liệu, cần bổ sung nút chia sẻ và chọn nhiều dữ liệu để chia sẻ.`
+  2. `chức năng Camera đóng dấu khi tải ảnh từ thư mục quản lý về thì chưa được đóng dấu mà chỉ là ảnh chụp bình thường`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Quản lý dữ liệu & Sổ đo mốc (`screen-datamgmt`)**:
+     - *Bổ sung cột Checkbox chọn nhiều mốc*: Thêm checkbox tổng `#chkSelectAllPoints` trên header và `.chk-point-item` cho từng dòng mốc; hỗ trợ trạng thái `indeterminate` khi chọn một phần.
+     - *Thanh tác vụ chọn nhiều mốc (Batch Actions Bar `#barBatchPointsActions`)*: Tự động trồi lên khi có $\ge 1$ mốc được chọn, hiển thị số mốc đã chọn và 5 nút tác vụ:
+       * `📤 Chia sẻ`: Mở menu chia sẻ trực tiếp của máy (`navigator.share`) chứa bảng tọa độ văn bản chuẩn trắc địa tiếng Việt + đính kèm tệp CSV UTF-8 có BOM.
+       * `📁 Xuất đã chọn`: Mở Studio Xuất Dữ Liệu (`openExportModal`) nạp riêng danh sách các mốc đã chọn sang CAD (DWG/DXF), Excel, KML, GeoJSON, PDF...
+       * `📋 Chép text`: Sao chép bảng tọa độ đã chọn vào Clipboard để dán nhanh vào Zalo/Tin nhắn.
+       * `🗑️ Xóa đã chọn`: Xóa hàng loạt các mốc đã chọn kèm hộp thoại xác nhận an toàn.
+       * `✕ Bỏ chọn`: Xóa nhanh toàn bộ trạng thái tích chọn.
+     - *Nút `📤 Chia sẻ` trên thanh công cụ của danh sách mốc (`#btnSharePointsSummary`)*: Cho phép chia sẻ ngay toàn bộ sổ đo hoặc các mốc đã chọn bất kỳ lúc nào.
+  2. **Camera Khảo sát đóng dấu (`screen-camera`)**:
+     - *Khắc phục triệt để lỗi tải ảnh từ Thư viện về máy*: Chuyển đổi dữ liệu Base64 Data URL sang Blob nhị phân chuẩn W3C qua hàm `dataUrlToBlob()`, tạo Object URL `URL.createObjectURL(blob)` để tải file. Điều này bảo toàn 100% con dấu tọa độ trên mọi thiết bị di động (tránh triệt để lỗi thẻ `<a download>` bị nuốt base64 hoặc lưu nhầm ảnh gốc trên Safari iOS / Chrome Android).
+     - *Nút `📤 Chia sẻ (Zalo / Thiết bị)` nhanh*:
+       * Bổ sung nút `📤` trên từng thẻ ảnh trong tab *📂 Thư viện* (`cameraGalleryGrid`), cho phép gửi thẳng ảnh có đóng dấu sang Zalo, Tin nhắn, Gmail hoặc lưu vào Album máy qua `navigator.share({ files: [file] })`.
+       * Bổ sung nút `📤 Chia sẻ` trong modal xem chi tiết ảnh (`modalCameraMediaViewer`).
+  3. **Đồng bộ phiên bản tài nguyên PWA**:
+     - Nâng cấp `sw.js` `CACHE_NAME = 'vn2000-pro-v2.8.22'`.
+     - Đồng bộ query `?v=2.8.22` trên `style.css`, `ui-polish.css` và `app.js` trong `index.html`.
+  4. **Kiểm thử tự động & Xác minh**:
+     - Tạo mới `tests/datamgmt_multiselect_share_and_camera_download.test.js` (4/4 pass).
+     - Toàn bộ test suite dự án: **319/319 tests PASS 100% (0 fail)**.
 
 ### [2026-11-02] WP-F Giao diện tổng thể: SÀN CHẠM TỐI THIỂU CHO MỌI NÚT & Ô NHẬP (điện thoại 390×844)
 - **Yêu cầu từ người dùng**: `tiếp tục kiểm tra các nút và giao diện của app`. Diễn giải thành một **kiểm kê trực tiếp theo từng bề mặt**: mở từng màn hình trong trình duyệt, đo vùng chạm thật của mọi điều khiển, rồi sửa những cái dưới sàn ngón tay.

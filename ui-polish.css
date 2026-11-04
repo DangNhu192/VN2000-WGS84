@@ -2516,3 +2516,32 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
     font-size: 20px;
   }
 }
+
+/* ================= THANH TÁC VỤ CHỌN NHIỀU MỐC & CHIA SẺ SỔ ĐO 2026 PRO ================= */
+.batch-points-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.16) 0%, rgba(15, 23, 42, 0.75) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: fadeInBatchBar 0.22s ease-out;
+}
+
+@keyframes fadeInBatchBar {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.batch-points-actions-bar .btn-sm {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.camera-card-btn.btn-share:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: #38bdf8 !important;
+}

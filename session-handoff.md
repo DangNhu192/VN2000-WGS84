@@ -1,6 +1,45 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-02: WP-F — SÀN CHẠM TỐI THIỂU cho mọi nút & ô nhập (kiểm kê trực tiếp 390×844)
+## Phiên hiện tại — 2026-11-04: WP-H — KHẮC PHỤC NÚT CHUYỂN TIỀN QUA APP ỦNG HỘ TÁC GIẢ & TẢI MÃ VIETQR
+- **Yêu cầu từ người dùng**: `nhấn nút chuyển tiền qua app để ủng hộ tác giả bị lỗi`.
+- **Nguyên nhân**:
+  1. Hai kênh VietinBank và BIDV dùng liên kết rút gọn Firebase Dynamic Links `*.page.link` đã bị khai tử bởi Google, gây lỗi 404 khi người dùng bấm vào.
+  2. Nút bấm không kích hoạt deep link app trên điện thoại, chưa tự động sao chép STK vào Clipboard.
+- **Giải pháp & Kiến trúc triển khai**:
+  1. Cập nhật URL web chính thức của 4 kênh và hỗ trợ Deep Link app di động:
+     - VietinBank: `https://ipay.vietinbank.vn/` + scheme `vietinbankipay://`
+     - BIDV: `https://smartbanking.bidv.com.vn/` + scheme `bidvsmartbanking://`
+     - MoMo: `https://nhantien.momo.vn/0839656568` + scheme `momo://`
+     - ZaloPay: `https://zalo.me/0839656568` + scheme `zalopay://`
+  2. `appDonate.handleOpenApp`:
+     - Tự động sao chép STK `0839656568` (ĐẶNG NHƯ) vào Clipboard và hiển thị Toast thông báo rõ ràng cho người dùng.
+     - Kích hoạt deep link app tương ứng trên thiết bị di động, đồng thời mở cổng thanh toán chính thức an toàn.
+  3. `appDonate.downloadQrImage`:
+     - Bổ sung nút `💾 Tải mã VietQR về máy (để quét ảnh)`.
+     - Cho phép tải ảnh mã QR VietQR (PNG Blob) về máy để quét từ bất kỳ ứng dụng ngân hàng nào (Vietcombank, MB, Techcombank, VPBank, Agribank...).
+  4. Đăng ký tài nguyên: `sw.js` `CACHE_NAME = 'vn2000-pro-v2.8.23'`, `index.html` (`style.css?v`, `ui-polish.css?v`, `app.js?v` = `2.8.23`).
+- **Kết quả kiểm chứng**: `tests/donate_modal_30s.test.js` **8/8**; toàn dự án `npm test` **321/321 PASS (100%)**.
+
+## Phiên trước — 2026-11-04: WP-G — CHỌN NHIỀU DỮ LIỆU & CHIA SẺ SỔ ĐO + TẢI/CHIA SẺ ẢNH ĐÓNG DẤU CHUẨN BLOB
+- **Yêu cầu từ người dùng**:
+  1. `đối với các chức năng về quản lý dữ liệu, cần bổ sung nút chia sẻ và chọn nhiều dữ liệu để chia sẻ.` (Lựa chọn A: menu chia sẻ trực tiếp Zalo, SMS, Mail... kèm tải CSV/TXT nhanh; chọn nhiều mốc để chia sẻ, xuất riêng và xóa hàng loạt).
+  2. `chức năng Camera đóng dấu khi tải ảnh từ thư mục quản lý về thì chưa được đóng dấu mà chỉ là ảnh chụp bình thường` + bổ sung nút `📤 Chia sẻ Zalo/Thiết bị` ngay trên thẻ ảnh.
+- **Kiến trúc đã dựng**:
+  1. **Quản lý dữ liệu (`screen-datamgmt`)**:
+     - Thêm cột Checkbox `#chkSelectAllPoints` và `.chk-point-item` cho từng mốc.
+     - Thanh tác vụ Batch Actions `#barBatchPointsActions`: hiển thị số lượng mốc đã chọn và 5 nút: *📤 Chia sẻ*, *📁 Xuất đã chọn*, *📋 Chép text*, *🗑️ Xóa đã chọn*, *✕ Bỏ chọn*.
+     - Bổ sung nút *📤 Chia sẻ* trên card-tools của Danh sách mốc.
+     - Hỗ trợ `navigator.share` (Zalo, Tin nhắn, Gmail...) với nội dung bảng trắc địa chuẩn + đính kèm file CSV UTF-8 BOM; fallback sao chép Clipboard và tải file CSV khi chạy trên Desktop.
+     - Hỗ trợ xuất chọn lọc qua `this._customExportPoints` cho Studio Xuất Dữ Liệu (`openExportModal`).
+  2. **Camera Khảo sát đóng dấu (`screen-camera`)**:
+     - Hàm `dataUrlToBlob(dataUrl)`: chuyển đổi Base64 Data URL thành Blob nhị phân chuẩn W3C.
+     - Sửa `downloadSingleMedia()` & `downloadAllImages()`: sử dụng Blob URL `URL.createObjectURL(blob)` để tải file, loại bỏ triệt để hiện tượng mất dấu hoặc thẻ download Base64 bị nuốt trên Safari/Chrome mobile.
+     - Bổ sung hàm `shareSingleMedia(id)` và `shareCurrentViewerMedia()`: cho phép chia sẻ file ảnh trực tiếp có đầy đủ con dấu qua `navigator.share({ files: [file] })` (gửi thẳng Zalo, Tin nhắn hoặc Lưu vào Album ảnh).
+     - Thêm nút `📤` trên từng thẻ ảnh trong tab *📂 Thư viện* (`cameraGalleryGrid`) và nút `📤 Chia sẻ` trong modal xem chi tiết ảnh (`modalCameraMediaViewer`).
+  3. **Đăng ký tài nguyên**: `sw.js` `CACHE_NAME = 'vn2000-pro-v2.8.22'`, `index.html` (`style.css?v`, `ui-polish.css?v`, `app.js?v` = `2.8.22`).
+- **Kết quả kiểm chứng**: `tests/datamgmt_multiselect_share_and_camera_download.test.js` **4/4**; toàn dự án `npm test` **319/319 PASS (100%)**.
+
+## Phiên trước — 2026-11-02: WP-F — SÀN CHẠM TỐI THIỂU cho mọi nút & ô nhập (kiểm kê trực tiếp 390×844)
 - **Yêu cầu từ người dùng**: `tiếp tục kiểm tra các nút và giao diện của app` (nhắc lại 2 lần) → kiểm kê **từng bề mặt trong trình duyệt** rồi sửa mọi điều khiển dưới sàn ngón tay. Không có phạm vi chốt bằng AskUserQuestion trong đợt này: người dùng muốn tự kiểm tra và báo lỗi, vì vậy cách làm là **đo, liệt kê, sửa, đo lại**.
 - **Kiến trúc đã dựng** (chỉ `ui-polish.css` §6, `index.html`/`sw.js` tăng version, `tests/touch_target_floor.test.js` mới):
   1. **Neo**: 17 lớp/id được đặt `position: relative` (`btn-header-action`, `mac-ctrl-btn`, `btn-map-action`, `btn-help-circle(-sm)`, `camera-icon-btn`, `btn-modal-close`, `btn-sm`, `cad-ribbon-btn`, `cad-cmd-*`, `cad-hud-btn`, `#btnDockCollapse`, `#fwSimple/#fwAdvanced/#fwField`, `btn-drawer-clear`, `btn-resizer-quick-toggle`…) để chứa vùng chạm.

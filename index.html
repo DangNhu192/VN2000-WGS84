@@ -33,9 +33,9 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.21">
+  <link rel="stylesheet" href="style.css?v=2.8.23">
   <link rel="stylesheet" href="field-workspace.css">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.21">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.23">
 </head>
 
 <body>
@@ -3203,9 +3203,34 @@
               <span>📋 Danh sách mốc đã lưu</span>
               <span class="badge-count" style="display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; font-size: 11.5px; font-weight: 700; border-radius: 999px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4);"><span id="txtPointsCount">0</span></span>
             </div>
-            <div class="card-tools" style="flex-shrink: 0;">
+            <div class="card-tools" style="flex-shrink: 0; display: flex; align-items: center; gap: 6px;">
+              <button id="btnSharePointsSummary" class="btn-sm btn-green" onclick="appData.shareSelectedPoints()" style="height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px;" title="Chia sẻ sổ đo mốc qua Zalo / Tin nhắn / Thiết bị">
+                📤 Chia sẻ
+              </button>
               <button class="btn-sm btn-blue" onclick="appNav.openProjectMap()" style="height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px;">
                 🗺️ Xem bản đồ
+              </button>
+            </div>
+          </div>
+
+          <!-- Thanh tác vụ thao tác chọn nhiều mốc (Batch Actions Bar) -->
+          <div id="barBatchPointsActions" class="batch-points-actions-bar" style="display: none; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; margin: 10px 0; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+              <span style="color: #cbd5e1;">Đã chọn: <b id="txtSelectedPointsCount" style="color: #38bdf8;">0</b> mốc</span>
+              <button type="button" class="btn-sm" onclick="appData.clearPointsSelection()" style="height: 26px; padding: 2px 8px; font-size: 11px; background: rgba(255,255,255,0.06); border: 1px solid #475569; color: #94a3b8;">✕ Bỏ chọn</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn-sm btn-green" onclick="appData.shareSelectedPoints()" style="height: 28px; padding: 2px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" title="Chia sẻ các mốc đã chọn qua Zalo / Tin nhắn / Email">
+                📤 Chia sẻ
+              </button>
+              <button type="button" class="btn-sm btn-blue" onclick="appData.exportSelectedPoints()" style="height: 28px; padding: 2px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" title="Xuất riêng các mốc đã chọn sang CAD/Excel/KML...">
+                📁 Xuất đã chọn
+              </button>
+              <button type="button" class="btn-sm" onclick="appData.copySelectedPointsText()" style="height: 28px; padding: 2px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; background: rgba(148, 163, 184, 0.15); border: 1px solid #64748b;" title="Sao chép bảng mốc vào bộ nhớ tạm">
+                📋 Chép text
+              </button>
+              <button type="button" class="btn-sm btn-red" onclick="appData.deleteSelectedPoints()" style="height: 28px; padding: 2px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" title="Xóa các mốc đã chọn">
+                🗑️ Xóa đã chọn
               </button>
             </div>
           </div>
@@ -3214,6 +3239,9 @@
             <table class="data-table" id="tablePointsList">
               <thead>
                 <tr>
+                  <th style="width: 36px; text-align: center;">
+                    <input type="checkbox" id="chkSelectAllPoints" onchange="appData.toggleSelectAllPoints(this.checked)" title="Chọn tất cả mốc" style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
+                  </th>
                   <th style="width: 40px; text-align: center;">STT</th>
                   <th style="text-align: left;">Tên Mốc</th>
                   <th style="text-align: right; padding-right: 12px;">X (Bắc) [m]</th>
@@ -7565,7 +7593,7 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.21"></script>
+  <script src="app.js?v=2.8.23"></script>
   <script src="field-workspace.js?v=2.8.5"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
@@ -7674,7 +7702,8 @@
             <img id="imgDonateVietQR" class="support-qr-image" alt="Mã VietQR Donate" />
           </div>
           <p id="txtDonateInstruction" class="support-hint">Mở ứng dụng ngân hàng hoặc ví điện tử để quét mã</p>
-          <a id="btnDonateOpenApp" href="#" target="_blank" rel="noopener noreferrer" class="support-app-link" style="display: none;">Mở ứng dụng chuyển khoản</a>
+          <a id="btnDonateOpenApp" href="#" target="_blank" rel="noopener noreferrer" class="support-app-link" style="display: none;" onclick="appDonate.handleOpenApp(event)">Mở ứng dụng chuyển khoản</a>
+          <button type="button" id="btnDonateDownloadQr" class="support-app-link" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; margin-top: 6px; cursor: pointer;" onclick="appDonate.downloadQrImage()">💾 Tải mã VietQR về máy (để quét ảnh)</button>
         </div>
 
         <div class="support-meta-list">
@@ -7762,7 +7791,10 @@
         <div id="cameraViewerMetaInfo" style="font-size: 12px; line-height: 1.6; color: #cbd5e1; background: #0b1329; border: 1px solid #1e293b; border-radius: 8px; padding: 10px;">
           <!-- Thông số kỹ thuật -->
         </div>
-        <div class="btn-group-row" style="margin-top: 4px; gap: 8px;">
+        <div class="btn-group-row" style="margin-top: 4px; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-sm btn-blue" id="btnCameraViewerShare" style="flex: 1.1; height: 42px; font-size: 12.5px; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 4px;" onclick="appCamera.shareCurrentViewerMedia()">
+            📤 Chia sẻ
+          </button>
           <button type="button" class="btn-convert btn-wgs-to-vn2k" id="btnCameraViewerDownload" style="flex: 1.2; height: 42px; font-size: 13px; margin: 0;" onclick="appCamera.downloadCurrentViewerMedia()">
             💾 Tải về máy
           </button>
