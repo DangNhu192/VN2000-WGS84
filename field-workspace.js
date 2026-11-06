@@ -15,7 +15,17 @@
             failed: 'Không thể chuyển đổi. Kiểm tra tọa độ và kinh tuyến trục rồi thử lại.',
             far: 'Điểm nằm xa kinh tuyến trục đang chọn. Kiểm tra KTT và múi chiếu trước khi sử dụng.',
             gps: 'GPS điện thoại chỉ dùng tham khảo; không thay thế RTK hoặc phép đo kiểm định.',
-            modes: 'Chế độ giao diện', actions: 'Chế độ giao diện và thực địa'
+            modes: 'Chế độ giao diện', actions: 'Chế độ giao diện và thực địa',
+            hintSimple: 'Đơn giản: chỉ hiện chuyển đổi nhanh. Chọn Nâng cao để thấy GPS, bản đồ, cắm mốc, sổ đo, MiniCAD…',
+            hintAdvanced: 'Nâng cao: đầy đủ chức năng. Thanh dưới cùng mở nhanh các chức năng chính.',
+            welcomeTitle: 'Bắt đầu trong 3 bước',
+            step1: 'Chọn tỉnh / kinh tuyến trục (KTT)',
+            step1d: 'Kết quả VN-2000 chỉ đúng khi KTT khớp với tỉnh của điểm đo.',
+            step2: 'Nhập tọa độ, bấm Chuyển đổi',
+            step2d: 'Chưa có số liệu? Chấm điểm trên bản đồ. Nhiều điểm? Mở bộ chuyển đổi đầy đủ.',
+            step3: 'Cần thêm chức năng?',
+            step3d: 'Chọn Nâng cao ở trên, hoặc dùng thanh dưới cùng. Nút ? giải thích màn hình đang xem.',
+            welcomeKtt: 'Chọn tỉnh', welcomeDone: 'Đã hiểu'
         },
         en: {
             simple: 'Simple', advanced: 'Advanced', field: 'Field',
@@ -29,7 +39,17 @@
             failed: 'Conversion failed. Check the coordinates and central meridian, then try again.',
             far: 'This point is far from the selected central meridian. Check the CM and projection zone before use.',
             gps: 'Phone GPS is for reference only; it does not replace RTK or certified survey measurements.',
-            modes: 'Workspace mode', actions: 'Workspace and field mode'
+            modes: 'Workspace mode', actions: 'Workspace and field mode',
+            hintSimple: 'Simple: quick conversion only. Choose Advanced for GPS, map, stakeout, field book, MiniCAD…',
+            hintAdvanced: 'Advanced: all tools. The bottom bar opens the main features.',
+            welcomeTitle: 'Get started in 3 steps',
+            step1: 'Choose province / central meridian (CM)',
+            step1d: 'VN-2000 results are only correct when the CM matches the point\'s province.',
+            step2: 'Enter coordinates, tap Convert',
+            step2d: 'No data yet? Pick a point on the map. Many points? Open the full converter.',
+            step3: 'Need more tools?',
+            step3d: 'Choose Advanced above, or use the bottom bar. The ? button explains the current screen.',
+            welcomeKtt: 'Choose province', welcomeDone: 'Got it'
         }
     };
 
@@ -98,6 +118,11 @@
             byId('fwQuick').hidden = mode === 'advanced';
             ['simple', 'advanced'].forEach(name => byId(name === 'simple' ? 'fwSimple' : 'fwAdvanced').setAttribute('aria-pressed', String(name === mode)));
             writePreference(storage, 'vn2k_workspace_mode', mode);
+            updateModeHint();
+        }
+        function updateModeHint() {
+            const hint = byId('fwModeHint');
+            if (hint) hint.textContent = words()[document.body.dataset.workspace === 'advanced' ? 'hintAdvanced' : 'hintSimple'];
         }
         function setField(enabled) {
             document.body.classList.toggle('field-mode', enabled);
@@ -115,10 +140,13 @@
             const forward = direction.value === 'wgs2vn';
             byId('fwLabel1').textContent = forward ? t.lat : t.x;
             byId('fwLabel2').textContent = forward ? t.lng : t.y;
-            first.placeholder = forward ? '10.7769' : '1191900.123';
-            second.placeholder = forward ? '106.7009' : '603800.456';
+            // "VD" makes it clear these are examples, not values already filled in.
+            const eg = language() === 'en' ? 'e.g. ' : 'VD: ';
+            first.placeholder = eg + (forward ? '10.7769' : '1191900.123');
+            second.placeholder = eg + (forward ? '106.7009' : '603800.456');
             byId('fwContext').textContent = `${t.cm} ${state.kttDeg}°${String(state.kttMin).padStart(2, '0')}′ · ${t.zone} ${state.muiVal}°`;
             document.querySelectorAll('[data-fw-gps]').forEach(el => { el.textContent = t.gps; });
+            updateModeHint();
             clearResult();
         }
 
@@ -129,6 +157,14 @@
         first.addEventListener('input', clearResult);
         second.addEventListener('input', clearResult);
         byId('fwKtt').addEventListener('click', () => root.appModal.openUnifiedSettings('ktt'));
+        // First-run welcome: shown until the user dismisses it once.
+        const welcome = byId('fwWelcome');
+        if (welcome) {
+            const dismiss = () => { welcome.hidden = true; writePreference(storage, 'vn2k_welcome_done', '1'); };
+            welcome.hidden = readPreference(storage, 'vn2k_welcome_done', '') === '1';
+            byId('fwWelcomeDone').addEventListener('click', dismiss);
+            byId('fwWelcomeKtt').addEventListener('click', () => { dismiss(); root.appModal.openUnifiedSettings('ktt'); });
+        }
         byId('fwMap').addEventListener('click', () => root.appNav.openTransformMap({
             mode: 'pick',
             onApplyPoint(point) {

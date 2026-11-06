@@ -1132,3 +1132,16 @@
 - **Bottom Sheet dùng chung**: bỏ hai nút chéo phân hệ "📌 Nạp tọa độ" (`loadSelectedToMain`) và "💾 Lưu mốc" (`savePickedPoint` ghi thẳng vào dự án); xóa hai method chết. Chấm điểm đã có "✓ Lấy tọa độ" trên `#barCoordPicker`; popup điểm chuyển đổi đã có nút nạp.
 - Test: thêm `tests/map_chrome_isolation.test.js` 21/21; `cad_ui_isolation` 26/26; `project_map_readonly_and_table` 14/14; `npm test` 309/309 PASS.
 - Live localhost:8080 (ma trận chuyển cảnh): project → chỉ `mapProjectBar`; cad → chỉ toolbar/HUD CAD; cad→GPS và project→GPS → 0 chrome, `cadActive=false`; picker → chỉ `barCoordPicker`; converted → chỉ Bottom Sheet thông tin; chạm bản đồ GPS/điểm chuyển đổi không mở thêm cửa sổ.
+
+## 2026-11-06 — Tối ưu trải nghiệm người dùng lần đầu (WP-I)
+- **Yêu cầu**: người dùng lần đầu khó hiểu cách dùng → tối ưu và đề xuất chỉnh trang bố cục.
+- **Đã sửa (kiểm tra trực tiếp iPhone 13 390×844 và iPhone SE 320×568)**:
+  1. **Màn chờ ủng hộ 20s** không còn chặn người dùng mới trong ngày đầu tiên (`appDonate.FIRST_USE_KEY = vn2k_first_use_date_v1`); người dùng cũ (đã có `vn2k_donate_last_shown_date_v1`) không đổi. Sửa nhãn nút "Chờ18sđể" dính chữ (bọc `<span>` vì nút là flex).
+  2. **Nút "◀ Quay lại" luôn hiện ở Trang chủ** do `.mac-pill-btn { display: inline-flex !important }` thắng `style.display='none'`. Nay dùng thuộc tính `hidden` (+ `#btnHeaderBack[hidden] { display:none !important }` trong ui-polish.css), HTML khởi tạo sẵn `hidden`. Tên ứng dụng hiện lại trên header.
+  3. **Nút ? ở Trang chủ mở nhầm "Tổng quan Cài đặt"** → thêm hướng dẫn `appGuide.guides.home` (Bắt đầu nhanh 3 bước), `guideKeyMap.menu = 'home'`.
+  4. **Thanh dưới cùng bị cắt chữ** ("Chuyển Đổi Tọa Độ", "Cắm Mốc Thực Địa") → thêm trường `dock` (nhãn ngắn) cho `appDashboard.allFeatures`, `renderTaskbarDock` ưu tiên `f.dock`.
+  5. **Thẻ chào mừng lần đầu** `#fwWelcome` (3 bước + nút "Chọn tỉnh" / "Đã hiểu", nhớ bằng `vn2k_welcome_done`) và **dòng giải thích chế độ** `#fwModeHint` (Đơn giản / Nâng cao) trong `field-workspace.js`, song ngữ.
+  6. Placeholder ô nhập có tiền tố "VD:" để không bị nhầm là giá trị đã điền.
+  7. Trang chủ Nâng cao: đưa 4 ô chức năng chính lên **trước** khối GPS; bỏ cắt tên tỉnh trên chip; badge "4 mục"/"Đổi ghim" không xuống dòng; thanh chế độ cho phép xuống dòng ở màn hẹp (nút Thực địa không bị tràn ở 320px).
+- **Tài nguyên**: `style.css`/`ui-polish.css`/`app.js`/`field-workspace.css`/`field-workspace.js` `?v=2.8.24`; `sw.js` `CACHE_NAME = vn2000-pro-v2.8.24`.
+- **Kiểm chứng**: `npm test` **322/322 PASS** (thêm test "First day of use never blocks a new user…" trong `donate_modal_30s.test.js`); không lỗi JS khi tải trang; không tràn ngang.

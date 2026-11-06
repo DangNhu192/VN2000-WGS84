@@ -73,7 +73,7 @@ body.field-mode .fw-gps-note { background: #211d00; color: #ffe76b; }
 body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #ffdf00 !important; outline-offset: 3px; }
 @media (max-width: 600px) {
   #fieldWorkspace { padding: 16px 12px 28px; }
-  #fwToolbar { margin-bottom: 20px; gap: 8px; }
+  #fwToolbar { margin-bottom: 20px; gap: 8px; flex-wrap: wrap; }
   #fieldWorkspace #fwModes button { padding: 10px 8px; white-space: nowrap; }
   #fwModes { flex-shrink: 0; }
   #fieldWorkspace #fwField { padding: 10px; gap: 6px; }
@@ -91,4 +91,20 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
   body.field-mode header.app-header .app-title-group { display: none !important; }
   body.field-mode #btnHeaderBack { width: 48px !important; padding: 0 !important; font-size: 0 !important; }
   body.field-mode #btnHeaderBack::after { content: '←'; font-size: 22px; }
+}
+
+/* First-run guidance on the home screen. */
+#fwModeHint { margin: -16px 0 16px; color: var(--fw-muted); font-size: 13px; line-height: 1.5; }
+#fwWelcome { margin-bottom: 16px; padding: 20px; background: var(--fw-surface); border: 1px solid var(--fw-accent); border-radius: 14px; }
+#fwWelcome h2 { margin: 0 0 12px; font-size: 17px; font-weight: 700; }
+#fwWelcome ol { margin: 0; padding: 0; list-style: none; counter-reset: fw-step; display: grid; gap: 12px; }
+#fwWelcome li { counter-increment: fw-step; display: grid; grid-template-columns: 28px 1fr; column-gap: 10px; font-size: 14px; line-height: 1.5; }
+#fwWelcome li::before { content: counter(fw-step); grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--fw-accent); color: var(--fw-on-accent); font-weight: 700; font-size: 14px; }
+#fwWelcome li span { color: var(--fw-muted); font-size: 13px; }
+#fwWelcomeActions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+#fieldWorkspace #fwWelcomeKtt { flex: 1 1 140px; border: 0; background: var(--fw-accent); color: var(--fw-on-accent); }
+#fieldWorkspace #fwWelcomeDone { flex: 1 1 140px; background: transparent; color: var(--fw-ink); border: 1px solid var(--fw-line); }
+@media (max-width: 600px) {
+  #fwModeHint { margin: -12px 0 12px; }
+  #fwWelcome { padding: 16px; }
 }

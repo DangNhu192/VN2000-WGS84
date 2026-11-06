@@ -2545,3 +2545,10 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
   background: rgba(56, 189, 248, 0.2) !important;
   color: #38bdf8 !important;
 }
+
+/* The header back button must stay hidden on the home screen (it has nowhere to go back to). */
+#btnHeaderBack[hidden] { display: none !important; }
+
+/* Home dashboard: chips are full-width rows, so show the whole province name; keep small badges on one line. */
+#dashboardModernHub .quick-chip-pill .chip-label { max-width: none !important; }
+#dashboardModernHub :is(.bar-badge, .btn-customize-pins) { white-space: nowrap !important; flex-shrink: 0 !important; }

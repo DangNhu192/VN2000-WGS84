@@ -1,6 +1,20 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-04: WP-H — KHẮC PHỤC NÚT CHUYỂN TIỀN QUA APP ỦNG HỘ TÁC GIẢ & TẢI MÃ VIETQR
+## Phiên hiện tại — 2026-11-06: WP-I — TỐI ƯU TRẢI NGHIỆM NGƯỜI DÙNG LẦN ĐẦU
+- **Yêu cầu**: `Tối ưu ứng dụng và đề xuất chỉnh trang giao diện và cách bố trí các nội dung do người dùng lần đầu khó hiểu cách sử dụng`.
+- **Đã làm**: xem chi tiết trong `progress.md` (mục 2026-11-06). Tóm tắt: bỏ màn chờ ủng hộ ngày đầu tiên, ẩn nút Quay lại ở Trang chủ, hướng dẫn `?` riêng cho Trang chủ, nhãn dock ngắn, thẻ chào mừng 3 bước + dòng giải thích chế độ, placeholder "VD:", đưa 4 ô chức năng lên trước khối GPS.
+- **Điểm cần nhớ**:
+  - `#btnHeaderBack` phải bật/tắt bằng thuộc tính `hidden` (CSS `!important` của `.mac-pill-btn` thắng `style.display`).
+  - Muốn bật lại màn chờ ủng hộ ngay ngày đầu: bỏ dòng `if (!lastShown && firstUse === today) return;` trong `appDonate.checkDailyTrigger`.
+- **Đề xuất chưa làm (cần chủ dự án quyết)**:
+  1. Header điện thoại quá chật: tên app bị cắt, dòng 📍 Tỉnh/KTT bị ẩn. Đề xuất bỏ chữ trên header, đưa Tỉnh/KTT thành chip luôn hiện ngay dưới header ở mọi màn hình.
+  2. Nút GPS trên header chỉ là một chấm xám không chữ → thêm nhãn "GPS" hoặc trạng thái "Tắt".
+  3. Gộp hai chế độ Đơn giản/Nâng cao: Trang chủ duy nhất = khung chuyển đổi nhanh ở trên + 4 ô chức năng + "Công cụ khác" ở dưới, bỏ công tắc chế độ.
+  4. Khối GPS (lớn, toàn gạch ngang khi chưa bật) chỉ nên hiện khi GPS đang bật; khi tắt thay bằng một nút "Bật GPS".
+  5. Thống nhất thuật ngữ: "Bản Đồ Trắc Địa" / "Bản đồ dự án & Mốc" / "Bản Đồ Khảo Sát & Vệ Tinh" đang chỉ cùng một màn.
+  6. Màn chờ ủng hộ: cân nhắc chuyển thành thẻ nhỏ không chặn (hoặc giảm 20s → 5s).
+
+## Phiên trước — 2026-11-04: WP-H — KHẮC PHỤC NÚT CHUYỂN TIỀN QUA APP ỦNG HỘ TÁC GIẢ & TẢI MÃ VIETQR
 - **Yêu cầu từ người dùng**: `nhấn nút chuyển tiền qua app để ủng hộ tác giả bị lỗi`.
 - **Nguyên nhân**:
   1. Hai kênh VietinBank và BIDV dùng liên kết rút gọn Firebase Dynamic Links `*.page.link` đã bị khai tử bởi Google, gây lỗi 404 khi người dùng bấm vào.

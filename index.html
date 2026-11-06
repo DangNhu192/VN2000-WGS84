@@ -33,9 +33,9 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.23">
-  <link rel="stylesheet" href="field-workspace.css">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.23">
+  <link rel="stylesheet" href="style.css?v=2.8.24">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.24">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.24">
 </head>
 
 <body>
@@ -84,7 +84,7 @@
           <span class="tree-nav-icon">☰</span>
           <span class="tree-nav-label" data-i18n="header.menu">Menu</span>
         </button>
-        <button id="btnHeaderBack" class="btn-header-back mac-pill-btn" onclick="appNav.handleHeaderBack()"
+        <button id="btnHeaderBack" class="btn-header-back mac-pill-btn" hidden onclick="appNav.handleHeaderBack()"
           title="Quay lại Trang chủ" data-i18n="header.back">
           ◀ Quay lại
         </button>
@@ -139,6 +139,19 @@
               <span data-fw-text="field">Thực địa</span>
             </button>
           </div>
+          <p id="fwModeHint"></p>
+          <section id="fwWelcome" aria-labelledby="fwWelcomeTitle" hidden>
+            <h2 id="fwWelcomeTitle" data-fw-text="welcomeTitle">Bắt đầu trong 3 bước</h2>
+            <ol>
+              <li><strong data-fw-text="step1">Chọn tỉnh / kinh tuyến trục</strong><span data-fw-text="step1d"></span></li>
+              <li><strong data-fw-text="step2">Nhập tọa độ, bấm Chuyển đổi</strong><span data-fw-text="step2d"></span></li>
+              <li><strong data-fw-text="step3">Cần thêm chức năng?</strong><span data-fw-text="step3d"></span></li>
+            </ol>
+            <div id="fwWelcomeActions">
+              <button type="button" id="fwWelcomeKtt" data-fw-text="welcomeKtt">Chọn tỉnh</button>
+              <button type="button" id="fwWelcomeDone" data-fw-text="welcomeDone">Đã hiểu</button>
+            </div>
+          </section>
           <section id="fwQuick" aria-labelledby="fwTitle">
             <h1 id="fwTitle" data-fw-text="title">Chuyển đổi tọa độ</h1>
             <div id="fwContextRow">
@@ -236,6 +249,11 @@
             </div>
           </div>
 
+          <!-- Lưới 4 Khối lớn 2x2 — đặt trước khối GPS để người mới thấy ngay các chức năng chính -->
+          <div id="bigActionTilesGrid" class="big-action-tiles-grid">
+            <!-- Rendered dynamically by appDashboard.renderDashboard() -->
+          </div>
+
           <!-- HERO LIVE HUD CARD (QUAN TRẮC THỜI GIAN THỰC) -->
           <div class="hero-live-hud-card" id="heroLiveHudCard">
             <div class="fw-gps-note surveyor-gps-disclaimer" data-fw-gps role="note" aria-label="Khuyến cáo sai số GPS">
@@ -289,11 +307,6 @@
                 🗺️ Hiện vị trí trên Map
               </button>
             </div>
-          </div>
-
-          <!-- Lưới 4 Khối lớn 2x2 (Bento 4 Trụ Cột Tác Vụ Thực Địa) -->
-          <div id="bigActionTilesGrid" class="big-action-tiles-grid">
-            <!-- Rendered dynamically by appDashboard.renderDashboard() -->
           </div>
 
           <!-- THÔNG TIN DỰ ÁN ĐANG MỞ -->
@@ -7593,8 +7606,8 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.23"></script>
-  <script src="field-workspace.js?v=2.8.5"></script>
+  <script src="app.js?v=2.8.24"></script>
+  <script src="field-workspace.js?v=2.8.24"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
@@ -8119,4 +8132,4 @@
 </body>
 
 </html>
-
+

@@ -412,13 +412,13 @@ const appNav = window.appNav = {
         if (screenName === 'menu') {
             this.lastHeaderInfo = null;
             targetScreen = document.getElementById('screen-menu');
-            if (btnBack) btnBack.style.display = 'none';
+            if (btnBack) { btnBack.hidden = true; btnBack.style.display = 'none'; }
             const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
             if (titleEl) titleEl.innerHTML = `<img src="icon.png" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
             if (subTitleEl) subTitleEl.innerText = isEn ? "National Coordinate Reference System" : "Hệ Quy Chiếu & Tọa Độ Quốc Gia";
             appNav.updateBanner();
         } else {
-            if (btnBack) btnBack.style.display = 'inline-flex';
+            if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
             
             let titleText = "WGS-84 ⇄ VN-2000";
             let titleTextEn = "WGS-84 ⇄ VN-2000";
@@ -753,7 +753,7 @@ const appNav = window.appNav = {
             else if (featId === 'stakeout') btnId = 'bnavStakeout';
 
             const icon = f ? f.icon : (featId === 'transform' ? '🔄' : (featId === 'map' ? '🗺️' : '🎯'));
-            let shortName = f ? (f.short || f.name) : featId;
+            let shortName = f ? (f.dock || f.short || f.name) : featId;
             if (isEn && typeof appI18n !== 'undefined') {
                 shortName = appI18n.t('bnav.' + featId) || appI18n.translateString(shortName);
             }
@@ -918,7 +918,7 @@ const appNav = window.appNav = {
         }
 
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
 
         if (tab === 'multi') {
             this.syncHeader('1.2 CHUYỂN ĐỔI ĐA ĐIỂM HÀNG LOẠT', '1.2 BATCH TRANSFORMATION');
@@ -1180,7 +1180,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🗺️ 1. CHUYỂN ĐỔI TỌA ĐỘ', '🗺️ 1. COORDINATE TRANSFORMATION');
 
         appNav.setActiveMenuItem('drawerItem_transform');
@@ -1210,7 +1210,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🎯 1. CHẤM CHỌN TỌA ĐỘ BẢN ĐỒ', '🎯 1. MAP COORDINATE PICKER');
 
         // Phân quyền thanh công cụ trên đỉnh bản đồ: CHỈ hiện barCoordPicker
@@ -1275,7 +1275,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🗺️ 2. BẢN ĐỒ DỰ ÁN & MỐC', '🗺️ 2. PROJECT MAP & BENCHMARKS');
 
         // Phân quyền thanh công cụ trên đỉnh bản đồ: CHỈ hiện mapProjectBar
@@ -1369,7 +1369,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('📐 3.5 VẼ MẶT BẰNG & BẢNG KÊ MINICAD', '📐 3.5 MINICAD PLAN DRAWING & TABLE');
 
         // Xóa marker chấm điểm nếu có
@@ -1419,7 +1419,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('📍 VỊ TRÍ ĐIỂM CHUYỂN ĐỔI', '📍 CONVERTED POINT LOCATION');
 
         // Tắt toàn bộ MiniCAD
@@ -1490,7 +1490,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🛰️ VỊ TRÍ GPS THỰC ĐIỆA', '🛰️ FIELD GPS LOCATION');
 
         appMap.initMap();
@@ -1605,16 +1605,16 @@ const appNav = window.appNav = {
 // ================= 3.1. PHÂN HỆ DASHBOARD HIỆN ĐẠI (UI/UX PRO MAX) =================
 const appDashboard = {
     allFeatures: [
-        { id: 'transform', name: '1. Chuyển Đổi Tọa Độ Hai Chiều', short: 'Chuyển Đổi Tọa Độ', icon: '🔄', color: 'cyan', tag: '7 Tham số BTNMT', sub: 'WGS-84 ⇄ VN-2000 (Múi 3°/6°)', metric: '63 Tỉnh Thành', action: () => appNav.showScreen('transform') },
-        { id: 'map', name: '2. Bản Đồ Khảo Sát & Vệ Tinh', short: 'Bản Đồ Trắc Địa', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
-        { id: 'stakeout', name: '3. Cắm Mốc Thực Địa (Stakeout)', short: 'Cắm Mốc Thực Địa', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
-        { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DWG • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
-        { id: 'camera', name: '5. Camera Khảo Sát Đóng Dấu', short: 'Camera Khảo Sát', icon: '📸', color: 'pink', tag: 'Đóng dấu tọa độ', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
-        { id: 'resection', name: '6. Giao Hội & Bài Toán Geodesy', short: 'Giao Hội & Geodesy', icon: '📐', color: 'yellow', tag: 'Định vị khuất sóng', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Geodesy', action: () => appModal.openUnifiedSettings('resection') },
-        { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình tự nhiên/thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
-        { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
-        { id: 'about', name: '9. Thông Tin & Hướng Dẫn Nghiệp Vụ', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: 'Quy chuẩn kỹ thuật', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • 7 tham số BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
-        { id: 'cad_tool', name: 'Tiện Ích: Đo Vẽ Mặt Bằng MiniCAD', short: 'Đo Vẽ MiniCAD', icon: '📐', color: 'cyan', tag: 'Mặt bằng thực địa', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
+        { id: 'transform', name: '1. Chuyển Đổi Tọa Độ Hai Chiều', short: 'Chuyển Đổi Tọa Độ', dock: 'Chuyển Đổi', icon: '🔄', color: 'cyan', tag: '7 Tham số BTNMT', sub: 'WGS-84 ⇄ VN-2000 (Múi 3°/6°)', metric: '63 Tỉnh Thành', action: () => appNav.showScreen('transform') },
+        { id: 'map', name: '2. Bản Đồ Khảo Sát & Vệ Tinh', short: 'Bản Đồ Trắc Địa', dock: 'Bản Đồ', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
+        { id: 'stakeout', name: '3. Cắm Mốc Thực Địa (Stakeout)', short: 'Cắm Mốc Thực Địa', dock: 'Cắm Mốc', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
+        { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', dock: 'Sổ Đo', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DWG • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
+        { id: 'camera', name: '5. Camera Khảo Sát Đóng Dấu', short: 'Camera Khảo Sát', dock: 'Camera', icon: '📸', color: 'pink', tag: 'Đóng dấu tọa độ', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
+        { id: 'resection', name: '6. Giao Hội & Bài Toán Geodesy', short: 'Giao Hội & Geodesy', dock: 'Giao Hội', icon: '📐', color: 'yellow', tag: 'Định vị khuất sóng', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Geodesy', action: () => appModal.openUnifiedSettings('resection') },
+        { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', dock: 'Trắc Dọc', icon: '📈', color: 'teal', tag: 'Cao trình tự nhiên/thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
+        { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', dock: 'RTK', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
+        { id: 'about', name: '9. Thông Tin & Hướng Dẫn Nghiệp Vụ', short: 'Thông Tin & Cẩm Nang', dock: 'Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: 'Quy chuẩn kỹ thuật', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • 7 tham số BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
+        { id: 'cad_tool', name: 'Tiện Ích: Đo Vẽ Mặt Bằng MiniCAD', short: 'Đo Vẽ MiniCAD', dock: 'MiniCAD', icon: '📐', color: 'cyan', tag: 'Mặt bằng thực địa', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
     ],
 
     toolFilterQuery: '',
@@ -35303,6 +35303,7 @@ const appTheme = {
 // ================= 10.10 CỬA SỔ CHỜ 20S ĐỒNG HÀNH CÙNG DỰ ÁN (1 LẦN/NGÀY) =================
 const appDonate = {
     STORAGE_KEY: 'vn2k_donate_last_shown_date_v1',
+    FIRST_USE_KEY: 'vn2k_first_use_date_v1',
     COUNTDOWN_SECONDS: 20,
     timerId: null,
     remainingSeconds: 20,
@@ -35434,6 +35435,13 @@ const appDonate = {
             if (typeof localStorage === 'undefined') return;
             const today = new Date().toLocaleDateString('en-CA');
             const lastShown = localStorage.getItem(this.STORAGE_KEY);
+            // Người dùng mới: để họ dùng thử trọn ngày đầu, không chặn bằng màn chờ 20s.
+            let firstUse = localStorage.getItem(this.FIRST_USE_KEY);
+            if (!firstUse) {
+                firstUse = lastShown || today;
+                localStorage.setItem(this.FIRST_USE_KEY, firstUse);
+            }
+            if (!lastShown && firstUse === today) return;
             if (lastShown !== today) {
                 localStorage.setItem(this.STORAGE_KEY, today);
                 setTimeout(() => {
@@ -35571,7 +35579,7 @@ const appDonate = {
                 btnClose.classList.remove('btn-ready');
                 btnClose.style.opacity = '0.65';
                 btnClose.style.cursor = 'not-allowed';
-                btnClose.innerHTML = '⏳ Chờ <b>' + this.remainingSeconds + 's</b> để vào ứng dụng...';
+                btnClose.innerHTML = '<span>⏳ Chờ <b>' + this.remainingSeconds + 's</b> để vào ứng dụng...</span>';
             } else {
                 this.unlockCloseButton();
             }
@@ -38509,6 +38517,33 @@ const appI18n = {
 const appGuide = {
     activeGuideKey: 'settings_welcome',
     guides: {
+        'home': {
+            icon: '🧭',
+            title: { vi: 'Bắt Đầu Nhanh Với VN-2000 PRO', en: 'Getting Started With VN-2000 PRO' },
+            category: { vi: 'TRANG CHỦ', en: 'HOME' },
+            purpose: {
+                vi: 'Chuyển đổi tọa độ WGS-84 ⇄ VN-2000 theo kinh tuyến trục của từng tỉnh, rồi dùng bản đồ, cắm mốc, sổ đo và MiniCAD khi cần.',
+                en: 'Convert WGS-84 ⇄ VN-2000 using each province\'s central meridian, then use map, stakeout, field book and MiniCAD as needed.'
+            },
+            steps: [
+                {
+                    title: { vi: '1. Chọn tỉnh / kinh tuyến trục (KTT)', en: '1. Choose province / central meridian (CM)' },
+                    desc: { vi: 'Bấm "Đổi KTT" trong khung Chuyển đổi tọa độ (hoặc ⚙️ Cài đặt). Kết quả VN-2000 chỉ đúng khi KTT khớp với tỉnh của điểm đo.', en: 'Tap "Change CM" in the conversion card (or ⚙️ Settings). VN-2000 results are only correct when the CM matches the point\'s province.' }
+                },
+                {
+                    title: { vi: '2. Nhập tọa độ và bấm Chuyển đổi', en: '2. Enter coordinates and tap Convert' },
+                    desc: { vi: 'Chọn chiều chuyển đổi, nhập 2 giá trị rồi bấm Chuyển đổi. Chưa có số liệu? Bấm "Chấm tọa độ trên bản đồ". Nhiều điểm một lúc? Bấm "Mở bộ chuyển đổi đầy đủ".', en: 'Pick a direction, enter two values and tap Convert. No data yet? Tap "Pick coordinates on map". Many points? Tap "Open full converter".' }
+                },
+                {
+                    title: { vi: '3. Mở thêm chức năng khi cần', en: '3. Open more tools when needed' },
+                    desc: { vi: 'Thanh dưới cùng dẫn tới Chuyển đổi, Bản đồ, Cắm mốc và Sổ đo. Chọn "Nâng cao" ở đầu trang (hoặc nút ☰ Menu) để thấy GPS, Camera, Trắc dọc, MiniCAD và các công cụ khác.', en: 'The bottom bar opens Convert, Map, Stakeout and Field Book. Choose "Advanced" at the top (or the ☰ Menu) for GPS, Camera, Profile, MiniCAD and more.' }
+                }
+            ],
+            proTip: {
+                vi: 'Ở bất kỳ màn hình nào, bấm nút ? trên cùng để xem hướng dẫn riêng cho màn hình đó. Ngoài trời nắng, bật "Thực địa" để tăng tương phản.',
+                en: 'On any screen, tap the ? button at the top for a guide to that screen. In bright sun, turn on "Field" for high contrast.'
+            }
+        },
         'settings_welcome': {
             icon: '⚙️',
             title: { vi: 'Tổng Quan Cài Đặt VN-2000 PRO', en: 'VN-2000 Pro Settings Overview' },
@@ -38989,7 +39024,7 @@ const appGuide = {
         // 5. Kiểm tra màn hình hiện tại
         const cur = (typeof AppState !== 'undefined' && AppState.currentScreen) ? AppState.currentScreen : 'menu';
         const guideKeyMap = {
-            'menu': 'settings_welcome',
+            'menu': 'home',
             'transform': 'transform',
             'datamgmt': 'datamgmt',
             'stakeout': 'stakeout',
@@ -39082,6 +39117,7 @@ const appGuide = {
         const key = guideKey || this.activeGuideKey || 'settings_welcome';
         const sectionMap = {
             'settings_welcome': 'section-overview',
+            'home': 'section-overview',
             'transform': 'section-transform',
             'transform_batch': 'section-batch',
             'gps_map': 'section-map',
