@@ -14084,12 +14084,16 @@ const appCamera = {
         const compassAz = Math.round(appStakeout.compassHeading || 0);
 
         const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
+        // Địa chỉ hành chính sau sáp nhập (01/07/2025), tra ngoại tuyến theo ranh giới 3.321 xã/phường.
+        const address = (typeof VnAdmin2025 !== 'undefined')
+            ? VnAdmin2025.cachedAddress(parseFloat(latStr), parseFloat(lngStr)) : '';
         const lines = [
             `📍 MỐC: ${markName} | DỰ ÁN: ${projName}`,
             `• VN-2000: X = ${xStr} m | Y = ${yStr} m (KTT ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}' Múi ${AppState.muiVal || 3}°)`,
             `• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`,
             `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
         ];
+        if (address) lines.push(`• ĐỊA CHỈ: ${address}`);
 
         return {
             markName,
@@ -14101,6 +14105,7 @@ const appCamera = {
             dateStr,
             gpsAcc,
             compassAz,
+            address,
             lines
         };
     },
@@ -14108,13 +14113,20 @@ const appCamera = {
     // Hàm vẽ thẻ watermark chung (Dùng cho cả Viewfinder realtime, ảnh chụp và video)
     drawWatermark(ctx, canvasW, canvasH, corner = 'bottom-left') {
         const data = this.getWatermarkData();
+        // Phông không chân: phông monospace dự phòng trên Android hiển thị sai dấu tiếng Việt chồng (ồ, ố...).
+        const STAMP_BODY_FONT = (px) => `600 ${px}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif`;
         const scale = Math.max(0.65, Math.min(canvasW / 1000, 2.0));
         const padding = Math.round(12 * scale);
         const fontSizeHeader = Math.round(14 * scale);
         const fontSizeBody = Math.round(11.5 * scale);
         const lineHeight = Math.round(17 * scale);
 
-        const cardW = Math.min(canvasW - padding * 2, Math.round(520 * scale));
+        // Khung rộng vừa dòng dài nhất (tối thiểu 520, tối đa bằng ảnh) để không cắt mất thời gian / địa chỉ.
+        ctx.save();
+        ctx.font = STAMP_BODY_FONT(fontSizeBody);
+        const widest = Math.max(...data.lines.map(l => ctx.measureText(l).width));
+        ctx.restore();
+        const cardW = Math.min(canvasW - padding * 2, Math.max(Math.round(520 * scale), Math.ceil(widest + padding * 2)));
         const cardH = padding * 2 + fontSizeHeader + (data.lines.length * lineHeight) + Math.round(6 * scale);
 
         let cardX = padding;
@@ -14165,12 +14177,20 @@ const appCamera = {
         ctx.stroke();
 
         // Dòng thông tin
-        ctx.font = `600 ${fontSizeBody}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        ctx.font = STAMP_BODY_FONT(fontSizeBody);
         let curY = cardY + padding + fontSizeHeader + Math.round(4 * scale) + lineHeight;
 
+        const maxTextW = cardW - padding * 2;
+        const fit = (text) => {
+            if (ctx.measureText(text).width <= maxTextW) return text;
+            let t = text;
+            while (t.length > 4 && ctx.measureText(t + '…').width > maxTextW) t = t.slice(0, -1);
+            return t + '…';
+        };
         data.lines.forEach((l, idx) => {
-            ctx.fillStyle = (idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1"));
-            ctx.fillText(l, cardX + padding, curY);
+            const isAddress = data.address && l.startsWith('• ĐỊA CHỈ');
+            ctx.fillStyle = isAddress ? "#fbbf24" : ((idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1")));
+            ctx.fillText(fit(l), cardX + padding, curY);
             curY += lineHeight;
         });
 
