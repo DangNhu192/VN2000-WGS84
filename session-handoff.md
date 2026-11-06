@@ -1,6 +1,15 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-06: WP-I — TỐI ƯU TRẢI NGHIỆM NGƯỜI DÙNG LẦN ĐẦU
+## Phiên hiện tại — 2026-11-06: WP-J — VÙNG AN TOÀN TAI THỎ / DYNAMIC ISLAND / XOAY NGANG
+- **Yêu cầu**: `Fix lỗi màn hình chưa được tối ưu cho các loại màn hình khác nhau, trong đó có loại màn hình tai thỏ hoặc dynamic island`.
+- **Chi tiết**: xem `progress.md` mục WP-J.
+- **Điểm cần nhớ**:
+  - Đo inset thật bằng CDP `Emulation.setSafeAreaInsetsOverride({ insets: {top,bottom,left,right} })` (Chromium ≥ 136) — không cần thiết bị thật để thấy lỗi tai thỏ.
+  - Header: chỉ sửa trong `ui-polish.css` rule `header.app-header.mac-top-bar` (lớp cuối, `!important`); test `safe_area_notch_island.test.js` khoá lại.
+  - Bố cục trái/phải của Chuyển đổi: JS `isTransformSideBySide()` và media query ui-polish phải cùng điều kiện.
+- **Việc kế tiếp**: thiết kế lại thanh công cụ MiniCAD cho màn ngang thấp (CLI đang che một phần thanh công cụ).
+
+## Phiên trước — 2026-11-06: WP-I — TỐI ƯU TRẢI NGHIỆM NGƯỜI DÙNG LẦN ĐẦU
 - **Yêu cầu**: `Tối ưu ứng dụng và đề xuất chỉnh trang giao diện và cách bố trí các nội dung do người dùng lần đầu khó hiểu cách sử dụng`.
 - **Đã làm**: xem chi tiết trong `progress.md` (mục 2026-11-06). Tóm tắt: bỏ màn chờ ủng hộ ngày đầu tiên, ẩn nút Quay lại ở Trang chủ, hướng dẫn `?` riêng cho Trang chủ, nhãn dock ngắn, thẻ chào mừng 3 bước + dòng giải thích chế độ, placeholder "VD:", đưa 4 ô chức năng lên trước khối GPS.
 - **Điểm cần nhớ**:

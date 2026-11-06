@@ -1602,6 +1602,14 @@ const appNav = window.appNav = {
     }
 };
 
+// Màn Chuyển đổi chia trái/phải trên màn rộng và trên điện thoại xoay ngang (chiều cao thấp),
+// chia trên/dưới ở màn dọc. Phải khớp với media query tương ứng trong ui-polish.css.
+function isTransformSideBySide() {
+    if (typeof window === 'undefined') return false;
+    if (window.innerWidth >= 1024) return true;
+    return !!(window.matchMedia && window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches);
+}
+
 // ================= 3.1. PHÂN HỆ DASHBOARD HIỆN ĐẠI (UI/UX PRO MAX) =================
 const appDashboard = {
     allFeatures: [
@@ -3884,7 +3892,7 @@ const appTransform = {
 
     promptOpenConvertedMap(pt) {
         // Nếu màn hình lớn (đang có Live Map hiển thị bên cạnh), không cần hiện pop-up phiền toái
-        if (window.innerWidth >= 1024) {
+        if (isTransformSideBySide()) {
             return;
         }
         const modal = document.getElementById('modalPromptConvertedMap');
@@ -4429,7 +4437,7 @@ const appTransform = {
     applySplitRatio(percent, resizeMap = true) {
         const layout = document.getElementById('transformSplitLayout');
         if (!layout) return;
-        const isDesktop = window.innerWidth >= 1024;
+        const isDesktop = isTransformSideBySide();
         if (isDesktop) {
             const clamped = Math.max(32, Math.min(75, percent));
             layout.style.setProperty('--tf-content-width', `${clamped}%`);
@@ -4473,7 +4481,7 @@ const appTransform = {
 
         const onPointerMove = (e) => {
             if (!isDragging) return;
-            const isDesktop = window.innerWidth >= 1024;
+            const isDesktop = isTransformSideBySide();
             const rect = layout.getBoundingClientRect();
 
             if (isDesktop) {

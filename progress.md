@@ -1145,3 +1145,17 @@
   7. Trang chủ Nâng cao: đưa 4 ô chức năng chính lên **trước** khối GPS; bỏ cắt tên tỉnh trên chip; badge "4 mục"/"Đổi ghim" không xuống dòng; thanh chế độ cho phép xuống dòng ở màn hẹp (nút Thực địa không bị tràn ở 320px).
 - **Tài nguyên**: `style.css`/`ui-polish.css`/`app.js`/`field-workspace.css`/`field-workspace.js` `?v=2.8.24`; `sw.js` `CACHE_NAME = vn2000-pro-v2.8.24`.
 - **Kiểm chứng**: `npm test` **322/322 PASS** (thêm test "First day of use never blocks a new user…" trong `donate_modal_30s.test.js`); không lỗi JS khi tải trang; không tràn ngang.
+
+## 2026-11-06 — Vùng an toàn tai thỏ / Dynamic Island / xoay ngang (WP-J)
+- **Cách đo**: Playwright + CDP `Emulation.setSafeAreaInsetsOverride` (giả lập `env(safe-area-inset-*)` thật) trên 8 cấu hình: iPhone Dynamic Island dọc/ngang (59/34, 59 hai bên), iPhone tai thỏ dọc/ngang (47/34), Android camera đục lỗ (32/24), iPad dọc/ngang, máy 320px. Quét 12 màn/cửa sổ, cờ khi phần tử bấm được nằm trong vùng inset.
+- **Lỗi gốc**: `ui-polish.css` `header.app-header.mac-top-bar { height:54px; padding:0 16px !important }` thắng cách xử lý inset của `style.css` → ☰ / ⚙️ / ? nằm ngay dưới camera trên MỌI màn hình iPhone/Android có tai thỏ. Nay header cao `inset trên + 54px` (ngang: `+44px`), padding chừa inset trên/trái/phải.
+- **Đã sửa thêm**:
+  1. Ngăn kéo Menu ☰: header ngăn kéo chừa inset trên; ngăn kéo chừa inset trái (xoay ngang) và dưới (thanh Home); bề rộng cộng thêm inset trái.
+  2. `#screen-transform` padding hai bên cộng `--sat-safe-left/right`.
+  3. Màn Chuyển đổi trên điện thoại xoay ngang chia **trái/phải** (trước đây trên/dưới, mỗi nửa ~80px). Hàm `isTransformSideBySide()` thay 3 chỗ `window.innerWidth >= 1024`, khớp media `(orientation: landscape) and (max-height: 620px) and (max-width: 1023px)` trong ui-polish.css; đầu bản đồ gọn 1 hàng.
+  4. Xoay ngang: cột nút bản đồ bên phải giới hạn chiều cao + cuộn (trước tràn xuống dưới mép màn hình, mất nút 🎯); hàng tab MiniCAD xuống dòng riêng + cuộn ngang (trước tràn mép phải, mất Lùi/Tiến).
+  5. Hộp hướng dẫn (?) xoay ngang: chân hộp gộp 1 hàng → nội dung từ ~40px lên ~190px.
+  6. Màn ≤430px: nút "◀ Quay lại" chỉ còn biểu tượng ◀ để tên màn hình không bị cắt.
+- **Kết quả đo**: mọi màn chính 0 phần tử nằm trong vùng an toàn, 0 tràn ngang trên cả 8 cấu hình (các cờ còn lại là nội dung trong vùng cuộn của ngăn Menu / Cài đặt).
+- **Còn lại**: MiniCAD xoay ngang trên điện thoại — thanh công cụ cao 191px trên màn 393px nên ô lệnh CLI vẫn che một phần thanh công cụ; cần thiết kế lại thanh CAD cho màn ngang thấp.
+- **Tài nguyên**: `?v=2.8.25`, `CACHE_NAME = vn2000-pro-v2.8.25`. Test mới `tests/safe_area_notch_island.test.js` (5/5); `npm test` **327/327 PASS**.
