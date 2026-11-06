@@ -1578,7 +1578,6 @@ const appNav = window.appNav = {
             headChip.title = isEn
                 ? `${shortProv}: CM ${dmsStr}, zone ${AppState.muiVal}° — tap to change`
                 : `${shortProv}: KTT ${dmsStr}, múi ${AppState.muiVal}° — chạm để đổi`;
-            headChip.setAttribute('aria-label', headChip.title);
         }
 
         // Cập nhật chip trên Dashboard
