@@ -2614,10 +2614,14 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
   body:not(.field-mode) #btnHeaderBack::before { content: '◀'; font-size: 15px; line-height: 1; }
 }
 
-/* MiniCAD xoay ngang: hàng tab xuống dòng riêng, đủ rộng để cuộn qua các tab. */
+/* MiniCAD xoay ngang (màn thấp): đầu thanh công cụ gọn MỘT hàng để nhường chiều cao cho bản vẽ.
+   Tab chỉ còn biểu tượng (tên vẫn ở title), ẩn thông tin trùng với thanh trạng thái dưới đáy. */
 @media (orientation: landscape) and (max-height: 620px) {
-  #mapCadToolbarHeader { flex-wrap: wrap !important; row-gap: 6px !important; }
-  #mapCadToolbarHeader #cadTabGroup { order: 10 !important; flex: 1 0 100% !important; }
+  #mapCadToolbarHeader { flex-wrap: nowrap !important; gap: 4px !important; }
+  #mapCadToolbarHeader :is(#cadModeBadge, #cadStatsPill, .cad-btn-text) { display: none !important; }
+  #mapCadToolbarHeader #cadCurrentProjectBadge { max-width: 120px !important; min-width: 0 !important; overflow: hidden !important; }
+  #mapCadToolbarHeader #cadTabGroup .cad-tab-text { display: none !important; }
+  #mapCadToolbarHeader #cadTabGroup .cad-tab-btn { min-width: 40px !important; padding: 0 8px !important; justify-content: center !important; }
 }
 
 /* Màn Chuyển đổi trên điện thoại xoay ngang: chia TRÁI/PHẢI như máy tính (JS: isTransformSideBySide). */

@@ -20194,6 +20194,8 @@ const appCadTool = {
         if (cmdBar) {
             cmdBar.style.display = 'block';
             this.initFloatingCmdBarDrag();
+            // Thanh lệnh chỉ còn dòng tiêu đề trên màn ngang thấp để không đè thanh công cụ (bấm + để mở).
+            if (this.isCompactCadViewport()) this.setCmdBarCollapsed(true);
         }
 
         // Bật CAD Realtime Status & Coordinates HUD Bar
@@ -21645,13 +21647,15 @@ const appCadTool = {
         const hasValidLatLng = isFinite(lat) && isFinite(lng) && lat > 1 && lng > 50;
         const hasValidXY = isFinite(x) && isFinite(y) && x > 10000;
 
-        // Tự động kiểm tra phát hiện lệch tọa độ VN2000 (X, Y) so với (lat, lng) khi kéo đỉnh
-        let needRecomputeVn2k = forceSyncVn2k || !hasValidXY;
-        if (!needRecomputeVn2k && hasValidLatLng && hasValidXY) {
+        // X/Y là số liệu đo gốc: chỉ tính lại từ lat/lng khi đỉnh thật sự bị dời (kéo đỉnh).
+        // lat/lng lưu 7 số lẻ (sai số làm tròn ≤ 5e-8° ≈ 5 mm) nên ngưỡng phải lớn hơn mức đó,
+        // nếu không mỗi lần lưu khối sẽ làm X/Y trôi vài mm.
+        let needRecomputeVn2k = !hasValidXY;
+        if (!needRecomputeVn2k && hasValidLatLng) {
+            const tol = forceSyncVn2k ? 0.0000001 : 0.0000005; // ~1.1 cm khi đồng bộ chủ động, ~5.5 cm khi tự kiểm
             try {
                 const checkWgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
-                // Nếu tọa độ WGS84 lệch trên ~0.05m (0.0000005 độ) so với lat/lng thực tế -> cần đồng bộ lại
-                if (Math.abs(checkWgs.lat - lat) > 0.0000005 || Math.abs(checkWgs.lng - lng) > 0.0000005) {
+                if (Math.abs(checkWgs.lat - lat) > tol || Math.abs(checkWgs.lng - lng) > tol) {
                     needRecomputeVn2k = true;
                 }
             } catch (e) {}
@@ -30361,18 +30365,29 @@ const appCadTool = {
 
     toggleCmdBarCollapse() {
         const wrap = document.getElementById('cadCmdInputWrap');
+        const isCollapsed = wrap && wrap.style.display === 'none';
+        this.setCmdBarCollapsed(!isCollapsed);
+        showToast(isCollapsed ? '📐 Đã bung rộng thanh lệnh CADCraft CLI' : '📐 Đã thu nhỏ thanh lệnh (Bấm + để bung ra)');
+    },
+
+    setCmdBarCollapsed(collapsed) {
+        const wrap = document.getElementById('cadCmdInputWrap');
         const rib = document.getElementById('cadCmdStatusRibbon');
         const grid = document.getElementById('cadCmdAllToolsGrid');
         const btn = document.getElementById('btnCadCmdCollapseToggle');
         if (grid) grid.style.display = 'none';
-        const isCollapsed = wrap && wrap.style.display === 'none';
-        if (wrap) wrap.style.display = isCollapsed ? 'flex' : 'none';
-        if (rib) rib.style.display = isCollapsed ? 'flex' : 'none';
+        if (wrap) wrap.style.display = collapsed ? 'none' : 'flex';
+        if (rib) rib.style.display = collapsed ? 'none' : 'flex';
         if (btn) {
-            btn.innerHTML = isCollapsed ? '_' : '+';
-            btn.title = isCollapsed ? 'Thu nhỏ thanh lệnh [_]' : 'Bung rộng thanh lệnh [+]';
+            btn.innerHTML = collapsed ? '+' : '_';
+            btn.title = collapsed ? 'Bung rộng thanh lệnh [+]' : 'Thu nhỏ thanh lệnh [_]';
         }
-        showToast(isCollapsed ? '📐 Đã bung rộng thanh lệnh CADCraft CLI' : '📐 Đã thu nhỏ thanh lệnh (Bấm + để bung ra)');
+    },
+
+    // Màn ngang thấp (điện thoại xoay ngang): không đủ chiều cao cho cả thanh công cụ lẫn thanh lệnh mở rộng.
+    isCompactCadViewport() {
+        return typeof window !== 'undefined' && !!window.matchMedia
+            && window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches;
     },
 
     toggleCmdBarVisibility() {
