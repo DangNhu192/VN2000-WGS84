@@ -81,3 +81,21 @@ test('giao diện: tab nằm trong màn Chuyển đổi, không gọi bản đ�
     assert.ok(sw.includes("'./vn2000-rezone.js'"));
     assert.ok(!/openProjectMap|mapProjectBar|appCadTool/.test(src), 'Không gọi chéo phân hệ khác');
 });
+
+test('mốc KTT nhanh khớp đúng bảng 63 tỉnh (không gắn nhầm tỉnh)', () => {
+    const norm = n => n.replace(/^TP\.\s*/, '').replace('Hồ Chí Minh', 'TP.HCM');
+    for (const p of g.VN_PROVINCES) {
+        const preset = g.COMMON_KTT_PRESETS.find(k => k.decimal === p.ktt);
+        assert.ok(preset && preset.provinces.split(', ').includes(norm(p.name)), `${p.name} phải nằm ở mốc ${p.ktt}`);
+    }
+    for (const k of g.COMMON_KTT_PRESETS) {
+        assert.equal(k.deg + k.min / 60, k.decimal);
+    }
+});
+
+test('menu: mục 1.3 Đổi KTT / Múi mở đúng tab trong màn Chuyển đổi', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    assert.match(html, /id="drawerItem_rezone" onclick="appNav\.navigateTo\('rezone'\)"/);
+    assert.ok(app.includes("appNav.openTransformCoordScreen('rezone');"));
+});

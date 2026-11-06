@@ -1,6 +1,17 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-06: WP-J — VÙNG AN TOÀN TAI THỎ / DYNAMIC ISLAND / XOAY NGANG
+## Phiên hiện tại — 2026-11-06: WP-K — ĐỔI KTT/MÚI, CHUẨN HÓA NHẬP/XUẤT, MINICAD, MENU
+- **Yêu cầu**: tối ưu & đề xuất bố cục/phân nhóm/menu; thêm đổi VN-2000 giữa KTT/múi; kiểm tra MiniCAD; kiểm tra nhập/xuất dữ liệu.
+- **Chi tiết**: `progress.md` mục WP-K; đề xuất ở `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md`.
+- **Điểm cần nhớ**:
+  - Mọi exporter đi qua `appData.getExportPoints()` → `normalizeSurveyPoints` (geodesy.js). Exporter mới phải dùng hàm này, không đọc `appData.getPoints` trực tiếp.
+  - Nhập file: `processImportedText` thử `parseHeaderedTable` trước (chỉ khi định dạng = auto), rồi mới tới bộ đọc từng dòng `parseSmartManualLine`.
+  - Không dùng `split(/\r?\r\n/)`; test `data_io_roundtrip` khóa lại.
+  - MiniCAD: X/Y là số liệu gốc; `_normalizeVertex` chỉ tính lại khi lat/lng lệch thật.
+  - `COMMON_KTT_PRESETS` sinh từ `VN_PROVINCES` — sửa KTT tỉnh chỉ cần sửa bảng.
+- **Việc kế tiếp / chờ quyết định**: xác minh KTT Bình Thuận; bảng KTT 34 tỉnh sau sáp nhập; màn nhập dữ liệu thống nhất có xem trước & chọn cột; các mục ⏳ trong file đề xuất.
+
+## Phiên trước — 2026-11-06: WP-J — VÙNG AN TOÀN TAI THỎ / DYNAMIC ISLAND / XOAY NGANG
 - **Yêu cầu**: `Fix lỗi màn hình chưa được tối ưu cho các loại màn hình khác nhau, trong đó có loại màn hình tai thỏ hoặc dynamic island`.
 - **Chi tiết**: xem `progress.md` mục WP-J.
 - **Điểm cần nhớ**:

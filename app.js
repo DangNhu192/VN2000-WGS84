@@ -947,6 +947,9 @@ const appNav = window.appNav = {
         } else if (action === 'batch_import') {
             appNav.openTransformCoordScreen('multi');
             appNav.setActiveMenuItem('drawerItem_batch');
+        } else if (action === 'rezone') {
+            appNav.openTransformCoordScreen('rezone');
+            appNav.setActiveMenuItem('drawerItem_rezone');
         } else if (action === 'transform_map') {
             appNav.openTransformMap({ mode: 'pick' });
             appNav.setActiveMenuItem('drawerItem_transform_map');
@@ -13194,17 +13197,8 @@ const appModal = {
         if (!container) return;
         if (container.children.length > 0) return; // Đã render rồi
 
-        const presets = (typeof COMMON_KTT_PRESETS !== 'undefined') ? COMMON_KTT_PRESETS : [
-            { deg: 105, min: 0, decimal: 105.0, label: "105°00' (105.0°)", provinces: "Lai Châu, Điện Biên" },
-            { deg: 105, min: 30, decimal: 105.5, label: "105°30' (105.5°)", provinces: "Hà Giang, Tuyên Quang" },
-            { deg: 105, min: 45, decimal: 105.75, label: "105°45' (105.75°)", provinces: "TP.HCM, Tây Ninh, Bình Phước" },
-            { deg: 106, min: 0, decimal: 106.0, label: "106°00' (106.0°)", provinces: "Đồng Nai, Bình Dương, Long An" },
-            { deg: 106, min: 30, decimal: 106.5, label: "106°30' (106.5°)", provinces: "Bà Rịa - Vũng Tàu, Tiền Giang" },
-            { deg: 107, min: 0, decimal: 107.0, label: "107°00' (107.0°)", provinces: "Lâm Đồng, Đắk Lắk" },
-            { deg: 107, min: 45, decimal: 107.75, label: "107°45' (107.75°)", provinces: "Bình Thuận" },
-            { deg: 108, min: 0, decimal: 108.0, label: "108°00' (108.0°)", provinces: "Khánh Hòa, Phú Yên, Gia Lai" },
-            { deg: 108, min: 30, decimal: 108.5, label: "108°30' (108.5°)", provinces: "Đà Nẵng, Quảng Nam, Quảng Ngãi" }
-        ];
+        // Danh sách sinh từ bảng 63 tỉnh trong geodesy.js (luôn nạp trước app.js).
+        const presets = (typeof COMMON_KTT_PRESETS !== 'undefined') ? COMMON_KTT_PRESETS : [];
 
         container.innerHTML = '';
         presets.forEach(p => {
@@ -37891,6 +37885,25 @@ const appI18n = {
         "Cài PWA mọi thiết bị, 7 tham số BTNMT": "Cai PWA every device, 7 tham so BTNMT",
         "5.6 Cài đặt Ngày giờ Hệ thống": "5.6 settings date gio system",
         "Đồng bộ tự động / Chỉnh thủ công múi giờ": "Close bo automatically / Chinh manually zone gio",
+        "1.3 Đổi KTT / Múi chiếu VN-2000": "1.3 Change VN-2000 CM / Zone",
+        "VN-2000 ⇄ VN-2000 giữa các tỉnh, múi 3° / 6°": "VN-2000 ⇄ VN-2000 between provinces, 3° / 6° zones",
+        "1.4 Bản đồ Chuyển đổi & Chấm điểm": "1.4 Conversion Map & Point Picking",
+        "Bản Đồ & Thực Địa": "Map & Field Work",
+        "2.3 Camera khảo sát đóng dấu tọa độ": "2.3 Survey Camera with Coordinate Stamp",
+        "2.4 Bật/Tắt & Kiểm tra sai số GPS": "2.4 Toggle GPS & Check Accuracy",
+        "2.5 Kết nối Máy Định Vị RTK Ngoài": "2.5 Connect External RTK GNSS Receiver",
+        "Sổ Đo & Dữ Liệu Dự Án": "Field Book & Project Data",
+        "Tính Toán & Đồ Họa Kỹ Thuật": "Calculations & Technical Drawing",
+        "4.1 Bài toán trắc địa: cự ly, phương vị, diện tích": "4.1 Survey Calculations: Distance, Azimuth, Area",
+        "4.2 Giao hội trắc địa khi mất sóng GPS": "4.2 Resection When GPS Is Lost",
+        "4.4 MiniCAD: Vẽ mặt bằng & Bảng kê": "4.4 MiniCAD: Site Plan & Area Tables",
+        "Hệ Thống & Trợ Giúp": "System & Help",
+        "5.2 Cài đặt Ngày giờ Hệ thống": "5.2 System Date & Time",
+        "5.3 Cẩm Nang & Sổ Tay Hướng Dẫn": "5.3 User Handbook & Guide",
+        "5.4 Thông tin & Cẩm nang 10 nghiệp vụ": "5.4 About & Field Workflow Guide",
+        "5.5 Ủng hộ tác giả": "5.5 Support the Author",
+        "Tùy tâm tiếp sức phát triển ứng dụng": "Optional contribution to keep the app growing",
+        "🔁 Đổi KTT / Múi": "🔁 Change CM / Zone",
         "⭐ 4 Tính Năng Ghim Màn Hình Chính": "⭐ 4 calculate Nang Ghim Man Hinh Chinh",
         "Chọn đúng 4 tính năng đưa lên 4 Khối lớn:": "select dung 4 calculate nang dua len 4 Large Blocks:",
         "Đã chọn: 4/4 mục": "Da select: 4/4 item",

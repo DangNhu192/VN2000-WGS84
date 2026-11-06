@@ -33,9 +33,9 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.25">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.25">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.25">
+  <link rel="stylesheet" href="style.css?v=2.8.26">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.26">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.26">
 </head>
 
 <body>
@@ -7206,7 +7206,7 @@
             <span>Chuyển Đổi Tọa Độ</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-blue">3 mục</span>
+            <span class="tree-badge badge-blue">4 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -7231,10 +7231,20 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
+          <div class="drawer-leaf-item" id="drawerItem_rezone" onclick="appNav.navigateTo('rezone')">
+            <div class="drawer-leaf-icon" style="color: #f59e0b;">🔁</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">1.3 Đổi KTT / Múi chiếu VN-2000</div>
+              <div class="drawer-leaf-sub">VN-2000 ⇄ VN-2000 giữa các tỉnh, múi 3° / 6°</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
           <div class="drawer-leaf-item" id="drawerItem_transform_map" onclick="appNav.navigateTo('transform_map')">
             <div class="drawer-leaf-icon" style="color: #34d399;">🗺️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">1.3 Bản đồ Chuyển đổi & Chấm điểm</div>
+              <div class="drawer-leaf-title">1.4 Bản đồ Chuyển đổi & Chấm điểm</div>
               <div class="drawer-leaf-sub">Chấm lấy tọa độ và xem vị trí điểm chuyển đổi</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -7250,10 +7260,10 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(52,211,153,0.18);border-radius:6px;padding:2px 4px;font-size:13px">🗺️</span>
-            <span>Bản Đồ & Cắm Mốc Thực Địa</span>
+            <span>Bản Đồ & Thực Địa</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-green">2 mục</span>
+            <span class="tree-badge badge-green">5 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -7278,6 +7288,36 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
+          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.navigateTo('camera')">
+            <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.3 Camera khảo sát đóng dấu tọa độ</div>
+              <div class="drawer-leaf-sub">In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_gps_toggle" onclick="appGps.toggleTracking()">
+            <div class="drawer-leaf-icon" style="color: #10b981;">🛰️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.4 Bật/Tắt & Kiểm tra sai số GPS</div>
+              <div class="drawer-leaf-sub">Độ chính xác vệ tinh thực địa (±m)</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_settings_rtk" onclick="appNav.navigateTo('settings_rtk')">
+            <div class="drawer-leaf-icon" style="color: #0284c7;">📡</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.5 Kết nối Máy Định Vị RTK Ngoài</div>
+              <div class="drawer-leaf-sub">Web Bluetooth GNSS Rover, độ chính xác cm</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -7287,7 +7327,7 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(192,132,252,0.18);border-radius:6px;padding:2px 4px;font-size:13px">📁</span>
-            <span>Sổ Đo & Quản Lý Dự Án</span>
+            <span>Sổ Đo & Dữ Liệu Dự Án</span>
           </div>
           <div class="drawer-folder-meta">
             <span class="tree-badge badge-orange">2 mục</span>
@@ -7325,7 +7365,7 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(45,212,191,0.18);border-radius:6px;padding:2px 4px;font-size:13px">🛠️</span>
-            <span>Tiện Ích Nghiệp Vụ Mở Rộng</span>
+            <span>Tính Toán & Đồ Họa Kỹ Thuật</span>
           </div>
           <div class="drawer-folder-meta">
             <span class="tree-badge badge-purple">4 mục</span>
@@ -7333,21 +7373,22 @@
           </div>
         </div>
         <div class="drawer-folder-body">
-          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.navigateTo('camera')">
-            <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
+          <div class="drawer-leaf-item" id="drawerItem_geodesy" onclick="appNav.showScreen('geodesy')">
+            <div class="drawer-leaf-icon" style="color: #fbbf24;">📐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.1 Camera khảo sát đóng dấu tọa độ</div>
-              <div class="drawer-leaf-sub">In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ</div>
+              <div class="drawer-leaf-title">4.1 Bài toán trắc địa: cự ly, phương vị, diện tích</div>
+              <div class="drawer-leaf-sub">Thuận/nghịch tọa độ, diện tích Gauss & chu vi</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_geodesy" onclick="appNav.showScreen('geodesy')">
-            <div class="drawer-leaf-icon" style="color: #fbbf24;">📐</div>
+          <div class="drawer-leaf-item" id="drawerItem_settings_resection"
+            onclick="appNav.navigateTo('settings_resection')">
+            <div class="drawer-leaf-icon" style="color: #d97706;">📐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.2 Tính toán Geodesy & Giao hội</div>
-              <div class="drawer-leaf-sub">Thuận/nghịch tọa độ, diện tích Gauss & chu vi</div>
+              <div class="drawer-leaf-title">4.2 Giao hội trắc địa khi mất sóng GPS</div>
+              <div class="drawer-leaf-sub">Bù tọa độ trạm đo từ 2 mốc khống chế</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -7366,7 +7407,7 @@
           <div class="drawer-leaf-item" id="drawerItem_cad_tool" onclick="appNav.navigateTo('cad_tool')">
             <div class="drawer-leaf-icon" style="color: #06b6d4;">📐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.4 Tiện ích phụ trợ: Vẽ CAD Mini</div>
+              <div class="drawer-leaf-title">4.4 MiniCAD: Vẽ mặt bằng & Bảng kê</div>
               <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DWG</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -7382,7 +7423,7 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(148,163,184,0.18);border-radius:6px;padding:2px 4px;font-size:13px">⚙️</span>
-            <span>Hệ Thống & Cài Đặt</span>
+            <span>Hệ Thống & Trợ Giúp</span>
           </div>
           <div class="drawer-folder-meta">
             <span class="tree-badge badge-slate">5 mục</span>
@@ -7400,68 +7441,41 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_gps_toggle" onclick="appGps.toggleTracking()">
-            <div class="drawer-leaf-icon" style="color: #10b981;">🛰️</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.2 Bật/Tắt & Kiểm tra sai số GPS</div>
-              <div class="drawer-leaf-sub">Độ chính xác vệ tinh thực địa (±m)</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_settings_rtk" onclick="appNav.navigateTo('settings_rtk')">
-            <div class="drawer-leaf-icon" style="color: #0284c7;">📡</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.3 Kết nối Máy Định Vị RTK Ngoài</div>
-              <div class="drawer-leaf-sub">Web Bluetooth GNSS Rover, độ chính xác cm</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_settings_resection"
-            onclick="appNav.navigateTo('settings_resection')">
-            <div class="drawer-leaf-icon" style="color: #d97706;">📐</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.4 Giao hội trắc địa khi mất sóng GPS</div>
-              <div class="drawer-leaf-sub">Bù tọa độ trạm đo từ 2 mốc khống chế</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <button type="button" id="drawerItem_donate" class="drawer-leaf-item" onclick="appDonate.openModal()">Ủng hộ tác giả</button>
-          <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.navigateTo('about')">
-            <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.5 Thông tin & Cẩm nang 10 nghiệp vụ</div>
-              <div class="drawer-leaf-sub">Cài PWA mọi thiết bị, 7 tham số BTNMT</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_datetime" onclick="appModal.openDateTimeSettings()"
-            style="border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; padding-top: 8px;">
+          <div class="drawer-leaf-item" id="drawerItem_datetime" onclick="appModal.openDateTimeSettings()">
             <div class="drawer-leaf-icon" style="color: #a78bfa;">🕐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.6 Cài đặt Ngày giờ Hệ thống</div>
+              <div class="drawer-leaf-title">5.2 Cài đặt Ngày giờ Hệ thống</div>
               <div class="drawer-leaf-sub">Đồng bộ tự động / Chỉnh thủ công múi giờ</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_user_guide" onclick="window.open('user-guide.html', '_blank')"
-            style="border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; padding-top: 8px;">
+          <div class="drawer-leaf-item" id="drawerItem_user_guide" onclick="window.open('user-guide.html', '_blank')">
             <div class="drawer-leaf-icon" style="color: #38bdf8;">📖</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.7 Cẩm Nang & Sổ Tay Hướng Dẫn</div>
+              <div class="drawer-leaf-title">5.3 Cẩm Nang & Sổ Tay Hướng Dẫn</div>
               <div class="drawer-leaf-sub">Chi tiết 14 chức năng thực địa kèm ảnh lớn</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.navigateTo('about')">
+            <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.4 Thông tin & Cẩm nang 10 nghiệp vụ</div>
+              <div class="drawer-leaf-sub">Cài PWA mọi thiết bị, 7 tham số BTNMT</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_donate" onclick="appDonate.openModal()">
+            <div class="drawer-leaf-icon" style="color: #f472b6;">☕</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.5 Ủng hộ tác giả</div>
+              <div class="drawer-leaf-sub">Tùy tâm tiếp sức phát triển ứng dụng</div>
             </div>
           </div>
         </div>
@@ -7665,8 +7679,8 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.25"></script>
-  <script src="field-workspace.js?v=2.8.25"></script>
+  <script src="app.js?v=2.8.26"></script>
+  <script src="field-workspace.js?v=2.8.26"></script>
   <script src="vn2000-rezone.js?v=2.8.26"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
