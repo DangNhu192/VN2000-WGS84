@@ -1559,7 +1559,7 @@ const appNav = window.appNav = {
         const decStr = kttVal.toFixed(4).replace(/\.?0+$/, '');
         const dmsStr = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`;
 
-        const pName = isEn ? 'Ho Chi Minh City' : AppState.provinceName;
+        const pName = AppState.provinceName || (isEn ? 'Custom CM' : 'Tùy chỉnh');
         if (provEl) provEl.innerText = `${pName} (${dmsStr} ⇄ ${decStr}°)`;
         if (muiEl) muiEl.innerText = isEn ? `Zone ${AppState.muiVal}° (k0 = ${AppState.scaleFactor})` : `Múi ${AppState.muiVal}° (k0 = ${AppState.scaleFactor})`;
 
@@ -1568,6 +1568,18 @@ const appNav = window.appNav = {
         const tfDec = document.getElementById('tfKttDecText');
         if (tfDms) tfDms.innerText = dmsStr;
         if (tfDec) tfDec.innerText = `${decStr}°`;
+
+        // Chip KTT trên thanh tiêu đề (hiện ở mọi màn hình trên điện thoại): KTT sai là lỗi số liệu nghiêm trọng nhất.
+        const headChip = document.getElementById('headerKttChip');
+        if (headChip) {
+            const shortProv = String(pName).replace(/^(TP\.|Thành phố|Tỉnh)\s*/, '');
+            // Thanh tiêu đề điện thoại chỉ còn ~120 px: ưu tiên KTT + múi; tên tỉnh ở chú thích và màn hình Cài đặt.
+            headChip.textContent = `📍 ${dmsStr} · ${AppState.muiVal}°`;
+            headChip.title = isEn
+                ? `${shortProv}: CM ${dmsStr}, zone ${AppState.muiVal}° — tap to change`
+                : `${shortProv}: KTT ${dmsStr}, múi ${AppState.muiVal}° — chạm để đổi`;
+            headChip.setAttribute('aria-label', headChip.title);
+        }
 
         // Cập nhật chip trên Dashboard
         const dashChip = document.getElementById('dashChipProvinceKtt');
@@ -1634,7 +1646,7 @@ function provinceOptionsHtml(selectedIdx, labelFn) {
 const appDashboard = {
     allFeatures: [
         { id: 'transform', name: '1. Chuyển Đổi Tọa Độ Hai Chiều', short: 'Chuyển Đổi Tọa Độ', dock: 'Chuyển Đổi', icon: '🔄', color: 'cyan', tag: '7 Tham số BTNMT', sub: 'WGS-84 ⇄ VN-2000 (Múi 3°/6°)', metric: '63 Tỉnh Thành', action: () => appNav.showScreen('transform') },
-        { id: 'map', name: '2. Bản Đồ Khảo Sát & Vệ Tinh', short: 'Bản Đồ Trắc Địa', dock: 'Bản Đồ', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
+        { id: 'map', name: '2. Bản Đồ Dự Án & Mốc', short: 'Bản Đồ Dự Án', dock: 'Bản Đồ', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
         { id: 'stakeout', name: '3. Cắm Mốc Thực Địa (Stakeout)', short: 'Cắm Mốc Thực Địa', dock: 'Cắm Mốc', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
         { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', dock: 'Sổ Đo', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DWG • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
         { id: 'camera', name: '5. Camera Khảo Sát Đóng Dấu', short: 'Camera Khảo Sát', dock: 'Camera', icon: '📸', color: 'pink', tag: 'Đóng dấu tọa độ', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
@@ -6003,6 +6015,8 @@ const appGps = {
         if (!btn || !txt) return;
 
         btn.classList.remove('gps-active', 'gps-searching', 'gps-off', 'gps-error');
+        // Trang chủ chỉ hiện khối tọa độ GPS lớn khi GPS đang bật (tắt: một nút "Bật GPS").
+        if (document.body) document.body.classList.toggle('gps-on', status === 'active' || status === 'searching');
 
         if (status === 'off') {
             btn.classList.add('gps-off');
@@ -35861,6 +35875,8 @@ const appI18n = {
 
             // Dashboard
             'dash.section_title': 'NGHIỆP VỤ TRẮC ĐỊA THỰC ĐỊA',
+            'home.gps_on': 'Bật GPS',
+            'home.gps_on_sub': 'để xem tọa độ VN-2000 tại vị trí đang đứng',
             'dash.btn_pins': '⭐ Đổi ghim',
             'dash.all_tools': 'Công Cụ Kỹ Thuật & Tiện Ích Khác',
             'dash.all_tools_sub': 'Nghiệp vụ trắc địa & đồ họa chuyên sâu',
@@ -35982,7 +35998,7 @@ const appI18n = {
 
             // Features Short Names
             'feature.transform': 'Chuyển Đổi Tọa Độ',
-            'feature.map': 'Bản Đồ Trắc Địa',
+            'feature.map': 'Bản Đồ Dự Án',
             'feature.stakeout': 'Cắm Mốc Thực Địa',
             'feature.datamgmt': 'Sổ Đo & Dự Án',
             'feature.camera': 'Camera Khảo Sát',
@@ -36013,6 +36029,8 @@ const appI18n = {
 
             // Dashboard
             'dash.section_title': 'FIELD CORE OPERATIONS',
+            'home.gps_on': 'Turn on GPS',
+            'home.gps_on_sub': 'to see VN-2000 coordinates where you stand',
             'dash.btn_pins': '⭐ Pins',
             'dash.all_tools': 'Technical Tools & Utilities',
             'dash.all_tools_sub': 'Advanced surveying & geodetic graphics',
@@ -37941,6 +37959,11 @@ const appI18n = {
         "5.5 Ủng hộ tác giả": "5.5 Support the Author",
         "Tùy tâm tiếp sức phát triển ứng dụng": "Optional contribution to keep the app growing",
         "🔁 Đổi KTT / Múi": "🔁 Change CM / Zone",
+        "2. Bản Đồ Dự Án & Mốc": "2. Project Map & Benchmarks",
+        "Bản Đồ Dự Án": "Project Map",
+        "2.1 Bản đồ dự án & Mốc": "2.1 Project Map & Benchmarks",
+        "Bật GPS": "Turn on GPS",
+        "để xem tọa độ VN-2000 tại vị trí đang đứng": "to see VN-2000 coordinates where you stand",
         "⭐ 4 Tính Năng Ghim Màn Hình Chính": "⭐ 4 calculate Nang Ghim Man Hinh Chinh",
         "Chọn đúng 4 tính năng đưa lên 4 Khối lớn:": "select dung 4 calculate nang dua len 4 Large Blocks:",
         "Đã chọn: 4/4 mục": "Da select: 4/4 item",
@@ -38628,7 +38651,7 @@ const appGuide = {
                 },
                 {
                     title: { vi: '3. Mở thêm chức năng khi cần', en: '3. Open more tools when needed' },
-                    desc: { vi: 'Thanh dưới cùng dẫn tới Chuyển đổi, Bản đồ, Cắm mốc và Sổ đo. Chọn "Nâng cao" ở đầu trang (hoặc nút ☰ Menu) để thấy GPS, Camera, Trắc dọc, MiniCAD và các công cụ khác.', en: 'The bottom bar opens Convert, Map, Stakeout and Field Book. Choose "Advanced" at the top (or the ☰ Menu) for GPS, Camera, Profile, MiniCAD and more.' }
+                    desc: { vi: 'Kéo xuống dưới khung chuyển đổi để thấy 4 chức năng chính và "Công cụ kỹ thuật khác" (Camera, Trắc dọc, MiniCAD...). Thanh dưới cùng và nút ☰ Menu mở nhanh mọi chức năng.', en: 'Scroll below the converter for the 4 main features and "Other technical tools" (Camera, Profile, MiniCAD...). The bottom bar and ☰ Menu open every feature.' }
                 }
             ],
             proTip: {

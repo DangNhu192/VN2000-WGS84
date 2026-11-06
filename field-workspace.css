@@ -9,7 +9,7 @@ body[data-theme="light"] #fieldWorkspace {
   --fw-surface: #fff; --fw-input: #f7f9fc; --fw-ink: #102137; --fw-muted: #465871;
   --fw-line: #8393a7; --fw-accent: #075985; --fw-on-accent: #fff; --fw-error: #a92020;
 }
-#fwToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+#fwToolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-bottom: 28px; }
 #fwModes { display: inline-flex; gap: 4px; padding: 4px; background: var(--fw-input); border-radius: 10px; }
 #fieldWorkspace button { font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; padding: 10px 14px; border-radius: 8px; transition: color .15s ease, background-color .15s ease; }
 #fwModes button { border: 0; background: transparent; color: var(--fw-muted); }
@@ -44,9 +44,8 @@ body[data-theme="light"] #fieldWorkspace {
 .fw-gps-note { font-size: 13px; line-height: 1.6; padding: 12px; margin-top: 12px; background: #262317; color: #ffdf8a; border-radius: 8px; }
 body[data-theme="light"] .fw-gps-note { background: #fff3cc; color: #634200; }
 #screen-stakeout > .fw-gps-note { margin: 12px; }
-body[data-workspace="simple"] #screen-menu > :is(#dashboardModernHub, #mainCardsHub, #mainTreeContainer, #mainGridContainer, #treeQuickTools) { display: none !important; }
-body[data-workspace="advanced"] #dashboardModernHub { max-width: 1080px; margin-inline: auto; }
-body[data-workspace="advanced"] #dashboardModernHub .big-action-tile { background: var(--bg-card) !important; box-shadow: none !important; }
+#dashboardModernHub { max-width: 1080px; margin-inline: auto; }
+#dashboardModernHub .big-action-tile { background: var(--bg-card) !important; box-shadow: none !important; }
 
 /* Outdoor mode leaves the saved light/dark preference and CAD sunlight setting intact. */
 body.field-mode #fieldWorkspace {
@@ -94,7 +93,6 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
 }
 
 /* First-run guidance on the home screen. */
-#fwModeHint { margin: -16px 0 16px; color: var(--fw-muted); font-size: 13px; line-height: 1.5; }
 #fwWelcome { margin-bottom: 16px; padding: 20px; background: var(--fw-surface); border: 1px solid var(--fw-accent); border-radius: 14px; }
 #fwWelcome h2 { margin: 0 0 12px; font-size: 17px; font-weight: 700; }
 #fwWelcome ol { margin: 0; padding: 0; list-style: none; counter-reset: fw-step; display: grid; gap: 12px; }
@@ -105,7 +103,6 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
 #fieldWorkspace #fwWelcomeKtt { flex: 1 1 140px; border: 0; background: var(--fw-accent); color: var(--fw-on-accent); }
 #fieldWorkspace #fwWelcomeDone { flex: 1 1 140px; background: transparent; color: var(--fw-ink); border: 1px solid var(--fw-line); }
 @media (max-width: 600px) {
-  #fwModeHint { margin: -12px 0 12px; }
   #fwWelcome { padding: 16px; }
 }
 

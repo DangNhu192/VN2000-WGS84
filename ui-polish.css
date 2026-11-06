@@ -2678,3 +2678,64 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
   height: 100% !important;
   max-height: none !important;
 }
+
+/* Chip KTT trên thanh tiêu đề: điện thoại thay tên màn hình (vốn bị cắt còn vài chữ) bằng KTT/múi đang dùng. */
+.header-ktt-chip { display: none; }
+@media (max-width: 600px) {
+  header.app-header .app-title-group { display: none !important; }
+  header.app-header .header-ktt-chip {
+    display: inline-flex !important;
+    align-items: center;
+    min-width: 0;
+    flex: 1 1 auto;
+    max-width: 100%;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 17px;
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    background: rgba(56, 189, 248, 0.12);
+    color: #7dd3fc;
+    font: 600 12px/1 inherit;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  body[data-theme="light"] header.app-header .header-ktt-chip { color: #075985; background: rgba(2, 132, 199, 0.08); border-color: rgba(2, 132, 199, 0.4); }
+  body.field-mode header.app-header .header-ktt-chip { display: inline-flex !important; color: #ffdf00 !important; background: #161616 !important; border-color: #aaa !important; }
+  header.app-header .header-left { min-width: 0 !important; flex: 1 1 auto !important; }
+}
+
+/* Nút GPS trên điện thoại: thêm nhãn "GPS" cạnh chấm trạng thái (chữ đầy đủ bị ẩn vì thiếu chỗ). */
+@media (max-width: 640px) {
+  #btnHeaderGpsToggle { gap: 3px !important; }
+  #btnHeaderGpsToggle::before {
+    content: 'GPS';
+    order: 2;
+    font: 800 10px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    letter-spacing: 0.2px;
+    color: #94a3b8;
+  }
+  #btnHeaderGpsToggle.gps-active::before { color: #34d399; }
+  #btnHeaderGpsToggle.gps-searching::before { color: #fbbf24; }
+  #btnHeaderGpsToggle.gps-error::before { color: #f87171; }
+}
+
+/* Trang chủ: khối tọa độ GPS chỉ hiện khi GPS bật; khi tắt thay bằng một nút gọn. */
+body:not(.gps-on) #heroLiveHudCard { display: none !important; }
+body.gps-on #btnHomeGpsOn { display: none !important; }
+.home-gps-cta {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; margin: 0 0 14px;
+  padding: 10px 14px; border-radius: 14px; border: 1px dashed rgba(52, 211, 153, 0.55);
+  background: rgba(16, 185, 129, 0.08); color: var(--text-primary, #f8fafc); font-size: 14px; text-align: left; cursor: pointer;
+}
+.home-gps-cta-icon { font-size: 22px; }
+.home-gps-cta b { color: #34d399; }
+.home-gps-cta-sub { color: var(--text-secondary, #94a3b8); font-size: 13px; }
+body[data-theme="light"] .home-gps-cta { color: #0f172a; }
+body[data-theme="light"] .home-gps-cta b { color: #047857; }
+/* Chip KTT trên Dashboard trùng với chip KTT ở thanh tiêu đề và khung chuyển đổi nhanh. */
+@media (max-width: 600px) { .dashboard-quick-chips .quick-chip-pill:first-child { display: none !important; } }
+#fwToolbar { justify-content: flex-end !important; }
+#accordionToolsCount { white-space: nowrap !important; flex-shrink: 0 !important; }

@@ -59,7 +59,7 @@ function boot({ lang = 'vi', blockedStorage = false, savedMode = 'tree' } = {}) 
             classList: { toggle(name, enabled) { enabled ? classes.add(name) : classes.delete(name); }, contains: name => classes.has(name) }
         };
     }
-    for (const id of ['fieldWorkspace', 'fwInput1', 'fwInput2', 'fwDirection', 'fwResult', 'fwError', 'fwQuick', 'fwSimple', 'fwAdvanced', 'fwField', 'fwModes', 'fwToolbar', 'fwLabel1', 'fwLabel2', 'fwContext', 'fwKtt', 'fwMap', 'fwFull', 'fwForm', 'fwValues', 'fwResultContext', 'fwWarning']) elements.set(id, element(id));
+    for (const id of ['fieldWorkspace', 'fwInput1', 'fwInput2', 'fwDirection', 'fwResult', 'fwError', 'fwQuick', 'fwField', 'fwToolbar', 'fwLabel1', 'fwLabel2', 'fwContext', 'fwKtt', 'fwMap', 'fwFull', 'fwForm', 'fwValues', 'fwResultContext', 'fwWarning']) elements.set(id, element(id));
     elements.get('fwDirection').value = 'wgs2vn';
     const documentEvents = new Map(), body = element('body');
     const document = { readyState: 'complete', body, getElementById: id => elements.get(id), querySelectorAll: () => [],
@@ -81,22 +81,20 @@ function boot({ lang = 'vi', blockedStorage = false, savedMode = 'tree' } = {}) 
     return { elements, body, window, saved, click, submit, documentEvents, mapCalls };
 }
 
-test('workspace modes remain reversible even when storage is blocked and preserve the saved theme', () => {
+test('single home workspace: quick converter always visible, field mode reversible even when storage is blocked, theme preserved', () => {
     for (const blockedStorage of [true, false]) {
+        for (const savedMode of ['simple', 'advanced']) {
+            const app = boot({ blockedStorage, savedMode });
+            assert.equal(app.body.dataset.workspace, 'unified', 'Không còn công tắc Đơn giản/Nâng cao');
+            assert.equal(app.elements.get('fwQuick').hidden, false);
+        }
         const app = boot({ blockedStorage });
-        assert.equal(app.body.dataset.workspace, 'simple');
-        app.click('fwAdvanced');
-        assert.equal(app.body.dataset.workspace, 'advanced');
-        assert.equal(app.elements.get('fwQuick').hidden, true);
-        app.click('fwSimple');
-        assert.equal(app.elements.get('fwQuick').hidden, false);
         app.click('fwField');
         assert.equal(app.body.classes.has('field-mode'), true);
         app.click('fwField');
         assert.equal(app.body.classes.has('field-mode'), false);
         assert.equal(app.saved.get('app_theme'), 'light');
     }
-    assert.equal(boot({ savedMode: 'advanced' }).body.dataset.workspace, 'advanced');
 });
 
 test('editing input, changing KTT and switching languages invalidate visible results', () => {
