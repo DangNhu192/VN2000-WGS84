@@ -2664,3 +2664,13 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
     margin-top: 0 !important;
   }
 }
+
+/* Tab Đổi KTT / Múi không dùng bản đồ: form chiếm trọn khung. */
+#transformSplitLayout.rezone-mode .transform-map-column,
+#transformSplitLayout.rezone-mode .transform-layout-resizer { display: none !important; }
+#transformSplitLayout.rezone-mode .transform-content-column {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+}

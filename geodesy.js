@@ -405,6 +405,170 @@ function convertVn2kToWgs(X, Y, ktt, k0 = 0.9999) {
 }
 
 /**
+ * Đổi tọa độ VN-2000 từ (KTT, múi) này sang (KTT, múi) khác.
+ * Cùng hệ quy chiếu VN-2000 nên KHÔNG đi qua WGS-84 (không áp 7 tham số):
+ * chiếu ngược Gauss-Kruger theo KTT nguồn → B, L trên ellipsoid → chiếu xuôi theo KTT đích.
+ * @returns {{ X:number, Y:number, lat:number, lng:number, offSrc:number, offDst:number }}
+ *   lat/lng: tọa độ trắc địa VN-2000; offSrc/offDst: độ lệch kinh độ (°) so với KTT nguồn/đích.
+ */
+function convertVn2kToVn2k(X, Y, srcKtt, srcK0, dstKtt, dstK0) {
+    const a = ModCS.Ellipsoid_WGS84.SemiMajorAxis, b = ModCS.Ellipsoid_WGS84.SemiMinorAxis;
+    const values = [X, Y, srcKtt, srcK0, dstKtt, dstK0];
+    if (!values.every(v => typeof v === 'number' && Number.isFinite(v)) || srcK0 <= 0 || dstK0 <= 0) return null;
+    const geo = new ProjTransverseMercator(a, b, srcK0, srcKtt, 0, 0, 500000.0).inverse(X, Y);
+    const out = new ProjTransverseMercator(a, b, dstK0, dstKtt, 0, 0, 500000.0).forward(geo.lat, geo.lng);
+    if (!Number.isFinite(out.X) || !Number.isFinite(out.Y)) return null;
+    return { X: out.X, Y: out.Y, lat: geo.lat, lng: geo.lng,
+        offSrc: Math.abs(geo.lng - srcKtt), offDst: Math.abs(geo.lng - dstKtt) };
+}
+
+/**
+ * Chuẩn hóa danh sách điểm trước khi XUẤT FILE để mọi định dạng (CSV, Excel, KML, GeoJSON, GPX, DXF, TXT)
+ * cùng một bộ số liệu:
+ *  - bỏ điểm không có tọa độ hợp lệ (vd. dòng "Lỗi" của chuyển đổi hàng loạt) thay vì ghi (0, 0);
+ *  - thiếu WGS-84 thì tính từ VN-2000 (và ngược lại) theo KTT/múi CỦA TỪNG ĐIỂM;
+ *  - KTT ghi thống nhất dạng 105°45', múi là số 3 hoặc 6.
+ * @param {Array} points
+ * @param {{ ktt:number, mui:number }} defaults KTT/múi hiện hành khi điểm không ghi rõ.
+ */
+function normalizeSurveyPoints(points, defaults) {
+    const num = v => {
+        if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+        if (typeof v !== 'string' || !v.trim()) return NaN;
+        const t = v.trim().replace(/\s+/g, '');
+        return /^[+-]?\d+([.,]\d+)?$/.test(t) ? Number(t.replace(',', '.')) : NaN;
+    };
+    const def = defaults || {};
+    const kttOf = p => {
+        if (typeof p.kttVal === 'number' && p.kttVal > 100 && p.kttVal < 115) return p.kttVal;
+        const k = p.ktt;
+        if (typeof k === 'number' && k > 100 && k < 115) return k;
+        if (typeof k === 'string') {
+            const m = k.match(/(1[01]\d)\s*[°o]\s*(\d{1,2})/);
+            if (m) return Number(m[1]) + Number(m[2]) / 60;
+            const d = num(k);
+            if (d > 100 && d < 115) return d;
+        }
+        return Number.isFinite(def.ktt) ? def.ktt : 105.75;
+    };
+    const muiOf = p => {
+        const inText = typeof p.ktt === 'string' ? p.ktt.match(/Múi\s*([36])/i) : null;
+        const m = parseInt(p.mui !== undefined && p.mui !== '' ? p.mui : (inText ? inText[1] : undefined), 10);
+        return m === 6 || m === 3 ? m : (def.mui === 6 ? 6 : 3);
+    };
+    const label = ktt => {
+        const d = Math.floor(ktt + 1e-9), m = Math.round((ktt - d) * 60);
+        return `${d}°${String(m).padStart(2, '0')}'`;
+    };
+    const out = [];
+    (points || []).forEach(p => {
+        if (!p || typeof p !== 'object') return;
+        const ktt = kttOf(p), mui = muiOf(p), k0 = mui === 6 ? 0.9996 : 0.9999;
+        let x = num(p.x), y = num(p.y), lat = num(p.lat), lng = num(p.lng);
+        const hasXY = x > 100000 && x < 10000000 && y > 0 && y < 1000000;
+        const hasLL = Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
+        if (!hasXY && !hasLL) return;
+        try {
+            if (hasXY && !hasLL) { const w = convertVn2kToWgs(x, y, ktt, k0); lat = w.lat; lng = w.lng; }
+            if (hasLL && !hasXY) { const v = convertWgsToVn2k(lat, lng, ktt, k0); x = v.X; y = v.Y; }
+        } catch (e) { return; }
+        if (![x, y, lat, lng].every(Number.isFinite)) return;
+        const h = num(p.h);
+        out.push(Object.assign({}, p, { x, y, lat, lng, h: Number.isFinite(h) ? h : 0, ktt: label(ktt), kttVal: ktt, mui }));
+    });
+    return out;
+}
+
+/** Tách một dòng CSV có ngoặc kép ("a ""b""", c) theo dấu phân cách cho trước. */
+function splitDelimitedLine(line, delim) {
+    const cells = [];
+    let cur = '', quoted = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (quoted) {
+            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') quoted = false;
+            else cur += ch;
+        } else if (ch === '"' && cur.trim() === '') { quoted = true; cur = ''; }
+        else if (ch === delim) { cells.push(cur.trim()); cur = ''; }
+        else cur += ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+}
+
+/**
+ * Đọc bảng tọa độ CÓ DÒNG TIÊU ĐỀ (CSV/TXT/Excel→CSV) và ánh xạ cột theo tên, không đoán theo vị trí.
+ * Đọc được file do chính ứng dụng xuất (CSV 9 cột, TXT máy đo, Excel) và file có tiêu đề thông dụng
+ * (Tên/Name, X/Northing, Y/Easting, H/Cao độ, Vĩ độ/Lat, Kinh độ/Lng, KTT, Múi, Ghi chú).
+ * @returns {{ points: Array, columns: Object } | null} null khi không nhận ra tiêu đề → dùng bộ đọc từng dòng.
+ */
+function parseHeaderedTable(text, defaults) {
+    const lines = String(text || '').replace(/^﻿/, '').split(/\r\n|\r|\n/);
+    const strip = v => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/đ/g, 'd').replace(/[_()\[\]#:.]/g, ' ').replace(/\s+/g, ' ').trim();
+    const rules = [
+        ['ktt', /kinh tuyen truc|^ktt\b|central meridian/],
+        ['mui', /^mui\b|mui chieu|^zone\b/],
+        ['time', /thoi gian|^time\b|^ngay\b|^date\b/],
+        ['note', /ghi chu|^note|mo ta|description|^desc/],
+        ['lat', /vi do|^lat|latitude/],
+        ['lng', /kinh do|^lon|^lng|longitude/],
+        ['h', /^h\b|cao do|elev|^z\b|^cao do h/],
+        ['x', /^x\b|toa do ngang x|northing|^n\b|x bac|^bac\b|x vn ?2000/],
+        ['y', /^y\b|toa do dung y|easting|^e\b|y dong|^dong\b|y vn ?2000/],
+        ['name', /^ten|^name|^point|^diem|^ma diem|^so hieu|^id\b|^stt\b/]
+    ];
+    for (let i = 0; i < Math.min(lines.length, 15); i++) {
+        let raw = lines[i].trim();
+        if (!raw) continue;
+        raw = raw.replace(/^#\s*/, '');
+        const delim = raw.includes('\t') ? '\t' : (raw.includes(';') ? ';' : ',');
+        const head = splitDelimitedLine(raw, delim).map(strip);
+        const col = {};
+        head.forEach((h, idx) => {
+            const hit = rules.find(([key, re]) => re.test(h) && !(key in col));
+            if (hit) col[hit[0]] = idx;
+        });
+        // "STT" chỉ là tên khi không có cột tên thật.
+        if (head[col.name] === 'stt') {
+            const realName = head.findIndex((h, idx) => idx !== col.name && /^ten|^name|^point|^ma diem|^so hieu/.test(h));
+            if (realName >= 0) col.name = realName;
+        }
+        const hasXY = 'x' in col && 'y' in col, hasLL = 'lat' in col && 'lng' in col;
+        if (!hasXY && !hasLL) continue;
+        const rows = [];
+        for (let j = i + 1; j < lines.length; j++) {
+            const line = lines[j].trim();
+            if (!line || line.startsWith('#')) continue;
+            const c = splitDelimitedLine(line, delim);
+            const get = k => (k in col ? c[col[k]] : undefined);
+            const numStr = v => (v === undefined ? undefined : (delim === ',' ? v : String(v).replace(',', '.')));
+            rows.push({
+                name: get('name') || `M${rows.length + 1}`,
+                x: numStr(get('x')), y: numStr(get('y')), h: numStr(get('h')),
+                lat: numStr(get('lat')), lng: numStr(get('lng')),
+                ktt: get('ktt'), mui: get('mui'), note: get('note') || '', time: get('time') || ''
+            });
+        }
+        const points = normalizeSurveyPoints(rows, defaults).map(pt => Object.assign(pt, { source: 'Bảng có tiêu đề' }));
+        return { points, columns: col, skipped: rows.length - points.length };
+    }
+    return null;
+}
+
+/** Thoát ký tự đặc biệt XML (KML, GPX, SVG). */
+function escapeXml(v) {
+    return String(v === undefined || v === null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/** Một ô CSV: luôn bọc ngoặc kép, nhân đôi ngoặc kép bên trong. */
+function csvCell(v) {
+    return `"${String(v === undefined || v === null ? '' : v).replace(/"/g, '""')}"`;
+}
+
+/**
  * Tính khoảng cách và góc phương vị giữa 2 điểm VN2000 A(x1, y1) và B(x2, y2)
  */
 function calculateDistanceAndAzimuth(x1, y1, x2, y2) {
@@ -670,6 +834,12 @@ if (typeof module !== 'undefined' && module.exports) {
         parseCoordinateNumber,
         convertWgsToVn2k,
         convertVn2kToWgs,
+        convertVn2kToVn2k,
+        normalizeSurveyPoints,
+        parseHeaderedTable,
+        splitDelimitedLine,
+        escapeXml,
+        csvCell,
         calculateDistanceAndAzimuth,
         calculatePolygonAreaAndPerimeter,
         Ok,

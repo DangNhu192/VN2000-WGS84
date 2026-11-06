@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
   './src/core/gis_io.js',
   './field-workspace.js',
   './field-workspace.css',
+  './vn2000-rezone.js',
   './ui-polish.css',
   './geodesy.js',
   './leaflet.js',

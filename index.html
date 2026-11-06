@@ -917,6 +917,10 @@
               <button id="tabTransMulti" class="btn-subtab" onclick="appTransform.switchTransformSubTab('multi')">
                 📑 Chuyển Đổi Đa Điểm (<span id="txtMultiPointCount">0 mốc</span>)
               </button>
+              <button id="tabTransRezone" class="btn-subtab" onclick="appTransform.switchTransformSubTab('rezone')"
+                title="Đổi tọa độ VN-2000 từ KTT / múi chiếu này sang KTT / múi chiếu khác">
+                🔁 Đổi KTT / Múi
+              </button>
               <button id="tabTransLiveMap" class="btn-subtab" onclick="appTransform.switchTransformSubTab('livemap')"
                 title="Xem bản đồ lớn trực quan chiếm đa số màn hình">
                 🗺️ Bản Đồ Lớn Trực Quan
@@ -1358,6 +1362,61 @@
               </div>
 
               <!-- TAB 3: BẢNG ĐIỀU KHIỂN & TRA CỨU TỌA ĐỘ BẢN ĐỒ TRỰC QUAN -->
+              <!-- ================= PANEL: ĐỔI KTT / MÚI (VN-2000 ⇄ VN-2000) ================= -->
+              <div id="panelTransRezone" style="display: none;">
+                <div class="app-card">
+                  <div class="card-header">
+                    <span class="card-title">🔁 Đổi VN-2000 sang KTT / múi khác</span>
+                  </div>
+                  <p class="rz-hint">Cùng hệ VN-2000, không qua WGS-84 (không áp 7 tham số). Dùng khi đổi số liệu giữa các tỉnh, hoặc giữa múi 3° và 6°.</p>
+                  <div class="rz-sides">
+                    <fieldset class="rz-side">
+                      <legend>Từ (nguồn)</legend>
+                      <select id="rzSrcKtt" class="app-select" aria-label="Kinh tuyến trục nguồn"></select>
+                      <input id="rzSrcKttCustom" class="app-input" placeholder="KTT, VD: 105°45' hoặc 105.75" hidden aria-label="KTT nguồn nhập tay">
+                      <select id="rzSrcZone" class="app-select" aria-label="Múi chiếu nguồn">
+                        <option value="3">Múi 3° (k0 = 0.9999)</option>
+                        <option value="6">Múi 6° (k0 = 0.9996)</option>
+                      </select>
+                    </fieldset>
+                    <button type="button" id="rzSwap" class="btn-sm rz-swap" title="Đảo nguồn ⇄ đích (và đổi ngược kết quả đang có)" aria-label="Đảo nguồn và đích">⇅</button>
+                    <fieldset class="rz-side">
+                      <legend>Sang (đích)</legend>
+                      <select id="rzDstKtt" class="app-select" aria-label="Kinh tuyến trục đích"></select>
+                      <input id="rzDstKttCustom" class="app-input" placeholder="KTT, VD: 107°45' hoặc 107.75" hidden aria-label="KTT đích nhập tay">
+                      <select id="rzDstZone" class="app-select" aria-label="Múi chiếu đích">
+                        <option value="3">Múi 3° (k0 = 0.9999)</option>
+                        <option value="6">Múi 6° (k0 = 0.9996)</option>
+                      </select>
+                    </fieldset>
+                  </div>
+                  <label for="rzInput" class="form-label">Tọa độ nguồn — mỗi dòng một điểm: <b>Tên X Y</b> hoặc <b>X Y</b> (dán từ Excel/Zalo được)</label>
+                  <textarea id="rzInput" class="app-input rz-input" rows="5" spellcheck="false" autocomplete="off"
+                    placeholder="M1    1191900.123    603800.456&#10;M2    1192015.880    603912.304"></textarea>
+                  <div class="btn-group-row" style="margin-top: 8px;">
+                    <button type="button" id="rzRun" class="btn-sm btn-blue">🔁 Đổi tọa độ</button>
+                    <button type="button" id="rzSample" class="btn-sm">Ví dụ</button>
+                    <button type="button" id="rzClear" class="btn-sm btn-red">🗑️ Xóa</button>
+                  </div>
+                  <p id="rzStatus" class="rz-status" role="status" aria-live="polite"></p>
+                </div>
+                <div class="app-card" id="rzResultCard" hidden>
+                  <div class="card-header">
+                    <span class="card-title">📋 Kết quả</span>
+                    <div class="card-tools">
+                      <button type="button" id="rzCopy" class="btn-sm">📋 Chép</button>
+                      <button type="button" id="rzCsv" class="btn-sm btn-green">⬇️ CSV</button>
+                    </div>
+                  </div>
+                  <div class="rz-table-wrap">
+                    <table class="rz-table">
+                      <thead><tr><th>Tên</th><th>X mới (Bắc)</th><th>Y mới (Đông)</th><th>Ghi chú</th></tr></thead>
+                      <tbody id="rzResultBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
               <div id="panelTransLiveMap" style="display: none; padding-top: 4px;">
                 <!-- Card 1: Hướng dẫn & Tọa độ tức thời khi chấm/di chuột -->
                 <div class="hero-subcard" style="padding: 12px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px;">
@@ -7608,6 +7667,7 @@
   <script src="src/core/gis_io.js?v=2.8.10"></script>
   <script src="app.js?v=2.8.25"></script>
   <script src="field-workspace.js?v=2.8.25"></script>
+  <script src="vn2000-rezone.js?v=2.8.26"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

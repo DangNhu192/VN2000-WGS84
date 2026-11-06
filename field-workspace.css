@@ -108,3 +108,21 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
   #fwModeHint { margin: -12px 0 12px; }
   #fwWelcome { padding: 16px; }
 }
+
+/* Tab Đổi KTT / Múi trong màn Chuyển đổi tọa độ. */
+#panelTransRezone .rz-hint { font-size: 12.5px; line-height: 1.5; color: var(--text-secondary, #94a3b8); margin: 0 0 10px; }
+#panelTransRezone .rz-sides { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 12px; }
+#panelTransRezone .rz-side { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 8px 10px 10px; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; }
+#panelTransRezone .rz-side legend { padding: 0 4px; font-size: 12px; font-weight: 700; color: #38bdf8; }
+#panelTransRezone .rz-swap { min-width: 40px; min-height: 40px; font-size: 18px; }
+#panelTransRezone .rz-input { width: 100%; min-height: 110px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; line-height: 1.5; resize: vertical; white-space: pre; }
+#panelTransRezone .rz-status { font-size: 12.5px; line-height: 1.5; margin: 8px 0 0; min-height: 1em; }
+#panelTransRezone .rz-table-wrap { overflow-x: auto; }
+#panelTransRezone .rz-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#panelTransRezone .rz-table :is(th, td) { padding: 6px 8px; text-align: left; border-bottom: 1px solid rgba(148, 163, 184, 0.18); white-space: nowrap; }
+#panelTransRezone .rz-table td.font-mono { font-variant-numeric: tabular-nums; user-select: text; -webkit-user-select: text; }
+#panelTransRezone [hidden] { display: none !important; }
+@media (max-width: 480px) {
+  #panelTransRezone .rz-sides { grid-template-columns: minmax(0, 1fr); }
+  #panelTransRezone .rz-swap { justify-self: center; }
+}

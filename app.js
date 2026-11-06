@@ -2901,6 +2901,20 @@ const appTransform = {
         const panelMulti = document.getElementById('panelTransMulti');
         const panelLiveMap = document.getElementById('panelTransLiveMap');
         const mapWrap = document.getElementById('boxTransformLiveMapWrap');
+        const panelRezone = document.getElementById('panelTransRezone');
+        const btnRezone = document.getElementById('tabTransRezone');
+        if (btnRezone) btnRezone.classList.toggle('active', tab === 'rezone');
+        if (panelRezone) panelRezone.style.display = tab === 'rezone' ? 'block' : 'none';
+        const splitLayout = document.getElementById('transformSplitLayout');
+        if (splitLayout) splitLayout.classList.toggle('rezone-mode', tab === 'rezone');
+        if (tab === 'rezone') {
+            // Đổi KTT/múi chỉ làm việc trên số liệu VN-2000: ẩn các panel khác và bản đồ để form chiếm trọn chiều cao.
+            [btnSingle, btnMulti, btnLiveMap].forEach(b => b && b.classList.remove('active'));
+            [panelSingle, panelMulti, panelLiveMap].forEach(p => { if (p) p.style.display = 'none'; });
+            if (splitLayout) splitLayout.classList.remove('map-full-focus');
+            if (mapWrap) mapWrap.classList.remove('large-focus');
+            return;
+        }
 
         if (btnSingle) btnSingle.classList.toggle('active', tab === 'single');
         if (btnMulti) btnMulti.classList.toggle('active', tab === 'multi');
@@ -3046,7 +3060,7 @@ const appTransform = {
             showToast("⚠️ Vui lòng dán văn bản tọa độ trước khi nạp!", true);
             return;
         }
-        const lines = ta.value.trim().split(/\r?\r\n/);
+        const lines = ta.value.trim().split(/\r\n|\r|\n/);
         let added = 0;
 
         const cleanNumStr = (s) => {
@@ -5677,7 +5691,7 @@ const appTransformMap = {
                 showToast("⚠️ Clipboard trống!", true);
                 return;
             }
-            const lines = text.trim().split(/\r?\r\n/);
+            const lines = text.trim().split(/\r\n|\r|\n/);
             let added = 0;
             lines.forEach(line => {
                 const parts = line.trim().split(/[\t,; ]+/);
@@ -10001,6 +10015,19 @@ function doGet(e) {
         }
     },
 
+    // CSV chuẩn của ứng dụng: 10 cột, cùng thứ tự với Excel (đủ Cao độ H để nạp lại không mất số liệu),
+    // UTF-8 BOM để Excel đọc đúng tiếng Việt, X/Y/H 3 số lẻ (mm), Lat/Lng 8 số lẻ (~1 mm).
+    _buildCsvText(pts) {
+        const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
+        const fix = (v, d) => (typeof v === 'number' && Number.isFinite(v)) ? v.toFixed(d) : (v || '');
+        const rows = [headers.map(h => csvCell(h)).join(",")];
+        (pts || []).forEach(p => {
+            rows.push([p.time, p.name, fix(p.x, 3), fix(p.y, 3), fix(p.h, 3), fix(p.lat, 8), fix(p.lng, 8), p.mui, p.ktt, p.note]
+                .map(v => csvCell(v)).join(","));
+        });
+        return "\uFEFF" + rows.join("\r\n");
+    },
+
     exportCsvFile() {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
@@ -10010,27 +10037,7 @@ function doGet(e) {
 
         const outName = (this.exportContext === 'transform' ? 'KetQua_ChuyenDoi_VN2000.csv' : (AppState.currentProject || "VN2000_SoLieu_DoDac.csv"));
 
-        // Cấu trúc dữ liệu CSV 9 cột chuẩn
-        const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
-        const rows = [headers.join(",")];
-
-        pts.forEach(p => {
-            const row = [
-                `"${p.time || ''}"`,
-                `"${p.name || ''}"`,
-                `"${p.x || ''}"`,
-                `"${p.y || ''}"`,
-                `"${p.lat || ''}"`,
-                `"${p.lng || ''}"`,
-                `"${p.mui || ''}"`,
-                `"${p.ktt || ''}"`,
-                `"${(p.note || '').replace(/"/g, '""')}"`
-            ];
-            rows.push(row.join(","));
-        });
-
-        // Gắn UTF-8 BOM (\uFEFF)
-        const csvContent = "\uFEFF" + rows.join("\r\n");
+        const csvContent = this._buildCsvText(pts);
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -10049,23 +10056,7 @@ function doGet(e) {
         if (!pts || pts.length === 0) return showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để chia sẻ!", true);
         const outName = (this.exportContext === 'transform' ? 'KetQua_ChuyenDoi_VN2000.csv' : (AppState.currentProject || "VN2000_SoLieu_DoDac.csv"));
 
-        const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
-        const rows = [headers.join(",")];
-        pts.forEach(p => {
-            rows.push([
-                `"${p.time || ''}"`,
-                `"${p.name || ''}"`,
-                `"${p.x || ''}"`,
-                `"${p.y || ''}"`,
-                `"${p.lat || ''}"`,
-                `"${p.lng || ''}"`,
-                `"${p.mui || ''}"`,
-                `"${p.ktt || ''}"`,
-                `"${(p.note || '').replace(/"/g, '""')}"`
-            ].join(","));
-        });
-
-        const csvContent = "\uFEFF" + rows.join("\r\n");
+        const csvContent = this._buildCsvText(pts);
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const file = new File([blob], AppState.currentProject, { type: "text/csv" });
 
@@ -10237,6 +10228,18 @@ function doGet(e) {
     },
 
     getExportPoints() {
+        const raw = this._collectExportPoints();
+        if (typeof normalizeSurveyPoints !== 'function') return raw;
+        // Mọi định dạng xuất dùng chung một bộ số liệu đã chuẩn hóa (xem geodesy.js).
+        const pts = normalizeSurveyPoints(raw, { ktt: AppState.kttVal, mui: AppState.muiVal });
+        const dropped = (raw ? raw.length : 0) - pts.length;
+        if (dropped > 0 && typeof showToast === 'function') {
+            showToast(`⚠️ Bỏ qua ${dropped} điểm không có tọa độ hợp lệ khi xuất file.`, true);
+        }
+        return pts;
+    },
+
+    _collectExportPoints() {
         if (this._customExportPoints && Array.isArray(this._customExportPoints) && this._customExportPoints.length > 0) {
             return this._customExportPoints;
         }
@@ -10250,6 +10253,7 @@ function doGet(e) {
                 lat: r.lat !== 'Lỗi' ? r.lat : 0,
                 lng: r.lng !== 'Lỗi' ? r.lng : 0,
                 h: 0,
+                ktt: r.ktt,
                 note: r.ktt || 'Chuyển đổi'
             }));
         }
@@ -11798,26 +11802,29 @@ function doGet(e) {
         }
 
         const projName = (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc");
-        let kml = `<?xml version="1.0" encoding="UTF-8"?>\r\n<kml xmlns="http://www.opengis.net/kml/2.2">\r\n<Document>\r\n<name>${projName}</name>\r\n`;
+        let kml = `<?xml version="1.0" encoding="UTF-8"?>\r\n<kml xmlns="http://www.opengis.net/kml/2.2">\r\n<Document>\r\n<name>${escapeXml(projName)}</name>\r\n`;
         kml += `<Style id="pointStyle"><IconStyle><color>ff00ff00</color><scale>1.1</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\r\n`;
         kml += `<Style id="lineStyle"><LineStyle><color>ff00ffff</color><width>3</width></LineStyle><PolyStyle><color>4000ffff</color></PolyStyle></Style>\r\n`;
 
         pts.forEach(p => {
             const lat = parseFloat(p.lat) || 0;
             const lng = parseFloat(p.lng) || 0;
-            const cleanName = (p.name || 'Moc').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const cleanName = escapeXml(p.name || 'Moc');
+            // Nội dung mô tả để trong CDATA nhưng vẫn thoát ký tự để không vỡ khi có "]]>" hoặc thẻ HTML lạ.
+            const xy = (v) => (typeof v === 'number' ? v.toFixed(3) : escapeXml(v));
             kml += `<Placemark>\r\n<name>${cleanName}</name>\r\n<description><![CDATA[`;
-            kml += `<div><b>Dự án:</b> ${projName}</div>`;
-            kml += `<div><b>VN-2000 X:</b> ${p.x} m</div>`;
-            kml += `<div><b>VN-2000 Y:</b> ${p.y} m</div>`;
-            kml += `<div><b>WGS-84:</b> ${p.lat}, ${p.lng}</div>`;
-            if (p.note) kml += `<div><b>Ghi chú:</b> ${p.note}</div>`;
+            kml += `<div><b>Dự án:</b> ${escapeXml(projName)}</div>`;
+            kml += `<div><b>VN-2000 X:</b> ${xy(p.x)} m</div>`;
+            kml += `<div><b>VN-2000 Y:</b> ${xy(p.y)} m</div>`;
+            kml += `<div><b>KTT:</b> ${escapeXml(p.ktt || '')} · Múi ${escapeXml(p.mui || '')}°</div>`;
+            kml += `<div><b>WGS-84:</b> ${lat.toFixed(8)}, ${lng.toFixed(8)}</div>`;
+            if (p.note) kml += `<div><b>Ghi chú:</b> ${escapeXml(p.note)}</div>`;
             kml += `]]></description>\r\n<styleUrl>#pointStyle</styleUrl>\r\n`;
-            kml += `<Point><coordinates>${lng},${lat},0</coordinates></Point>\r\n</Placemark>\r\n`;
+            kml += `<Point><coordinates>${lng.toFixed(8)},${lat.toFixed(8)},${(parseFloat(p.h) || 0).toFixed(3)}</coordinates></Point>\r\n</Placemark>\r\n`;
         });
 
         if (pts.length >= 2) {
-            kml += `<Placemark>\r\n<name>Ranh: ${projName}</name>\r\n<styleUrl>#lineStyle</styleUrl>\r\n`;
+            kml += `<Placemark>\r\n<name>Ranh: ${escapeXml(projName)}</name>\r\n<styleUrl>#lineStyle</styleUrl>\r\n`;
             if (pts.length >= 3) {
                 kml += `<Polygon><outerBoundaryIs><LinearRing><coordinates>\r\n`;
                 pts.forEach(p => { kml += `${p.lng},${p.lat},0\r\n`; });
@@ -12369,8 +12376,8 @@ function doGet(e) {
             coordTypeInferred = 'VN2000 (Y, X)';
             try {
                 const wgs = convertVn2kToWgs(x, y, targetKtt, targetK0);
-                lat = parseFloat(wgs.lat.toFixed(6));
-                lng = parseFloat(wgs.lng.toFixed(6));
+                lat = parseFloat(wgs.lat.toFixed(9));
+                lng = parseFloat(wgs.lng.toFixed(9));
             } catch(e) {}
         } else if (fmt === 'vn2k_xy') {
             // Ép buộc VN-2000 Chuẩn: X (Bắc) trước, Y (Đông) sau
@@ -12379,8 +12386,8 @@ function doGet(e) {
             coordTypeInferred = 'VN2000 (X, Y)';
             try {
                 const wgs = convertVn2kToWgs(x, y, targetKtt, targetK0);
-                lat = parseFloat(wgs.lat.toFixed(6));
-                lng = parseFloat(wgs.lng.toFixed(6));
+                lat = parseFloat(wgs.lat.toFixed(9));
+                lng = parseFloat(wgs.lng.toFixed(9));
             } catch(e) {}
         } else if (fmt === 'wgs_lnglat') {
             // Ép buộc WGS-84 Đảo: Lng trước, Lat sau
@@ -12420,8 +12427,8 @@ function doGet(e) {
                 }
                 try {
                     const wgs = convertVn2kToWgs(x, y, targetKtt, targetK0);
-                    lat = parseFloat(wgs.lat.toFixed(6));
-                    lng = parseFloat(wgs.lng.toFixed(6));
+                    lat = parseFloat(wgs.lat.toFixed(9));
+                    lng = parseFloat(wgs.lng.toFixed(9));
                 } catch(e) {}
             } else if (Math.abs(val1) <= 180 && Math.abs(val2) <= 180 && (Math.abs(val1) <= 90 || Math.abs(val2) <= 90)) {
                 // Tọa độ GPS / WGS-84
@@ -12475,7 +12482,7 @@ function doGet(e) {
         }
 
         const opts = this.getManualImportOptions();
-        const lines = txt.split(/\r?\r\n/).map(l => l.trim()).filter(Boolean);
+        const lines = txt.split(/\r\n|\r|\n/).map(l => l.trim()).filter(Boolean);
         const parsed = [];
 
         lines.forEach((line, idx) => {
@@ -12520,12 +12527,24 @@ function doGet(e) {
     },
 
     processImportedText(text, defaultName, customOptions = null) {
-        const lines = text.split(/\r?\r\n/).map(l => l.trim()).filter(l => l.length > 0);
+        // Chấp nhận mọi kiểu xuống dòng: CRLF (Windows), LF (Mac/Linux, máy đo, Excel→CSV), CR.
+        const lines = String(text || '').replace(/^\uFEFF/, '').split(/\r\n|\r|\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length === 0) {
             return showToast("⚠️ Không tìm thấy dữ liệu tọa độ nào trong nội dung!", true);
         }
 
         const opts = customOptions || this.getManualImportOptions();
+
+        // File có dòng tiêu đề (kể cả file do chính ứng dụng xuất): ánh xạ cột theo tên, giữ KTT/múi của từng điểm.
+        if ((!opts.format || opts.format === 'auto') && typeof parseHeaderedTable === 'function') {
+            const table = parseHeaderedTable(text, { ktt: opts.ktt || AppState.kttVal, mui: opts.muiVal || AppState.muiVal });
+            if (table && table.points.length) {
+                if (table.skipped > 0) showToast(`⚠️ Bỏ qua ${table.skipped} dòng không có tọa độ hợp lệ.`, true);
+                const now = new Date().toLocaleString('vi-VN');
+                table.points.forEach(p => { if (!p.time) p.time = now; });
+                return appData.saveImportedPoints(table.points, defaultName);
+            }
+        }
         const parsedPoints = [];
 
         lines.forEach((line, idx) => {
@@ -31466,7 +31485,7 @@ const appCadTool = {
         }
 
         // 2. Phân tích nếu là file CSV hoặc text
-        const lines = text.split(/\r?\r\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const lines = text.split(/\r\n|\r|\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length >= 2) {
             const firstDataLine = lines.find(l => l.includes(';') || l.includes(',') || l.includes('\t')) || '';
             const delimiter = firstDataLine.includes(';') ? ';' : (firstDataLine.includes('\t') ? '\t' : ',');
