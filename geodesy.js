@@ -291,6 +291,51 @@ const VN_PROVINCES = [
     { name: "Yên Bái", deg: 104, min: 45, ktt: 104.75 }
 ];
 
+// 34 tỉnh, thành phố từ 01/07/2025 (Nghị quyết 202/2025/QH15) — KTT theo Thông tư 24/2025/TT-BNNMT.
+// Giá trị tổng hợp từ các bảng công bố; `verify: true` = các nguồn chưa thống nhất, cần đối chiếu văn bản gốc:
+//   Lai Châu (103°00' / 104°45'), Phú Thọ (104°45' / 105°00'), Ninh Bình (105°00' / 105°30').
+// `code` khớp mã tỉnh trong data/vn_admin_2025.js để gợi ý KTT theo vị trí GPS.
+const VN_PROVINCES_2025 = [
+    { code: '01', name: "TP. Hà Nội", deg: 105, min: 0, ktt: 105.0, merged: "Hà Nội" },
+    { code: '04', name: "Cao Bằng", deg: 105, min: 45, ktt: 105.75, merged: "Cao Bằng" },
+    { code: '08', name: "Tuyên Quang", deg: 106, min: 0, ktt: 106.0, merged: "Hà Giang, Tuyên Quang" },
+    { code: '11', name: "Điện Biên", deg: 103, min: 0, ktt: 103.0, merged: "Điện Biên" },
+    { code: '12', name: "Lai Châu", deg: 103, min: 0, ktt: 103.0, merged: "Lai Châu", verify: true },
+    { code: '14', name: "Sơn La", deg: 104, min: 0, ktt: 104.0, merged: "Sơn La" },
+    { code: '15', name: "Lào Cai", deg: 104, min: 45, ktt: 104.75, merged: "Yên Bái, Lào Cai" },
+    { code: '19', name: "Thái Nguyên", deg: 106, min: 30, ktt: 106.5, merged: "Bắc Kạn, Thái Nguyên" },
+    { code: '20', name: "Lạng Sơn", deg: 107, min: 15, ktt: 107.25, merged: "Lạng Sơn" },
+    { code: '22', name: "Quảng Ninh", deg: 107, min: 45, ktt: 107.75, merged: "Quảng Ninh" },
+    { code: '24', name: "Bắc Ninh", deg: 107, min: 0, ktt: 107.0, merged: "Bắc Giang, Bắc Ninh" },
+    { code: '25', name: "Phú Thọ", deg: 104, min: 45, ktt: 104.75, merged: "Vĩnh Phúc, Hòa Bình, Phú Thọ", verify: true },
+    { code: '31', name: "TP. Hải Phòng", deg: 105, min: 45, ktt: 105.75, merged: "Hải Dương, Hải Phòng" },
+    { code: '33', name: "Hưng Yên", deg: 105, min: 30, ktt: 105.5, merged: "Thái Bình, Hưng Yên" },
+    { code: '37', name: "Ninh Bình", deg: 105, min: 0, ktt: 105.0, merged: "Hà Nam, Nam Định, Ninh Bình", verify: true },
+    { code: '38', name: "Thanh Hóa", deg: 105, min: 0, ktt: 105.0, merged: "Thanh Hóa" },
+    { code: '40', name: "Nghệ An", deg: 104, min: 45, ktt: 104.75, merged: "Nghệ An" },
+    { code: '42', name: "Hà Tĩnh", deg: 105, min: 30, ktt: 105.5, merged: "Hà Tĩnh" },
+    { code: '44', name: "Quảng Trị", deg: 106, min: 0, ktt: 106.0, merged: "Quảng Bình, Quảng Trị" },
+    { code: '46', name: "TP. Huế", deg: 107, min: 0, ktt: 107.0, merged: "Thừa Thiên Huế" },
+    { code: '48', name: "TP. Đà Nẵng", deg: 107, min: 45, ktt: 107.75, merged: "Quảng Nam, Đà Nẵng" },
+    { code: '51', name: "Quảng Ngãi", deg: 108, min: 0, ktt: 108.0, merged: "Kon Tum, Quảng Ngãi" },
+    { code: '52', name: "Gia Lai", deg: 108, min: 15, ktt: 108.25, merged: "Bình Định, Gia Lai" },
+    { code: '56', name: "Khánh Hòa", deg: 108, min: 15, ktt: 108.25, merged: "Ninh Thuận, Khánh Hòa" },
+    { code: '66', name: "Đắk Lắk", deg: 108, min: 30, ktt: 108.5, merged: "Phú Yên, Đắk Lắk" },
+    { code: '68', name: "Lâm Đồng", deg: 107, min: 45, ktt: 107.75, merged: "Đắk Nông, Bình Thuận, Lâm Đồng" },
+    { code: '75', name: "Đồng Nai", deg: 107, min: 45, ktt: 107.75, merged: "Bình Phước, Đồng Nai" },
+    { code: '79', name: "TP. Hồ Chí Minh", deg: 105, min: 45, ktt: 105.75, merged: "Bình Dương, Bà Rịa – Vũng Tàu, TP. Hồ Chí Minh" },
+    { code: '80', name: "Tây Ninh", deg: 105, min: 45, ktt: 105.75, merged: "Long An, Tây Ninh" },
+    { code: '82', name: "Đồng Tháp", deg: 105, min: 0, ktt: 105.0, merged: "Tiền Giang, Đồng Tháp" },
+    { code: '86', name: "Vĩnh Long", deg: 105, min: 30, ktt: 105.5, merged: "Bến Tre, Trà Vinh, Vĩnh Long" },
+    { code: '91', name: "An Giang", deg: 104, min: 45, ktt: 104.75, merged: "Kiên Giang, An Giang" },
+    { code: '92', name: "TP. Cần Thơ", deg: 105, min: 0, ktt: 105.0, merged: "Sóc Trăng, Hậu Giang, Cần Thơ" },
+    { code: '96', name: "Cà Mau", deg: 104, min: 30, ktt: 104.5, merged: "Bạc Liêu, Cà Mau" }
+].map(p => Object.assign(p, { era: '2025' }));
+
+// Danh mục cũ có 63 phần tử; 34 tỉnh mới nối vào SAU để chỉ số đã lưu (AppState.provinceIndex) không đổi.
+const VN_PROVINCES_OLD_COUNT = VN_PROVINCES.length;
+VN_PROVINCES.push(...VN_PROVINCES_2025);
+
 /**
  * Định dạng tọa độ Lat / Long theo 3 kiểu hiển thị
  * @param {number} val 
@@ -724,11 +769,11 @@ function checkPolygonSelfIntersection(vertices) {
 }
 
 // Danh sách các mốc Kinh tuyến trục phổ biến nhất tại Việt Nam kèm quy đổi độ thập phân
-// Mốc KTT nhanh: sinh tự động từ bảng VN_PROVINCES để tên tỉnh luôn khớp đúng KTT
+// Mốc KTT nhanh: sinh tự động từ bảng 34 tỉnh hiện hành (VN_PROVINCES_2025) để tên tỉnh luôn khớp đúng KTT
 // (bản viết tay trước đây gắn nhầm tỉnh cho 7/9 mốc, vd. Đồng Nai vào 106°00').
 const COMMON_KTT_PRESETS = (() => {
     const groups = new Map();
-    VN_PROVINCES.forEach(p => {
+    VN_PROVINCES_2025.forEach(p => {
         if (!groups.has(p.ktt)) groups.set(p.ktt, { deg: p.deg, min: p.min, names: [] });
         groups.get(p.ktt).names.push(p.name.replace(/^TP\.\s*/, '').replace('Hồ Chí Minh', 'TP.HCM'));
     });
@@ -834,6 +879,8 @@ if (typeof module !== 'undefined' && module.exports) {
         CoordLatLong,
         ProjTransverseMercator,
         VN_PROVINCES,
+        VN_PROVINCES_2025,
+        VN_PROVINCES_OLD_COUNT,
         COMMON_KTT_PRESETS,
         parseKttString,
         formatLatLong,

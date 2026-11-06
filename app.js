@@ -1613,6 +1613,23 @@ function isTransformSideBySide() {
     return !!(window.matchMedia && window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches);
 }
 
+// Danh sách tỉnh cho mọi ô chọn: nhóm 34 tỉnh hiện hành (từ 01/07/2025) lên trước, 63 tỉnh cũ phía sau.
+// value = chỉ số trong VN_PROVINCES (63 cũ ở 0..62, 34 mới nối sau) nên cấu hình đã lưu vẫn đúng.
+function provinceOptionsHtml(selectedIdx, labelFn) {
+    if (typeof VN_PROVINCES === 'undefined') return '';
+    const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const label = labelFn || ((p) => `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')${p.verify ? ' ⚠ cần đối chiếu' : ''}`);
+    const opt = (p, i) => `<option value="${i}"${i === selectedIdx ? ' selected' : ''}${p.merged && p.merged !== p.name ? ` title="Sáp nhập từ: ${esc(p.merged)}"` : ''}>${esc(label(p, i))}</option>`;
+    const oldCount = (typeof VN_PROVINCES_OLD_COUNT !== 'undefined') ? VN_PROVINCES_OLD_COUNT : VN_PROVINCES.length;
+    const fresh = VN_PROVINCES.map((p, i) => [p, i]).filter(([, i]) => i >= oldCount)
+        .sort((a, b) => a[0].name.replace(/^TP\.\s*/, '').localeCompare(b[0].name.replace(/^TP\.\s*/, ''), 'vi'));
+    const old = VN_PROVINCES.map((p, i) => [p, i]).filter(([, i]) => i < oldCount);
+    let html = '';
+    if (fresh.length) html += `<optgroup label="34 tỉnh, thành phố (từ 01/07/2025)">${fresh.map(([p, i]) => opt(p, i)).join('')}</optgroup>`;
+    html += `<optgroup label="63 tỉnh cũ (số liệu trước 01/07/2025)">${old.map(([p, i]) => opt(p, i)).join('')}</optgroup>`;
+    return html;
+}
+
 // ================= 3.1. PHÂN HỆ DASHBOARD HIỆN ĐẠI (UI/UX PRO MAX) =================
 const appDashboard = {
     allFeatures: [
@@ -2505,14 +2522,7 @@ const appTransform = {
         // Nạp 63 tỉnh thành vào dropdown màn hình 1
         const sel = document.getElementById('tfSelectProvince');
         if (sel) {
-            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>';
-            VN_PROVINCES.forEach((p, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2,'0')}')`;
-                if (idx === AppState.provinceIndex) opt.selected = true;
-                sel.appendChild(opt);
-            });
+            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>' + provinceOptionsHtml(AppState.provinceIndex);
             sel.value = String(AppState.provinceIndex);
         }
         if (!this._resizeAttached) {
@@ -4895,14 +4905,7 @@ const appTransformMap = {
     populateSheetProvinces() {
         const sel = document.getElementById('sheetTfSelectProvince');
         if (!sel || typeof VN_PROVINCES === 'undefined') return;
-        sel.innerHTML = '';
-        VN_PROVINCES.forEach((p, idx) => {
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')`;
-            if (p.name === AppState.provinceName || (p.deg === AppState.kttDeg && p.min === AppState.kttMin)) opt.selected = true;
-            sel.appendChild(opt);
-        });
+        sel.innerHTML = provinceOptionsHtml(AppState.provinceIndex);
     },
 
     populateSheetProjects() {
@@ -12232,12 +12235,7 @@ function doGet(e) {
     initManualPasteControls() {
         const provSel = document.getElementById('selManualKttProvince');
         if (provSel && typeof VN_PROVINCES !== 'undefined' && provSel.options.length <= 1) {
-            VN_PROVINCES.forEach((p, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')`;
-                provSel.appendChild(opt);
-            });
+            provSel.insertAdjacentHTML('beforeend', provinceOptionsHtml(-1));
         }
         const muiSel = document.getElementById('selManualMui');
         if (muiSel && AppState.muiVal) {
@@ -12748,14 +12746,7 @@ const appModal = {
         // 1. Khởi tạo dữ liệu Tab KTT
         const sel = document.getElementById('modalProvinceSelect');
         if (sel) {
-            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>';
-            VN_PROVINCES.forEach((p, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2,'0')}')`;
-                if (idx === AppState.provinceIndex) opt.selected = true;
-                sel.appendChild(opt);
-            });
+            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>' + provinceOptionsHtml(AppState.provinceIndex);
         }
 
         const degInput = document.getElementById('txtModalDeg');
@@ -13178,6 +13169,32 @@ const appModal = {
         if (btn6) btn6.classList.toggle('active', mui === 6);
         AppState.muiVal = mui;
         AppState.scaleFactor = (mui === 3) ? 0.9999 : 0.9996;
+    },
+
+    // Tỉnh theo vị trí GPS (ranh giới 34 tỉnh sau sáp nhập) → chọn KTT tương ứng trong ô chọn tỉnh.
+    async suggestKttFromGps() {
+        const g = AppState.lastGps;
+        if (!g || !Number.isFinite(g.lat)) {
+            showToast('⚠️ Chưa có vị trí GPS. Bật GPS (nút vệ tinh trên thanh tiêu đề) rồi thử lại.', true);
+            return;
+        }
+        try {
+            await VnAdmin2025.load();
+        } catch (e) {
+            showToast('⚠️ Chưa tải được dữ liệu địa giới (cần mạng ở lần dùng đầu tiên).', true);
+            return;
+        }
+        const hit = VnAdmin2025.lookup(g.lat, g.lng);
+        const idx = hit ? VN_PROVINCES.findIndex(p => p.era === '2025' && p.code === hit.provinceCode) : -1;
+        if (idx < 0) {
+            showToast('⚠️ Vị trí GPS không nằm trong ranh giới tỉnh nào của Việt Nam.', true);
+            return;
+        }
+        const sel = document.getElementById('modalProvinceSelect');
+        if (sel) sel.value = String(idx);
+        appModal.onProvinceChange();
+        const p = VN_PROVINCES[idx];
+        showToast(`📍 ${VnAdmin2025.formatAddress(hit)} → KTT ${p.deg}°${String(p.min).padStart(2, '0')}'${p.verify ? ' (⚠ cần đối chiếu Thông tư 24/2025)' : ''}. Bấm Lưu để áp dụng.`);
     },
 
     onProvinceChange() {
@@ -17802,9 +17819,9 @@ const appGis = {
         const cur = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`;
         const opts = [`<option value="current">Giữ KTT hiện tại — ${escapeHtml(AppState.provinceName || 'Tùy chỉnh')} (${cur})</option>`];
         if (typeof VN_PROVINCES !== 'undefined') {
-            VN_PROVINCES.forEach((p, i) => {
-                opts.push(`<option value="${i}">${escapeHtml(p.name)} (${p.deg}°${String(p.min).padStart(2, '0')}' = ${p.ktt})</option>`);
-            });
+            const label = (p) => `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}' = ${p.ktt})${p.verify ? ' ⚠' : ''}`;
+            if (typeof provinceOptionsHtml === 'function') opts.push(provinceOptionsHtml(-1, label));
+            else VN_PROVINCES.forEach((p, i) => opts.push(`<option value="${i}">${escapeHtml(label(p))}</option>`));
         }
         sel.innerHTML = opts.join('');
     },

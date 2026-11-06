@@ -108,9 +108,20 @@
     }
 
     function fillSelect(sel, value) {
-        const provinces = typeof VN_PROVINCES !== 'undefined' ? VN_PROVINCES : [];
+        const all = typeof VN_PROVINCES !== 'undefined' ? VN_PROVINCES : [];
+        const oldCount = typeof VN_PROVINCES_OLD_COUNT !== 'undefined' ? VN_PROVINCES_OLD_COUNT : all.length;
+        const groups = [
+            ['Theo 34 tỉnh, thành phố (từ 01/07/2025)', all.slice(oldCount)],
+            ['Theo 63 tỉnh cũ (số liệu trước 01/07/2025)', all.slice(0, oldCount)]
+        ];
         sel.innerHTML = '';
-        kttOptions(provinces).forEach(o => sel.add(new Option(o.label, String(o.ktt))));
+        groups.forEach(([label, list]) => {
+            if (!list.length) return;
+            const g = document.createElement('optgroup');
+            g.label = label;
+            kttOptions(list).forEach(o => g.appendChild(new Option(o.label, String(o.ktt))));
+            sel.appendChild(g);
+        });
         sel.add(new Option('Nhập KTT khác…', 'custom'));
         const match = [...sel.options].find(o => Math.abs(Number(o.value) - value) < 1e-6);
         sel.value = match ? match.value : 'custom';

@@ -44,3 +44,12 @@ test('dấu camera: dòng ĐỊA CHỈ dùng chung cho ảnh, video và khung xe
     assert.match(sw, /const DATA_CACHE = 'vn2000-data-admin-2025-07-01';/);
     assert.ok(sw.includes('key !== CACHE_NAME && key !== DATA_CACHE'), 'Nâng phiên bản không xóa dữ liệu địa giới');
 });
+
+test('KTT theo vị trí GPS: mã tỉnh trong dữ liệu ranh giới khớp đủ 34 tỉnh của bảng KTT', () => {
+    const g = require('../geodesy.js');
+    const codes = new Set(g.VN_PROVINCES_2025.map(p => p.code));
+    assert.deepEqual([...new Set(data.provinces.map(p => p[0]))].sort(), [...codes].sort());
+    const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+    assert.ok(app.includes("VN_PROVINCES.findIndex(p => p.era === '2025' && p.code === hit.provinceCode)"));
+    assert.ok(fs.readFileSync(path.join(root, 'index.html'), 'utf8').includes('id="btnKttFromGps"'));
+});

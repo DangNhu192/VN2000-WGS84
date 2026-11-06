@@ -82,9 +82,9 @@ test('giao diện: tab nằm trong màn Chuyển đổi, không gọi bản đ�
     assert.ok(!/openProjectMap|mapProjectBar|appCadTool/.test(src), 'Không gọi chéo phân hệ khác');
 });
 
-test('mốc KTT nhanh khớp đúng bảng 63 tỉnh (không gắn nhầm tỉnh)', () => {
+test('mốc KTT nhanh khớp đúng bảng 34 tỉnh hiện hành (không gắn nhầm tỉnh)', () => {
     const norm = n => n.replace(/^TP\.\s*/, '').replace('Hồ Chí Minh', 'TP.HCM');
-    for (const p of g.VN_PROVINCES) {
+    for (const p of g.VN_PROVINCES_2025) {
         const preset = g.COMMON_KTT_PRESETS.find(k => k.decimal === p.ktt);
         assert.ok(preset && preset.provinces.split(', ').includes(norm(p.name)), `${p.name} phải nằm ở mốc ${p.ktt}`);
     }
@@ -98,4 +98,21 @@ test('menu: mục 1.3 Đổi KTT / Múi mở đúng tab trong màn Chuyển đ�
     const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
     assert.match(html, /id="drawerItem_rezone" onclick="appNav\.navigateTo\('rezone'\)"/);
     assert.ok(app.includes("appNav.openTransformCoordScreen('rezone');"));
+});
+
+test('34 tỉnh từ 01/07/2025: nối sau 63 tỉnh cũ, đủ mã, tỉnh không sáp nhập giữ KTT cũ', () => {
+    assert.equal(g.VN_PROVINCES_2025.length, 34);
+    assert.equal(g.VN_PROVINCES_OLD_COUNT, 63);
+    assert.equal(g.VN_PROVINCES.length, 97);
+    assert.equal(g.VN_PROVINCES[0].name, 'TP. Hồ Chí Minh', 'Chỉ số cũ đã lưu không đổi');
+    assert.equal(new Set(g.VN_PROVINCES_2025.map(p => p.code)).size, 34);
+    const old = Object.fromEntries(g.VN_PROVINCES.slice(0, 63).map(p => [p.name.replace(/^TP\.\s*/, '').normalize('NFC'), p.ktt]));
+    // 11 tỉnh, thành không sáp nhập.
+    for (const n of ['Hà Nội', 'Huế', 'Lai Châu', 'Điện Biên', 'Sơn La', 'Lạng Sơn', 'Quảng Ninh', 'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Cao Bằng']) {
+        const now = g.VN_PROVINCES_2025.find(p => p.name.replace(/^TP\.\s*/, '') === n);
+        const before = old[n] ?? old[n.replace('Thanh Hóa', 'Thanh Hoá')];
+        assert.ok(now, n);
+        assert.equal(now.ktt, before, `${n} không sáp nhập nên giữ KTT cũ`);
+    }
+    assert.deepEqual(g.VN_PROVINCES_2025.filter(p => p.verify).map(p => p.name).sort(), ['Lai Châu', 'Ninh Bình', 'Phú Thọ']);
 });

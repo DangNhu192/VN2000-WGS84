@@ -1368,7 +1368,8 @@
                   <div class="card-header">
                     <span class="card-title">🔁 Đổi VN-2000 sang KTT / múi khác</span>
                   </div>
-                  <p class="rz-hint">Cùng hệ VN-2000, không qua WGS-84 (không áp 7 tham số). Dùng khi đổi số liệu giữa các tỉnh, hoặc giữa múi 3° và 6°.</p>
+                  <p class="rz-hint">Cùng hệ VN-2000, không qua WGS-84 (không áp 7 tham số). Dùng khi đổi số liệu giữa các tỉnh, hoặc giữa múi 3° và 6°.
+                    <br><b>Số liệu tỉnh cũ → tỉnh mới (sau 01/07/2025):</b> chọn <i>Từ</i> trong nhóm "63 tỉnh cũ", chọn <i>Sang</i> trong nhóm "34 tỉnh, thành phố".</p>
                   <div class="rz-sides">
                     <fieldset class="rz-side">
                       <legend>Từ (nguồn)</legend>
@@ -4730,8 +4731,12 @@
           <div class="form-group" style="margin-bottom: 10px;">
             <label class="form-label" style="margin-bottom: 4px;" data-i18n="settings.ktt.province_label">Chọn tỉnh thành:</label>
             <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()">
-              <!-- 63 tỉnh -->
+              <!-- 34 tỉnh mới + 63 tỉnh cũ -->
             </select>
+            <button type="button" id="btnKttFromGps" class="btn-sm" style="margin-top: 6px; width: 100%; min-height: 40px;"
+              onclick="appModal.suggestKttFromGps()" title="Xác định tỉnh (34 tỉnh từ 01/07/2025) theo vị trí GPS hiện tại và chọn KTT tương ứng">
+              📍 Chọn theo vị trí GPS hiện tại
+            </button>
           </div>
 
           <!-- BẢNG LIVE PREVIEW KTT QUY ĐỔI HIỆN TẠI -->
