@@ -39,3 +39,16 @@ test('màn ngang thấp: thanh lệnh thu về dòng tiêu đề, đầu thanh c
     assert.match(polish, /#mapCadToolbarHeader \{ flex-wrap: nowrap !important;/);
     assert.match(polish, /#mapCadToolbarHeader #cadTabGroup \.cad-tab-text \{ display: none !important; \}/);
 });
+
+test('điện thoại dọc: thanh công cụ CAD là bottom sheet, thanh lệnh thu gọn ở trên (trừ khi người dùng đã kéo)', () => {
+    assert.ok(appJs.includes("window.matchMedia('(orientation: portrait) and (max-width: 600px)').matches"));
+    assert.match(polish, /#map-view-container\.cad-active-map #mapCadToolbar \{\s*top: auto !important;\s*bottom: calc\(var\(--sat-safe-bottom, 0px\) \+ 58px\) !important;/);
+    assert.ok(polish.includes('#map-view-container.cad-active-map #cadFloatingCmdBar:not(.is-dragged)'));
+});
+
+test('cách ly giao diện: thanh Bản đồ dự án không bị CSS ép hiện trên điện thoại (lọt vào MiniCAD)', () => {
+    const style = fs.readFileSync(path.join(__dirname, '..', 'style.css'), 'utf8');
+    const i = style.indexOf('/* 15.3 BẢN ĐỒ DỰ ÁN: macOS FLOATING TOOL CAPSULE (<= 520px) */');
+    const block = style.slice(i, style.indexOf('}', style.indexOf('.map-project-bar {', i)));
+    assert.ok(i > 0 && !/display:\s*flex\s*!important/.test(block));
+});

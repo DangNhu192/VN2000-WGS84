@@ -11316,7 +11316,7 @@
 /* 15.3 BẢN ĐỒ DỰ ÁN: macOS FLOATING TOOL CAPSULE (<= 520px) */
 @media (max-width: 520px) {
   .map-project-bar {
-    display: flex !important;
+    /* Không ép display: JS (resetMapChrome / openProjectMap) bật-tắt thanh theo phân hệ (AGENTS.md §2). */
     align-items: center !important;
     gap: 3px !important;
     padding: 3px 5px !important;

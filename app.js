@@ -30183,23 +30183,11 @@ const appCadTool = {
     },
 
     updateCmdRibbonActiveStates() {
-        const rPoly = document.getElementById('btnCadRibbonPoly');
-        const rLine = document.getElementById('btnCadRibbonLine');
-        const rRect = document.getElementById('btnCadRibbonRect');
-        const rCircle = document.getElementById('btnCadRibbonCircle');
-        const rSelect = document.getElementById('btnCadRibbonSelect');
-        const rArrow = document.getElementById('btnCadRibbonArrow');
         const rOsnap = document.getElementById('btnCadRibbonOsnap');
         const rOrtho = document.getElementById('btnCadRibbonOrtho');
         const rSnapLine = document.getElementById('btnCadRibbonSnapLine');
         const rDyn = document.getElementById('btnCadRibbonDyn');
 
-        if (rPoly) rPoly.classList.toggle('active', this.mode === 'polygon');
-        if (rLine) rLine.classList.toggle('active', this.mode === 'polyline');
-        if (rRect) rRect.classList.toggle('active', this.markupMode === 'rect');
-        if (rCircle) rCircle.classList.toggle('active', this.markupMode === 'circle');
-        if (rSelect) rSelect.classList.toggle('active', this.mode === 'select');
-        if (rArrow) rArrow.classList.toggle('active', this.markupMode === 'arrow');
         if (rOsnap) rOsnap.classList.toggle('active', !!this.snapEnabled);
         if (rOrtho) rOrtho.classList.toggle('active', !!this.orthoMode);
         if (rSnapLine) rSnapLine.classList.toggle('active', !!this.snapLineEnabled);
@@ -30428,10 +30416,12 @@ const appCadTool = {
         }
     },
 
-    // Màn ngang thấp (điện thoại xoay ngang): không đủ chiều cao cho cả thanh công cụ lẫn thanh lệnh mở rộng.
+    // Điện thoại (xoay ngang thấp, hoặc màn dọc hẹp): không đủ chỗ cho cả thanh công cụ lẫn thanh lệnh mở rộng,
+    // nên thanh lệnh mở ở dạng thu gọn (bấm + để mở).
     isCompactCadViewport() {
         return typeof window !== 'undefined' && !!window.matchMedia
-            && window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches;
+            && (window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches
+                || window.matchMedia('(orientation: portrait) and (max-width: 600px)').matches);
     },
 
     toggleCmdBarVisibility() {

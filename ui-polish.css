@@ -2739,3 +2739,32 @@ body[data-theme="light"] .home-gps-cta b { color: #047857; }
 @media (max-width: 600px) { .dashboard-quick-chips .quick-chip-pill:first-child { display: none !important; } }
 #fwToolbar { justify-content: flex-end !important; }
 #accordionToolsCount { white-space: nowrap !important; flex-shrink: 0 !important; }
+
+/* MiniCAD trên điện thoại dọc: thanh công cụ thành "bottom sheet" ngay trên thanh trạng thái (trong tầm ngón cái),
+   thanh lệnh thu gọn nằm trên cùng → bản vẽ có một vùng liền mạch ở giữa. Thanh lệnh đã kéo tay (.is-dragged) giữ vị trí người dùng chọn. */
+@media (orientation: portrait) and (max-width: 600px) {
+  #map-view-container.cad-active-map #mapCadToolbar {
+    top: auto !important;
+    bottom: calc(var(--sat-safe-bottom, 0px) + 58px) !important;
+    max-height: 46% !important;
+    overflow-y: auto !important;
+    border-radius: 18px 18px 12px 12px !important;
+    padding-top: 14px !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45) !important;
+  }
+  #map-view-container.cad-active-map #mapCadToolbar::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    margin-left: -20px;
+    border-radius: 2px;
+    background: rgba(148, 163, 184, 0.55);
+  }
+  #map-view-container.cad-active-map #cadFloatingCmdBar:not(.is-dragged) {
+    top: 10px !important;
+    bottom: auto !important;
+  }
+}
