@@ -1,6 +1,17 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-06: WP-K — ĐỔI KTT/MÚI, CHUẨN HÓA NHẬP/XUẤT, MINICAD, MENU
+## Phiên hiện tại — 2026-11-07: WP-L — LÀM TOÀN BỘ ĐỀ XUẤT + ĐỊA CHỈ SAU SÁP NHẬP TRÊN CAMERA
+- **Yêu cầu**: `Thực hiện tất cả các đề xuất trên, bổ sung thêm là hiển thị địa chỉ sau sáp nhập khi chụp ảnh/quay film đóng dấu camera`.
+- **Chi tiết**: `progress.md` mục WP-L; trạng thái đề xuất ở `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md` (tất cả ✅).
+- **Điểm cần nhớ**:
+  - Dữ liệu địa giới: chạy lại `python3 -I tools/build_vn_admin_2025.py <json/geojson> data/vn_admin_2025.js` khi có bản cập nhật; đổi tên `DATA_CACHE` trong sw.js để máy người dùng tải bản mới.
+  - Biến `const` (VN_PROVINCES, AppState, appData) KHÔNG nằm trên `window` — module ngoài app.js phải gọi trực tiếp theo tên.
+  - 34 tỉnh nối sau 63 tỉnh cũ trong `VN_PROVINCES`; dùng `VN_PROVINCES_OLD_COUNT` / `p.era === '2025'`.
+  - Ô chọn tỉnh mới: luôn dùng `provinceOptionsHtml(selectedIdx, labelFn)`.
+  - CSS `!important` trong style.css/ui-polish.css có thể vô hiệu hóa `el.style.display` của JS (đã gặp ở nút Quay lại và thanh Bản đồ dự án) — kiểm bằng computed style khi sửa hiển thị.
+- **Cần chủ dự án xác minh**: KTT Lai Châu / Phú Thọ / Ninh Bình (34 tỉnh) và Bình Thuận (63 tỉnh cũ) với văn bản gốc; tên "Thành phố" của Quảng Ninh / Bắc Ninh / Đồng Nai lấy nguyên từ dữ liệu sapnhap.bando.
+
+## Phiên trước — 2026-11-06: WP-K — ĐỔI KTT/MÚI, CHUẨN HÓA NHẬP/XUẤT, MINICAD, MENU
 - **Yêu cầu**: tối ưu & đề xuất bố cục/phân nhóm/menu; thêm đổi VN-2000 giữa KTT/múi; kiểm tra MiniCAD; kiểm tra nhập/xuất dữ liệu.
 - **Chi tiết**: `progress.md` mục WP-K; đề xuất ở `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md`.
 - **Điểm cần nhớ**:

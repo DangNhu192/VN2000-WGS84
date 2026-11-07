@@ -1,6 +1,6 @@
 # Đề xuất chỉnh trang giao diện, phân nhóm chức năng và bố cục — VN2000 PRO
 
-Cập nhật: 2026-11-06. Các mục **✅ Đã làm** nằm trong nhánh `claude/optimize-ui-user-experience-3bwdmr`; mục **⏳ Đề xuất** cần chủ dự án quyết định trước khi làm.
+Cập nhật: 2026-11-07 (WP-L: đã làm toàn bộ mục ⏳ của bản 06/11). Các mục **✅ Đã làm** nằm trong nhánh `claude/optimize-ui-user-experience-3bwdmr`; mục **⏳ Đề xuất** cần chủ dự án quyết định trước khi làm.
 
 ## 1. Phân nhóm chức năng (menu ☰)
 
@@ -17,31 +17,32 @@ Nguyên tắc: nhóm theo **việc người dùng đang làm** (đổi số li�
 ## 2. Trang chủ
 
 - ✅ Thẻ "Bắt đầu trong 3 bước" cho người mới, dòng giải thích Đơn giản/Nâng cao, nút ? mở hướng dẫn Trang chủ.
-- ⏳ **Bỏ công tắc Đơn giản/Nâng cao**: một trang chủ duy nhất = khung chuyển đổi nhanh ở trên, 4 ô chức năng ở giữa, "Công cụ khác" ở dưới. Hai chế độ hiện làm người dùng không biết các chức năng khác tồn tại.
-- ⏳ Khối GPS lớn chỉ hiện khi GPS đang bật; khi tắt thay bằng một nút "Bật GPS".
-- ⏳ Thống nhất một tên cho một màn hình: hiện "Bản đồ trắc địa", "Bản đồ dự án & Mốc", "Bản đồ khảo sát & vệ tinh" cùng chỉ một màn.
+- ✅ **Bỏ công tắc Đơn giản/Nâng cao**: một trang chủ duy nhất = khung chuyển đổi nhanh ở trên, 4 ô chức năng ở giữa, "Công cụ khác" ở dưới.
+- ✅ Khối GPS lớn chỉ hiện khi GPS đang bật; khi tắt thay bằng một nút "Bật GPS".
+- ✅ Một tên cho một màn hình: "Bản đồ dự án & Mốc".
 
 ## 3. Thanh tiêu đề & điều hướng
 
 - ✅ Chừa vùng tai thỏ / Dynamic Island; nút Quay lại chỉ còn ◀ trên máy hẹp; ẩn ở Trang chủ.
-- ⏳ Đưa Tỉnh/KTT thành chip luôn hiện ngay dưới tiêu đề ở **mọi** màn hình (KTT sai là lỗi số liệu nghiêm trọng nhất).
-- ⏳ Nút GPS trên tiêu đề cần nhãn ("GPS" / "Tắt") thay vì chỉ một chấm xám.
+- ✅ Chip KTT/múi trên thanh tiêu đề ở **mọi** màn hình điện thoại (chạm để đổi).
+- ✅ Nút GPS có nhãn "GPS" đổi màu theo trạng thái.
 
 ## 4. MiniCAD
 
 - ✅ Đỉnh giữ nguyên X/Y khi lưu khối (trước đây trôi tới ~5 mm).
 - ✅ Màn ngang: đầu thanh công cụ một hàng chỉ biểu tượng, thanh lệnh mở ở dạng thu gọn → không còn đè nhau.
-- ⏳ Gộp hai nơi bấm lệnh (thanh tab trên + lưới lệnh trong CLI) thành **một** bảng lệnh theo nhóm Vẽ / Sửa / Nhãn / Trợ vẽ / Dữ liệu; CLI chỉ còn ô gõ lệnh cho người dùng quen AutoCAD.
-- ⏳ Trên điện thoại dọc: thanh công cụ dạng "bottom sheet" kéo lên/xuống thay vì khung nổi cố định ở trên, để bản vẽ chiếm phần lớn màn hình.
+- ✅ Một nơi bấm lệnh (thanh công cụ); thanh lệnh CLI chỉ còn ô gõ lệnh + 5 nút trợ vẽ.
+- ✅ Điện thoại dọc: thanh công cụ là bottom sheet ở đáy, thanh lệnh thu gọn ở trên; vùng vẽ ~250 → ~370 px.
 
 ## 5. Nhập / xuất dữ liệu
 
 - ✅ Một bộ chuẩn hóa chung cho mọi định dạng xuất (CSV, Excel, KML, GeoJSON, GPX, WKT, DXF, TXT).
 - ✅ Đọc lại được chính file ứng dụng xuất (CSV/TXT/Excel có tiêu đề); nhận mọi kiểu xuống dòng.
-- ⏳ Màn "Nhập dữ liệu" thống nhất: chọn file → **xem trước 5 dòng + chọn cột X/Y/Tên/KTT** → nạp. Hiện mỗi phân hệ có nút nhập riêng với cách đoán cột khác nhau.
-- ⏳ Cho chọn KTT/múi nguồn ngay khi nhập file (file của tỉnh khác) — dùng lại engine "Đổi KTT / Múi".
+- ✅ Nhập file có xem trước: chọn file → xem vài dòng đầu → chọn cột → chọn KTT/múi của file → nạp.
+- ✅ Chọn KTT/múi của file khi nhập và đổi sang KTT hiện hành (engine "Đổi KTT / Múi").
 
 ## 6. Cần xác minh số liệu
 
-- ⚠️ **KTT tỉnh Bình Thuận** trong bảng 63 tỉnh là 107°45'. Cần đối chiếu với Phụ lục Thông tư 973/2001/TT-TCĐC (nhiều tài liệu ghi 108°30'). Chưa sửa vì không truy cập được văn bản gốc.
-- ⏳ Bổ sung bảng KTT cho **34 tỉnh sau sáp nhập 2025** (dữ liệu ranh giới đã có trong `vietnam_34_tinh.js`), kèm gợi ý dùng "Đổi KTT / Múi" khi chuyển số liệu tỉnh cũ sang tỉnh mới.
+- ⚠️ **KTT tỉnh Bình Thuận (cũ)** trong bảng 63 tỉnh vẫn là 107°45' — chưa đối chiếu được Thông tư 973/2001. Từ 01/07/2025 Bình Thuận thuộc Lâm Đồng (107°45').
+- ✅ Bảng KTT **34 tỉnh từ 01/07/2025** (Thông tư 24/2025/TT-BNNMT) + nút chọn KTT theo vị trí GPS. ⚠️ Lai Châu, Phú Thọ, Ninh Bình: các bảng công bố chưa thống nhất — cần đối chiếu văn bản gốc.
+- ✅ Dấu ảnh/video camera ghi **địa chỉ xã/phường, tỉnh sau sáp nhập** (tra ngoại tuyến 3.321 xã/phường).
