@@ -11926,6 +11926,7 @@ function doGet(e) {
                         }
                     }
 
+                    if (appData.openImportPreviewFromWorkbook(wb, file.name)) return;
                     const points = appData.extractPointsFromWorkbook(wb);
                     if (points && points.length > 0) {
                         appData.saveImportedPoints(points, file.name);
@@ -11964,17 +11965,37 @@ function doGet(e) {
                 if (text && text.includes('<table') && typeof XLSX !== 'undefined') {
                     try {
                         const wb = XLSX.read(text, { type: 'string' });
+                        if (appData.openImportPreviewFromWorkbook(wb, file.name)) return;
                         const points = appData.extractPointsFromWorkbook(wb);
                         if (points && points.length > 0) {
                             return appData.saveImportedPoints(points, file.name);
                         }
                     } catch(err) {}
                 }
+                // Bảng văn bản (CSV/TXT/DAT): xem trước, kiểm tra cột & KTT rồi mới nạp.
+                if (typeof ImportPreview !== 'undefined') {
+                    const rows = ImportPreview.textToRows(text);
+                    if (rows.length) return ImportPreview.open(rows, file.name);
+                }
                 appData.processImportedText(text, file.name);
             };
             reader.readAsText(file, "UTF-8");
         }
         event.target.value = "";
+    },
+
+    // Excel → xem trước: chọn trang tính đầu tiên có cột tọa độ nhận ra được (hoặc trang đầu).
+    openImportPreviewFromWorkbook(wb, fileName) {
+        if (typeof ImportPreview === 'undefined' || !wb || !wb.SheetNames || !wb.SheetNames.length) return false;
+        const sheets = wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true, blankrows: false })
+            .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== '')));
+        const pick = sheets.find(rows => {
+            const m = ImportPreview.guessMapping(rows);
+            return (m.cols.x !== undefined && m.cols.y !== undefined) || (m.cols.lat !== undefined && m.cols.lng !== undefined);
+        }) || sheets[0];
+        if (!pick || !pick.length) return false;
+        ImportPreview.open(pick, fileName);
+        return true;
     },
 
     // ================= NẠP TỆP GIS VÀO SỔ ĐO DỰ ÁN (GEOJSON / KML / GPX / WKT) =================

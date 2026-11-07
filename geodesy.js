@@ -524,6 +524,40 @@ function normalizeSurveyPoints(points, defaults) {
     return out;
 }
 
+/**
+ * Nhận diện cột theo tên tiêu đề (Tên/Name, X/Northing, Y/Easting, H, Vĩ độ, Kinh độ, KTT, Múi, Ghi chú, Thời gian).
+ * @param {string[]} cells ô của dòng tiêu đề
+ * @returns {Object} { name, x, y, h, lat, lng, ktt, mui, note, time } → chỉ số cột (chỉ có khóa nhận ra được)
+ */
+function mapHeaderColumns(cells) {
+    const strip = v => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/[_()\[\]#:.]/g, ' ').replace(/\s+/g, ' ').trim();
+    const rules = [
+        ['ktt', /kinh tuyen truc|^ktt\b|central meridian/],
+        ['mui', /^mui\b|mui chieu|^zone\b/],
+        ['time', /thoi gian|^time\b|^ngay\b|^date\b/],
+        ['note', /ghi chu|^note|mo ta|description|^desc/],
+        ['lat', /vi do|^lat|latitude/],
+        ['lng', /kinh do|^lon|^lng|longitude/],
+        ['h', /^h\b|cao do|elev|^z\b|^cao do h/],
+        ['x', /^x\b|toa do ngang x|northing|^n\b|x bac|^bac\b|x vn ?2000/],
+        ['y', /^y\b|toa do dung y|easting|^e\b|y dong|^dong\b|y vn ?2000/],
+        ['name', /^ten|^name|^point|^diem|^ma diem|^so hieu|^id\b|^stt\b/]
+    ];
+    const head = (cells || []).map(strip);
+    const col = {};
+    head.forEach((h, idx) => {
+        const hit = rules.find(([key, re]) => re.test(h) && !(key in col));
+        if (hit) col[hit[0]] = idx;
+    });
+    // "STT" chỉ là tên khi không có cột tên thật.
+    if (head[col.name] === 'stt') {
+        const realName = head.findIndex((h, idx) => idx !== col.name && /^ten|^name|^point|^ma diem|^so hieu/.test(h));
+        if (realName >= 0) col.name = realName;
+    }
+    return col;
+}
+
 /** Tách một dòng CSV có ngoặc kép ("a ""b""", c) theo dấu phân cách cho trước. */
 function splitDelimitedLine(line, delim) {
     const cells = [];
@@ -550,36 +584,12 @@ function splitDelimitedLine(line, delim) {
  */
 function parseHeaderedTable(text, defaults) {
     const lines = String(text || '').replace(/^﻿/, '').split(/\r\n|\r|\n/);
-    const strip = v => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/đ/g, 'd').replace(/[_()\[\]#:.]/g, ' ').replace(/\s+/g, ' ').trim();
-    const rules = [
-        ['ktt', /kinh tuyen truc|^ktt\b|central meridian/],
-        ['mui', /^mui\b|mui chieu|^zone\b/],
-        ['time', /thoi gian|^time\b|^ngay\b|^date\b/],
-        ['note', /ghi chu|^note|mo ta|description|^desc/],
-        ['lat', /vi do|^lat|latitude/],
-        ['lng', /kinh do|^lon|^lng|longitude/],
-        ['h', /^h\b|cao do|elev|^z\b|^cao do h/],
-        ['x', /^x\b|toa do ngang x|northing|^n\b|x bac|^bac\b|x vn ?2000/],
-        ['y', /^y\b|toa do dung y|easting|^e\b|y dong|^dong\b|y vn ?2000/],
-        ['name', /^ten|^name|^point|^diem|^ma diem|^so hieu|^id\b|^stt\b/]
-    ];
     for (let i = 0; i < Math.min(lines.length, 15); i++) {
         let raw = lines[i].trim();
         if (!raw) continue;
         raw = raw.replace(/^#\s*/, '');
         const delim = raw.includes('\t') ? '\t' : (raw.includes(';') ? ';' : ',');
-        const head = splitDelimitedLine(raw, delim).map(strip);
-        const col = {};
-        head.forEach((h, idx) => {
-            const hit = rules.find(([key, re]) => re.test(h) && !(key in col));
-            if (hit) col[hit[0]] = idx;
-        });
-        // "STT" chỉ là tên khi không có cột tên thật.
-        if (head[col.name] === 'stt') {
-            const realName = head.findIndex((h, idx) => idx !== col.name && /^ten|^name|^point|^ma diem|^so hieu/.test(h));
-            if (realName >= 0) col.name = realName;
-        }
+        const col = mapHeaderColumns(splitDelimitedLine(raw, delim));
         const hasXY = 'x' in col && 'y' in col, hasLL = 'lat' in col && 'lng' in col;
         if (!hasXY && !hasLL) continue;
         const rows = [];
@@ -890,6 +900,7 @@ if (typeof module !== 'undefined' && module.exports) {
         convertVn2kToVn2k,
         normalizeSurveyPoints,
         parseHeaderedTable,
+        mapHeaderColumns,
         splitDelimitedLine,
         escapeXml,
         csvCell,

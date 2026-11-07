@@ -33,9 +33,9 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.26">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.26">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.26">
+  <link rel="stylesheet" href="style.css?v=2.8.27">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.27">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.27">
 </head>
 
 <body>
@@ -6797,7 +6797,7 @@
           <span>📂 2. CHỌN FILE TỌA ĐỘ TỪ MÁY (.XLS, .XLSX, .CSV, .TXT, .DAT)</span>
         </div>
         <div style="font-size: 12px; color: #94a3b8; margin: 6px 0 10px 0; line-height: 1.4;">
-          Nhận dạng tự động cột Tên, X, Y (hoặc Lat, Lng). Tự tính toán chuyển đổi tọa độ còn thiếu theo KTT hiện tại.
+          Chọn file xong sẽ hiện bản xem trước để kiểm tra cột Tên, X, Y (hoặc vĩ độ, kinh độ), H và KTT của file trước khi nạp.
         </div>
 
         <input type="file" id="fileInputProject" accept=".xls,.xlsx,.csv,.txt,.dat,.xyz" style="display: none;"
@@ -6827,6 +6827,40 @@
             <input type="text" id="txtImportNewProjectName" class="app-input"
               placeholder="Tên file dự án mới (ví dụ: DoDac_KhuA.csv)" style="height: 36px; font-size: 12px;">
           </div>
+        </div>
+      </div>
+
+      <!-- Bước xem trước: kiểm tra cột và KTT của file trước khi nạp -->
+      <div id="importPreviewBox" class="imp-preview" hidden>
+        <div class="imp-preview-head">
+          <b>🔎 Xem trước & chọn cột</b>
+          <span id="impFileName" class="imp-file"></span>
+        </div>
+        <div id="impPreviewTable" class="imp-table-wrap"></div>
+        <div class="imp-row">
+          <label class="imp-map-item"><span>Loại tọa độ trong file</span>
+            <select id="impType" class="app-select">
+              <option value="vn2000">📐 VN-2000 (X, Y mét)</option>
+              <option value="wgs84">🌐 WGS-84 (vĩ độ, kinh độ)</option>
+            </select>
+          </label>
+        </div>
+        <div id="impMapping" class="imp-mapping"></div>
+        <div class="imp-row imp-ktt">
+          <label class="imp-map-item"><span>KTT của file</span><select id="impSrcKtt" class="app-select"></select></label>
+          <label class="imp-map-item"><span>Múi chiếu của file</span>
+            <select id="impSrcMui" class="app-select">
+              <option value="3">3° (k0 = 0.9999)</option>
+              <option value="6">6° (k0 = 0.9996)</option>
+            </select>
+          </label>
+        </div>
+        <label id="impConvertRow" class="imp-check"><input type="checkbox" id="impConvert" checked>
+          Đổi X/Y sang KTT/múi hiện hành của ứng dụng (khi file thuộc KTT khác, vd. số liệu tỉnh cũ)</label>
+        <p id="impSummary" class="imp-summary" role="status" aria-live="polite"></p>
+        <div class="imp-actions">
+          <button type="button" id="btnImpConfirm" class="btn-sm btn-blue">⬇ Nạp vào Sổ đo</button>
+          <button type="button" id="btnImpCancel" class="btn-sm">Hủy</button>
         </div>
       </div>
 
@@ -7613,10 +7647,11 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.26"></script>
-  <script src="field-workspace.js?v=2.8.26"></script>
-  <script src="vn2000-rezone.js?v=2.8.26"></script>
+  <script src="app.js?v=2.8.27"></script>
+  <script src="field-workspace.js?v=2.8.27"></script>
+  <script src="vn2000-rezone.js?v=2.8.27"></script>
   <script src="vn-admin-2025.js?v=2.8.27"></script>
+  <script src="import-preview.js?v=2.8.27"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

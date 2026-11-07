@@ -123,3 +123,22 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
   #panelTransRezone .rz-sides { grid-template-columns: minmax(0, 1fr); }
   #panelTransRezone .rz-swap { justify-self: center; }
 }
+
+/* Xem trước khi nhập file tọa độ (Sổ đo). */
+.imp-preview { margin: 10px 0 12px; padding: 12px; border-radius: 12px; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.06); }
+.imp-preview[hidden] { display: none !important; }
+.imp-preview-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #38bdf8; margin-bottom: 8px; }
+.imp-file { color: var(--text-secondary, #94a3b8); font-size: 12px; overflow-wrap: anywhere; }
+.imp-table-wrap { overflow-x: auto; max-height: 220px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.25); }
+.imp-table { border-collapse: collapse; font-size: 12px; width: max-content; min-width: 100%; }
+.imp-table :is(th, td) { padding: 5px 8px; border-bottom: 1px solid rgba(148, 163, 184, 0.15); white-space: nowrap; text-align: left; font-variant-numeric: tabular-nums; }
+.imp-table th { position: sticky; top: 0; background: #0f1b31; color: #94a3b8; font-weight: 700; }
+.imp-table tr.imp-head td { color: #fbbf24; font-weight: 700; }
+.imp-mapping, .imp-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.imp-map-item { display: grid; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--text-secondary, #cbd5e1); }
+.imp-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 12px; line-height: 1.45; }
+.imp-check[hidden] { display: none !important; }
+.imp-summary { margin: 10px 0 0; font-size: 12.5px; color: #34d399; }
+.imp-actions { display: flex; gap: 8px; margin-top: 10px; }
+.imp-actions .btn-sm { flex: 1; min-height: 40px; font-weight: 700; }
+body[data-theme="light"] .imp-table th { background: #e2e8f0; color: #334155; }
