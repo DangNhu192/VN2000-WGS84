@@ -1,4 +1,6 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.23';
+const CACHE_NAME = 'vn2000-pro-v2.8.27';
+// Dữ liệu địa giới lớn (~4 MB): cache riêng, KHÔNG xóa khi nâng phiên bản ứng dụng; đổi tên khi dữ liệu đổi.
+const DATA_CACHE = 'vn2000-data-admin-2025-07-01';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,6 +11,9 @@ const ASSETS_TO_CACHE = [
   './src/core/gis_io.js',
   './field-workspace.js',
   './field-workspace.css',
+  './vn2000-rezone.js',
+  './vn-admin-2025.js',
+  './import-preview.js',
   './ui-polish.css',
   './geodesy.js',
   './leaflet.js',
@@ -42,7 +47,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keyList) => {
       return Promise.all(
         keyList.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && key !== DATA_CACHE) {
             console.log('[Service Worker] Xóa bộ nhớ đệm cũ:', key);
             return caches.delete(key);
           }
@@ -75,6 +80,17 @@ self.addEventListener('fetch', (event) => {
         // Khi mất mạng, fallback về tệp HTML đã lưu trong bộ nhớ đệm
         return caches.match('./index.html').then((res) => res || caches.match('./'));
       })
+    );
+    return;
+  }
+
+  // A2. DỮ LIỆU ĐỊA GIỚI (data/): Cache-First, tải một lần rồi dùng ngoại tuyến
+  if (url.origin === location.origin && url.pathname.includes('/data/')) {
+    event.respondWith(
+      caches.open(DATA_CACHE).then((cache) => cache.match(req).then((hit) => hit || fetch(req).then((res) => {
+        if (res && res.status === 200) cache.put(req, res.clone());
+        return res;
+      })))
     );
     return;
   }

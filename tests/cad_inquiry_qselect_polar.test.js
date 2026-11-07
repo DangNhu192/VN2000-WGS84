@@ -700,8 +700,9 @@ console.log('\n— 12. Đăng ký modal, nút, phím tắt, dòng lệnh và CSS
     assert(/id="cadInquiryMode"[\s\S]{0,400}?value="dist"[\s\S]{0,400}?value="area"[\s\S]{0,400}?value="point"[\s\S]{0,400}?value="shape"/.test(indexHtml),
         'Dropdown phép đo có đủ DIST / AREA / ID / LIST khớp 4 nhánh handleInquiryPick');
     assert(/id="btnCadPolarTrack"[\s\S]{0,120}?togglePolarTracking\(\)/.test(indexHtml), 'Nút 🧭 Dóng góc gọi togglePolarTracking()');
-    assert(indexHtml.includes('id="btnCadRibbonPolar"') && indexHtml.includes('id="btnCadRibbonInquiry"') && indexHtml.includes('id="btnCadRibbonQSelect"'),
-        'Ribbon CAD có 3 nút Dóng góc / Trắc lượng / Chọn nhanh');
+    // Dóng góc là chế độ trợ vẽ (ribbon CLI); Trắc lượng / Chọn nhanh là lệnh nên chỉ nằm ở thanh công cụ.
+    assert(indexHtml.includes('id="btnCadRibbonPolar"') && indexHtml.includes('openInquiryModal()') && indexHtml.includes('openQSelectModal()'),
+        'Có Dóng góc (ribbon) và Trắc lượng / Chọn nhanh (thanh công cụ)');
     assert(/<option value="90">/.test(indexHtml) && /<option value="45">/.test(indexHtml),
         'Dropdown bước góc dóng 90°/45° (bội số chuẩn AutoCAD)');
     assert(/<label class="cad-mini-select-label" for="cadQSelKind"/.test(indexHtml),

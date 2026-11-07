@@ -1,6 +1,51 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-04: WP-H — KHẮC PHỤC NÚT CHUYỂN TIỀN QUA APP ỦNG HỘ TÁC GIẢ & TẢI MÃ VIETQR
+## Phiên hiện tại — 2026-11-07: WP-L — LÀM TOÀN BỘ ĐỀ XUẤT + ĐỊA CHỈ SAU SÁP NHẬP TRÊN CAMERA
+- **Yêu cầu**: `Thực hiện tất cả các đề xuất trên, bổ sung thêm là hiển thị địa chỉ sau sáp nhập khi chụp ảnh/quay film đóng dấu camera`.
+- **Chi tiết**: `progress.md` mục WP-L; trạng thái đề xuất ở `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md` (tất cả ✅).
+- **Điểm cần nhớ**:
+  - Dữ liệu địa giới: chạy lại `python3 -I tools/build_vn_admin_2025.py <json/geojson> data/vn_admin_2025.js` khi có bản cập nhật; đổi tên `DATA_CACHE` trong sw.js để máy người dùng tải bản mới.
+  - Biến `const` (VN_PROVINCES, AppState, appData) KHÔNG nằm trên `window` — module ngoài app.js phải gọi trực tiếp theo tên.
+  - 34 tỉnh nối sau 63 tỉnh cũ trong `VN_PROVINCES`; dùng `VN_PROVINCES_OLD_COUNT` / `p.era === '2025'`.
+  - Ô chọn tỉnh mới: luôn dùng `provinceOptionsHtml(selectedIdx, labelFn)`.
+  - CSS `!important` trong style.css/ui-polish.css có thể vô hiệu hóa `el.style.display` của JS (đã gặp ở nút Quay lại và thanh Bản đồ dự án) — kiểm bằng computed style khi sửa hiển thị.
+- **Cần chủ dự án xác minh**: KTT Lai Châu / Phú Thọ / Ninh Bình (34 tỉnh) và Bình Thuận (63 tỉnh cũ) với văn bản gốc; tên "Thành phố" của Quảng Ninh / Bắc Ninh / Đồng Nai lấy nguyên từ dữ liệu sapnhap.bando.
+
+## Phiên trước — 2026-11-06: WP-K — ĐỔI KTT/MÚI, CHUẨN HÓA NHẬP/XUẤT, MINICAD, MENU
+- **Yêu cầu**: tối ưu & đề xuất bố cục/phân nhóm/menu; thêm đổi VN-2000 giữa KTT/múi; kiểm tra MiniCAD; kiểm tra nhập/xuất dữ liệu.
+- **Chi tiết**: `progress.md` mục WP-K; đề xuất ở `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md`.
+- **Điểm cần nhớ**:
+  - Mọi exporter đi qua `appData.getExportPoints()` → `normalizeSurveyPoints` (geodesy.js). Exporter mới phải dùng hàm này, không đọc `appData.getPoints` trực tiếp.
+  - Nhập file: `processImportedText` thử `parseHeaderedTable` trước (chỉ khi định dạng = auto), rồi mới tới bộ đọc từng dòng `parseSmartManualLine`.
+  - Không dùng `split(/\r?\r\n/)`; test `data_io_roundtrip` khóa lại.
+  - MiniCAD: X/Y là số liệu gốc; `_normalizeVertex` chỉ tính lại khi lat/lng lệch thật.
+  - `COMMON_KTT_PRESETS` sinh từ `VN_PROVINCES` — sửa KTT tỉnh chỉ cần sửa bảng.
+- **Việc kế tiếp / chờ quyết định**: xác minh KTT Bình Thuận; bảng KTT 34 tỉnh sau sáp nhập; màn nhập dữ liệu thống nhất có xem trước & chọn cột; các mục ⏳ trong file đề xuất.
+
+## Phiên trước — 2026-11-06: WP-J — VÙNG AN TOÀN TAI THỎ / DYNAMIC ISLAND / XOAY NGANG
+- **Yêu cầu**: `Fix lỗi màn hình chưa được tối ưu cho các loại màn hình khác nhau, trong đó có loại màn hình tai thỏ hoặc dynamic island`.
+- **Chi tiết**: xem `progress.md` mục WP-J.
+- **Điểm cần nhớ**:
+  - Đo inset thật bằng CDP `Emulation.setSafeAreaInsetsOverride({ insets: {top,bottom,left,right} })` (Chromium ≥ 136) — không cần thiết bị thật để thấy lỗi tai thỏ.
+  - Header: chỉ sửa trong `ui-polish.css` rule `header.app-header.mac-top-bar` (lớp cuối, `!important`); test `safe_area_notch_island.test.js` khoá lại.
+  - Bố cục trái/phải của Chuyển đổi: JS `isTransformSideBySide()` và media query ui-polish phải cùng điều kiện.
+- **Việc kế tiếp**: thiết kế lại thanh công cụ MiniCAD cho màn ngang thấp (CLI đang che một phần thanh công cụ).
+
+## Phiên trước — 2026-11-06: WP-I — TỐI ƯU TRẢI NGHIỆM NGƯỜI DÙNG LẦN ĐẦU
+- **Yêu cầu**: `Tối ưu ứng dụng và đề xuất chỉnh trang giao diện và cách bố trí các nội dung do người dùng lần đầu khó hiểu cách sử dụng`.
+- **Đã làm**: xem chi tiết trong `progress.md` (mục 2026-11-06). Tóm tắt: bỏ màn chờ ủng hộ ngày đầu tiên, ẩn nút Quay lại ở Trang chủ, hướng dẫn `?` riêng cho Trang chủ, nhãn dock ngắn, thẻ chào mừng 3 bước + dòng giải thích chế độ, placeholder "VD:", đưa 4 ô chức năng lên trước khối GPS.
+- **Điểm cần nhớ**:
+  - `#btnHeaderBack` phải bật/tắt bằng thuộc tính `hidden` (CSS `!important` của `.mac-pill-btn` thắng `style.display`).
+  - Muốn bật lại màn chờ ủng hộ ngay ngày đầu: bỏ dòng `if (!lastShown && firstUse === today) return;` trong `appDonate.checkDailyTrigger`.
+- **Đề xuất chưa làm (cần chủ dự án quyết)**:
+  1. Header điện thoại quá chật: tên app bị cắt, dòng 📍 Tỉnh/KTT bị ẩn. Đề xuất bỏ chữ trên header, đưa Tỉnh/KTT thành chip luôn hiện ngay dưới header ở mọi màn hình.
+  2. Nút GPS trên header chỉ là một chấm xám không chữ → thêm nhãn "GPS" hoặc trạng thái "Tắt".
+  3. Gộp hai chế độ Đơn giản/Nâng cao: Trang chủ duy nhất = khung chuyển đổi nhanh ở trên + 4 ô chức năng + "Công cụ khác" ở dưới, bỏ công tắc chế độ.
+  4. Khối GPS (lớn, toàn gạch ngang khi chưa bật) chỉ nên hiện khi GPS đang bật; khi tắt thay bằng một nút "Bật GPS".
+  5. Thống nhất thuật ngữ: "Bản Đồ Trắc Địa" / "Bản đồ dự án & Mốc" / "Bản Đồ Khảo Sát & Vệ Tinh" đang chỉ cùng một màn.
+  6. Màn chờ ủng hộ: cân nhắc chuyển thành thẻ nhỏ không chặn (hoặc giảm 20s → 5s).
+
+## Phiên trước — 2026-11-04: WP-H — KHẮC PHỤC NÚT CHUYỂN TIỀN QUA APP ỦNG HỘ TÁC GIẢ & TẢI MÃ VIETQR
 - **Yêu cầu từ người dùng**: `nhấn nút chuyển tiền qua app để ủng hộ tác giả bị lỗi`.
 - **Nguyên nhân**:
   1. Hai kênh VietinBank và BIDV dùng liên kết rút gọn Firebase Dynamic Links `*.page.link` đã bị khai tử bởi Google, gây lỗi 404 khi người dùng bấm vào.

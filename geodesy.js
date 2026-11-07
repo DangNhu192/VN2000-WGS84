@@ -291,6 +291,51 @@ const VN_PROVINCES = [
     { name: "Yên Bái", deg: 104, min: 45, ktt: 104.75 }
 ];
 
+// 34 tỉnh, thành phố từ 01/07/2025 (Nghị quyết 202/2025/QH15) — KTT theo Thông tư 24/2025/TT-BNNMT.
+// Giá trị tổng hợp từ các bảng công bố; `verify: true` = các nguồn chưa thống nhất, cần đối chiếu văn bản gốc:
+//   Lai Châu (103°00' / 104°45'), Phú Thọ (104°45' / 105°00'), Ninh Bình (105°00' / 105°30').
+// `code` khớp mã tỉnh trong data/vn_admin_2025.js để gợi ý KTT theo vị trí GPS.
+const VN_PROVINCES_2025 = [
+    { code: '01', name: "TP. Hà Nội", deg: 105, min: 0, ktt: 105.0, merged: "Hà Nội" },
+    { code: '04', name: "Cao Bằng", deg: 105, min: 45, ktt: 105.75, merged: "Cao Bằng" },
+    { code: '08', name: "Tuyên Quang", deg: 106, min: 0, ktt: 106.0, merged: "Hà Giang, Tuyên Quang" },
+    { code: '11', name: "Điện Biên", deg: 103, min: 0, ktt: 103.0, merged: "Điện Biên" },
+    { code: '12', name: "Lai Châu", deg: 103, min: 0, ktt: 103.0, merged: "Lai Châu", verify: true },
+    { code: '14', name: "Sơn La", deg: 104, min: 0, ktt: 104.0, merged: "Sơn La" },
+    { code: '15', name: "Lào Cai", deg: 104, min: 45, ktt: 104.75, merged: "Yên Bái, Lào Cai" },
+    { code: '19', name: "Thái Nguyên", deg: 106, min: 30, ktt: 106.5, merged: "Bắc Kạn, Thái Nguyên" },
+    { code: '20', name: "Lạng Sơn", deg: 107, min: 15, ktt: 107.25, merged: "Lạng Sơn" },
+    { code: '22', name: "Quảng Ninh", deg: 107, min: 45, ktt: 107.75, merged: "Quảng Ninh" },
+    { code: '24', name: "Bắc Ninh", deg: 107, min: 0, ktt: 107.0, merged: "Bắc Giang, Bắc Ninh" },
+    { code: '25', name: "Phú Thọ", deg: 104, min: 45, ktt: 104.75, merged: "Vĩnh Phúc, Hòa Bình, Phú Thọ", verify: true },
+    { code: '31', name: "TP. Hải Phòng", deg: 105, min: 45, ktt: 105.75, merged: "Hải Dương, Hải Phòng" },
+    { code: '33', name: "Hưng Yên", deg: 105, min: 30, ktt: 105.5, merged: "Thái Bình, Hưng Yên" },
+    { code: '37', name: "Ninh Bình", deg: 105, min: 0, ktt: 105.0, merged: "Hà Nam, Nam Định, Ninh Bình", verify: true },
+    { code: '38', name: "Thanh Hóa", deg: 105, min: 0, ktt: 105.0, merged: "Thanh Hóa" },
+    { code: '40', name: "Nghệ An", deg: 104, min: 45, ktt: 104.75, merged: "Nghệ An" },
+    { code: '42', name: "Hà Tĩnh", deg: 105, min: 30, ktt: 105.5, merged: "Hà Tĩnh" },
+    { code: '44', name: "Quảng Trị", deg: 106, min: 0, ktt: 106.0, merged: "Quảng Bình, Quảng Trị" },
+    { code: '46', name: "TP. Huế", deg: 107, min: 0, ktt: 107.0, merged: "Thừa Thiên Huế" },
+    { code: '48', name: "TP. Đà Nẵng", deg: 107, min: 45, ktt: 107.75, merged: "Quảng Nam, Đà Nẵng" },
+    { code: '51', name: "Quảng Ngãi", deg: 108, min: 0, ktt: 108.0, merged: "Kon Tum, Quảng Ngãi" },
+    { code: '52', name: "Gia Lai", deg: 108, min: 15, ktt: 108.25, merged: "Bình Định, Gia Lai" },
+    { code: '56', name: "Khánh Hòa", deg: 108, min: 15, ktt: 108.25, merged: "Ninh Thuận, Khánh Hòa" },
+    { code: '66', name: "Đắk Lắk", deg: 108, min: 30, ktt: 108.5, merged: "Phú Yên, Đắk Lắk" },
+    { code: '68', name: "Lâm Đồng", deg: 107, min: 45, ktt: 107.75, merged: "Đắk Nông, Bình Thuận, Lâm Đồng" },
+    { code: '75', name: "Đồng Nai", deg: 107, min: 45, ktt: 107.75, merged: "Bình Phước, Đồng Nai" },
+    { code: '79', name: "TP. Hồ Chí Minh", deg: 105, min: 45, ktt: 105.75, merged: "Bình Dương, Bà Rịa – Vũng Tàu, TP. Hồ Chí Minh" },
+    { code: '80', name: "Tây Ninh", deg: 105, min: 45, ktt: 105.75, merged: "Long An, Tây Ninh" },
+    { code: '82', name: "Đồng Tháp", deg: 105, min: 0, ktt: 105.0, merged: "Tiền Giang, Đồng Tháp" },
+    { code: '86', name: "Vĩnh Long", deg: 105, min: 30, ktt: 105.5, merged: "Bến Tre, Trà Vinh, Vĩnh Long" },
+    { code: '91', name: "An Giang", deg: 104, min: 45, ktt: 104.75, merged: "Kiên Giang, An Giang" },
+    { code: '92', name: "TP. Cần Thơ", deg: 105, min: 0, ktt: 105.0, merged: "Sóc Trăng, Hậu Giang, Cần Thơ" },
+    { code: '96', name: "Cà Mau", deg: 104, min: 30, ktt: 104.5, merged: "Bạc Liêu, Cà Mau" }
+].map(p => Object.assign(p, { era: '2025' }));
+
+// Danh mục cũ có 63 phần tử; 34 tỉnh mới nối vào SAU để chỉ số đã lưu (AppState.provinceIndex) không đổi.
+const VN_PROVINCES_OLD_COUNT = VN_PROVINCES.length;
+VN_PROVINCES.push(...VN_PROVINCES_2025);
+
 /**
  * Định dạng tọa độ Lat / Long theo 3 kiểu hiển thị
  * @param {number} val 
@@ -402,6 +447,180 @@ function convertVn2kToWgs(X, Y, ktt, k0 = 0.9999) {
         lat: coord.lat,
         lng: coord.lng
     };
+}
+
+/**
+ * Đổi tọa độ VN-2000 từ (KTT, múi) này sang (KTT, múi) khác.
+ * Cùng hệ quy chiếu VN-2000 nên KHÔNG đi qua WGS-84 (không áp 7 tham số):
+ * chiếu ngược Gauss-Kruger theo KTT nguồn → B, L trên ellipsoid → chiếu xuôi theo KTT đích.
+ * @returns {{ X:number, Y:number, lat:number, lng:number, offSrc:number, offDst:number }}
+ *   lat/lng: tọa độ trắc địa VN-2000; offSrc/offDst: độ lệch kinh độ (°) so với KTT nguồn/đích.
+ */
+function convertVn2kToVn2k(X, Y, srcKtt, srcK0, dstKtt, dstK0) {
+    const a = ModCS.Ellipsoid_WGS84.SemiMajorAxis, b = ModCS.Ellipsoid_WGS84.SemiMinorAxis;
+    const values = [X, Y, srcKtt, srcK0, dstKtt, dstK0];
+    if (!values.every(v => typeof v === 'number' && Number.isFinite(v)) || srcK0 <= 0 || dstK0 <= 0) return null;
+    const geo = new ProjTransverseMercator(a, b, srcK0, srcKtt, 0, 0, 500000.0).inverse(X, Y);
+    const out = new ProjTransverseMercator(a, b, dstK0, dstKtt, 0, 0, 500000.0).forward(geo.lat, geo.lng);
+    if (!Number.isFinite(out.X) || !Number.isFinite(out.Y)) return null;
+    return { X: out.X, Y: out.Y, lat: geo.lat, lng: geo.lng,
+        offSrc: Math.abs(geo.lng - srcKtt), offDst: Math.abs(geo.lng - dstKtt) };
+}
+
+/**
+ * Chuẩn hóa danh sách điểm trước khi XUẤT FILE để mọi định dạng (CSV, Excel, KML, GeoJSON, GPX, DXF, TXT)
+ * cùng một bộ số liệu:
+ *  - bỏ điểm không có tọa độ hợp lệ (vd. dòng "Lỗi" của chuyển đổi hàng loạt) thay vì ghi (0, 0);
+ *  - thiếu WGS-84 thì tính từ VN-2000 (và ngược lại) theo KTT/múi CỦA TỪNG ĐIỂM;
+ *  - KTT ghi thống nhất dạng 105°45', múi là số 3 hoặc 6.
+ * @param {Array} points
+ * @param {{ ktt:number, mui:number }} defaults KTT/múi hiện hành khi điểm không ghi rõ.
+ */
+function normalizeSurveyPoints(points, defaults) {
+    const num = v => {
+        if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+        if (typeof v !== 'string' || !v.trim()) return NaN;
+        const t = v.trim().replace(/\s+/g, '');
+        return /^[+-]?\d+([.,]\d+)?$/.test(t) ? Number(t.replace(',', '.')) : NaN;
+    };
+    const def = defaults || {};
+    const kttOf = p => {
+        if (typeof p.kttVal === 'number' && p.kttVal > 100 && p.kttVal < 115) return p.kttVal;
+        const k = p.ktt;
+        if (typeof k === 'number' && k > 100 && k < 115) return k;
+        if (typeof k === 'string') {
+            const m = k.match(/(1[01]\d)\s*[°o]\s*(\d{1,2})/);
+            if (m) return Number(m[1]) + Number(m[2]) / 60;
+            const d = num(k);
+            if (d > 100 && d < 115) return d;
+        }
+        return Number.isFinite(def.ktt) ? def.ktt : 105.75;
+    };
+    const muiOf = p => {
+        const inText = typeof p.ktt === 'string' ? p.ktt.match(/Múi\s*([36])/i) : null;
+        const m = parseInt(p.mui !== undefined && p.mui !== '' ? p.mui : (inText ? inText[1] : undefined), 10);
+        return m === 6 || m === 3 ? m : (def.mui === 6 ? 6 : 3);
+    };
+    const label = ktt => {
+        const d = Math.floor(ktt + 1e-9), m = Math.round((ktt - d) * 60);
+        return `${d}°${String(m).padStart(2, '0')}'`;
+    };
+    const out = [];
+    (points || []).forEach(p => {
+        if (!p || typeof p !== 'object') return;
+        const ktt = kttOf(p), mui = muiOf(p), k0 = mui === 6 ? 0.9996 : 0.9999;
+        let x = num(p.x), y = num(p.y), lat = num(p.lat), lng = num(p.lng);
+        const hasXY = x > 100000 && x < 10000000 && y > 0 && y < 1000000;
+        const hasLL = Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
+        if (!hasXY && !hasLL) return;
+        try {
+            if (hasXY && !hasLL) { const w = convertVn2kToWgs(x, y, ktt, k0); lat = w.lat; lng = w.lng; }
+            if (hasLL && !hasXY) { const v = convertWgsToVn2k(lat, lng, ktt, k0); x = v.X; y = v.Y; }
+        } catch (e) { return; }
+        if (![x, y, lat, lng].every(Number.isFinite)) return;
+        const h = num(p.h);
+        out.push(Object.assign({}, p, { x, y, lat, lng, h: Number.isFinite(h) ? h : 0, ktt: label(ktt), kttVal: ktt, mui }));
+    });
+    return out;
+}
+
+/**
+ * Nhận diện cột theo tên tiêu đề (Tên/Name, X/Northing, Y/Easting, H, Vĩ độ, Kinh độ, KTT, Múi, Ghi chú, Thời gian).
+ * @param {string[]} cells ô của dòng tiêu đề
+ * @returns {Object} { name, x, y, h, lat, lng, ktt, mui, note, time } → chỉ số cột (chỉ có khóa nhận ra được)
+ */
+function mapHeaderColumns(cells) {
+    const strip = v => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/[_()\[\]#:.]/g, ' ').replace(/\s+/g, ' ').trim();
+    const rules = [
+        ['ktt', /kinh tuyen truc|^ktt\b|central meridian/],
+        ['mui', /^mui\b|mui chieu|^zone\b/],
+        ['time', /thoi gian|^time\b|^ngay\b|^date\b/],
+        ['note', /ghi chu|^note|mo ta|description|^desc/],
+        ['lat', /vi do|^lat|latitude/],
+        ['lng', /kinh do|^lon|^lng|longitude/],
+        ['h', /^h\b|cao do|elev|^z\b|^cao do h/],
+        ['x', /^x\b|toa do ngang x|northing|^n\b|x bac|^bac\b|x vn ?2000/],
+        ['y', /^y\b|toa do dung y|easting|^e\b|y dong|^dong\b|y vn ?2000/],
+        ['name', /^ten|^name|^point|^diem|^ma diem|^so hieu|^id\b|^stt\b/]
+    ];
+    const head = (cells || []).map(strip);
+    const col = {};
+    head.forEach((h, idx) => {
+        const hit = rules.find(([key, re]) => re.test(h) && !(key in col));
+        if (hit) col[hit[0]] = idx;
+    });
+    // "STT" chỉ là tên khi không có cột tên thật.
+    if (head[col.name] === 'stt') {
+        const realName = head.findIndex((h, idx) => idx !== col.name && /^ten|^name|^point|^ma diem|^so hieu/.test(h));
+        if (realName >= 0) col.name = realName;
+    }
+    return col;
+}
+
+/** Tách một dòng CSV có ngoặc kép ("a ""b""", c) theo dấu phân cách cho trước. */
+function splitDelimitedLine(line, delim) {
+    const cells = [];
+    let cur = '', quoted = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (quoted) {
+            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') quoted = false;
+            else cur += ch;
+        } else if (ch === '"' && cur.trim() === '') { quoted = true; cur = ''; }
+        else if (ch === delim) { cells.push(cur.trim()); cur = ''; }
+        else cur += ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+}
+
+/**
+ * Đọc bảng tọa độ CÓ DÒNG TIÊU ĐỀ (CSV/TXT/Excel→CSV) và ánh xạ cột theo tên, không đoán theo vị trí.
+ * Đọc được file do chính ứng dụng xuất (CSV 9 cột, TXT máy đo, Excel) và file có tiêu đề thông dụng
+ * (Tên/Name, X/Northing, Y/Easting, H/Cao độ, Vĩ độ/Lat, Kinh độ/Lng, KTT, Múi, Ghi chú).
+ * @returns {{ points: Array, columns: Object } | null} null khi không nhận ra tiêu đề → dùng bộ đọc từng dòng.
+ */
+function parseHeaderedTable(text, defaults) {
+    const lines = String(text || '').replace(/^﻿/, '').split(/\r\n|\r|\n/);
+    for (let i = 0; i < Math.min(lines.length, 15); i++) {
+        let raw = lines[i].trim();
+        if (!raw) continue;
+        raw = raw.replace(/^#\s*/, '');
+        const delim = raw.includes('\t') ? '\t' : (raw.includes(';') ? ';' : ',');
+        const col = mapHeaderColumns(splitDelimitedLine(raw, delim));
+        const hasXY = 'x' in col && 'y' in col, hasLL = 'lat' in col && 'lng' in col;
+        if (!hasXY && !hasLL) continue;
+        const rows = [];
+        for (let j = i + 1; j < lines.length; j++) {
+            const line = lines[j].trim();
+            if (!line || line.startsWith('#')) continue;
+            const c = splitDelimitedLine(line, delim);
+            const get = k => (k in col ? c[col[k]] : undefined);
+            const numStr = v => (v === undefined ? undefined : (delim === ',' ? v : String(v).replace(',', '.')));
+            rows.push({
+                name: get('name') || `M${rows.length + 1}`,
+                x: numStr(get('x')), y: numStr(get('y')), h: numStr(get('h')),
+                lat: numStr(get('lat')), lng: numStr(get('lng')),
+                ktt: get('ktt'), mui: get('mui'), note: get('note') || '', time: get('time') || ''
+            });
+        }
+        const points = normalizeSurveyPoints(rows, defaults).map(pt => Object.assign(pt, { source: 'Bảng có tiêu đề' }));
+        return { points, columns: col, skipped: rows.length - points.length };
+    }
+    return null;
+}
+
+/** Thoát ký tự đặc biệt XML (KML, GPX, SVG). */
+function escapeXml(v) {
+    return String(v === undefined || v === null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/** Một ô CSV: luôn bọc ngoặc kép, nhân đôi ngoặc kép bên trong. */
+function csvCell(v) {
+    return `"${String(v === undefined || v === null ? '' : v).replace(/"/g, '""')}"`;
 }
 
 /**
@@ -560,17 +779,23 @@ function checkPolygonSelfIntersection(vertices) {
 }
 
 // Danh sách các mốc Kinh tuyến trục phổ biến nhất tại Việt Nam kèm quy đổi độ thập phân
-const COMMON_KTT_PRESETS = [
-    { deg: 105, min: 0, decimal: 105.0, label: "105°00' (105.0°)", provinces: "Hà Nội, Cần Thơ, Đồng Tháp, Lai Châu, Điện Biên" },
-    { deg: 105, min: 30, decimal: 105.5, label: "105°30' (105.5°)", provinces: "Hà Giang, Tuyên Quang" },
-    { deg: 105, min: 45, decimal: 105.75, label: "105°45' (105.75°)", provinces: "TP.HCM, Bình Dương, Long An, Tây Ninh, Bình Phước" },
-    { deg: 106, min: 0, decimal: 106.0, label: "106°00' (106.0°)", provinces: "Đồng Nai, Tiền Giang, Bến Tre" },
-    { deg: 106, min: 30, decimal: 106.5, label: "106°30' (106.5°)", provinces: "Bà Rịa - Vũng Tàu, Tiền Giang" },
-    { deg: 107, min: 0, decimal: 107.0, label: "107°00' (107.0°)", provinces: "Lâm Đồng, Đắk Lắk" },
-    { deg: 107, min: 45, decimal: 107.75, label: "107°45' (107.75°)", provinces: "Bình Thuận" },
-    { deg: 108, min: 0, decimal: 108.0, label: "108°00' (108.0°)", provinces: "Khánh Hòa, Phú Yên, Gia Lai" },
-    { deg: 108, min: 30, decimal: 108.5, label: "108°30' (108.5°)", provinces: "Đà Nẵng, Quảng Nam, Quảng Ngãi" }
-];
+// Mốc KTT nhanh: sinh tự động từ bảng 34 tỉnh hiện hành (VN_PROVINCES_2025) để tên tỉnh luôn khớp đúng KTT
+// (bản viết tay trước đây gắn nhầm tỉnh cho 7/9 mốc, vd. Đồng Nai vào 106°00').
+const COMMON_KTT_PRESETS = (() => {
+    const groups = new Map();
+    VN_PROVINCES_2025.forEach(p => {
+        if (!groups.has(p.ktt)) groups.set(p.ktt, { deg: p.deg, min: p.min, names: [] });
+        groups.get(p.ktt).names.push(p.name.replace(/^TP\.\s*/, '').replace('Hồ Chí Minh', 'TP.HCM'));
+    });
+    return [...groups.keys()].sort((a, b) => a - b).map(k => {
+        const g = groups.get(k);
+        return {
+            deg: g.deg, min: g.min, decimal: k,
+            label: `${g.deg}°${String(g.min).padStart(2, '0')}' (${k}°)`,
+            provinces: g.names.join(', ')
+        };
+    });
+})();
 
 /**
  * Phân tích cú pháp chuỗi Kinh tuyến trục linh hoạt
@@ -664,12 +889,21 @@ if (typeof module !== 'undefined' && module.exports) {
         CoordLatLong,
         ProjTransverseMercator,
         VN_PROVINCES,
+        VN_PROVINCES_2025,
+        VN_PROVINCES_OLD_COUNT,
         COMMON_KTT_PRESETS,
         parseKttString,
         formatLatLong,
         parseCoordinateNumber,
         convertWgsToVn2k,
         convertVn2kToWgs,
+        convertVn2kToVn2k,
+        normalizeSurveyPoints,
+        parseHeaderedTable,
+        mapHeaderColumns,
+        splitDelimitedLine,
+        escapeXml,
+        csvCell,
         calculateDistanceAndAzimuth,
         calculatePolygonAreaAndPerimeter,
         Ok,

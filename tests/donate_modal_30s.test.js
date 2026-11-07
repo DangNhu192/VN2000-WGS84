@@ -88,7 +88,8 @@ test('1. Startup checks daily trigger and configures 20s countdown support (Đ�
   let storageWrittenKey = null;
   let storageWrittenValue = null;
   const mockStorage = {
-    getItem() { return null; },
+    // Người dùng cũ (đã dùng từ hôm trước), chưa thấy màn chờ hôm nay.
+    getItem(k) { return k === 'vn2k_first_use_date_v1' ? '2020-01-01' : null; },
     setItem(k, v) { storageWrittenKey = k; storageWrittenValue = v; }
   };
   const { document } = createMockDom();
@@ -277,4 +278,33 @@ test('8. downloadQrImage function exists and handles empty/ready QR safely', asy
   qr.src = '';
   await appDonate.downloadQrImage();
   assert.ok(toastMsg.includes('Chưa có mã QR'), 'Báo lỗi nhẹ nếu chưa có ảnh QR');
+});
+
+test('First day of use never blocks a new user with the 20s countdown', () => {
+  const appJs = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const saved = new Map();
+  const mockStorage = { getItem: k => (saved.has(k) ? saved.get(k) : null), setItem: (k, v) => saved.set(k, v) };
+  const { document } = createMockDom();
+  const originalSetTimeout = global.setTimeout;
+  let scheduled = 0;
+  global.setTimeout = () => { scheduled++; };
+  try {
+    const appDonate = extractAppDonate(appJs, { localStorage: mockStorage, document, window: { addEventListener() {} } });
+    appDonate.checkDailyTrigger();
+    appDonate.checkDailyTrigger();
+    assert.equal(scheduled, 0, 'Ngày đầu tiên không bật màn chờ');
+    assert.equal(saved.get('vn2k_first_use_date_v1'), new Date().toLocaleDateString('en-CA'));
+
+    saved.set('vn2k_first_use_date_v1', '2020-01-01');
+    appDonate.checkDailyTrigger();
+    assert.equal(scheduled, 1, 'Từ ngày thứ hai trở đi hiển thị như cũ');
+
+    // Người dùng cũ chưa có mốc ngày đầu: vẫn hiển thị bình thường.
+    saved.clear();
+    saved.set('vn2k_donate_last_shown_date_v1', '2020-01-01');
+    appDonate.checkDailyTrigger();
+    assert.equal(scheduled, 2);
+  } finally {
+    global.setTimeout = originalSetTimeout;
+  }
 });

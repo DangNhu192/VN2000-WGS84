@@ -412,13 +412,13 @@ const appNav = window.appNav = {
         if (screenName === 'menu') {
             this.lastHeaderInfo = null;
             targetScreen = document.getElementById('screen-menu');
-            if (btnBack) btnBack.style.display = 'none';
+            if (btnBack) { btnBack.hidden = true; btnBack.style.display = 'none'; }
             const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
             if (titleEl) titleEl.innerHTML = `<img src="icon.png" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
             if (subTitleEl) subTitleEl.innerText = isEn ? "National Coordinate Reference System" : "Hệ Quy Chiếu & Tọa Độ Quốc Gia";
             appNav.updateBanner();
         } else {
-            if (btnBack) btnBack.style.display = 'inline-flex';
+            if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
             
             let titleText = "WGS-84 ⇄ VN-2000";
             let titleTextEn = "WGS-84 ⇄ VN-2000";
@@ -753,7 +753,7 @@ const appNav = window.appNav = {
             else if (featId === 'stakeout') btnId = 'bnavStakeout';
 
             const icon = f ? f.icon : (featId === 'transform' ? '🔄' : (featId === 'map' ? '🗺️' : '🎯'));
-            let shortName = f ? (f.short || f.name) : featId;
+            let shortName = f ? (f.dock || f.short || f.name) : featId;
             if (isEn && typeof appI18n !== 'undefined') {
                 shortName = appI18n.t('bnav.' + featId) || appI18n.translateString(shortName);
             }
@@ -918,7 +918,7 @@ const appNav = window.appNav = {
         }
 
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
 
         if (tab === 'multi') {
             this.syncHeader('1.2 CHUYỂN ĐỔI ĐA ĐIỂM HÀNG LOẠT', '1.2 BATCH TRANSFORMATION');
@@ -947,6 +947,9 @@ const appNav = window.appNav = {
         } else if (action === 'batch_import') {
             appNav.openTransformCoordScreen('multi');
             appNav.setActiveMenuItem('drawerItem_batch');
+        } else if (action === 'rezone') {
+            appNav.openTransformCoordScreen('rezone');
+            appNav.setActiveMenuItem('drawerItem_rezone');
         } else if (action === 'transform_map') {
             appNav.openTransformMap({ mode: 'pick' });
             appNav.setActiveMenuItem('drawerItem_transform_map');
@@ -1180,7 +1183,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🗺️ 1. CHUYỂN ĐỔI TỌA ĐỘ', '🗺️ 1. COORDINATE TRANSFORMATION');
 
         appNav.setActiveMenuItem('drawerItem_transform');
@@ -1210,7 +1213,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🎯 1. CHẤM CHỌN TỌA ĐỘ BẢN ĐỒ', '🎯 1. MAP COORDINATE PICKER');
 
         // Phân quyền thanh công cụ trên đỉnh bản đồ: CHỈ hiện barCoordPicker
@@ -1275,7 +1278,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🗺️ 2. BẢN ĐỒ DỰ ÁN & MỐC', '🗺️ 2. PROJECT MAP & BENCHMARKS');
 
         // Phân quyền thanh công cụ trên đỉnh bản đồ: CHỈ hiện mapProjectBar
@@ -1369,7 +1372,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('📐 3.5 VẼ MẶT BẰNG & BẢNG KÊ MINICAD', '📐 3.5 MINICAD PLAN DRAWING & TABLE');
 
         // Xóa marker chấm điểm nếu có
@@ -1419,7 +1422,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('📍 VỊ TRÍ ĐIỂM CHUYỂN ĐỔI', '📍 CONVERTED POINT LOCATION');
 
         // Tắt toàn bộ MiniCAD
@@ -1490,7 +1493,7 @@ const appNav = window.appNav = {
 
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) btnBack.style.display = 'inline-flex';
+        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('🛰️ VỊ TRÍ GPS THỰC ĐIỆA', '🛰️ FIELD GPS LOCATION');
 
         appMap.initMap();
@@ -1556,7 +1559,7 @@ const appNav = window.appNav = {
         const decStr = kttVal.toFixed(4).replace(/\.?0+$/, '');
         const dmsStr = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`;
 
-        const pName = isEn ? 'Ho Chi Minh City' : AppState.provinceName;
+        const pName = AppState.provinceName || (isEn ? 'Custom CM' : 'Tùy chỉnh');
         if (provEl) provEl.innerText = `${pName} (${dmsStr} ⇄ ${decStr}°)`;
         if (muiEl) muiEl.innerText = isEn ? `Zone ${AppState.muiVal}° (k0 = ${AppState.scaleFactor})` : `Múi ${AppState.muiVal}° (k0 = ${AppState.scaleFactor})`;
 
@@ -1565,6 +1568,17 @@ const appNav = window.appNav = {
         const tfDec = document.getElementById('tfKttDecText');
         if (tfDms) tfDms.innerText = dmsStr;
         if (tfDec) tfDec.innerText = `${decStr}°`;
+
+        // Chip KTT trên thanh tiêu đề (hiện ở mọi màn hình trên điện thoại): KTT sai là lỗi số liệu nghiêm trọng nhất.
+        const headChip = document.getElementById('headerKttChip');
+        if (headChip) {
+            const shortProv = String(pName).replace(/^(TP\.|Thành phố|Tỉnh)\s*/, '');
+            // Thanh tiêu đề điện thoại chỉ còn ~120 px: ưu tiên KTT + múi; tên tỉnh ở chú thích và màn hình Cài đặt.
+            headChip.textContent = `📍 ${dmsStr} · ${AppState.muiVal}°`;
+            headChip.title = isEn
+                ? `${shortProv}: CM ${dmsStr}, zone ${AppState.muiVal}° — tap to change`
+                : `${shortProv}: KTT ${dmsStr}, múi ${AppState.muiVal}° — chạm để đổi`;
+        }
 
         // Cập nhật chip trên Dashboard
         const dashChip = document.getElementById('dashChipProvinceKtt');
@@ -1602,19 +1616,44 @@ const appNav = window.appNav = {
     }
 };
 
+// Màn Chuyển đổi chia trái/phải trên màn rộng và trên điện thoại xoay ngang (chiều cao thấp),
+// chia trên/dưới ở màn dọc. Phải khớp với media query tương ứng trong ui-polish.css.
+function isTransformSideBySide() {
+    if (typeof window === 'undefined') return false;
+    if (window.innerWidth >= 1024) return true;
+    return !!(window.matchMedia && window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches);
+}
+
+// Danh sách tỉnh cho mọi ô chọn: nhóm 34 tỉnh hiện hành (từ 01/07/2025) lên trước, 63 tỉnh cũ phía sau.
+// value = chỉ số trong VN_PROVINCES (63 cũ ở 0..62, 34 mới nối sau) nên cấu hình đã lưu vẫn đúng.
+function provinceOptionsHtml(selectedIdx, labelFn) {
+    if (typeof VN_PROVINCES === 'undefined') return '';
+    const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const label = labelFn || ((p) => `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')${p.verify ? ' ⚠ cần đối chiếu' : ''}`);
+    const opt = (p, i) => `<option value="${i}"${i === selectedIdx ? ' selected' : ''}${p.merged && p.merged !== p.name ? ` title="Sáp nhập từ: ${esc(p.merged)}"` : ''}>${esc(label(p, i))}</option>`;
+    const oldCount = (typeof VN_PROVINCES_OLD_COUNT !== 'undefined') ? VN_PROVINCES_OLD_COUNT : VN_PROVINCES.length;
+    const fresh = VN_PROVINCES.map((p, i) => [p, i]).filter(([, i]) => i >= oldCount)
+        .sort((a, b) => a[0].name.replace(/^TP\.\s*/, '').localeCompare(b[0].name.replace(/^TP\.\s*/, ''), 'vi'));
+    const old = VN_PROVINCES.map((p, i) => [p, i]).filter(([, i]) => i < oldCount);
+    let html = '';
+    if (fresh.length) html += `<optgroup label="34 tỉnh, thành phố (từ 01/07/2025)">${fresh.map(([p, i]) => opt(p, i)).join('')}</optgroup>`;
+    html += `<optgroup label="63 tỉnh cũ (số liệu trước 01/07/2025)">${old.map(([p, i]) => opt(p, i)).join('')}</optgroup>`;
+    return html;
+}
+
 // ================= 3.1. PHÂN HỆ DASHBOARD HIỆN ĐẠI (UI/UX PRO MAX) =================
 const appDashboard = {
     allFeatures: [
-        { id: 'transform', name: '1. Chuyển Đổi Tọa Độ Hai Chiều', short: 'Chuyển Đổi Tọa Độ', icon: '🔄', color: 'cyan', tag: '7 Tham số BTNMT', sub: 'WGS-84 ⇄ VN-2000 (Múi 3°/6°)', metric: '63 Tỉnh Thành', action: () => appNav.showScreen('transform') },
-        { id: 'map', name: '2. Bản Đồ Khảo Sát & Vệ Tinh', short: 'Bản Đồ Trắc Địa', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
-        { id: 'stakeout', name: '3. Cắm Mốc Thực Địa (Stakeout)', short: 'Cắm Mốc Thực Địa', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
-        { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DWG • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
-        { id: 'camera', name: '5. Camera Khảo Sát Đóng Dấu', short: 'Camera Khảo Sát', icon: '📸', color: 'pink', tag: 'Đóng dấu tọa độ', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
-        { id: 'resection', name: '6. Giao Hội & Bài Toán Geodesy', short: 'Giao Hội & Geodesy', icon: '📐', color: 'yellow', tag: 'Định vị khuất sóng', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Geodesy', action: () => appModal.openUnifiedSettings('resection') },
-        { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', icon: '📈', color: 'teal', tag: 'Cao trình tự nhiên/thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
-        { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
-        { id: 'about', name: '9. Thông Tin & Hướng Dẫn Nghiệp Vụ', short: 'Thông Tin & Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: 'Quy chuẩn kỹ thuật', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • 7 tham số BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
-        { id: 'cad_tool', name: 'Tiện Ích: Đo Vẽ Mặt Bằng MiniCAD', short: 'Đo Vẽ MiniCAD', icon: '📐', color: 'cyan', tag: 'Mặt bằng thực địa', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
+        { id: 'transform', name: '1. Chuyển Đổi Tọa Độ Hai Chiều', short: 'Chuyển Đổi Tọa Độ', dock: 'Chuyển Đổi', icon: '🔄', color: 'cyan', tag: '7 Tham số BTNMT', sub: 'WGS-84 ⇄ VN-2000 (Múi 3°/6°)', metric: '63 Tỉnh Thành', action: () => appNav.showScreen('transform') },
+        { id: 'map', name: '2. Bản Đồ Dự Án & Mốc', short: 'Bản Đồ Dự Án', dock: 'Bản Đồ', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
+        { id: 'stakeout', name: '3. Cắm Mốc Thực Địa (Stakeout)', short: 'Cắm Mốc Thực Địa', dock: 'Cắm Mốc', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
+        { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', dock: 'Sổ Đo', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DWG • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
+        { id: 'camera', name: '5. Camera Khảo Sát Đóng Dấu', short: 'Camera Khảo Sát', dock: 'Camera', icon: '📸', color: 'pink', tag: 'Đóng dấu tọa độ', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
+        { id: 'resection', name: '6. Giao Hội & Bài Toán Geodesy', short: 'Giao Hội & Geodesy', dock: 'Giao Hội', icon: '📐', color: 'yellow', tag: 'Định vị khuất sóng', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Geodesy', action: () => appModal.openUnifiedSettings('resection') },
+        { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', dock: 'Trắc Dọc', icon: '📈', color: 'teal', tag: 'Cao trình tự nhiên/thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
+        { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', dock: 'RTK', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
+        { id: 'about', name: '9. Thông Tin & Hướng Dẫn Nghiệp Vụ', short: 'Thông Tin & Cẩm Nang', dock: 'Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: 'Quy chuẩn kỹ thuật', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • 7 tham số BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
+        { id: 'cad_tool', name: 'Tiện Ích: Đo Vẽ Mặt Bằng MiniCAD', short: 'Đo Vẽ MiniCAD', dock: 'MiniCAD', icon: '📐', color: 'cyan', tag: 'Mặt bằng thực địa', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
     ],
 
     toolFilterQuery: '',
@@ -2494,14 +2533,7 @@ const appTransform = {
         // Nạp 63 tỉnh thành vào dropdown màn hình 1
         const sel = document.getElementById('tfSelectProvince');
         if (sel) {
-            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>';
-            VN_PROVINCES.forEach((p, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2,'0')}')`;
-                if (idx === AppState.provinceIndex) opt.selected = true;
-                sel.appendChild(opt);
-            });
+            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>' + provinceOptionsHtml(AppState.provinceIndex);
             sel.value = String(AppState.provinceIndex);
         }
         if (!this._resizeAttached) {
@@ -2893,6 +2925,20 @@ const appTransform = {
         const panelMulti = document.getElementById('panelTransMulti');
         const panelLiveMap = document.getElementById('panelTransLiveMap');
         const mapWrap = document.getElementById('boxTransformLiveMapWrap');
+        const panelRezone = document.getElementById('panelTransRezone');
+        const btnRezone = document.getElementById('tabTransRezone');
+        if (btnRezone) btnRezone.classList.toggle('active', tab === 'rezone');
+        if (panelRezone) panelRezone.style.display = tab === 'rezone' ? 'block' : 'none';
+        const splitLayout = document.getElementById('transformSplitLayout');
+        if (splitLayout) splitLayout.classList.toggle('rezone-mode', tab === 'rezone');
+        if (tab === 'rezone') {
+            // Đổi KTT/múi chỉ làm việc trên số liệu VN-2000: ẩn các panel khác và bản đồ để form chiếm trọn chiều cao.
+            [btnSingle, btnMulti, btnLiveMap].forEach(b => b && b.classList.remove('active'));
+            [panelSingle, panelMulti, panelLiveMap].forEach(p => { if (p) p.style.display = 'none'; });
+            if (splitLayout) splitLayout.classList.remove('map-full-focus');
+            if (mapWrap) mapWrap.classList.remove('large-focus');
+            return;
+        }
 
         if (btnSingle) btnSingle.classList.toggle('active', tab === 'single');
         if (btnMulti) btnMulti.classList.toggle('active', tab === 'multi');
@@ -3038,7 +3084,7 @@ const appTransform = {
             showToast("⚠️ Vui lòng dán văn bản tọa độ trước khi nạp!", true);
             return;
         }
-        const lines = ta.value.trim().split(/\r?\r\n/);
+        const lines = ta.value.trim().split(/\r\n|\r|\n/);
         let added = 0;
 
         const cleanNumStr = (s) => {
@@ -3884,7 +3930,7 @@ const appTransform = {
 
     promptOpenConvertedMap(pt) {
         // Nếu màn hình lớn (đang có Live Map hiển thị bên cạnh), không cần hiện pop-up phiền toái
-        if (window.innerWidth >= 1024) {
+        if (isTransformSideBySide()) {
             return;
         }
         const modal = document.getElementById('modalPromptConvertedMap');
@@ -4429,7 +4475,7 @@ const appTransform = {
     applySplitRatio(percent, resizeMap = true) {
         const layout = document.getElementById('transformSplitLayout');
         if (!layout) return;
-        const isDesktop = window.innerWidth >= 1024;
+        const isDesktop = isTransformSideBySide();
         if (isDesktop) {
             const clamped = Math.max(32, Math.min(75, percent));
             layout.style.setProperty('--tf-content-width', `${clamped}%`);
@@ -4473,7 +4519,7 @@ const appTransform = {
 
         const onPointerMove = (e) => {
             if (!isDragging) return;
-            const isDesktop = window.innerWidth >= 1024;
+            const isDesktop = isTransformSideBySide();
             const rect = layout.getBoundingClientRect();
 
             if (isDesktop) {
@@ -4870,14 +4916,7 @@ const appTransformMap = {
     populateSheetProvinces() {
         const sel = document.getElementById('sheetTfSelectProvince');
         if (!sel || typeof VN_PROVINCES === 'undefined') return;
-        sel.innerHTML = '';
-        VN_PROVINCES.forEach((p, idx) => {
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')`;
-            if (p.name === AppState.provinceName || (p.deg === AppState.kttDeg && p.min === AppState.kttMin)) opt.selected = true;
-            sel.appendChild(opt);
-        });
+        sel.innerHTML = provinceOptionsHtml(AppState.provinceIndex);
     },
 
     populateSheetProjects() {
@@ -5669,7 +5708,7 @@ const appTransformMap = {
                 showToast("⚠️ Clipboard trống!", true);
                 return;
             }
-            const lines = text.trim().split(/\r?\r\n/);
+            const lines = text.trim().split(/\r\n|\r|\n/);
             let added = 0;
             lines.forEach(line => {
                 const parts = line.trim().split(/[\t,; ]+/);
@@ -5975,6 +6014,8 @@ const appGps = {
         if (!btn || !txt) return;
 
         btn.classList.remove('gps-active', 'gps-searching', 'gps-off', 'gps-error');
+        // Trang chủ chỉ hiện khối tọa độ GPS lớn khi GPS đang bật (tắt: một nút "Bật GPS").
+        if (document.body) document.body.classList.toggle('gps-on', status === 'active' || status === 'searching');
 
         if (status === 'off') {
             btn.classList.add('gps-off');
@@ -9993,6 +10034,19 @@ function doGet(e) {
         }
     },
 
+    // CSV chuẩn của ứng dụng: 10 cột, cùng thứ tự với Excel (đủ Cao độ H để nạp lại không mất số liệu),
+    // UTF-8 BOM để Excel đọc đúng tiếng Việt, X/Y/H 3 số lẻ (mm), Lat/Lng 8 số lẻ (~1 mm).
+    _buildCsvText(pts) {
+        const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
+        const fix = (v, d) => (typeof v === 'number' && Number.isFinite(v)) ? v.toFixed(d) : (v || '');
+        const rows = [headers.map(h => csvCell(h)).join(",")];
+        (pts || []).forEach(p => {
+            rows.push([p.time, p.name, fix(p.x, 3), fix(p.y, 3), fix(p.h, 3), fix(p.lat, 8), fix(p.lng, 8), p.mui, p.ktt, p.note]
+                .map(v => csvCell(v)).join(","));
+        });
+        return "\uFEFF" + rows.join("\r\n");
+    },
+
     exportCsvFile() {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
@@ -10002,27 +10056,7 @@ function doGet(e) {
 
         const outName = (this.exportContext === 'transform' ? 'KetQua_ChuyenDoi_VN2000.csv' : (AppState.currentProject || "VN2000_SoLieu_DoDac.csv"));
 
-        // Cấu trúc dữ liệu CSV 9 cột chuẩn
-        const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
-        const rows = [headers.join(",")];
-
-        pts.forEach(p => {
-            const row = [
-                `"${p.time || ''}"`,
-                `"${p.name || ''}"`,
-                `"${p.x || ''}"`,
-                `"${p.y || ''}"`,
-                `"${p.lat || ''}"`,
-                `"${p.lng || ''}"`,
-                `"${p.mui || ''}"`,
-                `"${p.ktt || ''}"`,
-                `"${(p.note || '').replace(/"/g, '""')}"`
-            ];
-            rows.push(row.join(","));
-        });
-
-        // Gắn UTF-8 BOM (\uFEFF)
-        const csvContent = "\uFEFF" + rows.join("\r\n");
+        const csvContent = this._buildCsvText(pts);
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -10041,23 +10075,7 @@ function doGet(e) {
         if (!pts || pts.length === 0) return showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để chia sẻ!", true);
         const outName = (this.exportContext === 'transform' ? 'KetQua_ChuyenDoi_VN2000.csv' : (AppState.currentProject || "VN2000_SoLieu_DoDac.csv"));
 
-        const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
-        const rows = [headers.join(",")];
-        pts.forEach(p => {
-            rows.push([
-                `"${p.time || ''}"`,
-                `"${p.name || ''}"`,
-                `"${p.x || ''}"`,
-                `"${p.y || ''}"`,
-                `"${p.lat || ''}"`,
-                `"${p.lng || ''}"`,
-                `"${p.mui || ''}"`,
-                `"${p.ktt || ''}"`,
-                `"${(p.note || '').replace(/"/g, '""')}"`
-            ].join(","));
-        });
-
-        const csvContent = "\uFEFF" + rows.join("\r\n");
+        const csvContent = this._buildCsvText(pts);
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const file = new File([blob], AppState.currentProject, { type: "text/csv" });
 
@@ -10229,6 +10247,18 @@ function doGet(e) {
     },
 
     getExportPoints() {
+        const raw = this._collectExportPoints();
+        if (typeof normalizeSurveyPoints !== 'function') return raw;
+        // Mọi định dạng xuất dùng chung một bộ số liệu đã chuẩn hóa (xem geodesy.js).
+        const pts = normalizeSurveyPoints(raw, { ktt: AppState.kttVal, mui: AppState.muiVal });
+        const dropped = (raw ? raw.length : 0) - pts.length;
+        if (dropped > 0 && typeof showToast === 'function') {
+            showToast(`⚠️ Bỏ qua ${dropped} điểm không có tọa độ hợp lệ khi xuất file.`, true);
+        }
+        return pts;
+    },
+
+    _collectExportPoints() {
         if (this._customExportPoints && Array.isArray(this._customExportPoints) && this._customExportPoints.length > 0) {
             return this._customExportPoints;
         }
@@ -10242,6 +10272,7 @@ function doGet(e) {
                 lat: r.lat !== 'Lỗi' ? r.lat : 0,
                 lng: r.lng !== 'Lỗi' ? r.lng : 0,
                 h: 0,
+                ktt: r.ktt,
                 note: r.ktt || 'Chuyển đổi'
             }));
         }
@@ -11790,26 +11821,29 @@ function doGet(e) {
         }
 
         const projName = (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc");
-        let kml = `<?xml version="1.0" encoding="UTF-8"?>\r\n<kml xmlns="http://www.opengis.net/kml/2.2">\r\n<Document>\r\n<name>${projName}</name>\r\n`;
+        let kml = `<?xml version="1.0" encoding="UTF-8"?>\r\n<kml xmlns="http://www.opengis.net/kml/2.2">\r\n<Document>\r\n<name>${escapeXml(projName)}</name>\r\n`;
         kml += `<Style id="pointStyle"><IconStyle><color>ff00ff00</color><scale>1.1</scale><Icon><href>https://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style>\r\n`;
         kml += `<Style id="lineStyle"><LineStyle><color>ff00ffff</color><width>3</width></LineStyle><PolyStyle><color>4000ffff</color></PolyStyle></Style>\r\n`;
 
         pts.forEach(p => {
             const lat = parseFloat(p.lat) || 0;
             const lng = parseFloat(p.lng) || 0;
-            const cleanName = (p.name || 'Moc').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const cleanName = escapeXml(p.name || 'Moc');
+            // Nội dung mô tả để trong CDATA nhưng vẫn thoát ký tự để không vỡ khi có "]]>" hoặc thẻ HTML lạ.
+            const xy = (v) => (typeof v === 'number' ? v.toFixed(3) : escapeXml(v));
             kml += `<Placemark>\r\n<name>${cleanName}</name>\r\n<description><![CDATA[`;
-            kml += `<div><b>Dự án:</b> ${projName}</div>`;
-            kml += `<div><b>VN-2000 X:</b> ${p.x} m</div>`;
-            kml += `<div><b>VN-2000 Y:</b> ${p.y} m</div>`;
-            kml += `<div><b>WGS-84:</b> ${p.lat}, ${p.lng}</div>`;
-            if (p.note) kml += `<div><b>Ghi chú:</b> ${p.note}</div>`;
+            kml += `<div><b>Dự án:</b> ${escapeXml(projName)}</div>`;
+            kml += `<div><b>VN-2000 X:</b> ${xy(p.x)} m</div>`;
+            kml += `<div><b>VN-2000 Y:</b> ${xy(p.y)} m</div>`;
+            kml += `<div><b>KTT:</b> ${escapeXml(p.ktt || '')} · Múi ${escapeXml(p.mui || '')}°</div>`;
+            kml += `<div><b>WGS-84:</b> ${lat.toFixed(8)}, ${lng.toFixed(8)}</div>`;
+            if (p.note) kml += `<div><b>Ghi chú:</b> ${escapeXml(p.note)}</div>`;
             kml += `]]></description>\r\n<styleUrl>#pointStyle</styleUrl>\r\n`;
-            kml += `<Point><coordinates>${lng},${lat},0</coordinates></Point>\r\n</Placemark>\r\n`;
+            kml += `<Point><coordinates>${lng.toFixed(8)},${lat.toFixed(8)},${(parseFloat(p.h) || 0).toFixed(3)}</coordinates></Point>\r\n</Placemark>\r\n`;
         });
 
         if (pts.length >= 2) {
-            kml += `<Placemark>\r\n<name>Ranh: ${projName}</name>\r\n<styleUrl>#lineStyle</styleUrl>\r\n`;
+            kml += `<Placemark>\r\n<name>Ranh: ${escapeXml(projName)}</name>\r\n<styleUrl>#lineStyle</styleUrl>\r\n`;
             if (pts.length >= 3) {
                 kml += `<Polygon><outerBoundaryIs><LinearRing><coordinates>\r\n`;
                 pts.forEach(p => { kml += `${p.lng},${p.lat},0\r\n`; });
@@ -11892,6 +11926,7 @@ function doGet(e) {
                         }
                     }
 
+                    if (appData.openImportPreviewFromWorkbook(wb, file.name)) return;
                     const points = appData.extractPointsFromWorkbook(wb);
                     if (points && points.length > 0) {
                         appData.saveImportedPoints(points, file.name);
@@ -11930,17 +11965,37 @@ function doGet(e) {
                 if (text && text.includes('<table') && typeof XLSX !== 'undefined') {
                     try {
                         const wb = XLSX.read(text, { type: 'string' });
+                        if (appData.openImportPreviewFromWorkbook(wb, file.name)) return;
                         const points = appData.extractPointsFromWorkbook(wb);
                         if (points && points.length > 0) {
                             return appData.saveImportedPoints(points, file.name);
                         }
                     } catch(err) {}
                 }
+                // Bảng văn bản (CSV/TXT/DAT): xem trước, kiểm tra cột & KTT rồi mới nạp.
+                if (typeof ImportPreview !== 'undefined') {
+                    const rows = ImportPreview.textToRows(text);
+                    if (rows.length) return ImportPreview.open(rows, file.name);
+                }
                 appData.processImportedText(text, file.name);
             };
             reader.readAsText(file, "UTF-8");
         }
         event.target.value = "";
+    },
+
+    // Excel → xem trước: chọn trang tính đầu tiên có cột tọa độ nhận ra được (hoặc trang đầu).
+    openImportPreviewFromWorkbook(wb, fileName) {
+        if (typeof ImportPreview === 'undefined' || !wb || !wb.SheetNames || !wb.SheetNames.length) return false;
+        const sheets = wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true, blankrows: false })
+            .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== '')));
+        const pick = sheets.find(rows => {
+            const m = ImportPreview.guessMapping(rows);
+            return (m.cols.x !== undefined && m.cols.y !== undefined) || (m.cols.lat !== undefined && m.cols.lng !== undefined);
+        }) || sheets[0];
+        if (!pick || !pick.length) return false;
+        ImportPreview.open(pick, fileName);
+        return true;
     },
 
     // ================= NẠP TỆP GIS VÀO SỔ ĐO DỰ ÁN (GEOJSON / KML / GPX / WKT) =================
@@ -12214,12 +12269,7 @@ function doGet(e) {
     initManualPasteControls() {
         const provSel = document.getElementById('selManualKttProvince');
         if (provSel && typeof VN_PROVINCES !== 'undefined' && provSel.options.length <= 1) {
-            VN_PROVINCES.forEach((p, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}')`;
-                provSel.appendChild(opt);
-            });
+            provSel.insertAdjacentHTML('beforeend', provinceOptionsHtml(-1));
         }
         const muiSel = document.getElementById('selManualMui');
         if (muiSel && AppState.muiVal) {
@@ -12361,8 +12411,8 @@ function doGet(e) {
             coordTypeInferred = 'VN2000 (Y, X)';
             try {
                 const wgs = convertVn2kToWgs(x, y, targetKtt, targetK0);
-                lat = parseFloat(wgs.lat.toFixed(6));
-                lng = parseFloat(wgs.lng.toFixed(6));
+                lat = parseFloat(wgs.lat.toFixed(9));
+                lng = parseFloat(wgs.lng.toFixed(9));
             } catch(e) {}
         } else if (fmt === 'vn2k_xy') {
             // Ép buộc VN-2000 Chuẩn: X (Bắc) trước, Y (Đông) sau
@@ -12371,8 +12421,8 @@ function doGet(e) {
             coordTypeInferred = 'VN2000 (X, Y)';
             try {
                 const wgs = convertVn2kToWgs(x, y, targetKtt, targetK0);
-                lat = parseFloat(wgs.lat.toFixed(6));
-                lng = parseFloat(wgs.lng.toFixed(6));
+                lat = parseFloat(wgs.lat.toFixed(9));
+                lng = parseFloat(wgs.lng.toFixed(9));
             } catch(e) {}
         } else if (fmt === 'wgs_lnglat') {
             // Ép buộc WGS-84 Đảo: Lng trước, Lat sau
@@ -12412,8 +12462,8 @@ function doGet(e) {
                 }
                 try {
                     const wgs = convertVn2kToWgs(x, y, targetKtt, targetK0);
-                    lat = parseFloat(wgs.lat.toFixed(6));
-                    lng = parseFloat(wgs.lng.toFixed(6));
+                    lat = parseFloat(wgs.lat.toFixed(9));
+                    lng = parseFloat(wgs.lng.toFixed(9));
                 } catch(e) {}
             } else if (Math.abs(val1) <= 180 && Math.abs(val2) <= 180 && (Math.abs(val1) <= 90 || Math.abs(val2) <= 90)) {
                 // Tọa độ GPS / WGS-84
@@ -12467,7 +12517,7 @@ function doGet(e) {
         }
 
         const opts = this.getManualImportOptions();
-        const lines = txt.split(/\r?\r\n/).map(l => l.trim()).filter(Boolean);
+        const lines = txt.split(/\r\n|\r|\n/).map(l => l.trim()).filter(Boolean);
         const parsed = [];
 
         lines.forEach((line, idx) => {
@@ -12512,12 +12562,24 @@ function doGet(e) {
     },
 
     processImportedText(text, defaultName, customOptions = null) {
-        const lines = text.split(/\r?\r\n/).map(l => l.trim()).filter(l => l.length > 0);
+        // Chấp nhận mọi kiểu xuống dòng: CRLF (Windows), LF (Mac/Linux, máy đo, Excel→CSV), CR.
+        const lines = String(text || '').replace(/^\uFEFF/, '').split(/\r\n|\r|\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length === 0) {
             return showToast("⚠️ Không tìm thấy dữ liệu tọa độ nào trong nội dung!", true);
         }
 
         const opts = customOptions || this.getManualImportOptions();
+
+        // File có dòng tiêu đề (kể cả file do chính ứng dụng xuất): ánh xạ cột theo tên, giữ KTT/múi của từng điểm.
+        if ((!opts.format || opts.format === 'auto') && typeof parseHeaderedTable === 'function') {
+            const table = parseHeaderedTable(text, { ktt: opts.ktt || AppState.kttVal, mui: opts.muiVal || AppState.muiVal });
+            if (table && table.points.length) {
+                if (table.skipped > 0) showToast(`⚠️ Bỏ qua ${table.skipped} dòng không có tọa độ hợp lệ.`, true);
+                const now = new Date().toLocaleString('vi-VN');
+                table.points.forEach(p => { if (!p.time) p.time = now; });
+                return appData.saveImportedPoints(table.points, defaultName);
+            }
+        }
         const parsedPoints = [];
 
         lines.forEach((line, idx) => {
@@ -12718,14 +12780,7 @@ const appModal = {
         // 1. Khởi tạo dữ liệu Tab KTT
         const sel = document.getElementById('modalProvinceSelect');
         if (sel) {
-            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>';
-            VN_PROVINCES.forEach((p, idx) => {
-                const opt = document.createElement('option');
-                opt.value = idx;
-                opt.innerText = `${p.name} (${p.deg}°${String(p.min).padStart(2,'0')}')`;
-                if (idx === AppState.provinceIndex) opt.selected = true;
-                sel.appendChild(opt);
-            });
+            sel.innerHTML = '<option value="-1">--- Tự nhập kinh tuyến trục ---</option>' + provinceOptionsHtml(AppState.provinceIndex);
         }
 
         const degInput = document.getElementById('txtModalDeg');
@@ -13150,6 +13205,32 @@ const appModal = {
         AppState.scaleFactor = (mui === 3) ? 0.9999 : 0.9996;
     },
 
+    // Tỉnh theo vị trí GPS (ranh giới 34 tỉnh sau sáp nhập) → chọn KTT tương ứng trong ô chọn tỉnh.
+    async suggestKttFromGps() {
+        const g = AppState.lastGps;
+        if (!g || !Number.isFinite(g.lat)) {
+            showToast('⚠️ Chưa có vị trí GPS. Bật GPS (nút vệ tinh trên thanh tiêu đề) rồi thử lại.', true);
+            return;
+        }
+        try {
+            await VnAdmin2025.load();
+        } catch (e) {
+            showToast('⚠️ Chưa tải được dữ liệu địa giới (cần mạng ở lần dùng đầu tiên).', true);
+            return;
+        }
+        const hit = VnAdmin2025.lookup(g.lat, g.lng);
+        const idx = hit ? VN_PROVINCES.findIndex(p => p.era === '2025' && p.code === hit.provinceCode) : -1;
+        if (idx < 0) {
+            showToast('⚠️ Vị trí GPS không nằm trong ranh giới tỉnh nào của Việt Nam.', true);
+            return;
+        }
+        const sel = document.getElementById('modalProvinceSelect');
+        if (sel) sel.value = String(idx);
+        appModal.onProvinceChange();
+        const p = VN_PROVINCES[idx];
+        showToast(`📍 ${VnAdmin2025.formatAddress(hit)} → KTT ${p.deg}°${String(p.min).padStart(2, '0')}'${p.verify ? ' (⚠ cần đối chiếu Thông tư 24/2025)' : ''}. Bấm Lưu để áp dụng.`);
+    },
+
     onProvinceChange() {
         const idx = parseInt(document.getElementById('modalProvinceSelect').value, 10);
         if (idx >= 0 && idx < VN_PROVINCES.length) {
@@ -13167,17 +13248,8 @@ const appModal = {
         if (!container) return;
         if (container.children.length > 0) return; // Đã render rồi
 
-        const presets = (typeof COMMON_KTT_PRESETS !== 'undefined') ? COMMON_KTT_PRESETS : [
-            { deg: 105, min: 0, decimal: 105.0, label: "105°00' (105.0°)", provinces: "Lai Châu, Điện Biên" },
-            { deg: 105, min: 30, decimal: 105.5, label: "105°30' (105.5°)", provinces: "Hà Giang, Tuyên Quang" },
-            { deg: 105, min: 45, decimal: 105.75, label: "105°45' (105.75°)", provinces: "TP.HCM, Tây Ninh, Bình Phước" },
-            { deg: 106, min: 0, decimal: 106.0, label: "106°00' (106.0°)", provinces: "Đồng Nai, Bình Dương, Long An" },
-            { deg: 106, min: 30, decimal: 106.5, label: "106°30' (106.5°)", provinces: "Bà Rịa - Vũng Tàu, Tiền Giang" },
-            { deg: 107, min: 0, decimal: 107.0, label: "107°00' (107.0°)", provinces: "Lâm Đồng, Đắk Lắk" },
-            { deg: 107, min: 45, decimal: 107.75, label: "107°45' (107.75°)", provinces: "Bình Thuận" },
-            { deg: 108, min: 0, decimal: 108.0, label: "108°00' (108.0°)", provinces: "Khánh Hòa, Phú Yên, Gia Lai" },
-            { deg: 108, min: 30, decimal: 108.5, label: "108°30' (108.5°)", provinces: "Đà Nẵng, Quảng Nam, Quảng Ngãi" }
-        ];
+        // Danh sách sinh từ bảng 63 tỉnh trong geodesy.js (luôn nạp trước app.js).
+        const presets = (typeof COMMON_KTT_PRESETS !== 'undefined') ? COMMON_KTT_PRESETS : [];
 
         container.innerHTML = '';
         presets.forEach(p => {
@@ -14063,12 +14135,16 @@ const appCamera = {
         const compassAz = Math.round(appStakeout.compassHeading || 0);
 
         const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
+        // Địa chỉ hành chính sau sáp nhập (01/07/2025), tra ngoại tuyến theo ranh giới 3.321 xã/phường.
+        const address = (typeof VnAdmin2025 !== 'undefined')
+            ? VnAdmin2025.cachedAddress(parseFloat(latStr), parseFloat(lngStr)) : '';
         const lines = [
             `📍 MỐC: ${markName} | DỰ ÁN: ${projName}`,
             `• VN-2000: X = ${xStr} m | Y = ${yStr} m (KTT ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}' Múi ${AppState.muiVal || 3}°)`,
             `• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`,
             `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
         ];
+        if (address) lines.push(`• ĐỊA CHỈ: ${address}`);
 
         return {
             markName,
@@ -14080,6 +14156,7 @@ const appCamera = {
             dateStr,
             gpsAcc,
             compassAz,
+            address,
             lines
         };
     },
@@ -14087,13 +14164,20 @@ const appCamera = {
     // Hàm vẽ thẻ watermark chung (Dùng cho cả Viewfinder realtime, ảnh chụp và video)
     drawWatermark(ctx, canvasW, canvasH, corner = 'bottom-left') {
         const data = this.getWatermarkData();
+        // Phông không chân: phông monospace dự phòng trên Android hiển thị sai dấu tiếng Việt chồng (ồ, ố...).
+        const STAMP_BODY_FONT = (px) => `600 ${px}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif`;
         const scale = Math.max(0.65, Math.min(canvasW / 1000, 2.0));
         const padding = Math.round(12 * scale);
         const fontSizeHeader = Math.round(14 * scale);
         const fontSizeBody = Math.round(11.5 * scale);
         const lineHeight = Math.round(17 * scale);
 
-        const cardW = Math.min(canvasW - padding * 2, Math.round(520 * scale));
+        // Khung rộng vừa dòng dài nhất (tối thiểu 520, tối đa bằng ảnh) để không cắt mất thời gian / địa chỉ.
+        ctx.save();
+        ctx.font = STAMP_BODY_FONT(fontSizeBody);
+        const widest = Math.max(...data.lines.map(l => ctx.measureText(l).width));
+        ctx.restore();
+        const cardW = Math.min(canvasW - padding * 2, Math.max(Math.round(520 * scale), Math.ceil(widest + padding * 2)));
         const cardH = padding * 2 + fontSizeHeader + (data.lines.length * lineHeight) + Math.round(6 * scale);
 
         let cardX = padding;
@@ -14144,12 +14228,20 @@ const appCamera = {
         ctx.stroke();
 
         // Dòng thông tin
-        ctx.font = `600 ${fontSizeBody}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        ctx.font = STAMP_BODY_FONT(fontSizeBody);
         let curY = cardY + padding + fontSizeHeader + Math.round(4 * scale) + lineHeight;
 
+        const maxTextW = cardW - padding * 2;
+        const fit = (text) => {
+            if (ctx.measureText(text).width <= maxTextW) return text;
+            let t = text;
+            while (t.length > 4 && ctx.measureText(t + '…').width > maxTextW) t = t.slice(0, -1);
+            return t + '…';
+        };
         data.lines.forEach((l, idx) => {
-            ctx.fillStyle = (idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1"));
-            ctx.fillText(l, cardX + padding, curY);
+            const isAddress = data.address && l.startsWith('• ĐỊA CHỈ');
+            ctx.fillStyle = isAddress ? "#fbbf24" : ((idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1")));
+            ctx.fillText(fit(l), cardX + padding, curY);
             curY += lineHeight;
         });
 
@@ -17761,9 +17853,9 @@ const appGis = {
         const cur = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'`;
         const opts = [`<option value="current">Giữ KTT hiện tại — ${escapeHtml(AppState.provinceName || 'Tùy chỉnh')} (${cur})</option>`];
         if (typeof VN_PROVINCES !== 'undefined') {
-            VN_PROVINCES.forEach((p, i) => {
-                opts.push(`<option value="${i}">${escapeHtml(p.name)} (${p.deg}°${String(p.min).padStart(2, '0')}' = ${p.ktt})</option>`);
-            });
+            const label = (p) => `${p.name} (${p.deg}°${String(p.min).padStart(2, '0')}' = ${p.ktt})${p.verify ? ' ⚠' : ''}`;
+            if (typeof provinceOptionsHtml === 'function') opts.push(provinceOptionsHtml(-1, label));
+            else VN_PROVINCES.forEach((p, i) => opts.push(`<option value="${i}">${escapeHtml(label(p))}</option>`));
         }
         sel.innerHTML = opts.join('');
     },
@@ -20167,6 +20259,8 @@ const appCadTool = {
         if (cmdBar) {
             cmdBar.style.display = 'block';
             this.initFloatingCmdBarDrag();
+            // Thanh lệnh chỉ còn dòng tiêu đề trên màn ngang thấp để không đè thanh công cụ (bấm + để mở).
+            if (this.isCompactCadViewport()) this.setCmdBarCollapsed(true);
         }
 
         // Bật CAD Realtime Status & Coordinates HUD Bar
@@ -21618,13 +21712,15 @@ const appCadTool = {
         const hasValidLatLng = isFinite(lat) && isFinite(lng) && lat > 1 && lng > 50;
         const hasValidXY = isFinite(x) && isFinite(y) && x > 10000;
 
-        // Tự động kiểm tra phát hiện lệch tọa độ VN2000 (X, Y) so với (lat, lng) khi kéo đỉnh
-        let needRecomputeVn2k = forceSyncVn2k || !hasValidXY;
-        if (!needRecomputeVn2k && hasValidLatLng && hasValidXY) {
+        // X/Y là số liệu đo gốc: chỉ tính lại từ lat/lng khi đỉnh thật sự bị dời (kéo đỉnh).
+        // lat/lng lưu 7 số lẻ (sai số làm tròn ≤ 5e-8° ≈ 5 mm) nên ngưỡng phải lớn hơn mức đó,
+        // nếu không mỗi lần lưu khối sẽ làm X/Y trôi vài mm.
+        let needRecomputeVn2k = !hasValidXY;
+        if (!needRecomputeVn2k && hasValidLatLng) {
+            const tol = forceSyncVn2k ? 0.0000001 : 0.0000005; // ~1.1 cm khi đồng bộ chủ động, ~5.5 cm khi tự kiểm
             try {
                 const checkWgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
-                // Nếu tọa độ WGS84 lệch trên ~0.05m (0.0000005 độ) so với lat/lng thực tế -> cần đồng bộ lại
-                if (Math.abs(checkWgs.lat - lat) > 0.0000005 || Math.abs(checkWgs.lng - lng) > 0.0000005) {
+                if (Math.abs(checkWgs.lat - lat) > tol || Math.abs(checkWgs.lng - lng) > tol) {
                     needRecomputeVn2k = true;
                 }
             } catch (e) {}
@@ -30108,23 +30204,11 @@ const appCadTool = {
     },
 
     updateCmdRibbonActiveStates() {
-        const rPoly = document.getElementById('btnCadRibbonPoly');
-        const rLine = document.getElementById('btnCadRibbonLine');
-        const rRect = document.getElementById('btnCadRibbonRect');
-        const rCircle = document.getElementById('btnCadRibbonCircle');
-        const rSelect = document.getElementById('btnCadRibbonSelect');
-        const rArrow = document.getElementById('btnCadRibbonArrow');
         const rOsnap = document.getElementById('btnCadRibbonOsnap');
         const rOrtho = document.getElementById('btnCadRibbonOrtho');
         const rSnapLine = document.getElementById('btnCadRibbonSnapLine');
         const rDyn = document.getElementById('btnCadRibbonDyn');
 
-        if (rPoly) rPoly.classList.toggle('active', this.mode === 'polygon');
-        if (rLine) rLine.classList.toggle('active', this.mode === 'polyline');
-        if (rRect) rRect.classList.toggle('active', this.markupMode === 'rect');
-        if (rCircle) rCircle.classList.toggle('active', this.markupMode === 'circle');
-        if (rSelect) rSelect.classList.toggle('active', this.mode === 'select');
-        if (rArrow) rArrow.classList.toggle('active', this.markupMode === 'arrow');
         if (rOsnap) rOsnap.classList.toggle('active', !!this.snapEnabled);
         if (rOrtho) rOrtho.classList.toggle('active', !!this.orthoMode);
         if (rSnapLine) rSnapLine.classList.toggle('active', !!this.snapLineEnabled);
@@ -30334,18 +30418,31 @@ const appCadTool = {
 
     toggleCmdBarCollapse() {
         const wrap = document.getElementById('cadCmdInputWrap');
+        const isCollapsed = wrap && wrap.style.display === 'none';
+        this.setCmdBarCollapsed(!isCollapsed);
+        showToast(isCollapsed ? '📐 Đã bung rộng thanh lệnh CADCraft CLI' : '📐 Đã thu nhỏ thanh lệnh (Bấm + để bung ra)');
+    },
+
+    setCmdBarCollapsed(collapsed) {
+        const wrap = document.getElementById('cadCmdInputWrap');
         const rib = document.getElementById('cadCmdStatusRibbon');
         const grid = document.getElementById('cadCmdAllToolsGrid');
         const btn = document.getElementById('btnCadCmdCollapseToggle');
         if (grid) grid.style.display = 'none';
-        const isCollapsed = wrap && wrap.style.display === 'none';
-        if (wrap) wrap.style.display = isCollapsed ? 'flex' : 'none';
-        if (rib) rib.style.display = isCollapsed ? 'flex' : 'none';
+        if (wrap) wrap.style.display = collapsed ? 'none' : 'flex';
+        if (rib) rib.style.display = collapsed ? 'none' : 'flex';
         if (btn) {
-            btn.innerHTML = isCollapsed ? '_' : '+';
-            btn.title = isCollapsed ? 'Thu nhỏ thanh lệnh [_]' : 'Bung rộng thanh lệnh [+]';
+            btn.innerHTML = collapsed ? '+' : '_';
+            btn.title = collapsed ? 'Bung rộng thanh lệnh [+]' : 'Thu nhỏ thanh lệnh [_]';
         }
-        showToast(isCollapsed ? '📐 Đã bung rộng thanh lệnh CADCraft CLI' : '📐 Đã thu nhỏ thanh lệnh (Bấm + để bung ra)');
+    },
+
+    // Điện thoại (xoay ngang thấp, hoặc màn dọc hẹp): không đủ chỗ cho cả thanh công cụ lẫn thanh lệnh mở rộng,
+    // nên thanh lệnh mở ở dạng thu gọn (bấm + để mở).
+    isCompactCadViewport() {
+        return typeof window !== 'undefined' && !!window.matchMedia
+            && (window.matchMedia('(orientation: landscape) and (max-height: 620px)').matches
+                || window.matchMedia('(orientation: portrait) and (max-width: 600px)').matches);
     },
 
     toggleCmdBarVisibility() {
@@ -31458,7 +31555,7 @@ const appCadTool = {
         }
 
         // 2. Phân tích nếu là file CSV hoặc text
-        const lines = text.split(/\r?\r\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const lines = text.split(/\r\n|\r|\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length >= 2) {
             const firstDataLine = lines.find(l => l.includes(';') || l.includes(',') || l.includes('\t')) || '';
             const delimiter = firstDataLine.includes(';') ? ';' : (firstDataLine.includes('\t') ? '\t' : ',');
@@ -35303,6 +35400,7 @@ const appTheme = {
 // ================= 10.10 CỬA SỔ CHỜ 20S ĐỒNG HÀNH CÙNG DỰ ÁN (1 LẦN/NGÀY) =================
 const appDonate = {
     STORAGE_KEY: 'vn2k_donate_last_shown_date_v1',
+    FIRST_USE_KEY: 'vn2k_first_use_date_v1',
     COUNTDOWN_SECONDS: 20,
     timerId: null,
     remainingSeconds: 20,
@@ -35434,6 +35532,13 @@ const appDonate = {
             if (typeof localStorage === 'undefined') return;
             const today = new Date().toLocaleDateString('en-CA');
             const lastShown = localStorage.getItem(this.STORAGE_KEY);
+            // Người dùng mới: để họ dùng thử trọn ngày đầu, không chặn bằng màn chờ 20s.
+            let firstUse = localStorage.getItem(this.FIRST_USE_KEY);
+            if (!firstUse) {
+                firstUse = lastShown || today;
+                localStorage.setItem(this.FIRST_USE_KEY, firstUse);
+            }
+            if (!lastShown && firstUse === today) return;
             if (lastShown !== today) {
                 localStorage.setItem(this.STORAGE_KEY, today);
                 setTimeout(() => {
@@ -35571,7 +35676,7 @@ const appDonate = {
                 btnClose.classList.remove('btn-ready');
                 btnClose.style.opacity = '0.65';
                 btnClose.style.cursor = 'not-allowed';
-                btnClose.innerHTML = '⏳ Chờ <b>' + this.remainingSeconds + 's</b> để vào ứng dụng...';
+                btnClose.innerHTML = '<span>⏳ Chờ <b>' + this.remainingSeconds + 's</b> để vào ứng dụng...</span>';
             } else {
                 this.unlockCloseButton();
             }
@@ -35780,6 +35885,8 @@ const appI18n = {
 
             // Dashboard
             'dash.section_title': 'NGHIỆP VỤ TRẮC ĐỊA THỰC ĐỊA',
+            'home.gps_on': 'Bật GPS',
+            'home.gps_on_sub': 'để xem tọa độ VN-2000 tại vị trí đang đứng',
             'dash.btn_pins': '⭐ Đổi ghim',
             'dash.all_tools': 'Công Cụ Kỹ Thuật & Tiện Ích Khác',
             'dash.all_tools_sub': 'Nghiệp vụ trắc địa & đồ họa chuyên sâu',
@@ -35901,7 +36008,7 @@ const appI18n = {
 
             // Features Short Names
             'feature.transform': 'Chuyển Đổi Tọa Độ',
-            'feature.map': 'Bản Đồ Trắc Địa',
+            'feature.map': 'Bản Đồ Dự Án',
             'feature.stakeout': 'Cắm Mốc Thực Địa',
             'feature.datamgmt': 'Sổ Đo & Dự Án',
             'feature.camera': 'Camera Khảo Sát',
@@ -35932,6 +36039,8 @@ const appI18n = {
 
             // Dashboard
             'dash.section_title': 'FIELD CORE OPERATIONS',
+            'home.gps_on': 'Turn on GPS',
+            'home.gps_on_sub': 'to see VN-2000 coordinates where you stand',
             'dash.btn_pins': '⭐ Pins',
             'dash.all_tools': 'Technical Tools & Utilities',
             'dash.all_tools_sub': 'Advanced surveying & geodetic graphics',
@@ -37841,6 +37950,30 @@ const appI18n = {
         "Cài PWA mọi thiết bị, 7 tham số BTNMT": "Cai PWA every device, 7 tham so BTNMT",
         "5.6 Cài đặt Ngày giờ Hệ thống": "5.6 settings date gio system",
         "Đồng bộ tự động / Chỉnh thủ công múi giờ": "Close bo automatically / Chinh manually zone gio",
+        "1.3 Đổi KTT / Múi chiếu VN-2000": "1.3 Change VN-2000 CM / Zone",
+        "VN-2000 ⇄ VN-2000 giữa các tỉnh, múi 3° / 6°": "VN-2000 ⇄ VN-2000 between provinces, 3° / 6° zones",
+        "1.4 Bản đồ Chuyển đổi & Chấm điểm": "1.4 Conversion Map & Point Picking",
+        "Bản Đồ & Thực Địa": "Map & Field Work",
+        "2.3 Camera khảo sát đóng dấu tọa độ": "2.3 Survey Camera with Coordinate Stamp",
+        "2.4 Bật/Tắt & Kiểm tra sai số GPS": "2.4 Toggle GPS & Check Accuracy",
+        "2.5 Kết nối Máy Định Vị RTK Ngoài": "2.5 Connect External RTK GNSS Receiver",
+        "Sổ Đo & Dữ Liệu Dự Án": "Field Book & Project Data",
+        "Tính Toán & Đồ Họa Kỹ Thuật": "Calculations & Technical Drawing",
+        "4.1 Bài toán trắc địa: cự ly, phương vị, diện tích": "4.1 Survey Calculations: Distance, Azimuth, Area",
+        "4.2 Giao hội trắc địa khi mất sóng GPS": "4.2 Resection When GPS Is Lost",
+        "4.4 MiniCAD: Vẽ mặt bằng & Bảng kê": "4.4 MiniCAD: Site Plan & Area Tables",
+        "Hệ Thống & Trợ Giúp": "System & Help",
+        "5.2 Cài đặt Ngày giờ Hệ thống": "5.2 System Date & Time",
+        "5.3 Cẩm Nang & Sổ Tay Hướng Dẫn": "5.3 User Handbook & Guide",
+        "5.4 Thông tin & Cẩm nang 10 nghiệp vụ": "5.4 About & Field Workflow Guide",
+        "5.5 Ủng hộ tác giả": "5.5 Support the Author",
+        "Tùy tâm tiếp sức phát triển ứng dụng": "Optional contribution to keep the app growing",
+        "🔁 Đổi KTT / Múi": "🔁 Change CM / Zone",
+        "2. Bản Đồ Dự Án & Mốc": "2. Project Map & Benchmarks",
+        "Bản Đồ Dự Án": "Project Map",
+        "2.1 Bản đồ dự án & Mốc": "2.1 Project Map & Benchmarks",
+        "Bật GPS": "Turn on GPS",
+        "để xem tọa độ VN-2000 tại vị trí đang đứng": "to see VN-2000 coordinates where you stand",
         "⭐ 4 Tính Năng Ghim Màn Hình Chính": "⭐ 4 calculate Nang Ghim Man Hinh Chinh",
         "Chọn đúng 4 tính năng đưa lên 4 Khối lớn:": "select dung 4 calculate nang dua len 4 Large Blocks:",
         "Đã chọn: 4/4 mục": "Da select: 4/4 item",
@@ -38509,6 +38642,33 @@ const appI18n = {
 const appGuide = {
     activeGuideKey: 'settings_welcome',
     guides: {
+        'home': {
+            icon: '🧭',
+            title: { vi: 'Bắt Đầu Nhanh Với VN-2000 PRO', en: 'Getting Started With VN-2000 PRO' },
+            category: { vi: 'TRANG CHỦ', en: 'HOME' },
+            purpose: {
+                vi: 'Chuyển đổi tọa độ WGS-84 ⇄ VN-2000 theo kinh tuyến trục của từng tỉnh, rồi dùng bản đồ, cắm mốc, sổ đo và MiniCAD khi cần.',
+                en: 'Convert WGS-84 ⇄ VN-2000 using each province\'s central meridian, then use map, stakeout, field book and MiniCAD as needed.'
+            },
+            steps: [
+                {
+                    title: { vi: '1. Chọn tỉnh / kinh tuyến trục (KTT)', en: '1. Choose province / central meridian (CM)' },
+                    desc: { vi: 'Bấm "Đổi KTT" trong khung Chuyển đổi tọa độ (hoặc ⚙️ Cài đặt). Kết quả VN-2000 chỉ đúng khi KTT khớp với tỉnh của điểm đo.', en: 'Tap "Change CM" in the conversion card (or ⚙️ Settings). VN-2000 results are only correct when the CM matches the point\'s province.' }
+                },
+                {
+                    title: { vi: '2. Nhập tọa độ và bấm Chuyển đổi', en: '2. Enter coordinates and tap Convert' },
+                    desc: { vi: 'Chọn chiều chuyển đổi, nhập 2 giá trị rồi bấm Chuyển đổi. Chưa có số liệu? Bấm "Chấm tọa độ trên bản đồ". Nhiều điểm một lúc? Bấm "Mở bộ chuyển đổi đầy đủ".', en: 'Pick a direction, enter two values and tap Convert. No data yet? Tap "Pick coordinates on map". Many points? Tap "Open full converter".' }
+                },
+                {
+                    title: { vi: '3. Mở thêm chức năng khi cần', en: '3. Open more tools when needed' },
+                    desc: { vi: 'Kéo xuống dưới khung chuyển đổi để thấy 4 chức năng chính và "Công cụ kỹ thuật khác" (Camera, Trắc dọc, MiniCAD...). Thanh dưới cùng và nút ☰ Menu mở nhanh mọi chức năng.', en: 'Scroll below the converter for the 4 main features and "Other technical tools" (Camera, Profile, MiniCAD...). The bottom bar and ☰ Menu open every feature.' }
+                }
+            ],
+            proTip: {
+                vi: 'Ở bất kỳ màn hình nào, bấm nút ? trên cùng để xem hướng dẫn riêng cho màn hình đó. Ngoài trời nắng, bật "Thực địa" để tăng tương phản.',
+                en: 'On any screen, tap the ? button at the top for a guide to that screen. In bright sun, turn on "Field" for high contrast.'
+            }
+        },
         'settings_welcome': {
             icon: '⚙️',
             title: { vi: 'Tổng Quan Cài Đặt VN-2000 PRO', en: 'VN-2000 Pro Settings Overview' },
@@ -38989,7 +39149,7 @@ const appGuide = {
         // 5. Kiểm tra màn hình hiện tại
         const cur = (typeof AppState !== 'undefined' && AppState.currentScreen) ? AppState.currentScreen : 'menu';
         const guideKeyMap = {
-            'menu': 'settings_welcome',
+            'menu': 'home',
             'transform': 'transform',
             'datamgmt': 'datamgmt',
             'stakeout': 'stakeout',
@@ -39082,6 +39242,7 @@ const appGuide = {
         const key = guideKey || this.activeGuideKey || 'settings_welcome';
         const sectionMap = {
             'settings_welcome': 'section-overview',
+            'home': 'section-overview',
             'transform': 'section-transform',
             'transform_batch': 'section-batch',
             'gps_map': 'section-map',

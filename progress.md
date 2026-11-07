@@ -1132,3 +1132,48 @@
 - **Bottom Sheet dùng chung**: bỏ hai nút chéo phân hệ "📌 Nạp tọa độ" (`loadSelectedToMain`) và "💾 Lưu mốc" (`savePickedPoint` ghi thẳng vào dự án); xóa hai method chết. Chấm điểm đã có "✓ Lấy tọa độ" trên `#barCoordPicker`; popup điểm chuyển đổi đã có nút nạp.
 - Test: thêm `tests/map_chrome_isolation.test.js` 21/21; `cad_ui_isolation` 26/26; `project_map_readonly_and_table` 14/14; `npm test` 309/309 PASS.
 - Live localhost:8080 (ma trận chuyển cảnh): project → chỉ `mapProjectBar`; cad → chỉ toolbar/HUD CAD; cad→GPS và project→GPS → 0 chrome, `cadActive=false`; picker → chỉ `barCoordPicker`; converted → chỉ Bottom Sheet thông tin; chạm bản đồ GPS/điểm chuyển đổi không mở thêm cửa sổ.
+
+## 2026-11-06 — Tối ưu trải nghiệm người dùng lần đầu (WP-I)
+- **Yêu cầu**: người dùng lần đầu khó hiểu cách dùng → tối ưu và đề xuất chỉnh trang bố cục.
+- **Đã sửa (kiểm tra trực tiếp iPhone 13 390×844 và iPhone SE 320×568)**:
+  1. **Màn chờ ủng hộ 20s** không còn chặn người dùng mới trong ngày đầu tiên (`appDonate.FIRST_USE_KEY = vn2k_first_use_date_v1`); người dùng cũ (đã có `vn2k_donate_last_shown_date_v1`) không đổi. Sửa nhãn nút "Chờ18sđể" dính chữ (bọc `<span>` vì nút là flex).
+  2. **Nút "◀ Quay lại" luôn hiện ở Trang chủ** do `.mac-pill-btn { display: inline-flex !important }` thắng `style.display='none'`. Nay dùng thuộc tính `hidden` (+ `#btnHeaderBack[hidden] { display:none !important }` trong ui-polish.css), HTML khởi tạo sẵn `hidden`. Tên ứng dụng hiện lại trên header.
+  3. **Nút ? ở Trang chủ mở nhầm "Tổng quan Cài đặt"** → thêm hướng dẫn `appGuide.guides.home` (Bắt đầu nhanh 3 bước), `guideKeyMap.menu = 'home'`.
+  4. **Thanh dưới cùng bị cắt chữ** ("Chuyển Đổi Tọa Độ", "Cắm Mốc Thực Địa") → thêm trường `dock` (nhãn ngắn) cho `appDashboard.allFeatures`, `renderTaskbarDock` ưu tiên `f.dock`.
+  5. **Thẻ chào mừng lần đầu** `#fwWelcome` (3 bước + nút "Chọn tỉnh" / "Đã hiểu", nhớ bằng `vn2k_welcome_done`) và **dòng giải thích chế độ** `#fwModeHint` (Đơn giản / Nâng cao) trong `field-workspace.js`, song ngữ.
+  6. Placeholder ô nhập có tiền tố "VD:" để không bị nhầm là giá trị đã điền.
+  7. Trang chủ Nâng cao: đưa 4 ô chức năng chính lên **trước** khối GPS; bỏ cắt tên tỉnh trên chip; badge "4 mục"/"Đổi ghim" không xuống dòng; thanh chế độ cho phép xuống dòng ở màn hẹp (nút Thực địa không bị tràn ở 320px).
+- **Tài nguyên**: `style.css`/`ui-polish.css`/`app.js`/`field-workspace.css`/`field-workspace.js` `?v=2.8.24`; `sw.js` `CACHE_NAME = vn2000-pro-v2.8.24`.
+- **Kiểm chứng**: `npm test` **322/322 PASS** (thêm test "First day of use never blocks a new user…" trong `donate_modal_30s.test.js`); không lỗi JS khi tải trang; không tràn ngang.
+
+## 2026-11-06 — Vùng an toàn tai thỏ / Dynamic Island / xoay ngang (WP-J)
+- **Cách đo**: Playwright + CDP `Emulation.setSafeAreaInsetsOverride` (giả lập `env(safe-area-inset-*)` thật) trên 8 cấu hình: iPhone Dynamic Island dọc/ngang (59/34, 59 hai bên), iPhone tai thỏ dọc/ngang (47/34), Android camera đục lỗ (32/24), iPad dọc/ngang, máy 320px. Quét 12 màn/cửa sổ, cờ khi phần tử bấm được nằm trong vùng inset.
+- **Lỗi gốc**: `ui-polish.css` `header.app-header.mac-top-bar { height:54px; padding:0 16px !important }` thắng cách xử lý inset của `style.css` → ☰ / ⚙️ / ? nằm ngay dưới camera trên MỌI màn hình iPhone/Android có tai thỏ. Nay header cao `inset trên + 54px` (ngang: `+44px`), padding chừa inset trên/trái/phải.
+- **Đã sửa thêm**:
+  1. Ngăn kéo Menu ☰: header ngăn kéo chừa inset trên; ngăn kéo chừa inset trái (xoay ngang) và dưới (thanh Home); bề rộng cộng thêm inset trái.
+  2. `#screen-transform` padding hai bên cộng `--sat-safe-left/right`.
+  3. Màn Chuyển đổi trên điện thoại xoay ngang chia **trái/phải** (trước đây trên/dưới, mỗi nửa ~80px). Hàm `isTransformSideBySide()` thay 3 chỗ `window.innerWidth >= 1024`, khớp media `(orientation: landscape) and (max-height: 620px) and (max-width: 1023px)` trong ui-polish.css; đầu bản đồ gọn 1 hàng.
+  4. Xoay ngang: cột nút bản đồ bên phải giới hạn chiều cao + cuộn (trước tràn xuống dưới mép màn hình, mất nút 🎯); hàng tab MiniCAD xuống dòng riêng + cuộn ngang (trước tràn mép phải, mất Lùi/Tiến).
+  5. Hộp hướng dẫn (?) xoay ngang: chân hộp gộp 1 hàng → nội dung từ ~40px lên ~190px.
+  6. Màn ≤430px: nút "◀ Quay lại" chỉ còn biểu tượng ◀ để tên màn hình không bị cắt.
+- **Kết quả đo**: mọi màn chính 0 phần tử nằm trong vùng an toàn, 0 tràn ngang trên cả 8 cấu hình (các cờ còn lại là nội dung trong vùng cuộn của ngăn Menu / Cài đặt).
+- **Còn lại**: MiniCAD xoay ngang trên điện thoại — thanh công cụ cao 191px trên màn 393px nên ô lệnh CLI vẫn che một phần thanh công cụ; cần thiết kế lại thanh CAD cho màn ngang thấp.
+- **Tài nguyên**: `?v=2.8.25`, `CACHE_NAME = vn2000-pro-v2.8.25`. Test mới `tests/safe_area_notch_island.test.js` (5/5); `npm test` **327/327 PASS**.
+
+## 2026-11-06 — WP-K: Đổi KTT/Múi VN-2000, chuẩn hóa nhập/xuất, MiniCAD, phân nhóm menu
+- **Tính năng mới — Đổi KTT / Múi (VN-2000 ⇄ VN-2000)**: tab `#tabTransRezone` / `#panelTransRezone` trong màn Chuyển đổi (đúng nguyên tắc cách ly), module `vn2000-rezone.js`, hàm lõi `convertVn2kToVn2k` (geodesy.js) = chiếu ngược Gauss-Kruger theo KTT nguồn → chiếu xuôi theo KTT đích, KHÔNG qua 7 tham số. Khớp chuyển qua WGS-84 < 0.1 mm; đổi đi đổi lại < 0.2 mm. Dán nhiều điểm (tab/;/khoảng trắng/dấu phẩy thập phân/STT, tự đảo X⇄Y), cảnh báo > 3.5° khỏi KTT, chép kết quả, tải CSV, nút ⇅ đổi ngược. Menu 1.3, `navigateTo('rezone')`. Tab ẩn bản đồ (`.rezone-mode`).
+- **Nhập dữ liệu**: 5 chỗ tách dòng bằng `/\r?\r\n/` (chỉ nhận CRLF) → dán nhiều dòng vào Chuyển đổi đa điểm chỉ nạp 1 điểm, file LF nạp 0 điểm. Sửa thành `/\r\n|\r|\n/`. Thêm `parseHeaderedTable` (ánh xạ cột theo tiêu đề, CSV có ngoặc kép) → đọc lại được CSV/TXT/Excel do chính app xuất. lat/lng suy ra khi nhập giữ 9 số lẻ (trước 6 ≈ 11 cm).
+- **Xuất dữ liệu**: `getExportPoints` qua `normalizeSurveyPoints` → bỏ dòng "Lỗi" (trước ghi ra (0,0)), bù WGS-84/VN-2000 theo KTT/múi của từng điểm, KTT ghi thống nhất. CSV thêm cột Cao độ H (cùng thứ tự Excel), xuất + chia sẻ dùng chung `_buildCsvText`, thoát ngoặc kép. KML thoát `&` (trước làm hỏng file).
+- **MiniCAD**: `_normalizeVertex` với `forceSyncVn2k` luôn tính lại X/Y từ lat/lng đã làm tròn 7 số lẻ → đỉnh trôi ~5 mm mỗi lần lưu khối. Nay chỉ tính lại khi lệch > 1e-7° (~1 cm, tức kéo đỉnh thật). Màn ngang: CLI mở thu gọn (`setCmdBarCollapsed`, `isCompactCadViewport`), đầu thanh công cụ 1 hàng chỉ biểu tượng (191 → 119 px).
+- **Menu ☰**: 5 nhóm theo luồng việc (Chuyển đổi / Bản đồ & Thực địa / Sổ đo & Dữ liệu / Tính toán & Đồ họa / Hệ thống & Trợ giúp); Camera, GPS, RTK → nhóm 2; Giao hội → nhóm 4; nút Ủng hộ thành mục menu chuẩn; thêm bản dịch tiếng Anh.
+- **Dữ liệu KTT**: `COMMON_KTT_PRESETS` viết tay gắn nhầm tỉnh cho 7/9 mốc (vd. Đồng Nai → 106°00'); nay sinh tự động từ `VN_PROVINCES` (17 mốc). Bình Thuận = 107°45' trong bảng — CẦN đối chiếu TT 973/2001 (chưa sửa).
+- **Đề xuất**: `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md`.
+- Kiểm chứng: `npm test` **343/343 PASS** (thêm `vn2000_rezone`, `data_io_roundtrip`, `minicad_precision_and_compact`); thử vòng xuất→nhập trên trình duyệt cho CSV/TXT/Excel/KML/GeoJSON/GPX khớp từng mm. `?v=2.8.26`, `CACHE_NAME = vn2000-pro-v2.8.26`.
+
+## 2026-11-07 — WP-L: Làm toàn bộ đề xuất + địa chỉ sau sáp nhập trên dấu camera
+- **Địa chỉ sau sáp nhập trên dấu ảnh/video**: `data/vn_admin_2025.js` (34 tỉnh, 3.321 xã/phường/đặc khu từ 01/07/2025; ranh giản lược ~33 m, 4 MB / 1,4 MB gzip) sinh bởi `tools/build_vn_admin_2025.py` từ thanglequoc/vietnamese-provinces-database (MIT). `vn-admin-2025.js`: tra ngoại tuyến ~1 ms, tải lười, nhớ theo ~10 m; xã gần nhất trong ~65 m khi rơi vào khe ranh giản lược. `getWatermarkData` thêm dòng "• ĐỊA CHỈ"; khung dấu giãn theo dòng dài nhất (trước bị cắt giờ); phông không chân để dấu tiếng Việt chồng hiển thị đúng trên Android. SW: cache riêng `vn2000-data-admin-2025-07-01` không xóa khi nâng phiên bản.
+- **KTT 34 tỉnh**: `VN_PROVINCES_2025` (Thông tư 24/2025/TT-BNNMT, tổng hợp từ bảng công bố — không đọc được văn bản gốc vì bị chặn mạng/Cloudflare). 11 tỉnh không sáp nhập giữ KTT cũ (có test). `verify: true` cho Lai Châu, Phú Thọ, Ninh Bình (nguồn chưa thống nhất). Nối SAU 63 tỉnh cũ → chỉ số đã lưu không đổi. `provinceOptionsHtml` dựng mọi ô chọn tỉnh với 2 nhóm. Nút "📍 Chọn theo vị trí GPS hiện tại" trong Cài đặt KTT.
+- **Trang chủ**: bỏ công tắc Đơn giản/Nâng cao (`body[data-workspace="unified"]`); khối GPS chỉ hiện khi GPS bật (`body.gps-on`), tắt → nút "Bật GPS". Chip KTT/múi thay tên màn hình trên thanh tiêu đề điện thoại. Nút GPS có nhãn màu. Một tên "Bản đồ dự án & Mốc". Sửa lỗi tiếng Anh luôn hiện "Ho Chi Minh City".
+- **MiniCAD**: bỏ lưới công cụ ⊞ và 12 nút trùng trong ribbon CLI (giữ 5 nút trợ vẽ); bỏ nút Xóa toàn bộ cạnh các nút bật/tắt. Điện thoại dọc: thanh công cụ là bottom sheet, CLI thu gọn ở trên. **Cách ly UI**: rule style.css `.map-project-bar { display:flex !important }` (≤520px) làm thanh Bản đồ dự án lọt vào MiniCAD/chấm điểm/GPS trên mọi điện thoại — đã bỏ.
+- **Nhập file có xem trước**: `import-preview.js` — xem vài dòng đầu, chọn cột, loại tọa độ, KTT/múi của file, tùy chọn đổi sang KTT hiện hành; chọn dấu phân cách theo số ô số (không tách nhầm phẩy thập phân); không tiêu đề → X là cột giá trị lớn hơn. `mapHeaderColumns` tách khỏi `parseHeaderedTable`.
+- Kiểm chứng: `npm test` **354/354 PASS**; thử trên trình duyệt: dấu camera, gợi ý KTT theo GPS (Đà Nẵng → 107°45'), nhập CSV KTT 107°45' → 105°45' khớp engine tới mm, cách ly thanh dự án qua 5 chế độ bản đồ. `?v=2.8.27`, `CACHE_NAME = vn2000-pro-v2.8.27`.

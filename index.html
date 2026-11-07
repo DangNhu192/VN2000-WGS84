@@ -33,9 +33,9 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.23">
-  <link rel="stylesheet" href="field-workspace.css">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.23">
+  <link rel="stylesheet" href="style.css?v=2.8.27">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.27">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.27">
 </head>
 
 <body>
@@ -84,10 +84,12 @@
           <span class="tree-nav-icon">☰</span>
           <span class="tree-nav-label" data-i18n="header.menu">Menu</span>
         </button>
-        <button id="btnHeaderBack" class="btn-header-back mac-pill-btn" onclick="appNav.handleHeaderBack()"
+        <button id="btnHeaderBack" class="btn-header-back mac-pill-btn" hidden onclick="appNav.handleHeaderBack()"
           title="Quay lại Trang chủ" data-i18n="header.back">
           ◀ Quay lại
         </button>
+        <button type="button" id="headerKttChip" class="header-ktt-chip" onclick="appModal.openUnifiedSettings('ktt')"
+          title="Kinh tuyến trục đang dùng — chạm để đổi">📍 KTT</button>
         <div class="app-title-group">
           <div class="app-title" id="headerTitle">
             <span class="mac-apple-badge"></span>
@@ -130,15 +132,23 @@
       <section id="screen-menu" class="screen-view active">
         <div id="fieldWorkspace">
           <div id="fwToolbar" role="group" aria-label="Chế độ giao diện và thực địa">
-            <div id="fwModes" role="group" aria-label="Chế độ giao diện">
-              <button type="button" id="fwSimple" aria-pressed="true" data-fw-text="simple">Đơn giản</button>
-              <button type="button" id="fwAdvanced" aria-pressed="false" data-fw-text="advanced">Nâng cao</button>
-            </div>
             <button type="button" id="fwField" aria-pressed="false" title="Bật/Tắt chế độ Thực địa: Tương phản cao chống chói nắng ngoài trời">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
               <span data-fw-text="field">Thực địa</span>
             </button>
           </div>
+          <section id="fwWelcome" aria-labelledby="fwWelcomeTitle" hidden>
+            <h2 id="fwWelcomeTitle" data-fw-text="welcomeTitle">Bắt đầu trong 3 bước</h2>
+            <ol>
+              <li><strong data-fw-text="step1">Chọn tỉnh / kinh tuyến trục</strong><span data-fw-text="step1d"></span></li>
+              <li><strong data-fw-text="step2">Nhập tọa độ, bấm Chuyển đổi</strong><span data-fw-text="step2d"></span></li>
+              <li><strong data-fw-text="step3">Cần thêm chức năng?</strong><span data-fw-text="step3d"></span></li>
+            </ol>
+            <div id="fwWelcomeActions">
+              <button type="button" id="fwWelcomeKtt" data-fw-text="welcomeKtt">Chọn tỉnh</button>
+              <button type="button" id="fwWelcomeDone" data-fw-text="welcomeDone">Đã hiểu</button>
+            </div>
+          </section>
           <section id="fwQuick" aria-labelledby="fwTitle">
             <h1 id="fwTitle" data-fw-text="title">Chuyển đổi tọa độ</h1>
             <div id="fwContextRow">
@@ -236,6 +246,17 @@
             </div>
           </div>
 
+          <!-- Lưới 4 Khối lớn 2x2 — đặt trước khối GPS để người mới thấy ngay các chức năng chính -->
+          <div id="bigActionTilesGrid" class="big-action-tiles-grid">
+            <!-- Rendered dynamically by appDashboard.renderDashboard() -->
+          </div>
+
+          <!-- Khi GPS tắt: chỉ một nút gọn thay cho khối tọa độ toàn gạch ngang -->
+          <button type="button" id="btnHomeGpsOn" class="home-gps-cta" onclick="appGps.toggleTracking()">
+            <span class="home-gps-cta-icon">🛰️</span>
+            <span><b data-i18n="home.gps_on">Bật GPS</b> <span class="home-gps-cta-sub" data-i18n="home.gps_on_sub">để xem tọa độ VN-2000 tại vị trí đang đứng</span></span>
+          </button>
+
           <!-- HERO LIVE HUD CARD (QUAN TRẮC THỜI GIAN THỰC) -->
           <div class="hero-live-hud-card" id="heroLiveHudCard">
             <div class="fw-gps-note surveyor-gps-disclaimer" data-fw-gps role="note" aria-label="Khuyến cáo sai số GPS">
@@ -289,11 +310,6 @@
                 🗺️ Hiện vị trí trên Map
               </button>
             </div>
-          </div>
-
-          <!-- Lưới 4 Khối lớn 2x2 (Bento 4 Trụ Cột Tác Vụ Thực Địa) -->
-          <div id="bigActionTilesGrid" class="big-action-tiles-grid">
-            <!-- Rendered dynamically by appDashboard.renderDashboard() -->
           </div>
 
           <!-- THÔNG TIN DỰ ÁN ĐANG MỞ -->
@@ -904,6 +920,10 @@
               <button id="tabTransMulti" class="btn-subtab" onclick="appTransform.switchTransformSubTab('multi')">
                 📑 Chuyển Đổi Đa Điểm (<span id="txtMultiPointCount">0 mốc</span>)
               </button>
+              <button id="tabTransRezone" class="btn-subtab" onclick="appTransform.switchTransformSubTab('rezone')"
+                title="Đổi tọa độ VN-2000 từ KTT / múi chiếu này sang KTT / múi chiếu khác">
+                🔁 Đổi KTT / Múi
+              </button>
               <button id="tabTransLiveMap" class="btn-subtab" onclick="appTransform.switchTransformSubTab('livemap')"
                 title="Xem bản đồ lớn trực quan chiếm đa số màn hình">
                 🗺️ Bản Đồ Lớn Trực Quan
@@ -1345,6 +1365,62 @@
               </div>
 
               <!-- TAB 3: BẢNG ĐIỀU KHIỂN & TRA CỨU TỌA ĐỘ BẢN ĐỒ TRỰC QUAN -->
+              <!-- ================= PANEL: ĐỔI KTT / MÚI (VN-2000 ⇄ VN-2000) ================= -->
+              <div id="panelTransRezone" style="display: none;">
+                <div class="app-card">
+                  <div class="card-header">
+                    <span class="card-title">🔁 Đổi VN-2000 sang KTT / múi khác</span>
+                  </div>
+                  <p class="rz-hint">Cùng hệ VN-2000, không qua WGS-84 (không áp 7 tham số). Dùng khi đổi số liệu giữa các tỉnh, hoặc giữa múi 3° và 6°.
+                    <br><b>Số liệu tỉnh cũ → tỉnh mới (sau 01/07/2025):</b> chọn <i>Từ</i> trong nhóm "63 tỉnh cũ", chọn <i>Sang</i> trong nhóm "34 tỉnh, thành phố".</p>
+                  <div class="rz-sides">
+                    <fieldset class="rz-side">
+                      <legend>Từ (nguồn)</legend>
+                      <select id="rzSrcKtt" class="app-select" aria-label="Kinh tuyến trục nguồn"></select>
+                      <input id="rzSrcKttCustom" class="app-input" placeholder="KTT, VD: 105°45' hoặc 105.75" hidden aria-label="KTT nguồn nhập tay">
+                      <select id="rzSrcZone" class="app-select" aria-label="Múi chiếu nguồn">
+                        <option value="3">Múi 3° (k0 = 0.9999)</option>
+                        <option value="6">Múi 6° (k0 = 0.9996)</option>
+                      </select>
+                    </fieldset>
+                    <button type="button" id="rzSwap" class="btn-sm rz-swap" title="Đảo nguồn ⇄ đích (và đổi ngược kết quả đang có)" aria-label="Đảo nguồn và đích">⇅</button>
+                    <fieldset class="rz-side">
+                      <legend>Sang (đích)</legend>
+                      <select id="rzDstKtt" class="app-select" aria-label="Kinh tuyến trục đích"></select>
+                      <input id="rzDstKttCustom" class="app-input" placeholder="KTT, VD: 107°45' hoặc 107.75" hidden aria-label="KTT đích nhập tay">
+                      <select id="rzDstZone" class="app-select" aria-label="Múi chiếu đích">
+                        <option value="3">Múi 3° (k0 = 0.9999)</option>
+                        <option value="6">Múi 6° (k0 = 0.9996)</option>
+                      </select>
+                    </fieldset>
+                  </div>
+                  <label for="rzInput" class="form-label">Tọa độ nguồn — mỗi dòng một điểm: <b>Tên X Y</b> hoặc <b>X Y</b> (dán từ Excel/Zalo được)</label>
+                  <textarea id="rzInput" class="app-input rz-input" rows="5" spellcheck="false" autocomplete="off"
+                    placeholder="M1    1191900.123    603800.456&#10;M2    1192015.880    603912.304"></textarea>
+                  <div class="btn-group-row" style="margin-top: 8px;">
+                    <button type="button" id="rzRun" class="btn-sm btn-blue">🔁 Đổi tọa độ</button>
+                    <button type="button" id="rzSample" class="btn-sm">Ví dụ</button>
+                    <button type="button" id="rzClear" class="btn-sm btn-red">🗑️ Xóa</button>
+                  </div>
+                  <p id="rzStatus" class="rz-status" role="status" aria-live="polite"></p>
+                </div>
+                <div class="app-card" id="rzResultCard" hidden>
+                  <div class="card-header">
+                    <span class="card-title">📋 Kết quả</span>
+                    <div class="card-tools">
+                      <button type="button" id="rzCopy" class="btn-sm">📋 Chép</button>
+                      <button type="button" id="rzCsv" class="btn-sm btn-green">⬇️ CSV</button>
+                    </div>
+                  </div>
+                  <div class="rz-table-wrap">
+                    <table class="rz-table">
+                      <thead><tr><th>Tên</th><th>X mới (Bắc)</th><th>Y mới (Đông)</th><th>Ghi chú</th></tr></thead>
+                      <tbody id="rzResultBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
               <div id="panelTransLiveMap" style="display: none; padding-top: 4px;">
                 <!-- Card 1: Hướng dẫn & Tọa độ tức thời khi chấm/di chuột -->
                 <div class="hero-subcard" style="padding: 12px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px;">
@@ -2351,8 +2427,6 @@
               <span id="cadCmdCoordsLive" style="font-family: monospace; font-size: 11px; color: #94a3b8; margin-left: 4px;">X: — | Y: —</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
-              <!-- Nút Drawer / Lưới tất cả công cụ CAD -->
-              <button type="button" id="btnCadCmdToolsGrid" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdToolsGrid()" title="Xem tất cả công cụ CAD (Lưới phím tắt)">🎛️</button>
               <!-- Nút chuyển đổi [Bung rộng đầy đủ ⤢ / Thu gọn chỉ Icon ⤡] -->
               <button type="button" id="btnCadCmdExpandToggle" class="cad-cmd-btn-toggle" onclick="appCadTool.toggleCmdRibbonExpand()" title="Bung rộng đầy đủ chức năng / Thu gọn chỉ hiện Icon">⤢</button>
               <!-- Nút thu nhỏ _ -->
@@ -2362,39 +2436,7 @@
             </div>
           </div>
 
-          <!-- POPOVER LƯỚI TẤT CẢ CÔNG CỤ CAD (FULL CAD SHORTCUTS & TOOLS) -->
-          <div id="cadCmdAllToolsGrid" class="cad-cmd-all-tools-grid" style="display: none;">
-            <div class="cad-tools-group-title">📐 VẼ ĐỐI TƯỢNG (DRAW)</div>
-            <div class="cad-tools-btn-row">
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('P')" title="Vẽ đa giác khép kín tính diện tích [P]">📐 Đa giác [P]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('L')" title="Vẽ tuyến / ranh hở [L]">📏 Tuyến [L]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('REC')" title="Vẽ khối nhà [REC]">🏠 Nhà [REC]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('C')" title="Vẽ vùng đệm bán kính [C]">⭕ Bán kính [C]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('CL')" title="Nối đỉnh đầu và cuối [CL]">🔒 Khép góc [CL]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('N')" title="Lưu khối hiện tại [N]">➕ Lưu [N]</button>
-            </div>
-            <div class="cad-tools-group-title">✂️ BIÊN TẬP & NHÃN (EDIT & MARKUP)</div>
-            <div class="cad-tools-btn-row">
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('V')" title="Con trỏ chọn đối tượng [V]">↖️ Chọn [V]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('RO')" title="Xoay nhãn / đối tượng [RO]">🔄 Xoay [RO]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('O')" title="Tạo đường song song [O]">↔ Offset [O]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('DIM')" title="Mũi tên ghi chú [DIM]">🏹 Mũi tên [DIM]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('T')" title="Chữ ghi chú [T]">🔤 Chữ [T]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('STAMP')" title="Tem khung tên [STAMP]">🏷️ Tem [STAMP]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('DEL')" title="Xóa đối tượng đang chọn [Del]">🗑️ Xóa chọn [Del]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('X')" title="Xóa toàn bộ bản vẽ [X]">🗑️ Xóa hết [X]</button>
-            </div>
-            <div class="cad-tools-group-title">📊 TIỆN ÍCH & TRỢ VẼ (AIDS & DATA)</div>
-            <div class="cad-tools-btn-row">
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('E')" title="Mở bảng kê diện tích & tọa độ [E]">📊 Bảng kê [E]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('EXP')" title="Xuất AutoCAD DWG / PDF [EXP]">📤 Xuất [EXP]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('Z')" title="Phóng to cực đại mức 24 [Z]">🔍 Zoom 24 [Z]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('OSNAP')" title="Bắt điểm nam châm [F3/S]">🧲 Snap [F3]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('ORTHO')" title="Khóa vuông góc 90° [F8]">📐 Ortho [F8]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('SNAPLINE')" title="Bắt cạnh khối liền kề [B]">🔗 Cạnh [B]</button>
-              <button type="button" class="cad-tool-grid-btn" onclick="appCadTool.quickExecCmd('DYN')" title="Thước đo động [DYN]">📏 Thước [DYN]</button>
-            </div>
-          </div>
+
 
           <div class="cad-cmd-input-wrap" id="cadCmdInputWrap">
             <span class="cad-cmd-prompt-label">Command:</span>
@@ -2404,32 +2446,7 @@
           </div>
 
           <div class="cad-cmd-status-ribbon" id="cadCmdStatusRibbon">
-            <!-- Nút vẽ chính -->
-            <button type="button" id="btnCadRibbonPoly" class="cad-ribbon-btn active" onclick="appCadTool.quickExecCmd('P')" title="Vẽ đa giác khép kín thửa đất [P]">
-              <span class="ribbon-btn-icon">📐</span><span class="ribbon-btn-text"> Đa giác [P]</span>
-            </button>
-            <button type="button" id="btnCadRibbonLine" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('L')" title="Vẽ tuyến / ranh hở [L]">
-              <span class="ribbon-btn-icon">📏</span><span class="ribbon-btn-text"> Tuyến [L]</span>
-            </button>
-            <button type="button" id="btnCadRibbonRect" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('REC')" title="Vẽ khối công trình / Nhà ở [REC]">
-              <span class="ribbon-btn-icon">🏠</span><span class="ribbon-btn-text"> Nhà [REC]</span>
-            </button>
-            <button type="button" id="btnCadRibbonCircle" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('C')" title="Vẽ vùng đệm / Bán kính bảo vệ [C]">
-              <span class="ribbon-btn-icon">⭕</span><span class="ribbon-btn-text"> Bán kính [C]</span>
-            </button>
-            <button type="button" id="btnCadRibbonSelect" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('V')" title="Con trỏ chọn & sửa đối tượng [V]">
-              <span class="ribbon-btn-icon">↖️</span><span class="ribbon-btn-text"> Chọn [V]</span>
-            </button>
-            <button type="button" id="btnCadRibbonArrow" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('DIM')" title="Mũi tên đo & ghi chú [DIM]">
-              <span class="ribbon-btn-icon">🏹</span><span class="ribbon-btn-text"> Mũi tên [DIM]</span>
-            </button>
-            <button type="button" id="btnCadRibbonClose" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('CL')" title="Nối đỉnh đầu và cuối khép góc [CL]">
-              <span class="ribbon-btn-icon">🔒</span><span class="ribbon-btn-text"> Khép [CL]</span>
-            </button>
-            <button type="button" id="btnCadRibbonNew" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('N')" title="Lưu khối hiện tại và vẽ khối mới [N]">
-              <span class="ribbon-btn-icon">➕</span><span class="ribbon-btn-text"> Lưu [N]</span>
-            </button>
-            <!-- Nút trợ vẽ -->
+            <!-- Trợ vẽ: chỉ các chế độ bật/tắt khi đang vẽ. Mọi lệnh vẽ/sửa nằm ở thanh công cụ (một nơi duy nhất). -->
             <button type="button" id="btnCadRibbonOsnap" class="cad-ribbon-btn active" onclick="appCadTool.toggleSnap()" title="Bắt điểm nam châm mốc [F3 hoặc S]">
               <span class="ribbon-btn-icon">🧲</span><span class="ribbon-btn-text"> Snap [F3]</span>
             </button>
@@ -2444,21 +2461,6 @@
             </button>
             <button type="button" id="btnCadRibbonPolar" class="cad-ribbon-btn" onclick="appCadTool.togglePolarTracking()" title="Dóng góc theo bội số 90/45/30° từ đỉnh cuối [F10]">
               <span class="ribbon-btn-icon">🧭</span><span class="ribbon-btn-text"> Dóng góc [F10]</span>
-            </button>
-            <button type="button" id="btnCadRibbonInquiry" class="cad-ribbon-btn" onclick="appCadTool.openInquiryModal()" title="Trắc lượng: DIST / AREA / ID / LIST">
-              <span class="ribbon-btn-icon">📐</span><span class="ribbon-btn-text"> Trắc lượng</span>
-            </button>
-            <button type="button" id="btnCadRibbonQSelect" class="cad-ribbon-btn" onclick="appCadTool.openQSelectModal()" title="Chọn nhanh theo thuộc tính [Q]">
-              <span class="ribbon-btn-icon">🔎</span><span class="ribbon-btn-text"> Chọn nhanh [Q]</span>
-            </button>
-            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openAreaTableModal()" title="Mở bảng kê 6 tab [E]">
-              <span class="ribbon-btn-icon">📊</span><span class="ribbon-btn-text"> Bảng kê [E]</span>
-            </button>
-            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.openExportModal()" title="Xuất AutoCAD DWG / PDF / Excel [EXP]">
-              <span class="ribbon-btn-icon">📤</span><span class="ribbon-btn-text"> Xuất [EXP]</span>
-            </button>
-            <button type="button" class="cad-ribbon-btn" onclick="appCadTool.quickExecCmd('X')" title="Xóa toàn bộ bản vẽ [X]" style="color: #f87171;">
-              <span class="ribbon-btn-icon">🗑️</span><span class="ribbon-btn-text"> Xóa [X]</span>
             </button>
           </div>
         </div>
@@ -4658,8 +4660,12 @@
           <div class="form-group" style="margin-bottom: 10px;">
             <label class="form-label" style="margin-bottom: 4px;" data-i18n="settings.ktt.province_label">Chọn tỉnh thành:</label>
             <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()">
-              <!-- 63 tỉnh -->
+              <!-- 34 tỉnh mới + 63 tỉnh cũ -->
             </select>
+            <button type="button" id="btnKttFromGps" class="btn-sm" style="margin-top: 6px; width: 100%; min-height: 40px;"
+              onclick="appModal.suggestKttFromGps()" title="Xác định tỉnh (34 tỉnh từ 01/07/2025) theo vị trí GPS hiện tại và chọn KTT tương ứng">
+              📍 Chọn theo vị trí GPS hiện tại
+            </button>
           </div>
 
           <!-- BẢNG LIVE PREVIEW KTT QUY ĐỔI HIỆN TẠI -->
@@ -6791,7 +6797,7 @@
           <span>📂 2. CHỌN FILE TỌA ĐỘ TỪ MÁY (.XLS, .XLSX, .CSV, .TXT, .DAT)</span>
         </div>
         <div style="font-size: 12px; color: #94a3b8; margin: 6px 0 10px 0; line-height: 1.4;">
-          Nhận dạng tự động cột Tên, X, Y (hoặc Lat, Lng). Tự tính toán chuyển đổi tọa độ còn thiếu theo KTT hiện tại.
+          Chọn file xong sẽ hiện bản xem trước để kiểm tra cột Tên, X, Y (hoặc vĩ độ, kinh độ), H và KTT của file trước khi nạp.
         </div>
 
         <input type="file" id="fileInputProject" accept=".xls,.xlsx,.csv,.txt,.dat,.xyz" style="display: none;"
@@ -6821,6 +6827,40 @@
             <input type="text" id="txtImportNewProjectName" class="app-input"
               placeholder="Tên file dự án mới (ví dụ: DoDac_KhuA.csv)" style="height: 36px; font-size: 12px;">
           </div>
+        </div>
+      </div>
+
+      <!-- Bước xem trước: kiểm tra cột và KTT của file trước khi nạp -->
+      <div id="importPreviewBox" class="imp-preview" hidden>
+        <div class="imp-preview-head">
+          <b>🔎 Xem trước & chọn cột</b>
+          <span id="impFileName" class="imp-file"></span>
+        </div>
+        <div id="impPreviewTable" class="imp-table-wrap"></div>
+        <div class="imp-row">
+          <label class="imp-map-item"><span>Loại tọa độ trong file</span>
+            <select id="impType" class="app-select">
+              <option value="vn2000">📐 VN-2000 (X, Y mét)</option>
+              <option value="wgs84">🌐 WGS-84 (vĩ độ, kinh độ)</option>
+            </select>
+          </label>
+        </div>
+        <div id="impMapping" class="imp-mapping"></div>
+        <div class="imp-row imp-ktt">
+          <label class="imp-map-item"><span>KTT của file</span><select id="impSrcKtt" class="app-select"></select></label>
+          <label class="imp-map-item"><span>Múi chiếu của file</span>
+            <select id="impSrcMui" class="app-select">
+              <option value="3">3° (k0 = 0.9999)</option>
+              <option value="6">6° (k0 = 0.9996)</option>
+            </select>
+          </label>
+        </div>
+        <label id="impConvertRow" class="imp-check"><input type="checkbox" id="impConvert" checked>
+          Đổi X/Y sang KTT/múi hiện hành của ứng dụng (khi file thuộc KTT khác, vd. số liệu tỉnh cũ)</label>
+        <p id="impSummary" class="imp-summary" role="status" aria-live="polite"></p>
+        <div class="imp-actions">
+          <button type="button" id="btnImpConfirm" class="btn-sm btn-blue">⬇ Nạp vào Sổ đo</button>
+          <button type="button" id="btnImpCancel" class="btn-sm">Hủy</button>
         </div>
       </div>
 
@@ -7134,7 +7174,7 @@
             <span>Chuyển Đổi Tọa Độ</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-blue">3 mục</span>
+            <span class="tree-badge badge-blue">4 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -7159,10 +7199,20 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
+          <div class="drawer-leaf-item" id="drawerItem_rezone" onclick="appNav.navigateTo('rezone')">
+            <div class="drawer-leaf-icon" style="color: #f59e0b;">🔁</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">1.3 Đổi KTT / Múi chiếu VN-2000</div>
+              <div class="drawer-leaf-sub">VN-2000 ⇄ VN-2000 giữa các tỉnh, múi 3° / 6°</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
           <div class="drawer-leaf-item" id="drawerItem_transform_map" onclick="appNav.navigateTo('transform_map')">
             <div class="drawer-leaf-icon" style="color: #34d399;">🗺️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">1.3 Bản đồ Chuyển đổi & Chấm điểm</div>
+              <div class="drawer-leaf-title">1.4 Bản đồ Chuyển đổi & Chấm điểm</div>
               <div class="drawer-leaf-sub">Chấm lấy tọa độ và xem vị trí điểm chuyển đổi</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -7178,10 +7228,10 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(52,211,153,0.18);border-radius:6px;padding:2px 4px;font-size:13px">🗺️</span>
-            <span>Bản Đồ & Cắm Mốc Thực Địa</span>
+            <span>Bản Đồ & Thực Địa</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-green">2 mục</span>
+            <span class="tree-badge badge-green">5 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -7189,7 +7239,7 @@
           <div class="drawer-leaf-item" id="drawerItem_map" onclick="appNav.navigateTo('map')">
             <div class="drawer-leaf-icon" style="color: #fbbf24;">🗺️</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">2.1 Bản đồ trắc địa & Mốc vệ tinh</div>
+              <div class="drawer-leaf-title">2.1 Bản đồ dự án & Mốc</div>
               <div class="drawer-leaf-sub">Vệ tinh Google/Esri, GPS, đo cự ly & góc</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -7206,6 +7256,36 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
+          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.navigateTo('camera')">
+            <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.3 Camera khảo sát đóng dấu tọa độ</div>
+              <div class="drawer-leaf-sub">In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_gps_toggle" onclick="appGps.toggleTracking()">
+            <div class="drawer-leaf-icon" style="color: #10b981;">🛰️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.4 Bật/Tắt & Kiểm tra sai số GPS</div>
+              <div class="drawer-leaf-sub">Độ chính xác vệ tinh thực địa (±m)</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_settings_rtk" onclick="appNav.navigateTo('settings_rtk')">
+            <div class="drawer-leaf-icon" style="color: #0284c7;">📡</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.5 Kết nối Máy Định Vị RTK Ngoài</div>
+              <div class="drawer-leaf-sub">Web Bluetooth GNSS Rover, độ chính xác cm</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -7215,7 +7295,7 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(192,132,252,0.18);border-radius:6px;padding:2px 4px;font-size:13px">📁</span>
-            <span>Sổ Đo & Quản Lý Dự Án</span>
+            <span>Sổ Đo & Dữ Liệu Dự Án</span>
           </div>
           <div class="drawer-folder-meta">
             <span class="tree-badge badge-orange">2 mục</span>
@@ -7253,7 +7333,7 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(45,212,191,0.18);border-radius:6px;padding:2px 4px;font-size:13px">🛠️</span>
-            <span>Tiện Ích Nghiệp Vụ Mở Rộng</span>
+            <span>Tính Toán & Đồ Họa Kỹ Thuật</span>
           </div>
           <div class="drawer-folder-meta">
             <span class="tree-badge badge-purple">4 mục</span>
@@ -7261,21 +7341,22 @@
           </div>
         </div>
         <div class="drawer-folder-body">
-          <div class="drawer-leaf-item" id="drawerItem_camera" onclick="appNav.navigateTo('camera')">
-            <div class="drawer-leaf-icon" style="color: #ec4899;">📸</div>
+          <div class="drawer-leaf-item" id="drawerItem_geodesy" onclick="appNav.showScreen('geodesy')">
+            <div class="drawer-leaf-icon" style="color: #fbbf24;">📐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.1 Camera khảo sát đóng dấu tọa độ</div>
-              <div class="drawer-leaf-sub">In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ</div>
+              <div class="drawer-leaf-title">4.1 Bài toán trắc địa: cự ly, phương vị, diện tích</div>
+              <div class="drawer-leaf-sub">Thuận/nghịch tọa độ, diện tích Gauss & chu vi</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_geodesy" onclick="appNav.showScreen('geodesy')">
-            <div class="drawer-leaf-icon" style="color: #fbbf24;">📐</div>
+          <div class="drawer-leaf-item" id="drawerItem_settings_resection"
+            onclick="appNav.navigateTo('settings_resection')">
+            <div class="drawer-leaf-icon" style="color: #d97706;">📐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.2 Tính toán Geodesy & Giao hội</div>
-              <div class="drawer-leaf-sub">Thuận/nghịch tọa độ, diện tích Gauss & chu vi</div>
+              <div class="drawer-leaf-title">4.2 Giao hội trắc địa khi mất sóng GPS</div>
+              <div class="drawer-leaf-sub">Bù tọa độ trạm đo từ 2 mốc khống chế</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -7294,7 +7375,7 @@
           <div class="drawer-leaf-item" id="drawerItem_cad_tool" onclick="appNav.navigateTo('cad_tool')">
             <div class="drawer-leaf-icon" style="color: #06b6d4;">📐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">4.4 Tiện ích phụ trợ: Vẽ CAD Mini</div>
+              <div class="drawer-leaf-title">4.4 MiniCAD: Vẽ mặt bằng & Bảng kê</div>
               <div class="drawer-leaf-sub">Dựng ranh, bắt điểm Snap, tính diện tích & xuất DWG</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
@@ -7310,7 +7391,7 @@
           <div class="drawer-folder-title">
             <span class="drawer-folder-icon"
               style="background:rgba(148,163,184,0.18);border-radius:6px;padding:2px 4px;font-size:13px">⚙️</span>
-            <span>Hệ Thống & Cài Đặt</span>
+            <span>Hệ Thống & Trợ Giúp</span>
           </div>
           <div class="drawer-folder-meta">
             <span class="tree-badge badge-slate">5 mục</span>
@@ -7328,68 +7409,41 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_gps_toggle" onclick="appGps.toggleTracking()">
-            <div class="drawer-leaf-icon" style="color: #10b981;">🛰️</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.2 Bật/Tắt & Kiểm tra sai số GPS</div>
-              <div class="drawer-leaf-sub">Độ chính xác vệ tinh thực địa (±m)</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_settings_rtk" onclick="appNav.navigateTo('settings_rtk')">
-            <div class="drawer-leaf-icon" style="color: #0284c7;">📡</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.3 Kết nối Máy Định Vị RTK Ngoài</div>
-              <div class="drawer-leaf-sub">Web Bluetooth GNSS Rover, độ chính xác cm</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_settings_resection"
-            onclick="appNav.navigateTo('settings_resection')">
-            <div class="drawer-leaf-icon" style="color: #d97706;">📐</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.4 Giao hội trắc địa khi mất sóng GPS</div>
-              <div class="drawer-leaf-sub">Bù tọa độ trạm đo từ 2 mốc khống chế</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <button type="button" id="drawerItem_donate" class="drawer-leaf-item" onclick="appDonate.openModal()">Ủng hộ tác giả</button>
-          <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.navigateTo('about')">
-            <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
-            <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.5 Thông tin & Cẩm nang 10 nghiệp vụ</div>
-              <div class="drawer-leaf-sub">Cài PWA mọi thiết bị, 7 tham số BTNMT</div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
-          <div class="drawer-leaf-item" id="drawerItem_datetime" onclick="appModal.openDateTimeSettings()"
-            style="border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; padding-top: 8px;">
+          <div class="drawer-leaf-item" id="drawerItem_datetime" onclick="appModal.openDateTimeSettings()">
             <div class="drawer-leaf-icon" style="color: #a78bfa;">🕐</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.6 Cài đặt Ngày giờ Hệ thống</div>
+              <div class="drawer-leaf-title">5.2 Cài đặt Ngày giờ Hệ thống</div>
               <div class="drawer-leaf-sub">Đồng bộ tự động / Chỉnh thủ công múi giờ</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-          <div class="drawer-leaf-item" id="drawerItem_user_guide" onclick="window.open('user-guide.html', '_blank')"
-            style="border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; padding-top: 8px;">
+          <div class="drawer-leaf-item" id="drawerItem_user_guide" onclick="window.open('user-guide.html', '_blank')">
             <div class="drawer-leaf-icon" style="color: #38bdf8;">📖</div>
             <div class="drawer-leaf-text">
-              <div class="drawer-leaf-title">5.7 Cẩm Nang & Sổ Tay Hướng Dẫn</div>
+              <div class="drawer-leaf-title">5.3 Cẩm Nang & Sổ Tay Hướng Dẫn</div>
               <div class="drawer-leaf-sub">Chi tiết 14 chức năng thực địa kèm ảnh lớn</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_about" onclick="appNav.navigateTo('about')">
+            <div class="drawer-leaf-icon" style="color: #94a3b8;">ℹ️</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.4 Thông tin & Cẩm nang 10 nghiệp vụ</div>
+              <div class="drawer-leaf-sub">Cài PWA mọi thiết bị, 7 tham số BTNMT</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_donate" onclick="appDonate.openModal()">
+            <div class="drawer-leaf-icon" style="color: #f472b6;">☕</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">5.5 Ủng hộ tác giả</div>
+              <div class="drawer-leaf-sub">Tùy tâm tiếp sức phát triển ứng dụng</div>
             </div>
           </div>
         </div>
@@ -7593,8 +7647,11 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.23"></script>
-  <script src="field-workspace.js?v=2.8.5"></script>
+  <script src="app.js?v=2.8.27"></script>
+  <script src="field-workspace.js?v=2.8.27"></script>
+  <script src="vn2000-rezone.js?v=2.8.27"></script>
+  <script src="vn-admin-2025.js?v=2.8.27"></script>
+  <script src="import-preview.js?v=2.8.27"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
@@ -8119,4 +8176,4 @@
 </body>
 
 </html>
-
+
