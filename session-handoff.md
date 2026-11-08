@@ -760,3 +760,9 @@
 - `ui-icons.js`: bảng `EMOJI → SHAPES`, danh sách ô `WHOLE` (thay toàn bộ) và `LEADING` (emoji đứng đầu nhãn). Thêm biểu tượng mới: thêm hình vào `SHAPES`, ánh xạ ở `EMOJI`, thêm bộ chọn ô vào `WHOLE`/`LEADING`. Nút cần hình theo nghĩa thì dùng `BY_ID`.
 - Giao diện Sáng: mục 13–14 cuối `ui-modern.css` đổi màu inline viết cho nền tối. Khi thêm vùng luôn nền tối (như bản đồ), thêm nó vào danh sách loại trừ `:not(:is(...) *)` ở các luật đó.
 - Còn lại (không chặn): emoji bên trong nội dung chi tiết (nút nhỏ trong thẻ, hộp hướng dẫn, thông báo) vẫn là emoji — đổi tiếp bằng cách mở rộng `WHOLE`/`LEADING` nếu muốn.
+
+## 2026-11-08 — WP-N (ngôn ngữ) + WP-O (tài khoản Google, quản trị) — đã xong, nhánh `claude/epic-ritchie-o0kkwf`
+- Thêm chuỗi giao diện mới: thêm bản dịch vào đầu `appI18n.phraseMap` (khóa = chuỗi tiếng Việt; tra không phân biệt hoa/thường). Nhãn tiếng Việt viết hoa đầu câu.
+- Tài khoản: chưa điền `account-config.js` thì tính năng tắt. Chủ ứng dụng làm theo `HUONG_DAN_DANG_NHAP_GOOGLE.md` (cần tạo OAuth Client ID và triển khai `backend/TaiKhoan.gs` — chưa làm, cần tài khoản Google của chủ dự án).
+- Giao thức máy chủ: POST JSON `{action, session, ...}` (text/plain để tránh preflight CORS). Hành động: login, visit, me, logout, listProjects, saveProject, loadProject, deleteProject, adminStats, adminUsers, adminVisits, adminSetStatus, adminSetRole, adminDeleteUser.
+- Không ghi thao tác người dùng — test `account_client.test.js` khóa danh sách lời gọi máy chủ phía ứng dụng.

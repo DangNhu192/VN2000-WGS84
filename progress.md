@@ -1201,3 +1201,19 @@
 - **Lỗi nhỏ**: mở Bản đồ dự án hiện thông báo "Đã xóa danh sách điểm đã chấm" dù người dùng không bấm gì — `appCoordPicker.clearMultiPoints(silent)`; lời gọi dọn ngầm khi đổi phân hệ chạy im lặng.
 - **Menu ☰ đóng**: thêm `visibility: hidden` (trễ bằng thời gian trượt) → phím Tab / trình đọc màn hình không đi vào ~40 mục ẩn.
 - **Tài nguyên**: `?v=2.8.29`, `CACHE_NAME = vn2000-pro-v2.8.29`, `sw.js` cache `ui-icons.js`. `tests/ui_modern_layer.test.js` 17/17; `npm test` **371/371 PASS**.
+
+## 2026-11-08 — WP-N: Ngôn ngữ hiển thị (Việt / Anh)
+- **Tiếng Anh**: ~1.000 bản dịch trong `appI18n.phraseMap` là dịch máy nửa Việt nửa Anh ("💾 save andO project DA select", "no automatically show lai feature nay") hoặc chỉ bỏ dấu ("Bao quat"). Đã dịch lại theo thuật ngữ trắc địa, gồm 420 thông báo nổi (toast). Dò bằng 3 cách: chuỗi chỉ bị bỏ dấu, chuỗi còn sót từ tiếng Việt bỏ dấu, chuỗi bản dịch bắt đầu bằng chữ thường. Thống nhất 47 cặp khóa chỉ khác hoa/thường mang hai bản dịch khác nhau.
+- **Tiếng Việt**: ~390 nhãn đổi từ viết hoa mọi chữ ("Chuyển Đổi Tọa Độ") sang viết hoa đầu câu ("Chuyển đổi tọa độ") trong `index.html` (chỉ phần chữ, không đụng thuộc tính/script), `allFeatures`, nhãn thanh dưới, `dict.vi`. Giữ nguyên: tên riêng (tỉnh, "Bộ Tài nguyên và Môi trường", "Hoàng Quốc Việt", "Cầu Giấy"), "Quyết định/Thông tư", phím tắt trong [ ], chú thích tiếng Anh trong ngoặc, ký hiệu Hy Lạp, tên tab Sheet "Sổ Đo Tọa Độ" (Apps Script dùng). Sửa "Hướng dẫn cài đặt cài App".
+- `translateString` tra bảng không phân biệt hoa/thường → nhãn đã đổi vẫn khớp bản dịch cũ.
+- Test mới `tests/i18n_quality.test.js`; sửa `multi_point_inline_editing.test.js` so sánh không phân biệt hoa/thường.
+
+## 2026-11-08 — WP-O: Đăng nhập Google, lưu dự án theo tài khoản, Trang quản trị
+- **Máy chủ** `backend/TaiKhoan.gs` (Apps Script của chủ ứng dụng): xác minh ID token Google (aud = Client ID, iss, email_verified, hạn), phiên 30 ngày (chỉ lưu mã băm SHA-256), tab `Tài khoản` / `Lượt truy cập` / `Khách` / `Phiên`, dự án ở Drive `VN2000 PRO - Du lieu tai khoan/<email>/<dự án>.json` (≤ 5 MB).
+- **Quyền riêng tư**: chỉ ghi email, tên, thời điểm, loại (đăng nhập / mở ứng dụng); khách chưa đăng nhập chỉ đếm theo ngày. Không ghi thao tác. Ứng dụng gửi tối đa 1 lượt mỗi lần mở, không gửi khi ngoại tuyến.
+- **Ứng dụng** `account.js` + `account-config.js` (để trống = tắt, ứng dụng chạy như cũ): cửa sổ `#modalAccount` (nút Google GIS, lưu tất cả / dự án đang mở, tự động lưu — mặc định tắt, danh sách dự án trên tài khoản: tải về / xóa), mục Menu ☰ + nút Trang chủ. Gói dự án = mốc + bản vẽ MiniCAD.
+- **Trang quản trị** `#screen-admin` (chỉ admin): số tài khoản, lượt hôm nay / 7 ngày / khách, biểu đồ 30 ngày, danh sách tài khoản (khóa / mở khóa, cấp / bỏ quản trị, xóa), "Ai đã truy cập" lọc theo người. Không thể khóa / xóa chính mình hoặc quản trị viên cấu hình sẵn. Khóa = đăng xuất mọi máy.
+- Service worker không cache `accounts.google.com`, `script.google.com`, `googleusercontent.com`.
+- **Hướng dẫn cài đặt**: `HUONG_DAN_DANG_NHAP_GOOGLE.md` (tạo OAuth Client ID, triển khai Apps Script, điền `account-config.js`).
+- **Kiểm chứng**: `tests/account_backend.test.js` (12, chạy chính `TaiKhoan.gs` với dịch vụ giả lập `tests/helpers/gas_mock.js`), `tests/account_client.test.js` (7). Thử đầu-cuối trên trình duyệt với nút Google giả + máy chủ thật trong Node: đăng nhập → lưu → tải về ở máy thứ hai → trang quản trị → khóa; 0 lỗi JS.
+- `?v=2.8.30`, `CACHE_NAME = vn2000-pro-v2.8.30`; `npm test` **394/394 PASS**.

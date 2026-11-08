@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.29';
+const CACHE_NAME = 'vn2000-pro-v2.8.30';
 // Dữ liệu địa giới lớn (~4 MB): cache riêng, KHÔNG xóa khi nâng phiên bản ứng dụng; đổi tên khi dữ liệu đổi.
 const DATA_CACHE = 'vn2000-data-admin-2025-07-01';
 const ASSETS_TO_CACHE = [
@@ -17,6 +17,8 @@ const ASSETS_TO_CACHE = [
   './ui-polish.css',
   './ui-modern.css',
   './ui-icons.js',
+  './account-config.js',
+  './account.js',
   './geodesy.js',
   './leaflet.js',
   './leaflet.css',
@@ -67,6 +69,9 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET' || !req.url.startsWith('http')) return;
 
   const url = new URL(req.url);
+
+  // Đăng nhập Google & máy chủ tài khoản: luôn đi thẳng ra mạng, không lưu cache (thư viện GIS phải luôn mới).
+  if (/(^|\.)accounts\.google\.com$|(^|\.)script\.google(usercontent)?\.com$|(^|\.)googleusercontent\.com$/.test(url.hostname)) return;
 
   // A. XỬ LÝ TRANG CHỦ & TÀI LIỆU HTML (Network-First: Ưu tiên mạng để nhận cập nhật mới từ Vercel)
   const isHtml = req.mode === 'navigate' || (req.headers.get('accept') && req.headers.get('accept').includes('text/html'));

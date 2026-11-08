@@ -33,10 +33,10 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.29">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.29">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.29">
-  <link rel="stylesheet" href="ui-modern.css?v=2.8.29">
+  <link rel="stylesheet" href="style.css?v=2.8.30">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.30">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.30">
+  <link rel="stylesheet" href="ui-modern.css?v=2.8.30">
 </head>
 
 <body>
@@ -251,6 +251,12 @@
           <div id="bigActionTilesGrid" class="big-action-tiles-grid">
             <!-- Rendered dynamically by appDashboard.renderDashboard() -->
           </div>
+
+          <!-- Tài khoản Google: mở cửa sổ Tài khoản riêng -->
+          <button type="button" id="btnHomeAccount" class="home-account-cta" onclick="appAccount.open()">
+            <span class="home-acc-icon">👤</span>
+            <span class="home-acc-label">Đăng nhập để lưu dự án lên tài khoản Google</span>
+          </button>
 
           <!-- Khi GPS tắt: chỉ một nút gọn thay cho khối tọa độ toàn gạch ngang -->
           <button type="button" id="btnHomeGpsOn" class="home-gps-cta" onclick="appGps.toggleTracking()">
@@ -3342,6 +3348,34 @@
       </section>
 
       <!-- ================= SCREEN 6: THÔNG TIN & HƯỚNG DẪN (3 TAB CHUYÊN NGHIỆP) ================= -->
+      <!-- ================= MÀN QUẢN TRỊ TÀI KHOẢN (account.js, chỉ quản trị viên) ================= -->
+      <section id="screen-admin" class="screen-view">
+        <div id="adminRoot" class="adm-root">
+          <div class="adm-toolbar">
+            <p class="acc-muted adm-note">Chỉ ghi nhận ai và lúc nào mở ứng dụng / đăng nhập. Không lưu thao tác của người dùng.</p>
+            <button type="button" class="acc-btn acc-btn-sm" onclick="appAccount.loadAdmin()">🔄 Làm mới</button>
+          </div>
+          <section class="adm-card">
+            <h3 class="acc-h3">Lượt truy cập</h3>
+            <div id="adminStats" data-admin-slot></div>
+          </section>
+          <section class="adm-card">
+            <div class="adm-card-head">
+              <h3 class="acc-h3">Tài khoản</h3>
+              <input type="search" class="adm-search" placeholder="Tìm theo email hoặc tên" oninput="appAccount.admin.filter = this.value; appAccount.renderAdminUsers()" aria-label="Tìm tài khoản">
+            </div>
+            <div id="adminUsers" data-admin-slot></div>
+          </section>
+          <section class="adm-card">
+            <div class="adm-card-head">
+              <h3 class="acc-h3">Ai đã truy cập: <span id="adminVisitsFilter">tất cả</span></h3>
+              <button type="button" id="adminVisitsClear" class="acc-btn acc-btn-sm" hidden onclick="appAccount.filterVisits('')">Xem tất cả</button>
+            </div>
+            <div id="adminVisits" data-admin-slot class="adm-visits"></div>
+          </section>
+        </div>
+      </section>
+
       <section id="screen-about" class="screen-view">
         <!-- Logo & Nhận Diện Ứng Dụng -->
         <div style="text-align: center; margin-bottom: 12px; padding-top: 6px;">
@@ -7122,6 +7156,17 @@
     </div>
   </div>
 
+  <!-- CỬA SỔ TÀI KHOẢN GOOGLE (account.js) -->
+  <div id="modalAccount" class="modal-overlay" aria-hidden="true" role="dialog" aria-labelledby="accTitle" onclick="if(event.target === this) appAccount.close()">
+    <div class="modal-box acc-box">
+      <div class="acc-head">
+        <h2 id="accTitle" class="acc-title">Tài khoản</h2>
+        <button type="button" class="btn-modal-close" onclick="appAccount.close()" aria-label="Đóng">✕</button>
+      </div>
+      <div id="accBody" class="acc-body"></div>
+    </div>
+  </div>
+
   <!-- NAVIGATION TREE DRAWER (CÂY THƯ MỤC CHỨC NĂNG - macOS SYSTEM SIDEBAR & iOS 21) -->
   <div id="navTreeBackdrop" class="nav-tree-backdrop" onclick="appNav.closeTreeMenu()"></div>
   <aside id="navTreeDrawer" class="nav-tree-drawer mac-settings-sidebar">
@@ -7164,6 +7209,21 @@
         <div class="drawer-leaf-text">
           <div class="drawer-leaf-title" style="color: #38bdf8; font-weight: 800;">TRANG CHỦ (BẢNG ĐIỀU KHIỂN)</div>
           <div class="drawer-leaf-sub">Quay về màn hình Menu chính</div>
+        </div>
+      </div>
+      <!-- TÀI KHOẢN GOOGLE (không gian riêng: cửa sổ #modalAccount) -->
+      <div class="drawer-leaf-item drawer-account-item" id="drawerItem_account" onclick="appAccount.open()">
+        <div class="drawer-leaf-icon" style="color: #34d399;">👤</div>
+        <div class="drawer-leaf-text">
+          <div class="drawer-leaf-title" id="drawerAccountTitle">Đăng nhập Google</div>
+          <div class="drawer-leaf-sub" id="drawerAccountSub">Lưu dự án theo tài khoản Google</div>
+        </div>
+      </div>
+      <div class="drawer-leaf-item" id="drawerItem_admin" hidden onclick="appNav.closeTreeMenu(); appAccount.openAdmin()">
+        <div class="drawer-leaf-icon" style="color: #fbbf24;">🛡️</div>
+        <div class="drawer-leaf-text">
+          <div class="drawer-leaf-title">Quản trị tài khoản</div>
+          <div class="drawer-leaf-sub">Tài khoản, lượt truy cập, ai đã truy cập</div>
         </div>
       </div>
       <!-- Nhóm 1 -->
@@ -7648,12 +7708,14 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.29"></script>
-  <script src="field-workspace.js?v=2.8.29"></script>
-  <script src="vn2000-rezone.js?v=2.8.29"></script>
-  <script src="vn-admin-2025.js?v=2.8.29"></script>
-  <script src="import-preview.js?v=2.8.29"></script>
-  <script src="ui-icons.js?v=2.8.29"></script>
+  <script src="app.js?v=2.8.30"></script>
+  <script src="field-workspace.js?v=2.8.30"></script>
+  <script src="vn2000-rezone.js?v=2.8.30"></script>
+  <script src="vn-admin-2025.js?v=2.8.30"></script>
+  <script src="import-preview.js?v=2.8.30"></script>
+  <script src="account-config.js?v=2.8.30"></script>
+  <script src="account.js?v=2.8.30"></script>
+  <script src="ui-icons.js?v=2.8.30"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

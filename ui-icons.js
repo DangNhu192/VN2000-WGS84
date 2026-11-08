@@ -48,6 +48,8 @@
         book: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
         smartphone: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
         pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+        user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+        shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
         minus: '<path d="M5 12h14"/>',
         users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
         mountain: '<path d="m8 3 4 8 5-5 5 15H2z"/>'
@@ -62,7 +64,7 @@
         '📑': 'list', '📋': 'list', '📝': 'pen', '🔁': 'repeat', '🛠': 'wrench', '🔧': 'wrench', '☁': 'cloud',
         '🧭': 'compass', '📏': 'ruler', '🔍': 'search', '🔎': 'search', '🕒': 'clock', '⏰': 'clock', '📅': 'clock',
         '❤': 'heart', '☕': 'heart', '💖': 'heart', '⚡': 'zap', '🌐': 'globe', '📥': 'download', '📤': 'upload',
-        '💾': 'save', '🗑': 'trash', '➕': 'plus', '➖': 'minus', '👥': 'users', '🧮': 'calc', '📚': 'book', '📖': 'book', '📱': 'smartphone',
+        '💾': 'save', '🗑': 'trash', '➕': 'plus', '👤': 'user', '🛡': 'shield', '➖': 'minus', '👥': 'users', '🧮': 'calc', '📚': 'book', '📖': 'book', '📱': 'smartphone',
         '⛰': 'mountain', '🏔': 'mountain', '🗻': 'mountain', '🧱': 'layers'
     };
 
@@ -77,7 +79,7 @@
         '#navTreeDrawer .drawer-leaf-icon', '#navTreeDrawer .drawer-folder-icon', '#navTreeDrawer .drawer-icon',
         '#navTreeDrawer .drawer-search-icon',
         '#bigActionTilesGrid .big-tile-icon-box', '#screen-menu .bar-title-icon', '#screen-menu .dash-card-icon',
-        '#screen-menu .chip-icon', '#screen-menu .home-gps-cta-icon',
+        '#screen-menu .chip-icon', '#screen-menu .home-gps-cta-icon', '#screen-menu .home-acc-icon',
         '#mapProjectBar .map-proj-icon', '#mapProjectBar .map-action-icon',
         '#mapRightControls .btn-map-fab', '#screen-menu .accordion-header-icon-box', '#screen-menu .chip-arrow'
     ].join(',');

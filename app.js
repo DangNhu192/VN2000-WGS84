@@ -477,6 +477,10 @@ const appNav = window.appNav = {
                 titleTextEn = "FIELD GPS";
                 targetScreen = document.getElementById('screen-gps');
                 if (typeof appGps !== 'undefined' && appGps.refreshDisplay) appGps.refreshDisplay();
+            } else if (screenName === 'admin') {
+                titleText = "QUẢN TRỊ TÀI KHOẢN";
+                titleTextEn = "ACCOUNT ADMIN";
+                targetScreen = document.getElementById('screen-admin');
             } else if (screenName === 'geodesy') {
                 titleText = "BÀI TOÁN TRẮC ĐỊA";
                 titleTextEn = "GEODESY CALCULATIONS";
@@ -36183,6 +36187,19 @@ const appI18n = {
         }
     },
     phraseMap: {
+        // WP-O: tài khoản Google & trang quản trị
+        "Đăng nhập Google": "Sign in with Google",
+        "Lưu dự án theo tài khoản Google": "Save projects to your Google account",
+        "Quản trị tài khoản": "Account admin",
+        "Tài khoản, lượt truy cập, ai đã truy cập": "Accounts, visits, who visited",
+        "Đăng nhập để lưu dự án lên tài khoản Google": "Sign in to save projects to your Google account",
+        "Tài khoản": "Account",
+        "Chỉ ghi nhận ai và lúc nào mở ứng dụng / đăng nhập. Không lưu thao tác của người dùng.": "Only who opened the app / signed in, and when, is recorded. User actions are not stored.",
+        "Lượt truy cập": "Visits",
+        "Ai đã truy cập:": "Who visited:",
+        "tất cả": "everyone",
+        "Xem tất cả": "Show all",
+        "Tìm theo email hoặc tên": "Search by email or name",
         // Bổ sung WP-N: chuỗi đang hiện ra dạng tiếng Việt bỏ dấu ở chế độ tiếng Anh
         "Bắt đầu trong 3 bước": "Get started in 3 steps",
         "Nhập tọa độ, bấm chuyển đổi": "Enter coordinates, tap Convert",
