@@ -505,3 +505,277 @@ nav#mobileBottomNav.mobile-bottom-nav .dock-expand-handle .dock-expand-icon { fo
   #screen-menu > #fieldWorkspace #fwInputs { grid-template-columns: 1fr !important; }
   #screen-menu #bigActionTilesGrid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
+
+/* ============ 10. BIỂU TƯỢNG SVG (ui-icons.js) ============
+   Thay emoji trong khung chính: đồng cỡ, đúng đường chuẩn chữ, đổi màu theo giao diện (currentColor). */
+.ui-ico { display: inline-block; flex: 0 0 auto; width: 1em; height: 1em; vertical-align: -0.14em; stroke-width: 2; }
+.has-ui-ico { display: inline-flex !important; align-items: center; justify-content: center; line-height: 1 !important; filter: none !important; }
+/* Biểu tượng đứng đầu nhãn (tab Chuyển đổi, tiêu đề thẻ). */
+:is(.btn-subtab, .card-title, .drawer-status-chip span) > .ui-ico { width: 1.1em; height: 1.1em; margin-right: 0.15em; opacity: 0.95; }
+
+header.app-header .has-ui-ico .ui-ico, header.app-header .has-ui-ico.ui-ico { width: 19px; height: 19px; }
+header.app-header #btnHeaderMenu .tree-nav-icon .ui-ico { width: 20px; height: 20px; }
+header.app-header #btnHeaderHelpGuide .ui-ico { width: 19px; height: 19px; }
+#headerThemeIcon .ui-ico { color: #fbbf24; }
+body[data-theme="light"] #headerThemeIcon .ui-ico { color: #4338ca; }
+header.app-header .mac-settings-btn .ui-ico { color: var(--m-text-2); }
+
+nav#mobileBottomNav .bottom-nav-icon.has-ui-ico .ui-ico { width: 21px; height: 21px; stroke-width: 1.9; }
+nav#mobileBottomNav .bottom-nav-item.active .bottom-nav-icon .ui-ico { stroke-width: 2.3; }
+
+#navTreeDrawer .drawer-leaf-icon.has-ui-ico .ui-ico { width: 18px; height: 18px; }
+#navTreeDrawer .drawer-folder-icon.has-ui-ico { padding: 4px !important; }
+#navTreeDrawer .drawer-folder-icon .ui-ico { width: 15px; height: 15px; color: var(--m-accent); }
+#navTreeDrawer .drawer-icon .ui-ico { width: 18px; height: 18px; color: var(--m-accent); }
+#navTreeDrawer .drawer-search-icon .ui-ico { width: 15px; height: 15px; }
+
+#bigActionTilesGrid .big-tile-icon-box.has-ui-ico .ui-ico { width: 26px; height: 26px; stroke-width: 1.8; }
+#bigActionTilesGrid .icon-box-cyan { color: #38bdf8; }
+#bigActionTilesGrid .icon-box-emerald { color: #34d399; }
+#bigActionTilesGrid .icon-box-amber { color: #fbbf24; }
+#bigActionTilesGrid .icon-box-purple { color: #c084fc; }
+#bigActionTilesGrid .icon-box-pink { color: #f472b6; }
+#bigActionTilesGrid .icon-box-yellow { color: #facc15; }
+#bigActionTilesGrid .icon-box-teal { color: #2dd4bf; }
+#bigActionTilesGrid .icon-box-blue { color: #60a5fa; }
+#bigActionTilesGrid .icon-box-slate { color: #cbd5e1; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-cyan { color: #0369a1; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-emerald { color: #047857; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-amber { color: #b45309; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-purple { color: #7e22ce; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-pink { color: #be185d; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-yellow { color: #a16207; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-teal { color: #0f766e; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-blue { color: #1d4ed8; }
+body[data-theme="light"] #bigActionTilesGrid .icon-box-slate { color: #334155; }
+body.field-mode #bigActionTilesGrid .big-tile-icon-box { color: #ffdf00 !important; }
+
+#screen-menu :is(.bar-title-icon, .dash-card-icon, .chip-icon).has-ui-ico .ui-ico { width: 16px; height: 16px; }
+#screen-menu .home-gps-cta-icon.has-ui-ico .ui-ico { width: 24px; height: 24px; color: #34d399; }
+#mapProjectBar :is(.map-proj-icon, .map-action-icon).has-ui-ico .ui-ico { width: 17px; height: 17px; }
+
+/* ============ 11. THANH BẢN ĐỒ DỰ ÁN (ĐIỆN THOẠI) ============
+   Trước: ô chọn dự án chỉ còn "[Bản đồ m…". Nay ô chọn chiếm trọn hàng trên, các nút ở hàng dưới. */
+@media (max-width: 600px) {
+  #map-view-container #mapProjectBar {
+    flex-wrap: wrap !important;
+    row-gap: 6px !important;
+    max-width: calc(100% - var(--sat-safe-left, 0px) - var(--sat-safe-right, 0px) - 76px) !important;
+  }
+  #map-view-container #mapProjectBar .map-proj-select-box {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+  #map-view-container #mapProjectBar .map-proj-select { flex: 1 1 auto !important; width: 100% !important; max-width: none !important; min-width: 0 !important; }
+  #map-view-container #mapProjectBar > button { flex: 1 1 0% !important; }
+  #map-view-container #mapProjectBar > #btnMapHelpGuide { flex: 0 0 auto !important; }
+}
+
+/* ============ 12. NGĂN KÉO MENU KHI ĐÓNG ============
+   Ngăn kéo đóng chỉ trượt ra ngoài màn hình nên phím Tab và trình đọc màn hình vẫn đi vào ~40 mục ẩn.
+   Ẩn hẳn sau khi trượt xong (trễ bằng thời gian trượt), hiện ngay khi mở. */
+#navTreeDrawer:not(.active) { visibility: hidden; transition: transform 0.3s var(--m-ease), visibility 0s linear 0.3s !important; }
+#navTreeDrawer.active { visibility: visible; }
+#mapRightControls .btn-map-fab.has-ui-ico .ui-ico { width: 22px; height: 22px; }
+#mapRightControls #btnMapFabGps.has-ui-ico { color: #f87171; }
+#screen-menu .accordion-header-icon-box.has-ui-ico .ui-ico { width: 20px; height: 20px; color: var(--m-accent); }
+#screen-menu .chip-arrow.has-ui-ico .ui-ico { width: 15px; height: 15px; color: var(--m-text-2); }
+@media (max-width: 600px) {
+  #map-view-container #mapProjectBar { height: auto !important; max-height: none !important; overflow: visible !important; }
+}
+
+/* ============ 13. SỬA GIAO DIỆN SÁNG / THỰC ĐỊA ============ */
+/* Thực địa: khối trái bị ép "flex: 0 0 auto" nên chip KTT co còn "105°4". */
+@media (max-width: 600px) {
+  body.field-mode header.app-header .header-left { flex: 1 1 auto !important; min-width: 0 !important; }
+}
+/* Sáng: nút ◀ chữ trắng trên nền trắng (vô hình). */
+body[data-theme="light"]:not(.field-mode) header.app-header #btnHeaderBack {
+  color: #0369a1 !important;
+  background: rgba(2, 132, 199, 0.08) !important;
+  border: 1px solid rgba(2, 132, 199, 0.25) !important;
+}
+body[data-theme="light"]:not(.field-mode) header.app-header #btnHeaderBack::before { color: inherit !important; }
+/* Sáng: khung tab Chuyển đổi và nút Múi chưa chọn giữ nền tối → chữ xám đậm trên nền navy, gần như vô hình. */
+body[data-theme="light"] #screen-transform .transform-subtabs {
+  background: #e8eef5 !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+body[data-theme="light"] #screen-transform .transform-subtabs .btn-subtab:not(.active) { color: #1e293b !important; background: transparent !important; }
+body[data-theme="light"] .btn-mui-toggle:not(.active) {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* ============ 14. GIAO DIỆN SÁNG: MÀU CHỮ VIẾT CỨNG CHO NỀN TỐI ============
+   Hàng trăm style="color: #38bdf8 / #fbbf24 / #94a3b8 …" trong index.html và app.js được chọn cho nền tối;
+   trên nền trắng chỉ đạt 1.2–2.9:1 (cần ≥ 4.5:1). Ở giao diện Sáng đổi sang bản đậm cùng tông.
+   Chừa các vùng vẫn nền tối (bản đồ, thanh lệnh CAD). Không áp cho Thực địa (có bảng màu riêng). */
+body[data-theme="light"]:not(.field-mode) [style^="color: #38bdf8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#38bdf8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #38bdf8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #38bdf8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#38bdf8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#38bdf8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #7dd3fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#7dd3fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #7dd3fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #7dd3fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#7dd3fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#7dd3fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #60a5fa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#60a5fa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #60a5fa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #60a5fa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#60a5fa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#60a5fa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #0ea5e9" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#0ea5e9" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #0ea5e9" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #0ea5e9" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#0ea5e9" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#0ea5e9" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #0369a1 !important; }
+body[data-theme="light"]:not(.field-mode) [style^="color: #fbbf24" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#fbbf24" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #fbbf24" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #fbbf24" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#fbbf24" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#fbbf24" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #fcd34d" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#fcd34d" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #fcd34d" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #fcd34d" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#fcd34d" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#fcd34d" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #f59e0b" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#f59e0b" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #f59e0b" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #f59e0b" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#f59e0b" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#f59e0b" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #b45309 !important; }
+body[data-theme="light"]:not(.field-mode) [style^="color: #cbd5e1" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#cbd5e1" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #cbd5e1" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #cbd5e1" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#cbd5e1" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#cbd5e1" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #334155 !important; }
+body[data-theme="light"]:not(.field-mode) [style^="color: #94a3b8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#94a3b8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #94a3b8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #94a3b8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#94a3b8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#94a3b8" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #475569 !important; }
+body[data-theme="light"]:not(.field-mode) [style^="color: #4ade80" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#4ade80" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #4ade80" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #4ade80" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#4ade80" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#4ade80" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #6ee7b7" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#6ee7b7" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #6ee7b7" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #6ee7b7" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#6ee7b7" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#6ee7b7" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #34d399" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#34d399" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #34d399" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #34d399" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#34d399" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#34d399" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #10b981" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#10b981" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #10b981" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #10b981" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#10b981" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#10b981" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #047857 !important; }
+body[data-theme="light"]:not(.field-mode) [style^="color: #c084fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#c084fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #c084fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #c084fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#c084fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#c084fc" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #a78bfa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#a78bfa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #a78bfa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #a78bfa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#a78bfa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#a78bfa" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #7e22ce !important; }
+body[data-theme="light"]:not(.field-mode) [style^="color: #f87171" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#f87171" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #f87171" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #f87171" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#f87171" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#f87171" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color: #fca5a5" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style^="color:#fca5a5" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color: #fca5a5" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color: #fca5a5" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=" color:#fca5a5" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*=";color:#fca5a5" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #b91c1c !important; }
+
+/* Giao diện Sáng: khung nền tối bán trong suốt viết cứng (rgba(15,23,42,…), #0f172a…) thành ô xám đục
+   trên nền trắng, chữ bên trong không đọc được. Đổi sang bề mặt sáng có viền mảnh. Nút giữ nguyên. */
+body[data-theme="light"]:not(.field-mode) [style*="background: rgba(15, 23, 42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:rgba(15, 23, 42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: rgba(15, 23, 42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:rgba(15, 23, 42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background: rgba(15,23,42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:rgba(15,23,42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: rgba(15,23,42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:rgba(15,23,42" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background: rgba(30, 41, 59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:rgba(30, 41, 59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: rgba(30, 41, 59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:rgba(30, 41, 59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background: rgba(30,41,59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:rgba(30,41,59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: rgba(30,41,59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:rgba(30,41,59" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background: rgba(11, 19, 41" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:rgba(11, 19, 41" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: rgba(11, 19, 41" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:rgba(11, 19, 41" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background: #0f172a" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:#0f172a" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: #0f172a" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:#0f172a" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background: #0b1329" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:#0b1329" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: #0b1329" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:#0b1329" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background: #0b1120" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background:#0b1120" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color: #0b1120" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *),
+body[data-theme="light"]:not(.field-mode) [style*="background-color:#0b1120" i]:not(button):not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .camera-viewfinder, #mobileBottomNav) *) {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+/* Nhóm tab Camera, nút chọn góc dấu, tab Trắc dọc chưa chọn: nền navy trên trang sáng. */
+body[data-theme="light"]:not(.field-mode) :is(.camera-tab-btn, .btn-corner-opt, .profile-mode-btn):not(.active) {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+body[data-theme="light"]:not(.field-mode) .btn-customize-pins { color: #92400e !important; }
+body[data-theme="light"]:not(.field-mode) #navTreeDrawer .tree-badge { color: #0f172a !important; }
+body[data-theme="light"]:not(.field-mode) .camera-tabs-bar { background: #e8eef5 !important; border-color: rgba(15, 23, 42, 0.1) !important; }
+
+/* Màu vàng/tím nhạt viết cứng còn lại (ô tọa độ mốc Cắm mốc, nút Vẽ tuyến Trắc dọc). */
+body[data-theme="light"]:not(.field-mode) [style*="color: #fde047" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*="color:#fde047" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #a16207 !important; }
+body[data-theme="light"]:not(.field-mode) [style*="color: #d8b4fe" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *),
+body[data-theme="light"]:not(.field-mode) [style*="color:#d8b4fe" i]:not(:is(#map-view-container, .transform-map-column, .leaflet-container, #screen-transform-map, .cad-floating-cmd-bar, #cadStatusHud, .profile-canvas-card) *) { color: #7e22ce !important; }
+/* Màu qua class (không phải inline). */
+body[data-theme="light"]:not(.field-mode) .btn-subtab-back,
+body[data-theme="light"]:not(.field-mode) .btn-subtab-back span { color: #0369a1 !important; }
+body[data-theme="light"]:not(.field-mode) .btn-corner-opt.active { color: #075985 !important; }
+body[data-theme="light"]:not(.field-mode) #navTreeDrawer .drawer-status-chip span { color: #0369a1 !important; }
+body[data-theme="light"] #panelTransRezone :is(legend) { color: #0369a1 !important; }
+body[data-theme="light"] #panelTransRezone :is(.rz-hint, i, b) { color: #475569 !important; }
+body[data-theme="light"]:not(.field-mode) .cad-floating-cmd-bar b { color: #0369a1 !important; }
+body[data-theme="light"]:not(.field-mode) #cadCmdCoordsLive { color: #475569 !important; }

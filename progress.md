@@ -1192,3 +1192,12 @@
   8. Xoay ngang: chữ thanh dock 9.5 → 11 px; nút bản đồ bên phải ≥ 36 px. Nút GPS trên máy tính/tablet có nhãn "GPS" (trước chỉ một chấm).
 - **Kết quả đo**: hết toàn bộ lỗi cắt chữ trên các màn chính ở cả 5 cỡ (còn tên file dự án MiniCAD dạng "…" có chú thích đầy đủ khi chạm — chủ ý), 0 lỗi JS, 0 tràn ngang.
 - **Tài nguyên**: `?v=2.8.28`, `CACHE_NAME = vn2000-pro-v2.8.28`, `sw.js` cache thêm `ui-modern.css`. Test mới `tests/ui_modern_layer.test.js` (10/10); `npm test` **364/364 PASS**.
+
+## 2026-11-08 — WP-M2: Biểu tượng SVG, sửa giao diện Sáng / Thực địa, thanh Bản đồ dự án
+- **Biểu tượng SVG** (`ui-icons.js`, mới): đổi emoji trong khung chính sang SVG nét mảnh kiểu Lucide (currentColor, `aria-hidden`) — thanh tiêu đề, thanh dock, Menu ☰ (thư mục + mục), 4 ô chức năng Trang chủ (màu theo ô, có bản Sáng/Thực địa), tab Chuyển đổi, tiêu đề thẻ, thanh Bản đồ dự án, cột nút bản đồ. KHÔNG sửa mã dựng giao diện: module quét ô biểu tượng và theo dõi DOM (bỏ qua ngăn Leaflet); emoji không có trong bảng giữ nguyên; JS lỗi → vẫn hiện emoji như cũ. Cờ 🇻🇳 (ranh 34 tỉnh) giữ nguyên vì là nhận diện.
+- **Giao diện Sáng** (quét tương phản tự động 13 màn, ngưỡng 3:1): trước có ~60 chữ đạt 1.2–2.9:1 do hàng trăm `style="color: #38bdf8|#fbbf24|#94a3b8|#cbd5e1|#4ade80…"` và nền `rgba(15,23,42,…)` viết cho nền tối. Thêm luật chỉ áp ở `body[data-theme="light"]:not(.field-mode)`: đổi màu chữ sang bản đậm cùng tông, khung nền tối bán trong suốt → bề mặt sáng; chừa vùng bản đồ, thanh lệnh CAD, khung vẽ trắc dọc. Sửa riêng: nút ◀ (trắng trên trắng), khung tab Chuyển đổi/Camera, nút Múi, nút góc dấu, tab Trắc dọc, "Đổi ghim", huy hiệu Menu. Sau sửa: 0 chữ dưới 3:1; giao diện Tối không đổi (đã quét đối chứng).
+- **Thực địa**: chip KTT bị cắt còn "105°4" vì khối trái bị ép `flex: 0 0 auto` → cho giãn.
+- **Thanh Bản đồ dự án (điện thoại)**: ô chọn dự án trước chỉ còn "[Bản đồ m…" → hàng riêng, các nút ở hàng dưới.
+- **Lỗi nhỏ**: mở Bản đồ dự án hiện thông báo "Đã xóa danh sách điểm đã chấm" dù người dùng không bấm gì — `appCoordPicker.clearMultiPoints(silent)`; lời gọi dọn ngầm khi đổi phân hệ chạy im lặng.
+- **Menu ☰ đóng**: thêm `visibility: hidden` (trễ bằng thời gian trượt) → phím Tab / trình đọc màn hình không đi vào ~40 mục ẩn.
+- **Tài nguyên**: `?v=2.8.29`, `CACHE_NAME = vn2000-pro-v2.8.29`, `sw.js` cache `ui-icons.js`. `tests/ui_modern_layer.test.js` 17/17; `npm test` **371/371 PASS**.

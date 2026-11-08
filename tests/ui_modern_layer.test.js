@@ -85,3 +85,56 @@ test('wide screens show the home screen in two columns so the main tiles are abo
     assert.ok(/@media \(min-width: 1200px\) \{\s*#screen-menu\.screen-view\.active \{\s*display: grid !important;/.test(css));
     assert.ok(/#screen-menu > #fieldWorkspace \{ grid-column: 1;/.test(css) && /#screen-menu > #dashboardModernHub \{ grid-column: 2;/.test(css));
 });
+
+// ---- WP-M2: biểu tượng SVG, giao diện Sáng, thanh Bản đồ dự án ----
+const iconsJs = read('ui-icons.js');
+
+test('ui-icons.js is loaded after app scripts and cached offline', () => {
+    const appAt = html.indexOf('app.js?v=');
+    const iconAt = html.indexOf('ui-icons.js?v=');
+    assert.ok(appAt > 0 && iconAt > appAt, 'nạp sau app.js để thấy giao diện đã dựng');
+    assert.ok(sw.includes("'./ui-icons.js'"), 'sw.js lưu ui-icons.js');
+});
+
+test('every emoji in the icon table maps to a drawn shape', () => {
+    const vm = require('vm');
+    const listeners = {};
+    const sandbox = {
+        window: {}, document: { readyState: 'loading', addEventListener: (e, f) => { listeners[e] = f; } },
+        NodeFilter: {}, MutationObserver: undefined
+    };
+    vm.runInNewContext(iconsJs, sandbox);
+    const { SHAPES, EMOJI, svg } = sandbox.window.appIcons;
+    for (const [emoji, name] of Object.entries(EMOJI)) assert.ok(SHAPES[name], `${emoji} → ${name} có hình vẽ`);
+    const out = svg('home');
+    assert.ok(/aria-hidden="true"/.test(out) && /stroke="currentColor"/.test(out), 'SVG ẩn với trình đọc màn hình và theo màu chữ');
+});
+
+test('icon swap never touches map panes and keeps unknown emoji as-is', () => {
+    assert.ok(/closest\('\.leaflet-pane, \.leaflet-control-container'\)/.test(iconsJs), 'bỏ qua thay đổi trong ngăn bản đồ');
+    assert.ok(/if \(!name\) return;/.test(iconsJs), 'emoji không có trong bảng giữ nguyên');
+    assert.ok(/BY_ID = \{ btnMapFabLayer: 'layers' \}/.test(iconsJs), 'nút đổi lớp nền dùng hình "lớp", không dùng hình sóng');
+});
+
+test('light theme remaps hard-coded dark-theme text colours and dark panels', () => {
+    assert.ok(/body\[data-theme="light"\]:not\(\.field-mode\) \[style\^="color: #38bdf8" i\]/.test(css), 'xanh nhạt viết cứng được đổi');
+    assert.ok(/\{ color: #0369a1 !important; \}/.test(css));
+    assert.ok(/\[style\*="background: rgba\(15, 23, 42" i\]:not\(button\)/.test(css), 'khung nền tối bán trong suốt thành bề mặt sáng');
+    assert.ok(/#map-view-container, \.transform-map-column, \.leaflet-container/.test(css), 'chừa vùng bản đồ vẫn nền tối');
+    assert.ok(/#btnHeaderBack \{\s*color: #0369a1 !important;/.test(css), 'nút ◀ nhìn thấy ở giao diện Sáng');
+});
+
+test('field mode lets the header KTT chip grow; project map bar gives the project picker its own row on phones', () => {
+    assert.ok(/body\.field-mode header\.app-header \.header-left \{ flex: 1 1 auto !important;/.test(css));
+    assert.ok(/#map-view-container #mapProjectBar \.map-proj-select-box \{\s*flex: 1 1 100% !important;/.test(css));
+    assert.ok(/#map-view-container #mapProjectBar \{ height: auto !important;/.test(css));
+});
+
+test('opening the project map clears picked points silently', () => {
+    assert.ok(appJs.includes('appCoordPicker.clearMultiPoints(true);'), 'dọn ngầm không hiện thông báo');
+    assert.ok(/clearMultiPoints\(silent = false\) \{[\s\S]{0,400}if \(!silent\) showToast\("✓ Đã xóa danh sách điểm đã chấm"\);/.test(appJs), 'người dùng bấm Xóa vẫn thấy thông báo');
+});
+
+test('closed menu drawer is hidden from keyboard and screen readers', () => {
+    assert.ok(/#navTreeDrawer:not\(\.active\) \{ visibility: hidden;/.test(css));
+});

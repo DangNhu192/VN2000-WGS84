@@ -755,3 +755,8 @@
 - Trang chủ ≥ 1200 px là lưới 2 cột (`#screen-menu.screen-view.active { display: grid }`).
 - Kiểm thử: `tests/ui_modern_layer.test.js`; `npm test` 364/364.
 - Việc tiếp theo gợi ý: icon emoji → SVG (khuyến nghị ui-ux-pro-max "No emojis as icons") — việc lớn, cần chủ dự án quyết; thay bộ chọn dự án `<select>` trên thanh Bản đồ dự án bị cắt chữ ở màn hẹp.
+
+## 2026-11-08 — WP-M2: Biểu tượng SVG + giao diện Sáng — đã xong, nhánh `claude/epic-ritchie-o0kkwf`
+- `ui-icons.js`: bảng `EMOJI → SHAPES`, danh sách ô `WHOLE` (thay toàn bộ) và `LEADING` (emoji đứng đầu nhãn). Thêm biểu tượng mới: thêm hình vào `SHAPES`, ánh xạ ở `EMOJI`, thêm bộ chọn ô vào `WHOLE`/`LEADING`. Nút cần hình theo nghĩa thì dùng `BY_ID`.
+- Giao diện Sáng: mục 13–14 cuối `ui-modern.css` đổi màu inline viết cho nền tối. Khi thêm vùng luôn nền tối (như bản đồ), thêm nó vào danh sách loại trừ `:not(:is(...) *)` ở các luật đó.
+- Còn lại (không chặn): emoji bên trong nội dung chi tiết (nút nhỏ trong thẻ, hộp hướng dẫn, thông báo) vẫn là emoji — đổi tiếp bằng cách mở rộng `WHOLE`/`LEADING` nếu muốn.

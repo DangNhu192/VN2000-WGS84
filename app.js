@@ -1307,7 +1307,7 @@ const appNav = window.appNav = {
             AppState.pickerMarker = null;
         }
         if (typeof appCoordPicker !== 'undefined' && appCoordPicker.clearMultiPoints) {
-            appCoordPicker.clearMultiPoints();
+            appCoordPicker.clearMultiPoints(true); // dọn ngầm khi đổi phân hệ: không báo người dùng
         }
 
         appNav.setActiveMenuItem('drawerItem_map');
@@ -2405,7 +2405,7 @@ const appCoordPicker = {
         showToast("✓ Đã xóa điểm chọn trên bản đồ");
     },
 
-    clearMultiPoints() {
+    clearMultiPoints(silent = false) {
         if (this.multiMarkersGroup) {
             this.multiMarkersGroup.clearLayers();
         }
@@ -2415,7 +2415,7 @@ const appCoordPicker = {
         }
         this.multiPoints = [];
         this.updateMultiCountBadge();
-        showToast("✓ Đã xóa danh sách điểm đã chấm");
+        if (!silent) showToast("✓ Đã xóa danh sách điểm đã chấm");
     },
 
     applySinglePoint() {
