@@ -13,9 +13,11 @@ const styleCssContent = fs.readFileSync(path.join(__dirname, '../style.css'), 'u
 
 test('=== 1. KIỂM THỬ PHÂN ĐỊNH ROUTING THỐNG NHẤT 1.1, 1.2, 1.3 ===', (t) => {
     // 1. Drawer và Tree Navigation có đủ 3 mục 1.1, 1.2, 1.3
-    assert.ok(indexHtmlContent.includes('1.1 Chuyển đổi 2 chiều đơn điểm'), 'Có mục 1.1 Chuyển đổi 2 chiều đơn điểm');
-    assert.ok(indexHtmlContent.includes('1.2 Chuyển đổi danh sách hàng loạt & Nhập file') || indexHtmlContent.includes('1.2 Chuyển đổi hàng loạt & Nhập file'), 'Có mục 1.2 Chuyển đổi hàng loạt');
-    assert.ok(indexHtmlContent.includes('1.3 Bản đồ Chuyển đổi & Chấm điểm'), 'Có mục 1.3 Bản đồ Chuyển đổi & Chấm điểm');
+    // So sánh không phân biệt hoa/thường: nhãn đã chuẩn hóa sang viết hoa đầu câu (WP-N).
+    const htmlLower = indexHtmlContent.toLowerCase();
+    assert.ok(htmlLower.includes('1.1 chuyển đổi 2 chiều đơn điểm'), 'Có mục 1.1 Chuyển đổi 2 chiều đơn điểm');
+    assert.ok(htmlLower.includes('1.2 chuyển đổi danh sách hàng loạt & nhập file') || htmlLower.includes('1.2 chuyển đổi hàng loạt & nhập file'), 'Có mục 1.2 Chuyển đổi hàng loạt');
+    assert.ok(htmlLower.includes('1.3 bản đồ chuyển đổi & chấm điểm'), 'Có mục 1.3 Bản đồ Chuyển đổi & Chấm điểm');
 
     // 2. appNav có hàm openTransformCoordScreen phân định subtab
     assert.ok(appJsContent.includes("openTransformCoordScreen(tab = 'single')"), 'appNav có hàm openTransformCoordScreen');
