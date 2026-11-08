@@ -1177,3 +1177,18 @@
 - **MiniCAD**: bỏ lưới công cụ ⊞ và 12 nút trùng trong ribbon CLI (giữ 5 nút trợ vẽ); bỏ nút Xóa toàn bộ cạnh các nút bật/tắt. Điện thoại dọc: thanh công cụ là bottom sheet, CLI thu gọn ở trên. **Cách ly UI**: rule style.css `.map-project-bar { display:flex !important }` (≤520px) làm thanh Bản đồ dự án lọt vào MiniCAD/chấm điểm/GPS trên mọi điện thoại — đã bỏ.
 - **Nhập file có xem trước**: `import-preview.js` — xem vài dòng đầu, chọn cột, loại tọa độ, KTT/múi của file, tùy chọn đổi sang KTT hiện hành; chọn dấu phân cách theo số ô số (không tách nhầm phẩy thập phân); không tiêu đề → X là cột giá trị lớn hơn. `mapHeaderColumns` tách khỏi `parseHeaderedTable`.
 - Kiểm chứng: `npm test` **354/354 PASS**; thử trên trình duyệt: dấu camera, gợi ý KTT theo GPS (Đà Nẵng → 107°45'), nhập CSV KTT 107°45' → 105°45' khớp engine tới mm, cách ly thanh dự án qua 5 chế độ bản đồ. `?v=2.8.27`, `CACHE_NAME = vn2000-pro-v2.8.27`.
+
+## 2026-11-08 — WP-M: Hiện đại hóa giao diện theo ui-ux-pro-max (chống cắt chữ / tràn nút)
+- **Căn cứ**: chạy bộ công cụ `nextlevelbuilder/ui-ux-pro-max-skill` (`search.py --design-system`, density 8, variance 3, motion 2) → phong cách Minimalism & Swiss cho công cụ chuyên nghiệp mật độ cao; quy tắc UX: chạm ≥ 44 px, cách ≥ 8 px, `touch-action: manipulation`, KHÔNG cắt nhãn hành động/tên chức năng (Essential Text Truncation — Critical), focus nhìn thấy, `prefers-reduced-motion`. Giữ nguyên bảng màu/phông DESIGN.md (đã khớp hướng Swiss).
+- **Cách làm**: lớp mới `ui-modern.css` nạp SAU `ui-polish.css` (không sửa các luật cũ). Đo bằng Playwright 14 màn × 5 cỡ (320×568, 390×844, 820×1180, 1440×900, 844×390 ngang): phần tử bị cắt chữ, tràn ngang, chữ < 11 px, nút < 32 px.
+- **Đã sửa**:
+  1. Thanh tiêu đề điện thoại: chip KTT bị ép còn "📍1" ở 320 px. Nay chip tách phần (`hk-ico/hk-ktt/hk-zone/hk-prov`, app.js), là container query `kttchip`: tự bỏ tên tỉnh → biểu tượng → múi theo bề rộng thật, KHÔNG bao giờ cắt số KTT. Nút ☰/◀/cụm phải đồng cỡ 38 px. ≤ 359 px ẩn nút Sáng/Tối trên header (vẫn có ở Cài đặt › Giao diện, nút Thực địa ở Trang chủ).
+  2. Menu ☰: tên chức năng xuống dòng thay vì "…"; bỏ 3 chấm trang trí macOS, đầu ngăn kéo gọn 1 hàng; ô tìm kiếm "Tìm chức năng…"; nút xóa 22 → 30 px.
+  3. Màn Chuyển đổi: tab con thành lưới 2×2 đều + nút ? (trước tab "Đa điểm (0 mốc)" vỡ chữ từng ký tự vì nút flex tách số đếm); đầu bản đồ trực quan: tiêu đề 1 dòng "BẢN ĐỒ TRỰC QUAN", 4 nút lưới đều (trước 26 px, tiêu đề vỡ 3 dòng); dòng gợi ý tọa độ xuống dòng; nút thu/giãn 26 → 34 px.
+  4. Tiêu đề thẻ xuống dòng (kể cả Sổ đo/Cắm mốc vốn bị ép 1 dòng "…"); hàng nút nhỏ trong thẻ được xuống dòng.
+  5. Trang chủ: hàng "Nghiệp vụ" không đè nút Đổi ghim (ẩn huy hiệu "4 mục" ≤ 420 px); nút thu dock 20 → 28 px. **Màn ≥ 1200 px: Trang chủ 2 cột** (trái chuyển đổi nhanh, phải 4 ô chức năng 2×2 + trạng thái) — trước 4 ô nằm dưới mép màn 1440×900.
+  6. MiniCAD: cụm Lùi/Tiến/số đỉnh/?/Thu gọn/Đóng — nút ✕ không còn bị đẩy ra ngoài mép (390 px); ô số liệu lấp chỗ trống, tự xuống dòng (chế độ đa giác dài hơn), chữ 10 → 11 px; nhãn trợ vẽ "Snap [F3]"… trên máy tính hiện đủ (trước cắt ở 39 px).
+  7. Cài đặt: nút ? 26 → 36 px, nút "◀ Tổng quan cài đặt" cao 24 → 36 px; chân hộp hướng dẫn hai nút chia đều.
+  8. Xoay ngang: chữ thanh dock 9.5 → 11 px; nút bản đồ bên phải ≥ 36 px. Nút GPS trên máy tính/tablet có nhãn "GPS" (trước chỉ một chấm).
+- **Kết quả đo**: hết toàn bộ lỗi cắt chữ trên các màn chính ở cả 5 cỡ (còn tên file dự án MiniCAD dạng "…" có chú thích đầy đủ khi chạm — chủ ý), 0 lỗi JS, 0 tràn ngang.
+- **Tài nguyên**: `?v=2.8.28`, `CACHE_NAME = vn2000-pro-v2.8.28`, `sw.js` cache thêm `ui-modern.css`. Test mới `tests/ui_modern_layer.test.js` (10/10); `npm test` **364/364 PASS**.

@@ -748,3 +748,10 @@
 - Bottom Sheet bản đồ bỏ "Nạp tọa độ" và "Lưu mốc" chéo phân hệ (xóa `loadSelectedToMain`, `savePickedPoint`).
 - Test hồi quy `tests/map_chrome_isolation.test.js` 21/21; `npm test` 309/309.
 - Việc tiếp theo: icon mốc theo lớp (`pointStyle`), Dynamic Input, Hatch, Import DXF, Inquiry/QSELECT.
+
+## 2026-11-08 — WP-M: Hiện đại hóa giao diện (ui-ux-pro-max) — đã xong, nhánh `claude/epic-ritchie-o0kkwf`
+- Lớp CSS mới `ui-modern.css` nạp cuối cùng (sau `ui-polish.css`); mọi sửa giao diện mới đặt ở đây, không sửa ngược luật cũ.
+- Chip KTT trên header điện thoại giờ là các `<span class="hk-*">` (app.js `updateStatusBanner`), CSS container query `kttchip` quyết định phần nào hiện. Đừng đổi lại `textContent`.
+- Trang chủ ≥ 1200 px là lưới 2 cột (`#screen-menu.screen-view.active { display: grid }`).
+- Kiểm thử: `tests/ui_modern_layer.test.js`; `npm test` 364/364.
+- Việc tiếp theo gợi ý: icon emoji → SVG (khuyến nghị ui-ux-pro-max "No emojis as icons") — việc lớn, cần chủ dự án quyết; thay bộ chọn dự án `<select>` trên thanh Bản đồ dự án bị cắt chữ ở màn hẹp.

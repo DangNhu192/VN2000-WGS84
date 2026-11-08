@@ -1574,7 +1574,10 @@ const appNav = window.appNav = {
         if (headChip) {
             const shortProv = String(pName).replace(/^(TP\.|Thành phố|Tỉnh)\s*/, '');
             // Thanh tiêu đề điện thoại chỉ còn ~120 px: ưu tiên KTT + múi; tên tỉnh ở chú thích và màn hình Cài đặt.
-            headChip.textContent = `📍 ${dmsStr} · ${AppState.muiVal}°`;
+            // Tách phần: CSS (ui-modern.css) tự bỏ tên tỉnh → biểu tượng → múi khi chip hẹp, không bao giờ cắt số KTT.
+            const esc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            headChip.innerHTML = `<span class="hk-ico" aria-hidden="true">📍</span><span class="hk-ktt">${esc(dmsStr)}</span>`
+                + `<span class="hk-zone">· ${esc(AppState.muiVal)}°</span><span class="hk-prov">${esc(shortProv)}</span>`;
             headChip.title = isEn
                 ? `${shortProv}: CM ${dmsStr}, zone ${AppState.muiVal}° — tap to change`
                 : `${shortProv}: KTT ${dmsStr}, múi ${AppState.muiVal}° — chạm để đổi`;
@@ -37042,6 +37045,7 @@ const appI18n = {
         "💾 LƯU VÀO DỰ ÁN ĐÃ CHỌN": "💾 save andO project DA select",
         "= 1024px HOẶC KHI CHỌN TAB BẢN ĐỒ) -->": "= 1024px OR WHEN SELECTING MAP TAB) -->",
         "BẢN ĐỒ TỌA ĐỘ TRỰC QUAN (LIVE MAP)": "INTERACTIVE COORDINATE LIVE MAP",
+        "BẢN ĐỒ TRỰC QUAN": "LIVE MAP",
         "🛰️ Lớp nền": "🛰️ Lop nen",
         "🔍 Bao quát": "🔍 Bao quat",
         "⛶ Phóng to": "⛶ Phong to",
@@ -38285,6 +38289,7 @@ const appI18n = {
         "Tên file dự án mới (ví dụ: DoDac_KhuA.csv)": "name file project moi (vi du: DoDac_KhuA.csv)",
         "Ví dụ dán tọa độ VN-2000:&#10;M1, 1144058.623, 539624.574, Ranh phía Tây&#10;M2, 1144120.350, 539680.120, Góc phía Bắc&#10;&#10;Hoặc dán không có tên (chỉ 2 cột số):&#10;1144058.623 539624.574&#10;1144120.350 539680.120&#10;&#10;Hoặc dán tọa độ GPS / WGS-84 (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200": "Example pasting VN-2000 coordinates:&#10;M1, 1144058.623, 539624.574, West Boundary&#10;M2, 1144120.350, 539680.120, North Corner&#10;&#10;Or paste without point names (2 numeric columns):&#10;1144058.623 539624.574&#10;1144120.350 539680.120&#10;&#10;Or paste GPS / WGS-84 coordinates (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200",
         "Tìm nhanh (cắm mốc, dwg, kml, camera...)": "search nhanh (stakeout, dwg, kml, camera...)",
+        "Tìm chức năng…": "Search features…",
     },
 
     patterns: [
