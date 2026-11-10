@@ -2768,3 +2768,83 @@ body[data-theme="light"] .home-gps-cta b { color: #047857; }
     bottom: auto !important;
   }
 }
+
+/* ================= PHÂN HỆ TỐI ƯU HÓA LỘ TRÌNH & DẪN ĐƯỜNG GIAO THÔNG (F-012) ================= */
+#screen-routing.screen-view.active {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.routing-top-toolbar {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.routing-vehicle-selector .btn-routing-veh.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+}
+
+.routing-nav-hud {
+  animation: slideUpRoutingHud 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpRoutingHud {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Marker cho điểm dừng lộ trình */
+.routing-marker-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.routing-marker-pin:hover {
+  transform: scale(1.15);
+}
+
+.routing-marker-start {
+  background: #10b981 !important; /* Xanh lá: Xuất phát */
+}
+
+.routing-marker-end {
+  background: #ef4444 !important; /* Đỏ: Đích đến */
+}
+
+.routing-marker-mid {
+  background: #0284c7 !important; /* Xanh dương: Mốc trung gian */
+}
+
+.routing-point-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #f1f5f9;
+}
+
+.routing-point-row:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+}

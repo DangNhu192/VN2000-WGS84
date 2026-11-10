@@ -1,7 +1,7 @@
 {
   "project": "VN2000-PWA",
-  "version": "2.7.0",
-  "active_feature": "F-011",
+  "version": "2.8.0",
+  "active_feature": "F-012",
   "features": [
     {
       "id": "F-001",
@@ -79,6 +79,13 @@
       "description": "Rà soát toàn diện từng nút bấm, thao tác, chức năng và giao diện của 11 phân hệ nghiệp vụ theo chuẩn Harness-Kit và Vibe Design",
       "status": "done",
       "dependencies": ["F-001", "F-002", "F-003", "F-004", "F-005", "F-006", "F-007", "F-008", "F-009", "F-010"]
+    },
+    {
+      "id": "F-012",
+      "name": "Phân hệ Tối ưu hóa lộ trình & Dẫn đường giao thông thực địa (Route Optimizer & AI Voice)",
+      "description": "Tối ưu hóa thứ tự mốc TSP theo mạng lưới đường bộ cho 3 phương tiện (Xe máy, Ô tô con, Ô tô 16 chỗ), dẫn đường bằng giọng nói tiếng Việt trong app và phân chặng mở Google Maps",
+      "status": "done",
+      "dependencies": ["F-001", "F-002", "F-003", "F-009"]
     }
   ]
 }

@@ -33,9 +33,9 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.27">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.27">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.27">
+  <link rel="stylesheet" href="style.css?v=2.8.28">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.28">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.28">
 </head>
 
 <body>
@@ -613,6 +613,34 @@
                   </div>
                 </div>
               </div>
+
+              <!-- THẺ 8: TỐI ƯU LỘ TRÌNH & DẪN ĐƯỜNG GIAO THÔNG -->
+              <div class="feature-card" onclick="appNav.showScreen('routing')">
+                <div class="feature-card-top">
+                  <div class="feature-card-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">🚗</div>
+                  <div class="feature-card-header-text">
+                    <div class="feature-card-title">8. Tối Ưu Lộ Trình & Dẫn Đường Giao Thông</div>
+                    <div class="feature-card-badges">
+                      <span class="pill-badge pill-basic" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4);">⭐ Mới</span>
+                      <span class="pill-badge">Xe máy • Ô tô • 16 Chỗ</span>
+                      <span class="pill-badge">Thuật toán TSP</span>
+                      <span class="pill-badge">Giọng nói AI</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="feature-card-desc">
+                  Tự động tối ưu thứ tự lộ trình ngắn nhất qua các điểm mốc theo tim đường giao thông thực tế. Hỗ trợ 3 phương tiện (Xe máy, Ô tô con, Ô tô 16 chỗ), phát giọng nói chỉ dẫn từng ngã rẽ và đồng bộ Google Maps.
+                </div>
+                <div class="feature-card-action-bar">
+                  <span class="feature-card-hint">Tối ưu điểm dừng & Dẫn đường GPS</span>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="btn-card-launch" onclick="event.stopPropagation(); appNav.showScreen('routing');">Mở ➔</button>
+                    <button class="btn-card-quick-export" onclick="event.stopPropagation(); appRouting.openWithAllPoints();" title="Nạp nhanh toàn bộ mốc dự án vào lộ trình">
+                      <span>⚡</span> Nạp mốc
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -893,10 +921,19 @@
               <div class="menu-card-arrow">›</div>
             </div>
 
+            <div class="menu-card" onclick="appNav.showScreen('routing')">
+              <div class="menu-card-icon" style="color: #34d399;">🚗</div>
+              <div class="menu-card-content">
+                <div class="menu-card-title">6. TỐI ƯU LỘ TRÌNH & CHỈ ĐƯỜNG</div>
+                <div class="menu-card-desc">Tối ưu điểm dừng theo đường giao thông: xe máy, ô tô, 16 chỗ, giọng nói AI & Google Maps</div>
+              </div>
+              <div class="menu-card-arrow">›</div>
+            </div>
+
             <div class="menu-card" onclick="appNav.showScreen('about')">
               <div class="menu-card-icon" style="color: #94a3b8;">ℹ️</div>
               <div class="menu-card-content">
-                <div class="menu-card-title">6. THÔNG TIN & HƯỚNG DẪN</div>
+                <div class="menu-card-title">7. THÔNG TIN & HƯỚNG DẪN</div>
                 <div class="menu-card-desc">Cẩm nang 10 nghiệp vụ, cài PWA đa nền tảng & căn cứ pháp lý QĐ
                   05/2007/QĐ-BTNMT</div>
               </div>
@@ -3209,6 +3246,9 @@
               <button id="btnSharePointsSummary" class="btn-sm btn-green" onclick="appData.shareSelectedPoints()" style="height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px;" title="Chia sẻ sổ đo mốc qua Zalo / Tin nhắn / Thiết bị">
                 📤 Chia sẻ
               </button>
+              <button id="btnRoutingAllPoints" class="btn-sm btn-amber" onclick="appRouting.openWithAllPoints()" style="height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px; background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24;" title="Tối ưu lộ trình toàn bộ mốc của dự án">
+                🚗 Lộ trình
+              </button>
               <button class="btn-sm btn-blue" onclick="appNav.openProjectMap()" style="height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px;">
                 🗺️ Xem bản đồ
               </button>
@@ -3222,6 +3262,9 @@
               <button type="button" class="btn-sm" onclick="appData.clearPointsSelection()" style="height: 26px; padding: 2px 8px; font-size: 11px; background: rgba(255,255,255,0.06); border: 1px solid #475569; color: #94a3b8;">✕ Bỏ chọn</button>
             </div>
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <button type="button" id="btnBatchOptimizeRoute" class="btn-sm btn-amber" onclick="appRouting.openWithSelectedPoints()" style="height: 28px; padding: 2px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24;" title="Tối ưu hóa chỉ đường theo lộ trình cho các mốc đã chọn">
+                🚗 Tối ưu lộ trình
+              </button>
               <button type="button" class="btn-sm btn-green" onclick="appData.shareSelectedPoints()" style="height: 28px; padding: 2px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" title="Chia sẻ các mốc đã chọn qua Zalo / Tin nhắn / Email">
                 📤 Chia sẻ
               </button>
@@ -4269,6 +4312,155 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 7: TỐI ƯU HÓA LỘ TRÌNH & CHỈ ĐƯỜNG GIAO THÔNG ================= -->
+      <section id="screen-routing" class="screen-view" style="display: none; flex-direction: column; height: 100%; position: relative;">
+        <!-- Top Toolbar -->
+        <div id="routingTopToolbar" class="routing-top-toolbar" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); z-index: 2100; flex-wrap: wrap;">
+          <!-- Nút Back & Tiêu đề -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="btn-sm btn-slate" onclick="appNav.goToMenu()" title="Quay lại trang chủ" style="height: 34px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px;">
+              ← Menu
+            </button>
+            <div style="font-weight: 700; font-size: 13.5px; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+              <span>🚗 Tối Ưu Lộ Trình</span>
+              <span id="routingPointsBadge" class="badge-count" style="display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; font-size: 11px; font-weight: 700; border-radius: 999px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4);">0</span>
+            </div>
+          </div>
+
+          <!-- Selector Chọn Phương Tiện -->
+          <div class="routing-vehicle-selector" style="display: inline-flex; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 2px;">
+            <button type="button" id="btnRoutingVehBike" class="btn-routing-veh" onclick="appRouting.setVehicle('bike')" title="Lộ trình Xe máy (cho phép đường nhỏ hẹp, ngõ ngách, cầu dân sinh)" style="height: 32px; padding: 0 9px; font-size: 12px; border: none; background: transparent; color: #94a3b8; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+              🛵 Xe máy
+            </button>
+            <button type="button" id="btnRoutingVehCar" class="btn-routing-veh active" onclick="appRouting.setVehicle('car')" title="Lộ trình Ô tô con (tiêu chuẩn)" style="height: 32px; padding: 0 9px; font-size: 12px; border: none; background: #0284c7; color: #ffffff; border-radius: 6px; cursor: pointer; font-weight: 700; transition: all 0.2s;">
+              🚗 Ô tô con
+            </button>
+            <button type="button" id="btnRoutingVehMinibus" class="btn-routing-veh" onclick="appRouting.setVehicle('minibus')" title="Lộ trình Ô tô 16 chỗ (ưu tiên đường lớn, lưu ý barie và tải trọng)" style="height: 32px; padding: 0 9px; font-size: 12px; border: none; background: transparent; color: #94a3b8; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+              🚐 16 chỗ
+            </button>
+          </div>
+
+          <!-- Tác vụ chính -->
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: #cbd5e1; cursor: pointer; user-select: none;" title="Quay lại điểm xuất phát ban đầu sau khi đi hết các mốc">
+              <input type="checkbox" id="chkRoutingRoundTrip" onchange="appRouting.toggleRoundTrip(this.checked)" checked style="width: 16px; height: 16px; accent-color: #10b981; cursor: pointer;">
+              <span>Khứ hồi (Khép kín)</span>
+            </label>
+            <button type="button" class="btn-sm btn-blue" onclick="appRouting.openAddPointsModal()" style="height: 34px; padding: 0 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" title="Thêm điểm từ tọa độ hoặc Sổ đo">
+              ➕ Thêm điểm
+            </button>
+            <button type="button" id="btnRoutingOptimizeAction" class="btn-sm btn-green" onclick="appRouting.optimizeRoute()" style="height: 34px; padding: 0 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);" title="Tối ưu hóa thứ tự chặng đường qua các điểm">
+              ⚡ Tối Ưu Lộ Trình
+            </button>
+          </div>
+        </div>
+
+        <!-- Banner cảnh báo Xe 16 chỗ -->
+        <div id="routingMinibusNotice" style="display: none; background: rgba(245, 158, 11, 0.15); border-bottom: 1px solid rgba(245, 158, 11, 0.4); padding: 6px 14px; font-size: 11.5px; color: #fbbf24; align-items: center; gap: 8px;">
+          <span>🚐</span>
+          <span><b>Lưu ý xe 16 chỗ:</b> Thuật toán ưu tiên quốc lộ/tỉnh lộ lớn. Hãy chú ý biển báo giới hạn chiều cao barie (≤ 2.2m) và tải trọng cầu đan nông thôn khi vào thực địa!</span>
+        </div>
+
+        <!-- Khung bản đồ Leaflet độc lập của Phân hệ Lộ trình -->
+        <div id="leaflet-routing-map" style="flex: 1; width: 100%; min-height: 280px; background: #0f172a; position: relative;">
+          <!-- Nút công cụ nổi trên bản đồ -->
+          <div class="routing-map-floating-tools" style="position: absolute; top: 12px; right: 12px; z-index: 1000; display: flex; flex-direction: column; gap: 6px;">
+            <button type="button" class="btn-sm btn-icon" onclick="appRouting.toggleTileLayer()" title="Đổi nền Vệ tinh / Đường phố" style="width: 40px; height: 40px; border-radius: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.2); font-size: 16px;">
+              🛰️
+            </button>
+            <button type="button" class="btn-sm btn-icon" onclick="appRouting.useCurrentGpsAsStart()" title="Lấy vị trí GPS hiện tại làm điểm xuất phát" style="width: 40px; height: 40px; border-radius: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-size: 16px;">
+              📍
+            </button>
+            <button type="button" class="btn-sm btn-icon" onclick="appRouting.fitBounds()" title="Bao quát toàn bộ lộ trình" style="width: 40px; height: 40px; border-radius: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.2); font-size: 16px;">
+              🔍
+            </button>
+            <button type="button" class="btn-sm btn-icon" onclick="appRouting.clearAllPoints()" title="Xóa toàn bộ điểm và lộ trình" style="width: 40px; height: 40px; border-radius: 8px; background: rgba(239, 68, 68, 0.2); backdrop-filter: blur(6px); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; font-size: 16px;">
+              🗑️
+            </button>
+          </div>
+
+          <!-- HUD Thống kê & Hướng dẫn rẽ Turn-by-Turn -->
+          <div id="routingNavHud" class="routing-nav-hud" style="position: absolute; bottom: calc(var(--sat-safe-bottom, 0px) + 80px); left: 12px; right: 12px; z-index: 1000; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 10px 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); font-family: ui-monospace, monospace;">
+            <!-- Khi chưa có lộ trình -->
+            <div id="routingHudIdle" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+              <div style="font-size: 12px; color: #cbd5e1;">
+                💡 <b>Chấm điểm trên bản đồ</b> hoặc bấm <b>➕ Thêm điểm</b> để nạp mốc từ Sổ đo.
+              </div>
+              <button type="button" class="btn-sm btn-slate" onclick="appRouting.togglePointsListSheet()" style="height: 32px; padding: 0 10px; font-size: 11.5px;">
+                📋 Danh sách (<span id="txtRoutingPointsCount">0</span>)
+              </button>
+            </div>
+
+            <!-- Khi đã tối ưu lộ trình xong -->
+            <div id="routingHudActive" style="display: none; flex-direction: column; gap: 8px;">
+              <!-- Hàng thông số tổng -->
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 6px;">
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                  <span style="color: #38bdf8; font-weight: 700;">📏 <span id="txtRoutingDistance">0.0 km</span></span>
+                  <span style="color: #4ade80; font-weight: 700;">⏱️ <span id="txtRoutingDuration">0 phút</span></span>
+                  <span style="color: #e2e8f0; font-size: 11.5px;">📍 <span id="txtRoutingStops">0 điểm</span></span>
+                </div>
+                <button type="button" class="btn-sm btn-slate" onclick="appRouting.togglePointsListSheet()" style="height: 28px; padding: 0 8px; font-size: 11px;">
+                  📋 Xem chặng
+                </button>
+              </div>
+
+              <!-- Hàng hướng dẫn rẽ Turn-by-Turn -->
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div id="routingTurnIcon" style="font-size: 24px; min-width: 32px; text-align: center; color: #38bdf8;">↑</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div id="routingTurnDistance" style="font-size: 11px; color: #94a3b8; font-weight: 600;">Xuất phát</div>
+                  <div id="routingTurnInstruction" style="font-size: 13px; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    Đi theo lộ trình đã vẽ
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hàng nút tác vụ: Bắt đầu dẫn đường, Giọng nói & Mở Google Maps -->
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-top: 4px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <button type="button" id="btnRoutingStartNav" class="btn-sm btn-green" onclick="appRouting.toggleLiveNavigation()" style="height: 36px; padding: 0 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                    ▶ Bắt đầu dẫn đường
+                  </button>
+                  <button type="button" id="btnRoutingVoiceToggle" class="btn-sm" onclick="appRouting.toggleVoice()" style="height: 36px; padding: 0 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; display: inline-flex; align-items: center; gap: 4px;" title="Bật/Tắt giọng nói tiếng Việt">
+                    🗣️ Giọng nói: BẬT
+                  </button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <button type="button" id="btnOpenGoogleMaps" class="btn-sm" onclick="appRouting.openGoogleMapsModal()" style="height: 36px; padding: 0 10px; background: rgba(234, 67, 53, 0.18); border: 1px solid rgba(234, 67, 53, 0.5); color: #f87171; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Mở lộ trình sang Google Maps với hỗ trợ chia chặng">
+                    🗺️ Mở Google Maps
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Sheet: Danh Sách Các Chặng & Điểm Đến (Thu gọn / Mở rộng) -->
+          <div id="routingPointsSheet" class="routing-points-sheet" style="position: absolute; bottom: 0; left: 0; right: 0; max-height: 55%; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(14px); border-top: 1px solid rgba(56, 189, 248, 0.35); border-radius: 16px 16px 0 0; z-index: 1050; display: none; flex-direction: column; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+            <div class="sheet-drag-handle" onclick="appRouting.togglePointsListSheet()" style="width: 100%; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <div style="width: 44px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.25);"></div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 14px 8px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <div style="font-weight: 700; font-size: 13px; color: #38bdf8;">
+                📋 Thứ tự chặng đường (<span id="txtSheetPointsCount">0</span> điểm)
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn-sm btn-slate" onclick="appRouting.reversePoints()" style="height: 28px; padding: 0 8px; font-size: 11px;">
+                  🔄 Đảo chiều
+                </button>
+                <button type="button" class="btn-sm btn-red" onclick="appRouting.clearAllPoints()" style="height: 28px; padding: 0 8px; font-size: 11px;">
+                  ✕ Xóa hết
+                </button>
+              </div>
+            </div>
+            <div id="routingPointsListBody" style="flex: 1; overflow-y: auto; padding: 8px 14px; display: flex; flex-direction: column; gap: 6px;">
+              <!-- Danh sách mốc render động -->
             </div>
           </div>
         </div>
@@ -7231,7 +7423,7 @@
             <span>Bản Đồ & Thực Địa</span>
           </div>
           <div class="drawer-folder-meta">
-            <span class="tree-badge badge-green">5 mục</span>
+            <span class="tree-badge badge-green">6 mục</span>
             <span class="drawer-chevron">▼</span>
           </div>
         </div>
@@ -7281,6 +7473,21 @@
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">2.5 Kết nối Máy Định Vị RTK Ngoài</div>
               <div class="drawer-leaf-sub">Web Bluetooth GNSS Rover, độ chính xác cm</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
+          <div class="drawer-leaf-item" id="drawerItem_routing" onclick="appNav.navigateTo('routing')">
+            <div class="drawer-leaf-icon" style="color: #10b981;">🚗</div>
+            <div class="drawer-leaf-text">
+              <div class="drawer-leaf-title">2.6 Tối ưu lộ trình & Chỉ đường</div>
+              <div class="drawer-leaf-sub">Xe máy, ô tô, 16 chỗ, giọng nói AI & Google Maps</div>
+            </div>
+            <div class="drawer-check-circle" title="Trạng thái chức năng">
+              <span class="drawer-check-tick">✓</span>
+            </div>
+          </div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -7647,11 +7854,11 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.27"></script>
-  <script src="field-workspace.js?v=2.8.27"></script>
-  <script src="vn2000-rezone.js?v=2.8.27"></script>
-  <script src="vn-admin-2025.js?v=2.8.27"></script>
-  <script src="import-preview.js?v=2.8.27"></script>
+  <script src="app.js?v=2.8.28"></script>
+  <script src="field-workspace.js?v=2.8.28"></script>
+  <script src="vn2000-rezone.js?v=2.8.28"></script>
+  <script src="vn-admin-2025.js?v=2.8.28"></script>
+  <script src="import-preview.js?v=2.8.28"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>
@@ -8168,6 +8375,95 @@
         </button>
         <button type="button" class="btn-convert btn-wgs-to-vn2k" style="flex: 1.6; height: 42px; font-size: 13px; font-weight: 700; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px;" onclick="appGps.retryTrackingFromModal()">
           🛰️ Thử Lại Bắt GPS
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: THÊM ĐIỂM VÀO LỘ TRÌNH ================= -->
+  <div id="modalRoutingAddPoints" class="modal-overlay" style="display: none; z-index: 99995;" onclick="if(event.target === this) appRouting.closeAddPointsModal()">
+    <div class="modal-box" style="max-width: 560px; width: 94%; max-height: calc(var(--ui-avail-h) * 0.9); display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="modal-title" style="font-weight: 700; font-size: 15px; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+          <span>📍</span> Thêm Điểm Vào Lộ Trình
+        </div>
+        <button type="button" class="btn-close-modal" onclick="appRouting.closeAddPointsModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 4px;">✕</button>
+      </div>
+
+      <!-- Sub-tabs: Từ Sổ đo vs Dán tọa độ -->
+      <div style="display: flex; gap: 8px; padding: 12px 18px 0 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <button type="button" id="tabRoutingFromSurvey" class="btn-subtab active" onclick="appRouting.switchAddPointTab('survey')" style="flex: 1; height: 38px; font-weight: 700; font-size: 13px;">
+          📁 Từ Sổ Đo Mốc
+        </button>
+        <button type="button" id="tabRoutingFromPaste" class="btn-subtab" onclick="appRouting.switchAddPointTab('paste')" style="flex: 1; height: 38px; font-weight: 700; font-size: 13px;">
+          📋 Dán Bảng Tọa Độ
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 14px 18px; flex: 1; overflow-y: auto;">
+        <!-- Tab 1: Từ Sổ đo -->
+        <div id="panelRoutingAddFromSurvey" style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12.5px;">
+            <span style="color: #cbd5e1;">Dự án: <b id="lblRoutingCurProject" style="color: #38bdf8;">--</b></span>
+            <button type="button" class="btn-sm btn-slate" onclick="appRouting.toggleSelectAllSurveyPoints()" style="height: 26px; padding: 0 8px; font-size: 11px;">
+              Tích chọn tất cả
+            </button>
+          </div>
+          <div id="routingSurveyPointsList" style="max-height: 260px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 4px; background: rgba(0, 0, 0, 0.2);">
+            <!-- Danh sách mốc sổ đo -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Dán bảng tọa độ -->
+        <div id="panelRoutingAddFromPaste" style="display: none; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; color: #94a3b8; line-height: 1.5;">
+            Dán danh sách tọa độ từ Excel, Word hoặc Tin nhắn (Mỗi dòng 1 điểm: <b>Tên X Y</b> đối với VN2000 hoặc <b>Tên Lat Lng</b> đối với WGS84):
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label style="font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <input type="radio" name="radRoutingCoordType" value="vn2000" checked style="accent-color: #0284c7;">
+              <span>VN-2000 (X, Y mét)</span>
+            </label>
+            <label style="font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <input type="radio" name="radRoutingCoordType" value="wgs84" style="accent-color: #0284c7;">
+              <span>WGS-84 (Vĩ độ, Kinh độ)</span>
+            </label>
+          </div>
+          <textarea id="txtRoutingPastedCoords" rows="6" class="app-input" style="width: 100%; font-family: ui-monospace, monospace; font-size: 12px; padding: 8px; border-radius: 8px; background: #0b1329; color: #f8fafc; border: 1px solid rgba(56, 189, 248, 0.3); resize: vertical;" placeholder="Ví dụ VN2000:&#10;M01 1162450.123 589420.456&#10;M02 1162800.789 589800.123&#10;&#10;Hoặc WGS84:&#10;P1 10.512345 106.123456&#10;P2 10.523456 106.134567"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn-sm btn-slate" onclick="appRouting.closeAddPointsModal()" style="height: 38px; padding: 0 14px;">
+          Hủy bỏ
+        </button>
+        <button type="button" class="btn-sm btn-green" onclick="appRouting.applyAddPointsFromModal()" style="height: 38px; padding: 0 16px; font-weight: 700;">
+          ✓ Thêm Vào Lộ Trình
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CHIA CHẶNG GOOGLE MAPS (LỰA CHỌN A) ================= -->
+  <div id="modalGoogleMapsLegs" class="modal-overlay" style="display: none; z-index: 99996;" onclick="if(event.target === this) appRouting.closeGoogleMapsModal()">
+    <div class="modal-box" style="max-width: 500px; width: 92%; max-height: calc(var(--ui-avail-h) * 0.88); display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="modal-title" style="font-weight: 700; font-size: 15px; color: #f87171; display: flex; align-items: center; gap: 8px;">
+          <span>🗺️</span> Mở Lộ Trình Trên Google Maps
+        </div>
+        <button type="button" class="btn-close-modal" onclick="appRouting.closeGoogleMapsModal()" style="background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 4px;">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 14px 18px; overflow-y: auto;">
+        <div style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 12px;">
+          Google Maps hỗ trợ tối đa 9–10 điểm dừng mỗi chặng. Hệ thống đã tự động chia lộ trình của bạn thành các chặng tối ưu dưới đây để tài xế có thể mở dẫn đường liên tục:
+        </div>
+        <div id="gmapsLegsList" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Các nút chặng 1, chặng 2... render động -->
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-sm btn-slate" onclick="appRouting.closeGoogleMapsModal()" style="height: 38px; padding: 0 16px;">
+          Đóng
         </button>
       </div>
     </div>

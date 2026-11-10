@@ -3,11 +3,44 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 321/321 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 324/324 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-09] WP-I Phân hệ Tối ưu hóa lộ trình & Dẫn đường giao thông thực địa (F-012)
+- **Yêu cầu từ người dùng**: `khách hàng yêu cầu có chức năng tối ưu hóa chỉ đường (đường giao thông) cho các điểm được chấm theo lộ trình xe máy, ô tô con, ô tô 16 chỗ`. Hỗ trợ 3 nguồn điểm (chấm trên bản đồ, nạp từ Sổ đo, dán bảng tọa độ VN2000/WGS84), giọng nói tiếng Việt turn-by-turn trong app, giữ màn hình luôn sáng (Screen Wake Lock), phân chặng $\le 9$ điểm mở Google Maps (Lựa chọn A), tự động lấy GPS làm điểm xuất phát và tùy chọn lộ trình khép kín (Round-trip).
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Khởi tạo không gian giao diện độc lập (UI Isolation Principle)**:
+     - Tạo mới `#screen-routing` với container Leaflet `#leaflet-routing-map`, thanh điều khiển đỉnh `#routingTopToolbar`, bảng HUD dẫn đường `#routingNavHud`, Drawer danh sách chặng `#routingPointsSheet`.
+     - Tuyệt đối không can thiệp hay gọi chéo các thanh công cụ của Chuyển đổi tọa độ hay Bản đồ dự án.
+     - Thêm thẻ Card 8 trong danh mục Menu chính (`#screen-menu`), Menu card 6 trong danh sách gọn, và Drawer item 2.3 `#drawerItem_routing`.
+     - Bổ sung nút `🚗 Tối ưu lộ trình` trong thanh thao tác nhiều mốc `#barBatchPointsActions` và nút `🚗 Lộ trình` trong Quản lý dữ liệu (`#screen-datamgmt`).
+  2. **Thuật toán Tối ưu hóa lộ trình (OSRM Trip API / TSP Engine)**:
+     - Tích hợp endpoint OSRM Trip API (`https://router.project-osrm.org/trip/v1/...`) giải bài toán TSP sắp xếp lại thứ tự điểm ghé thăm ngắn nhất và nhanh nhất qua tim đường bộ thực tế.
+     - Phân hóa 3 loại phương tiện:
+       * `🛵 Xe máy`: Cho phép đi ngõ hẻm, đường nhỏ, cầu dân sinh, đường cấm ô tô.
+       * `🚗 Ô tô con`: Mạng lưới đường ô tô tiêu chuẩn.
+       * `🚐 Ô tô 16 chỗ`: Ưu tiên quốc lộ/tỉnh lộ lớn, hiển thị banner cảnh báo barie chiều cao ($\le 2.2\text{m}$) và tải trọng cầu đường nông thôn.
+     - Cơ chế dự phòng ngoại tuyến (Offline fallback): Tự động tính toán đường nối trắc địa trực tiếp và cự ly Haversine khi mất kết nối mạng.
+  3. **Dẫn đường bằng giọng nói AI & Giữ màn hình luôn sáng (Screen Wake Lock)**:
+     - Tích hợp Web Speech Synthesis (`window.speechSynthesis`) với bộ phân tích câu lệnh tiếng Việt (`vi-VN`) cho mọi loại khúc rẽ (rẽ trái, rẽ phải, ngoặt gấp, chếch, vòng xuyến, xuất phát, tới đích).
+     - Tự động kích hoạt giọng nói khi vị trí GPS của người dùng cách khúc rẽ $\le 70\text{m}$.
+     - Tích hợp Screen Wake Lock API (`navigator.wakeLock.request('screen')`) giữ màn hình điện thoại luôn sáng trong suốt hành trình lái xe.
+  4. **Phân chặng Google Maps thông minh (Lựa chọn A)**:
+     - Tự động chia nhỏ lộ trình dài thành các chặng gối đầu $\le 9$ điểm dừng (`#modalGoogleMapsLegs`) để tài xế có thể mở trực tiếp ứng dụng Google Maps dẫn đường theo thời gian thực mà không bị giới hạn số điểm của Google.
+  5. **Nạp điểm đa kênh linh hoạt**:
+     - Chấm trực tiếp trên bản đồ Leaflet (tự động quy đổi song song VN2000 và WGS84).
+     - Nhận mốc chọn lọc từ Sổ đo dự án (`appRouting.openWithSelectedPoints()` / `openWithAllPoints()`).
+     - Modal dán tọa độ `#modalRoutingAddPoints` thông minh nhận diện cả VN2000 (X, Y) và WGS84 (Lat, Lng).
+  6. **Đồng bộ phiên bản tài nguyên PWA**:
+     - Nâng cấp `sw.js` lên `CACHE_NAME = 'vn2000-pro-v2.8.24'`.
+     - Đồng bộ query `?v=2.8.24` trên `style.css`, `ui-polish.css` và `app.js` trong `index.html`.
+     - Cập nhật `feature_list.json` thêm tính năng `F-012` trạng thái `done`.
+  7. **Kiểm thử tự động & Xác minh**:
+     - Tạo mới `tests/route_optimization.test.js` (3/3 pass).
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **324/324 tests PASS 100% (0 fail)**.
 
 ### [2026-11-04] WP-H Khắc phục nút Chuyển tiền qua App ủng hộ tác giả & Tải mã VietQR về máy
 - **Yêu cầu từ người dùng**: `nhấn nút chuyển tiền qua app để ủng hộ tác giả bị lỗi`.

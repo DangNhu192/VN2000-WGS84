@@ -482,6 +482,13 @@ const appNav = window.appNav = {
                 titleTextEn = "GEODESY CALCULATIONS";
                 targetScreen = document.getElementById('screen-geodesy');
                 if (typeof appGeodesy !== 'undefined' && appGeodesy.initDropdowns) appGeodesy.initDropdowns();
+            } else if (screenName === 'routing') {
+                titleText = "7. TỐI ƯU LỘ TRÌNH & CHỈ ĐƯỜNG";
+                titleTextEn = "7. ROUTE OPTIMIZATION & NAVIGATION";
+                customSubVi = "OSRM TSP • Xe máy, Ô tô, 16 Chỗ • Giọng nói AI";
+                customSubEn = "OSRM TSP • Bike, Car, Minibus • AI Voice Guidance";
+                targetScreen = document.getElementById('screen-routing');
+                if (typeof appRouting !== 'undefined' && appRouting.init) appRouting.init();
             }
 
             this.syncHeader(titleText, titleTextEn, customSubVi, customSubEn);
@@ -691,7 +698,8 @@ const appNav = window.appNav = {
             'camera': 'drawerItem_camera',
             'datamgmt': 'drawerItem_datamgmt',
             'about': 'drawerItem_about',
-            'profile': 'drawerItem_profile_volume'
+            'profile': 'drawerItem_profile_volume',
+            'routing': 'drawerItem_routing'
         };
         if (screenToItem[screenName]) {
             appNav.setActiveMenuItem(screenToItem[screenName]);
@@ -960,6 +968,9 @@ const appNav = window.appNav = {
         } else if (action === 'stakeout') {
             appNav.showScreen('stakeout');
             appNav.setActiveMenuItem('drawerItem_stakeout');
+        } else if (action === 'routing') {
+            appNav.showScreen('routing');
+            appNav.setActiveMenuItem('drawerItem_routing');
         } else if (action === 'camera') {
             appNav.showScreen('camera');
             appNav.setActiveMenuItem('drawerItem_camera');
@@ -1653,6 +1664,7 @@ const appDashboard = {
         { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', dock: 'Trắc Dọc', icon: '📈', color: 'teal', tag: 'Cao trình tự nhiên/thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
         { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', dock: 'RTK', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
         { id: 'about', name: '9. Thông Tin & Hướng Dẫn Nghiệp Vụ', short: 'Thông Tin & Cẩm Nang', dock: 'Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: 'Quy chuẩn kỹ thuật', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • 7 tham số BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
+        { id: 'routing', name: '10. Tối Ưu Lộ Trình & Dẫn Đường', short: 'Tối Ưu Lộ Trình', dock: 'Lộ Trình', icon: '🚗', color: 'emerald', tag: 'Xe máy • Ô tô • 16 Chỗ', sub: 'Thuật toán TSP • Giọng nói AI • Google Maps', metric: 'Chỉ Đường AI', action: () => appNav.showScreen('routing') },
         { id: 'cad_tool', name: 'Tiện Ích: Đo Vẽ Mặt Bằng MiniCAD', short: 'Đo Vẽ MiniCAD', dock: 'MiniCAD', icon: '📐', color: 'cyan', tag: 'Mặt bằng thực địa', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
     ],
 
@@ -35816,6 +35828,1142 @@ const appDonate = {
     }
 };
 
+// ================= 10.9. PHÂN HỆ TỐI ƯU HÓA LỘ TRÌNH & DẪN ĐƯỜNG GIAO THÔNG (F-012) =================
+const appRouting = {
+    map: null,
+    baseLayers: {},
+    activeBaseLayer: 'google_hybrid',
+    points: [], // [{ id, name, lat, lng, x, y, note }]
+    markersLayer: null,
+    routePolyline: null,
+    userMarker: null,
+    vehicle: 'car', // 'bike' | 'car' | 'minibus'
+    isRoundTrip: true,
+    optimizedRoute: null,
+    isNavigating: false,
+    watchId: null,
+    wakeLock: null,
+    voiceEnabled: true,
+    currentStepIdx: 0,
+    lastSpokenStepIdx: -1,
+    cachedGmapsLegs: [],
+    currentAddPointTab: 'survey',
+    sheetExpanded: false,
+
+    init() {
+        this.ensureMap();
+        this.renderPointsSheet();
+        this.updateBadgeCount();
+        if (typeof AppState !== 'undefined' && AppState.lastGps && AppState.lastGps.lat && this.map) {
+            this.map.setView([AppState.lastGps.lat, AppState.lastGps.lng], 14);
+        }
+    },
+
+    ensureMap() {
+        if (this.map) {
+            setTimeout(() => { if (this.map && typeof this.map.invalidateSize === 'function') this.map.invalidateSize(); }, 200);
+            return;
+        }
+        if (typeof L === 'undefined' || typeof document === 'undefined') return;
+        const container = document.getElementById('leaflet-routing-map');
+        if (!container) return;
+
+        this.map = L.map('leaflet-routing-map', {
+            zoomControl: false,
+            attributionControl: false,
+            maxZoom: 24,
+            minZoom: 4,
+            preferCanvas: true,
+            zoomSnap: 0.5,
+            zoomDelta: 0.5,
+            wheelPxPerZoomLevel: 100
+        }).setView([10.5, 106.0], 13);
+
+        const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
+            ? window.PixOptimizer.getTileLayerOptions() 
+            : { maxZoom: 24, maxNativeZoom: 20, keepBuffer: 3, updateWhenIdle: true };
+
+        const satUrl = (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.getSatelliteUrlTemplate)
+            ? window.PixOptimizer.getSatelliteUrlTemplate()
+            : 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+        this.baseLayers.satellite = L.tileLayer(satUrl, {
+            ...tileOpt,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        this.baseLayers.osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            ...tileOpt,
+            maxNativeZoom: 19
+        });
+
+        this.baseLayers.satellite.addTo(this.map);
+        this.activeBaseLayer = 'google_hybrid';
+
+        this.markersLayer = L.layerGroup().addTo(this.map);
+
+        // Click trên bản đồ để thêm điểm
+        this.map.on('click', (e) => {
+            if (this.isNavigating) return;
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            let x = 0, y = 0;
+            if (typeof geodesy !== 'undefined' && typeof AppState !== 'undefined') {
+                const vnPt = geodesy.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                if (vnPt) { x = vnPt.x; y = vnPt.y; }
+            }
+            const name = `P${this.points.length + 1}`;
+            this.addPoint(lat, lng, name, x, y);
+            if (typeof triggerHaptic === 'function') triggerHaptic('light');
+            if (typeof showToast === 'function') showToast(`✓ Đã thêm điểm ${name}`);
+        });
+    },
+
+    toggleTileLayer() {
+        if (!this.map) return;
+        if (this.activeBaseLayer === 'google_hybrid') {
+            this.map.removeLayer(this.baseLayers.satellite);
+            this.baseLayers.osm.addTo(this.map);
+            this.activeBaseLayer = 'osm';
+            if (typeof showToast === 'function') showToast("🗺️ Bản đồ đường phố OpenStreetMap");
+        } else {
+            this.map.removeLayer(this.baseLayers.osm);
+            this.baseLayers.satellite.addTo(this.map);
+            this.activeBaseLayer = 'google_hybrid';
+            if (typeof showToast === 'function') showToast("🛰️ Bản đồ vệ tinh sắc nét");
+        }
+    },
+
+    setVehicle(veh) {
+        if (!['bike', 'car', 'minibus'].includes(veh)) veh = 'car';
+        this.vehicle = veh;
+        const btns = (typeof document !== 'undefined') ? {
+            bike: document.getElementById('btnRoutingVehBike'),
+            car: document.getElementById('btnRoutingVehCar'),
+            minibus: document.getElementById('btnRoutingVehMinibus')
+        } : {};
+        Object.keys(btns).forEach(k => {
+            if (btns[k]) {
+                if (k === veh) {
+                    btns[k].classList.add('active');
+                    btns[k].style.background = '#0284c7';
+                    btns[k].style.color = '#ffffff';
+                    btns[k].style.fontWeight = '700';
+                } else {
+                    btns[k].classList.remove('active');
+                    btns[k].style.background = 'transparent';
+                    btns[k].style.color = '#94a3b8';
+                    btns[k].style.fontWeight = 'normal';
+                }
+            }
+        });
+
+        const notice = (typeof document !== 'undefined') ? document.getElementById('routingMinibusNotice') : null;
+        if (notice) {
+            notice.style.display = veh === 'minibus' ? 'flex' : 'none';
+        }
+
+        if (this.points.length >= 2 && this.optimizedRoute) {
+            this.optimizeRoute();
+        }
+    },
+
+    toggleRoundTrip(checked) {
+        this.isRoundTrip = typeof checked === 'boolean' ? checked : !this.isRoundTrip;
+        const chk = (typeof document !== 'undefined') ? document.getElementById('chkRoutingRoundTrip') : null;
+        if (chk) chk.checked = this.isRoundTrip;
+        if (this.points.length >= 2 && this.optimizedRoute) {
+            this.optimizeRoute();
+        }
+    },
+
+    addPoint(lat, lng, name, x = 0, y = 0, note = '') {
+        const pLat = parseFloat(lat);
+        const pLng = parseFloat(lng);
+        if (isNaN(pLat) || isNaN(pLng)) return;
+
+        let ptX = parseFloat(x) || 0;
+        let ptY = parseFloat(y) || 0;
+        if ((!ptX || !ptY) && typeof geodesy !== 'undefined' && typeof AppState !== 'undefined') {
+            const vnPt = geodesy.wgs84ToVn2000(pLat, pLng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+            if (vnPt) { ptX = vnPt.x; ptY = vnPt.y; }
+        }
+
+        const ptName = name || `P${this.points.length + 1}`;
+        this.points.push({
+            id: 'rt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            name: ptName,
+            lat: pLat,
+            lng: pLng,
+            x: ptX,
+            y: ptY,
+            note: note || ''
+        });
+
+        this.renderMarkers();
+        this.renderPointsSheet();
+        this.updateBadgeCount();
+    },
+
+    removePoint(index) {
+        if (index >= 0 && index < this.points.length) {
+            this.points.splice(index, 1);
+            this.optimizedRoute = null;
+            if (this.routePolyline && this.map) {
+                this.map.removeLayer(this.routePolyline);
+                this.routePolyline = null;
+            }
+            this.resetHudToIdle();
+            this.renderMarkers();
+            this.renderPointsSheet();
+            this.updateBadgeCount();
+        }
+    },
+
+    clearAllPoints() {
+        this.points = [];
+        this.optimizedRoute = null;
+        if (this.isNavigating) this.stopNavigation();
+        if (this.markersLayer) this.markersLayer.clearLayers();
+        if (this.routePolyline && this.map) {
+            this.map.removeLayer(this.routePolyline);
+            this.routePolyline = null;
+        }
+        this.resetHudToIdle();
+        this.renderPointsSheet();
+        this.updateBadgeCount();
+        if (typeof showToast === 'function') showToast("✓ Đã xóa toàn bộ điểm lộ trình!");
+    },
+
+    reversePoints() {
+        if (this.points.length <= 1) return;
+        this.points.reverse();
+        this.renderMarkers();
+        this.renderPointsSheet();
+        if (this.points.length >= 2) this.optimizeRoute();
+    },
+
+    useCurrentGpsAsStart() {
+        const applyGps = (lat, lng) => {
+            let x = 0, y = 0;
+            if (typeof geodesy !== 'undefined' && typeof AppState !== 'undefined') {
+                const vnPt = geodesy.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                if (vnPt) { x = vnPt.x; y = vnPt.y; }
+            }
+            // Chèn vào đầu danh sách làm điểm xuất phát
+            this.points.unshift({
+                id: 'rt_gps_' + Date.now(),
+                name: '📍 Vị trí GPS',
+                lat: lat,
+                lng: lng,
+                x: x,
+                y: y,
+                note: 'Xuất phát từ GPS hiện tại'
+            });
+            this.renderMarkers();
+            this.renderPointsSheet();
+            this.updateBadgeCount();
+            if (this.map) this.map.setView([lat, lng], 15);
+            if (typeof showToast === 'function') showToast("✓ Đã đặt vị trí GPS làm điểm xuất phát!");
+        };
+
+        if (typeof AppState !== 'undefined' && AppState.lastGps && AppState.lastGps.lat) {
+            applyGps(AppState.lastGps.lat, AppState.lastGps.lng);
+        } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => applyGps(pos.coords.latitude, pos.coords.longitude),
+                (err) => {
+                    if (typeof showToast === 'function') showToast("⚠️ Không lấy được tọa độ GPS hiện tại!", true);
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        }
+    },
+
+    openWithSelectedPoints() {
+        const pts = (typeof appData !== 'undefined' && typeof appData.getSelectedPoints === 'function') ? appData.getSelectedPoints() : [];
+        if (!pts || pts.length === 0) {
+            if (typeof showToast === 'function') showToast("⚠️ Vui lòng tích chọn mốc trong Sổ đo trước!", true);
+            return;
+        }
+        this.loadPointsFromSurvey(pts);
+        if (typeof appNav !== 'undefined') appNav.showScreen('routing');
+        if (typeof showToast === 'function') showToast(`✓ Đã nạp ${pts.length} mốc vào Lộ trình!`);
+        if (this.points.length >= 2) this.optimizeRoute();
+    },
+
+    openWithAllPoints() {
+        const pts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function') ? appData.getPoints(AppState.currentProject) : [];
+        if (!pts || pts.length === 0) {
+            if (typeof showToast === 'function') showToast("⚠️ Dự án hiện tại chưa có mốc nào!", true);
+            return;
+        }
+        this.loadPointsFromSurvey(pts);
+        if (typeof appNav !== 'undefined') appNav.showScreen('routing');
+        if (typeof showToast === 'function') showToast(`✓ Đã nạp ${pts.length} mốc dự án vào Lộ trình!`);
+        if (this.points.length >= 2) this.optimizeRoute();
+    },
+
+    loadPointsFromSurvey(surveyPoints) {
+        this.points = [];
+        this.optimizedRoute = null;
+        if (!Array.isArray(surveyPoints)) return;
+
+        surveyPoints.forEach((p, idx) => {
+            let lat = parseFloat(p.lat);
+            let lng = parseFloat(p.lng);
+            let x = parseFloat(p.x);
+            let y = parseFloat(p.y);
+
+            // Nếu thiếu Lat/Lng nhưng có X, Y -> quy đổi sang WGS84
+            if ((isNaN(lat) || isNaN(lng) || !lat || !lng) && !isNaN(x) && !isNaN(y) && typeof geodesy !== 'undefined' && typeof AppState !== 'undefined') {
+                const wgs = geodesy.vn2000ToWgs84(x, y, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                if (wgs) { lat = wgs.lat; lng = wgs.lng; }
+            }
+
+            if (!isNaN(lat) && !isNaN(lng) && lat && lng) {
+                this.points.push({
+                    id: 'rt_surv_' + (p.id || idx),
+                    name: p.name || `M${idx + 1}`,
+                    lat: lat,
+                    lng: lng,
+                    x: !isNaN(x) ? x : 0,
+                    y: !isNaN(y) ? y : 0,
+                    note: p.note || ''
+                });
+            }
+        });
+
+        this.renderMarkers();
+        this.renderPointsSheet();
+        this.updateBadgeCount();
+        this.fitBounds();
+    },
+
+    renderMarkers() {
+        if (!this.markersLayer || typeof L === 'undefined') return;
+        this.markersLayer.clearLayers();
+
+        this.points.forEach((p, idx) => {
+            const isStart = idx === 0;
+            const isEnd = idx === this.points.length - 1 && !this.isRoundTrip;
+            let pinClass = 'routing-marker-mid';
+            if (isStart) pinClass = 'routing-marker-start';
+            else if (isEnd) pinClass = 'routing-marker-end';
+
+            const iconHtml = `<div class="routing-marker-pin ${pinClass}">${idx + 1}</div>`;
+            const customIcon = L.divIcon({
+                html: iconHtml,
+                className: 'custom-routing-pin',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+
+            const marker = L.marker([p.lat, p.lng], { icon: customIcon });
+            marker.bindPopup(`
+                <div style="font-family: ui-sans-serif, system-ui; font-size: 12px; color: #0f172a; padding: 4px;">
+                    <div style="font-weight: 800; font-size: 13px; color: #0284c7; margin-bottom: 2px;">
+                        #${idx + 1} ${p.name}
+                    </div>
+                    <div><b>Lat/Lng:</b> ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                    ${p.x && p.y ? `<div><b>VN2K:</b> X=${p.x.toFixed(3)}, Y=${p.y.toFixed(3)}</div>` : ''}
+                    <div style="margin-top: 6px;">
+                        <button onclick="appRouting.removePoint(${idx})" style="padding: 2px 8px; font-size: 11px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            ✕ Xóa điểm này
+                        </button>
+                    </div>
+                </div>
+            `);
+            this.markersLayer.addLayer(marker);
+        });
+    },
+
+    renderPointsSheet() {
+        if (typeof document === 'undefined') return;
+        const listBody = document.getElementById('routingPointsListBody');
+        const countEl = document.getElementById('txtSheetPointsCount');
+        const hudCountEl = document.getElementById('txtRoutingPointsCount');
+        if (countEl) countEl.innerText = this.points.length;
+        if (hudCountEl) hudCountEl.innerText = this.points.length;
+        if (!listBody) return;
+
+        if (this.points.length === 0) {
+            listBody.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 20px 0;">Chưa có điểm nào trong lộ trình. Nhấp lên bản đồ hoặc bấm <b>➕ Thêm điểm</b>.</div>`;
+            return;
+        }
+
+        let html = '';
+        this.points.forEach((p, idx) => {
+            const isStart = idx === 0;
+            const isEnd = idx === this.points.length - 1 && !this.isRoundTrip;
+            let tagColor = '#0284c7';
+            let tagText = `Chặng ${idx + 1}`;
+            if (isStart) { tagColor = '#10b981'; tagText = 'Xuất phát'; }
+            else if (isEnd) { tagColor = '#ef4444'; tagText = 'Đích đến'; }
+
+            html += `
+                <div class="routing-point-row">
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                        <span style="display: inline-block; padding: 1px 6px; font-size: 10px; font-weight: 700; border-radius: 4px; background: ${tagColor}; color: #ffffff;">
+                            ${idx + 1}
+                        </span>
+                        <div style="min-width: 0;">
+                            <div style="font-weight: 700; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${p.name}
+                            </div>
+                            <div style="font-size: 11px; color: #94a3b8;">
+                                ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button type="button" class="btn-sm btn-icon" onclick="appRouting.zoomToPoint(${idx})" title="Xem trên bản đồ" style="width: 28px; height: 28px; font-size: 12px; background: rgba(255,255,255,0.08);">
+                            🔍
+                        </button>
+                        <button type="button" class="btn-sm btn-icon" onclick="appRouting.removePoint(${idx})" title="Xóa điểm này" style="width: 28px; height: 28px; font-size: 12px; background: rgba(239,68,68,0.15); color: #f87171;">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        listBody.innerHTML = html;
+    },
+
+    updateBadgeCount() {
+        if (typeof document === 'undefined') return;
+        const badge = document.getElementById('routingPointsBadge');
+        if (badge) badge.innerText = this.points.length;
+    },
+
+    togglePointsListSheet() {
+        const sheet = document.getElementById('routingPointsSheet');
+        if (!sheet) return;
+        this.sheetExpanded = !this.sheetExpanded;
+        sheet.style.display = this.sheetExpanded ? 'flex' : 'none';
+        if (this.sheetExpanded) this.renderPointsSheet();
+    },
+
+    zoomToPoint(idx) {
+        if (idx >= 0 && idx < this.points.length && this.map) {
+            const p = this.points[idx];
+            this.map.setView([p.lat, p.lng], 16);
+            if (this.sheetExpanded) this.togglePointsListSheet();
+        }
+    },
+
+    fitBounds() {
+        if (!this.map || this.points.length === 0 || typeof L === 'undefined') return;
+        const group = L.featureGroup(this.points.map(p => L.marker([p.lat, p.lng])));
+        this.map.fitBounds(group.getBounds().pad(0.15));
+    },
+
+    // ================= THUẬT TOÁN TỐI ƯU HÓA LỘ TRÌNH (OSRM TSP API) =================
+    async optimizeRoute() {
+        if (this.points.length < 2) {
+            if (typeof showToast === 'function') showToast("⚠️ Cần ít nhất 2 điểm để tối ưu lộ trình!", true);
+            return;
+        }
+
+        const btnOpt = (typeof document !== 'undefined') ? document.getElementById('btnRoutingOptimizeAction') : null;
+        if (btnOpt) {
+            btnOpt.disabled = true;
+            btnOpt.innerHTML = `⏳ Đang tính toán...`;
+        }
+
+        const coords = this.points.map(p => `${p.lng.toFixed(6)},${p.lat.toFixed(6)}`).join(';');
+        const profile = this.vehicle === 'bike' ? 'bike' : 'driving';
+        const is2PtDirect = this.points.length === 2 && !this.isRoundTrip;
+        const url = is2PtDirect
+            ? `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson&steps=true`
+            : `https://router.project-osrm.org/trip/v1/${profile}/${coords}?roundtrip=${this.isRoundTrip}&source=first&overview=full&geometries=geojson&steps=true`;
+
+        try {
+            let res = null;
+            if (typeof fetch === 'function') {
+                const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+                const timeoutId = controller ? setTimeout(() => controller.abort(), 9000) : null;
+                res = await fetch(url, controller ? { signal: controller.signal } : {});
+                if (timeoutId) clearTimeout(timeoutId);
+            }
+
+            if (!res || !res.ok) throw new Error(`HTTP fetch failed`);
+            const data = await res.json();
+
+            if (data && data.code === 'Ok' && ((data.trips && data.trips.length > 0) || (data.routes && data.routes.length > 0))) {
+                const trip = data.trips ? data.trips[0] : data.routes[0];
+                this.optimizedRoute = trip;
+
+                if (data.waypoints && data.waypoints.length === this.points.length) {
+                    const sortedWaypoints = [...data.waypoints].sort((a, b) => a.waypoint_index - b.waypoint_index);
+                    const newPoints = [];
+                    sortedWaypoints.forEach(wp => {
+                        if (this.points[wp.waypoint_index]) {
+                            newPoints.push(this.points[wp.waypoint_index]);
+                        }
+                    });
+                    if (newPoints.length === this.points.length) {
+                        this.points = newPoints;
+                        this.renderMarkers();
+                        this.renderPointsSheet();
+                    }
+                }
+
+                this.renderRoutePolyline(trip.geometry.coordinates);
+                this.updateHudWithRoute(trip);
+                this.fitBounds();
+
+                if (typeof triggerHaptic === 'function') triggerHaptic('success');
+                const distKm = (trip.distance / 1000).toFixed(1);
+                const durMin = Math.round(trip.duration / 60);
+                const vehName = this.vehicle === 'bike' ? 'xe máy' : (this.vehicle === 'minibus' ? 'xe 16 chỗ' : 'ô tô con');
+                
+                if (typeof showToast === 'function') showToast(`✓ Lộ trình ${vehName}: ${distKm}km • ${durMin} phút`);
+
+                if (this.voiceEnabled) {
+                    this.speakInstruction(`Đã tối ưu hóa lộ trình cho ${vehName}. Tổng chiều dài ${distKm} ki lô mét, dự kiến ${durMin} phút.`);
+                }
+            } else {
+                throw new Error("Không tìm thấy lộ trình phù hợp");
+            }
+        } catch (err) {
+            console.warn("[Routing] OSRM API failed/offline fallback:", err);
+            this.fallbackStraightLineRoute();
+        } finally {
+            if (btnOpt) {
+                btnOpt.disabled = false;
+                btnOpt.innerHTML = `⚡ Tối Ưu Lộ Trình`;
+            }
+        }
+    },
+
+    fallbackStraightLineRoute() {
+        const coords = this.points.map(p => [p.lat, p.lng]);
+        if (this.isRoundTrip && coords.length > 2) {
+            coords.push([this.points[0].lat, this.points[0].lng]);
+        }
+
+        let totalDist = 0;
+        for (let i = 0; i < coords.length - 1; i++) {
+            totalDist += this.calcDistance(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1]);
+        }
+
+        const distKm = (totalDist / 1000).toFixed(1);
+        const durMin = Math.round((totalDist / 1000) / 40 * 60);
+
+        this.optimizedRoute = {
+            distance: totalDist,
+            duration: durMin * 60,
+            geometry: { coordinates: coords.map(c => [c[1], c[0]]) },
+            legs: []
+        };
+
+        if (this.routePolyline && this.map) this.map.removeLayer(this.routePolyline);
+        if (this.map && typeof L !== 'undefined') {
+            this.routePolyline = L.polyline(coords, {
+                color: '#f59e0b',
+                weight: 4,
+                dashArray: '8, 8',
+                opacity: 0.85
+            }).addTo(this.map);
+            this.map.fitBounds(this.routePolyline.getBounds().pad(0.15));
+        }
+
+        this.updateHudWithStats(distKm, durMin, this.points.length, "Đường nối trắc địa trực tiếp (Ngoại tuyến)");
+        if (typeof showToast === 'function') {
+            showToast("⚠️ Đang ở chế độ ngoại tuyến: Hiển thị đường nối trắc địa trực tiếp!");
+        }
+    },
+
+    renderRoutePolyline(coordinates) {
+        if (!this.map || !Array.isArray(coordinates) || typeof L === 'undefined') return;
+        if (this.routePolyline) this.map.removeLayer(this.routePolyline);
+
+        const latLngs = coordinates.map(c => [c[1], c[0]]);
+        const color = this.vehicle === 'bike' ? '#10b981' : (this.vehicle === 'minibus' ? '#f59e0b' : '#38bdf8');
+
+        this.routePolyline = L.polyline(latLngs, {
+            color: color,
+            weight: 5,
+            opacity: 0.9,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }).addTo(this.map);
+    },
+
+    updateHudWithRoute(trip) {
+        const distKm = (trip.distance / 1000).toFixed(1);
+        const durMin = Math.round(trip.duration / 60);
+        let firstStepText = "Đi theo lộ trình đã vẽ";
+        let firstStepDist = "Bắt đầu";
+        let turnIcon = "↑";
+
+        if (trip.legs && trip.legs.length > 0 && trip.legs[0].steps && trip.legs[0].steps.length > 0) {
+            const s = trip.legs[0].steps[0];
+            const parsed = this.translateManeuver(s);
+            firstStepText = parsed.text;
+            turnIcon = parsed.icon;
+            firstStepDist = `Sau ${Math.round(s.distance)}m`;
+        }
+
+        this.updateHudWithStats(distKm, durMin, this.points.length, firstStepText, turnIcon, firstStepDist);
+    },
+
+    updateHudWithStats(distKm, durMin, stopsCount, stepText, icon = "↑", stepDist = "Xuất phát") {
+        if (typeof document === 'undefined') return;
+        const hudIdle = document.getElementById('routingHudIdle');
+        const hudActive = document.getElementById('routingHudActive');
+        if (hudIdle) hudIdle.style.display = 'none';
+        if (hudActive) hudActive.style.display = 'flex';
+
+        const txtDist = document.getElementById('txtRoutingDistance');
+        const txtDur = document.getElementById('txtRoutingDuration');
+        const txtStops = document.getElementById('txtRoutingStops');
+        const txtStep = document.getElementById('routingTurnInstruction');
+        const txtStepDist = document.getElementById('routingTurnDistance');
+        const iconEl = document.getElementById('routingTurnIcon');
+
+        if (txtDist) txtDist.innerText = `${distKm} km`;
+        if (txtDur) txtDur.innerText = `${durMin} phút`;
+        if (txtStops) txtStops.innerText = `${stopsCount} điểm`;
+        if (txtStep) txtStep.innerText = stepText;
+        if (txtStepDist) txtStepDist.innerText = stepDist;
+        if (iconEl) iconEl.innerText = icon;
+    },
+
+    resetHudToIdle() {
+        if (typeof document === 'undefined') return;
+        const hudIdle = document.getElementById('routingHudIdle');
+        const hudActive = document.getElementById('routingHudActive');
+        if (hudIdle) hudIdle.style.display = 'flex';
+        if (hudActive) hudActive.style.display = 'none';
+    },
+
+    // ================= DẪN ĐƯỜNG TRỰC TIẾP & GIỌNG NÓI & WAKE LOCK =================
+    async toggleLiveNavigation() {
+        if (this.isNavigating) {
+            this.stopNavigation();
+        } else {
+            await this.startNavigation();
+        }
+    },
+
+    async startNavigation() {
+        if (!this.optimizedRoute) {
+            if (typeof showToast === 'function') showToast("⚠️ Vui lòng bấm 'Tối Ưu Lộ Trình' trước khi bắt đầu dẫn đường!", true);
+            return;
+        }
+
+        this.isNavigating = true;
+        this.currentStepIdx = 0;
+        this.lastSpokenStepIdx = -1;
+
+        await this.requestWakeLock();
+        this.speakInstruction("Bắt đầu dẫn đường theo lộ trình đã tối ưu.");
+
+        const btnNav = (typeof document !== 'undefined') ? document.getElementById('btnRoutingStartNav') : null;
+        if (btnNav) {
+            btnNav.classList.remove('btn-green');
+            btnNav.classList.add('btn-red');
+            btnNav.innerHTML = `⏹ Dừng dẫn đường`;
+        }
+
+        if (typeof showToast === 'function') showToast("🧭 Bắt đầu dẫn đường trực tiếp (Màn hình luôn sáng)!");
+
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            this.watchId = navigator.geolocation.watchPosition(
+                (pos) => this.onGpsTick(pos.coords.latitude, pos.coords.longitude, pos.coords.heading),
+                (err) => console.warn("[Routing] GPS watch error:", err),
+                { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+            );
+        }
+    },
+
+    stopNavigation() {
+        this.isNavigating = false;
+        if (this.watchId !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.clearWatch(this.watchId);
+            this.watchId = null;
+        }
+
+        this.releaseWakeLock();
+
+        const btnNav = (typeof document !== 'undefined') ? document.getElementById('btnRoutingStartNav') : null;
+        if (btnNav) {
+            btnNav.classList.remove('btn-red');
+            btnNav.classList.add('btn-green');
+            btnNav.innerHTML = `▶ Bắt đầu dẫn đường`;
+        }
+
+        if (this.userMarker && this.map) {
+            this.map.removeLayer(this.userMarker);
+            this.userMarker = null;
+        }
+
+        this.speakInstruction("Đã dừng dẫn đường.");
+        if (typeof showToast === 'function') showToast("⏹ Đã dừng dẫn đường");
+    },
+
+    onGpsTick(lat, lng, heading) {
+        if (!this.isNavigating || !this.map || typeof L === 'undefined') return;
+
+        if (!this.userMarker) {
+            const userIcon = L.divIcon({
+                html: `<div style="width: 22px; height: 22px; border-radius: 50%; background: #38bdf8; border: 3px solid #ffffff; box-shadow: 0 0 12px #38bdf8;"></div>`,
+                className: 'routing-user-marker',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+            this.userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
+        } else {
+            this.userMarker.setLatLng([lat, lng]);
+        }
+
+        this.map.panTo([lat, lng], { animate: true, duration: 0.8 });
+
+        if (!this.optimizedRoute || !this.optimizedRoute.legs) return;
+        const allSteps = [];
+        this.optimizedRoute.legs.forEach(leg => {
+            if (leg.steps) allSteps.push(...leg.steps);
+        });
+
+        if (this.currentStepIdx < allSteps.length) {
+            const curStep = allSteps[this.currentStepIdx];
+            const maneuverPt = curStep.maneuver && curStep.maneuver.location
+                ? { lat: curStep.maneuver.location[1], lng: curStep.maneuver.location[0] }
+                : null;
+
+            if (maneuverPt) {
+                const distToTurn = this.calcDistance(lat, lng, maneuverPt.lat, maneuverPt.lng);
+                const parsed = this.translateManeuver(curStep);
+
+                const txtStep = document.getElementById('routingTurnInstruction');
+                const txtStepDist = document.getElementById('routingTurnDistance');
+                const iconEl = document.getElementById('routingTurnIcon');
+                if (txtStep) txtStep.innerText = parsed.text;
+                if (txtStepDist) txtStepDist.innerText = `Sau ${Math.round(distToTurn)}m`;
+                if (iconEl) iconEl.innerText = parsed.icon;
+
+                if (distToTurn <= 70 && this.lastSpokenStepIdx !== this.currentStepIdx) {
+                    this.lastSpokenStepIdx = this.currentStepIdx;
+                    this.speakInstruction(`Sau ${Math.round(distToTurn)} mét, ${parsed.text}`);
+                }
+
+                if (distToTurn <= 20) {
+                    this.currentStepIdx++;
+                }
+            }
+        } else {
+            this.speakInstruction("Bạn đã đến điểm đích của hành trình!");
+            this.stopNavigation();
+        }
+    },
+
+    async requestWakeLock() {
+        if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+            try {
+                this.wakeLock = await navigator.wakeLock.request('screen');
+                this.wakeLock.addEventListener('release', () => {
+                    this.wakeLock = null;
+                });
+            } catch (err) {
+                console.warn("[Routing] Screen Wake Lock not granted:", err);
+            }
+        }
+    },
+
+    releaseWakeLock() {
+        if (this.wakeLock && typeof this.wakeLock.release === 'function') {
+            this.wakeLock.release().catch(() => {});
+            this.wakeLock = null;
+        }
+    },
+
+    toggleVoice() {
+        this.voiceEnabled = !this.voiceEnabled;
+        const btn = (typeof document !== 'undefined') ? document.getElementById('btnRoutingVoiceToggle') : null;
+        if (btn) {
+            btn.innerHTML = this.voiceEnabled ? `🗣️ Giọng nói: BẬT` : `🔇 Giọng nói: TẮT`;
+            btn.style.color = this.voiceEnabled ? '#38bdf8' : '#94a3b8';
+        }
+        if (this.voiceEnabled) {
+            this.speakInstruction("Đã bật giọng nói dẫn đường.");
+        }
+    },
+
+    speakInstruction(text) {
+        if (!this.voiceEnabled || typeof window === 'undefined' || typeof window.speechSynthesis === 'undefined') return;
+        try {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            const voices = window.speechSynthesis.getVoices();
+            const viVoice = voices.find(v => v.lang && (v.lang.startsWith('vi') || v.lang.includes('VIE')));
+            if (viVoice) utter.voice = viVoice;
+            utter.lang = 'vi-VN';
+            utter.rate = 1.05;
+            utter.pitch = 1.0;
+            window.speechSynthesis.speak(utter);
+        } catch (e) {
+            console.warn("[Routing] SpeechSynthesis error:", e);
+        }
+    },
+
+    translateManeuver(step) {
+        if (!step || !step.maneuver) return { text: "Đi thẳng", icon: "↑" };
+        const m = step.maneuver;
+        const street = step.name ? `vào ${step.name}` : "";
+        let text = "Tiếp tục đi thẳng";
+        let icon = "↑";
+
+        const modifierMap = {
+            'left': { vi: 'trái', icon: '↰' },
+            'right': { vi: 'phải', icon: '↱' },
+            'sharp left': { vi: 'ngoặt gấp sang trái', icon: '↰' },
+            'sharp right': { vi: 'ngoặt gấp sang phải', icon: '↱' },
+            'slight left': { vi: 'chếch sang trái', icon: '↖' },
+            'slight right': { vi: 'chếch sang phải', icon: '↗' },
+            'straight': { vi: 'thẳng', icon: '↑' },
+            'uturn': { vi: 'quay đầu lại', icon: '↶' }
+        };
+
+        const mod = modifierMap[m.modifier] || { vi: '', icon: '↑' };
+
+        switch (m.type) {
+            case 'turn':
+                text = `Rẽ ${mod.vi} ${street}`.trim();
+                icon = mod.icon;
+                break;
+            case 'new name':
+                text = `Đi tiếp ${street}`.trim();
+                icon = '↑';
+                break;
+            case 'depart':
+                text = `Bắt đầu xuất phát ${street}`.trim();
+                icon = '🏁';
+                break;
+            case 'arrive':
+                text = `Đã đến điểm dừng`;
+                icon = '📍';
+                break;
+            case 'merge':
+                text = `Nhập làn ${mod.vi} ${street}`.trim();
+                icon = mod.icon;
+                break;
+            case 'ramp':
+                text = `Đi vào đường nhánh ${mod.vi}`.trim();
+                icon = mod.icon;
+                break;
+            case 'roundabout':
+                text = `Đi vào vòng xuyến ${street}`.trim();
+                icon = '🔄';
+                break;
+            case 'end of road':
+                text = `Hết đường, rẽ ${mod.vi} ${street}`.trim();
+                icon = mod.icon;
+                break;
+            default:
+                text = `Đi tiếp ${street}`.trim();
+                icon = '↑';
+        }
+
+        return { text, icon };
+    },
+
+    buildGoogleMapsUrl(pointsChunk) {
+        if (!pointsChunk || pointsChunk.length < 2) return '';
+        const origin = `${pointsChunk[0].lat.toFixed(6)},${pointsChunk[0].lng.toFixed(6)}`;
+        const dest = `${pointsChunk[pointsChunk.length - 1].lat.toFixed(6)},${pointsChunk[pointsChunk.length - 1].lng.toFixed(6)}`;
+        const waypoints = pointsChunk.slice(1, -1).map(p => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join('|');
+        const travelMode = this.vehicle === 'bike' ? 'bicycling' : 'driving';
+
+        let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=${travelMode}`;
+        if (waypoints) {
+            url += `&waypoints=${encodeURIComponent(waypoints)}`;
+        }
+        return url;
+    },
+
+    getGoogleMapsLegs() {
+        const pts = [...this.points];
+        if (this.isRoundTrip && pts.length > 2) {
+            pts.push({ ...pts[0], name: pts[0].name + ' (Về đích)' });
+        }
+
+        if (pts.length <= 9) {
+            return [{
+                legNumber: 1,
+                fromName: pts[0].name,
+                toName: pts[pts.length - 1].name,
+                pointCount: pts.length,
+                url: this.buildGoogleMapsUrl(pts)
+            }];
+        }
+
+        const legs = [];
+        let startIdx = 0;
+        let legNum = 1;
+
+        while (startIdx < pts.length - 1) {
+            const endIdx = Math.min(startIdx + 8, pts.length - 1);
+            const chunk = pts.slice(startIdx, endIdx + 1);
+            legs.push({
+                legNumber: legNum++,
+                fromName: chunk[0].name,
+                toName: chunk[chunk.length - 1].name,
+                pointCount: chunk.length,
+                url: this.buildGoogleMapsUrl(chunk)
+            });
+            startIdx = endIdx;
+        }
+
+        return legs;
+    },
+
+    openGoogleMapsModal() {
+        if (this.points.length < 2) {
+            if (typeof showToast === 'function') showToast("⚠️ Cần ít nhất 2 điểm để mở Google Maps!", true);
+            return;
+        }
+
+        const legs = this.getGoogleMapsLegs();
+        this.cachedGmapsLegs = legs;
+
+        if (legs.length === 1) {
+            if (typeof window !== 'undefined' && typeof window.open === 'function') {
+                window.open(legs[0].url, '_blank');
+            }
+            if (typeof showToast === 'function') showToast("🗺️ Đang mở lộ trình trên Google Maps...");
+            return;
+        }
+
+        const modal = document.getElementById('modalGoogleMapsLegs');
+        const listEl = document.getElementById('gmapsLegsList');
+        if (!modal || !listEl) return;
+
+        let html = '';
+        legs.forEach(leg => {
+            html += `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px;">
+                    <div>
+                        <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">
+                            Chặng ${leg.legNumber}: ${leg.fromName} ➔ ${leg.toName}
+                        </div>
+                        <div style="font-size: 11.5px; color: #94a3b8;">
+                            Bao gồm ${leg.pointCount} điểm mốc
+                        </div>
+                    </div>
+                    <button type="button" class="btn-sm btn-green" onclick="window.open('${leg.url}', '_blank')" style="height: 32px; padding: 0 12px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">
+                        Mở Google Maps ➔
+                    </button>
+                </div>
+            `;
+        });
+
+        listEl.innerHTML = html;
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    },
+
+    closeGoogleMapsModal() {
+        const modal = document.getElementById('modalGoogleMapsLegs');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        }
+    },
+
+    openAddPointsModal() {
+        const modal = document.getElementById('modalRoutingAddPoints');
+        if (!modal) return;
+
+        const curProjEl = document.getElementById('lblRoutingCurProject');
+        if (curProjEl && typeof AppState !== 'undefined') {
+            curProjEl.innerText = AppState.currentProject || 'VN2000_SoLieu_DoDac.csv';
+        }
+
+        this.populateSurveyPointsModal();
+        this.switchAddPointTab(this.currentAddPointTab || 'survey');
+
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    },
+
+    closeAddPointsModal() {
+        const modal = document.getElementById('modalRoutingAddPoints');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        }
+    },
+
+    switchAddPointTab(tab) {
+        this.currentAddPointTab = tab;
+        const tabSurvey = document.getElementById('tabRoutingFromSurvey');
+        const tabPaste = document.getElementById('tabRoutingFromPaste');
+        const panelSurvey = document.getElementById('panelRoutingAddFromSurvey');
+        const panelPaste = document.getElementById('panelRoutingAddFromPaste');
+
+        if (tab === 'survey') {
+            if (tabSurvey) tabSurvey.classList.add('active');
+            if (tabPaste) tabPaste.classList.remove('active');
+            if (panelSurvey) panelSurvey.style.display = 'flex';
+            if (panelPaste) panelPaste.style.display = 'none';
+        } else {
+            if (tabSurvey) tabSurvey.classList.remove('active');
+            if (tabPaste) tabPaste.classList.add('active');
+            if (panelSurvey) panelSurvey.style.display = 'none';
+            if (panelPaste) panelPaste.style.display = 'flex';
+        }
+    },
+
+    populateSurveyPointsModal() {
+        const listEl = document.getElementById('routingSurveyPointsList');
+        if (!listEl) return;
+        const allPts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function') 
+            ? appData.getPoints(AppState.currentProject) 
+            : [];
+
+        if (!allPts || allPts.length === 0) {
+            listEl.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 11.5px; padding: 14px 0;">Sổ đo hiện tại chưa có mốc nào. Bạn có thể sang tab <b>📋 Dán Bảng Tọa Độ</b> để dán số liệu.</div>`;
+            return;
+        }
+
+        let html = '';
+        allPts.forEach((p, idx) => {
+            html += `
+                <label style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: rgba(30, 41, 59, 0.6); border-radius: 6px; cursor: pointer; user-select: none;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #f8fafc;">
+                        <input type="checkbox" class="chk-routing-survey-pt" value="${idx}" checked style="width: 16px; height: 16px; accent-color: #0284c7;">
+                        <span><b>${p.name || 'M' + (idx + 1)}</b></span>
+                    </div>
+                    <div style="font-size: 11px; color: #94a3b8;">
+                        ${p.x && p.y ? `X=${parseFloat(p.x).toFixed(1)}, Y=${parseFloat(p.y).toFixed(1)}` : (p.lat && p.lng ? `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}` : '')}
+                    </div>
+                </label>
+            `;
+        });
+        listEl.innerHTML = html;
+    },
+
+    toggleSelectAllSurveyPoints() {
+        const cbs = document.querySelectorAll('.chk-routing-survey-pt');
+        if (cbs.length === 0) return;
+        const firstChecked = cbs[0].checked;
+        cbs.forEach(cb => { cb.checked = !firstChecked; });
+    },
+
+    applyAddPointsFromModal() {
+        if (this.currentAddPointTab === 'survey') {
+            const allPts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function') 
+                ? appData.getPoints(AppState.currentProject) 
+                : [];
+            const checkedBoxes = Array.from(document.querySelectorAll('.chk-routing-survey-pt:checked'));
+            if (checkedBoxes.length === 0) {
+                if (typeof showToast === 'function') showToast("⚠️ Chưa chọn mốc nào!", true);
+                return;
+            }
+
+            let addedCount = 0;
+            checkedBoxes.forEach(cb => {
+                const idx = parseInt(cb.value);
+                if (allPts[idx]) {
+                    const p = allPts[idx];
+                    let lat = parseFloat(p.lat);
+                    let lng = parseFloat(p.lng);
+                    let x = parseFloat(p.x);
+                    let y = parseFloat(p.y);
+
+                    if ((isNaN(lat) || isNaN(lng) || !lat || !lng) && !isNaN(x) && !isNaN(y) && typeof geodesy !== 'undefined' && typeof AppState !== 'undefined') {
+                        const wgs = geodesy.vn2000ToWgs84(x, y, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                        if (wgs) { lat = wgs.lat; lng = wgs.lng; }
+                    }
+
+                    if (!isNaN(lat) && !isNaN(lng) && lat && lng) {
+                        this.addPoint(lat, lng, p.name || `M${idx + 1}`, x, y, p.note);
+                        addedCount++;
+                    }
+                }
+            });
+
+            this.closeAddPointsModal();
+            this.fitBounds();
+            if (typeof showToast === 'function') showToast(`✓ Đã thêm ${addedCount} mốc từ Sổ đo!`);
+            if (this.points.length >= 2) this.optimizeRoute();
+
+        } else {
+            const txt = document.getElementById('txtRoutingPastedCoords')?.value?.trim();
+            if (!txt) {
+                if (typeof showToast === 'function') showToast("⚠️ Vui lòng dán danh sách tọa độ!", true);
+                return;
+            }
+
+            const radVn2k = document.querySelector('input[name="radRoutingCoordType"]:checked');
+            const isVn2k = !radVn2k || radVn2k.value === 'vn2000';
+
+            const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            let addedCount = 0;
+
+            lines.forEach((line) => {
+                const parts = line.split(/[\t,; ]+/).map(p => p.trim()).filter(p => p.length > 0);
+                if (parts.length >= 2) {
+                    let name = `P${this.points.length + 1}`;
+                    let v1 = 0, v2 = 0;
+
+                    if (!isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+                        v1 = parseFloat(parts[0]);
+                        v2 = parseFloat(parts[1]);
+                    } else if (parts.length >= 3 && !isNaN(parseFloat(parts[1])) && !isNaN(parseFloat(parts[2]))) {
+                        name = parts[0];
+                        v1 = parseFloat(parts[1]);
+                        v2 = parseFloat(parts[2]);
+                    }
+
+                    if (v1 && v2) {
+                        if (isVn2k) {
+                            let x = v1, y = v2;
+                            if (x < y && x < 800000 && y > 800000) {
+                                x = v2; y = v1;
+                            }
+                            let lat = 0, lng = 0;
+                            if (typeof geodesy !== 'undefined' && typeof AppState !== 'undefined') {
+                                const wgs = geodesy.vn2000ToWgs84(x, y, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+                                if (wgs) { lat = wgs.lat; lng = wgs.lng; }
+                            }
+                            if (lat && lng) {
+                                this.addPoint(lat, lng, name, x, y);
+                                addedCount++;
+                            }
+                        } else {
+                            let lat = v1, lng = v2;
+                            if (lat > 50 && lng < 50) {
+                                lat = v2; lng = v1;
+                            }
+                            this.addPoint(lat, lng, name);
+                            addedCount++;
+                        }
+                    }
+                }
+            });
+
+            this.closeAddPointsModal();
+            this.fitBounds();
+            if (typeof showToast === 'function') showToast(`✓ Đã thêm ${addedCount} mốc từ bảng dán!`);
+            if (this.points.length >= 2) this.optimizeRoute();
+        }
+    },
+
+    calcDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+};
+
 // ================= 11. KHỞI TẠO ỨNG DỤNG (APP BOOTSTRAP) =================
 window.addEventListener('DOMContentLoaded', () => {
 // Menu button handled via debounced appNav.toggleTreeMenu
@@ -40234,6 +41382,7 @@ if (typeof window !== 'undefined') {
     window.showToast = showToast;
     window.appSettings = appSettings;
     window.appDonate = appDonate;
+    if (typeof appRouting !== 'undefined') window.appRouting = appRouting;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -40247,7 +41396,8 @@ if (typeof module !== 'undefined' && module.exports) {
         appGuide,
         appModal,
         appOcr,
-        appElevationProfile
+        appElevationProfile,
+        appRouting
     };
 }
 

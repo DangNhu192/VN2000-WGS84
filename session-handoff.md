@@ -1,6 +1,38 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-07: WP-L — LÀM TOÀN BỘ ĐỀ XUẤT + ĐỊA CHỈ SAU SÁP NHẬP TRÊN CAMERA
+# Session Handoff — VN2000-PWA
+
+## Phiên hiện tại — 2026-11-09: WP-M — TỐI ƯU HÓA CHỈ ĐƯỜNG & LỘ TRÌNH GIAO THÔNG (XE MÁY, Ô TÔ CON, XE 16 CHỖ) (F-012)
+- **Yêu cầu từ người dùng**:
+  1. Thêm chức năng tối ưu hóa lộ trình giao thông cho các điểm mốc theo 3 loại phương tiện: Xe máy, Ô tô con, Ô tô 16 chỗ.
+  2. Hỗ trợ 3 nguồn dữ liệu điểm: (1) Chấm trực tiếp trên bản đồ Leaflet; (2) Chọn mốc từ Quản lý dữ liệu mốc; (3) Nhập/dán bảng tọa độ (VN-2000 hoặc WGS-84).
+  3. API OSRM trực tuyến (chuẩn Traveling Salesperson Problem - TSP) kết hợp fallback ngoại tuyến đường nối trắc địa.
+  4. Tự động lấy vị trí GPS hiện tại làm điểm xuất phát; hỗ trợ tùy chọn lộ trình khép kín (khứ hồi) vs 1 chiều.
+  5. Dẫn đường bằng giọng nói tiếng Việt tự động (`vi-VN`) trực tiếp trong PWA; tích hợp Screen Wake Lock API giữ màn hình luôn sáng.
+  6. Mở sang Google Maps với cơ chế tự động chia nhỏ thành các chặng tối ưu $\le 9$ điểm dừng (`#modalGoogleMapsLegs`) để tài xế lái xe liên tục không bị giới hạn URL.
+  7. Vị trí UI độc lập 100% (`UI Isolation Principle`): Card 8 trên Dashboard, Drawer item 2.3 `#drawerItem_routing`, nút tác vụ trong Quản lý dữ liệu mốc `#barBatchPointsActions` và `card-tools` sổ đo; màn hình `#screen-routing` tách biệt hoàn toàn.
+- **Giải pháp & Kiến trúc triển khai**:
+  1. **UI & Layout**:
+     - `index.html`: Thêm card 8 `#cardOptRoute` trên Bento grid Dashboard, card 6 trong danh sách menu gọn, `#drawerItem_routing` trong drawer menu; nút `🚗 Tối ưu lộ trình` trong `#barBatchPointsActions` và nút `🚗 Lộ trình` trong `card-tools` của `#screen-datamgmt`.
+     - Thêm phân hệ `#screen-routing` độc lập: thanh điều khiển phương tiện (Xe máy, Ô tô con, 16 chỗ), tùy chọn khứ hồi, cảnh báo barie/tải trọng xe 16 chỗ, bản đồ `#leaflet-routing-map`, HUD dẫn đường thời gian thực `#routingNavHud`, danh sách điểm chặng `#routingPointsSheet`.
+     - Thêm 2 modal: `#modalRoutingAddPoints` (nhập tọa độ / chọn mốc sổ đo) và `#modalGoogleMapsLegs` (danh sách chặng Google Maps).
+  2. **Styling & Touch Standards**:
+     - `ui-polish.css`: Bổ sung CSS cho `#screen-routing`, marker pin (Start, Mid, End), HUD dẫn đường bo góc, bottom sheet kéo thả, touch floor $\ge 40\text{px}$/44px, tuân thủ nghiêm ngặt `--sat-safe-*` và `calc(var(--ui-avail-h) * 0.9)`.
+  3. **Module `appRouting` trong `app.js`**:
+     - Quản lý danh sách điểm (`points`), phương tiện (`vehicle`: `motorcycle`, `car`, `van16`), trạng thái khứ hồi (`isRoundTrip`).
+     - Tích hợp OSRM Trip API (`/trip/v1/driving/`) với giải thuật TSP tối ưu hóa thứ tự ghé thăm mốc ngắn nhất.
+     - Dẫn đường thời gian thực (`startNavigation`, `watchPosition`) với giọng nói Web Speech API (`speechSynthesis`) phát nhắc ngã rẽ khi cách $\le 70\text{m}$.
+     - Kích hoạt Screen Wake Lock (`navigator.wakeLock.request('screen')`) giữ màn hình luôn sáng và tự động tái cấp phát khi quay lại tab.
+     - Hàm `openGoogleMapsChunked()`: chia danh sách mốc thành các chặng $\le 9$ điểm dừng theo chuẩn Google Maps URL API (`dirflg=d` cho ô tô, `dirflg=w` cho xe máy), cho phép tài xế chuyển chặng mượt mà.
+  4. **Tích hợp & Đồng bộ bộ nhớ**:
+     - `appNav.showScreen('routing')`, `appNav.syncActiveMenuWithScreen('routing')`, `appNav.navigateTo('routing')`.
+     - Thêm item 10 vào `appDashboard.allFeatures`.
+     - Đăng ký tài nguyên: `sw.js` `CACHE_NAME = 'vn2000-pro-v2.8.28'`, `index.html` (`style.css?v`, `ui-polish.css?v`, `app.js?v` = `2.8.28`).
+     - Cập nhật `feature_list.json` (active feature `F-012`, version `2.8.0`).
+- **Kết quả kiểm chứng**:
+  - `tests/route_optimization.test.js`: **3/3 PASS (100%)**.
+
+## Phiên trước — 2026-11-07: WP-L — LÀM TOÀN BỘ ĐỀ XUẤT + ĐỊA CHỈ SAU SÁP NHẬP TRÊN CAMERA
 - **Yêu cầu**: `Thực hiện tất cả các đề xuất trên, bổ sung thêm là hiển thị địa chỉ sau sáp nhập khi chụp ảnh/quay film đóng dấu camera`.
 - **Chi tiết**: `progress.md` mục WP-L; trạng thái đề xuất ở `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md` (tất cả ✅).
 - **Điểm cần nhớ**:
