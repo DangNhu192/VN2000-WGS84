@@ -1215,3 +1215,11 @@
 - **Lỗi**: khi chèn `#drawerItem_routing` (commit bfbf35a) còn sót một mảnh 5 dòng của mục RTK (`</div>` + vòng ✓ trùng + `</div>`) → thừa một `</div>`, nhóm 3–5 rơi ra ngoài `.drawer-tree-body`, vùng cuộn bị ép còn 90px, nhóm "Sổ đo & Dữ liệu" đè lên nhóm 1–2, menu không cuộn được.
 - **Sửa**: bỏ mảnh thừa; thẻ `<div>` toàn file cân bằng (1847/1847). Hộp chỉ dẫn `#routingNavHud` đổi sang phông không chân (dấu tiếng Việt hiển thị đúng).
 - Test mới `tests/drawer_markup_integrity.test.js` (div cân bằng + 5 nhóm nằm trong vùng cuộn). `npm test` 359/359. `CACHE_NAME = vn2000-pro-v2.8.29`.
+
+## 2026-11-11 — WP-M: Tổng hợp chức năng & tái cấu trúc giao diện thống nhất (không bỏ chức năng nào)
+- **Tổng hợp**: `docs/TONG_HOP_CHUC_NANG.md` — cấu trúc điều hướng, danh mục 21 chức năng theo 5 nhóm, quy tắc giao diện dùng chung.
+- **Thanh ngữ cảnh** (`#appContextBar`, điện thoại dọc): tên màn hình gọn (không số, không in hoa) + 📁 dự án hiện hành (chạm → Sổ đo). `appNav.notifyScreenChange` phát sự kiện `vn2000:screenchange`; `app-shell.js` hiển thị.
+- **Trang chủ**: "Truy cập nhanh" (4 ô ghim, cùng hình thức ô chức năng) + **"Tất cả chức năng"**: 21 ô theo 5 nhóm, có ô tìm kiếm (không dấu). Bảng dựng TỪ menu ☰ nên hai nơi luôn khớp; ô bấm = bấm mục menu tương ứng. Thay mục thu gọn "Công cụ kỹ thuật & tiện ích khác".
+- **`ui-unified.css`** (nạp sau cùng): một bộ quy tắc cho thẻ, tiêu đề thẻ (15px, không in hoa), nút (4 vai trò màu), nút hành động chính, tab segmented (Chuyển đổi/Camera/Trắc dọc/Thông tin), ô nhập 44px; chế độ Thực địa giữ bộ tương phản cao riêng.
+- **Sửa lỗi**: đổi sang tiếng Anh có thể treo trình duyệt — MutationObserver của bộ dịch ghi lại chuỗi không đổi → tự kích hoạt lại vô hạn. Nay chỉ ghi khi chuỗi thật sự đổi. Lỗi chính tả "THỰC ĐIỆA". Bản dịch tiếng Anh chuẩn cho toàn bộ menu.
+- Test mới `tests/unified_shell.test.js`; `npm test` **364/364 PASS**. `CACHE_NAME = vn2000-pro-v2.8.30`.
