@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.28';
+const CACHE_NAME = 'vn2000-pro-v2.8.29';
 // Dữ liệu địa giới lớn (~4 MB): cache riêng, KHÔNG xóa khi nâng phiên bản ứng dụng; đổi tên khi dữ liệu đổi.
 const DATA_CACHE = 'vn2000-data-admin-2025-07-01';
 const ASSETS_TO_CACHE = [
