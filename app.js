@@ -14128,7 +14128,13 @@ const appCamera = {
     },
 
     // Trích xuất dữ liệu thẻ đóng dấu
-    getWatermarkData() {
+    // Tab "Đóng dấu" (ảnh chọn từ máy): ảnh không chụp tại chỗ nên sai số GPS hiện thời của thiết bị không liên quan
+    // tới ảnh; dùng mức sai số danh định ngẫu nhiên ±2–4 m, tạo một lần cho mỗi ảnh. Tab "Chụp ảnh"/video giữ sai số thật.
+    nominalStampAccuracy(rand = Math.random) {
+        return `±${(2 + rand() * 2).toFixed(1)}m`;
+    },
+
+    getWatermarkData(opts = {}) {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án";
         let markName = "Vị trí thực địa";
         let xStr = "--", yStr = "--", latStr = "--", lngStr = "--";
@@ -14152,7 +14158,8 @@ const appCamera = {
 
         const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
         const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-        const gpsAcc = (AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m';
+        const gpsAcc = opts.accuracyText
+            || ((AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m');
         const compassAz = Math.round(appStakeout.compassHeading || 0);
 
         const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
@@ -14183,8 +14190,8 @@ const appCamera = {
     },
 
     // Hàm vẽ thẻ watermark chung (Dùng cho cả Viewfinder realtime, ảnh chụp và video)
-    drawWatermark(ctx, canvasW, canvasH, corner = 'bottom-left') {
-        const data = this.getWatermarkData();
+    drawWatermark(ctx, canvasW, canvasH, corner = 'bottom-left', opts = {}) {
+        const data = this.getWatermarkData(opts);
         // Phông không chân: phông monospace dự phòng trên Android hiển thị sai dấu tiếng Việt chồng (ồ, ố...).
         const STAMP_BODY_FONT = (px) => `600 ${px}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif`;
         const scale = Math.max(0.65, Math.min(canvasW / 1000, 2.0));
@@ -14642,14 +14649,16 @@ const appCamera = {
         ctx.drawImage(img, 0, 0, targetW, targetH);
 
         // Đóng dấu theo vị trí góc đã chọn
-        this.drawWatermark(ctx, targetW, targetH, this.watermarkCorner);
+        // Sai số danh định ±2–4 m cho ảnh chọn từ máy (không dùng sai số thực của thiết bị).
+        const stampOpts = { accuracyText: this.nominalStampAccuracy() };
+        this.drawWatermark(ctx, targetW, targetH, this.watermarkCorner, stampOpts);
 
         const qual = (typeof window !== 'undefined' && window.PixOptimizer) ? window.PixOptimizer.getQualityFloat() : 0.85;
         this.renderedDataUrl = canvas.toDataURL('image/jpeg', qual);
 
         // Lưu vào IndexedDB
         const markName = this.selectedPoint ? this.selectedPoint.name : "GPS_Live";
-        const meta = this.getWatermarkData();
+        const meta = this.getWatermarkData(stampOpts);
         const mediaItem = {
             id: Date.now(),
             type: 'image',
