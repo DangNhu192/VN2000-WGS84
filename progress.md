@@ -1223,3 +1223,8 @@
 - **`ui-unified.css`** (nạp sau cùng): một bộ quy tắc cho thẻ, tiêu đề thẻ (15px, không in hoa), nút (4 vai trò màu), nút hành động chính, tab segmented (Chuyển đổi/Camera/Trắc dọc/Thông tin), ô nhập 44px; chế độ Thực địa giữ bộ tương phản cao riêng.
 - **Sửa lỗi**: đổi sang tiếng Anh có thể treo trình duyệt — MutationObserver của bộ dịch ghi lại chuỗi không đổi → tự kích hoạt lại vô hạn. Nay chỉ ghi khi chuỗi thật sự đổi. Lỗi chính tả "THỰC ĐIỆA". Bản dịch tiếng Anh chuẩn cho toàn bộ menu.
 - Test mới `tests/unified_shell.test.js`; `npm test` **364/364 PASS**. `CACHE_NAME = vn2000-pro-v2.8.30`.
+
+## 2026-11-12 — Camera: tab "Đóng dấu" dùng sai số danh định ±2–4 m
+- Theo yêu cầu: ảnh chọn từ máy (tab "Đóng dấu") in sai số ngẫu nhiên ±2.0–4.0 m (`appCamera.nominalStampAccuracy`, tạo một lần cho mỗi ảnh, thông tin lưu thư viện khớp với dấu). Tab "Chụp ảnh", khung xem trực tiếp và quay video giữ sai số thật của thiết bị.
+- `getWatermarkData(opts)` / `drawWatermark(..., opts)` nhận `opts.accuracyText`; mặc định vẫn là `AppState.lastGps.accuracy`.
+- Test `tests/camera_stamp_nominal_accuracy.test.js`; `npm test` 366/366. `CACHE_NAME = vn2000-pro-v2.8.31`.
