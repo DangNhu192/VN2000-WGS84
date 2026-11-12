@@ -2848,3 +2848,7 @@ body[data-theme="light"] .home-gps-cta b { color: #047857; }
   background: rgba(56, 189, 248, 0.12);
   border-color: rgba(56, 189, 248, 0.3);
 }
+
+/* Màn Tối ưu lộ trình: hộp chỉ dẫn dùng phông không chân (phông monospace dự phòng trên Android hiển thị sai dấu tiếng Việt chồng). */
+#routingNavHud { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif !important; }
+#routingNavHud :is(.font-mono, [id*="Dist"], [id*="Eta"], [id*="Km"]) { font-variant-numeric: tabular-nums; }

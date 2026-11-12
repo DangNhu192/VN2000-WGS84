@@ -33,9 +33,10 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.28">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.28">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.28">
+  <link rel="stylesheet" href="style.css?v=2.8.30">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.30">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.30">
+  <link rel="stylesheet" href="ui-unified.css?v=2.8.30">
 </head>
 
 <body>
@@ -124,6 +125,12 @@
         </div>
       </div>
     </header>
+
+    <!-- THANH NGỮ CẢNH (điện thoại): tên màn hình đang mở + dự án hiện hành — giống nhau ở mọi màn hình -->
+    <div id="appContextBar" class="app-context-bar">
+      <h1 id="ctxScreenTitle" class="ctx-title">Trang chủ</h1>
+      <button type="button" id="ctxProject" class="ctx-project" title="Dự án hiện hành — chạm để mở Sổ đo" hidden></button>
+    </div>
 
     <!-- MAIN VIEWPORT -->
     <main class="app-viewport">
@@ -216,7 +223,7 @@
             <div class="dashboard-section-bar">
               <div class="dashboard-bar-title">
                 <span class="bar-title-icon">⚡</span>
-                <span class="bar-title-text" data-i18n="dash.section_title">NGHIỆP VỤ TRẮC ĐỊA THỰC ĐỊA</span>
+                <span class="bar-title-text" data-i18n="dash.section_title">Truy cập nhanh</span>
                 <span class="bar-badge" id="pinnedFeaturesCountBadge">4 mục</span>
               </div>
               <button type="button" class="btn-customize-pins" onclick="appDashboard.openPinModal()"
@@ -330,6 +337,17 @@
               </div>
             </div>
           </div>
+
+          <!-- TẤT CẢ CHỨC NĂNG: dựng từ menu ☰ (app-shell.js) nên luôn đủ và cùng cách phân nhóm -->
+          <section id="homeFeatureHub" class="home-feature-hub" aria-labelledby="hubTitle">
+            <div class="hub-head">
+              <h2 id="hubTitle" class="hub-title" data-i18n="home.all_features">Tất cả chức năng</h2>
+              <input type="search" id="txtHubSearch" class="hub-search" autocomplete="off" spellcheck="false"
+                placeholder="Tìm chức năng (cắm mốc, xuất dwg, camera…)" aria-label="Tìm chức năng">
+            </div>
+            <div id="homeFeatureHubList"></div>
+            <p id="hubEmpty" class="hub-empty" hidden data-i18n="home.no_match">Không có chức năng nào khớp.</p>
+          </section>
 
           <!-- Khối Accordion Kỹ thuật Nâng cao & Tiện ích -->
           <div class="accordion-advanced-wrapper">
@@ -7488,11 +7506,6 @@
               <span class="drawer-check-tick">✓</span>
             </div>
           </div>
-            </div>
-            <div class="drawer-check-circle" title="Trạng thái chức năng">
-              <span class="drawer-check-tick">✓</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -7610,7 +7623,7 @@
             <div class="drawer-leaf-icon" style="color: #f59e0b;">🌐</div>
             <div class="drawer-leaf-text">
               <div class="drawer-leaf-title">5.1 Cài đặt Kinh tuyến trục (KTT)</div>
-              <div class="drawer-leaf-sub">63 tỉnh thành, múi 3°/6°, tỉ lệ chiếu</div>
+              <div class="drawer-leaf-sub">34 tỉnh mới, 63 tỉnh cũ, múi 3°/6°, theo GPS</div>
             </div>
             <div class="drawer-check-circle" title="Trạng thái chức năng">
               <span class="drawer-check-tick">✓</span>
@@ -7854,11 +7867,12 @@
   <script src="pixoptimizer.js"></script>
   <script src="src/core/cad_geometry.js?v=2.8.5"></script>
   <script src="src/core/gis_io.js?v=2.8.10"></script>
-  <script src="app.js?v=2.8.28"></script>
-  <script src="field-workspace.js?v=2.8.28"></script>
-  <script src="vn2000-rezone.js?v=2.8.28"></script>
-  <script src="vn-admin-2025.js?v=2.8.28"></script>
-  <script src="import-preview.js?v=2.8.28"></script>
+  <script src="app.js?v=2.8.30"></script>
+  <script src="field-workspace.js?v=2.8.30"></script>
+  <script src="vn2000-rezone.js?v=2.8.30"></script>
+  <script src="vn-admin-2025.js?v=2.8.30"></script>
+  <script src="import-preview.js?v=2.8.30"></script>
+  <script src="app-shell.js?v=2.8.30"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <script>

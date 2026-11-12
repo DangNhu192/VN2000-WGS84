@@ -338,8 +338,16 @@ function triggerHaptic(type = 'light') {
 const appNav = window.appNav = {
     lastHeaderInfo: null,
 
+    // Báo cho lớp vỏ giao diện (app-shell.js) biết màn hình vừa đổi để cập nhật thanh tên màn hình.
+    notifyScreenChange(detail) {
+        if (typeof document !== 'undefined' && typeof document.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+            document.dispatchEvent(new CustomEvent('vn2000:screenchange', { detail }));
+        }
+    },
+
     syncHeader(titleVi, titleEn, customSubVi, customSubEn) {
         this.lastHeaderInfo = { titleVi, titleEn, customSubVi, customSubEn };
+        this.notifyScreenChange({ titleVi, titleEn });
         const titleEl = document.getElementById('headerTitle');
         const subTitleEl = document.getElementById('headerSubtitle');
         const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
@@ -412,6 +420,7 @@ const appNav = window.appNav = {
         if (screenName === 'menu') {
             this.lastHeaderInfo = null;
             targetScreen = document.getElementById('screen-menu');
+            this.notifyScreenChange({ menu: true });
             if (btnBack) { btnBack.hidden = true; btnBack.style.display = 'none'; }
             const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
             if (titleEl) titleEl.innerHTML = `<img src="icon.png" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
@@ -1505,7 +1514,7 @@ const appNav = window.appNav = {
         // Đồng bộ Header trên cùng
         const btnBack = document.getElementById('btnHeaderBack');
         if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
-        this.syncHeader('🛰️ VỊ TRÍ GPS THỰC ĐIỆA', '🛰️ FIELD GPS LOCATION');
+        this.syncHeader('🛰️ VỊ TRÍ GPS THỰC ĐỊA', '🛰️ FIELD GPS LOCATION');
 
         appMap.initMap();
         if (appMap.updateFabControlsVisibility) appMap.updateFabControlsVisibility('live_gps');
@@ -37032,7 +37041,9 @@ const appI18n = {
             'bnav.datamgmt': 'Sổ Đo',
 
             // Dashboard
-            'dash.section_title': 'NGHIỆP VỤ TRẮC ĐỊA THỰC ĐỊA',
+            'dash.section_title': 'Truy cập nhanh',
+            'home.all_features': 'Tất cả chức năng',
+            'home.no_match': 'Không có chức năng nào khớp.',
             'home.gps_on': 'Bật GPS',
             'home.gps_on_sub': 'để xem tọa độ VN-2000 tại vị trí đang đứng',
             'dash.btn_pins': '⭐ Đổi ghim',
@@ -37186,7 +37197,9 @@ const appI18n = {
             'bnav.datamgmt': 'Survey Book',
 
             // Dashboard
-            'dash.section_title': 'FIELD CORE OPERATIONS',
+            'dash.section_title': 'Quick access',
+            'home.all_features': 'All features',
+            'home.no_match': 'No matching feature.',
             'home.gps_on': 'Turn on GPS',
             'home.gps_on_sub': 'to see VN-2000 coordinates where you stand',
             'dash.btn_pins': '⭐ Pins',
@@ -39122,6 +39135,37 @@ const appI18n = {
         "2.1 Bản đồ dự án & Mốc": "2.1 Project Map & Benchmarks",
         "Bật GPS": "Turn on GPS",
         "để xem tọa độ VN-2000 tại vị trí đang đứng": "to see VN-2000 coordinates where you stand",
+        "34 tỉnh mới, 63 tỉnh cũ, múi 3°/6°, theo GPS": "34 new / 63 old provinces, 3°/6° zones, by GPS",
+        // Bản dịch chuẩn cho menu ☰ / bảng Tất cả chức năng (ghi đè các bản dịch máy cũ phía trên).
+        "1.1 Chuyển đổi 2 chiều đơn điểm": "1.1 Single-point conversion",
+        "WGS-84 ⇄ VN-2000 chuẩn 7 tham số": "WGS-84 ⇄ VN-2000, 7-parameter standard",
+        "1.2 Chuyển đổi hàng loạt & Nhập file": "1.2 Batch conversion & file import",
+        "Nhập CSV hoặc dán bảng số liệu nhiều mốc": "Import CSV or paste a table of points",
+        "Chấm lấy tọa độ và xem vị trí điểm chuyển đổi": "Pick coordinates and view converted points",
+        "2.1 Bản đồ dự án & Mốc": "2.1 Project map & benchmarks",
+        "Vệ tinh Google/Esri, GPS, đo cự ly & góc": "Google/Esri satellite, GPS, distance & angle",
+        "2.2 Cắm mốc thực địa (Radar Stakeout)": "2.2 Field stakeout (radar)",
+        "La bàn số 360°, radar dẫn hướng, bíp đích": "360° compass, guidance radar, target beep",
+        "In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ": "Stamps VN-2000, WGS-84, GPS, heading, time",
+        "Độ chính xác vệ tinh thực địa (±m)": "Field satellite accuracy (±m)",
+        "Web Bluetooth GNSS Rover, độ chính xác cm": "Web Bluetooth GNSS rover, cm accuracy",
+        "2.6 Tối ưu lộ trình & Chỉ đường": "2.6 Route optimisation & navigation",
+        "Xe máy, ô tô, 16 chỗ, giọng nói AI & Google Maps": "Motorbike, car, 16-seater, voice & Google Maps",
+        "3.1 Sổ đo mốc & Quản lý dự án": "3.1 Field book & projects",
+        "Xem bảng mốc, chỉnh sửa và xuất file DWG, KML, CSV": "View, edit and export points (DWG, KML, CSV)",
+        "3.2 Cấu hình Google Sheets / Cloud": "3.2 Google Sheets / Cloud sync",
+        "Đồng bộ tự động lên Google Drive": "Automatic sync to Google Drive",
+        "Thuận/nghịch tọa độ, diện tích Gauss & chu vi": "Forward/inverse, Gauss area & perimeter",
+        "Bù tọa độ trạm đo từ 2 mốc khống chế": "Station position from 2 control points",
+        "4.3 Trắc dọc địa hình & Đào đắp": "4.3 Terrain profile & cut/fill",
+        "Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp": "Ground profile, design line, cut/fill m³",
+        "Dựng ranh, bắt điểm Snap, tính diện tích & xuất DWG": "Boundaries, snapping, area & DWG export",
+        "5.1 Cài đặt Kinh tuyến trục (KTT)": "5.1 Central meridian (CM) settings",
+        "Đồng bộ tự động / Chỉnh thủ công múi giờ": "Automatic sync / manual time zone",
+        "Chi tiết 14 chức năng thực địa kèm ảnh lớn": "14 field functions in detail, with images",
+        "Cài PWA mọi thiết bị, 7 tham số BTNMT": "Install the PWA, 7 official parameters",
+        "Hệ Thống & Trợ Giúp": "System & Help",
+        "Chuyển Đổi Tọa Độ": "Coordinate Conversion",
         "⭐ 4 Tính Năng Ghim Màn Hình Chính": "⭐ 4 calculate Nang Ghim Man Hinh Chinh",
         "Chọn đúng 4 tính năng đưa lên 4 Khối lớn:": "select dung 4 calculate nang dua len 4 Large Blocks:",
         "Đã chọn: 4/4 mục": "Da select: 4/4 item",
@@ -39711,7 +39755,10 @@ const appI18n = {
                 } else if (mutation.type === 'characterData') {
                     const node = mutation.target;
                     if (node && node.nodeValue && VI_REGEX.test(node.nodeValue)) {
-                        node.nodeValue = this.translateString(node.nodeValue);
+                        // Chỉ ghi khi chuỗi thật sự đổi: ghi lại chuỗi cũ sẽ tự kích hoạt observer → lặp vô hạn
+                        // với mọi cụm chưa dịch hết (còn dấu tiếng Việt).
+                        const translated = this.translateString(node.nodeValue);
+                        if (translated !== node.nodeValue) node.nodeValue = translated;
                     }
                 }
             }

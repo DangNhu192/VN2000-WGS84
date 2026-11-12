@@ -1,0 +1,191 @@
+/* ==========================================================================
+   LỚP GIAO DIỆN THỐNG NHẤT — nạp SAU CÙNG (sau style.css, field-workspace.css, ui-polish.css).
+   Một bộ quy tắc cho: thanh ngữ cảnh, trang chủ, thẻ, tiêu đề thẻ, nút, tab, ô nhập — áp cho mọi màn hình.
+   Chỉ đổi hình thức, không đổi chức năng. Chế độ Thực địa (body.field-mode) giữ bộ tương phản cao riêng.
+   Token theo DESIGN.md.
+   ========================================================================== */
+:root {
+  --u-surface: var(--bg-card, #131d31);
+  --u-surface-2: #1b2740;
+  --u-input: #0b1424;
+  --u-line: rgba(148, 163, 184, 0.22);
+  --u-line-strong: rgba(56, 189, 248, 0.45);
+  --u-ink: var(--text-main, #f8fafc);
+  --u-muted: var(--text-muted, #94a3b8);
+  --u-primary: #0284c7;
+  --u-primary-ink: #ffffff;
+  --u-success: #059669;
+  --u-danger-bg: rgba(239, 68, 68, 0.14);
+  --u-danger-ink: #fca5a5;
+  --u-danger-line: rgba(239, 68, 68, 0.5);
+  --u-warn-bg: rgba(245, 158, 11, 0.14);
+  --u-warn-ink: #fbbf24;
+  --u-warn-line: rgba(245, 158, 11, 0.5);
+  --u-radius: 12px;
+  --u-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --u-surface: #ffffff;
+  --u-surface-2: #f1f5f9;
+  --u-input: #f8fafc;
+  --u-line: rgba(15, 23, 42, 0.16);
+  --u-line-strong: rgba(2, 132, 199, 0.5);
+  --u-ink: #0f172a;
+  --u-muted: #475569;
+  --u-danger-bg: rgba(220, 38, 38, 0.08);
+  --u-danger-ink: #b91c1c;
+  --u-danger-line: rgba(220, 38, 38, 0.45);
+  --u-warn-bg: rgba(217, 119, 6, 0.1);
+  --u-warn-ink: #92400e;
+  --u-warn-line: rgba(217, 119, 6, 0.45);
+}
+
+/* ---------- 1. THANH NGỮ CẢNH: tên màn hình + dự án (điện thoại dọc) ---------- */
+.app-context-bar { display: none; }
+@media (max-width: 600px) {
+  .app-context-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex: 0 0 auto; min-height: 36px;
+    padding: 4px calc(var(--sat-safe-right, 0px) + 14px) 4px calc(var(--sat-safe-left, 0px) + 14px);
+    background: var(--u-surface); border-bottom: 1px solid var(--u-line);
+  }
+  .ctx-title { margin: 0; min-width: 0; flex: 1 1 auto; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--u-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctx-project { flex: 0 1 46%; min-width: 0; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--u-line); background: transparent; color: var(--u-muted); font: 600 12px/1 inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .ctx-project[hidden] { display: none; }
+  body.field-mode .app-context-bar { background: #000; border-color: #aaa; }
+  body.field-mode .ctx-title { color: #fff; }
+  body.field-mode .ctx-project { color: #ffdf00; border-color: #aaa; }
+}
+@media (orientation: landscape) and (max-height: 620px) { .app-context-bar { display: none !important; } }
+
+/* ---------- 2. TRANG CHỦ: truy cập nhanh + tất cả chức năng ---------- */
+/* Bảng "Tất cả chức năng" thay cho mục thu gọn "Công cụ khác" (cùng nội dung, luôn mở, có nhóm). */
+.accordion-advanced-wrapper { display: none !important; }
+
+.home-feature-hub { margin-top: 18px; }
+.hub-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.hub-title { margin: 0; font-size: 17px; font-weight: 700; color: var(--u-ink); letter-spacing: -0.01em; }
+.hub-search { flex: 1 1 200px; min-width: 0; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--u-line); background: var(--u-input); color: var(--u-ink); font-size: 14px; user-select: text; -webkit-user-select: text; }
+.hub-search:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 1px; }
+.hub-group { margin-bottom: 16px; }
+.hub-group[hidden], .hub-tile[hidden], .hub-empty[hidden] { display: none !important; }
+.hub-group-title { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--u-muted); }
+.hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.hub-tile {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 8px 12px; text-align: left;
+  border-radius: var(--u-radius); border: 1px solid var(--u-line); background: var(--u-surface); color: var(--u-ink);
+  cursor: pointer; transition: border-color 0.2s var(--u-ease), background-color 0.2s var(--u-ease);
+}
+.hub-tile:hover, .hub-tile:focus-visible { border-color: var(--u-line-strong); outline: none; }
+.hub-tile:active { background: var(--u-surface-2); }
+.hub-tile-icon { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--u-surface-2); font-size: 18px; }
+.hub-tile-text { display: grid; min-width: 0; gap: 2px; }
+.hub-tile-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.hub-tile-sub { font-size: 12px; line-height: 1.3; color: var(--u-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hub-empty { color: var(--u-muted); font-size: 13px; }
+@media (max-width: 600px) { .hub-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* 4 ô ghim "Truy cập nhanh": cùng hình thức với ô chức năng (bỏ nền chuyển màu, hàng ngang gọn). */
+body:not(.field-mode) #dashboardModernHub .big-action-tiles-grid { gap: 8px !important; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile {
+  display: flex !important; flex-direction: row !important; align-items: center !important; gap: 10px !important;
+  min-height: 58px !important; height: auto !important; padding: 8px 12px !important;
+  border-radius: var(--u-radius) !important; border: 1px solid var(--u-line) !important;
+  background: var(--u-surface) !important; box-shadow: none !important;
+}
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-top { display: contents !important; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-icon-box { flex: 0 0 36px !important; width: 36px !important; height: 36px !important; border-radius: 10px !important; font-size: 18px !important; box-shadow: none !important; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-bottom { min-width: 0 !important; flex: 1 1 auto !important; order: 2; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-title { font-size: 14px !important; font-weight: 600 !important; line-height: 1.3 !important; color: var(--u-ink) !important; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .tile-metric-pill { order: 3; flex: 0 0 auto; font-size: 11px !important; }
+@media (max-width: 600px) { #dashboardModernHub .big-action-tile .tile-metric-pill { display: none !important; } }
+#dashboardModernHub .dashboard-bar-title .bar-title-text { font-size: 17px !important; font-weight: 700 !important; letter-spacing: -0.01em !important; text-transform: none !important; color: var(--u-ink) !important; }
+#dashboardModernHub .dashboard-bar-title .bar-title-icon { display: none !important; }
+
+/* ---------- 3. THẺ & TIÊU ĐỀ THẺ ---------- */
+body:not(.field-mode) .screen-view .app-card {
+  background: var(--u-surface) !important; border: 1px solid var(--u-line) !important;
+  border-radius: 14px !important; box-shadow: none !important;
+}
+body:not(.field-mode) .screen-view .card-header { border-bottom: 1px solid var(--u-line) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .card-title {
+  font-size: 15px !important; font-weight: 700 !important; letter-spacing: -0.005em !important;
+  text-transform: none !important; color: var(--u-ink) !important; text-shadow: none !important;
+}
+body:not(.field-mode) .screen-view .form-label { font-size: 13px !important; font-weight: 600 !important; color: var(--u-muted) !important; text-transform: none !important; letter-spacing: 0 !important; }
+
+/* ---------- 4. NÚT: một hình dạng, 4 vai trò màu (chính / thành công / nguy hiểm / trung tính) ---------- */
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm {
+  border-radius: 10px !important; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important;
+  text-transform: none !important; box-shadow: none !important; text-shadow: none !important;
+  background: var(--u-surface-2) !important; background-image: none !important; color: var(--u-ink) !important; border: 1px solid var(--u-line) !important;
+  transition: background-color 0.2s var(--u-ease), border-color 0.2s var(--u-ease) !important;
+}
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm.btn-blue { background: var(--u-primary) !important; color: var(--u-primary-ink) !important; border-color: transparent !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm.btn-green { background: var(--u-success) !important; color: #fff !important; border-color: transparent !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm.btn-red { background: var(--u-danger-bg) !important; color: var(--u-danger-ink) !important; border-color: var(--u-danger-line) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm:is(.btn-amber, .btn-orange) { background: var(--u-warn-bg) !important; color: var(--u-warn-ink) !important; border-color: var(--u-warn-line) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm:disabled { opacity: 0.5 !important; cursor: not-allowed !important; }
+
+/* Nút hành động chính của mỗi thẻ */
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-convert {
+  min-height: 48px !important; border-radius: var(--u-radius) !important; border: 1px solid transparent !important;
+  font-size: 15px !important; font-weight: 700 !important; letter-spacing: 0 !important; text-transform: none !important;
+  background: var(--u-primary) !important; background-image: none !important; color: var(--u-primary-ink) !important;
+  box-shadow: none !important; text-shadow: none !important;
+}
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-convert.btn-vn2k-to-wgs { background: var(--u-success) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-convert.btn-view-map-large { background: var(--u-surface-2) !important; color: var(--u-ink) !important; border-color: var(--u-line) !important; }
+
+/* ---------- 5. TAB: một kiểu "segmented control" cuộn ngang cho mọi màn hình ---------- */
+body:not(.field-mode) :is(#screen-transform .transform-subtabs, #screen-camera .camera-tabs-bar, #screen-about .about-tab-bar) {
+  display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 4px !important;
+  height: auto !important; padding: 4px !important; margin-bottom: 12px !important;
+  background: var(--u-input) !important; border: 1px solid var(--u-line) !important; border-radius: var(--u-radius) !important;
+  overflow-x: auto !important; overflow-y: hidden !important; scrollbar-width: none !important; box-shadow: none !important;
+}
+body:not(.field-mode) :is(#screen-transform .transform-subtabs, #screen-camera .camera-tabs-bar, #screen-about .about-tab-bar)::-webkit-scrollbar { display: none !important; }
+body:not(.field-mode) :is(#screen-transform .btn-subtab, #screen-camera .camera-tab-btn, #screen-about .about-tab-btn, #screen-profile .profile-mode-btn) {
+  flex: 1 0 auto !important; min-height: 40px !important; height: 40px !important; padding: 0 12px !important;
+  display: inline-flex !important; flex-direction: row !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
+  border-radius: 9px !important; border: 1px solid transparent !important; background: transparent !important; background-image: none !important;
+  color: var(--u-muted) !important; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important; text-transform: none !important;
+  white-space: nowrap !important; box-shadow: none !important; transform: none !important;
+}
+body:not(.field-mode) :is(#screen-transform .btn-subtab, #screen-camera .camera-tab-btn, #screen-about .about-tab-btn, #screen-profile .profile-mode-btn).active {
+  background: var(--u-primary) !important; color: var(--u-primary-ink) !important;
+}
+body:not(.field-mode) #screen-transform .transform-subtabs .btn-help-circle-sm { flex: 0 0 auto !important; margin-left: 4px !important; }
+
+/* ---------- 6. Ô NHẬP ---------- */
+body:not(.field-mode) :is(.screen-view, .modal-overlay) :is(input.app-input, select.app-select, textarea.app-input) {
+  border-radius: 10px !important; border: 1px solid var(--u-line) !important; background-color: var(--u-input) !important;
+  color: var(--u-ink) !important; box-shadow: none !important;
+}
+body:not(.field-mode) :is(.screen-view, .modal-overlay) :is(input.app-input, select.app-select) { min-height: 44px !important; font-size: 15px !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) :is(input.app-input, select.app-select, textarea.app-input):focus { border-color: var(--border-focus, #38bdf8) !important; outline: 2px solid rgba(56, 189, 248, 0.35) !important; outline-offset: 0 !important; }
+
+/* ---------- 7. Màn Tối ưu lộ trình: dùng tên màn hình chung, bỏ tiêu đề lặp trên điện thoại ---------- */
+@media (max-width: 600px) {
+  #routingTopToolbar > :first-child > :not(button) { display: none !important; }
+}
+
+/* ---------- 8. Tinh chỉnh theo màn hình ---------- */
+/* Trắc dọc: hàng nút hẹp → chữ nhỏ hơn một nấc và cắt gọn thay vì chồng lên nhau. */
+body:not(.field-mode) #screen-profile .btn-sm { font-size: 12.5px !important; padding-left: 8px !important; padding-right: 8px !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+/* Chuyển đổi: đầu bản đồ trực quan gọn một hàng trên điện thoại (tên bản đồ đã rõ theo ngữ cảnh). */
+@media (max-width: 600px) {
+  #transformSplitLayout .transform-live-map-header { padding: 6px 8px !important; }
+  #transformSplitLayout .transform-live-map-header > :first-child { display: none !important; }
+  #transformSplitLayout .transform-live-map-header > :last-child { flex-wrap: nowrap !important; overflow-x: auto !important; scrollbar-width: none !important; width: 100% !important; }
+  #transformSplitLayout .transform-live-map-header .btn-sm { flex: 1 0 auto !important; }
+}
+
+/* ---------- 9. Chế độ Thực địa: bảng chức năng & ô truy cập nhanh tương phản cao ---------- */
+body.field-mode :is(.hub-title, #dashboardModernHub .dashboard-bar-title .bar-title-text) { color: #fff !important; }
+body.field-mode .hub-group-title { color: #ffdf00; }
+body.field-mode .hub-search { background: #101010; color: #fff; border-color: #ccc; min-height: 48px; }
+body.field-mode .hub-tile { background: #000; color: #fff; border-color: #aaa; min-height: 60px; }
+body.field-mode .hub-tile-icon { background: #1a1a1a; }
+body.field-mode .hub-tile-sub { color: #ddd; }
+body.field-mode .hub-tile:focus-visible { outline: 3px solid #ffdf00; outline-offset: 2px; }
