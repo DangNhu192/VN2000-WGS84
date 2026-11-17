@@ -13,6 +13,8 @@ Cập nhật 2026-11-11. Tài liệu này là "bản đồ" của ứng dụng: 
 
 Mọi chức năng đều mở được bằng **3 đường**: bảng "Tất cả chức năng" ở Trang chủ, menu ☰, và (với chức năng đã ghim) thanh dưới / ô "Truy cập nhanh". Bảng ở Trang chủ được dựng trực tiếp từ menu ☰ (`app-shell.js`) nên hai nơi không bao giờ lệch nhau.
 
+**Trang chủ tùy chỉnh** (nút "Tùy chỉnh" hoặc Cài đặt → Chung → Trang chủ): người dùng chọn 1, 2 hay nhiều chức năng hiện ra, sắp thứ tự bằng ▲▼; bố cục tự đổi theo số mục — 1 = một khối lớn, 2 = hai khối lớn, 3–4 = lưới ô vừa, từ 5 = lưới ô gọn. Bật/tắt riêng: Chuyển đổi nhanh, Vị trí GPS, Dự án hiện hành. "Tất cả chức năng" mặc định thu gọn thành một nút.
+
 ## 2. Danh mục chức năng (5 nhóm theo trình tự công việc)
 
 ### Nhóm 1 — Chuyển đổi tọa độ
@@ -71,6 +73,6 @@ Mọi chức năng đều mở được bằng **3 đường**: bảng "Tất c�
 | Nút hành động chính (`.btn-convert`) | Cao 48px, bo 12px, một màu phẳng |
 | Tab | Một kiểu "segmented control" cuộn ngang: Chuyển đổi, Camera, Trắc dọc, Thông tin |
 | Ô nhập / ô chọn | Cao 44px, bo 10px, viền nét khi focus |
-| Ô chức năng (Trang chủ) | Biểu tượng 36px + tên + một dòng mô tả; ô ghim "Truy cập nhanh" cùng hình thức |
+| Ô chức năng (Trang chủ) | Biểu tượng 36px + tên + một dòng mô tả; ô "Truy cập nhanh" đổi cỡ theo số mục đã chọn (khối lớn / lưới / ô gọn) |
 
 Chế độ **Thực địa** giữ bộ quy tắc tương phản cao riêng (nền đen, chữ vàng/trắng, vùng chạm 48px) và không bị lớp thống nhất ghi đè.
