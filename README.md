@@ -23,7 +23,7 @@
 
 - **Tác giả:** Đặng Như
 - **Email:** [dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)
-- **Phiên bản:** v2.5.4 Pro (Nâng Cấp Màn Hình Thông Tin 3 Tab: Về App & Cài Đặt PWA Đa Nền Tảng, Cẩm Nang 10 Nghiệp Vụ Thực Địa, Pháp Lý & Toán BTNMT Bursa-Wolf)
+- **Phiên bản:** v2.8.33 Pro (xem `progress.md` cho nhật ký thay đổi)
 
 ---
 

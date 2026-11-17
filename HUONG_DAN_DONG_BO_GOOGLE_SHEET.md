@@ -42,6 +42,7 @@ Tài liệu này hướng dẫn chi tiết cách khởi tạo bảng tính **Goo
    - **Thực thi dưới dạng (*Execute as*):** Chọn **Tôi (*Me*)** (`email_cua_ban@gmail.com`).
    - 🔴 **Người có quyền truy cập (*Who has access*):** Chọn **Bất kỳ ai (*Anyone*)**.  
      *(Lưu ý cực kỳ quan trọng: Phải chọn "Anyone" để ứng dụng PWA từ điện thoại có thể gửi mốc vào Sheet mà không bị chặn lỗi phân quyền!)*
+   - 🔐 **Nên làm thêm — Mã bí mật:** vì chọn "Anyone", ai biết địa chỉ Web App cũng gửi được dữ liệu vào Sheet. Trước khi Triển khai, sửa dòng `var SECRET = "";` ở đầu script thành một mã riêng (vd. `var SECRET = "tram-do-2026";`), rồi nhập đúng mã đó vào ô **Mã bí mật** trong ứng dụng (Cài đặt → Lưu dữ liệu). Để trống thì script không kiểm tra.
 3. Bấm nút **Triển khai** (*Deploy*).
 
 ---

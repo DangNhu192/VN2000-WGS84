@@ -90,6 +90,8 @@
         });
         const list = byId('homeFeatureHubList');
         if (list) list.innerHTML = html;
+        const count = byId('hubCount');
+        if (count) count.textContent = String((html.match(/class="hub-tile"/g) || []).length);
         const search = byId('txtHubSearch');
         if (search) { search.placeholder = en ? 'Find a feature…' : 'Tìm chức năng (cắm mốc, xuất dwg, camera…)'; applyFilter(search.value); }
     }

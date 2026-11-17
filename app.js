@@ -104,6 +104,14 @@ const safeStorage = {
     }
 };
 
+/** Lưu bản vẽ MiniCAD của một dự án vào MỘT khóa (tên không đuôi). Bản sao cũ theo tên có đuôi .csv bị xóa
+ *  sau khi lưu thành công (mọi chỗ đọc đều thử khóa không đuôi trước), để không tốn gấp đôi bộ nhớ. */
+function storeCadShapes(cleanKey, legacyName, json) {
+    const ok = safeStorage.setItem('vn2k_cad_shapes_' + cleanKey, json);
+    if (ok && legacyName && legacyName !== cleanKey) safeStorage.removeItem('vn2k_cad_shapes_' + legacyName);
+    return ok;
+}
+
 // ================= 1b. LƯU CÀI ĐẶT BỀN VỮNG TRÊN THIẾT BỊ =================
 // Ghi nhớ thông số người dùng (KTT, múi, định dạng, bản đồ, GPS, Snap CAD) giữa các lần mở app.
 const appSettings = {
@@ -147,6 +155,9 @@ const appSettings = {
                 AppState.kttVal = norm.ktt;
             }
         }
+        // Bảng cũ ghi nhầm KTT Bình Thuận là 107°45' (đúng: 108°30', TT 973/2001, EPSG:9218).
+        // Không tự đổi — hỏi người dùng một lần (checkKttCorrections) vì số liệu đang làm có thể theo KTT cũ.
+        AppState.kttFixBinhThuan = (AppState.provinceName === 'Bình Thuận' && AppState.kttDeg === 107 && AppState.kttMin === 45);
         if (s.muiVal === 3 || s.muiVal === 6) {
             AppState.muiVal = s.muiVal;
             AppState.scaleFactor = (s.muiVal === 3) ? 0.9999 : 0.9996;
@@ -195,6 +206,28 @@ const appSettings = {
         clearTimeout(this._timer);
         this._timer = null;
         try { localStorage.setItem(this.KEY, JSON.stringify(this.snapshot())); } catch (e) { console.warn('Lưu cài đặt thất bại:', e); }
+    },
+
+    KTT_FIX_KEY: 'vn2k_ktt_fix_binhthuan_v1',
+
+    /** Hỏi một lần người đang dùng KTT cũ sai của Bình Thuận; đồng ý → mở Cài đặt KTT với 108°30' điền sẵn. */
+    checkKttCorrections() {
+        if (!AppState.kttFixBinhThuan) return false;
+        try {
+            if (localStorage.getItem(this.KTT_FIX_KEY)) return false;
+            localStorage.setItem(this.KTT_FIX_KEY, new Date().toISOString());
+        } catch (e) { return false; }
+        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+        const msg = isEn
+            ? "Correction: Binh Thuan's VN-2000 central meridian is 108°30' (Circular 973/2001), not 107°45' as earlier versions of this app used.\n\nPoints you already saved keep their own central meridian and are not changed.\n\nSwitch your current setting to 108°30' now?"
+            : "Đính chính: kinh tuyến trục VN-2000 của Bình Thuận là 108°30' (Thông tư 973/2001), không phải 107°45' như các phiên bản trước của ứng dụng.\n\nCác điểm đã lưu giữ nguyên KTT riêng của chúng, không bị thay đổi.\n\nChuyển cài đặt hiện tại sang 108°30' ngay?";
+        setTimeout(() => {
+            if (typeof confirm === 'function' && confirm(msg) && typeof appModal !== 'undefined') {
+                appModal.openUnifiedSettings('ktt');
+                appModal.setKttFromPreset(108, 30, 'Bình Thuận');
+            }
+        }, 1200);
+        return true;
     },
 
     // Gộp nhiều thay đổi liên tiếp (vd: kéo/zoom bản đồ) thành 1 lần ghi
@@ -317,6 +350,118 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+// Tên/ghi chú do người dùng gõ hoặc lấy từ file nhập (CSV, KML, DXF…) có thể chứa "<img onerror=…>".
+// Đổi < > sang ‹ › ngay khi đọc/ghi dữ liệu để chuỗi đó không bao giờ thành thẻ HTML ở bất kỳ màn hình nào.
+const USER_TEXT_FIELDS = ['name', 'note', 'desc', 'description', 'shapeName', 'blockName', 'shortName', 'layerName', 'stt', 'code', 'text', 'arrowText', 'rectName', 'circleName'];
+/** Giờ chụp gốc trong EXIF của ảnh JPEG (DateTimeOriginal, nếu không có thì DateTime). Không có → null. */
+function readExifCaptureDate(buffer) {
+    const v = new DataView(buffer);
+    if (v.byteLength < 4 || v.getUint16(0) !== 0xFFD8) return null;
+    let off = 2;
+    while (off + 4 <= v.byteLength) {
+        const marker = v.getUint16(off);
+        const size = v.getUint16(off + 2);
+        if (marker === 0xFFE1 && v.getUint32(off + 4) === 0x45786966) { // "Exif"
+            const tiff = off + 10;
+            const le = v.getUint16(tiff) === 0x4949;
+            const u16 = o => v.getUint16(o, le), u32 = o => v.getUint32(o, le);
+            const readTag = (ifd, tag) => {
+                if (ifd + 2 > v.byteLength) return null;
+                const n = u16(ifd);
+                for (let k = 0; k < n; k++) {
+                    const e = ifd + 2 + k * 12;
+                    if (e + 12 > v.byteLength) return null;
+                    if (u16(e) === tag) return { type: u16(e + 2), count: u32(e + 4), value: u32(e + 8) };
+                }
+                return null;
+            };
+            const ascii = (t) => {
+                if (!t || t.type !== 2 || t.count < 19) return null;
+                const p = tiff + t.value;
+                if (p + 19 > v.byteLength) return null;
+                let str = '';
+                for (let k = 0; k < 19; k++) str += String.fromCharCode(v.getUint8(p + k));
+                const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(str);
+                if (!m || m[1] === '0000') return null;
+                return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+            };
+            const ifd0 = tiff + u32(tiff + 4);
+            const exifPtr = readTag(ifd0, 0x8769);
+            const exifIfd = exifPtr ? tiff + exifPtr.value : 0;
+            return (exifIfd && (ascii(readTag(exifIfd, 0x9003)) || ascii(readTag(exifIfd, 0x9004)))) || ascii(readTag(ifd0, 0x0132)) || null;
+        }
+        if ((marker & 0xFF00) !== 0xFF00 || marker === 0xFFDA) break;
+        off += 2 + size;
+    }
+    return null;
+}
+
+/** Gắn mã bí mật (nếu người dùng đã đặt) vào gói gửi Google Apps Script, để script từ chối gói không có mã đúng. */
+function withSheetSecret(payload) {
+    const secret = (typeof AppState !== 'undefined' && AppState.googleScriptSecret) || '';
+    return secret ? Object.assign({}, payload, { secret }) : payload;
+}
+
+/** Tên dự án dùng làm khóa lưu trữ và hiện ở nhiều nơi: bỏ ký tự có thể phá HTML/JS (< > " ' ` \). */
+function cleanProjectName(name) {
+    return String(name || '').replace(/[<>"'`\\]/g, '').trim();
+}
+/** Chuỗi đặt trong '…' của một onclick="…": thoát cho JavaScript rồi cho thuộc tính HTML. */
+function jsArg(v) {
+    return escapeHtml(String(v === undefined || v === null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n'));
+}
+function safeUserText(v) {
+    return typeof v === 'string' ? v.replace(/</g, '‹').replace(/>/g, '›') : v;
+}
+function sanitizeUserFields(obj) {
+    if (obj && typeof obj === 'object') {
+        for (const k of USER_TEXT_FIELDS) {
+            if (typeof obj[k] === 'string' && /[<>]/.test(obj[k])) obj[k] = safeUserText(obj[k]);
+        }
+    }
+    return obj;
+}
+
+// ================= THƯ VIỆN NẠP KHI CẦN =================
+// xlsx (861 KB), jspdf (356 KB), ranh giới 34 tỉnh (692 KB), xã Đồng Tháp (345 KB) không nạp lúc mở app.
+// Service worker đã lưu sẵn các file này nên nạp khi cần vẫn chạy được lúc mất mạng.
+const LAZY_LIBS = {
+    xlsx: { src: 'xlsx.full.min.js', ready: () => typeof XLSX !== 'undefined' },
+    jspdf: { src: 'jspdf.umd.min.js', ready: () => typeof window !== 'undefined' && !!(window.jspdf && window.jspdf.jsPDF) },
+    prov34: { src: 'vietnam_34_tinh.js', ready: () => typeof window !== 'undefined' && !!window.VIETNAM_34_PROVINCES },
+    dongthap: { src: 'dong_thap_communes.js', ready: () => typeof window !== 'undefined' && !!window.DONG_THAP_COMMUNES }
+};
+const _libLoads = {};
+function loadLib(name) {
+    const lib = LAZY_LIBS[name];
+    if (!lib) return Promise.reject(new Error('Không rõ thư viện ' + name));
+    if (lib.ready()) return Promise.resolve();
+    if (!_libLoads[name]) {
+        _libLoads[name] = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = lib.src;
+            s.async = true;
+            s.onload = () => (lib.ready() ? resolve() : reject(new Error('Thư viện rỗng: ' + name)));
+            s.onerror = () => reject(new Error('Không tải được ' + lib.src));
+            document.head.appendChild(s);
+        }).catch(err => { delete _libLoads[name]; throw err; });
+    }
+    return _libLoads[name];
+}
+/**
+ * Dùng ở đầu hàm cần thư viện: chưa có → nạp rồi gọi lại hàm (rerun) và trả về true để hàm hiện tại dừng.
+ * Nạp thất bại (mất mạng, chưa lưu) → không lặp lại trong 10 giây, hàm chạy tiếp nhánh dự phòng sẵn có.
+ */
+function needLib(name, rerun) {
+    const lib = LAZY_LIBS[name];
+    if (!lib || lib.ready()) return false;
+    needLib.failedAt = needLib.failedAt || {};
+    if (needLib.failedAt[name] && Date.now() - needLib.failedAt[name] < 10000) return false;
+    if (typeof showToast === 'function') showToast('⏳ Đang nạp thư viện…');
+    loadLib(name).then(rerun, () => { needLib.failedAt[name] = Date.now(); rerun(); });
+    return true;
 }
 
 // ================= HAPTIC FEEDBACK (CHUẨN UI/UX PRO MAX - PHẢN HỒI RUNG THỰC ĐỊA) =================
@@ -1162,7 +1307,7 @@ const appNav = window.appNav = {
     updateTreeNavState() {
         const chip = document.getElementById('drawerStatusInfo');
         if (chip) {
-            chip.innerHTML = `<span>📁 ${AppState.currentProject}</span> • <span>🌐 ${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')</span>`;
+            chip.innerHTML = `<span>📁 ${escapeHtml(AppState.currentProject)}</span> • <span>🌐 ${escapeHtml(AppState.provinceName)} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}')</span>`;
         }
     },
 
@@ -1327,7 +1472,7 @@ const appNav = window.appNav = {
             AppState.pickerMarker = null;
         }
         if (typeof appCoordPicker !== 'undefined' && appCoordPicker.clearMultiPoints) {
-            appCoordPicker.clearMultiPoints();
+            appCoordPicker.clearMultiPoints(true);
         }
 
         appNav.setActiveMenuItem('drawerItem_map');
@@ -1537,7 +1682,7 @@ const appNav = window.appNav = {
         }
 
         if (AppState.lastGps && AppState.lastGps.lat) {
-            appMap.updateGpsRealtimeMarker(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
+            appMap.updateLiveGps(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
             AppState.leafletMap.setView([AppState.lastGps.lat, AppState.lastGps.lng], 18);
             showToast("✓ Đã định vị theo vị trí GPS thực tế!");
         } else {
@@ -1594,7 +1739,8 @@ const appNav = window.appNav = {
         if (headChip) {
             const shortProv = String(pName).replace(/^(TP\.|Thành phố|Tỉnh)\s*/, '');
             // Thanh tiêu đề điện thoại chỉ còn ~120 px: ưu tiên KTT + múi; tên tỉnh ở chú thích và màn hình Cài đặt.
-            headChip.textContent = `📍 ${dmsStr} · ${AppState.muiVal}°`;
+            // Biểu tượng 📍 vẽ bằng CSS (::before) để màn hẹp bỏ được mà vẫn đủ chỗ cho số KTT + múi.
+            headChip.textContent = `${dmsStr} · ${AppState.muiVal}°`;
             headChip.title = isEn
                 ? `${shortProv}: CM ${dmsStr}, zone ${AppState.muiVal}° — tap to change`
                 : `${shortProv}: KTT ${dmsStr}, múi ${AppState.muiVal}° — chạm để đổi`;
@@ -1674,20 +1820,43 @@ const appDashboard = {
         { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', dock: 'RTK', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
         { id: 'about', name: '9. Thông Tin & Hướng Dẫn Nghiệp Vụ', short: 'Thông Tin & Cẩm Nang', dock: 'Cẩm Nang', icon: 'ℹ️', color: 'slate', tag: 'Quy chuẩn kỹ thuật', sub: 'Cẩm nang 10 nghiệp vụ • Cài PWA • 7 tham số BTNMT', metric: 'v2.8.0 Pro', action: () => appNav.showScreen('about') },
         { id: 'routing', name: '10. Tối Ưu Lộ Trình & Dẫn Đường', short: 'Tối Ưu Lộ Trình', dock: 'Lộ Trình', icon: '🚗', color: 'emerald', tag: 'Xe máy • Ô tô • 16 Chỗ', sub: 'Thuật toán TSP • Giọng nói AI • Google Maps', metric: 'Chỉ Đường AI', action: () => appNav.showScreen('routing') },
-        { id: 'cad_tool', name: 'Tiện Ích: Đo Vẽ Mặt Bằng MiniCAD', short: 'Đo Vẽ MiniCAD', dock: 'MiniCAD', icon: '📐', color: 'cyan', tag: 'Mặt bằng thực địa', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() }
+        { id: 'cad_tool', name: 'Tiện Ích: Đo Vẽ Mặt Bằng MiniCAD', short: 'Đo Vẽ MiniCAD', dock: 'MiniCAD', icon: '📐', color: 'cyan', tag: 'Mặt bằng thực địa', sub: 'Đa giác • Tuyến • Bảng diện tích & DWG', metric: 'CAD TCVN', action: () => appNav.openCadMap() },
+        { id: 'batch', name: 'Chuyển Đổi Hàng Loạt & Nhập File', short: 'Chuyển Đổi Hàng Loạt', dock: 'Hàng Loạt', icon: '📑', color: 'cyan', tag: 'Nhiều điểm', sub: 'Dán bảng • CSV/Excel • Quét ảnh OCR', action: () => appNav.navigateTo('batch_import') },
+        { id: 'rezone', name: 'Đổi KTT / Múi Chiếu VN-2000', short: 'Đổi KTT / Múi', dock: 'Đổi KTT', icon: '🔁', color: 'blue', tag: 'VN-2000 ⇄ VN-2000', sub: 'Giữa các KTT, múi 3°/6°', action: () => appNav.navigateTo('rezone') },
+        { id: 'transform_map', name: 'Bản Đồ Chuyển Đổi & Chấm Điểm', short: 'Chấm Tọa Độ', dock: 'Chấm Điểm', icon: '📍', color: 'emerald', tag: 'Chấm lấy tọa độ', sub: 'Chạm bản đồ để lấy tọa độ VN-2000', action: () => appNav.navigateTo('transform_map') },
+        { id: 'geodesy', name: 'Bài Toán Trắc Địa', short: 'Bài Toán Trắc Địa', dock: 'Bài Toán', icon: '🧮', color: 'yellow', tag: 'Cự ly • Phương vị', sub: 'Thuận/nghịch, diện tích Gauss & chu vi', action: () => appNav.showScreen('geodesy') },
+        { id: 'settings_ktt', name: 'Cài Đặt Kinh Tuyến Trục (KTT)', short: 'Kinh Tuyến Trục', dock: 'KTT', icon: '🌐', color: 'slate', tag: 'Tỉnh / Múi', sub: '34 tỉnh mới, 63 tỉnh cũ, theo GPS', action: () => appNav.navigateTo('settings_ktt') }
+    ],
+
+    // Thành phần khác của Trang chủ (bật/tắt trong "Tùy chỉnh Trang chủ").
+    // all = danh sách "Tất cả chức năng" mở sẵn (tắt → thu gọn thành một nút).
+    HOME_WIDGETS_KEY: 'vn2000_home_widgets',
+    HOME_WIDGET_DEFAULTS: { quick: true, gps: true, project: true, all: false },
+    homeWidgetDefs: [
+        { id: 'quick', vi: 'Chuyển đổi nhanh', en: 'Quick conversion', subVi: 'Thẻ nhập tọa độ ở đầu Trang chủ', subEn: 'Coordinate card at the top of Home' },
+        { id: 'gps', vi: 'Vị trí GPS', en: 'GPS position', subVi: 'Nút bật GPS / tọa độ tại chỗ', subEn: 'GPS button / live coordinates' },
+        { id: 'project', vi: 'Dự án hiện hành', en: 'Current project', subVi: 'Tên dự án, số mốc, KTT, nơi lưu', subEn: 'Project name, points, CM, storage' },
+        { id: 'all', vi: 'Mở sẵn "Tất cả chức năng"', en: 'Expand "All features"', subVi: 'Tắt: thu gọn thành một nút', subEn: 'Off: collapsed into one button' }
     ],
 
     toolFilterQuery: '',
 
     init() {
-        const viewMode = (typeof localStorage !== 'undefined' && localStorage.getItem('vn2000_main_menu_view'))
-            ? localStorage.getItem('vn2000_main_menu_view')
-            : 'big_tiles';
-        appNav.switchMainMenuView(viewMode);
+        // Trang chủ chỉ còn một bố cục (tùy chỉnh số chức năng); bố cục "Cây thư mục" cũ chuyển về đây.
+        appNav.switchMainMenuView('big_tiles');
         appDashboard.renderDashboard();
         if (typeof appNav !== 'undefined' && appNav.renderTaskbarDock) {
             appNav.renderTaskbarDock();
         }
+    },
+
+    /** Lọc danh sách ghim: chỉ id có thật, không trùng, giữ thứ tự người dùng chọn. */
+    normalizePinnedIds(ids) {
+        if (!Array.isArray(ids)) return [];
+        const known = new Set(appDashboard.allFeatures.map(f => f.id));
+        const out = [];
+        ids.forEach(id => { if (known.has(id) && !out.includes(id)) out.push(id); });
+        return out;
     },
 
     getPinnedFeatureIds() {
@@ -1695,8 +1864,8 @@ const appDashboard = {
             if (typeof localStorage !== 'undefined') {
                 const raw = localStorage.getItem('vn2000_pinned_features');
                 if (raw) {
-                    const arr = JSON.parse(raw);
-                    if (Array.isArray(arr) && arr.length === 4) return arr;
+                    const arr = appDashboard.normalizePinnedIds(JSON.parse(raw));
+                    if (arr.length >= 1) return arr;
                 }
             }
         } catch (e) {}
@@ -1704,14 +1873,86 @@ const appDashboard = {
     },
 
     savePinnedFeatureIds(ids) {
-        if (Array.isArray(ids) && ids.length === 4) {
+        const clean = appDashboard.normalizePinnedIds(ids);
+        if (clean.length >= 1) {
             if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('vn2000_pinned_features', JSON.stringify(ids));
+                localStorage.setItem('vn2000_pinned_features', JSON.stringify(clean));
             }
             appDashboard.renderDashboard();
-            triggerHaptic('success');
-            showToast("✓ Đã cập nhật 4 tính năng ghim trên Trang chủ");
         }
+    },
+
+    /** Bố cục theo số ô: 1 → một khối lớn, 2 → hai khối, 3–4 → lưới, từ 5 → ô gọn. */
+    homeLayoutFor(count) {
+        if (count <= 1) return 'hero';
+        if (count === 2) return 'duo';
+        if (count <= 4) return 'grid';
+        return 'compact';
+    },
+
+    homeLayoutLabel(count, isEn) {
+        const layout = appDashboard.homeLayoutFor(count);
+        const vi = { hero: 'một khối lớn', duo: 'hai khối lớn', grid: 'lưới ô vừa', compact: 'lưới ô gọn' };
+        const en = { hero: 'one large tile', duo: 'two large tiles', grid: 'medium grid', compact: 'compact grid' };
+        return isEn ? `${count} feature${count > 1 ? 's' : ''} · ${en[layout]}` : `${count} chức năng · ${vi[layout]}`;
+    },
+
+    getHomeWidgets() {
+        const w = { ...appDashboard.HOME_WIDGET_DEFAULTS };
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const saved = JSON.parse(localStorage.getItem(appDashboard.HOME_WIDGETS_KEY) || '{}');
+                Object.keys(w).forEach(k => { if (typeof saved[k] === 'boolean') w[k] = saved[k]; });
+            }
+        } catch (e) {}
+        return w;
+    },
+
+    saveHomeWidgets(widgets) {
+        const w = { ...appDashboard.HOME_WIDGET_DEFAULTS };
+        Object.keys(w).forEach(k => { if (widgets && typeof widgets[k] === 'boolean') w[k] = widgets[k]; });
+        try {
+            if (typeof localStorage !== 'undefined') localStorage.setItem(appDashboard.HOME_WIDGETS_KEY, JSON.stringify(w));
+        } catch (e) {}
+        appDashboard.applyHomeWidgets(w);
+        return w;
+    },
+
+    /** Ẩn/hiện thành phần Trang chủ bằng thuộc tính data-home-off trên #screen-menu (CSS trong ui-unified.css). */
+    applyHomeWidgets(widgets) {
+        const w = widgets || appDashboard.getHomeWidgets();
+        const screen = document.getElementById('screen-menu');
+        if (screen) screen.setAttribute('data-home-off', Object.keys(w).filter(k => !w[k]).join(' '));
+        const toggle = document.getElementById('btnHubToggle');
+        if (toggle) toggle.setAttribute('aria-expanded', String(!!w.all));
+    },
+
+    /** Nút "Tất cả chức năng" trên Trang chủ: mở/thu gọn và nhớ lựa chọn. */
+    toggleAllFeaturesHub() {
+        triggerHaptic('light');
+        const w = appDashboard.getHomeWidgets();
+        w.all = !w.all;
+        appDashboard.saveHomeWidgets(w);
+        if (w.all) {
+            const search = document.getElementById('txtHubSearch');
+            if (search && typeof search.focus === 'function' && typeof window !== 'undefined' && window.innerWidth >= 900) search.focus();
+        }
+    },
+
+    homeSummaryText() {
+        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+        const count = appDashboard.getPinnedFeatureIds().length;
+        const w = appDashboard.getHomeWidgets();
+        const extras = appDashboard.homeWidgetDefs.filter(d => d.id !== 'all' && w[d.id]).map(d => isEn ? d.en : d.vi);
+        return appDashboard.homeLayoutLabel(count, isEn) + (extras.length ? ' + ' + extras.join(', ') : '');
+    },
+
+    featureTitle(f, isEn, layout) {
+        if (isEn) {
+            const t = appI18n.t('feature.' + f.id);
+            return t && t !== 'feature.' + f.id ? t : appI18n.translateString(f.short);
+        }
+        return layout === 'compact' ? (f.dock || f.short) : f.short;
     },
 
     isAccordionExpanded: false,
@@ -1799,36 +2040,44 @@ const appDashboard = {
         const grid = document.getElementById('bigActionTilesGrid');
         if (!grid) return;
 
-        const pinnedIds = appDashboard.getPinnedFeatureIds();
-        const pinnedFeatures = [];
-
-        appDashboard.allFeatures.forEach(f => {
-            if (pinnedIds.includes(f.id)) {
-                pinnedFeatures.push(f);
-            }
-        });
+        // Giữ đúng thứ tự người dùng sắp xếp trong "Tùy chỉnh Trang chủ".
+        const pinnedFeatures = appDashboard.getPinnedFeatureIds()
+            .map(id => appDashboard.allFeatures.find(f => f.id === id))
+            .filter(Boolean);
 
         const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+        const layout = appDashboard.homeLayoutFor(pinnedFeatures.length);
+        grid.setAttribute('data-count', String(pinnedFeatures.length));
+        grid.setAttribute('data-layout', layout);
+        // Ô gọn trên màn rộng: chia đều các hàng (8 → 4+4, 7 → 4+3) thay vì để sót một ô lẻ.
+        const rows = Math.max(1, Math.ceil(pinnedFeatures.length / 6));
+        if (grid.style && grid.style.setProperty) grid.style.setProperty('--tile-cols', String(Math.ceil(pinnedFeatures.length / rows)));
 
-        // 1. Render 4 Big Action Tiles (Bento Grid Lovable 2026 - De-cluttered)
+        // 1. Ô chức năng: số ô quyết định bố cục (một khối lớn / hai khối / lưới / ô gọn)
         grid.innerHTML = pinnedFeatures.map(f => {
             let metricVal = typeof f.metric === 'function' ? f.metric() : null;
             if (isEn && typeof metricVal === 'string') {
                 metricVal = appI18n.translateString(metricVal);
             }
-            const tileTitle = isEn ? appI18n.t('feature.' + f.id) : f.short;
+            const tileTitle = appDashboard.featureTitle(f, isEn, layout);
+            const sub = isEn ? appI18n.translateString(f.sub) : f.sub;
             return `
-              <div class="big-action-tile tile-${f.color}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="${isEn ? ('Open ' + tileTitle) : ('Mở ' + f.name)}">
-                <div class="big-tile-top">
-                  <div class="big-tile-icon-box icon-box-${f.color}">${f.icon}</div>
+              <button type="button" class="big-action-tile tile-${f.color}" data-feature="${f.id}" onclick="triggerHaptic('light'); appDashboard.launchFeature('${f.id}')" title="${isEn ? ('Open ' + tileTitle) : ('Mở ' + f.short)}">
+                <span class="big-tile-top">
+                  <span class="big-tile-icon-box icon-box-${f.color}" aria-hidden="true">${f.icon}</span>
                   ${metricVal ? `<span class="tile-metric-pill metric-${f.color}">${metricVal}</span>` : ''}
-                </div>
-                <div class="big-tile-bottom">
-                  <div class="big-tile-title">${tileTitle}</div>
-                </div>
-              </div>
+                </span>
+                <span class="big-tile-bottom">
+                  <span class="big-tile-title">${tileTitle}</span>
+                  <span class="big-tile-sub">${escapeHtml(sub || '')}</span>
+                </span>
+              </button>
             `;
         }).join('');
+
+        const badge = document.getElementById('pinnedFeaturesCountBadge');
+        if (badge) badge.textContent = isEn ? `${pinnedFeatures.length} items` : `${pinnedFeatures.length} mục`;
+        appDashboard.applyHomeWidgets();
 
         // 2. Render Accordion Tools
         appDashboard.renderAccordionToolsOnly();
@@ -1848,8 +2097,7 @@ const appDashboard = {
         triggerHaptic('medium');
         const pinned = appDashboard.getPinnedFeatureIds();
         if (!pinned.includes(idToPin)) {
-            // Thay thế vị trí thứ 4 bằng tính năng được chọn
-            pinned[3] = idToPin;
+            pinned.push(idToPin);
             appDashboard.savePinnedFeatureIds(pinned);
             showToast("✓ Đã ghim tính năng lên Trang chủ");
         } else {
@@ -1869,12 +2117,7 @@ const appDashboard = {
         if (btnHome) btnHome.classList.toggle('active', tab === 'home');
         if (btnTaskbar) btnTaskbar.classList.toggle('active', tab === 'taskbar');
 
-        const titleEl = document.getElementById('pinModalMainTitle');
-        if (titleEl) {
-            titleEl.innerHTML = tab === 'home'
-                ? '⭐ 4 Tính Năng Ghim Màn Hình Chính'
-                : '📱 Tùy Chỉnh 3 Nút Taskbar Đáy Di Động';
-        }
+        appDashboard.updatePinModalTitle();
         appDashboard.updatePinPickerUi();
     },
 
@@ -1888,13 +2131,18 @@ const appDashboard = {
         const btnTaskbar = document.getElementById('btnPinTabTaskbar');
         if (btnHome) btnHome.classList.toggle('active', initialTab === 'home');
         if (btnTaskbar) btnTaskbar.classList.toggle('active', initialTab === 'taskbar');
+        appDashboard.updatePinModalTitle();
+        appDashboard.renderPinPicker();
+    },
+
+    updatePinModalTitle() {
+        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
         const titleEl = document.getElementById('pinModalMainTitle');
         if (titleEl) {
-            titleEl.innerHTML = initialTab === 'home'
-                ? '⭐ 4 Tính Năng Ghim Màn Hình Chính'
-                : '📱 Tùy Chỉnh 3 Nút Taskbar Đáy Di Động';
+            titleEl.textContent = appDashboard.currentPinTab === 'home'
+                ? (isEn ? '🏠 Customize Home' : '🏠 Tùy chỉnh Trang chủ')
+                : (isEn ? '📱 Bottom bar buttons' : '📱 3 nút thanh dưới');
         }
-        appDashboard.renderPinPicker();
     },
 
     closePinModal() {
@@ -1905,6 +2153,7 @@ const appDashboard = {
 
     renderPinPicker() {
         appDashboard.tempSelectedPins = [...appDashboard.getPinnedFeatureIds()];
+        appDashboard.tempHomeWidgets = appDashboard.getHomeWidgets();
         if (typeof appNav !== 'undefined' && appNav.getTaskbarPinnedIds) {
             appDashboard.tempSelectedTaskbarPins = [...appNav.getTaskbarPinnedIds()];
         } else {
@@ -1919,20 +2168,34 @@ const appDashboard = {
             appDashboard.toggleTaskbarPinSelection(id);
             return;
         }
+        // Trang chủ: chọn bao nhiêu cũng được (ít nhất 1), thứ tự = thứ tự chọn, chỉnh bằng ▲▼.
         const idx = appDashboard.tempSelectedPins.indexOf(id);
         if (idx !== -1) {
             if (appDashboard.tempSelectedPins.length <= 1) {
-                showToast("⚠️ Cần giữ lại ít nhất 1 tính năng ghim!", true);
+                showToast("⚠️ Cần giữ lại ít nhất 1 chức năng trên Trang chủ!", true);
                 return;
             }
             appDashboard.tempSelectedPins.splice(idx, 1);
         } else {
-            if (appDashboard.tempSelectedPins.length >= 4) {
-                showToast("⚠️ Tối đa 4 tính năng ghim trên màn hình chính! Hãy bỏ chọn bớt 1 mục.", true);
-                return;
-            }
             appDashboard.tempSelectedPins.push(id);
         }
+        appDashboard.updatePinPickerUi();
+    },
+
+    movePinSelection(id, delta) {
+        triggerHaptic('light');
+        const list = appDashboard.tempSelectedPins;
+        const i = list.indexOf(id);
+        const j = i + delta;
+        if (i < 0 || j < 0 || j >= list.length) return;
+        [list[i], list[j]] = [list[j], list[i]];
+        appDashboard.updatePinPickerUi();
+    },
+
+    toggleTempHomeWidget(key) {
+        triggerHaptic('light');
+        if (!appDashboard.tempHomeWidgets) appDashboard.tempHomeWidgets = appDashboard.getHomeWidgets();
+        appDashboard.tempHomeWidgets[key] = !appDashboard.tempHomeWidgets[key];
         appDashboard.updatePinPickerUi();
     },
 
@@ -1964,8 +2227,10 @@ const appDashboard = {
         const counter = document.getElementById('pinPickerCounter');
         const instruction = document.getElementById('pinPickerInstruction');
         const previewContainer = document.getElementById('pinTaskbarPreviewContainer');
+        const homeOptions = document.getElementById('pinHomeOptions');
 
         if (appDashboard.currentPinTab === 'taskbar') {
+            if (homeOptions) homeOptions.style.display = 'none';
             if (counter) counter.innerText = `Đã chọn: ${appDashboard.tempSelectedTaskbarPins.length}/3 mục`;
             if (instruction) instruction.innerText = "Cố định: 🏠 Trang chủ & 📁 Sổ đo. Chọn đúng 3 tính năng linh hoạt ở giữa:";
             
@@ -2014,24 +2279,61 @@ const appDashboard = {
                 `;
             }).join('');
         } else {
-            // Tab 'home' (Màn hình chính 4 Khối lớn)
-            if (counter) counter.innerText = `Đã chọn: ${appDashboard.tempSelectedPins.length}/4 mục`;
-            if (instruction) instruction.innerText = "Chọn đúng 4 tính năng đưa lên 4 Khối lớn 2x2:";
-            if (previewContainer) previewContainer.style.display = 'none';
+            // Tab 'home': chọn 1, 2 hay nhiều chức năng + sắp thứ tự + bật/tắt các thành phần khác.
+            const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+            const sel = appDashboard.tempSelectedPins;
+            const w = appDashboard.tempHomeWidgets || appDashboard.getHomeWidgets();
+            const layout = appDashboard.homeLayoutFor(sel.length);
+            if (counter) counter.innerText = isEn ? `Selected: ${sel.length}` : `Đã chọn: ${sel.length} mục`;
+            if (instruction) instruction.innerText = isEn
+                ? 'Pick 1, 2 or more features — the layout adapts to the count.'
+                : 'Chọn 1, 2 hay nhiều chức năng — bố cục tự đổi theo số mục.';
+            if (previewContainer) {
+                previewContainer.style.display = 'block';
+                previewContainer.innerHTML = `
+                  <div class="home-preview" data-layout="${layout}" aria-hidden="true">
+                    ${sel.map(id => { const f = appDashboard.allFeatures.find(x => x.id === id); return `<span class="home-preview-tile">${f ? f.icon : ''}</span>`; }).join('')}
+                  </div>
+                  <div class="home-preview-label">${appDashboard.homeLayoutLabel(sel.length, isEn)}</div>
+                `;
+            }
+            if (homeOptions) {
+                homeOptions.style.display = 'block';
+                homeOptions.innerHTML = `
+                  <div class="pin-section-title">${isEn ? 'Also on Home' : 'Thành phần khác trên Trang chủ'}</div>
+                  ${appDashboard.homeWidgetDefs.map(d => `
+                    <label class="home-widget-row">
+                      <span class="home-widget-text"><b>${isEn ? d.en : d.vi}</b><small>${isEn ? d.subEn : d.subVi}</small></span>
+                      <input type="checkbox" role="switch" class="home-widget-switch" ${w[d.id] ? 'checked' : ''} onchange="appDashboard.toggleTempHomeWidget('${d.id}')">
+                    </label>`).join('')}
+                `;
+            }
 
             if (!container) return;
-            container.innerHTML = appDashboard.allFeatures.map(f => {
-                const isChecked = appDashboard.tempSelectedPins.includes(f.id);
+            const nameOf = f => appDashboard.featureTitle(f, isEn, 'grid');
+            const row = (f, pos) => {
+                const on = pos >= 0;
                 return `
-                  <div class="pin-picker-item ${isChecked ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <span style="font-size: 20px;">${f.icon}</span>
-                      <div style="font-weight: 600; font-size: 13.5px; color: #f1f5f9;">${f.name}</div>
+                  <div class="pin-picker-item ${on ? 'selected' : ''}" onclick="appDashboard.togglePinSelection('${f.id}')">
+                    <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                      ${on ? `<span class="pin-order-badge">${pos + 1}</span>` : ''}
+                      <span style="font-size: 20px;" aria-hidden="true">${f.icon}</span>
+                      <div class="pin-picker-name">${nameOf(f)}</div>
                     </div>
-                    <input type="checkbox" class="pin-picker-checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
+                    <div class="pin-picker-tools">
+                      ${on ? `<button type="button" class="pin-move-btn" aria-label="${isEn ? 'Move up' : 'Lên trên'}" ${pos === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); appDashboard.movePinSelection('${f.id}', -1)">▲</button>
+                      <button type="button" class="pin-move-btn" aria-label="${isEn ? 'Move down' : 'Xuống dưới'}" ${pos === sel.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); appDashboard.movePinSelection('${f.id}', 1)">▼</button>` : ''}
+                      <input type="checkbox" class="pin-picker-checkbox" aria-label="${nameOf(f)}" ${on ? 'checked' : ''} onclick="event.stopPropagation(); appDashboard.togglePinSelection('${f.id}')">
+                    </div>
                   </div>
                 `;
-            }).join('');
+            };
+            const chosen = sel.map(id => appDashboard.allFeatures.find(f => f.id === id)).filter(Boolean);
+            const others = appDashboard.allFeatures.filter(f => !sel.includes(f.id));
+            container.innerHTML =
+                `<div class="pin-section-title">${isEn ? 'On Home (in order)' : 'Đang hiện trên Trang chủ (theo thứ tự)'}</div>` +
+                chosen.map((f, i) => row(f, i)).join('') +
+                (others.length ? `<div class="pin-section-title">${isEn ? 'Not shown — tap to add' : 'Chưa hiện — chạm để thêm'}</div>` + others.map(f => row(f, -1)).join('') : '');
         }
     },
 
@@ -2181,8 +2483,8 @@ const appDashboard = {
     },
 
     savePinSelection() {
-        if (appDashboard.tempSelectedPins && appDashboard.tempSelectedPins.length !== 4) {
-            showToast("⚠️ Vui lòng chọn đủ 4 tính năng cho Trang chủ trước khi lưu!", true);
+        if (!appDashboard.tempSelectedPins || appDashboard.tempSelectedPins.length < 1) {
+            showToast("⚠️ Chọn ít nhất 1 chức năng cho Trang chủ trước khi lưu!", true);
             if (appDashboard.currentPinTab !== 'home') appDashboard.switchPinModalTab('home');
             return;
         }
@@ -2192,10 +2494,9 @@ const appDashboard = {
             return;
         }
 
-        // 1. Lưu 4 tính năng ghim Trang chủ
-        if (appDashboard.tempSelectedPins && appDashboard.tempSelectedPins.length === 4) {
-            appDashboard.savePinnedFeatureIds(appDashboard.tempSelectedPins);
-        }
+        // 1. Trang chủ: chức năng (theo thứ tự) + thành phần khác
+        appDashboard.saveHomeWidgets(appDashboard.tempHomeWidgets || appDashboard.getHomeWidgets());
+        appDashboard.savePinnedFeatureIds(appDashboard.tempSelectedPins);
 
         // 2. Lưu 3 tính năng linh hoạt Taskbar di động
         if (appDashboard.tempSelectedTaskbarPins && appDashboard.tempSelectedTaskbarPins.length === 3) {
@@ -2204,9 +2505,10 @@ const appDashboard = {
             }
         }
 
+        if (typeof appModal !== 'undefined' && appModal.updateViewModeSettingsUI) appModal.updateViewModeSettingsUI();
         appDashboard.closePinModal();
         triggerHaptic('success');
-        showToast("✓ Đã lưu cài đặt ghim Trang chủ và Taskbar");
+        showToast("✓ Đã lưu Trang chủ và thanh dưới");
     }
 };
 
@@ -2423,7 +2725,7 @@ const appCoordPicker = {
         showToast("✓ Đã xóa điểm chọn trên bản đồ");
     },
 
-    clearMultiPoints() {
+    clearMultiPoints(silent = false) {
         if (this.multiMarkersGroup) {
             this.multiMarkersGroup.clearLayers();
         }
@@ -2433,7 +2735,8 @@ const appCoordPicker = {
         }
         this.multiPoints = [];
         this.updateMultiCountBadge();
-        showToast("✓ Đã xóa danh sách điểm đã chấm");
+        // Chỉ báo khi người dùng bấm Xóa; mở màn hình (dọn tự động) thì im lặng.
+        if (!silent) showToast("✓ Đã xóa danh sách điểm đã chấm");
     },
 
     applySinglePoint() {
@@ -2514,7 +2817,7 @@ const appCoordPicker = {
                 <td>${p.y}</td>
                 <td style="font-size: 11px; color: #94a3b8;">${p.lat.toFixed(6)}°, ${p.lng.toFixed(6)}°</td>
                 <td style="text-align: center;">
-                    <button type="button" class="btn-sm btn-red" style="height: 22px; padding: 0 6px; font-size: 10px;" onclick="appCoordPicker.removePoint(${idx})">✕</button>
+                    <button type="button" class="btn-sm btn-red" style="height: 22px; padding: 0 6px; font-size: 11px;" onclick="appCoordPicker.removePoint(${idx})">✕</button>
                 </td>
             </tr>
         `).join('');
@@ -3528,9 +3831,9 @@ const appTransform = {
     },
 
     quickCreateProjectForMulti() {
-        const name = prompt("Nhập tên dự án mới (ví dụ: ChuyenDoi_KTT105):");
-        if (!name || !name.trim()) return;
-        let cleanName = name.trim();
+        const name = cleanProjectName(prompt("Nhập tên dự án mới (ví dụ: ChuyenDoi_KTT105):"));
+        if (!name) return;
+        let cleanName = name;
         if (!cleanName.toLowerCase().endsWith('.csv')) cleanName += '.csv';
         if (!AppState.projectsList.includes(cleanName)) {
             AppState.projectsList.push(cleanName);
@@ -4247,8 +4550,8 @@ const appTransform = {
                 <b>Lat:</b> ${lat.toFixed(6)}°<br>
                 <b>Lng:</b> ${lng.toFixed(6)}°${vnInfo}
                 <div style="display: flex; gap: 4px; margin-top: 6px;">
-                    <button style="padding: 2px 6px; font-size: 10.5px; background: #0284c7; color: #fff; border: none; border-radius: 4px; cursor: pointer;" onclick="appTransform.applyLivePickedToSingle()">Đơn điểm</button>
-                    <button style="padding: 2px 6px; font-size: 10.5px; background: #10b981; color: #fff; border: none; border-radius: 4px; cursor: pointer;" onclick="appTransform.addLivePickedToMulti()">Đa điểm</button>
+                    <button style="padding: 2px 6px; font-size: 11px; background: #0284c7; color: #fff; border: none; border-radius: 4px; cursor: pointer;" onclick="appTransform.applyLivePickedToSingle()">Đơn điểm</button>
+                    <button style="padding: 2px 6px; font-size: 11px; background: #10b981; color: #fff; border: none; border-radius: 4px; cursor: pointer;" onclick="appTransform.addLivePickedToMulti()">Đa điểm</button>
                 </div>
             </div>
         `).openPopup();
@@ -6681,17 +6984,18 @@ const appMap = {
 
         AppState.leafletMap = map;
 
-        // Tự động nạp ranh giới 34 tỉnh thành nếu file js đã tải
-        if (window.VIETNAM_34_PROVINCES) {
-            appMap.init34ProvincesLayer();
-        }
-
-        // Tự động nạp ranh giới Đồng Tháp
-        if (window.DONG_THAP_COMMUNES) {
-            appMap.initDongThapCommunesLayer();
-        }
-
+        // Ranh giới 34 tỉnh / xã Đồng Tháp nạp sau khi bản đồ mở (không chặn lúc khởi động);
+        // lớp nào người dùng đã bật lần trước thì bật lại khi dữ liệu về.
+        const want34 = AppState.is34ProvVisible, wantDt = AppState.isDtCommunesVisible;
         appSettings.applyToMap(map);
+        loadLib('prov34').then(() => {
+            appMap.init34ProvincesLayer();
+            if (want34 && AppState.layer34Prov && !AppState.is34ProvVisible) appMap.toggle34Provinces();
+        }).catch(() => {});
+        loadLib('dongthap').then(() => {
+            appMap.initDongThapCommunesLayer();
+            if (wantDt && AppState.layerDtCommunes && !AppState.isDtCommunesVisible) appMap.toggleDongThapCommunes();
+        }).catch(() => {});
 
         setTimeout(() => map.invalidateSize(), 250);
     },
@@ -6844,7 +7148,11 @@ const appMap = {
         if (!AppState.layer34Prov && window.VIETNAM_34_PROVINCES) {
             appMap.init34ProvincesLayer();
         }
-        if (!AppState.layer34Prov) return showToast("⚠️ Dữ liệu 34 tỉnh đang được nạp, vui lòng bấm lại sau 1 giây!", true);
+        if (!AppState.layer34Prov) {
+            loadLib('prov34').then(() => { appMap.init34ProvincesLayer(); if (AppState.layer34Prov) appMap.toggle34Provinces(); })
+                .catch(() => showToast("⚠️ Chưa tải được ranh giới 34 tỉnh — kiểm tra kết nối mạng rồi thử lại.", true));
+            return;
+        }
 
         const btn = document.getElementById('btnMap34Prov');
         if (AppState.is34ProvVisible) {
@@ -6901,7 +7209,11 @@ const appMap = {
         if (!AppState.layerDtCommunes && window.DONG_THAP_COMMUNES) {
             appMap.initDongThapCommunesLayer();
         }
-        if (!AppState.layerDtCommunes) return showToast("⚠️ Dữ liệu xã Đồng Tháp đang được nạp, vui lòng bấm lại sau 1 giây!", true);
+        if (!AppState.layerDtCommunes) {
+            loadLib('dongthap').then(() => { appMap.initDongThapCommunesLayer(); if (AppState.layerDtCommunes) appMap.toggleDongThapCommunes(); })
+                .catch(() => showToast("⚠️ Chưa tải được ranh giới xã Đồng Tháp — kiểm tra kết nối mạng rồi thử lại.", true));
+            return;
+        }
 
         const btn = document.getElementById('btnMapDtCommunes');
         if (AppState.isDtCommunesVisible) {
@@ -6952,7 +7264,7 @@ const appMap = {
         const defaultName = `DuAn_${dateStr}_${Math.floor(Math.random()*900+100)}.csv`;
         let name = prompt("Nhập tên dự án mới (.csv):", defaultName);
         if (!name) return;
-        name = name.trim();
+        name = cleanProjectName(name);
         if (!name) return;
         if (!name.toLowerCase().endsWith('.csv')) name += '.csv';
 
@@ -7925,6 +8237,7 @@ const appData = {
         // Khởi tạo cấu hình nơi lưu trữ & Google Sheets
         AppState.storageMode = localStorage.getItem('vn2k_storage_mode') || 'offline';
         AppState.googleScriptUrl = localStorage.getItem('vn2k_google_script_url') || '';
+        AppState.googleScriptSecret = localStorage.getItem('vn2k_google_script_secret') || '';
         AppState.googleSheetViewUrl = localStorage.getItem('vn2k_google_sheet_view_url') || '';
         try {
             AppState.offlineQueue = JSON.parse(localStorage.getItem('vn2k_offline_queue') || '[]');
@@ -8078,13 +8391,20 @@ const appData = {
         list.forEach((p, idx) => {
             if (!p.id) p.id = Date.now() + idx;
             if (!p.project) p.project = proj;
+            sanitizeUserFields(p);
         });
 
         return list;
     },
 
+    /** Ghi danh sách dự án (dùng chung cho mọi nơi tạo/đổi tên dự án). */
+    saveProjectsList() {
+        return safeStorage.setItem('vn2k_projects', JSON.stringify(AppState.projectsList || []));
+    },
+
     savePoints(projectName, points) {
         const key = `vn2k_pts_${projectName}`;
+        if (Array.isArray(points)) points.forEach(sanitizeUserFields);
         return safeStorage.setItem(key, JSON.stringify(points));
     },
 
@@ -8149,7 +8469,7 @@ const appData = {
         const curShort = AppState.currentProject.replace(/\.csv$/i, '');
         const btnSyncCur = document.getElementById('btnSyncCurrentProject') || document.getElementById('btnSyncGoogleSheets');
         if (btnSyncCur) {
-            btnSyncCur.innerHTML = `☁️ ĐỒNG BỘ DỰ ÁN NÀY ("${curShort}" - ${curPts.length} mốc)`;
+            btnSyncCur.innerHTML = `☁️ Đồng bộ dự án này ("${escapeHtml(curShort)}" - ${curPts.length} mốc)`;
         }
 
         const btnSyncAll = document.getElementById('btnSyncAllProjects');
@@ -8158,7 +8478,7 @@ const appData = {
             AppState.projectsList.forEach(p => {
                 totalPts += appData.getPoints(p).length;
             });
-            btnSyncAll.innerHTML = `🌐 ĐỒNG BỘ TẤT CẢ DỰ ÁN (${AppState.projectsList.length} dự án - ${totalPts} mốc)`;
+            btnSyncAll.innerHTML = `🌐 Đồng bộ tất cả dự án (${AppState.projectsList.length} dự án - ${totalPts} mốc)`;
         }
 
         appNav.updateBanner();
@@ -8188,8 +8508,12 @@ const appData = {
         const sheetViewInput = document.getElementById('txtGoogleSheetViewUrl');
         AppState.googleSheetViewUrl = sheetViewInput ? sheetViewInput.value.trim() : '';
 
+        const secretInput = document.getElementById('txtGoogleScriptSecret');
+        AppState.googleScriptSecret = secretInput ? secretInput.value.trim() : (AppState.googleScriptSecret || '');
+
         localStorage.setItem('vn2k_storage_mode', AppState.storageMode);
         localStorage.setItem('vn2k_google_script_url', AppState.googleScriptUrl);
+        localStorage.setItem('vn2k_google_script_secret', AppState.googleScriptSecret);
         localStorage.setItem('vn2k_google_sheet_view_url', AppState.googleSheetViewUrl);
 
         appData.updateSyncUI();
@@ -8276,7 +8600,7 @@ const appData = {
             headers: {
                 'Content-Type': 'text/plain;charset=utf-8'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(withSheetSecret(payload))
         }).then(() => {
             showToast(`✓ Đã đồng bộ ${pts.length} mốc của dự án "${proj}" lên tab "Sổ Đo Tọa Độ"!`, true);
         }).catch(err => {
@@ -8362,7 +8686,7 @@ const appData = {
             headers: {
                 'Content-Type': 'text/plain;charset=utf-8'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(withSheetSecret(payload))
         }).then(() => {
             showToast(`✓ Đã đồng bộ thành công ${allPoints.length} mốc từ ${AppState.projectsList.length} dự án lên tab "Sổ Đo Tọa Độ"!`, true);
         }).catch(err => {
@@ -8406,7 +8730,7 @@ const appData = {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(withSheetSecret(payload))
         }).then(() => {
             console.log(`[Google Sync] Đã gửi mốc "${point.name}" của dự án "${proj}" lên Google Sheets`);
         }).catch(err => {
@@ -8440,7 +8764,7 @@ const appData = {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(withSheetSecret(payload))
         }).then(() => {
             AppState.offlineQueue = [];
             localStorage.removeItem('vn2k_offline_queue');
@@ -8501,7 +8825,7 @@ const appData = {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(testPayload)
+            body: JSON.stringify(withSheetSecret(testPayload))
         }).then(() => {
             showToast("✅ Kết nối Google Apps Script thành công! (Dòng thử nghiệm 14 cột đã được ghi vào Sheet)", true);
         }).catch(err => {
@@ -8529,6 +8853,9 @@ const appData = {
  *    - Tự động gom các tab cũ phân tán về đúng 2 Tab tập trung, dọn sạch tab rác.
  */
 
+// Mã bí mật: đặt giống ô "Mã bí mật" trong ứng dụng (Cài đặt → Lưu dữ liệu). Để trống = không kiểm tra.
+var SECRET = "";
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(15000)) {
@@ -8541,6 +8868,9 @@ function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var data = JSON.parse(e.postData.contents);
+    if (SECRET && data.secret !== SECRET) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Sai mã bí mật" })).setMimeType(ContentService.MimeType.JSON);
+    }
     var defaultProject = (data.project || "So_Do_Mac_Dinh").replace(/[:\\/?*\[\]]/g, "_").replace(/\.csv$/i, "");
 
     var pointSheetName = "Sổ Đo Tọa Độ";
@@ -9125,10 +9455,7 @@ function doGet(e) {
         if (item.cadShapes && item.cadShapes.length > 0 && typeof appCadTool !== 'undefined') {
             const cleanKey = appCadTool.getProjectStorageKey(restoreName);
             const data = { savedShapes: item.cadShapes, mode: 'polygon', updated: Date.now() };
-            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(data));
-            if (restoreName !== cleanKey) {
-                localStorage.setItem('vn2k_cad_shapes_' + restoreName, JSON.stringify(data));
-            }
+            storeCadShapes(cleanKey, restoreName, JSON.stringify(data));
         }
 
         // Xóa khỏi thùng rác
@@ -9243,11 +9570,11 @@ function doGet(e) {
                                 <span>📁</span>
                                 <span>${item.name}</span>
                             </div>
-                            <div style="font-size: 10.5px; color: #94a3b8; margin-top: 2px;">
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
                                 Đã xóa lúc: ${delDateStr} • Chứa: <b style="color: #38bdf8;">${ptsCount}</b> mốc, <b style="color: #4ade80;">${shapesCount}</b> khối CAD
                             </div>
                         </div>
-                        <span style="font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(239, 68, 68, 0.2); color: #fca5a5; font-weight: 700; white-space: nowrap;">
+                        <span style="font-size: 11px; padding: 2px 7px; border-radius: 4px; background: rgba(239, 68, 68, 0.2); color: #fca5a5; font-weight: 700; white-space: nowrap;">
                             ⏳ Còn ${daysLeft} ngày
                         </span>
                     </div>
@@ -9304,7 +9631,7 @@ function doGet(e) {
     },
 
     createNewProject() {
-        let name = prompt("Nhập tên file dự án mới (.csv):", `DuAn_${Date.now().toString().slice(-4)}.csv`);
+        let name = cleanProjectName(prompt("Nhập tên file dự án mới (.csv):", `DuAn_${Date.now().toString().slice(-4)}.csv`));
         if (!name) return;
         if (!name.toLowerCase().endsWith('.csv')) name += '.csv';
 
@@ -9323,7 +9650,7 @@ function doGet(e) {
 
     renameCurrentProject() {
         const cur = AppState.currentProject;
-        let newName = prompt("Nhập tên mới cho file dự án:", cur);
+        let newName = cleanProjectName(prompt("Nhập tên mới cho file dự án:", cur));
         if (!newName || newName === cur) return;
         if (!newName.toLowerCase().endsWith('.csv')) newName += '.csv';
 
@@ -9662,276 +9989,15 @@ function doGet(e) {
     // ================= 10.9.1 QUẢN LÝ CỬA SỔ XUẤT DỮ LIỆU HỢP NHẤT & PREVIEW TRỰC QUAN (LOVABLE PRO 2026) =================
     selectedExportFormat: 'dwg',
 
-    // Đọc toàn bộ tùy chọn từ Studio Xuất Dữ Liệu
-    getExportOptions() {
-        const scaleEl = document.getElementById('selExportMapScale');
-        const scaleVal = scaleEl ? scaleEl.value : '1000';
 
-        const paperEl = document.getElementById('selExportPaperSize');
-        const paperSize = paperEl ? paperEl.value : 'A4-L';
 
-        const isChecked = (id) => {
-            const el = document.getElementById(id);
-            return el ? el.checked : true;
-        };
 
-        const layers = {
-            points: isChecked('chkExportPoints'),
-            names: isChecked('chkExportNames'),
-            coords: isChecked('chkExportCoords'),
-            lines: isChecked('chkExportLines'),
-            lengths: isChecked('chkExportLengths'),
-            grid: isChecked('chkExportGrid'),
-            frame: isChecked('chkExportFrame'),
-            north: isChecked('chkExportNorth')
-        };
-
-        const getVal = (id, def) => {
-            const el = document.getElementById(id);
-            return (el && el.value.trim()) ? el.value.trim() : def;
-        };
-
-        const defProjName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "SoDoMoc";
-        const now = new Date();
-        const defDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-        const meta = {
-            projectName: getVal('txtExportProjectName', defProjName),
-            surveyor: getVal('txtExportSurveyor', 'KY SU TRAC DIA'),
-            drawingDate: getVal('txtExportDate', defDate),
-            organization: getVal('txtExportOrg', 'TRUNG TAM DO DAC BAN DO')
-        };
-
-        return { scaleVal, paperSize, layers, meta };
-    },
-
-    // Bật/tắt nhanh toàn bộ các lớp dữ liệu
-    toggleAllExportLayers() {
-        const layerIds = [
-            'chkExportPoints', 'chkExportNames', 'chkExportCoords',
-            'chkExportLines', 'chkExportLengths', 'chkExportGrid',
-            'chkExportFrame', 'chkExportNorth'
-        ];
-        const anyUnchecked = layerIds.some(id => {
-            const el = document.getElementById(id);
-            return el && !el.checked;
-        });
-        layerIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.checked = anyUnchecked;
-        });
-        this.onExportSettingChange();
-    },
-
-    // Bắt sự kiện khi người dùng đổi tỷ lệ, lớp hoặc thông tin
-    onExportSettingChange() {
-        const scaleEl = document.getElementById('selExportMapScale');
-        const scaleVal = scaleEl ? scaleEl.value : '1000';
-        const scaleTag = document.getElementById('exportPreviewScaleTag');
-        if (scaleTag) {
-            scaleTag.textContent = scaleVal === 'fit' ? 'Tự động vừa khung' : `Tỷ lệ 1:${scaleVal}`;
-        }
-        this.renderExportPreview();
-        this.selectExportFormat(this.selectedExportFormat || 'dwg');
-    },
-
-    // Vẽ trực tiếp sơ đồ xem trước tương tác trên khung SVG (Live Preview)
-    renderExportPreview() {
-        const svg = document.getElementById('exportPreviewSvg');
-        if (!svg) return;
-
-        const pts = appData.getPoints(AppState.currentProject);
-        if (!pts || pts.length === 0) {
-            svg.innerHTML = `
-                <rect width="100%" height="100%" fill="#070b14"/>
-                <text x="300" y="180" fill="#94a3b8" font-size="14" text-anchor="middle" font-family="sans-serif">
-                    ⚠️ Dự án chưa có mốc nào để xem trước bản đồ
-                </text>
-            `;
-            return;
-        }
-
-        const opts = this.getExportOptions();
-        const layers = opts.layers;
-
-        // Tính Bounding Box theo hệ tọa độ phẳng CAD (X = Easting, Y = Northing)
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        pts.forEach(p => {
-            const x = parseFloat(p.y) || 0;
-            const y = parseFloat(p.x) || 0;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-        });
-
-        const spanX = Math.max(maxX - minX, 10);
-        const spanY = Math.max(maxY - minY, 10);
-        const centerX = (minX + maxX) / 2.0;
-        const centerY = (minY + maxY) / 2.0;
-
-        // Tính chu vi và diện tích
-        let perim = 0;
-        if (pts.length >= 2) {
-            for (let i = 0; i < pts.length; i++) {
-                const j = (i + 1) % pts.length;
-                const dx = (parseFloat(pts[j].y) || 0) - (parseFloat(pts[i].y) || 0);
-                const dy = (parseFloat(pts[j].x) || 0) - (parseFloat(pts[i].x) || 0);
-                perim += Math.hypot(dx, dy);
-            }
-        }
-        let area = 0;
-        if (pts.length >= 3) {
-            for (let i = 0; i < pts.length; i++) {
-                const j = (i + 1) % pts.length;
-                const xi = parseFloat(pts[i].y) || 0;
-                const yi = parseFloat(pts[i].x) || 0;
-                const xj = parseFloat(pts[j].y) || 0;
-                const yj = parseFloat(pts[j].x) || 0;
-                area += (xi * yj - xj * yi);
-            }
-            area = Math.abs(area) / 2.0;
-        }
-
-        // Cập nhật số liệu thống kê lên HUD
-        const spanEl = document.getElementById('statExportSpan');
-        if (spanEl) spanEl.textContent = `${spanX.toFixed(1)}m × ${spanY.toFixed(1)}m`;
-        const perimEl = document.getElementById('statExportPerim');
-        if (perimEl) perimEl.textContent = pts.length >= 2 ? `${perim.toFixed(2)}m` : '--';
-        const areaEl = document.getElementById('statExportArea');
-        if (areaEl) areaEl.textContent = pts.length >= 3 ? `${area.toFixed(1)}m²` : '--';
-
-        // Tỷ lệ co giãn bản đồ lọt vào khung SVG 600x360
-        const pad = 45;
-        const availW = 600 - pad * 2;
-        const availH = 360 - pad * 2;
-        const svgScale = Math.min(availW / spanX, availH / spanY) * 0.88;
-
-        const toSvg = (cadX, cadY) => {
-            const sx = 300 + (cadX - centerX) * svgScale;
-            const sy = 180 - (cadY - centerY) * svgScale;
-            return { x: sx, y: sy };
-        };
-
-        let svgHtml = '';
-        // Nền đen kỹ thuật trắc địa
-        svgHtml += `<rect width="600" height="360" fill="#070b14"/>`;
-
-        // Khung bản vẽ mô phỏng (nếu bật layer frame)
-        if (layers.frame) {
-            svgHtml += `<rect x="15" y="15" width="570" height="330" fill="none" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5"/>`;
-            svgHtml += `<rect x="20" y="20" width="560" height="320" fill="none" stroke="rgba(56, 189, 248, 0.2)" stroke-width="0.75"/>`;
-        }
-
-        // Lưới tọa độ Km chữ thập (+) (nếu bật layer grid)
-        if (layers.grid) {
-            const rawScale = opts.scaleVal === 'fit' ? 1000 : (parseInt(opts.scaleVal) || 1000);
-            const gridStep = rawScale <= 500 ? 50 : (rawScale <= 1000 ? 100 : (rawScale <= 2000 ? 200 : 500));
-            const startGx = Math.floor((minX - spanX * 0.2) / gridStep) * gridStep;
-            const endGx = Math.ceil((maxX + spanX * 0.2) / gridStep) * gridStep;
-            const startGy = Math.floor((minY - spanY * 0.2) / gridStep) * gridStep;
-            const endGy = Math.ceil((maxY + spanY * 0.2) / gridStep) * gridStep;
-
-            for (let gx = startGx; gx <= endGx; gx += gridStep) {
-                for (let gy = startGy; gy <= endGy; gy += gridStep) {
-                    const pt = toSvg(gx, gy);
-                    if (pt.x >= 25 && pt.x <= 575 && pt.y >= 25 && pt.y <= 335) {
-                        svgHtml += `<path d="M ${pt.x - 5} ${pt.y} L ${pt.x + 5} ${pt.y} M ${pt.x} ${pt.y - 5} L ${pt.x} ${pt.y + 5}" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1"/>`;
-                    }
-                }
-            }
-        }
-
-        // Đường ranh thửa đất (nếu bật layer lines và >= 2 điểm)
-        if (layers.lines && pts.length >= 2) {
-            let polyPts = '';
-            pts.forEach(p => {
-                const pt = toSvg(parseFloat(p.y) || 0, parseFloat(p.x) || 0);
-                polyPts += `${pt.x.toFixed(1)},${pt.y.toFixed(1)} `;
-            });
-            if (pts.length >= 3) {
-                svgHtml += `<polygon points="${polyPts}" fill="rgba(14, 165, 233, 0.14)" stroke="#38bdf8" stroke-width="2" stroke-linejoin="round"/>`;
-            } else {
-                svgHtml += `<polyline points="${polyPts}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>`;
-            }
-        }
-
-        // Kích thước chiều dài cạnh (nếu bật layer lengths)
-        if (layers.lengths && pts.length >= 2) {
-            for (let i = 0; i < pts.length; i++) {
-                const j = (i + 1) % pts.length;
-                const p1 = toSvg(parseFloat(pts[i].y) || 0, parseFloat(pts[i].x) || 0);
-                const p2 = toSvg(parseFloat(pts[j].y) || 0, parseFloat(pts[j].x) || 0);
-                const dist = Math.hypot((parseFloat(pts[j].y) || 0) - (parseFloat(pts[i].y) || 0), (parseFloat(pts[j].x) || 0) - (parseFloat(pts[i].x) || 0));
-                if (dist > 0.05) {
-                    const midX = (p1.x + p2.x) / 2.0;
-                    const midY = (p1.y + p2.y) / 2.0;
-                    svgHtml += `<rect x="${midX - 18}" y="${midY - 7}" width="36" height="13" rx="3" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="0.5"/>`;
-                    svgHtml += `<text x="${midX}" y="${midY + 3}" fill="#38bdf8" font-size="9" font-weight="700" text-anchor="middle" font-family="monospace">${dist.toFixed(1)}m</text>`;
-                }
-            }
-        }
-
-        // Điểm mốc, tâm mốc và nhãn (nếu bật layer points / names / coords)
-        pts.forEach((p, idx) => {
-            const easting = parseFloat(p.y) || 0;
-            const northing = parseFloat(p.x) || 0;
-            const pt = toSvg(easting, northing);
-            const name = p.name || `M${idx + 1}`;
-
-            // Ký hiệu tâm mốc
-            if (layers.points) {
-                svgHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="8" fill="rgba(239, 68, 68, 0.25)"/>`;
-                svgHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="4" fill="#ef4444" stroke="#ffffff" stroke-width="1.2"/>`;
-                svgHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="1.2" fill="#ffffff"/>`;
-            }
-
-            // Tên mốc
-            if (layers.names) {
-                svgHtml += `<text x="${pt.x + 8}" y="${pt.y - 4}" fill="#facc15" font-size="11" font-weight="800" font-family="sans-serif">${name}</text>`;
-            }
-
-            // Tọa độ X, Y
-            if (layers.coords) {
-                svgHtml += `<text x="${pt.x + 8}" y="${pt.y + 8}" fill="#94a3b8" font-size="8.5" font-family="monospace">X:${northing.toFixed(1)} Y:${easting.toFixed(1)}</text>`;
-            }
-        });
-
-        // Kim chỉ hướng Bắc (nếu bật layer north)
-        if (layers.north) {
-            svgHtml += `
-                <g transform="translate(560, 48)">
-                    <circle cx="0" cy="0" r="14" fill="rgba(15, 23, 42, 0.75)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1"/>
-                    <path d="M 0 -12 L 4 0 L -4 0 Z" fill="#ef4444"/>
-                    <path d="M 0 12 L 4 0 L -4 0 Z" fill="#94a3b8"/>
-                    <text x="0" y="-14" fill="#ef4444" font-size="9" font-weight="800" text-anchor="middle" font-family="sans-serif">B</text>
-                </g>
-            `;
-        }
-
-        // Thước tỷ lệ xích đồ họa ở góc dưới
-        const rawScale = opts.scaleVal === 'fit' ? 1000 : (parseInt(opts.scaleVal) || 1000);
-        const barDistM = rawScale <= 500 ? 10 : (rawScale <= 1000 ? 20 : (rawScale <= 2000 ? 50 : 100));
-        const barPixelW = Math.max(barDistM * svgScale, 40);
-        svgHtml += `
-            <g transform="translate(30, 332)">
-                <rect x="-4" y="-14" width="${barPixelW + 16}" height="20" rx="4" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(255, 255, 255, 0.1)" stroke-width="0.5"/>
-                <rect x="0" y="-4" width="${barPixelW / 2}" height="4" fill="#f8fafc"/>
-                <rect x="${barPixelW / 2}" y="-4" width="${barPixelW / 2}" height="4" fill="#38bdf8"/>
-                <text x="0" y="-7" fill="#cbd5e1" font-size="8.5" font-family="sans-serif">0</text>
-                <text x="${barPixelW / 2}" y="-7" fill="#cbd5e1" font-size="8.5" text-anchor="middle" font-family="sans-serif">${(barDistM / 2).toFixed(0)}</text>
-                <text x="${barPixelW}" y="-7" fill="#cbd5e1" font-size="8.5" text-anchor="middle" font-family="sans-serif">${barDistM}m</text>
-                <text x="${barPixelW + 6}" y="-1" fill="#facc15" font-size="8" font-weight="700" font-family="sans-serif">1:${rawScale}</text>
-            </g>
-        `;
-
-        svg.innerHTML = svgHtml;
-    },
 
 
 
     // Xuất file CSV chuẩn UTF-8 BOM hiển thị tiếng Việt sắc nét trên Excel
     exportExcelFile() {
+        if (needLib('xlsx', () => this.exportExcelFile())) return;
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
             showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file Excel! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
@@ -10111,7 +10177,7 @@ function doGet(e) {
         }
     },
 
-    // ================= STUDIO XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA (CHỌN ĐỊNH DẠNG -> XUẤT) =================
+    // ================= STUDIO Xuất dữ liệu BẢN ĐỒ & TRẮC ĐỊA (CHỌN ĐỊNH DẠNG -> XUẤT) =================
     openExportModal(context = 'survey') {
         this.exportContext = context || 'survey';
         const modal = document.getElementById('modalExportData');
@@ -10131,7 +10197,7 @@ function doGet(e) {
             cleanProj = "MiniCAD_MatBang";
             if (titleEl) titleEl.innerText = "XUẤT DỮ LIỆU BẢN VẼ MINICAD";
         } else {
-            if (titleEl) titleEl.innerText = "XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG";
+            if (titleEl) titleEl.innerText = "Xuất dữ liệu";
         }
 
         const pts = this.getExportPoints();
@@ -10570,7 +10636,7 @@ function doGet(e) {
             }
             if (layers.names) {
                 const name = p.name || `M${idx + 1}`;
-                svgHtml += `<text x="${(s.x + 8).toFixed(1)}" y="${(s.y - 4).toFixed(1)}" fill="#facc15" font-size="10.5" font-weight="800" font-family="sans-serif">${name}</text>`;
+                svgHtml += `<text x="${(s.x + 8).toFixed(1)}" y="${(s.y - 4).toFixed(1)}" fill="#facc15" font-size="10.5" font-weight="800" font-family="sans-serif">${escapeHtml(name)}</text>`;
             }
             if (layers.coords) {
                 svgHtml += `<text x="${(s.x + 8).toFixed(1)}" y="${(s.y + 8).toFixed(1)}" fill="#94a3b8" font-size="8" font-family="monospace">X:${parseFloat(p.x||0).toFixed(1)} Y:${parseFloat(p.y||0).toFixed(1)}</text>`;
@@ -10594,9 +10660,9 @@ function doGet(e) {
             svgHtml += `
                 <g transform="translate(25, 290)">
                     <rect width="180" height="42" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(56, 189, 248, 0.4)" rx="4"/>
-                    <text x="8" y="15" fill="#f8fafc" font-size="9.5" font-weight="700" font-family="sans-serif">${rawProj.toUpperCase()}</text>
+                    <text x="8" y="15" fill="#f8fafc" font-size="9.5" font-weight="700" font-family="sans-serif">${escapeHtml(rawProj.toUpperCase())}</text>
                     <text x="8" y="27" fill="#94a3b8" font-size="8" font-family="sans-serif">Tỷ lệ: 1:${scaleVal} | Múi 3°</text>
-                    <text x="8" y="37" fill="#cbd5e1" font-size="7.5" font-family="sans-serif">Kỹ sư: ${opts.meta.surveyor}</text>
+                    <text x="8" y="37" fill="#cbd5e1" font-size="7.5" font-family="sans-serif">Kỹ sư: ${escapeHtml(opts.meta.surveyor || "")}</text>
                 </g>
             `;
         }
@@ -10655,7 +10721,7 @@ function doGet(e) {
         }
     },
 
-    // ================= 10.9.2 CÁC BỘ XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG BẢN ĐỒ & TRẮC ĐỊA =================
+    // ================= 10.9.2 CÁC BỘ Xuất dữ liệu BẢN ĐỒ & TRẮC ĐỊA =================
 
     // 1. Xuất Báo Cáo Kỹ Thuật PDF (.pdf) khổ A4/A3 chuẩn TCVN có sơ đồ mốc
     exportPdfFile() {
@@ -11924,6 +11990,7 @@ function doGet(e) {
         if (!file) return;
 
         const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+        if (isExcel && needLib('xlsx', () => this.handleFileImport(event))) return;
         if (isExcel && typeof XLSX !== 'undefined') {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -12246,7 +12313,7 @@ function doGet(e) {
 
         if (targetMode === 'new') {
             const inputName = document.getElementById('txtImportNewProjectName')?.value?.trim();
-            targetProj = inputName || defaultName || `DuAn_${Date.now().toString().slice(-4)}.csv`;
+            targetProj = cleanProjectName(inputName || defaultName) || `DuAn_${Date.now().toString().slice(-4)}.csv`;
             if (!targetProj.toLowerCase().endsWith('.csv')) targetProj += '.csv';
 
             if (!AppState.projectsList.includes(targetProj)) {
@@ -12816,6 +12883,8 @@ const appModal = {
         appData.selectStorageMode(AppState.storageMode || 'offline');
         const scriptUrlInput = document.getElementById('txtGoogleScriptUrl');
         if (scriptUrlInput) scriptUrlInput.value = AppState.googleScriptUrl || '';
+        const secretInput = document.getElementById('txtGoogleScriptSecret');
+        if (secretInput) secretInput.value = AppState.googleScriptSecret || '';
 
         const sheetViewInput = document.getElementById('txtGoogleSheetViewUrl');
         if (sheetViewInput) sheetViewInput.value = AppState.googleSheetViewUrl || '';
@@ -13027,11 +13096,8 @@ const appModal = {
     },
 
     updateViewModeSettingsUI() {
-        const btnBig = document.getElementById('btnSettingViewBigTiles');
-        const btnTree = document.getElementById('btnSettingViewTree');
-        const isBig = (AppState.mainMenuViewMode === 'big_tiles');
-        if (btnBig) btnBig.classList.toggle('active', isBig);
-        if (btnTree) btnTree.classList.toggle('active', !isBig);
+        const summary = document.getElementById('txtHomeLayoutSummary');
+        if (summary && typeof appDashboard !== 'undefined') summary.textContent = appDashboard.homeSummaryText();
     },
 
     toggleMinimizeSettings() {
@@ -14130,9 +14196,6 @@ const appCamera = {
     // Trích xuất dữ liệu thẻ đóng dấu
     // Tab "Đóng dấu" (ảnh chọn từ máy): ảnh không chụp tại chỗ nên sai số GPS hiện thời của thiết bị không liên quan
     // tới ảnh; dùng mức sai số danh định ngẫu nhiên ±2–4 m, tạo một lần cho mỗi ảnh. Tab "Chụp ảnh"/video giữ sai số thật.
-    nominalStampAccuracy(rand = Math.random) {
-        return `±${(2 + rand() * 2).toFixed(1)}m`;
-    },
 
     getWatermarkData(opts = {}) {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án";
@@ -14157,9 +14220,13 @@ const appCamera = {
         }
 
         const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
-        const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-        const gpsAcc = opts.accuracyText
-            || ((AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m');
+        const fmt = (d) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+        const dateStr = fmt(now);
+        // Ảnh chọn từ máy (tab "Đóng dấu"): không có số đo GPS lúc chụp → ghi rõ "đóng dấu sau", giờ chụp lấy từ EXIF nếu có.
+        const postStamp = !!opts.postStamp;
+        const captureStr = (opts.captureDate instanceof Date && !isNaN(opts.captureDate)) ? fmt(opts.captureDate) : 'không rõ';
+        const gpsAcc = postStamp ? 'không đo'
+            : (opts.accuracyText || ((AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m'));
         const compassAz = Math.round(appStakeout.compassHeading || 0);
 
         const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
@@ -14170,7 +14237,9 @@ const appCamera = {
             `📍 MỐC: ${markName} | DỰ ÁN: ${projName}`,
             `• VN-2000: X = ${xStr} m | Y = ${yStr} m (KTT ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}' Múi ${AppState.muiVal || 3}°)`,
             `• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`,
-            `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
+            postStamp
+                ? `• ĐÓNG DẤU SAU (ảnh chọn từ máy): Chụp lúc ${captureStr} | Đóng dấu ${dateStr} | Sai số: ${gpsAcc}`
+                : `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
         ];
         if (address) lines.push(`• ĐỊA CHỈ: ${address}`);
 
@@ -14185,6 +14254,8 @@ const appCamera = {
             gpsAcc,
             compassAz,
             address,
+            postStamp,
+            captureStr,
             lines
         };
     },
@@ -14245,7 +14316,7 @@ const appCamera = {
         // Tiêu đề
         ctx.font = `bold ${fontSizeHeader}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         ctx.fillStyle = "#38bdf8";
-        ctx.fillText("HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG", cardX + padding, cardY + padding + fontSizeHeader * 0.85);
+        ctx.fillText(data.postStamp ? "HỆ VN-2000 | ẢNH ĐÓNG DẤU SAU" : "HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG", cardX + padding, cardY + padding + fontSizeHeader * 0.85);
 
         // Vạch phân cách mạ vàng
         ctx.strokeStyle = "rgba(251, 191, 36, 0.65)";
@@ -14568,7 +14639,7 @@ const appCamera = {
             const btnRec = document.getElementById('btnCameraRecordVideo');
             if (badge) badge.style.display = 'flex';
             if (btnRec) {
-                btnRec.innerHTML = '⏹️ DỪNG QUAY VIDEO';
+                btnRec.innerHTML = '⏹️ Dừng quay';
                 btnRec.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
             }
 
@@ -14603,7 +14674,7 @@ const appCamera = {
         const btnRec = document.getElementById('btnCameraRecordVideo');
         if (badge) badge.style.display = 'none';
         if (btnRec) {
-            btnRec.innerHTML = '⏺️ QUAY VIDEO REALTIME';
+            btnRec.innerHTML = '⏺️ Quay video';
             btnRec.style.background = 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)';
         }
     },
@@ -14615,18 +14686,23 @@ const appCamera = {
 
         showToast("⏳ Đang xử lý và đóng dấu góc ảnh...");
         const reader = new FileReader();
+        // Đọc giờ chụp gốc (EXIF DateTimeOriginal) trước, rồi mới vẽ ảnh và đóng dấu.
         reader.onload = (e) => {
+            let captureDate = null;
+            try { captureDate = readExifCaptureDate(e.target.result); } catch (err) { captureDate = null; }
+            const url = URL.createObjectURL(file);
             const img = new Image();
             img.onload = () => {
-                appCamera.renderWatermarkOnCanvas(img);
+                appCamera.renderWatermarkOnCanvas(img, { captureDate });
+                URL.revokeObjectURL(url);
             };
-            img.src = e.target.result;
+            img.src = url;
         };
-        reader.readAsDataURL(file);
+        reader.readAsArrayBuffer(file);
         event.target.value = '';
     },
 
-    renderWatermarkOnCanvas(img) {
+    renderWatermarkOnCanvas(img, info = {}) {
         const canvas = document.getElementById('cameraWatermarkCanvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -14649,8 +14725,8 @@ const appCamera = {
         ctx.drawImage(img, 0, 0, targetW, targetH);
 
         // Đóng dấu theo vị trí góc đã chọn
-        // Sai số danh định ±2–4 m cho ảnh chọn từ máy (không dùng sai số thực của thiết bị).
-        const stampOpts = { accuracyText: this.nominalStampAccuracy() };
+        // Ảnh chọn từ máy: ghi rõ "đóng dấu sau", giờ chụp gốc (EXIF) và "sai số: không đo".
+        const stampOpts = { postStamp: true, captureDate: info.captureDate || null };
         this.drawWatermark(ctx, targetW, targetH, this.watermarkCorner, stampOpts);
 
         const qual = (typeof window !== 'undefined' && window.PixOptimizer) ? window.PixOptimizer.getQualityFloat() : 0.85;
@@ -14670,6 +14746,8 @@ const appCamera = {
             lat: meta.latStr,
             lng: meta.lngStr,
             corner: this.watermarkCorner,
+            postStamp: true,
+            captureDate: meta.captureStr,
             dataUrl: this.renderedDataUrl,
             timestamp: Date.now()
         };
@@ -14774,8 +14852,8 @@ const appCamera = {
                 </div>
                 <div class="camera-card-info">
                   <div style="font-weight: 700; color: #38bdf8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📍 ${item.markName}</div>
-                  <div style="font-size: 10px; color: #94a3b8;">${item.dateStr || ''}</div>
-                  <div style="font-size: 10px; color: #34d399; font-family: monospace;">X: ${item.x || '--'}</div>
+                  <div style="font-size: 11px; color: #94a3b8;">${item.dateStr || ''}</div>
+                  <div style="font-size: 11px; color: #34d399; font-family: monospace;">X: ${item.x || '--'}</div>
                 </div>
                 <div class="camera-card-actions">
                   <button type="button" class="camera-card-btn" title="Xem chi tiết" onclick="appCamera.openMediaViewer(${item.id})">👁️</button>
@@ -16011,9 +16089,6 @@ const appElevationProfile = {
         this.openProjectPointPicker('align');
     },
 
-    loadPitFromProject() {
-        this.openProjectPointPicker('pit');
-    },
     // ================= KHẢO SÁT TUYẾN TRẮC DỌC & HỐ ĐÀO (ĐÃ LIÊN THÔNG VỚI MINICAD 3.5) =================
 
 
@@ -17055,7 +17130,7 @@ const appElevationProfile = {
         setTimeout(() => {
             if (typeof appCadTool !== 'undefined') {
                 appCadTool.openToolbar();
-                if (appCadTool.redrawAllShapes) appCadTool.redrawAllShapes();
+                if (appCadTool.renderGeometry) appCadTool.renderGeometry();
             }
             showToast("✓ Đã chuyển mặt bằng hố đào và mái taluy sang CAD Mini trên bản đồ!");
         }, 300);
@@ -18210,7 +18285,7 @@ const appCadTool = {
             if (raw) {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    this.layersTable = parsed;
+                    this.layersTable = parsed.map(sanitizeUserFields);
                 }
             }
         } catch (e) {}
@@ -18377,7 +18452,7 @@ const appCadTool = {
                         style="width: 22px; height: 22px; padding: 0; border: 1px solid #fff; border-radius: 4px; background: ${l.color}; box-shadow: 0 1px 4px rgba(0,0,0,0.4); cursor: pointer;">
                 </td>
                 <td style="padding: 6px 8px; font-weight: 700; color: ${isCurrent ? '#38bdf8' : '#e2e8f0'}; font-family: ui-monospace, monospace;">
-                    ${l.id} ${isCurrent ? '<span style="font-size: 10px; color: #38bdf8; font-weight: 800;">[HIỆN HÀNH]</span>' : ''}
+                    ${l.id} ${isCurrent ? '<span style="font-size: 11px; color: #38bdf8; font-weight: 800;">[HIỆN HÀNH]</span>' : ''}
                 </td>
                 <td style="padding: 6px 8px; color: #cbd5e1; font-weight: 600;">
                     ${l.name}
@@ -18396,7 +18471,7 @@ const appCadTool = {
                             ${l.locked ? '🔒' : '🔓'}
                         </button>
                         ${!isCurrent ? `
-                        <button type="button" class="btn-sm" style="height: 24px; padding: 0 6px; font-size: 10.5px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700;"
+                        <button type="button" class="btn-sm" style="height: 24px; padding: 0 6px; font-size: 11px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700;"
                             onclick="appCadTool.setCurrentLayer('${l.id}'); appCadTool.renderLayersList();" title="Đặt làm lớp vẽ hiện hành">
                             Vẽ lớp này
                         </button>
@@ -20316,7 +20391,7 @@ const appCadTool = {
         this.setToolbarCollapsed(false);
         this.scheduleToolbarCollapse(this.toolbarIdleMs * 2);
         if (typeof appNav !== 'undefined' && appNav.syncBottomNav) appNav.syncBottomNav('cad');
-        showToast("📐 MiniCAD 2D CADCraft sẵn sàng! Gõ lệnh hoặc bấm nút để vẽ & biên tập!");
+        // Không bật thông báo mỗi lần mở MiniCAD (che thanh dưới vài giây, không có thông tin mới).
     },
 
     // Đóng toàn bộ cửa sổ/popup riêng của MiniCAD khi rời phân hệ,
@@ -20537,7 +20612,7 @@ const appCadTool = {
                     const tipHtml = `
                         <div style="background: rgba(15,23,42,0.9); border: 1.5px solid #f59e0b; border-radius: 6px; padding: 4px 8px; color: #f8fafc; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
                             <span style="color:#fbbf24; font-weight:800;">🏹 Mũi tên (${d.toFixed(1)}m)</span><br>
-                            <span style="font-size:10px; color:#94a3b8;">Click để đặt chữ ghi chú</span>
+                            <span style="font-size:11px; color:#94a3b8;">Click để đặt chữ ghi chú</span>
                         </div>
                     `;
                     const icon = L.divIcon({ className: '', html: tipHtml, iconSize: [150, 36], iconAnchor: [-10, -10] });
@@ -20562,15 +20637,15 @@ const appCadTool = {
 
                 const stampHtml = `
                     <div style="background: rgba(15,23,42,0.88); border: 2px dashed #38bdf8; border-radius: 8px; padding: 6px 10px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 6px 18px rgba(0,0,0,0.5); min-width: 145px; pointer-events: none; text-align: left; opacity: 0.9;">
-                        <div style="font-weight: 800; color: #38bdf8; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 2px; margin-bottom: 3px; display: flex; justify-content: space-between; font-size: 10.5px;">
+                        <div style="font-weight: 800; color: #38bdf8; border-bottom: 1px dashed rgba(255,255,255,0.25); padding-bottom: 2px; margin-bottom: 3px; display: flex; justify-content: space-between; font-size: 11px;">
                             <span>TỜ: <b>${defSheet}</b></span>
                             <span>THỬA: <b>${previewParcel}</b></span>
                         </div>
-                        <div style="font-size: 9.5px; color: #cbd5e1; line-height: 1.35;">
+                        <div style="font-size: 11px; color: #cbd5e1; line-height: 1.35;">
                             <div>📐 DT: <b style="color: #4ade80;">${previewArea}</b></div>
                             <div>👤 Chủ: <b style="color: #f1f5f9;">${defOwner}</b></div>
                         </div>
-                        <div style="font-size: 9px; color: #38bdf8; margin-top: 3px; text-align: center; border-top: 1px dashed rgba(56,189,248,0.3); padding-top: 2px;">
+                        <div style="font-size: 11px; color: #38bdf8; margin-top: 3px; text-align: center; border-top: 1px dashed rgba(56,189,248,0.3); padding-top: 2px;">
                             💡 Click để đặt tem nhãn
                         </div>
                     </div>
@@ -20608,7 +20683,7 @@ const appCadTool = {
                         }).addTo(this.layers.markupPreviewGroup);
 
                         const tipHtml = `
-                            <div style="background: rgba(15,23,42,0.85); border: 1px solid #ec4899; border-radius: 4px; padding: 2px 6px; color: #f472b6; font-size: 10px; font-weight: 700; white-space: nowrap;">
+                            <div style="background: rgba(15,23,42,0.85); border: 1px solid #ec4899; border-radius: 4px; padding: 2px 6px; color: #f472b6; font-size: 11px; font-weight: 700; white-space: nowrap;">
                                 🏠 Khối nhà ${w}m x ${l}m (${(w*l).toFixed(0)}m²)
                             </div>
                         `;
@@ -20637,7 +20712,7 @@ const appCadTool = {
                     }).addTo(this.layers.markupPreviewGroup);
 
                     const tipHtml = `
-                        <div style="background: rgba(15,23,42,0.9); border: 1.5px solid #ec4899; border-radius: 4px; padding: 3px 6px; color: #fdf2f8; font-size: 10.5px; font-weight: 700; white-space: nowrap;">
+                        <div style="background: rgba(15,23,42,0.9); border: 1.5px solid #ec4899; border-radius: 4px; padding: 3px 6px; color: #fdf2f8; font-size: 11px; font-weight: 700; white-space: nowrap;">
                             🏠 ${w.toFixed(1)}m x ${l.toFixed(1)}m (${(w*l).toFixed(1)} m²)
                         </div>
                     `;
@@ -20661,7 +20736,7 @@ const appCadTool = {
                 L.circleMarker([curLat, curLng], { radius: 4, color: '#10b981', fillColor: '#10b981', fillOpacity: 1 }).addTo(this.layers.markupPreviewGroup);
 
                 const tipHtml = `
-                    <div style="background: rgba(15,23,42,0.85); border: 1px solid #10b981; border-radius: 4px; padding: 2px 6px; color: #6ee7b7; font-size: 10px; font-weight: 700; white-space: nowrap;">
+                    <div style="background: rgba(15,23,42,0.85); border: 1px solid #10b981; border-radius: 4px; padding: 2px 6px; color: #6ee7b7; font-size: 11px; font-weight: 700; white-space: nowrap;">
                         ⭕ Vùng đệm R = ${defR}m
                     </div>
                 `;
@@ -20704,7 +20779,7 @@ const appCadTool = {
                     const tipHtml = `
                         <div style="background: rgba(15,23,42,0.92); border: 1.5px solid ${dCol}; border-radius: 6px; padding: 4px 8px; color: #f8fafc; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
                             <span style="color:${dCol}; font-weight:800;">${this.dimLabelText(ghost, g, false)}</span>
-                            ${isRad ? '' : ` &nbsp;∠ ${this.formatAngleDMS(g.azDeg, false)}<br><span style="font-size:10px; color:#94a3b8;">Click mốc cuối • Esc để kết thúc</span>`}
+                            ${isRad ? '' : ` &nbsp;∠ ${this.formatAngleDMS(g.azDeg, false)}<br><span style="font-size:11px; color:#94a3b8;">Click mốc cuối • Esc để kết thúc</span>`}
                         </div>`;
                     const tipIcon = L.divIcon({ className: '', html: tipHtml, iconSize: [170, 34], iconAnchor: [-10, -10] });
                     L.marker([curLat, curLng], { icon: tipIcon, interactive: false }).addTo(this.layers.markupPreviewGroup);
@@ -20746,7 +20821,7 @@ const appCadTool = {
                     const tipHtml = `
                         <div style="background: rgba(15,23,42,0.92); border: 1.5px solid ${aCol}; border-radius: 6px; padding: 4px 8px; color: #f8fafc; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
                             <span style="color:${aCol}; font-weight:800;">📐 ${this.dimLabelText(ghost, g, false)}</span><br>
-                            <span style="font-size:10px; color:#94a3b8;">Click điểm trên CẠNH 2 để chốt</span>
+                            <span style="font-size:11px; color:#94a3b8;">Click điểm trên CẠNH 2 để chốt</span>
                         </div>`;
                     const tipIcon = L.divIcon({ className: '', html: tipHtml, iconSize: [170, 34], iconAnchor: [-10, -10] });
                     L.marker([curLat, curLng], { icon: tipIcon, interactive: false }).addTo(this.layers.markupPreviewGroup);
@@ -21287,7 +21362,7 @@ const appCadTool = {
                     <input type="color" id="cadSymColor_${ly.id}" value="${escapeHtml(color)}" style="width:30px;height:24px;padding:0;border:1px solid #334155;border-radius:5px;background:#0f172a;cursor:pointer;"
                         onchange="appCadTool.applyLayerGlyph('${ly.id}')" title="Màu ký hiệu mặc định của lớp này">
                 </td>
-                <td style="text-align:center;color:#64748b;font-size:10.5px;">${escapeHtml(ly.id)}</td>
+                <td style="text-align:center;color:#64748b;font-size:11px;">${escapeHtml(ly.id)}</td>
                 <td style="text-align:center;">
                     <button class="btn-sm" style="height:22px;padding:0 8px;font-size:11px;"
                         onclick="appCadTool.resetLayerGlyph('${ly.id}')" title="Xóa mặc định ký hiệu riêng của lớp này">↺</button>
@@ -21802,31 +21877,9 @@ const appCadTool = {
             if (v.Lng !== undefined) v.Lng = norm.lng;
         } catch (e) {}
 
-        return norm;
+        return (typeof sanitizeUserFields === 'function') ? sanitizeUserFields(norm) : norm;
     },
 
-    applySuggestedScale(scale) {
-        const sel = document.getElementById('cadExportScale');
-        if (sel) {
-            let found = false;
-            for (let i = 0; i < sel.options.length; i++) {
-                if (sel.options[i].value === String(scale)) {
-                    sel.selectedIndex = i;
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                const opt = document.createElement('option');
-                opt.value = String(scale);
-                opt.text = `1:${scale} (Tối ưu)`;
-                sel.add(opt);
-                sel.value = String(scale);
-            }
-            this.checkScalePaperFit();
-            showToast(`✓ Đã áp dụng tỷ lệ tối ưu 1:${scale}`);
-        }
-    },
 
     _getAllExportShapes() {
         const allShapes = [];
@@ -23835,7 +23888,7 @@ const appCadTool = {
                     const rotInfo = labelRot ? ` • ${labelRot}°` : '';
                     const rectLabelHtml = `<div class="cad-rect-label-box" style="background: rgba(15,23,42,0.92); border: 1.5px solid ${annColor}; color: #fce7f3; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-align: center; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); cursor: move; user-select: none; transform: rotate(${labelRot}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
                         <div>🏠 ${ann.rectName || 'Khối nhà'}</div>
-                        <div style="color: #f472b6; font-size: 9.5px; font-weight: 600;">${ann.widthM || 0}x${ann.lengthM || 0}m (${ann.rectArea || 0}m²)${rotInfo}</div>
+                        <div style="color: #f472b6; font-size: 11px; font-weight: 600;">${ann.widthM || 0}x${ann.lengthM || 0}m (${ann.rectArea || 0}m²)${rotInfo}</div>
                     </div>`;
                     const labelIcon = L.divIcon({
                         className: 'cad-rect-label-marker',
@@ -23903,12 +23956,12 @@ const appCadTool = {
                     if (ann.fields && ann.fields.length > 0) {
                         fieldsHtml = ann.fields.map(f => `
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
-                                <span style="color:#94a3b8; font-weight:600; font-size:10px; white-space:nowrap;">${f.key}:</span>
-                                <b style="color:#f8fafc; font-size:10px; text-align:right; word-break:break-word;">${f.val || '--'}</b>
+                                <span style="color:#94a3b8; font-weight:600; font-size:11px; white-space:nowrap;">${f.key}:</span>
+                                <b style="color:#f8fafc; font-size:11px; text-align:right; word-break:break-word;">${f.val || '--'}</b>
                             </div>
                         `).join('');
                     } else {
-                        fieldsHtml = `<div style="color:#94a3b8; font-style:italic; font-size:10px;">(Nhấp vào để thêm các dòng thông tin)</div>`;
+                        fieldsHtml = `<div style="color:#94a3b8; font-style:italic; font-size:11px;">(Nhấp vào để thêm các dòng thông tin)</div>`;
                     }
 
                     const stampRot = ann.labelRotationDeg || 0;
@@ -23916,7 +23969,7 @@ const appCadTool = {
                         <div class="cad-drawing-stamp-card" style="background: rgba(15,23,42,0.96); border: 2px solid ${annColor}; border-radius: 8px; padding: 7px 12px; font-family: -apple-system, sans-serif; font-size: 11px; color: #f8fafc; box-shadow: 0 6px 18px rgba(0,0,0,0.65); min-width: 175px; max-width: 280px; cursor: move; user-select: none; text-align: left; transform: rotate(${stampRot}deg); transform-origin: center center; transition: transform 0.1s ease; ${isSelected ? 'box-shadow: 0 0 12px #facc15;' : ''}">
                             <div style="font-weight: 800; color: ${annColor}; border-bottom: 1.5px solid rgba(255,255,255,0.2); padding-bottom: 4px; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
                                 <span>📋 ${title}</span>
-                                <span style="font-size: 9px; opacity: 0.7; color: #38bdf8;">CAD 2D</span>
+                                <span style="font-size: 11px; opacity: 0.7; color: #38bdf8;">CAD 2D</span>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 2px;">
                                 ${fieldsHtml}
@@ -23978,9 +24031,9 @@ const appCadTool = {
                     });
                     this.layers.annotationsGroup.addLayer(circ);
 
-                    const circLabelHtml = `<div style="background: rgba(15,23,42,0.9); border: 1.5px solid ${annColor}; color: #a7f3d0; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-align: center; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: move; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
+                    const circLabelHtml = `<div style="background: rgba(15,23,42,0.9); border: 1.5px solid ${annColor}; color: #a7f3d0; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-align: center; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: move; ${isSelected ? 'box-shadow: 0 0 10px #facc15;' : ''}">
                         <div>⭕ ${ann.circleName || 'Vùng bảo vệ'}</div>
-                        <div style="color: #6ee7b7; font-size: 9px;">R = ${ann.radiusM}m</div>
+                        <div style="color: #6ee7b7; font-size: 11px;">R = ${ann.radiusM}m</div>
                     </div>`;
                     const labelIcon = L.divIcon({
                         className: 'cad-circle-label-marker',
@@ -24228,7 +24281,7 @@ const appCadTool = {
             const key = 'vn2k_cad_annotations_' + proj;
             const raw = localStorage.getItem(key);
             if (raw) {
-                this.annotations = JSON.parse(raw) || [];
+                this.annotations = (JSON.parse(raw) || []).map(sanitizeUserFields);
             } else {
                 this.annotations = [];
             }
@@ -24541,41 +24594,9 @@ const appCadTool = {
         return fields;
     },
 
-    // === CÁC HÀM ĐIỀU CHỈNH XOAY TRÒN TÊN KHỐI & NHÃN TÂM (0 - 360 ĐỘ) ===
-    onQuickShapeRotChange(val, sIdx) {
-        val = parseInt(val, 10) || 0;
-        const lbl = document.getElementById('lblQuickShapeRotVal');
-        if (lbl) lbl.innerText = val + '°';
-        const s = this.savedShapes && this.savedShapes[sIdx];
-        if (s) {
-            s.labelRotationDeg = val;
-            this.renderGeometry();
-        }
-    },
 
-    setQuickShapeRot(val, sIdx) {
-        const rng = document.getElementById('rngQuickShapeRot');
-        if (rng) rng.value = val;
-        this.onQuickShapeRotChange(val, sIdx);
-    },
 
-    onQuickRectRotChange(val, annId) {
-        val = parseInt(val, 10) || 0;
-        const lbl = document.getElementById('lblQuickRectRotVal');
-        if (lbl) lbl.innerText = val + '°';
-        const ann = (this.annotations || []).find(a => a.id === annId);
-        if (ann) {
-            ann.labelRotationDeg = val;
-            const el = document.getElementById('cadRectLabel_' + ann.id) || document.querySelector('.cad-rect-label-box');
-            if (el) el.style.transform = `rotate(${val}deg)`;
-        }
-    },
 
-    setQuickRectRot(val, annId) {
-        const rng = document.getElementById('rngQuickRectRot');
-        if (rng) rng.value = val;
-        this.onQuickRectRotChange(val, annId);
-    },
 
     clearAnnotations() {
         if (!this.annotations || this.annotations.length === 0) {
@@ -24841,11 +24862,8 @@ const appCadTool = {
             const data = { savedShapes: this.savedShapes || [], mode: this.mode, updated: Date.now() };
             const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
             
-            // Lưu theo khóa chuẩn hóa (không extension) và khóa gốc
-            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, json);
-            if (curProj !== cleanKey) {
-                localStorage.setItem('vn2k_cad_shapes_' + curProj, json);
-            }
+            // Lưu một bản theo khóa chuẩn hóa (không đuôi); báo người dùng nếu bộ nhớ đầy
+            if (!storeCadShapes(cleanKey, curProj, json)) return;
 
             // Tự động đồng bộ các đỉnh thành danh sách mốc Sổ Đo Dự Án mang đầy đủ thuộc tính Khối/Thửa
             this.syncShapesToProjectPoints(curProj);
@@ -24976,9 +24994,7 @@ const appCadTool = {
                 const cleanKey = this.getProjectStorageKey(curProj);
                 const data = { savedShapes: this.savedShapes, mode: this.mode, updated: Date.now() };
                 const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
-                localStorage.setItem('vn2k_cad_shapes_' + cleanKey, json);
-                if (curProj !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + curProj, json);
-                return true;
+                return storeCadShapes(cleanKey, curProj, json);
             }
         }
         return false;
@@ -25001,7 +25017,7 @@ const appCadTool = {
                     this.savedShapes = data.savedShapes.map(s => {
                         const vertices = (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                         const stats = this.getEffectiveStats({ ...s, vertices });
-                        return { ...s, vertices, stats };
+                        return sanitizeUserFields({ ...s, vertices, stats });
                     }).filter(s => s.vertices.length > 0);
                     if (data.mode) this.mode = data.mode;
                     return this.savedShapes.length > 0;
@@ -25035,13 +25051,18 @@ const appCadTool = {
         clearTimeout(this._persistTimer);
         this._persistTimer = setTimeout(() => {
             try {
-                const data = { savedShapes: this.savedShapes || [], vertices: this.vertices || [], mode: this.mode, pointLayerId: this.pointLayerId };
+                // Khối đã có chỗ lưu theo dự án thì phiên chỉ giữ nét đang vẽ dở — không lưu thêm bản sao thứ hai.
+                const proj = AppState.currentProject;
+                const inProject = !!proj && AppState.projectsList.includes(proj)
+                    && !(typeof appData !== 'undefined' && appData.isProjectInTrash && appData.isProjectInTrash(proj));
+                const data = { savedShapes: inProject ? [] : (this.savedShapes || []), vertices: this.vertices || [], mode: this.mode, pointLayerId: this.pointLayerId };
                 const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
-                localStorage.setItem(this.SESSION_KEY, json);
-                this.saveShapesForProject(AppState.currentProject);
-                localStorage.setItem('vn2k_cad_active', this.isActive ? '1' : '0');
+                safeStorage.setItem(this.SESSION_KEY, json);
+                this.saveShapesForProject(proj);
+                safeStorage.setItem('vn2k_cad_active', this.isActive ? '1' : '0');
             } catch (e) {
                 console.warn('CAD persist failed:', e);
+                if (typeof showToast === 'function') showToast('⚠️ Chưa lưu được bản vẽ MiniCAD — hãy xuất file sao lưu ngay.', true);
             }
         }, 150);
     },
@@ -25066,7 +25087,7 @@ const appCadTool = {
                     this.savedShapes = (data.savedShapes || []).map(s => {
                         const vertices = (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                         const stats = this.getEffectiveStats({ ...s, vertices });
-                        return { ...s, vertices, stats };
+                        return sanitizeUserFields({ ...s, vertices, stats });
                     }).filter(s => s.vertices.length > 0);
                     this.vertices = (data.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                     if (data.mode) this.mode = data.mode;
@@ -25324,18 +25345,18 @@ const appCadTool = {
                     if (safeInnerDiam < 45) {
                         // Khối rất nhỏ hoặc nhánh chữ L hẹp: Hiển thị chấm tròn ký hiệu cực gọn, lọt thỏm trong lòng khối
                         const bDim = Math.min(22, Math.max(16, safeInnerDiam));
-                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.94); border:1.5px solid ${sColor}; color:${sColor}; width:${bDim}px; height:${bDim}px; min-width:${bDim}px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px; box-shadow:0 1px 6px rgba(0,0,0,0.5); cursor:pointer; ${rotStyle}" title="${shape.name} (${shape.stats?.areaFormatted || 0} m²)">${blockSymbol}</div>`;
+                        badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.94); border:1.5px solid ${sColor}; color:${sColor}; width:${bDim}px; height:${bDim}px; min-width:${bDim}px; padding:0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; box-shadow:0 1px 6px rgba(0,0,0,0.5); cursor:pointer; ${rotStyle}" title="${shape.name} (${shape.stats?.areaFormatted || 0} m²)">${blockSymbol}</div>`;
                     } else if (safeInnerDiam < 85) {
                         // Khối trung bình: Hiển thị ký hiệu + diện tích làm tròn
                         badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid ${sColor}; color:#ffffff; padding:1px 4px; border-radius:4px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.4); cursor:pointer; ${rotStyle}" title="${shape.name}">
                             <div style="font-weight:800; font-size:11px; color:${sColor}; line-height:1.1;">${blockSymbol}</div>
-                            <div class="cad-center-area-val" style="font-weight:700; font-size:8.5px; color:#f8fafc; white-space:nowrap;">${Math.round(shape.stats?.area || 0)} m²</div>
+                            <div class="cad-center-area-val" style="font-weight:700; font-size:11px; color:#f8fafc; white-space:nowrap;">${Math.round(shape.stats?.area || 0)} m²</div>
                         </div>`;
                     } else {
                         // Khối lớn: Hiển thị đầy đủ
                         badgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.90); border:1.5px solid ${sColor}; color:#ffffff; padding:2px 6px; border-radius:5px; text-align:center; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.45); cursor:pointer; ${rotStyle}" title="${shape.name}">
                             <div style="font-weight:800; font-size:13px; color:${sColor}; line-height:1.15;">${blockSymbol}</div>
-                            <div class="cad-center-area-val" style="font-weight:700; font-size:10px; color:#f8fafc; white-space:nowrap;">${shape.stats?.areaFormatted || 0} m²</div>
+                            <div class="cad-center-area-val" style="font-weight:700; font-size:11px; color:#f8fafc; white-space:nowrap;">${shape.stats?.areaFormatted || 0} m²</div>
                         </div>`;
                     }
                 } else {
@@ -25381,7 +25402,7 @@ const appCadTool = {
                     const midLng = (cur.lng + next.lng) / 2;
 
                     const isDistPinned = (showDistances === true || shape._pinned === true);
-                    const labelHtml = `<div class="cad-edge-badge interactive ${isDistPinned ? 'visible pinned' : ''}" style="border-color:${sColor}; color:${sColor};" title="Bấm vào để chèn thêm đỉnh mới vào [${shape.shortName}] (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
+                    const labelHtml = `<div class="cad-edge-badge interactive ${isDistPinned ? 'visible pinned' : ''}" style="border-color:${sColor}; color:${sColor};" title="Bấm vào để chèn thêm đỉnh mới vào [${shape.shortName}] (+)">${edge.lengthFormatted}m <span style="font-size:11px; color:#4ade80;">+</span></div>`;
                     const labelIcon = L.divIcon({
                         className: '',
                         html: labelHtml,
@@ -25552,7 +25573,7 @@ const appCadTool = {
                             edgeMarkers[prevEIdx].setLatLng([midLat, midLng]);
                             const bEl = edgeMarkers[prevEIdx].getElement()?.querySelector('.cad-edge-badge');
                             if (bEl) {
-                                bEl.innerHTML = `${lenStr}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                                bEl.innerHTML = `${lenStr}m <span style="font-size:11px; color:#4ade80;">+</span>`;
                                 bEl.classList.add('visible');
                             }
                             if (hitLines[prevEIdx]) {
@@ -25572,7 +25593,7 @@ const appCadTool = {
                             edgeMarkers[nextEIdx].setLatLng([midLat, midLng]);
                             const bEl = edgeMarkers[nextEIdx].getElement()?.querySelector('.cad-edge-badge');
                             if (bEl) {
-                                bEl.innerHTML = `${lenStr}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                                bEl.innerHTML = `${lenStr}m <span style="font-size:11px; color:#4ade80;">+</span>`;
                                 bEl.classList.add('visible');
                             }
                             if (hitLines[nextEIdx]) {
@@ -25727,7 +25748,7 @@ const appCadTool = {
                 const midLng = (cur.lng + next.lng) / 2;
 
                 const isActDistPinned = (showDistances === true || this._pinned === true);
-                const labelHtml = `<div class="cad-edge-badge interactive ${isActDistPinned ? 'visible pinned' : ''}" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:9px; color:#4ade80;">+</span></div>`;
+                const labelHtml = `<div class="cad-edge-badge interactive ${isActDistPinned ? 'visible pinned' : ''}" title="Bấm vào để chèn thêm đỉnh mới tại trung điểm cạnh (+)">${edge.lengthFormatted}m <span style="font-size:11px; color:#4ade80;">+</span></div>`;
                 const labelIcon = L.divIcon({
                     className: '',
                     html: labelHtml,
@@ -25878,7 +25899,7 @@ const appCadTool = {
                         activeEdgeMarkers[prevEIdx].setLatLng([midLat, midLng]);
                         const bEl = activeEdgeMarkers[prevEIdx].getElement()?.querySelector('.cad-edge-badge');
                         if (bEl) {
-                            bEl.innerHTML = `${lenStr}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                            bEl.innerHTML = `${lenStr}m <span style="font-size:11px; color:#4ade80;">+</span>`;
                             bEl.classList.add('visible');
                         }
                         if (activeHitLines[prevEIdx]) {
@@ -25898,7 +25919,7 @@ const appCadTool = {
                         activeEdgeMarkers[nextEIdx].setLatLng([midLat, midLng]);
                         const bEl = activeEdgeMarkers[nextEIdx].getElement()?.querySelector('.cad-edge-badge');
                         if (bEl) {
-                            bEl.innerHTML = `${lenStr}m <span style="font-size:9px; color:#4ade80;">+</span>`;
+                            bEl.innerHTML = `${lenStr}m <span style="font-size:11px; color:#4ade80;">+</span>`;
                             bEl.classList.add('visible');
                         }
                         if (activeHitLines[nextEIdx]) {
@@ -25988,7 +26009,7 @@ const appCadTool = {
         // 4. Nếu là đa giác khép kín >= 3 đỉnh: hiển thị badge diện tích tại tâm đa giác (scale vừa khít)
         if (showCenterLabels && this.mode === 'polygon' && n >= 3) {
             const [centerLat, centerLng, clearanceDeg] = this.calculatePolygonVisualCenter(this.vertices);
-            const warningMsg = isSelfIntersecting ? '<div style="color:#ef4444; font-size:9px;">⚠️ Tự cắt!</div>' : '';
+            const warningMsg = isSelfIntersecting ? '<div style="color:#ef4444; font-size:11px;">⚠️ Tự cắt!</div>' : '';
 
             let maxW = 110, maxH = 34, actBadgeHtml = '';
             if (AppState.leafletMap) {
@@ -26011,11 +26032,11 @@ const appCadTool = {
                 maxH = Math.max(18, Math.min(Math.floor(hPx * 0.82), Math.floor(clearancePx * 1.8)));
 
                 if (safeInnerDiam < 50) {
-                    actBadgeHtml = `<div class="cad-center-badge" style="background:rgba(6,182,212,0.92); border:1.5px solid #06b6d4; color:#ffffff; padding:1px 4px; border-radius:4px; font-size:9.5px; font-weight:800; max-width:${maxW}px; overflow:hidden; text-align:center;"><span class="cad-center-area-val">${Math.round(stats.area)} m²</span></div>`;
+                    actBadgeHtml = `<div class="cad-center-badge" style="background:rgba(6,182,212,0.92); border:1.5px solid #06b6d4; color:#ffffff; padding:1px 4px; border-radius:4px; font-size:11px; font-weight:800; max-width:${maxW}px; overflow:hidden; text-align:center;"><span class="cad-center-area-val">${Math.round(stats.area)} m²</span></div>`;
                 } else {
                     actBadgeHtml = `<div class="cad-center-badge" style="background:rgba(15,23,42,0.92); border:1.5px solid #06b6d4; color:#ffffff; padding:2px 6px; border-radius:5px; max-width:${maxW}px; max-height:${maxH}px; overflow:hidden; text-align:center;">
                         <div class="cad-center-area-val" style="color:#38bdf8; font-weight:800; font-size:11.5px;">S = ${stats.areaFormatted} m²</div>
-                        <div style="font-size:9px; color:#cbd5e1;">${stats.haFormatted} ha</div>
+                        <div style="font-size:11px; color:#cbd5e1;">${stats.haFormatted} ha</div>
                         ${warningMsg}
                     </div>`;
                 }
@@ -27003,7 +27024,7 @@ const appCadTool = {
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; user-select: none;">
                         <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="appCadTool.toggleExportBlock(${idx}, this.checked)" style="accent-color: #38bdf8; width: 14px; height: 14px;">
                         <span style="font-weight: 700; color: #f8fafc;">${s.name}</span>
-                        <span style="color: #94a3b8; font-size: 10px;">[${modeText} • ${vCount} đỉnh]</span>
+                        <span style="color: #94a3b8; font-size: 11px;">[${modeText} • ${vCount} đỉnh]</span>
                     </label>
                     <span style="color: #4ade80; font-weight: 700; font-size: 11px;">${areaText}</span>
                 </div>
@@ -27065,7 +27086,7 @@ const appCadTool = {
         
         let name = prompt("Nhập tên dự án MiniCAD mới (.csv):", defaultName);
         if (!name) return;
-        name = name.trim();
+        name = cleanProjectName(name);
         if (!name) return;
         if (!name.toLowerCase().endsWith('.csv')) name += '.csv';
 
@@ -27109,8 +27130,7 @@ const appCadTool = {
             
             // Lưu storage trống cho dự án mới
             const emptyData = { savedShapes: [], mode: 'polygon', updated: Date.now() };
-            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(emptyData));
-            if (name !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + name, JSON.stringify(emptyData));
+            storeCadShapes(cleanKey, name, JSON.stringify(emptyData));
             if (typeof appData !== 'undefined' && appData.savePoints) {
                 appData.savePoints(name, []);
             }
@@ -27118,8 +27138,7 @@ const appCadTool = {
             // Giữ lại các khối hiện có và lưu trực tiếp sang key của dự án mới
             const copyShapes = JSON.parse(JSON.stringify(this.savedShapes || []));
             const data = { savedShapes: copyShapes, mode: this.mode || 'polygon', updated: Date.now() };
-            localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(data));
-            if (name !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + name, JSON.stringify(data));
+            storeCadShapes(cleanKey, name, JSON.stringify(data));
             // Xuất các mốc đỉnh thành mốc dự án mới
             if (typeof appData !== 'undefined' && appData.savePoints) {
                 const newPoints = [];
@@ -27187,7 +27206,7 @@ const appCadTool = {
         const defaultName = `DuAn_LuuTuCAD_${dateStr}.csv`;
         let name = prompt("Nhập tên dự án mới để lưu các khối hiện tại (.csv):", defaultName);
         if (!name) return;
-        name = name.trim();
+        name = cleanProjectName(name);
         if (!name) return;
         if (!name.toLowerCase().endsWith('.csv')) name += '.csv';
 
@@ -27206,8 +27225,7 @@ const appCadTool = {
         const cleanKey = this.getProjectStorageKey(name);
         const copyShapes = JSON.parse(JSON.stringify(this.savedShapes || []));
         const data = { savedShapes: copyShapes, mode: this.mode || 'polygon', updated: Date.now() };
-        localStorage.setItem('vn2k_cad_shapes_' + cleanKey, JSON.stringify(data));
-        if (name !== cleanKey) localStorage.setItem('vn2k_cad_shapes_' + name, JSON.stringify(data));
+        storeCadShapes(cleanKey, name, JSON.stringify(data));
 
         // Chuyển các đỉnh thành mốc dự án
         if (typeof appData !== 'undefined' && appData.savePoints) {
@@ -27352,7 +27370,7 @@ const appCadTool = {
                     return data.savedShapes.map(s => {
                         const vertices = (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
                         const stats = this.getEffectiveStats({ ...s, vertices });
-                        return { ...s, vertices, stats };
+                        return sanitizeUserFields({ ...s, vertices, stats });
                     }).filter(s => s.vertices.length > 0);
                 }
             }
@@ -27466,13 +27484,13 @@ const appCadTool = {
                         <input type="checkbox" class="cad-load-blk-cb" value="${idx}" checked onchange="appCadTool._onLoadBlkCheckboxChange()" style="accent-color: #10b981; width: 14px; height: 14px;">
                         <span style="width: 8px; height: 8px; border-radius: 50%; background: ${colorPill}; display: inline-block;"></span>
                         <span style="font-weight: 700; color: #f8fafc;">${s.name || s.shortName || ('Khối ' + (idx + 1))}</span>
-                        <span style="font-size: 10px; padding: 1px 5px; border-radius: 3px; background: ${isPoly ? 'rgba(16, 185, 129, 0.2)' : 'rgba(56, 189, 248, 0.2)'}; color: ${isPoly ? '#6ee7b7' : '#38bdf8'}; font-weight: 600;">
+                        <span style="font-size: 11px; padding: 1px 5px; border-radius: 3px; background: ${isPoly ? 'rgba(16, 185, 129, 0.2)' : 'rgba(56, 189, 248, 0.2)'}; color: ${isPoly ? '#6ee7b7' : '#38bdf8'}; font-weight: 600;">
                             ${isPoly ? 'Đa giác' : (s.mode === 'point' ? 'Điểm' : 'Tuyến')}
                         </span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="color: #cbd5e1; font-size: 11px; font-family: ui-monospace, monospace; font-weight: 600;">${statText}</span>
-                        <span style="color: #94a3b8; font-size: 10px;">(${vertCount} đỉnh)</span>
+                        <span style="color: #94a3b8; font-size: 11px;">(${vertCount} đỉnh)</span>
                     </div>
                 </label>
             `;
@@ -27637,9 +27655,9 @@ const appCadTool = {
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" class="cad-load-pt-cb" value="${idx}" checked onchange="appCadTool._onLoadPtCheckboxChange()" style="accent-color: #38bdf8; width: 13px; height: 13px;">
                         <span style="font-weight: 700; color: #38bdf8;">${p.name || ('M' + (idx+1))}</span>
-                        <span style="color: #cbd5e1; font-size: 10px; font-family: ui-monospace, monospace;">(X: ${xStr}, Y: ${yStr})</span>
+                        <span style="color: #cbd5e1; font-size: 11px; font-family: ui-monospace, monospace;">(X: ${xStr}, Y: ${yStr})</span>
                     </div>
-                    <span style="color: #94a3b8; font-size: 10px;">${p.code || p.note || ''}</span>
+                    <span style="color: #94a3b8; font-size: 11px;">${p.code || p.note || ''}</span>
                 </label>
             `;
         });
@@ -27875,16 +27893,16 @@ const appCadTool = {
                                 </label>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     ${!isSelected ? `
-                                        <span style="font-size: 10px; color: #f87171; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700;">
+                                        <span style="font-size: 11px; color: #f87171; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700;">
                                             👁️ Bỏ chọn (Không tính tổng)
                                         </span>
                                     ` : `
-                                        <span style="font-size: 10px; color: #4ade80; background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700;">
+                                        <span style="font-size: 11px; color: #4ade80; background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700;">
                                             ✅ Đang chọn tính tổng
                                         </span>
                                     `}
                                     ${(shape.customArea !== undefined || shape.customPerimeter !== undefined || hasCustomEdge) ? `
-                                        <span style="font-size: 10px; color: #facc15; background: rgba(250,204,21,0.15); border: 1px solid rgba(250,204,21,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                                        <span style="font-size: 11px; color: #facc15; background: rgba(250,204,21,0.15); border: 1px solid rgba(250,204,21,0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
                                             ✏️ Số liệu đã tùy chỉnh (Bấm "Tự động đo" để khôi phục)
                                         </span>
                                     ` : ''}
@@ -27899,7 +27917,7 @@ const appCadTool = {
                         <tr style="background: rgba(15, 23, 42, 0.45); opacity: 0.75;">
                             <td colspan="7" style="text-align: center; color: #94a3b8; font-size: 11px; padding: 6px 10px;">
                                 👁️ Khối này đã được bỏ chọn (${shape.vertices.length} đỉnh không tính vào tổng diện tích). 
-                                <button type="button" class="btn-sm" style="height: 20px; padding: 0 8px; font-size: 10.5px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; cursor: pointer; margin-left: 6px;" onclick="appCadTool.toggleBlockSelect(${shapeIdx}, true)">☑️ Chọn lại khối này</button>
+                                <button type="button" class="btn-sm" style="height: 20px; padding: 0 8px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; cursor: pointer; margin-left: 6px;" onclick="appCadTool.toggleBlockSelect(${shapeIdx}, true)">☑️ Chọn lại khối này</button>
                             </td>
                         </tr>
                     `;
@@ -27918,7 +27936,7 @@ const appCadTool = {
                                         style="width:72px; height:22px; font-size:11px; font-weight:700; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; background:${isEdgeCustom ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${isEdgeCustom ? 'rgba(250,204,21,0.5)' : 'rgba(110,231,183,0.35)'}; border-radius:4px; padding:0 4px; text-align:right; font-family:ui-monospace, monospace;"
                                         ${(isShapeActive || sIdx < 0) ? 'readonly' : `onchange="appCadTool.editEdgeLength(${sIdx}, ${idx}, this.value)"`}
                                         title="${isShapeActive ? 'Khối đang vẽ dở' : 'Chỉnh sửa cự ly cạnh (làm đẹp số liệu báo cáo)'}">
-                                    <span style="font-size:10px; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; font-weight:600;">m</span>
+                                    <span style="font-size:11px; color:${isEdgeCustom ? '#facc15' : '#6ee7b7'}; font-weight:600;">m</span>
                                 </div>
                             `;
                         }
@@ -27931,7 +27949,7 @@ const appCadTool = {
                                 <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.y || 0).toFixed(3)}</td>
                                 <td style="text-align: right; padding-right: 8px;">${edgeCell}</td>
                                 <td style="text-align: right; padding-right: 12px; color: #cbd5e1; font-family: ui-monospace, monospace;">${azStr}</td>
-                                <td style="text-align: center; font-size: 10px;">${noteStr}</td>
+                                <td style="text-align: center; font-size: 11px;">${noteStr}</td>
                             </tr>
                         `;
                     });
@@ -27978,13 +27996,6 @@ const appCadTool = {
         }
     },
 
-    closeAreaTableModal() {
-        const modal = document.getElementById('modalCadAreaTable');
-        if (modal) {
-            modal.style.display = 'none';
-            modal.classList.remove('active');
-        }
-    },
 
     toggleMaximizeAreaModal() {
         const box = document.getElementById('cadAreaTableModalBox');
@@ -28150,7 +28161,7 @@ const appCadTool = {
                 <input type="checkbox" ${allSelected ? 'checked' : ''} onchange="appCadTool.toggleSelectAllBlocks(this.checked)" style="accent-color:#38bdf8; width:14px; height:14px;">
                 <span>Chọn tất cả (${allShapes.filter(s => s.selected !== false).length}/${allShapes.length} khối)</span>
             </label>
-            <span style="font-size:10px; color:#94a3b8;">Có thể click vào Tên & Diện tích để chỉnh sửa số liệu</span>
+            <span style="font-size:11px; color:#94a3b8;">Có thể click vào Tên & Diện tích để chỉnh sửa số liệu</span>
         </div>`;
 
         allShapes.forEach((s, idx) => {
@@ -28174,7 +28185,7 @@ const appCadTool = {
                     title="Tích chọn để xuất bản đồ"
                     style="accent-color:#38bdf8; width:14px; height:14px; cursor:pointer; flex:none;">
                 <span style="width:10px; height:10px; border-radius:50%; background:${s.color || '#38bdf8'}; flex:none;"></span>
-                <span style="font-size:10px; color:#94a3b8; font-weight:700; width:18px; flex:none;">#${idx + 1}</span>
+                <span style="font-size:11px; color:#94a3b8; font-weight:700; width:18px; flex:none;">#${idx + 1}</span>
                 <input type="text" value="${s.symbol || (idx + 1)}"
                     style="width:36px; height:24px; text-align:center; font-size:11px; font-weight:800; color:#38bdf8; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.35); border-radius:4px; padding:0 2px; flex:none;"
                     onchange="appCadTool.setBlockSymbol(${idx}, this.value)"
@@ -28191,11 +28202,11 @@ const appCadTool = {
                             style="width:80px; height:24px; font-size:11px; font-weight:700; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; background:${s.customArea !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customArea !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(74,222,128,0.35)'}; border-radius:4px; padding:0 4px; text-align:right;"
                             ${isActive ? 'readonly' : `onchange="appCadTool.editBlockArea(${idx}, this.value)"`}
                             title="${isActive ? 'Khối đang vẽ dở' : (s.customArea !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realArea?.toFixed(2) || '...'} m²)` : 'Chỉnh sửa diện tích làm đẹp số liệu')}">
-                        <span style="font-size:10.5px; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; font-weight:700;">m²</span>
+                        <span style="font-size:11px; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; font-weight:700;">m²</span>
                     </div>
-                    <span style="font-size:10px; color:#a7f3d0; flex:none; min-width:55px; text-align:right;">${(area/10000).toFixed(4)} ha</span>
+                    <span style="font-size:11px; color:#a7f3d0; flex:none; min-width:55px; text-align:right;">${(area/10000).toFixed(4)} ha</span>
                     ${showPct ? `
-                        <span style="display:inline-block; padding:1px 6px; font-size:10.5px; font-weight:800; color:#facc15; background:rgba(250,204,21,0.15); border:1px solid rgba(250,204,21,0.3); border-radius:4px; min-width:52px; text-align:center; flex:none;" title="Tỉ lệ so với tổng diện tích dự án">
+                        <span style="display:inline-block; padding:1px 6px; font-size:11px; font-weight:800; color:#facc15; background:rgba(250,204,21,0.15); border:1px solid rgba(250,204,21,0.3); border-radius:4px; min-width:52px; text-align:center; flex:none;" title="Tỉ lệ so với tổng diện tích dự án">
                             ${pctStr}
                         </span>
                     ` : ''}
@@ -28205,13 +28216,13 @@ const appCadTool = {
                             style="width:80px; height:24px; font-size:11px; font-weight:700; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; background:${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(56,189,248,0.35)'}; border-radius:4px; padding:0 4px; text-align:right;"
                             ${isActive ? 'readonly' : `onchange="appCadTool.editBlockPerimeter(${idx}, this.value)"`}
                             title="${isActive ? 'Tuyến đang vẽ dở' : (s.customPerimeter !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realPerimeter?.toFixed(2) || '...'} m)` : 'Chỉnh sửa chiều dài tuyến làm đẹp số liệu')}">
-                        <span style="font-size:10.5px; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; font-weight:700;">m</span>
+                        <span style="font-size:11px; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; font-weight:700;">m</span>
                     </div>
-                    ${showPct ? `<span style="font-size:10px; color:#64748b; min-width:52px; text-align:center;">Tuyến</span>` : ''}
+                    ${showPct ? `<span style="font-size:11px; color:#64748b; min-width:52px; text-align:center;">Tuyến</span>` : ''}
                 `}
                 ${(s.customArea !== undefined || s.customPerimeter !== undefined || (s.customEdges && Object.keys(s.customEdges).length > 0)) ? `
                     <button type="button" onclick="appCadTool.resetBlockCustomStats(${idx})" 
-                        style="background:rgba(250,204,21,0.2); border:1px solid rgba(250,204,21,0.4); color:#facc15; border-radius:4px; height:22px; padding:0 5px; font-size:10px; font-weight:700; cursor:pointer; flex:none;" 
+                        style="background:rgba(250,204,21,0.2); border:1px solid rgba(250,204,21,0.4); color:#facc15; border-radius:4px; height:22px; padding:0 5px; font-size:11px; font-weight:700; cursor:pointer; flex:none;" 
                         title="Khôi phục riêng khối này về số đo hình học thực tế">
                         🔄 Đặt lại
                     </button>
@@ -28399,7 +28410,7 @@ const appCadTool = {
                         <td style="text-align: right; padding-right: 10px; font-family: monospace; font-weight: 700; color: #f8fafc;">${(v.y || 0).toFixed(3)}</td>
                         <td style="text-align: right; padding-right: 10px; color: #a7f3d0; font-weight: 600;">${edgeLenStr}</td>
                         <td style="text-align: center;">
-                            <select class="cad-inline-select" style="height: 22px; max-width: 90px; font-size: 10.5px; padding: 0 4px;"
+                            <select class="cad-inline-select" style="height: 22px; max-width: 90px; font-size: 11px; padding: 0 4px;"
                                 title="Hình dạng ký hiệu của riêng đỉnh này (mặc định lấy theo lớp CAD)"
                                 onchange="appCadTool.setVertexGlyph(${sIdx}, ${vIdx}, 'style', this.value)">${glyphOpts}</select>
                         </td>
@@ -28412,9 +28423,9 @@ const appCadTool = {
                             <input type="checkbox" ${isShapeVisible ? 'checked' : ''} onchange="appCadTool.toggleShapeVerticesVisibility(${sIdx}, this.checked)" title="Bật/Tắt hiển thị đỉnh cho khối này" style="accent-color: #facc15; cursor: pointer; width: 14px; height: 14px;">
                         </td>
                         <td style="text-align: center; white-space: nowrap;">
-                            <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToVertex(${v.lat}, ${v.lng}, '${vName}')" title="Thu phóng đến đỉnh này trên bản đồ">🎯 Zoom</button>
-                            <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; ${hasOverride ? 'background: rgba(245,158,11,0.25); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4);' : 'background: rgba(51,65,85,0.4); color: #64748b; border: 1px solid #334155;'}" onclick="appCadTool.resetVertexGlyph(${sIdx}, ${vIdx})" title="Bỏ tùy chỉnh ký hiệu/màu riêng, quay về mặc định lớp">↺</button>
-                            <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteVertexFromTable(${sIdx}, ${vIdx})" title="Xóa đỉnh này">🗑️</button>
+                            <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToVertex(${v.lat}, ${v.lng}, '${vName}')" title="Thu phóng đến đỉnh này trên bản đồ">🎯 Zoom</button>
+                            <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; ${hasOverride ? 'background: rgba(245,158,11,0.25); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4);' : 'background: rgba(51,65,85,0.4); color: #64748b; border: 1px solid #334155;'}" onclick="appCadTool.resetVertexGlyph(${sIdx}, ${vIdx})" title="Bỏ tùy chỉnh ký hiệu/màu riêng, quay về mặc định lớp">↺</button>
+                            <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteVertexFromTable(${sIdx}, ${vIdx})" title="Xóa đỉnh này">🗑️</button>
                         </td>
                     </tr>
                 `;
@@ -28449,24 +28460,24 @@ const appCadTool = {
                 <tr>
                     <td style="text-align: center; font-weight: 700; color: #94a3b8;">${idx + 1}</td>
                     <td style="font-weight: 700; color: #f8fafc;">
-                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${a.id}', '${a.arrowText || ''}', 'arrow')" title="Nhấp để đổi tên mũi tên">
+                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${jsArg(a.id)}', '${jsArg(a.arrowText)}', 'arrow')" title="Nhấp để đổi tên mũi tên">
                             ✏️ ${a.arrowText || 'Ghi chú'}
                         </span>
                     </td>
                     <td style="text-align: center;">
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 10px; font-weight: 700; background: ${isDouble ? 'rgba(56,189,248,0.2)' : 'rgba(245,158,11,0.2)'}; color: ${isDouble ? '#38bdf8' : '#f59e0b'}; border: 1px solid ${isDouble ? 'rgba(56,189,248,0.4)' : 'rgba(245,158,11,0.4)'}; border-radius: 4px;" onclick="appCadTool.quickToggleArrowType('${a.id}')" title="Nhấp để chuyển đổi 1 đầu nhọn ↔ 2 đầu nhọn">
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 11px; font-weight: 700; background: ${isDouble ? 'rgba(56,189,248,0.2)' : 'rgba(245,158,11,0.2)'}; color: ${isDouble ? '#38bdf8' : '#f59e0b'}; border: 1px solid ${isDouble ? 'rgba(56,189,248,0.4)' : 'rgba(245,158,11,0.4)'}; border-radius: 4px;" onclick="appCadTool.quickToggleArrowType('${a.id}')" title="Nhấp để chuyển đổi 1 đầu nhọn ↔ 2 đầu nhọn">
                             ${isDouble ? '↔️ 2 đầu nhọn' : '🏹 1 đầu nhọn'}
                         </button>
                     </td>
                     <td style="text-align: right; padding-right: 10px; font-weight: 800; color: #4ade80;">${distM.toFixed(2)}</td>
-                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">X: ${vn1.X.toFixed(2)}<br>Y: ${vn1.Y.toFixed(2)}</td>
-                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">X: ${vn2.X.toFixed(2)}<br>Y: ${vn2.Y.toFixed(2)}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 11px; color: #cbd5e1;">X: ${vn1.X.toFixed(2)}<br>Y: ${vn1.Y.toFixed(2)}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 11px; color: #cbd5e1;">X: ${vn2.X.toFixed(2)}<br>Y: ${vn2.Y.toFixed(2)}</td>
                     <td style="text-align: center;">
                         <span style="display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: ${aColor}; border: 1px solid rgba(255,255,255,0.3); vertical-align: middle;"></span>
                     </td>
                     <td style="text-align: center; white-space: nowrap;">
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${a.id}')" title="Thu phóng đến mũi tên">🎯 Zoom</button>
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${a.id}')" title="Xóa mũi tên">🗑️</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${a.id}')" title="Thu phóng đến mũi tên">🎯 Zoom</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${a.id}')" title="Xóa mũi tên">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -28494,20 +28505,20 @@ const appCadTool = {
                 <tr>
                     <td style="text-align: center; font-weight: 700; color: #94a3b8;">${idx + 1}</td>
                     <td style="font-weight: 700; color: #f8fafc;">
-                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${b.id}', '${b.rectName || ''}', 'rect')" title="Nhấp để đổi tên khối nhà">
+                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${jsArg(b.id)}', '${jsArg(b.rectName)}', 'rect')" title="Nhấp để đổi tên khối nhà">
                             ✏️ ${b.rectName || 'Khối nhà'}
                         </span>
                     </td>
                     <td style="text-align: center; color: #f472b6; font-weight: 700;">${b.widthM || 5}m × ${b.lengthM || 10}m</td>
                     <td style="text-align: right; padding-right: 10px; font-weight: 800; color: #4ade80;">${area}</td>
-                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">X: ${vn.X.toFixed(2)}<br>Y: ${vn.Y.toFixed(2)}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 11px; color: #cbd5e1;">X: ${vn.X.toFixed(2)}<br>Y: ${vn.Y.toFixed(2)}</td>
                     <td style="text-align: center; font-weight: 600; color: #fde047;">${b.rotationDeg || 0}°</td>
                     <td style="text-align: center;">
                         <span style="display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: ${bColor}; border: 1px solid rgba(255,255,255,0.3); vertical-align: middle;"></span>
                     </td>
                     <td style="text-align: center; white-space: nowrap;">
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${b.id}')" title="Thu phóng đến khối nhà">🎯 Zoom</button>
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${b.id}')" title="Xóa khối nhà">🗑️</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${b.id}')" title="Thu phóng đến khối nhà">🎯 Zoom</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${b.id}')" title="Xóa khối nhà">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -28537,20 +28548,20 @@ const appCadTool = {
                 <tr>
                     <td style="text-align: center; font-weight: 700; color: #94a3b8;">${idx + 1}</td>
                     <td style="font-weight: 700; color: #f8fafc;">
-                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${c.id}', '${c.circleName || ''}', 'circle')" title="Nhấp để đổi tên vùng bảo vệ">
+                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${jsArg(c.id)}', '${jsArg(c.circleName)}', 'circle')" title="Nhấp để đổi tên vùng bảo vệ">
                             ✏️ ${c.circleName || 'Vùng đệm'}
                         </span>
                     </td>
                     <td style="text-align: right; padding-right: 10px; font-weight: 800; color: #a7f3d0;">${r.toFixed(2)}</td>
                     <td style="text-align: right; padding-right: 10px; color: #38bdf8;">${perim}</td>
                     <td style="text-align: right; padding-right: 10px; font-weight: 800; color: #4ade80;">${area}</td>
-                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">X: ${vn.X.toFixed(2)}<br>Y: ${vn.Y.toFixed(2)}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 11px; color: #cbd5e1;">X: ${vn.X.toFixed(2)}<br>Y: ${vn.Y.toFixed(2)}</td>
                     <td style="text-align: center;">
                         <span style="display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: ${cColor}; border: 1px solid rgba(255,255,255,0.3); vertical-align: middle;"></span>
                     </td>
                     <td style="text-align: center; white-space: nowrap;">
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${c.id}')" title="Thu phóng đến vùng bảo vệ">🎯 Zoom</button>
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${c.id}')" title="Xóa vùng bảo vệ">🗑️</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${c.id}')" title="Thu phóng đến vùng bảo vệ">🎯 Zoom</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${c.id}')" title="Xóa vùng bảo vệ">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -28580,19 +28591,19 @@ const appCadTool = {
                 <tr>
                     <td style="text-align: center; font-weight: 700; color: #94a3b8;">${idx + 1}</td>
                     <td style="font-weight: 700; color: #f8fafc;">
-                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${it.id}', '${nameVal.replace(/'/g, "\\'")}', '${it.type}')" title="Nhấp để đổi tiêu đề/nội dung">
+                        <span class="cad-editable-inline-cell" onclick="appCadTool.promptRenameAnnotation('${jsArg(it.id)}', '${jsArg(nameVal)}', '${jsArg(it.type)}')" title="Nhấp để đổi tiêu đề/nội dung">
                             ✏️ ${nameVal}
                         </span>
                     </td>
                     <td style="text-align: center;">${typeLabel}</td>
-                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">${vn.X.toFixed(3)}</td>
-                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 10px; color: #cbd5e1;">${vn.Y.toFixed(3)}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 11px; color: #cbd5e1;">${vn.X.toFixed(3)}</td>
+                    <td style="text-align: right; padding-right: 10px; font-family: monospace; font-size: 11px; color: #cbd5e1;">${vn.Y.toFixed(3)}</td>
                     <td style="text-align: center;">
                         <span style="display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: ${itColor}; border: 1px solid rgba(255,255,255,0.3); vertical-align: middle;"></span>
                     </td>
                     <td style="text-align: center; white-space: nowrap;">
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${it.id}')" title="Thu phóng đến vị trí">🎯 Zoom</button>
-                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 10px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${it.id}')" title="Xóa">🗑️</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.zoomToAnnotation('${it.id}')" title="Thu phóng đến vị trí">🎯 Zoom</button>
+                        <button type="button" class="btn-sm" style="height: 22px; padding: 0 5px; font-size: 11px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);" onclick="appCadTool.deleteAnnotationFromTable('${it.id}')" title="Xóa">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -28907,18 +28918,18 @@ const appCadTool = {
         return `
             <div style="margin-top:6px; padding:5px 0; border-top:1px dashed rgba(255,255,255,0.15);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                    <span style="font-size:10.5px; color:#cbd5e1; font-weight:700;">🔄 Góc xoay nhãn (0° - 360°):</span>
+                    <span style="font-size:11px; color:#cbd5e1; font-weight:700;">🔄 Góc xoay nhãn (0° - 360°):</span>
                     <b id="lblQuickRotVal" style="font-size:11px; color:#38bdf8;">${r}°</b>
                 </div>
                 <input type="range" id="rngQuickRot" min="0" max="360" step="5" value="${r}"
                     style="width:100%; height:4px; accent-color:#38bdf8; cursor:pointer;"
                     oninput="appCadTool.setQuickLabelRotation(this.value, '${targetType}', '${targetIdOrIdx}')">
                 <div style="display:flex; gap:3px; margin-top:4px;">
-                    <button type="button" onclick="appCadTool.setQuickLabelRotation(0, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">0°</button>
-                    <button type="button" onclick="appCadTool.setQuickLabelRotation(45, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">45°</button>
-                    <button type="button" onclick="appCadTool.setQuickLabelRotation(90, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">90°</button>
-                    <button type="button" onclick="appCadTool.setQuickLabelRotation(180, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">180°</button>
-                    <button type="button" onclick="appCadTool.setQuickLabelRotation(270, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:9.5px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">270°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(0, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:11px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">0°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(45, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:11px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">45°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(90, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:11px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">90°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(180, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:11px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">180°</button>
+                    <button type="button" onclick="appCadTool.setQuickLabelRotation(270, '${targetType}', '${targetIdOrIdx}')" style="flex:1; height:20px; font-size:11px; background:rgba(255,255,255,0.08); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:3px; cursor:pointer;">270°</button>
                 </div>
             </div>
         `;
@@ -29038,7 +29049,7 @@ const appCadTool = {
             const s = targetData.shape;
             title = `📍 Đỉnh [${s.shortName || s.name || 'Khối'}]`;
             currentName = v.name || '';
-            metaInfo = `<div style="font-size:10px; color:#94a3b8; margin-top:3px;">X: <b style="color:#f8fafc;">${(v.x || 0).toFixed(3)}</b> | Y: <b style="color:#f8fafc;">${(v.y || 0).toFixed(3)}</b></div>`;
+            metaInfo = `<div style="font-size:11px; color:#94a3b8; margin-top:3px;">X: <b style="color:#f8fafc;">${(v.x || 0).toFixed(3)}</b> | Y: <b style="color:#f8fafc;">${(v.y || 0).toFixed(3)}</b></div>`;
             extraControls = `
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Tên</button>
@@ -29051,7 +29062,7 @@ const appCadTool = {
             currentName = s.name || '';
             const rot = s.labelRotationDeg || 0;
             metaInfo = `
-                <div style="font-size:10px; color:#94a3b8; margin-top:2px; display:flex; justify-content:space-between;">
+                <div style="font-size:11px; color:#94a3b8; margin-top:2px; display:flex; justify-content:space-between;">
                     <span>Diện tích: <b style="color:#4ade80;">${s.stats?.areaFormatted || 0} m²</b></span>
                     <span>Ký hiệu: <b style="color:#38bdf8;">${s.symbol || String(targetData.shapeIndex + 1)}</b></span>
                 </div>
@@ -29061,7 +29072,7 @@ const appCadTool = {
                 <div style="display:flex; gap:6px; margin-top:8px;">
                     <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Khối</button>
                     <button type="button" onclick="appCadTool.openAreaTableModal(); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(255,255,255,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Mở bảng kê diện tích">📊</button>
-                    <button type="button" onclick="appCadTool.deleteBlock(${targetData.shapeIndex}); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa khối này">🗑️</button>
+                    <button type="button" onclick="AppState.leafletMap.closePopup(); appCadTool.deleteShape(${targetData.shapeIndex});" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa khối này">🗑️</button>
                 </div>
             `;
         } else if (targetData.type === 'arrow') {
@@ -29072,8 +29083,8 @@ const appCadTool = {
             const rot = ann.labelRotationDeg || 0;
             metaInfo = `
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-                    <span style="font-size:10px; color:#cbd5e1;">Kiểu mũi tên:</span>
-                    <button type="button" onclick="appCadTool.quickToggleArrowType('${ann.id}')" style="background:${isDouble ? '#0284c7' : '#f59e0b'}; color:#fff; border:none; border-radius:4px; font-size:10px; font-weight:700; padding:2px 8px; cursor:pointer;">
+                    <span style="font-size:11px; color:#cbd5e1;">Kiểu mũi tên:</span>
+                    <button type="button" onclick="appCadTool.quickToggleArrowType('${ann.id}')" style="background:${isDouble ? '#0284c7' : '#f59e0b'}; color:#fff; border:none; border-radius:4px; font-size:11px; font-weight:700; padding:2px 8px; cursor:pointer;">
                         ${isDouble ? '↔️ 2 đầu nhọn' : '🏹 1 đầu nhọn'} 🔄 Đổi
                     </button>
                 </div>
@@ -30410,7 +30421,7 @@ const appCadTool = {
             html += `
                 <div class="cad-cmd-suggest-item ${idx === 0 ? 'active' : ''}" data-cmd="${m.cmd}" onclick="appCadTool.selectCmdSuggestion('${m.cmd}')">
                     <b style="color:#38bdf8; font-family:monospace; min-width: 45px;">${m.cmd}</b>
-                    <span style="color:#e2e8f0; font-size:10.5px;">${m.desc}</span>
+                    <span style="color:#e2e8f0; font-size:11px;">${m.desc}</span>
                 </div>
             `;
         });
@@ -30632,12 +30643,12 @@ const appCadTool = {
             } else {
                 const allSelected = shapes.length > 0 && shapes.every(s => s.selected !== false);
                 content += `
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; padding:2px 4px; background:rgba(30,41,59,0.5); border-radius:4px; font-size:10.5px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; padding:2px 4px; background:rgba(30,41,59,0.5); border-radius:4px; font-size:11px;">
                     <label style="display:flex; align-items:center; gap:5px; cursor:pointer; color:#94a3b8; font-weight:600;">
                         <input type="checkbox" ${allSelected ? 'checked' : ''} onchange="appCadTool.toggleSelectAllBlocks(this.checked)" style="accent-color:#38bdf8; width:13px; height:13px;">
                         <span>Chọn xuất (${selectedCount}/${shapes.length})</span>
                     </label>
-                    <span style="font-size:9.5px; color:#64748b;">✏️ Sửa số để làm đẹp</span>
+                    <span style="font-size:11px; color:#64748b;">✏️ Sửa số để làm đẹp</span>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:4px;">`;
 
@@ -30660,26 +30671,26 @@ const appCadTool = {
                             style="accent-color:#38bdf8; width:13px; height:13px; cursor:pointer; flex:none;">
                         <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${s.color || '#38bdf8'}; flex:none;"></span>
                         <input type="text" value="${s.symbol || (idx + 1)}" 
-                            style="width:28px; height:20px; font-size:10px; font-weight:800; color:#38bdf8; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 2px; text-align:center; flex:none;"
+                            style="width:28px; height:20px; font-size:11px; font-weight:800; color:#38bdf8; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 2px; text-align:center; flex:none;"
                             onchange="appCadTool.setBlockSymbol(${idx}, this.value)"
                             title="Ký hiệu khối / STT trên bản vẽ">
                         <input type="text" value="${s.name || ''}" 
-                            style="flex:2; min-width:110px; max-width:240px; height:20px; font-size:10.5px; font-weight:600; color:#f8fafc; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 5px;"
+                            style="flex:2; min-width:110px; max-width:240px; height:20px; font-size:11px; font-weight:600; color:#f8fafc; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 5px;"
                             onchange="appCadTool.renameBlock(${idx}, this.value)"
                             title="Đổi tên khối / thửa đất (Hiển thị đầy đủ)">
                         <div style="display:flex; align-items:center; gap:2px; flex:none;">
                             ${isPoly ? `
                                 <input type="number" step="0.01" value="${area.toFixed(2)}"
-                                    style="width:62px; height:20px; font-size:10px; font-weight:700; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; background:${s.customArea !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customArea !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(74,222,128,0.3)'}; border-radius:3px; padding:0 3px; text-align:right;"
+                                    style="width:62px; height:20px; font-size:11px; font-weight:700; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; background:${s.customArea !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customArea !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(74,222,128,0.3)'}; border-radius:3px; padding:0 3px; text-align:right;"
                                     onchange="appCadTool.editBlockArea(${idx}, this.value)"
                                     title="${s.customArea !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realArea?.toFixed(2) || '...'} m²)` : 'Chỉnh sửa diện tích khối này để làm đẹp số liệu'}">
-                                <span style="font-size:9.5px; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; font-weight:600;">m²</span>
+                                <span style="font-size:11px; color:${s.customArea !== undefined ? '#facc15' : '#4ade80'}; font-weight:600;">m²</span>
                             ` : `
                                 <input type="number" step="0.01" value="${perim.toFixed(2)}"
-                                    style="width:62px; height:20px; font-size:10px; font-weight:700; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; background:${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(56,189,248,0.3)'}; border-radius:3px; padding:0 3px; text-align:right;"
+                                    style="width:62px; height:20px; font-size:11px; font-weight:700; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; background:${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.15)' : 'rgba(15,23,42,0.85)'}; border:1px solid ${s.customPerimeter !== undefined ? 'rgba(250,204,21,0.5)' : 'rgba(56,189,248,0.3)'}; border-radius:3px; padding:0 3px; text-align:right;"
                                     onchange="appCadTool.editBlockPerimeter(${idx}, this.value)"
                                     title="${s.customPerimeter !== undefined ? `Đã chỉnh sửa (Đo thực tế: ${s.stats?.realPerimeter?.toFixed(2) || '...'} m)` : 'Chỉnh sửa chiều dài đoạn tuyến'}">
-                                <span style="font-size:9.5px; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; font-weight:600;">m</span>
+                                <span style="font-size:11px; color:${s.customPerimeter !== undefined ? '#facc15' : '#38bdf8'}; font-weight:600;">m</span>
                             `}
                         </div>
                         <button onclick="appCadTool.zoomToShape(${idx})" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Thu phóng đến khối này">🔍</button>
@@ -30704,12 +30715,12 @@ const appCadTool = {
             } else {
                 const isAllVertsVisible = this.displaySettings?.showVertices === true;
                 content += `
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; padding:2px 4px; background:rgba(30,41,59,0.5); border-radius:4px; font-size:10.5px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; padding:2px 4px; background:rgba(30,41,59,0.5); border-radius:4px; font-size:11px;">
                     <label style="display:flex; align-items:center; gap:5px; cursor:pointer; color:#94a3b8; font-weight:600;">
                         <input type="checkbox" ${isAllVertsVisible ? 'checked' : ''} onchange="appCadTool.toggleAllVerticesVisible(this.checked)" style="accent-color:#38bdf8; width:13px; height:13px;">
                         <span>Hiện tất cả đỉnh trên map</span>
                     </label>
-                    <span style="font-size:9.5px; color:#64748b;">Click tên để sửa</span>
+                    <span style="font-size:11px; color:#64748b;">Click tên để sửa</span>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto;">`;
 
@@ -30718,12 +30729,12 @@ const appCadTool = {
                         content += `
                         <div style="display:flex; align-items:center; gap:4px; background:rgba(30,41,59,0.7); border:1px solid rgba(56,189,248,0.2); border-radius:5px; padding:3px 5px;">
                             <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${s.color || '#38bdf8'}; flex:none;" title="${s.shortName || s.name}"></span>
-                            <span style="font-size:9.5px; color:#94a3b8; font-weight:700; width:22px; flex:none;">[${s.symbol || (sIdx + 1)}]</span>
+                            <span style="font-size:11px; color:#94a3b8; font-weight:700; width:22px; flex:none;">[${s.symbol || (sIdx + 1)}]</span>
                             <input type="text" value="${v.name}" 
-                                style="width:48px; height:20px; font-size:10.5px; font-weight:700; color:#38bdf8; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 4px; text-align:center; flex:none;"
+                                style="width:48px; height:20px; font-size:11px; font-weight:700; color:#38bdf8; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 4px; text-align:center; flex:none;"
                                 onchange="appCadTool.promptRenameVertex(${sIdx}, ${vIdx}, this.value)"
                                 title="Đổi tên đỉnh trực tiếp">
-                            <span style="flex:1; font-size:9.5px; color:#cbd5e1; font-family:monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            <span style="flex:1; font-size:11px; color:#cbd5e1; font-family:monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                                 X:${(v.x || 0).toFixed(1)} Y:${(v.y || 0).toFixed(1)}
                             </span>
                             <button onclick="appCadTool.zoomToVertex(${v.lat}, ${v.lng}, '${v.name}')" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Thu phóng đến đỉnh này">🔍</button>
@@ -30758,14 +30769,14 @@ const appCadTool = {
 
                     content += `
                     <div style="display:flex; align-items:center; gap:4px; background:rgba(30,41,59,0.7); border:1px solid ${isDouble ? 'rgba(56,189,248,0.3)' : 'rgba(245,158,11,0.3)'}; border-radius:5px; padding:3px 5px;">
-                        <button onclick="appCadTool.quickToggleArrowType('${a.id}')" style="background:${isDouble ? 'rgba(2,132,199,0.3)' : 'rgba(245,158,11,0.2)'}; color:${isDouble ? '#38bdf8' : '#fbbf24'}; border:1px solid ${isDouble ? '#0284c7' : '#f59e0b'}; border-radius:3px; font-size:9.5px; font-weight:700; padding:1px 4px; cursor:pointer; flex:none;" title="Click để đổi kiểu 1 đầu / 2 đầu nhọn">
+                        <button onclick="appCadTool.quickToggleArrowType('${a.id}')" style="background:${isDouble ? 'rgba(2,132,199,0.3)' : 'rgba(245,158,11,0.2)'}; color:${isDouble ? '#38bdf8' : '#fbbf24'}; border:1px solid ${isDouble ? '#0284c7' : '#f59e0b'}; border-radius:3px; font-size:11px; font-weight:700; padding:1px 4px; cursor:pointer; flex:none;" title="Click để đổi kiểu 1 đầu / 2 đầu nhọn">
                             ${isDouble ? '↔️ 2 đầu' : '🏹 1 đầu'}
                         </button>
                         <input type="text" value="${(a.arrowText || '').replace(/"/g, '&quot;')}" 
-                            style="flex:1; min-width:80px; height:20px; font-size:10.5px; font-weight:600; color:#f8fafc; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 4px;"
+                            style="flex:1; min-width:80px; height:20px; font-size:11px; font-weight:600; color:#f8fafc; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:3px; padding:0 4px;"
                             onchange="appCadTool.promptRenameAnnotation('${a.id}', this.value)"
                             title="Sửa chữ / cự ly ghi chú">
-                        <span style="font-size:9.5px; color:#a7f3d0; font-weight:700; flex:none;">${distM.toFixed(1)}m</span>
+                        <span style="font-size:11px; color:#a7f3d0; font-weight:700; flex:none;">${distM.toFixed(1)}m</span>
                         <button onclick="appCadTool.zoomToAnnotation('${a.id}')" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Thu phóng đến mũi tên">🔍</button>
                         <button onclick="appCadTool.deleteAnnotationFromTable('${a.id}')" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Xóa mũi tên">🗑️</button>
                     </div>`;
@@ -30790,10 +30801,10 @@ const appCadTool = {
                     <div style="display:flex; align-items:center; gap:4px; background:rgba(30,41,59,0.7); border:1px solid rgba(236,72,153,0.3); border-radius:5px; padding:3px 5px;">
                         <span style="font-size:11px; flex:none;">🏠</span>
                         <input type="text" value="${(b.rectName || '').replace(/"/g, '&quot;')}" 
-                            style="flex:1; min-width:80px; height:20px; font-size:10.5px; font-weight:600; color:#fce7f3; background:rgba(15,23,42,0.85); border:1px solid rgba(236,72,153,0.25); border-radius:3px; padding:0 4px;"
+                            style="flex:1; min-width:80px; height:20px; font-size:11px; font-weight:600; color:#fce7f3; background:rgba(15,23,42,0.85); border:1px solid rgba(236,72,153,0.25); border-radius:3px; padding:0 4px;"
                             onchange="appCadTool.promptRenameAnnotation('${b.id}', this.value)"
                             title="Sửa tên khối nhà">
-                        <span style="font-size:9.5px; color:#f472b6; font-weight:700; flex:none;">${b.widthM || 0}x${b.lengthM || 0}m (${b.rectArea || 0}m²)</span>
+                        <span style="font-size:11px; color:#f472b6; font-weight:700; flex:none;">${b.widthM || 0}x${b.lengthM || 0}m (${b.rectArea || 0}m²)</span>
                         <button onclick="appCadTool.zoomToAnnotation('${b.id}')" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Thu phóng đến khối nhà">🔍</button>
                         <button onclick="appCadTool.deleteAnnotationFromTable('${b.id}')" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Xóa khối nhà">🗑️</button>
                     </div>`;
@@ -30819,10 +30830,10 @@ const appCadTool = {
                     <div style="display:flex; align-items:center; gap:4px; background:rgba(30,41,59,0.7); border:1px solid rgba(16,185,129,0.3); border-radius:5px; padding:3px 5px;">
                         <span style="font-size:11px; flex:none;">⭕</span>
                         <input type="text" value="${(c.circleName || '').replace(/"/g, '&quot;')}" 
-                            style="flex:1; min-width:80px; height:20px; font-size:10.5px; font-weight:600; color:#a7f3d0; background:rgba(15,23,42,0.85); border:1px solid rgba(16,185,129,0.25); border-radius:3px; padding:0 4px;"
+                            style="flex:1; min-width:80px; height:20px; font-size:11px; font-weight:600; color:#a7f3d0; background:rgba(15,23,42,0.85); border:1px solid rgba(16,185,129,0.25); border-radius:3px; padding:0 4px;"
                             onchange="appCadTool.promptRenameAnnotation('${c.id}', this.value)"
                             title="Sửa tên bán kính bảo vệ">
-                        <span style="font-size:9.5px; color:#6ee7b7; font-weight:700; flex:none;">R=${c.radiusM || 10}m (${cArea}m²)</span>
+                        <span style="font-size:11px; color:#6ee7b7; font-weight:700; flex:none;">R=${c.radiusM || 10}m (${cArea}m²)</span>
                         <button onclick="appCadTool.zoomToAnnotation('${c.id}')" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Thu phóng đến bán kính">🔍</button>
                         <button onclick="appCadTool.deleteAnnotationFromTable('${c.id}')" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:11px; padding:1px; flex:none;" title="Xóa bán kính">🗑️</button>
                     </div>`;
@@ -30836,7 +30847,7 @@ const appCadTool = {
             const curStats = this.calculateAreaAndPerimeter();
             const isPoly = this.mode === 'polygon';
             content += `
-            <div style="margin-top:6px; padding:4px 6px; background:rgba(6,182,212,0.12); border:1px dashed #06b6d4; border-radius:6px; font-size:10.5px; color:#67e8f9; display:flex; align-items:center; justify-content:space-between;">
+            <div style="margin-top:6px; padding:4px 6px; background:rgba(6,182,212,0.12); border:1px dashed #06b6d4; border-radius:6px; font-size:11px; color:#67e8f9; display:flex; align-items:center; justify-content:space-between;">
                 <span>✏️ <b>Đang vẽ:</b> ${this.vertices.length} đỉnh</span>
                 <span style="font-weight:700;">${isPoly ? curStats.areaFormatted + ' m²' : curStats.perimeterFormatted + ' m'}</span>
             </div>`;
@@ -31161,6 +31172,7 @@ const appCadTool = {
     importExcel(event) {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
+        if (/\.(xlsx|xls)$/i.test(file.name) && needLib('xlsx', () => this.importExcel(event))) return;
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -31765,7 +31777,7 @@ const appCadTool = {
         // 3. Xác định và đồng bộ tên dự án tương ứng với file nạp
         let targetProj = AppState.currentProject;
         if (fileName && (!appendMode || !targetProj)) {
-            const cleanName = fileName.replace(/(\.(csv|xlsx|xls|txt))+$/i, "").trim();
+            const cleanName = cleanProjectName(fileName.replace(/(\.(csv|xlsx|xls|txt))+$/i, ""));
             targetProj = cleanName ? `${cleanName}.csv` : (targetProj || `DuAn_${Date.now().toString().slice(-4)}.csv`);
         }
         if (!targetProj) targetProj = `DuAn_${Date.now().toString().slice(-4)}.csv`;
@@ -32012,6 +32024,7 @@ const appCadTool = {
             showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất bảng tính Excel!", true);
             return;
         }
+        if (format === 'xlsx' && needLib('xlsx', () => this.exportAreaExcel(format))) return;
 
         const meta = this._getExportMeta();
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Project";
@@ -32839,7 +32852,7 @@ const appCadTool = {
                         <span>⚡</span>
                         <span><b>Tự động tối ưu:</b> Đã chọn tỷ lệ chuẩn <b>1:${L.scaleVal}</b> trên khổ ${L.W_paper === 420 ? 'A3' : 'A4'} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
                     </div>
-                    <span style="background: rgba(56,189,248,0.2); padding: 2px 8px; border-radius: 4px; color: #e0f2fe; font-size: 10px;">Chuẩn kỹ thuật (To, rõ ~85% khung nhìn)</span>
+                    <span style="background: rgba(56,189,248,0.2); padding: 2px 8px; border-radius: 4px; color: #e0f2fe; font-size: 11px;">Chuẩn kỹ thuật (To, rõ ~85% khung nhìn)</span>
                 </div>
             `;
         } else if (L.fits) {
@@ -33634,6 +33647,7 @@ const appCadTool = {
             showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất bản vẽ PDF!", true);
             return;
         }
+        if (needLib('jspdf', () => this.exportPdf())) return;
 
         const meta = this._getExportMeta();
         const L = this._calculatePaperLayout(selectedShapes, meta);
@@ -34405,7 +34419,7 @@ const appCadTool = {
       .layer-ranh { fill: none; stroke: #1565C0; stroke-width: 2.5; }
       .layer-ky-hieu { fill: #ef4444; stroke: #ffffff; stroke-width: 1.2; }
       .layer-ky-hieu-text { font-size: 11px; fill: #0f172a; font-weight: bold; }
-      .layer-kich-thuoc { font-size: 10px; fill: #b45309; font-weight: bold; }
+      .layer-kich-thuoc { font-size: 11px; fill: #b45309; font-weight: bold; }
       .layer-dien-tich { font-size: 13px; fill: #0369a1; font-weight: bold; }
       .layer-bang-ke { fill: none; stroke: #cbd5e1; stroke-width: 1; }
       .layer-bang-ke-text { font-size: 11px; fill: #1e293b; }
@@ -36222,7 +36236,7 @@ const appRouting = {
             html += `
                 <div class="routing-point-row">
                     <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                        <span style="display: inline-block; padding: 1px 6px; font-size: 10px; font-weight: 700; border-radius: 4px; background: ${tagColor}; color: #ffffff;">
+                        <span style="display: inline-block; padding: 1px 6px; font-size: 11px; font-weight: 700; border-radius: 4px; background: ${tagColor}; color: #ffffff;">
                             ${idx + 1}
                         </span>
                         <div style="min-width: 0;">
@@ -36998,6 +37012,14 @@ window.addEventListener('DOMContentLoaded', () => {
     if (typeof appDateTime !== 'undefined') appDateTime.init();
     if (typeof appDonate !== 'undefined') appDonate.init();
     appSettings.applyToUi();
+    appSettings.checkKttCorrections();
+
+    // Xin trình duyệt giữ dữ liệu lâu dài (không tự xóa khi máy thiếu dung lượng / Safari sau 7 ngày không dùng).
+    try {
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persisted().then(already => already || navigator.storage.persist()).catch(() => {});
+        }
+    } catch (e) {}
     appNav.updateBanner();
 
     // Lưu chắc chắn khi người dùng đóng tab / chuyển app (PWA trên di động)
@@ -37055,7 +37077,7 @@ const appI18n = {
             'home.no_match': 'Không có chức năng nào khớp.',
             'home.gps_on': 'Bật GPS',
             'home.gps_on_sub': 'để xem tọa độ VN-2000 tại vị trí đang đứng',
-            'dash.btn_pins': '⭐ Đổi ghim',
+            'dash.btn_pins': 'Tùy chỉnh',
             'dash.all_tools': 'Công Cụ Kỹ Thuật & Tiện Ích Khác',
             'dash.all_tools_sub': 'Nghiệp vụ trắc địa & đồ họa chuyên sâu',
             'dash.search_placeholder': 'Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)',
@@ -37093,7 +37115,17 @@ const appI18n = {
             // Settings - General Tab
             'settings.general.lang_label': '🌐 Ngôn ngữ hiển thị (Language):',
             'settings.general.theme_label': '🎨 Giao diện màu sắc (Theme Mode):',
-            'settings.general.layout_label': '📱 Bố cục Màn hình chính:',
+            'settings.general.layout_label': '🏠 Trang chủ:',
+            'settings.general.home_customize': 'Chọn chức năng hiện trên Trang chủ',
+            'pin.tab_home': '🏠 Trang chủ',
+            'pin.tab_taskbar': '📱 Thanh dưới',
+            'pin.save': 'Lưu thay đổi',
+            'pin.close': 'Đóng',
+            'sw.update_text': 'Có phiên bản mới của ứng dụng.',
+            'sw.update_btn': 'Cập nhật',
+            'sw.update_later': 'Để sau',
+            'settings.storage.secret': 'Mã bí mật (tùy chọn):',
+            'settings.storage.secret_hint': 'Ai có địa chỉ Web App đều gửi được dữ liệu vào Sheet. Đặt cùng một mã ở đây và ở dòng SECRET của script để chặn việc đó.',
             'settings.general.coord_format_label': '📐 Định dạng hiển thị Tọa độ Địa lý (WGS-84):',
             'settings.general.decimals_label': '🎯 Độ chính xác Tọa độ phẳng VN-2000 (m):',
             'settings.general.haptic_title': '📳 Rung phản hồi (Haptic Feedback)',
@@ -37185,6 +37217,12 @@ const appI18n = {
             'feature.rtk': 'RTK Bluetooth Rover',
             'feature.about': 'Thông Tin & Cẩm Nang',
             'feature.cad_tool': 'Đo Vẽ MiniCAD',
+            'feature.routing': 'Tối Ưu Lộ Trình',
+            'feature.batch': 'Chuyển Đổi Hàng Loạt',
+            'feature.rezone': 'Đổi KTT / Múi',
+            'feature.transform_map': 'Chấm Tọa Độ',
+            'feature.geodesy': 'Bài Toán Trắc Địa',
+            'feature.settings_ktt': 'Kinh Tuyến Trục',
 
             // System Toasts
             'toast.lang_vi': '🇻🇳 Đã chuyển sang Tiếng Việt',
@@ -37211,7 +37249,7 @@ const appI18n = {
             'home.no_match': 'No matching feature.',
             'home.gps_on': 'Turn on GPS',
             'home.gps_on_sub': 'to see VN-2000 coordinates where you stand',
-            'dash.btn_pins': '⭐ Pins',
+            'dash.btn_pins': 'Customize',
             'dash.all_tools': 'Technical Tools & Utilities',
             'dash.all_tools_sub': 'Advanced surveying & geodetic graphics',
             'dash.search_placeholder': 'Quick search (cad, rtk, cut/fill, stakeout, camera...)',
@@ -37249,7 +37287,17 @@ const appI18n = {
             // Settings - General Tab
             'settings.general.lang_label': '🌐 Display Language:',
             'settings.general.theme_label': '🎨 Theme Mode:',
-            'settings.general.layout_label': '📱 Home Screen Layout:',
+            'settings.general.layout_label': '🏠 Home screen:',
+            'settings.general.home_customize': 'Choose features shown on Home',
+            'pin.tab_home': '🏠 Home',
+            'pin.tab_taskbar': '📱 Bottom bar',
+            'pin.save': 'Save changes',
+            'pin.close': 'Close',
+            'sw.update_text': 'A new version of the app is available.',
+            'sw.update_btn': 'Update',
+            'sw.update_later': 'Later',
+            'settings.storage.secret': 'Shared secret (optional):',
+            'settings.storage.secret_hint': 'Anyone with the Web App URL can send data to your Sheet. Set the same secret here and on the SECRET line of the script to block that.',
             'settings.general.coord_format_label': '📐 Geodetic Coordinates Format (WGS-84):',
             'settings.general.decimals_label': '🎯 VN-2000 Grid Precision (m):',
             'settings.general.haptic_title': '📳 Haptic Feedback',
@@ -37341,6 +37389,12 @@ const appI18n = {
             'feature.rtk': 'Bluetooth RTK',
             'feature.about': 'Manual & Info',
             'feature.cad_tool': 'Standalone MiniCAD',
+            'feature.routing': 'Route Planner',
+            'feature.batch': 'Batch Conversion',
+            'feature.rezone': 'Change CM / Zone',
+            'feature.transform_map': 'Pick on Map',
+            'feature.geodesy': 'Survey Calculations',
+            'feature.settings_ktt': 'Central Meridian',
 
             // System Toasts
             'toast.lang_vi': '🇻🇳 Switched to Vietnamese',
@@ -37362,7 +37416,6 @@ const appI18n = {
         "Nhập X,Y": "Input X,Y",
         "Khép góc [CL]": "Close Polygon [CL]",
         "Sổ đo": "Survey Book",
-        "Sổ Đo": "Survey Book",
         "Múi chiếu": "Projection Zone",
         "Kinh tuyến trục": "Central Meridian",
         "Chung": "General",
@@ -37403,11 +37456,11 @@ const appI18n = {
         "Bảng nhập sửa mốc trực tiếp, dán Excel, nhập file CSV/Excel": "Direct point table editing, paste Excel, import CSV/Excel file",
         "Chấm lấy tọa độ vệ tinh và xem vị trí điểm chuyển đổi": "Pick satellite coordinates and view converted location",
         "📑 ĐƯA VÀO BẢNG ĐA ĐIỂM (1.2) ➔": "📑 ADD TO MULTI-POINT TABLE (1.2) ➔",
-        "📥 1. Công Cụ Nạp & Nhập Dữ Liệu Tọa Độ": "📥 1. Coordinate Input & Import Tools",
+        "📥 Nạp dữ liệu tọa độ": "📥 Load coordinate data",
         "🔄 Nguồn: WGS-84 ➔ VN-2000": "🔄 Source: WGS-84 ➔ VN-2000",
         "📸 Quét Ảnh (OCR)": "📸 Image Scanner (OCR)",
         "📂 Nhập file (CSV/Excel)": "📂 Import File (CSV/Excel)",
-        "📋 2. Nhập & Điều Chỉnh Trực Tiếp Dữ Liệu Tọa Độ": "📋 2. Direct Coordinate Entry & Editing",
+        "📋 Bảng tọa độ": "📋 Coordinate table",
         "Chưa có điểm nào trong bảng. Bấm": "No points in table yet. Click",
         "\"➕ Thêm mốc\"": "\"➕ Add Point\"",
         "để gõ trực tiếp, hoặc nhấn": "to type directly, or click",
@@ -37505,7 +37558,9 @@ const appI18n = {
         "↘️ Dưới - Phải": "↘️ Bottom - Right",
         "↖️ Trên - Trái": "↖️ Top - Left",
         "↗️ Trên - Phải": "↗️ Top - Right",
-        "📸 CHỤP ẢNH ĐÓNG DẤU": "📸 CAPTURE GEOTAGGED PHOTO",
+        "📸 Chụp ảnh đóng dấu": "📸 Capture stamped photo",
+        "⏺️ Quay video": "⏺️ Record video",
+        "⏹️ Dừng quay": "⏹️ Stop recording",
         "🖼️ Chọn Tệp Ảnh Từ Thiết Bị": "🖼️ Pick Image From Device",
         "📷 Gọi Camera Mặc Định Máy": "📷 Open System Camera",
         "✅ Ảnh Nghiệm Thu Vừa Đóng Dấu": "✅ Just Stamped Survey Photo",
@@ -37656,7 +37711,6 @@ const appI18n = {
         "4.1 Camera khảo sát đóng dấu tọa độ": "4.1 Field Survey Camera with Coordinates",
         "Ủng hộ tác giả": "Support Developer",
         "5.7 Cẩm Nang & Sổ Tay Hướng Dẫn": "5.7 User Handbook & Guidebook",
-        "Chi tiết 14 chức năng thực địa kèm ảnh lớn": "Details of 14 field operations with large screenshots",
         "⭐ Cài Đặt Ghim Nhanh": "⭐ Quick Pin Settings",
         "⭐ 4 Khối Trang Chủ": "⭐ 4 Home Screen Tiles",
         "📱 3 Nút Taskbar Đáy": "📱 3 Bottom Taskbar Buttons",
@@ -37707,7 +37761,6 @@ const appI18n = {
         "📷 Chi Tiết Ảnh Nghiệm Thu": "📷 Inspection Photo Details",
         "💾 Tải về máy": "💾 Download to Device",
         "📋 Lưu vào sổ đo": "📋 Save to Survey Book",
-        "XUẤT DỮ LIỆU ĐA ĐỊNH DẠNG": "MULTI-FORMAT DATA EXPORT",
         "BƯỚC 1: XEM TRƯỚC BẢN VẼ (PREVIEW)": "STEP 1: DRAWING PREVIEW",
         "Tỷ lệ 1:1.000": "Scale 1:1,000",
         "KTT: 105°45' • Múi 3°": "CM: 105°45' • Zone 3°",
@@ -37909,7 +37962,7 @@ const appI18n = {
         "Bình Định (108°15')": "Binh Dinh (108°15')",
         "Bình Dương (105°45')": "Binh Duong (105°45')",
         "Bình Phước (106°15')": "Binh Phuoc (106°15')",
-        "Bình Thuận (107°45')": "Binh Thuan (107°45')",
+        "Bình Thuận (108°30')": "Binh Thuan (108°30')",
         "Cà Mau (104°30')": "Ca Mau (104°30')",
         "Cao Bằng (105°45')": "Cao Bang (105°45')",
         "Đắc Nông (108°30')": "Dak Nong (108°30')",
@@ -38141,14 +38194,14 @@ const appI18n = {
         "🗺️ Bản đồ lớn (65%)": "🗺️ Large Map (65%)",
         "⚖️ Chia đôi (50/50)": "⚖️ Split (50/50)",
         "📝 Chỉ Form": "📝 Form Only",
-        "📍 Chuyển Đổi Đơn Điểm": "📍 Single Point Transformation",
-        "📑 Chuyển Đổi Đa Điểm (": "📑 Batch / Multi-point Transformation (",
+        "📍 Đơn điểm": "📍 Single point",
+        "📑 Nhiều điểm (": "📑 Multiple points (",
         "🗺️ Bản Đồ Lớn Trực Quan": "🗺️ Interactive Live Map",
-        "⚙️ 1. Cấu hình Kinh tuyến trục": "⚙️ 1. Central Meridian Configuration",
+        "⚙️ Kinh tuyến trục": "⚙️ Central meridian",
         "Đổi KTT": "Change CM",
         "(tương đương": "(equivalent to",
         "Múi 6° (k0 = 0.9996)": "Zone 6° (k0 = 0.9996)",
-        "🌐 2. Tọa độ WGS-84 (Toàn cầu)": "🌐 2. WGS-84 Coordinates (Global)",
+        "🌐 Tọa độ WGS-84": "🌐 WGS-84 coordinates",
         "Vĩ độ (Lat / B):": "Latitude (Lat / B):",
         "Kinh độ (Long / L):": "Longitude (Long / L):",
         "🎯 Chấm điểm bản đồ": "🎯 Pick on Map",
@@ -38163,14 +38216,14 @@ const appI18n = {
         "Kinh tuyến trục:": "central meridian:",
         "💾 LƯU VÀO SỔ ĐO": "💾 SAVE TO SURVEY BOOK",
         "🗺️ XEM TRÊN BẢN ĐỒ": "🗺️ VIEW ON MAP",
-        "📍 3. Tọa độ phẳng VN-2000 (X - Y)": "📍 3. VN-2000 Grid Coordinates (X - Y)",
+        "📍 Tọa độ phẳng VN-2000 (X, Y)": "📍 VN-2000 grid coordinates (X, Y)",
         "Tọa độ ngang X (Trục Bắc ~ 7 chữ số):": "North Coordinate X (North axis ~ 7 digits):",
         "Tọa độ đứng Y (Trục Đông ~ 6 chữ số):": "East Coordinate Y (East axis ~ 6 digits):",
         "📋 Sao chép": "📋 copy",
         "🔄 Đảo Trục X ⇄ Y": "🔄 Dao Truc X ⇄ Y",
         "🗑️ Xóa": "🗑️ delete",
         "🗺️ XEM VỊ TRÍ TRÊN BẢN ĐỒ": "🗺️ VIEW POSITION ON MAP",
-        "💾 4. Lưu Mốc Vào Sổ Đo (CSV)": "💾 4. Save Point to Survey Book (CSV)",
+        "💾 Lưu mốc vào sổ đo": "💾 Save point to field book",
         "Tên mốc đo:": "Point Name:",
         "Ghi chú hiện trường:": "Field Notes:",
         "💾 LƯU ĐIỂM VÀO SỔ ĐO": "💾 SAVE POINT TO SURVEY BOOK",
@@ -38194,7 +38247,7 @@ const appI18n = {
         "Tọa độ 1 (X / Lat)": "Coordinate 1 (X / Lat)",
         "Tọa độ 2 (Y / Lng)": "Coordinate 2 (Y / Lng)",
         "Xóa": "Delete",
-        "⚙️ 3. Tùy Chọn & Thực Hiện Chuyển Đổi": "⚙️ 3. Options & Execute Transformation",
+        "⚙️ Tùy chọn & chuyển đổi": "⚙️ Options & convert",
         "💾 Lưu các điểm đã chuyển đổi vào Dự án": "💾 save the diem da transform into project",
         "Chọn dự án đích để lưu kết quả:": "Select target project to save results:",
         "➕ Mới": "➕ Moi",
@@ -38268,8 +38321,8 @@ const appI18n = {
         "TP. Hồ Chí Minh": "Ho Chi Minh City",
         "X (Bắc):": "X (Bac):",
         "Y (Đông):": "Y (East):",
-        "💾 LƯU NHANH TỌA ĐỘ GPS": "💾 QUICK SAVE GPS COORDS",
-        "🗺️ XEM VỊ TRÍ GPS TRÊN BẢN ĐỒ": "🗺️ VIEW GPS LOCATION ON MAP",
+        "💾 Lưu nhanh tọa độ GPS": "💾 Quick-save GPS position",
+        "🗺️ Xem vị trí GPS trên bản đồ": "🗺️ Show GPS position on map",
         "⏸️ Tạm dừng GPS": "⏸️ Pause GPS",
         "📍 Đa điểm": "📍 Multi Points",
         "Chạm bản đồ để chấm điểm": "Tap map to pick point",
@@ -38372,7 +38425,7 @@ const appI18n = {
         "📍 Cách vị trí đứng:": "📍 Distance from current location:",
         "📌 Nạp tọa độ": "📌 Load Coordinates",
         "💾 Lưu mốc": "💾 save point",
-        "🎯 1. Chọn Mốc Cần Cắm Thực Địa": "🎯 1. select point Can Cam field",
+        "🎯 Chọn mốc cần cắm": "🎯 Choose point to stake out",
         "🔄 Cập nhật": "🔄 Cap nhat",
         "Chọn mốc từ sổ đo dự án:": "select point tu Field Book project:",
         "Mốc mục tiêu:": "point item tieu:",
@@ -38384,7 +38437,7 @@ const appI18n = {
         "🔵 Vị trí của bạn (GPS)": "🔵 Your Location (GPS)",
         "🚩 Mốc mục tiêu": "🚩 point item tieu",
         "➖ Đường dẫn hướng": "➖ Duong dan direction",
-        "🧭 2. Radar Dẫn Hướng & Cự Ly Thực Tế": "🧭 2. radar Dan direction & distance Thuc Te",
+        "🧭 Dẫn hướng & cự ly": "🧭 Guidance & distance",
         "🔊 Âm bíp: Bật": "🔊 Am bip: enable",
         "Đ (E)": "D (E)",
         "KHOẢNG CÁCH TỚI MỐC:": "distance TOI point:",
@@ -38422,7 +38475,7 @@ const appI18n = {
         "phân loại theo cột": "phan loai according to column",
         "Dự Án": "project",
         "☁️ ĐỒNG BỘ DỰ ÁN HIỆN TẠI LÊN GOOGLE SHEETS": "☁️ SYNC CURRENT PROJECT TO GOOGLE SHEETS",
-        "🌐 ĐỒNG BỘ TẤT CẢ DỰ ÁN LÊN CHUNG 1 SHEET": "🌐 SYNC ALL PROJECTS TO SINGLE SHEET",
+        "🌐 Đồng bộ tất cả dự án lên một Sheet": "🌐 Sync all projects to one Sheet",
         "📊 Mở Sheet": "📊 Open Sheet",
         "📋 Lấy Mã Script": "📋 Lay Ma Script",
         "⚙️ Cài Đặt": "⚙️ settings",
@@ -38435,7 +38488,7 @@ const appI18n = {
         "📥 Xuất CSV / Excel": "📥 export CSV / Excel",
         "📐 Bản vẽ AutoCAD (.dwg)": "📐 AutoCAD Drawing (.dwg)",
         "🌍 Xuất Google Earth (.KML)": "🌍 export Google Earth (.KML)",
-        "📏 1. Tính Cự Ly & Góc Phương Vị (A ➔ B)": "📏 1. Compute Distance & Azimuth (A ➔ B)",
+        "📏 Cự ly & phương vị (A ➔ B)": "📏 Distance & bearing (A ➔ B)",
         "Chọn Mốc A (hoặc nhập X, Y):": "select point A (or import X, Y):",
         "-- Chọn mốc từ sổ đo --": "-- select point tu Field Book --",
         "Chọn Mốc B (hoặc nhập X, Y):": "select point B (or import X, Y):",
@@ -38490,7 +38543,7 @@ const appI18n = {
         "Hình dạng": "Shape",
         "Ký hiệu": "Symbol",
         "↺ Đặt lại mọi đỉnh": "↺ Reset all vertices",
-        "📐 2. Tính Diện Tích & Chu Vi Đa Giác": "📐 2. Compute Polygon Area & Perimeter",
+        "📐 Diện tích & chu vi đa giác": "📐 Polygon area & perimeter",
         "Thêm các đỉnh theo thứ tự cùng hoặc ngược chiều kim đồng hồ để tính diện tích thửa đất.": "Add vertices clockwise or counterclockwise to calculate land parcel area.",
         "+ Thêm mốc A vào đỉnh": "+ add point A into dinh",
         "Nạp cả dự án": "Load Entire Project",
@@ -38599,8 +38652,8 @@ const appI18n = {
         "Độ cao Quốc gia Hòn Dấu:": "Do cao national Hon Dau:",
         "Quy đổi từ độ cao trắc địa Ellipsoid $h$ (thu từ GNSS/GPS) sang độ cao thủy chuẩn nhà nước $H$ (gốc mực nước biển trung bình trạm nghiệm triều Hòn Dấu, Hải Phòng) qua mô hình Geoid Quốc gia VIGAC2017:": "Convert ellipsoidal geodetic height $h$ (from GNSS/GPS) to national orthometric height $H$ (referenced to mean sea level at Hon Dau tidal gauge, Hai Phong) via National Geoid Model VIGAC2017:",
         "H = h - ζ (zeta: độ cao dị thường Geoid địa phương)": "H = h - ζ (zeta: elevation di thuong Geoid dia phuong)",
-        "🛣️ 1. Tuyến Trắc Dọc": "🛣️ 1. Longitudinal Profile Alignment",
-        "🚜 2. Hố Đào Móng (TCVN 4447)": "🚜 2. Foundation Pit Mong (TCVN 4447)",
+        "🛣️ Tuyến trắc dọc": "🛣️ Profile line",
+        "🚜 Hố móng (TCVN 4447)": "🚜 Foundation pit (TCVN 4447)",
         "Vẽ mặt cắt trắc dọc tự nhiên và đường đỏ thiết kế từ các cọc mốc dự án hoặc chọn trên bản đồ, tính diện tích mặt cắt và khối lượng đào đắp (m³) theo phương pháp diện tích trung bình chuẩn TCVN.": "Plot terrain cross-sections and design grade lines from project stakes or map selection, compute cross-section area and cut/fill volume (m³) via TCVN average end area method.",
         "📍 Nguồn Cọc Tuyến Trắc Dọc:": "📍 Profile Stake Data Source:",
         "0 cọc": "0 coc",
@@ -38716,13 +38769,13 @@ const appI18n = {
         "⭐ 4 Khối lớn 2x2": "⭐ 4 Large Blocks 2x2",
         "🌳 Cây thư mục": "🌳 Feature Tree",
         "📐 Tọa độ Địa lý (WGS-84):": "📐 Geographic Coordinates (WGS-84):",
-        "Thập phân (DD)": "decimal (DD)",
-        "Độ Phút Giây (DMS)": "Do minute second (DMS)",
-        "Độ Phút (DMM)": "Do minute (DMM)",
+        "Thập phân (DD)": "Decimal (DD)",
+        "Độ phút giây (DMS)": "Deg min sec (DMS)",
+        "Độ phút (DMM)": "Deg min (DMM)",
         "🎯 Số chữ số lẻ VN-2000:": "🎯 So chu so le VN-2000:",
-        "3 số lẻ (0.001 m - Chuẩn)": "3 so le (0.001 m - Standard)",
-        "2 số lẻ (0.01 m)": "2 so le (0.01 m)",
-        "4 số lẻ (0.0001 m)": "4 so le (0.0001 m)",
+        "0,001 m (chuẩn)": "0.001 m (standard)",
+        "0,01 m": "0.01 m",
+        "0,0001 m": "0.0001 m",
         "📳 Rung phản hồi (Haptic)": "📳 Rung phan hoi (Haptic)",
         "💡 Hướng dẫn tính năng mới": "💡 guide calculate nang moi",
         "🛠️ Bộ nhớ & Khôi phục:": "🛠️ Bo nho & restore:",
@@ -39080,46 +39133,22 @@ const appI18n = {
         "📁 Đang tải thông tin dự án...": "📁 Dang tai thong tin project...",
         "TRANG CHỦ (BẢNG ĐIỀU KHIỂN)": "TRANG CHU (table DIEU KHIEN)",
         "Quay về màn hình Menu chính": "Quay ve man hinh Menu chinh",
-        "Chuyển Đổi Tọa Độ": "transform Coordinates",
-        "1.1 Chuyển đổi 2 chiều đơn điểm": "1.1 transform 2 chieu Single Points",
-        "WGS-84 ⇄ VN-2000 chuẩn 7 tham số": "WGS-84 ⇄ VN-2000 standard 7 tham so",
-        "1.2 Chuyển đổi hàng loạt & Nhập file": "1.2 transform row loat & import file",
-        "Nhập CSV hoặc dán bảng số liệu nhiều mốc": "import CSV or paste table so lieu nhieu point",
         "1.3 Bản đồ Chuyển đổi & Chấm điểm": "1.3 Map transform & Pick diem",
-        "Chấm lấy tọa độ và xem vị trí điểm chuyển đổi": "Pick lay Coordinates va view location diem transform",
         "Bản Đồ & Cắm Mốc Thực Địa": "Map & stakeout field",
         "2.1 Bản đồ trắc địa & Mốc vệ tinh": "2.1 Map trac dia & Points satellite",
-        "Vệ tinh Google/Esri, GPS, đo cự ly & góc": "satellite Google/Esri, GPS, do distance & angle",
-        "2.2 Cắm mốc thực địa (Radar Stakeout)": "2.2 stakeout field (radar Stakeout)",
-        "La bàn số 360°, radar dẫn hướng, bíp đích": "compass so 360°, radar dan direction, bip dich",
         "Sổ Đo & Quản Lý Dự Án": "Field Book & Quan Ly project",
-        "3.1 Sổ đo mốc & Quản lý dự án": "3.1 Field Book point & Quan ly project",
-        "Xem bảng mốc, chỉnh sửa và xuất file DWG, KML, CSV": "view table point, edit va export file DWG, KML, CSV",
-        "3.2 Cấu hình Google Sheets / Cloud": "3.2 configure Google Sheets / Cloud",
-        "Đồng bộ tự động lên Google Drive": "Close bo automatically on Google Drive",
         "Tiện Ích Nghiệp Vụ Mở Rộng": "Tien Ich Nghiep Vu Expand",
         "4.1 Camera khảo sát đóng dấu thủy ấn": "4.1 Camera survey Close dau geotag stamp",
-        "In tọa độ VN2K, WGS84, GPS, la bàn, ngày giờ": "In Coordinates VN2K, WGS84, GPS, compass, date gio",
         "4.2 Tính toán Geodesy & Giao hội": "4.2 calculate Geodesy & Giao hoi",
-        "Thuận/nghịch tọa độ, diện tích Gauss & chu vi": "Thuan/nghich Coordinates, area Gauss & perimeter",
-        "4.3 Trắc dọc địa hình & Đào đắp": "4.3 profile dia hinh & Cut/Fill",
-        "Mặt cắt tự nhiên, đường đỏ, tính m³ đào đắp": "Natural terrain, design grade line, compute m³ cut/fill",
         "4.4 Tiện ích phụ trợ: Vẽ CAD Mini": "4.4 Tien ich phu tro: Ve CAD Mini",
-        "Dựng ranh, bắt điểm Snap, tính diện tích & xuất DWG": "Draw boundaries, object snap, compute area & export DWG",
         "Hệ Thống & Cài Đặt": "system & settings",
         "5 mục": "5 item",
-        "5.1 Cài đặt Kinh tuyến trục (KTT)": "5.1 settings central meridian (KTT)",
         "63 tỉnh thành, múi 3°/6°, tỉ lệ chiếu": "63 province, zone 3°/6°, ti le chieu",
         "5.2 Bật/Tắt & Kiểm tra sai số GPS": "5.2 Toggle & Check GPS Accuracy",
-        "Độ chính xác vệ tinh thực địa (±m)": "Do accurate satellite field (±m)",
         "5.3 Kết nối Máy Định Vị RTK Ngoài": "5.3 Connect External RTK GNSS Receiver",
-        "Web Bluetooth GNSS Rover, độ chính xác cm": "Web Bluetooth GNSS Rover, do accurate cm",
         "5.4 Giao hội trắc địa khi mất sóng GPS": "5.4 Giao hoi trac dia khi mat song GPS",
-        "Bù tọa độ trạm đo từ 2 mốc khống chế": "Adjust survey station coordinates from 2 control points",
         "5.5 Thông tin & Cẩm nang 10 nghiệp vụ": "5.5 Thong tin & handbook 10 nghiep vu",
-        "Cài PWA mọi thiết bị, 7 tham số BTNMT": "Cai PWA every device, 7 tham so BTNMT",
         "5.6 Cài đặt Ngày giờ Hệ thống": "5.6 settings date gio system",
-        "Đồng bộ tự động / Chỉnh thủ công múi giờ": "Close bo automatically / Chinh manually zone gio",
         "1.3 Đổi KTT / Múi chiếu VN-2000": "1.3 Change VN-2000 CM / Zone",
         "VN-2000 ⇄ VN-2000 giữa các tỉnh, múi 3° / 6°": "VN-2000 ⇄ VN-2000 between provinces, 3° / 6° zones",
         "1.4 Bản đồ Chuyển đổi & Chấm điểm": "1.4 Conversion Map & Point Picking",
@@ -39132,7 +39161,6 @@ const appI18n = {
         "4.1 Bài toán trắc địa: cự ly, phương vị, diện tích": "4.1 Survey Calculations: Distance, Azimuth, Area",
         "4.2 Giao hội trắc địa khi mất sóng GPS": "4.2 Resection When GPS Is Lost",
         "4.4 MiniCAD: Vẽ mặt bằng & Bảng kê": "4.4 MiniCAD: Site Plan & Area Tables",
-        "Hệ Thống & Trợ Giúp": "System & Help",
         "5.2 Cài đặt Ngày giờ Hệ thống": "5.2 System Date & Time",
         "5.3 Cẩm Nang & Sổ Tay Hướng Dẫn": "5.3 User Handbook & Guide",
         "5.4 Thông tin & Cẩm nang 10 nghiệp vụ": "5.4 About & Field Workflow Guide",
@@ -39141,7 +39169,6 @@ const appI18n = {
         "🔁 Đổi KTT / Múi": "🔁 Change CM / Zone",
         "2. Bản Đồ Dự Án & Mốc": "2. Project Map & Benchmarks",
         "Bản Đồ Dự Án": "Project Map",
-        "2.1 Bản đồ dự án & Mốc": "2.1 Project Map & Benchmarks",
         "Bật GPS": "Turn on GPS",
         "để xem tọa độ VN-2000 tại vị trí đang đứng": "to see VN-2000 coordinates where you stand",
         "34 tỉnh mới, 63 tỉnh cũ, múi 3°/6°, theo GPS": "34 new / 63 old provinces, 3°/6° zones, by GPS",
@@ -39621,10 +39648,7 @@ const appI18n = {
             res = res.replace(re, rep);
         }
 
-        const VI_REGEX = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/i;
-        if (VI_REGEX.test(res)) {
-            res = this.removeDiacritics(res);
-        }
+        // Chưa có bản dịch: giữ nguyên tiếng Việt có dấu (bỏ dấu làm chữ khó đọc và sai nghĩa, vd. "Cai Dat Chung").
         return res;
     },
 
@@ -39911,7 +39935,7 @@ const appGuide = {
                 },
                 {
                     title: { vi: '2. Tùy chỉnh định dạng tọa độ & số lẻ', en: '2. Coordinate format & decimal precision' },
-                    desc: { vi: 'Chọn Độ Thập phân (DD), Độ Phút Giây (DMS) hoặc Độ Phút (DMM). Đặt độ chính xác VN-2000 thành 3 chữ số thập phân (0.001m - Chuẩn ngành trắc địa).', en: 'Choose Decimal Degrees (DD), DMS or DMM. Keep VN-2000 precision at 3 decimals (0.001m geodesy standard).' }
+                    desc: { vi: 'Chọn Độ Thập phân (DD), Độ phút giây (DMS) hoặc Độ phút (DMM). Đặt độ chính xác VN-2000 thành 3 chữ số thập phân (0.001m - Chuẩn ngành trắc địa).', en: 'Choose Decimal Degrees (DD), DMS or DMM. Keep VN-2000 precision at 3 decimals (0.001m geodesy standard).' }
                 },
                 {
                     title: { vi: '3. Phản hồi rung & Dọn dẹp cache', en: '3. Haptic feedback & Cache clean' },
@@ -40281,7 +40305,7 @@ const appGuide = {
                 },
                 {
                     title: { vi: '2. Chụp ảnh hoặc Quay video trực tiếp', en: '2. Capture photo or Record live video' },
-                    desc: { vi: 'Bấm "CHỤP ẢNH ĐÓNG DẤU" để lưu ảnh tức thời, hoặc bấm "QUAY VIDEO REALTIME" để ghi hình hiện trường với thủy ấn chạy từng giây.', en: 'Click "Capture Photo" for instant stamped photo, or "Record Video" for live video with updating HUD.' }
+                    desc: { vi: 'Bấm "Chụp ảnh đóng dấu" để lưu ảnh tức thời, hoặc bấm "Quay video" để ghi hình hiện trường với thủy ấn chạy từng giây.', en: 'Click "Capture Photo" for instant stamped photo, or "Record Video" for live video with updating HUD.' }
                 },
                 {
                     title: { vi: '3. Quản lý bộ sưu tập ảnh đã đóng dấu', en: '3. Manage stamped media collection' },
@@ -41444,6 +41468,15 @@ if (typeof window !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         AppState,
+        appDashboard,
+        appData,
+        safeUserText,
+        sanitizeUserFields,
+        jsArg,
+        cleanProjectName,
+        readExifCaptureDate,
+        withSheetSecret,
+        escapeHtml,
         appTransform,
         appDonate,
         appTheme,

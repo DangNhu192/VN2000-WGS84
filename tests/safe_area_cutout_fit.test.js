@@ -215,7 +215,7 @@ function runSafeAreaTests() {
             assert(/nav#mobileBottomNav\.mobile-bottom-nav\.mac-floating-dock[^}]*height:\s*46px !important;/.test(b) &&
                 /bottom:\s*calc\(var\(--sat-safe-bottom, 0px\) \+ 4px\) !important;/.test(b),
                 'Dock màn ngang 46px áp sát đáy (chỉ chiếm dải 4→50px)');
-            assert(/font-size:\s*9\.5px !important;/.test(b), 'Nhãn dock thu nhỏ trong màn ngang');
+            assert(/font-size:\s*11px !important;/.test(b) && !/font-size:\s*(?:[0-9]|10(?:\.\d+)?)px/.test(b), 'Nhãn dock màn ngang vẫn ≥ 11px (sàn chữ DESIGN.md)');
             assert(b.includes('bottom: calc(var(--sat-safe-bottom, 0px) + 56px) !important;'),
                 'HUD/sheet/Leaflet control né dải dock trong màn ngang');
             assert(b.includes('bottom: calc(var(--sat-safe-bottom, 0px) + 60px) !important;'),

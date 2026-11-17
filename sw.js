@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.31';
+const CACHE_NAME = 'vn2000-pro-v2.8.33';
 // Dữ liệu địa giới lớn (~4 MB): cache riêng, KHÔNG xóa khi nâng phiên bản ứng dụng; đổi tên khi dữ liệu đổi.
 const DATA_CACHE = 'vn2000-data-admin-2025-07-01';
 const ASSETS_TO_CACHE = [
@@ -27,7 +27,7 @@ const ASSETS_TO_CACHE = [
   './icon.png',
   './apple-touch-icon.png',
   './favicon.png',
-  './VN2k-WGS84.png',
+  './VN2k-WGS84.webp',
   './manifest.json',
   './jspdf.umd.min.js',
   './xlsx.full.min.js'
@@ -37,11 +37,29 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Đang nạp bộ nhớ đệm offline tài nguyên trắc địa v2.8.0...');
+      console.log('[Service Worker] Đang nạp bộ nhớ đệm offline: ' + CACHE_NAME + '...');
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
+  // Bản mới không tự kích hoạt: chờ người dùng bấm "Cập nhật" (tránh tải lại giữa lúc đang đo/vẽ).
 });
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// Mạng chập chờn: chờ tối đa 3 giây rồi dùng bản đã lưu (nếu có) thay vì treo đến khi mạng hết giờ.
+const NETWORK_TIMEOUT_MS = 3000;
+function fetchWithTimeout(req) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), NETWORK_TIMEOUT_MS);
+    fetch(req).then((res) => { clearTimeout(timer); resolve(res); }, (err) => { clearTimeout(timer); reject(err); });
+  });
+}
+function cachedCopy(req) {
+  // Bản cài sẵn lưu theo tên không có ?v=… → thử đúng URL trước, rồi bỏ phần ?v=.
+  return caches.match(req).then((res) => res || caches.match(req, { ignoreSearch: true }));
+}
 
 // 2. Kích hoạt và dọn dẹp bộ nhớ đệm phiên bản cũ
 self.addEventListener('activate', (event) => {
@@ -72,15 +90,18 @@ self.addEventListener('fetch', (event) => {
   const isHtml = req.mode === 'navigate' || (req.headers.get('accept') && req.headers.get('accept').includes('text/html'));
   if (url.origin === location.origin && isHtml) {
     event.respondWith(
-      fetch(req).then((networkResponse) => {
+      fetchWithTimeout(req).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const resClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
         }
         return networkResponse;
       }).catch(() => {
-        // Khi mất mạng, fallback về tệp HTML đã lưu trong bộ nhớ đệm
-        return caches.match('./index.html').then((res) => res || caches.match('./'));
+        // Khi mất mạng hoặc mạng quá chậm, dùng tệp HTML đã lưu trong bộ nhớ đệm
+        return caches.match(req, { ignoreSearch: true })
+          .then((res) => res || caches.match('./index.html'))
+          .then((res) => res || caches.match('./'))
+          .then((res) => res || fetch(req));
       })
     );
     return;
@@ -100,13 +121,13 @@ self.addEventListener('fetch', (event) => {
   // B. TÀI NGUYÊN NỘI BỘ ỨNG DỤNG (JS, CSS, Ảnh, Manifest)
   if (url.origin === location.origin && (url.pathname.endsWith('app.js') || url.search.includes('v='))) {
     event.respondWith(
-      fetch(req).then((networkResponse) => {
+      fetchWithTimeout(req).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const resClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
         }
         return networkResponse;
-      }).catch(() => caches.match(req).then((res) => res || caches.match('./app.js')))
+      }).catch(() => cachedCopy(req).then((res) => res || fetch(req)))
     );
     return;
   }

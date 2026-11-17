@@ -14,6 +14,9 @@
  * 7. Hàm tiện ích "gopVaLamSachSoDo()": Tự động gom các tab cũ, nâng cấp lên 14 cột và dọn sạch trùng lặp!
  */
 
+// Mã bí mật: đặt giống ô "Mã bí mật" trong ứng dụng (Cài đặt → Lưu dữ liệu). Để trống = không kiểm tra.
+var SECRET = "";
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) {
@@ -26,6 +29,9 @@ function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var data = JSON.parse(e.postData.contents);
+    if (SECRET && data.secret !== SECRET) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Sai mã bí mật" })).setMimeType(ContentService.MimeType.JSON);
+    }
     var defaultProject = (data.project || "So_Do_Mac_Dinh").replace(/[:\\/?*\[\]]/g, "_").replace(/\.csv$/i, "");
 
     // 1. Lưu tập trung toàn bộ dự án vào 1 Sheet (Tab) duy nhất "Sổ Đo Tọa Độ"

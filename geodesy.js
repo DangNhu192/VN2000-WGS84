@@ -241,7 +241,7 @@ const VN_PROVINCES = [
     { name: "Bình Định", deg: 108, min: 15, ktt: 108.25 },
     { name: "Bình Dương", deg: 105, min: 45, ktt: 105.75 },
     { name: "Bình Phước", deg: 106, min: 15, ktt: 106.25 },
-    { name: "Bình Thuận", deg: 107, min: 45, ktt: 107.75 },
+    { name: "Bình Thuận", deg: 108, min: 30, ktt: 108.5 },
     { name: "Cà Mau", deg: 104, min: 30, ktt: 104.5 },
     { name: "Cao Bằng", deg: 105, min: 45, ktt: 105.75 },
     { name: "Đắc Nông", deg: 108, min: 30, ktt: 108.5 },
