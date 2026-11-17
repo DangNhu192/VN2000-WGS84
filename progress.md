@@ -1252,3 +1252,11 @@
 10. **Hiệu năng & cấu trúc**: bỏ script trong <head>; xlsx, jspdf, ranh giới 34 tỉnh, xã Đồng Tháp nạp khi cần (`loadLib`/`needLib`, SW vẫn lưu sẵn — xuất Excel ngoại tuyến đã thử); ảnh hướng dẫn WebP 5,7 MB → 0,9 MB, logo 997 KB → 39 KB; xóa 39 khóa trùng (11 hàm + 28 mục từ điển); xóa modern-react; phiên bản 2.8.33 ở package.json, feature_list, README, màn Giới thiệu.
 - **Chưa làm (lớn, nên làm dần)**: tách app.js theo phân hệ, giảm ~3.100 `!important`, chuyển điểm/bản vẽ sang IndexedDB; còn nhãn nhỏ viết Hoa Mỗi Chữ trong một số khung. Màn 320 px trên màn con: chip KTT vẫn bị cắt.
 - Kiểm chứng: `npm test` **405/405 PASS** (11 file test mới); 20 màn hình điện thoại/máy tính 0 lỗi JS, 0 tràn ngang; bấm thử 3 nút, xuất Excel/PDF nạp thư viện khi cần, bản đồ nạp ranh giới khi mở, thanh Cập nhật (không tự tải lại, bấm thì tải lại 1 lần), xuất Excel khi mất mạng.
+
+## 2026-11-17 — WP-P: Trang chủ gọn — "Chức năng của tôi" lên đầu (v2.8.34)
+- **Vấn đề trên bản đang chạy (v2.8.33)**: người chưa đổi cài đặt vẫn thấy gần như mọi thứ (Thực địa, 3 bước, Chuyển đổi nhanh, 4 ô, GPS, Dự án, Tất cả chức năng — cao 1.755 px ở 375×812); nút "Tùy chỉnh" nằm dưới khối chuyển đổi nên không thấy.
+- **Thứ tự mới**: thanh "Chức năng của tôi" (đổi tên từ "Truy cập nhanh") + nút Thực địa + nút Tùy chỉnh ở **đầu** Trang chủ → các ô đã chọn → (3 bước lần đầu) → Chuyển đổi nhanh → Tất cả chức năng. `#fieldWorkspace` chuyển vào trong `#dashboardModernHub` ngay sau `#bigActionTilesGrid`, rộng bằng các ô; `#fwToolbar` chuyển lên thanh tiêu đề (field-workspace.js dịch nhãn theo `#fieldWorkspace, #fwToolbar`).
+- **Mặc định gọn**: `HOME_WIDGET_DEFAULTS = { quick: true, gps: false, project: false, all: false }` — GPS và dự án đã có trên thanh tiêu đề. Người đã lưu lựa chọn (`vn2000_home_widgets`) giữ nguyên.
+- Thực địa + Tùy chỉnh vùng chạm 44 px; màn ≤ 400 px: Thực địa chỉ còn biểu tượng, ẩn nhãn "4 mục" để tiêu đề một dòng. Bước 3 lời chào trỏ tới nút Tùy chỉnh.
+- **Kết quả đo**: người dùng cũ 375×812 → 1.043 px (trước 1.755); người mới (có 3 bước) 1.428 px; máy tính 1366×900 vừa một màn hình. 0 lỗi JS; kiểm 320 px, Thực địa, máy tính.
+- `npm test` **406/406 PASS** (thêm test thứ tự Trang chủ, sửa test mặc định). Phiên bản 2.8.34 (`?v=`, `CACHE_NAME`, package.json, feature_list, README, trang Giới thiệu).

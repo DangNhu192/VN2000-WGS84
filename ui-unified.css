@@ -101,7 +101,33 @@
 .hub-empty { color: var(--u-muted); font-size: 13px; }
 @media (max-width: 600px) { .hub-grid { grid-template-columns: minmax(0, 1fr); } }
 
-/* 2c. Ô "Truy cập nhanh" — số ô quyết định bố cục (appDashboard.homeLayoutFor):
+/* 2b'. Thanh "Chức năng của tôi" ở đầu Trang chủ: nút Thực địa + Tùy chỉnh cùng một hàng (vùng chạm 44px).
+   Chuyển đổi nhanh (#fieldWorkspace) nằm ngay dưới các ô, rộng bằng các ô. */
+#dashboardModernHub #fieldWorkspace { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+#dashboardModernHub .dashboard-section-bar { gap: 8px; }
+#dashboardModernHub .dashboard-bar-title { min-width: 0; }
+.dash-bar-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.dashboard-section-bar #fwToolbar { display: flex !important; margin: 0 !important; gap: 0 !important; }
+.dashboard-section-bar :is(#fwField, .btn-customize-pins) {
+  display: inline-flex !important; align-items: center !important; justify-content: center; gap: 6px !important;
+  height: auto !important; min-height: 44px !important; padding: 0 14px !important; margin: 0 !important;
+  border-radius: 999px !important; font: inherit; font-size: 14px !important; font-weight: 700 !important;
+  white-space: nowrap; cursor: pointer;
+}
+.dashboard-section-bar #fwField { background: transparent !important; border: 1px solid var(--u-line) !important; color: var(--u-ink) !important; box-shadow: none !important; }
+.dashboard-section-bar #fwField[aria-pressed="true"] { background: #ffdf00 !important; color: #000 !important; border-color: #ffdf00 !important; }
+.dashboard-section-bar :is(#fwField, .btn-customize-pins):focus-visible { outline: 2px solid var(--border-focus, #38bdf8) !important; outline-offset: 2px; }
+body.field-mode .dashboard-section-bar #fwField { min-height: 48px !important; border-color: #aaa !important; }
+body.field-mode .dashboard-section-bar #fwField[aria-pressed="true"] { color: #000 !important; }
+@media (max-width: 400px) {
+  /* Màn hẹp: nút Thực địa chỉ còn biểu tượng (tên vẫn đọc được cho trình đọc màn hình). */
+  .dashboard-section-bar #fwField { width: 44px; padding: 0 !important; }
+  .dashboard-section-bar #fwField span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* Giữ tiêu đề "Chức năng của tôi" trên một dòng: bỏ nhãn "4 mục" (số ô đã thấy ngay bên dưới). */
+  #dashboardModernHub #pinnedFeaturesCountBadge { display: none !important; }
+}
+
+/* 2c. Ô "Chức năng của tôi" — số ô quyết định bố cục (appDashboard.homeLayoutFor):
    hero = 1 khối lớn · duo = 2 khối lớn · grid = 3–4 ô vừa · compact = từ 5 ô, lưới ô gọn. */
 #dashboardModernHub #bigActionTilesGrid { display: grid !important; gap: 10px !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 #dashboardModernHub #bigActionTilesGrid[data-layout="hero"] { grid-template-columns: minmax(0, 1fr) !important; }
