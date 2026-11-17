@@ -23,7 +23,7 @@
 
 - **Tác giả:** Đặng Như
 - **Email:** [dnpn.ttqt@gmail.com](mailto:dnpn.ttqt@gmail.com)
-- **Phiên bản:** v2.8.33 Pro (xem `progress.md` cho nhật ký thay đổi)
+- **Phiên bản:** v2.8.34 Pro (xem `progress.md` cho nhật ký thay đổi)
 
 ---
 

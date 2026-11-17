@@ -22,7 +22,7 @@
             step2: 'Nhập tọa độ, bấm Chuyển đổi',
             step2d: 'Chưa có số liệu? Chấm điểm trên bản đồ. Nhiều điểm? Mở bộ chuyển đổi đầy đủ.',
             step3: 'Cần thêm chức năng?',
-            step3d: 'Kéo xuống để thấy Bản đồ, Cắm mốc, Sổ đo, MiniCAD… hoặc dùng thanh dưới cùng / nút ☰. Nút ? giải thích màn hình đang xem.',
+            step3d: 'Bấm Tùy chỉnh để chọn 1, 2 hay nhiều chức năng hiện trên màn hình chính. Chức năng khác: thanh dưới cùng, nút ☰ hoặc Tất cả chức năng.',
             welcomeKtt: 'Chọn tỉnh', welcomeDone: 'Đã hiểu'
         },
         en: {
@@ -44,7 +44,7 @@
             step2: 'Enter coordinates, tap Convert',
             step2d: 'No data yet? Pick a point on the map. Many points? Open the full converter.',
             step3: 'Need more tools?',
-            step3d: 'Scroll down for Map, Stakeout, Field Book, MiniCAD… or use the bottom bar / ☰ menu. The ? button explains the current screen.',
+            step3d: 'Tap Customize to choose 1, 2 or more features for the home screen. Everything else: bottom bar, ☰ menu or All features.',
             welcomeKtt: 'Choose province', welcomeDone: 'Got it'
         }
     };
@@ -122,7 +122,8 @@
         }
         function refresh() {
             const t = words(), state = root.AppState;
-            workspace.querySelectorAll('[data-fw-text]').forEach(el => { el.textContent = t[el.dataset.fwText]; });
+            // Nút Thực địa nằm trên thanh "Chức năng của tôi", ngoài #fieldWorkspace.
+            document.querySelectorAll('#fieldWorkspace [data-fw-text], #fwToolbar [data-fw-text]').forEach(el => { el.textContent = t[el.dataset.fwText]; });
             byId('fwToolbar').setAttribute('aria-label', t.actions);
             const forward = direction.value === 'wgs2vn';
             byId('fwLabel1').textContent = forward ? t.lat : t.x;

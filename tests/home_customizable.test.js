@@ -78,11 +78,11 @@ test('Trang chủ vẽ đúng số ô, đúng thứ tự người dùng chọn v
     }
 });
 
-test('thành phần khác: mặc định hiện chuyển đổi nhanh, GPS, dự án; "Tất cả chức năng" thu gọn', () => {
+test('thành phần khác: mặc định gọn — chỉ Chuyển đổi nhanh; GPS, dự án tắt (đã có trên thanh tiêu đề); "Tất cả chức năng" thu gọn', () => {
     localStorage.removeItem(appDashboard.HOME_WIDGETS_KEY);
-    assert.deepEqual(appDashboard.getHomeWidgets(), { quick: true, gps: true, project: true, all: false });
+    assert.deepEqual(appDashboard.getHomeWidgets(), { quick: true, gps: false, project: false, all: false });
     appDashboard.applyHomeWidgets();
-    assert.equal(els['screen-menu'].getAttribute('data-home-off'), 'all');
+    assert.equal(els['screen-menu'].getAttribute('data-home-off'), 'gps project all');
     assert.equal(els.btnHubToggle.getAttribute('aria-expanded'), 'false');
 
     appDashboard.saveHomeWidgets({ quick: false, gps: true, project: false, all: true, rác: 1 });
@@ -134,4 +134,17 @@ test('HTML & CSS: nút thu gọn "Tất cả chức năng", mục cài đặt Tr
     assert.ok(!html.includes('btnSettingViewTree'), 'Bỏ bố cục "Cây thư mục" cũ');
     for (const layout of ['hero', 'duo', 'compact']) assert.ok(css.includes(`[data-layout="${layout}"]`), layout);
     for (const w of ['quick', 'gps', 'project', 'all']) assert.ok(css.includes(`[data-home-off~="${w}"]`), w);
+});
+
+test('Trang chủ: thanh "Chức năng của tôi" (Thực địa + Tùy chỉnh) và các ô đứng trước Chuyển đổi nhanh', () => {
+    const at = id => html.indexOf(`id="${id}"`);
+    assert.ok(at('pinnedFeaturesCountBadge') < at('bigActionTilesGrid'));
+    assert.ok(at('bigActionTilesGrid') < at('fieldWorkspace'), 'Ô chức năng trước khối chuyển đổi');
+    assert.ok(at('fieldWorkspace') < at('fwQuick'));
+    const bar = html.slice(html.indexOf('class="dashboard-section-bar"'), at('bigActionTilesGrid'));
+    assert.ok(bar.includes('id="fwField"') && bar.includes('btn-customize-pins'), 'Thực địa và Tùy chỉnh cùng một hàng');
+    assert.ok(html.includes('data-i18n="dash.section_title">Chức năng của tôi<'));
+    const fw = fs.readFileSync(path.join(ROOT, 'field-workspace.js'), 'utf8');
+    assert.ok(fw.includes("#fwToolbar [data-fw-text]"), 'Nhãn nút Thực địa vẫn được dịch sau khi chuyển chỗ');
+    assert.ok(css.includes('#dashboardModernHub #fieldWorkspace {'), 'Chuyển đổi nhanh rộng bằng các ô');
 });

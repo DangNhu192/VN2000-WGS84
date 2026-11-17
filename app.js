@@ -1829,9 +1829,10 @@ const appDashboard = {
     ],
 
     // Thành phần khác của Trang chủ (bật/tắt trong "Tùy chỉnh Trang chủ").
+    // Mặc định gọn: GPS và dự án đã có trên thanh tiêu đề nên tắt; người đã lưu lựa chọn giữ nguyên.
     // all = danh sách "Tất cả chức năng" mở sẵn (tắt → thu gọn thành một nút).
     HOME_WIDGETS_KEY: 'vn2000_home_widgets',
-    HOME_WIDGET_DEFAULTS: { quick: true, gps: true, project: true, all: false },
+    HOME_WIDGET_DEFAULTS: { quick: true, gps: false, project: false, all: false },
     homeWidgetDefs: [
         { id: 'quick', vi: 'Chuyển đổi nhanh', en: 'Quick conversion', subVi: 'Thẻ nhập tọa độ ở đầu Trang chủ', subEn: 'Coordinate card at the top of Home' },
         { id: 'gps', vi: 'Vị trí GPS', en: 'GPS position', subVi: 'Nút bật GPS / tọa độ tại chỗ', subEn: 'GPS button / live coordinates' },
@@ -37072,7 +37073,7 @@ const appI18n = {
             'bnav.datamgmt': 'Sổ Đo',
 
             // Dashboard
-            'dash.section_title': 'Truy cập nhanh',
+            'dash.section_title': 'Chức năng của tôi',
             'home.all_features': 'Tất cả chức năng',
             'home.no_match': 'Không có chức năng nào khớp.',
             'home.gps_on': 'Bật GPS',
@@ -37244,7 +37245,7 @@ const appI18n = {
             'bnav.datamgmt': 'Survey Book',
 
             // Dashboard
-            'dash.section_title': 'Quick access',
+            'dash.section_title': 'My features',
             'home.all_features': 'All features',
             'home.no_match': 'No matching feature.',
             'home.gps_on': 'Turn on GPS',
