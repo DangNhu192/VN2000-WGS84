@@ -41851,11 +41851,19 @@ const appPlanOverlay = {
         await Promise.all(this.items.map(it => this._prepareImage(it)));
         this._loaded = true;
     },
+    // Chờ ảnh nạp bằng onload (img.decode() có thể treo khi trang chạy nền / WebView)
+    _loadImage(url, timeoutMs = 20000) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const timer = setTimeout(() => reject(new Error('quá thời gian đọc ảnh')), timeoutMs);
+            img.onload = () => { clearTimeout(timer); resolve(img); };
+            img.onerror = () => { clearTimeout(timer); reject(new Error('tệp ảnh hỏng hoặc không hỗ trợ')); };
+            img.src = url;
+        });
+    },
     _prepareImage(item) {
         item.url = URL.createObjectURL(item.blob);
-        item.img = new Image();
-        item.img.src = item.url;
-        return (item.img.decode ? item.img.decode() : Promise.resolve()).catch(() => {});
+        return this._loadImage(item.url).then(img => { item.img = img; }, () => { item.img = null; });
     },
     _dispose(item) {
         if (item.layer && item.layer._map) item.layer.remove();
@@ -42094,9 +42102,7 @@ const appPlanOverlay = {
         if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') return this._rasterizePdf(file, pageNo);
         const url = URL.createObjectURL(file);
         try {
-            const img = new Image();
-            img.src = url;
-            await img.decode();
+            const img = await this._loadImage(url);
             const W = img.naturalWidth, H = img.naturalHeight;
             if (!W || !H) throw new Error('ảnh rỗng');
             const k = Math.min(1, this.MAX_SIDE / Math.max(W, H), Math.sqrt(this.MAX_PIXELS / (W * H)));

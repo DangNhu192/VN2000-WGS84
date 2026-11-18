@@ -1294,3 +1294,6 @@
 - Xuất PDF/PNG: tùy chọn "In ảnh nền quy hoạch" (hiện khi có ảnh), vẽ sau nền bản đồ, trước khung/lưới/nét; ảnh theo KTT khác được quy đổi sang KTT bản vẽ.
 - Kiểm thử trình duyệt: ảnh mẫu 2400×1600 xoay 2°: tệp tọa độ khớp 1e-10; 4 điểm chấm → sai số góc 0 m; lệch trên bản đồ < 0,4 px; bản in PDF lưới ảnh trùng lưới bản vẽ; lưu qua tải lại trang; không hiện ở Bản đồ dự án; chạm thêm điểm trên điện thoại.
 - Test mới `tests/plan_overlay_georef.test.js` (9). `npm test` **436/436 PASS**. Phiên bản 2.8.38.
+
+## 2026-11-18 — Sửa: ảnh nền quy hoạch đọc ảnh bằng onload (v2.8.39)
+- `img.decode()` có thể không bao giờ xong khi trang chạy nền / trong WebView → nạp ảnh treo. Đổi sang `_loadImage` (onload/onerror, quá 20 s báo lỗi). 436/436 PASS.
