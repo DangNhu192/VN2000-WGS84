@@ -1297,3 +1297,11 @@
 
 ## 2026-11-18 — Sửa: ảnh nền quy hoạch đọc ảnh bằng onload (v2.8.39)
 - `img.decode()` có thể không bao giờ xong khi trang chạy nền / trong WebView → nạp ảnh treo. Đổi sang `_loadImage` (onload/onerror, quá 20 s báo lỗi). 436/436 PASS.
+
+## 2026-11-18 — WP-U: Bảng "Lớp bản đồ" — nền + lớp phủ mở thay Guland (v2.8.40)
+- **Yêu cầu**: thay lớp bản đồ Guland bằng nguồn miễn phí hợp pháp; bật/tắt, chọn lớp trên Bản đồ dự án và MiniCAD. Bản thiết kế: canvas "Bảng chọn lớp bản đồ — Bản đồ & MiniCAD".
+- Nút 🛰️ (FAB) mở `#modalMapLayers` (`appMapLayers`): **Nền** chọn 1 — Vệ tinh Google (chỉ xem), Ảnh vệ tinh Esri, OSM, **Sentinel-2 không mây 2016** (EOX, CC BY 4.0, ô 3857 tới mức 14), Không nền. **Lớp phủ** — **ESA WorldCover 2021** (CC BY 4.0, Terrascope MapProxy `webmercator/{z}/{x}/{y}`, chú giải 9 lớp, độ rõ), **NASA GIBS** (CC0, chọn ngày + loại ảnh MODIS 7-2-1 / MODIS màu thật / VIIRS NOAA-20, mức 9), ranh giới 34 tỉnh, xã Đồng Tháp; trong MiniCAD có thêm dòng Ảnh nền quy hoạch. **Nguồn tự thêm** WMS/XYZ: bắt buộc https, ghi nguồn, xác nhận được phép (nguồn thương mại như Guland cần khóa API/văn bản).
+- Lớp phủ trong pane `refOverlayPane` (z 240, không bắt chạm). Trạng thái lưu `vn2k_map_overlays_v1`; nền lưu qua `appSettings` (nhận thêm `esri_satellite`, `s2_2016`, `none` — trước đây Esri không được khôi phục). `toggleMapLayer` đổi vòng 3 nền qua `appMapLayers.setBase`.
+- **Ghi nguồn**: bản đồ chính trước tắt `attributionControl` (vi phạm điều kiện OSM/Esri/CC BY) → bật ô ghi nguồn góc trái dưới, tự thêm/gỡ theo lớp.
+- Xuất PDF/PNG: nền thêm "Ảnh Sentinel-2 2016" và "ESA WorldCover" (đã kiểm tra CORS).
+- Test mới `tests/map_layers_panel.test.js` (5). `npm test` **441/441 PASS**. Phiên bản 2.8.40.

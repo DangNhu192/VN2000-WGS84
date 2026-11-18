@@ -28,10 +28,10 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.39">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.39">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.39">
-  <link rel="stylesheet" href="ui-unified.css?v=2.8.39">
+  <link rel="stylesheet" href="style.css?v=2.8.40">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.40">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.40">
+  <link rel="stylesheet" href="ui-unified.css?v=2.8.40">
 </head>
 
 <body>
@@ -2723,8 +2723,8 @@
             onclick="AppState.leafletMap && AppState.leafletMap.zoomOut()">
             ➖
           </button>
-          <button id="btnMapFabLayer" class="btn-map-fab" title="Đổi lớp bản đồ (Vệ tinh / Đường phố)"
-            onclick="appMap.toggleMapLayer()">
+          <button id="btnMapFabLayer" class="btn-map-fab" title="Lớp bản đồ: chọn nền, bật/tắt lớp phủ" aria-label="Lớp bản đồ"
+            onclick="appMapLayers.open()">
             🛰️
           </button>
           <button id="btnMap34Prov" class="btn-map-fab" title="Bật/tắt ranh giới 34 tỉnh thành"
@@ -3419,7 +3419,7 @@
             style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">
             VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.39 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.40 Pro</div>
           <div
             style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
@@ -3451,7 +3451,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.39
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.40
                 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
@@ -4608,7 +4608,7 @@
           <div class="settings-welcome-hero">
             <div class="settings-welcome-logo-wrap">
               <img src="icon.png" alt="VN2000 Pro" class="settings-welcome-logo">
-              <span class="settings-welcome-badge">PRO v2.8.39</span>
+              <span class="settings-welcome-badge">PRO v2.8.40</span>
             </div>
             <div class="settings-welcome-title" data-i18n="settings.welcome.title">HỆ THỐNG CÀI ĐẶT VN-2000 PRO</div>
             <div class="settings-welcome-sub" data-i18n="settings.welcome.sub">Bấm chọn một danh mục cài đặt bên dưới để thiết lập nghiệp vụ:</div>
@@ -5592,6 +5592,17 @@
 
 
   <!-- ================= MODAL NẠP GIS (GEOJSON / KML / GPX / WKT) — MINI CAD ================= -->
+  <!-- LỚP BẢN ĐỒ: nền + lớp phủ (Bản đồ dự án & MiniCAD) — nội dung dựng bởi appMapLayers.renderPanel() -->
+  <div id="modalMapLayers" class="modal-overlay" onclick="if(event.target === this) appMapLayers.close()">
+    <div class="modal-box ml-box" style="max-width: 560px;">
+      <div class="modal-title">
+        <span style="color: #7dd3fc;">🗺️ Lớp bản đồ</span>
+        <button class="btn-modal-close" onclick="appMapLayers.close()" aria-label="Đóng bảng lớp bản đồ">✕</button>
+      </div>
+      <div id="mapLayersBody"></div>
+    </div>
+  </div>
+
   <!-- ẢNH NỀN BẢN ĐỒ QUY HOẠCH (MiniCAD): nạp ảnh/PDF, gắn tọa độ VN-2000, phủ lên bản vẽ -->
   <div id="modalPlanOverlay" class="modal-overlay" onclick="if(event.target === this) appPlanOverlay.close()">
     <div class="modal-box" style="max-width: 920px;">
@@ -6111,6 +6122,8 @@
               <option value="none" selected>Không nền (giấy trắng)</option>
               <option value="street">🗺️ Bản đồ đường phố (OpenStreetMap)</option>
               <option value="satellite">🛰️ Ảnh vệ tinh (Esri World Imagery)</option>
+              <option value="sentinel2">🛰️ Ảnh Sentinel-2 không mây 2016 (10 m)</option>
+              <option value="worldcover">🌾 Lớp phủ mặt đất ESA WorldCover (10 m)</option>
             </select>
             <div style="font-size: 11px; color: #64748b; margin-top: 3px;">Cần mạng để tải ảnh nền; nét vẽ, điểm, tuyến, đa giác in đè lên nền.</div>
           </div>
@@ -7940,17 +7953,17 @@
        được nạp khi cần (loadLib trong app.js); service worker đã lưu sẵn nên vẫn chạy ngoại tuyến. -->
   <script src="leaflet.js"></script>
   <script src="offline_regions.js"></script>
-  <script src="geodesy.js?v=2.8.39"></script>
+  <script src="geodesy.js?v=2.8.40"></script>
   <script src="pixoptimizer.js"></script>
-  <script src="src/core/cad_geometry.js?v=2.8.39"></script>
-  <script src="src/core/gis_io.js?v=2.8.39"></script>
-  <script src="src/core/georef.js?v=2.8.39"></script>
-  <script src="app.js?v=2.8.39"></script>
-  <script src="field-workspace.js?v=2.8.39"></script>
-  <script src="vn2000-rezone.js?v=2.8.39"></script>
-  <script src="vn-admin-2025.js?v=2.8.39"></script>
-  <script src="import-preview.js?v=2.8.39"></script>
-  <script src="app-shell.js?v=2.8.39"></script>
+  <script src="src/core/cad_geometry.js?v=2.8.40"></script>
+  <script src="src/core/gis_io.js?v=2.8.40"></script>
+  <script src="src/core/georef.js?v=2.8.40"></script>
+  <script src="app.js?v=2.8.40"></script>
+  <script src="field-workspace.js?v=2.8.40"></script>
+  <script src="vn2000-rezone.js?v=2.8.40"></script>
+  <script src="vn-admin-2025.js?v=2.8.40"></script>
+  <script src="import-preview.js?v=2.8.40"></script>
+  <script src="app-shell.js?v=2.8.40"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <!-- Có bản mới: hiện thanh "Cập nhật" — chỉ tải lại khi người dùng bấm (không cắt ngang lúc đang đo, vẽ, nhập liệu). -->

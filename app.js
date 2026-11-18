@@ -163,7 +163,7 @@ const appSettings = {
             AppState.scaleFactor = (s.muiVal === 3) ? 0.9999 : 0.9996;
         }
         if ([0, 1, 2].includes(s.formatType)) AppState.formatType = s.formatType;
-        if (s.activeBaseLayerId === 'google_hybrid' || s.activeBaseLayerId === 'osm_streets') AppState.activeBaseLayerId = s.activeBaseLayerId;
+        if (['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'none'].includes(s.activeBaseLayerId)) AppState.activeBaseLayerId = s.activeBaseLayerId;
         if (bool(s.is34ProvVisible) !== null) AppState.is34ProvVisible = s.is34ProvVisible;
         if (bool(s.isDtCommunesVisible) !== null) AppState.isDtCommunesVisible = s.isDtCommunesVisible;
         if (bool(s.showProjectDistance) !== null) AppState.showProjectDistance = s.showProjectDistance;
@@ -274,11 +274,8 @@ const appSettings = {
         const v = AppState.savedMapView;
         if (v) map.setView([v.lat, v.lng], v.zoom);
 
-        const wantBase = AppState.activeBaseLayerId;
-        if (wantBase === 'osm_streets' && AppState.baseLayers['osm_streets']) {
-            map.removeLayer(AppState.baseLayers['google_hybrid']);
-            AppState.baseLayers['osm_streets'].addTo(map);
-        }
+        // Nền + lớp phủ đã chọn (Sentinel-2, WorldCover, NASA, nguồn tự thêm) — xem appMapLayers
+        if (typeof appMapLayers !== 'undefined') appMapLayers.applyToMap(map);
 
         if (AppState.is34ProvVisible && AppState.layer34Prov) {
             AppState.layer34Prov.addTo(map);
@@ -316,6 +313,18 @@ const EXPORT_BASEMAPS = {
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         maxZoom: 18, alpha: 0.85,
         credit: 'Ảnh vệ tinh: Esri, Maxar, Earthstar Geographics'
+    },
+    sentinel2: {
+        label: 'Ảnh Sentinel-2 (2016)',
+        url: 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg',
+        maxZoom: 14, alpha: 0.85,
+        credit: 'Sentinel-2 cloudless - s2maps.eu by EOX IT Services GmbH (Copernicus Sentinel data 2016 & 2017)'
+    },
+    worldcover: {
+        label: 'Lớp phủ mặt đất ESA WorldCover',
+        url: 'https://mapproxy.terrascope.be/mapproxy/wmts/esa-worldcover-map-10m-2021-v2_map/webmercator/{z}/{x}/{y}.png',
+        maxZoom: 15, alpha: 0.6,
+        credit: '© ESA WorldCover project 2021 / Copernicus Sentinel data (2021), CC BY 4.0'
     }
 };
 const EXPORT_BASEMAP_MAX_TILES = 160;
@@ -7268,35 +7277,14 @@ const appMap = {
         container.addEventListener('touchstart', onStart, { passive: true });
     },
 
+    // Đổi nhanh giữa 3 nền chính (bảng chọn đầy đủ: appMapLayers.open())
     toggleMapLayer() {
-        const map = AppState.leafletMap;
-        if (!map) return;
-        if (AppState.activeBaseLayerId === 'google_hybrid') {
-            map.removeLayer(AppState.baseLayers['google_hybrid']);
-            if (AppState.baseLayers['esri_satellite']) {
-                AppState.baseLayers['esri_satellite'].addTo(map);
-                AppState.activeBaseLayerId = 'esri_satellite';
-                appSettings.save();
-                showToast("🌍 Lớp Vệ tinh Esri World Imagery");
-            } else {
-                AppState.baseLayers['osm_streets'].addTo(map);
-                AppState.activeBaseLayerId = 'osm_streets';
-                appSettings.save();
-                showToast("🗺️ Bản đồ Đường phố (OSM)");
-            }
-        } else if (AppState.activeBaseLayerId === 'esri_satellite') {
-            map.removeLayer(AppState.baseLayers['esri_satellite']);
-            AppState.baseLayers['osm_streets'].addTo(map);
-            AppState.activeBaseLayerId = 'osm_streets';
-            appSettings.save();
-            showToast("🗺️ Bản đồ Đường phố (OSM)");
-        } else {
-            map.removeLayer(AppState.baseLayers['osm_streets']);
-            AppState.baseLayers['google_hybrid'].addTo(map);
-            AppState.activeBaseLayerId = 'google_hybrid';
-            appSettings.save();
-            showToast("🛰️ Bản đồ Vệ tinh Google Hybrid");
-        }
+        if (!AppState.leafletMap) return;
+        const order = ['google_hybrid', 'esri_satellite', 'osm_streets'];
+        const next = order[(order.indexOf(AppState.activeBaseLayerId) + 1) % order.length];
+        appMapLayers.setBase(next);
+        const def = MAP_BASES.find(b => b.id === next);
+        showToast(`🗺️ Nền: ${def ? def.name : next}`);
     },
 
     init34ProvincesLayer() {
@@ -32887,7 +32875,7 @@ const appCadTool = {
         const planOvEl = document.getElementById('cadExportPlanOverlay');
         const printPlanOverlay = planOvEl ? planOvEl.checked !== false : true;
         const basemapVal = document.getElementById('cadExportBasemap')?.value;
-        const basemap = (basemapVal === 'street' || basemapVal === 'satellite') ? basemapVal : 'none';
+        const basemap = ['street', 'satellite', 'sentinel2', 'worldcover'].includes(basemapVal) ? basemapVal : 'none';
         const customAreaVal = parseFloat(document.getElementById('cadCustomProjectArea')?.value || '0');
         const customTotalArea = (!isNaN(customAreaVal) && customAreaVal > 0) ? customAreaVal : null;
 
@@ -42456,10 +42444,334 @@ const appPlanOverlay = {
     }
 };
 
+// ================= LỚP BẢN ĐỒ: CHỌN NỀN, BẬT/TẮT LỚP PHỦ (Bản đồ dự án & MiniCAD) =================
+// Chỉ dùng nguồn có giấy phép mở hoặc của chính người dùng; nguồn thương mại phải có xác nhận được phép.
+// Ô ảnh mở (đã kiểm tra cho đọc chéo CORS): Sentinel-2 cloudless 2016 (EOX, CC BY 4.0),
+// ESA WorldCover 2021 (CC BY 4.0, Terrascope), NASA GIBS (dữ liệu NASA, CC0).
+const MAP_BASES = [
+    { id: 'google_hybrid', name: 'Vệ tinh Google', sub: 'Chỉ xem trên màn hình, không in khi xuất', thumb: '#3b4a2f' },
+    { id: 'esri_satellite', name: 'Ảnh vệ tinh Esri', sub: 'Sắc nét · in được khi xuất bản vẽ', thumb: '#4a5e3a' },
+    { id: 'osm_streets', name: 'Đường phố OpenStreetMap', sub: 'In được khi xuất bản vẽ', thumb: '#f2efe9' },
+    {
+        id: 's2_2016', name: 'Sentinel-2 không mây (2016)', sub: 'Ảnh 10 m toàn quốc · CC BY 4.0', thumb: '#5b6b45',
+        url: 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg', maxNativeZoom: 14,
+        attribution: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 &amp; 2017)'
+    },
+    { id: 'none', name: 'Không nền', sub: 'Giấy trắng, nhẹ nhất khi vẽ', thumb: '#ffffff' }
+];
+const MAP_BASE_ATTRIBUTION = {
+    google_hybrid: 'Ảnh © Google',
+    esri_satellite: 'Ảnh vệ tinh: Esri, Maxar, Earthstar Geographics',
+    osm_streets: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+};
+const WORLDCOVER_CLASSES = [
+    ['#006400', 'Cây gỗ'], ['#ffbb22', 'Cây bụi'], ['#ffff4c', 'Đồng cỏ'], ['#f096ff', 'Đất trồng trọt'],
+    ['#fa0000', 'Xây dựng'], ['#b4b4b4', 'Đất trống'], ['#0064c8', 'Mặt nước'], ['#0096a0', 'Đất ngập nước'], ['#00cf75', 'Rừng ngập mặn']
+];
+const GIBS_PRODUCTS = [
+    { id: 'MODIS_Terra_CorrectedReflectance_Bands721', name: 'MODIS 7-2-1 (nổi bật mặt nước, lũ)' },
+    { id: 'MODIS_Terra_CorrectedReflectance_TrueColor', name: 'MODIS Terra màu thật' },
+    { id: 'VIIRS_NOAA20_CorrectedReflectance_TrueColor', name: 'VIIRS NOAA-20 màu thật' }
+];
+
+const appMapLayers = {
+    STORE_KEY: 'vn2k_map_overlays_v1',
+    state: null,
+    layers: {},          // id → L.TileLayer đang dùng cho lớp phủ
+    _attr: null,
+
+    defaults() {
+        return {
+            worldcover: { on: false, opacity: 0.6 },
+            gibs: { on: false, opacity: 0.8, date: this.gibsDefaultDate(), product: GIBS_PRODUCTS[0].id },
+            custom: []
+        };
+    },
+    gibsDefaultDate() { return new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10); },
+    load() {
+        if (this.state) return this.state;
+        let s = null;
+        try { s = JSON.parse(localStorage.getItem(this.STORE_KEY) || 'null'); } catch (e) { s = null; }
+        const d = this.defaults();
+        s = s && typeof s === 'object' ? s : {};
+        this.state = {
+            worldcover: Object.assign({}, d.worldcover, s.worldcover),
+            gibs: Object.assign({}, d.gibs, s.gibs),
+            custom: Array.isArray(s.custom) ? s.custom.filter(c => c && c.url && c.attribution) : []
+        };
+        return this.state;
+    },
+    save() {
+        try { localStorage.setItem(this.STORE_KEY, JSON.stringify(this.state)); } catch (e) {}
+    },
+
+    // ---------- Nền ----------
+    _baseLayer(id) {
+        const map = AppState.leafletMap;
+        if (!map || id === 'none') return null;
+        if (!AppState.baseLayers[id]) {
+            const def = MAP_BASES.find(b => b.id === id);
+            if (!def || !def.url) return null;
+            const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer)
+                ? window.PixOptimizer.getTileLayerOptions({ maxNativeZoom: def.maxNativeZoom })
+                : { maxZoom: 24, maxNativeZoom: def.maxNativeZoom, crossOrigin: true };
+            AppState.baseLayers[id] = L.tileLayer(def.url, { ...tileOpt, attribution: def.attribution, className: 'leaflet-layer-satellite' });
+        }
+        const layer = AppState.baseLayers[id];
+        if (MAP_BASE_ATTRIBUTION[id] && layer.options && !layer.options.attribution) layer.options.attribution = MAP_BASE_ATTRIBUTION[id];
+        return layer;
+    },
+    setBase(id, silent) {
+        const map = AppState.leafletMap;
+        if (!MAP_BASES.some(b => b.id === id)) id = 'google_hybrid';
+        AppState.activeBaseLayerId = id;
+        if (map) {
+            this.ensureAttribution();
+            Object.keys(AppState.baseLayers).forEach(k => {
+                const l = AppState.baseLayers[k];
+                if (l && map.hasLayer(l) && k !== id) map.removeLayer(l);
+            });
+            const layer = this._baseLayer(id);
+            if (layer && !map.hasLayer(layer)) { layer.addTo(map); if (layer.bringToBack) layer.bringToBack(); }
+            map.getContainer().classList.toggle('map-base-none', id === 'none');
+        }
+        if (typeof appSettings !== 'undefined') appSettings.save();
+        if (!silent) this.renderPanel();
+    },
+
+    // ---------- Lớp phủ ----------
+    _pane(map) {
+        let pane = map.getPane('refOverlayPane');
+        if (!pane) {
+            pane = map.createPane('refOverlayPane');
+            pane.style.zIndex = 240;              // trên nền, dưới ảnh quy hoạch (250) và nét vẽ
+            pane.style.pointerEvents = 'none';
+        }
+        return 'refOverlayPane';
+    },
+    gibsUrl(g) {
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(g.date || '') ? g.date : this.gibsDefaultDate();
+        const product = GIBS_PRODUCTS.some(p => p.id === g.product) ? g.product : GIBS_PRODUCTS[0].id;
+        return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${product}/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
+    },
+    _overlayDef(id) {
+        const s = this.load();
+        if (id === 'worldcover') return {
+            url: 'https://mapproxy.terrascope.be/mapproxy/wmts/esa-worldcover-map-10m-2021-v2_map/webmercator/{z}/{x}/{y}.png',
+            maxNativeZoom: 15, opacity: s.worldcover.opacity,
+            attribution: '© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0)'
+        };
+        if (id === 'gibs') return {
+            url: this.gibsUrl(s.gibs), maxNativeZoom: 9, opacity: s.gibs.opacity,
+            attribution: 'Ảnh: NASA GIBS / EOSDIS'
+        };
+        const c = s.custom.find(x => x.id === id);
+        if (!c) return null;
+        return { url: c.url, wms: c.type === 'wms', layersParam: c.layers, maxNativeZoom: c.maxZoom || 19, opacity: c.opacity || 0.8, attribution: escapeHtml(c.attribution) };
+    },
+    _isOn(id) {
+        const s = this.load();
+        if (id === 'worldcover' || id === 'gibs') return !!s[id].on;
+        const c = s.custom.find(x => x.id === id);
+        return !!(c && c.on);
+    },
+    syncOverlays() {
+        const map = AppState.leafletMap;
+        if (!map) return;
+        const s = this.load();
+        this.ensureAttribution();
+        const ids = ['worldcover', 'gibs', ...s.custom.map(c => c.id)];
+        Object.keys(this.layers).forEach(id => {
+            if (!ids.includes(id) || !this._isOn(id)) { map.removeLayer(this.layers[id]); delete this.layers[id]; }
+        });
+        ids.forEach(id => {
+            if (!this._isOn(id) || this.layers[id]) return;
+            const def = this._overlayDef(id);
+            if (!def) return;
+            const opt = { pane: this._pane(map), maxZoom: 24, maxNativeZoom: def.maxNativeZoom, opacity: def.opacity, attribution: def.attribution, crossOrigin: true };
+            this.layers[id] = def.wms
+                ? L.tileLayer.wms(def.url, { ...opt, layers: def.layersParam || '', format: 'image/png', transparent: true })
+                : L.tileLayer(def.url, opt);
+            this.layers[id].addTo(map);
+        });
+    },
+    setOverlay(id, on) {
+        const s = this.load();
+        if (id === 'worldcover' || id === 'gibs') s[id].on = !!on;
+        else { const c = s.custom.find(x => x.id === id); if (c) c.on = !!on; }
+        this.save();
+        this.syncOverlays();
+        this.renderPanel();
+    },
+    setOpacity(id, val) {
+        const s = this.load();
+        const o = Math.max(0.1, Math.min(1, +val || 0.6));
+        if (id === 'worldcover' || id === 'gibs') s[id].opacity = o;
+        else { const c = s.custom.find(x => x.id === id); if (c) c.opacity = o; }
+        if (this.layers[id]) this.layers[id].setOpacity(o);
+        const lbl = document.getElementById('mlOpacity_' + id);
+        if (lbl) lbl.textContent = Math.round(o * 100) + '%';
+        this.save();
+    },
+    setGibs(field, val) {
+        const s = this.load();
+        if (field === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(val)) s.gibs.date = val;
+        if (field === 'product' && GIBS_PRODUCTS.some(p => p.id === val)) s.gibs.product = val;
+        this.save();
+        if (this.layers.gibs) this.layers.gibs.setUrl(this.gibsUrl(s.gibs));
+    },
+
+    // Bản đồ chính tắt sẵn ô ghi nguồn → bật lại vì OSM, Esri, EOX, ESA đều yêu cầu ghi nguồn
+    ensureAttribution() {
+        const map = AppState.leafletMap;
+        if (!map || this._attr) return;
+        this._attr = L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
+        map.attributionControl = this._attr;   // Leaflet tự thêm/bớt ghi nguồn khi lớp được bật/tắt
+        Object.keys(MAP_BASE_ATTRIBUTION).forEach(id => {
+            const l = AppState.baseLayers[id];
+            if (l && l.options && !l.options.attribution) {
+                l.options.attribution = MAP_BASE_ATTRIBUTION[id];
+                if (map.hasLayer(l)) {
+                    // Lớp bật trước khi có ô ghi nguồn: tự thêm và gỡ khi lớp tắt
+                    this._attr.addAttribution(MAP_BASE_ATTRIBUTION[id]);
+                    l.once('remove', () => this._attr.removeAttribution(MAP_BASE_ATTRIBUTION[id]));
+                }
+            }
+        });
+    },
+    // Gọi sau khi bản đồ chính khởi tạo
+    applyToMap(map) {
+        if (!map) return;
+        this.load();
+        this.setBase(AppState.activeBaseLayerId || 'google_hybrid', true);
+        this.syncOverlays();
+    },
+
+    // ---------- Nguồn tự thêm (WMS / XYZ / đối tác có giấy phép) ----------
+    addCustomFromForm() {
+        const val = (id) => (document.getElementById(id)?.value || '').trim();
+        const type = val('mlNewType') || 'xyz';
+        const name = val('mlNewName');
+        const url = val('mlNewUrl');
+        const attribution = val('mlNewAttr');
+        const layers = val('mlNewLayers');
+        const licensed = !!document.getElementById('mlNewLicensed')?.checked;
+        const err = (m) => { showToast('⚠️ ' + m, true); return false; };
+        if (!name) return err('Nhập tên hiển thị của nguồn.');
+        if (!/^https:\/\//i.test(url)) return err('Đường dẫn phải bắt đầu bằng https://');
+        if (type === 'xyz' && !/\{z\}/.test(url)) return err('Mẫu ô ảnh XYZ cần có {z}, {x}, {y}.');
+        if (type === 'wms' && !layers) return err('Nhập tên lớp WMS (layers).');
+        if (!attribution) return err('Ghi nguồn là bắt buộc (hiện ở góc bản đồ).');
+        if (!licensed) return err('Cần xác nhận bạn được phép dùng nguồn này trong ứng dụng.');
+        const s = this.load();
+        s.custom.push({ id: 'c_' + Date.now().toString(36), type: type === 'wms' ? 'wms' : 'xyz', name, url, layers, attribution, opacity: 0.8, on: true });
+        this.save();
+        this.syncOverlays();
+        this._showAdd = false;
+        this.renderPanel();
+        showToast(`✅ Đã thêm nguồn "${name}"`);
+        return true;
+    },
+    removeCustom(id) {
+        const s = this.load();
+        const c = s.custom.find(x => x.id === id);
+        if (!c || !confirm(`Xóa nguồn "${c.name}"?`)) return;
+        s.custom = s.custom.filter(x => x !== c);
+        this.save();
+        this.syncOverlays();
+        this.renderPanel();
+    },
+    toggleAddForm(show) {
+        this._showAdd = show !== undefined ? !!show : !this._showAdd;
+        this.renderPanel();
+    },
+
+    // ---------- Bảng lớp ----------
+    open() {
+        const modal = document.getElementById('modalMapLayers');
+        if (!modal) return;
+        this.load();
+        modal.style.display = 'flex';
+        this.renderPanel();
+    },
+    close() {
+        const modal = document.getElementById('modalMapLayers');
+        if (modal) modal.style.display = 'none';
+    },
+    _switch(id, on, onchange, label) {
+        return `<input class="ml-switch" type="checkbox" id="${id}" ${on ? 'checked' : ''} onchange="${onchange}" aria-label="${escapeHtml(label)}">`;
+    },
+    _slider(id, opacity) {
+        const pct = Math.round((opacity || 0.6) * 100);
+        return `<label class="ml-slider">Độ rõ <input type="range" min="10" max="100" step="5" value="${pct}" oninput="appMapLayers.setOpacity('${id}', this.value / 100)" aria-label="Độ rõ lớp"><span id="mlOpacity_${id}">${pct}%</span></label>`;
+    },
+    renderPanel() {
+        const body = document.getElementById('mapLayersBody');
+        const modal = document.getElementById('modalMapLayers');
+        if (!body || !modal || modal.style.display === 'none') return;
+        const s = this.load();
+        const base = AppState.activeBaseLayerId;
+        const inCad = AppState.mapMode === 'cad';
+        const bases = MAP_BASES.map(b => `<label class="ml-base${b.id === base ? ' is-on' : ''}">
+            <input type="radio" name="mlBase" value="${b.id}" ${b.id === base ? 'checked' : ''} onchange="appMapLayers.setBase('${b.id}')">
+            <span class="ml-thumb" style="background:${b.thumb}"></span>
+            <span class="ml-text"><b>${b.name}</b><small>${b.sub}</small></span></label>`).join('');
+
+        const row = (sw, name, sub, extra = '') => `<div class="ml-row"><div class="ml-row-head">${sw.swatch}<span class="ml-text"><b>${name}</b><small>${sub}</small></span>${sw.input}</div>${extra}</div>`;
+        const wc = s.worldcover, g = s.gibs;
+        const legend = `<div class="ml-legend">${WORLDCOVER_CLASSES.map(([c, n]) => `<span><i style="background:${c}"></i>${n}</span>`).join('')}</div>`;
+        const gibsExtra = g.on ? `<div class="ml-sub-controls">
+              <label>Ngày ảnh <input type="date" value="${escapeHtml(g.date)}" max="${new Date().toISOString().slice(0, 10)}" onchange="appMapLayers.setGibs('date', this.value)"></label>
+              <label>Loại ảnh <select onchange="appMapLayers.setGibs('product', this.value)">${GIBS_PRODUCTS.map(p => `<option value="${p.id}" ${p.id === g.product ? 'selected' : ''}>${p.name}</option>`).join('')}</select></label>
+              ${this._slider('gibs', g.opacity)}
+              <small>Độ phân giải ~250 m: xem vùng ngập, mùa nước nổi; ngày bị mây có thể trống.</small></div>` : '';
+        const overlays = [
+            row({ swatch: '<span class="ml-swatch" style="background:#f096ff"></span>', input: this._switch('mlWc', wc.on, "appMapLayers.setOverlay('worldcover', this.checked)", 'Lớp phủ mặt đất ESA WorldCover') },
+                'Lớp phủ mặt đất ESA WorldCover', '10 m · 2021 · lúa, cây, nhà, mặt nước',
+                wc.on ? `<div class="ml-sub-controls">${this._slider('worldcover', wc.opacity)}${legend}</div>` : ''),
+            row({ swatch: '<span class="ml-swatch" style="background:#0064c8"></span>', input: this._switch('mlGibs', g.on, "appMapLayers.setOverlay('gibs', this.checked)", 'Ảnh vệ tinh theo ngày NASA') },
+                'Ảnh vệ tinh theo ngày (NASA)', 'Cập nhật hằng ngày · theo dõi lũ', gibsExtra),
+            row({ swatch: '<span class="ml-swatch" style="background:#f43f5e"></span>', input: this._switch('mlProv', !!AppState.is34ProvVisible, 'appMap.toggle34Provinces(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới 34 tỉnh') },
+                'Ranh giới 34 tỉnh', 'Địa giới hành chính 2025'),
+            row({ swatch: '<span class="ml-swatch" style="background:#10b981"></span>', input: this._switch('mlXa', !!AppState.isDtCommunesVisible, 'appMap.toggleDongThapCommunes(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới xã Đồng Tháp') },
+                'Ranh giới xã Đồng Tháp', '102 xã, phường')
+        ];
+        if (inCad && typeof appPlanOverlay !== 'undefined') {
+            const n = appPlanOverlay.items.length;
+            overlays.push(`<div class="ml-row"><div class="ml-row-head"><span class="ml-swatch" style="background:#fde047"></span><span class="ml-text"><b>Ảnh nền quy hoạch</b><small>${n ? n + ' ảnh đã gắn tọa độ' : 'Chưa có ảnh'} · chỉ trong MiniCAD</small></span>
+                <button type="button" class="btn-sm" style="min-height:40px" onclick="appMapLayers.close(); appPlanOverlay.open()">Quản lý</button></div></div>`);
+        }
+        const customs = s.custom.map(c => row(
+            { swatch: '<span class="ml-swatch" style="background:#38bdf8"></span>', input: this._switch('mlC_' + c.id, c.on, `appMapLayers.setOverlay('${c.id}', this.checked)`, c.name) },
+            escapeHtml(c.name), `${c.type.toUpperCase()} · ${escapeHtml(c.attribution)}`,
+            `<div class="ml-sub-controls">${c.on ? this._slider(c.id, c.opacity) : ''}<button type="button" class="btn-sm" style="min-height:36px;color:#fca5a5" onclick="appMapLayers.removeCustom('${c.id}')">Xóa nguồn</button></div>`)).join('');
+        const addForm = this._showAdd ? `<div class="ml-add">
+            <label>Loại nguồn <select id="mlNewType" onchange="document.getElementById('mlNewLayersRow').style.display = this.value === 'wms' ? 'flex' : 'none'">
+              <option value="xyz">Ô ảnh XYZ ({z}/{x}/{y})</option><option value="wms">WMS (vd: cổng quy hoạch của Sở)</option></select></label>
+            <label>Tên hiển thị <input id="mlNewName" type="text" placeholder="Vd: Quy hoạch sử dụng đất — Sở NN&amp;MT"></label>
+            <label>Đường dẫn <input id="mlNewUrl" type="url" placeholder="https://…/{z}/{x}/{y}.png hoặc https://…/wms"></label>
+            <label id="mlNewLayersRow" style="display:none">Tên lớp WMS <input id="mlNewLayers" type="text" placeholder="layers"></label>
+            <label>Ghi nguồn (bắt buộc) <input id="mlNewAttr" type="text" placeholder="© Cơ quan / đơn vị cung cấp"></label>
+            <label class="ml-check"><input id="mlNewLicensed" type="checkbox"> Nguồn công khai có giấy phép mở, hoặc tôi đã được nhà cung cấp cho phép dùng trong ứng dụng (nguồn thương mại như Guland cần khóa API / văn bản cho phép).</label>
+            <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+              <button type="button" class="btn-sm" style="min-height:40px" onclick="appMapLayers.toggleAddForm(false)">Hủy</button>
+              <button type="button" class="btn-sm btn-blue" style="min-height:40px;font-weight:800" onclick="appMapLayers.addCustomFromForm()">Thêm nguồn</button>
+            </div></div>`
+            : `<button type="button" class="ml-add-btn" onclick="appMapLayers.toggleAddForm(true)">＋ Thêm nguồn WMS / XYZ (Sở NN&amp;MT, dữ liệu riêng, đối tác có giấy phép)</button>`;
+
+        body.innerHTML = `
+          <fieldset class="ml-group"><legend>Nền bản đồ · chọn 1</legend>${bases}</fieldset>
+          <div class="ml-group"><h4>Lớp phủ · bật nhiều lớp</h4>${overlays.join('')}</div>
+          <div class="ml-group"><h4>Nguồn tự thêm</h4>${customs}${addForm}</div>
+          <p class="ml-note">Lớp phủ nằm dưới nét vẽ và không cản thao tác chấm điểm. Ghi nguồn hiện ở góc trái dưới bản đồ. Thông tin chỉ để tham khảo, không thay văn bản của cơ quan có thẩm quyền.</p>`;
+    }
+};
+
 // ================= GLOBAL WINDOW EXPORTS FOR RELIABLE BROWSER / WEBVIEW COMPATIBILITY =================
 if (typeof window !== 'undefined') {
     window.appNav = appNav;
     window.appPlanOverlay = appPlanOverlay;
+    window.appMapLayers = appMapLayers;
     window.AppState = AppState;
     window.appElevationProfile = appElevationProfile;
     window.appDashboard = appDashboard;
@@ -42499,6 +42811,8 @@ if (typeof module !== 'undefined' && module.exports) {
         AppState,
         installLeafletAutoResize,
         appPlanOverlay,
+        appMapLayers,
+        MAP_BASES,
         EXPORT_BASEMAPS,
         planExportBasemap,
         loadExportBasemap,
