@@ -11,7 +11,7 @@ Cập nhật 2026-11-11. Tài liệu này là "bản đồ" của ứng dụng: 
 | Nội dung | Giữa | Thẻ → tab (nếu có) → ô nhập → nút hành động chính |
 | Thanh dưới | Dưới cùng | Trang chủ + 3 chức năng tự chọn + Sổ đo |
 
-Mọi chức năng đều mở được bằng **3 đường**: bảng "Tất cả chức năng" ở Trang chủ, menu ☰, và (với chức năng đã ghim) thanh dưới / ô "Chức năng của tôi". Bảng ở Trang chủ được dựng trực tiếp từ menu ☰ (`app-shell.js`) nên hai nơi không bao giờ lệch nhau.
+Mọi chức năng đều mở được bằng **3 đường**: bảng "Tất cả chức năng" ở Trang chủ, menu ☰, và (với chức năng đã ghim) thanh dưới / ô "Chức năng của tôi". Menu ☰ ("Mục lục chức năng") và bảng ở Trang chủ dùng chung một danh sách gọn do `app-shell.js` dựng từ menu ☰ gốc, nên hai nơi không bao giờ lệch nhau: tên ngắn, mô tả một dòng, nút lọc theo nhóm, ★ đánh dấu chức năng đang hiện trên Trang chủ.
 
 **Trang chủ tùy chỉnh** (nút "Tùy chỉnh" hoặc Cài đặt → Chung → Trang chủ): người dùng chọn 1, 2 hay nhiều chức năng hiện ra, sắp thứ tự bằng ▲▼; bố cục tự đổi theo số mục — 1 = một khối lớn, 2 = hai khối lớn, 3–4 = lưới ô vừa, từ 5 = lưới ô gọn. Thanh "Chức năng của tôi" (với nút Thực địa và Tùy chỉnh) luôn ở đầu Trang chủ, các ô ngay dưới. Bật/tắt riêng: Chuyển đổi nhanh (mặc định bật, nằm dưới các ô), Vị trí GPS và Dự án hiện hành (mặc định tắt vì đã có trên thanh tiêu đề). "Tất cả chức năng" mặc định thu gọn thành một nút.
 

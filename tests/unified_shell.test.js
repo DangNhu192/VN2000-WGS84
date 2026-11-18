@@ -33,7 +33,7 @@ test('thanh ngữ cảnh + bảng Tất cả chức năng có trong trang; Công
     assert.ok(app.includes("document.dispatchEvent(new CustomEvent('vn2000:screenchange', { detail }))"));
     const css = fs.readFileSync(path.join(root, 'ui-unified.css'), 'utf8');
     assert.ok(css.includes('.accordion-advanced-wrapper { display: none !important; }'));
-    assert.ok(css.includes('body.field-mode .hub-tile'), 'Có kiểu tương phản cao cho chế độ Thực địa');
+    assert.ok(css.includes('body.field-mode .fi-row'), 'Có kiểu tương phản cao cho chế độ Thực địa');
 });
 
 test('ui-unified.css nạp SAU ui-polish.css; script & css được precache', () => {

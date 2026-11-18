@@ -83,23 +83,67 @@
 .hub-toggle[aria-expanded="true"] .hub-chevron { transform: rotate(180deg); }
 .hub-search { display: block; width: 100%; min-width: 0; height: 40px; margin-bottom: 10px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--u-line); background: var(--u-input); color: var(--u-ink); font-size: 14px; user-select: text; -webkit-user-select: text; }
 .hub-search:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 1px; }
-.hub-group { margin-bottom: 16px; }
-.hub-group[hidden], .hub-tile[hidden], .hub-empty[hidden] { display: none !important; }
-.hub-group-title { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--u-muted); }
-.hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
-.hub-tile {
-  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 8px 12px; text-align: left;
-  border-radius: var(--u-radius); border: 1px solid var(--u-line); background: var(--u-surface); color: var(--u-ink);
-  cursor: pointer; transition: border-color 0.2s var(--u-ease), background-color 0.2s var(--u-ease);
+
+/* 2d. Mục lục chức năng — phương án A "danh sách gọn" (app-shell.js), dùng chung cho
+   menu ☰ (#drawerFeatureIndex) và "Tất cả chức năng" ở Trang chủ (#homeFeatureHubList).
+   Mỗi chức năng một dòng: biểu tượng nét theo màu nhóm, tên gọn, mô tả một dòng, ★ = đang hiện trên Trang chủ. */
+#navTreeDrawer { background: #0a1322 !important; }
+[data-theme="light"] #navTreeDrawer { background: #f8fafc !important; }
+#navTreeDrawer :is(.drawer-tree-body, #drawerStatusInfo) { display: none !important; }
+.fi-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 6px 6px 16px; }
+.fi-title { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; color: var(--u-ink); }
+.fi-close { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: transparent; color: var(--u-muted); cursor: pointer; }
+.fi-close:hover, .fi-close:focus-visible { background: var(--u-surface-2); color: var(--u-ink); outline: none; }
+.fi-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.fi-search { position: relative; padding: 4px 16px 10px; }
+.fi-search-icon { position: absolute; left: 30px; top: 17px; color: var(--u-muted); pointer-events: none; }
+.fi-search input { width: 100%; height: 44px; box-sizing: border-box; padding: 0 14px 0 42px; border-radius: 12px; border: 1px solid var(--u-line); background: var(--u-input); color: var(--u-ink); font: inherit; font-size: 15px; user-select: text; -webkit-user-select: text; }
+.fi-search input:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 1px; }
+#drawerFeatureIndex { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 8px 24px; -webkit-overflow-scrolling: touch; }
+.fi-chips { display: flex; gap: 8px; overflow-x: auto; padding: 0 8px 6px; scrollbar-width: none; }
+.fi-chips::-webkit-scrollbar { display: none; }
+#homeFeatureHubList .fi-chips { padding: 0 0 6px; }
+.fi-chip { position: relative; flex: 0 0 auto; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--u-line); background: transparent; color: var(--u-ink); font: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.fi-chip::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 44px; margin-top: -22px; }
+.fi-chip[aria-pressed="true"] { background: #e0f2fe; border-color: #e0f2fe; color: #0c4a6e; }
+[data-theme="light"] .fi-chip[aria-pressed="true"] { background: #0369a1; border-color: #0369a1; color: #fff; }
+.fi-chip:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 2px; }
+.fi-list { display: flex; flex-direction: column; }
+.fi-group { margin-top: 14px; }
+.fi-group-title { margin: 0 8px 4px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--u-muted); }
+.fi-count { font-weight: 600; letter-spacing: 0; text-transform: none; }
+.fi-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--fi-c); }
+.fi-row { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 6px 8px; border: 0; border-radius: 12px; background: transparent; color: var(--u-ink); font: inherit; text-align: left; cursor: pointer; }
+.fi-row:hover { background: var(--u-surface-2); }
+.fi-row:focus-visible { background: var(--u-surface-2); outline: 2px solid var(--border-focus, #38bdf8); outline-offset: -2px; }
+.fi-row[aria-current="page"] { background: rgba(2, 132, 199, 0.16); }
+.fi-icon { flex: 0 0 36px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--fi-bg); color: var(--fi-c); }
+.fi-home .fi-icon { background: #0284c7; color: #fff; }
+.fi-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fi-name { font-size: 15px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fi-sub { font-size: 12.5px; line-height: 1.35; color: var(--u-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fi-sub:empty { display: none; }
+.fi-end { flex: 0 0 auto; display: flex; color: var(--u-muted); }
+.fi-star { display: inline-flex; color: #fbbf24; }
+.fi-star svg { fill: currentColor; }
+[data-theme="light"] .fi-star { color: #b45309; }
+.fi-legend { margin: 20px 8px 0; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--u-muted); }
+.fi-empty { margin: 32px 16px; text-align: center; font-size: 14px; color: var(--u-muted); }
+@media (min-width: 900px) {
+  /* Trang chủ trên màn rộng: mỗi nhóm hai cột cho ngắn trang. */
+  #homeFeatureHubList .fi-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8px; }
+  #homeFeatureHubList .fi-group-title { grid-column: 1 / -1; }
 }
-.hub-tile:hover, .hub-tile:focus-visible { border-color: var(--u-line-strong); outline: none; }
-.hub-tile:active { background: var(--u-surface-2); }
-.hub-tile-icon { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--u-surface-2); font-size: 18px; }
-.hub-tile-text { display: grid; min-width: 0; gap: 2px; }
-.hub-tile-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
-.hub-tile-sub { font-size: 12px; line-height: 1.3; color: var(--u-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hub-empty { color: var(--u-muted); font-size: 13px; }
-@media (max-width: 600px) { .hub-grid { grid-template-columns: minmax(0, 1fr); } }
+.fi-group[data-fi-color="sky"] { --fi-c: #38bdf8; --fi-bg: rgba(56, 189, 248, 0.14); }
+.fi-group[data-fi-color="green"] { --fi-c: #34d399; --fi-bg: rgba(52, 211, 153, 0.14); }
+.fi-group[data-fi-color="violet"] { --fi-c: #c4b5fd; --fi-bg: rgba(167, 139, 250, 0.16); }
+.fi-group[data-fi-color="amber"] { --fi-c: #fbbf24; --fi-bg: rgba(251, 191, 36, 0.14); }
+.fi-group[data-fi-color="slate"] { --fi-c: #cbd5e1; --fi-bg: rgba(148, 163, 184, 0.18); }
+[data-theme="light"] .fi-group[data-fi-color="sky"] { --fi-c: #0369a1; --fi-bg: #e0f2fe; }
+[data-theme="light"] .fi-group[data-fi-color="green"] { --fi-c: #047857; --fi-bg: #d1fae5; }
+[data-theme="light"] .fi-group[data-fi-color="violet"] { --fi-c: #6d28d9; --fi-bg: #ede9fe; }
+[data-theme="light"] .fi-group[data-fi-color="amber"] { --fi-c: #b45309; --fi-bg: #fef3c7; }
+[data-theme="light"] .fi-group[data-fi-color="slate"] { --fi-c: #334155; --fi-bg: #e2e8f0; }
 
 /* 2b'. Thanh "Chức năng của tôi" ở đầu Trang chủ: nút Thực địa + Tùy chỉnh cùng một hàng (vùng chạm 44px).
    Chuyển đổi nhanh (#fieldWorkspace) nằm ngay dưới các ô, rộng bằng các ô. */
@@ -290,12 +334,15 @@ body:not(.field-mode) #screen-profile .btn-sm { font-size: 12.5px !important; pa
 
 /* ---------- 9. Chế độ Thực địa: bảng chức năng & ô truy cập nhanh tương phản cao ---------- */
 body.field-mode :is(.hub-title, #dashboardModernHub .dashboard-bar-title .bar-title-text) { color: #fff !important; }
-body.field-mode .hub-group-title { color: #ffdf00; }
-body.field-mode .hub-search { background: #101010; color: #fff; border-color: #ccc; min-height: 48px; }
-body.field-mode .hub-tile { background: #000; color: #fff; border-color: #aaa; min-height: 60px; }
-body.field-mode .hub-tile-icon { background: #1a1a1a; }
-body.field-mode .hub-tile-sub { color: #ddd; }
-body.field-mode .hub-tile:focus-visible { outline: 3px solid #ffdf00; outline-offset: 2px; }
+body.field-mode .fi-group-title { color: #ffdf00; }
+body.field-mode :is(.hub-search, .fi-search input) { background: #101010; color: #fff; border-color: #ccc; min-height: 48px; }
+body.field-mode #navTreeDrawer { background: #000 !important; }
+body.field-mode .fi-row { color: #fff; min-height: 60px; }
+body.field-mode .fi-icon { background: #1a1a1a; }
+body.field-mode .fi-sub { color: #ddd; }
+body.field-mode .fi-row:focus-visible { outline: 3px solid #ffdf00; outline-offset: -3px; }
+body.field-mode .fi-chip { color: #fff; border-color: #aaa; min-height: 44px; }
+body.field-mode .fi-chip[aria-pressed="true"] { background: #ffdf00; border-color: #ffdf00; color: #000; }
 body.field-mode .hub-toggle { background: #000; color: #fff; border-color: #aaa; min-height: 52px; }
 body.field-mode .hub-count { background: #1a1a1a; color: #ffdf00; }
 body.field-mode #dashboardModernHub .big-tile-sub { color: #ddd !important; }
