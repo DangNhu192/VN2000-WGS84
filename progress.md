@@ -9,6 +9,95 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-11-18] WP-Q Bổ Sung Khổ Giấy Lớn (A0, A1, A2) & Nhập Tay Tỉ Lệ Bản Đồ Đánh Giá Vùng Lớn (MiniCAD & Sổ Đo Dự Án)
+- **Yêu cầu từ người dùng**:
+  `khổ giấy cho phép chọn khổ lớn hơn để in bản vẽ, về tỉ lệ bản đồ cũng cho phép nhập tay tỉ lệ bản đổ (do một số bản vẽ cần được vẽ là bản đồ lớn để đánh giá)`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Khổ Giấy Lớn A0, A1, A2 Chuẩn TCVN 7285 & ISO 216**:
+     - Bổ sung toàn bộ các khổ lớn cho cả MiniCAD và Sổ đo / Dự án:
+       - **A0 Ngang** (1189 × 841 mm) & **A0 Đứng** (841 × 1189 mm)
+       - **A1 Ngang** (841 × 594 mm) & **A1 Đứng** (594 × 841 mm)
+       - **A2 Ngang** (594 × 420 mm) & **A2 Đứng** (420 × 594 mm)
+       - Bên cạnh A3 và A4 hiện tại.
+     - Tự động điều chỉnh độ rộng cột bảng biểu và khung tên (`W_panel_mm`): Khổ A0/A1 dùng 90mm, A2/A3 dùng 75mm, A4 dùng 60mm.
+  2. **Cho Phép Nhập Tay Tỉ Lệ Bản Đồ (Custom / Manual Scale Input)**:
+     - Thêm tùy chọn `✍️ Tùy chỉnh (Nhập tay tỉ lệ)...` (`value="custom"`) trên dropdown tỉ lệ của cả MiniCAD (`#cadExportScale`) và Bản đồ Dự án (`#selExportMapScale`).
+     - Tự động hiển thị khung nhập số trực tiếp `Tỉ lệ 1 : [ _______ ]` khi người dùng chọn tùy chỉnh (`#cadExportCustomScaleWrap`, `#selExportCustomScaleWrap`).
+     - Bổ sung sẵn các nấc tỉ lệ lớn chuẩn trắc địa & quy hoạch: `1:25.000`, `1:50.000`, `1:100.000`.
+     - Nhãn xem trước, khung tên bản vẽ, và tên file tự động đồng bộ tỉ lệ tùy chỉnh (VD: `Tỉ lệ 1:25000 (Nhập tay)`).
+  3. **Lưới Tọa Độ Chuẩn Trắc Địa Theo Tỉ Lệ Lớn (`gridInterval`)**:
+     - $\ge 50.000 \to$ bước lưới 5.000m (5 km).
+     - $\ge 25.000 \to$ bước lưới 2.500m (2.5 km).
+     - $\ge 10.000 \to$ bước lưới 1.000m (1 km).
+     - Tránh vẽ hàng trăm đường lưới dày đặc làm nát bản đồ vùng lớn.
+  4. **Cơ Chế Thích Ứng Phân Giải Chống Tràn Bộ Nhớ RAM Canvas (Canvas Memory Guard)**:
+     - Khổ A0: tự động dùng `3.5 px/mm` (~12.2 Megapixels), khổ A1: `4.5 px/mm`, khổ A2: `6.0 px/mm`, khổ A3/A4: `8.0 px/mm`.
+     - Đảm bảo bản in PDF và ảnh PNG vừa đạt độ sắc nét tuyệt hảo vừa kết xuất mượt mà dưới 0.5s trên mọi máy tính và trình duyệt di động.
+  5. **Xuất Bản Vẽ Đa Định Dạng (AutoCAD DWG, PDF Vector, PNG Raster, SVG)**:
+     - jsPDF nhận kích thước mm tự do `format: [meta.paperW, meta.paperH]` và hướng giấy `landscape`/`portrait`.
+     - File AutoCAD DWG AC1015 tính toán tọa độ khung giấy theo mét thực địa `W_sheet = W_paper * S`, `H_sheet = H_paper * S` chuẩn 100% tỷ lệ.
+  6. **Kiểm Thử Tự Động & Hồi Quy**:
+     - Viết mới `tests/export_large_paper_and_custom_scale.test.js` kiểm tra DOM, logic kích thước và thuật toán bố cục.
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **487/487 tests PASS 100% (0 fail)**.
+     - Kiểm tra tương tác thực tế và chụp ảnh nghiệm thu qua Chrome DevTools MCP.
+
+
+### [2026-11-18] WP-P Duy Nhất Một Lớp Bản Đồ Guland, Triệt Tiêu Layer Mặc Định / Kẹt Luôn Mở & Cho Phép Chọn Tỉnh Hoặc Tắt Hoàn Toàn (F-015/F-016)
+- **Yêu cầu từ người dùng**:
+  `nền bản đồ đang có 1 lớp guland luôn được mở là không đúng, chỉ nên tồn tại 1 lớp bản đồ guland (cho phép chọn hiển thị tỉnh, hoặc tắt lớp guland)`
+- **Nguyên nhân gốc rễ (Root Cause Analysis)**:
+  1. *Lệch tham chiếu giữa 2 target dùng chung Leaflet map (`projectMap` và `cadMap`)*: Cả Bản đồ dự án và MiniCAD đều chia sẻ cùng 1 đối tượng bản đồ `AppState.leafletMap`. Trước đây, khi một bên bật layer hoặc chuyển tỉnh, `targets[key].layer` được cập nhật riêng lẻ nhưng không đồng bộ tham chiếu sang bên còn lại. Khi người dùng cố gắng tắt ở một phân hệ, Leaflet chỉ cố gỡ đối tượng tham chiếu của phân hệ đó, dẫn tới ngói quy hoạch từ phân hệ kia bị mồ côi (orphan layer) kẹt vĩnh viễn trên bản đồ (`AppState.leafletMap._layers`).
+  2. *Thiếu cơ chế thanh tẩy sạch các lớp Guland mồ côi*: Hàm `removeLayer(t.layer)` chỉ gỡ 1 đối tượng biến `t.layer`, nếu biến bị null hoặc có nhiều ngói gạch sinh ra qua nhiều lần đổi tỉnh, các ngói cũ vẫn tồn tại dưới nền.
+  3. *Thẻ điều khiển nổi tự động bị ép mở khi tắt*: Trong các hàm `toggleProjectMapPlanning()`, `toggleLiveMapPlanning()`, `toggleTransformMapPlanning()`, code trước đây gọi cứng `this.togglePanel(..., true)`. Dù người dùng chủ động tắt lớp (`willOpen = false`), bảng nổi vẫn bị ép hiện lên với chữ `⚪ Đang tắt`, gây cảm giác tính năng luôn mở và không thể tắt.
+  4. *Quản lý lớp bản đồ (`modalMapLayers`) giấu bộ chọn tỉnh khi lớp đang tắt*: Khi Guland đang OFF, người dùng không thể chọn trước tỉnh thành muốn xem trước khi bật.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Cơ chế Purge Triệt Để Zero-Orphan (`removeAllGulandLayersFromMap`)**:
+     - Viết hàm `removeAllGulandLayersFromMap(map)`: quét toàn bộ `map.eachLayer()`, nhận diện bất kỳ tile layer nào có class `leaflet-layer-guland-planning`, `leaflet-layer-guland-land` hoặc chứa URL `vcdn.cloud`/`guland` và gỡ bỏ triệt để khỏi bản đồ.
+     - Luôn gọi purge trước khi vẽ layer mới trong `toggle()` và `setProvince()`, đảm bảo **chỉ tồn tại duy nhất tối đa 1 layer quy hoạch** (và 1 layer thửa nếu bật) trên bất kỳ bản đồ nào.
+  2. **Đồng Bộ Hai Chiều Tuyệt Đối Giữa `projectMap` & `cadMap` (`syncMainMapTargets`)**:
+     - Hàm `syncMainMapTargets(sourceKey)` đồng bộ tức thời mọi thuộc tính (`active`, `layer`, `landLayer`, `provinceSlug`, `opacity`, `showLand`) giữa `projectMap` và `cadMap`.
+     - Cập nhật đồng bộ toàn bộ nút bấm `#btnMapProjectPlanning`, `#btnCadPlanning`, `#cadCheckShowGulandPlanning` và `#mlGulandSwitch`.
+  3. **Khắc Phục Đóng Thẻ Nổi & Tự Động Ẩn Khi Rời Phân Hệ**:
+     - Chuyển `this.togglePanel(targetKey, willOpen)`: khi tắt lớp, bảng nổi đóng hoàn toàn (`display: none`).
+     - Đăng ký `'mapProjectPlanningCtrl'` và `'cadPlanningCtrl'` vào `resetMapChrome()` và `closeCadWindows()` trong `app.js`.
+  4. **Cho Phép Chọn 63 Tỉnh Kể Cả Khi Đang Tắt Trong `modalMapLayers`**:
+     - Render thanh chọn tỉnh `#mlGulandProvSelect` ngay cả khi công tắc đang TẮT. Người dùng thoải mái chọn tỉnh, và khi gạt bật sẽ hiển thị ngay đúng tỉnh đã chọn mà không bị nhảy về mặc định.
+     - Thêm phương thức `appPlanning.panToProvince(targetKey, slug)`.
+  5. **Nâng Cấp Lệnh CADCraft CLI `QH`**:
+     - Hỗ trợ `QH OFF`, `QH ON` và `QH <tên_tỉnh>` (ví dụ: `QH DONG-NAI`, `QH HA-NOI`, `QH DA-NANG`).
+  6. **Kiểm Thử Tự Động & Hồi Quy 100%**:
+     - Bổ sung `NHÓM 9` trong `tests/planning_map_integration.test.js`: **41/41 tests PASS**.
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **484/484 tests PASS 100% (0 fail)**.
+     - Kiểm tra thực tế bằng Chrome DevTools MCP: khởi động không có bất kỳ layer Guland nào (`[]`), bật lên có đúng 1 layer, đổi tỉnh giữ nguyên 1 layer duy nhất, tắt đi dọn sạch 100% về `[]`.
+
+### [2026-11-18] WP-N Đưa Dữ Liệu Hình Học, Điểm Mốc, Tuyến, Thửa Lên Lớp Trên Cùng & Tự Động Đồng Bộ Xuất File MiniCAD (F-004/F-015/F-016)
+- **Yêu cầu từ người dùng**: `các điểm chấm, điểm lưu, tuyến, thửa, đa giác,... các dữ liệu được lưu chưa được hiển thị ở phía trên cùng để xem và xuất dữ liệu trong miniCAD`
+- **Nguyên nhân gốc rễ (Root Cause Analysis)**:
+  1. *Lớp hiển thị (Stacking Context)*: Các đối tượng vẽ hình học (polygon, polyline) trước đây sử dụng `overlayPane` mặc định của Leaflet (zIndex: 400). Khi bật bản đồ quy hoạch Guland (zIndex: 230-235), ảnh/PDF overlays (zIndex: 250) hoặc các lớp gạch bản đồ, các đối tượng hình học dễ bị lẫn hoặc không duy trì vị thế vật lý ở lớp trên cùng.
+  2. *Dữ liệu mốc chưa được tự động nạp thành khối (Reconstruct fallback)*: Khi người dùng chuyển đổi tọa độ hoặc lưu mốc vào dự án (`appData.points`), các mốc này chưa được gán nhãn `shapeName`/`blockName`. Hàm `reconstructShapesFromPoints()` trước đây bỏ qua các mốc không có `shapeName`, khiến `savedShapes` bị rỗng (`[]`) khi mở MiniCAD, người dùng không nhìn thấy ranh thửa/tuyến và không thể xuất file (DXF/GeoJSON/Excel/Bảng kê).
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Tạo Leaflet Panes Chuyên Biệt Trên Cùng (`cadVectorPane` & `cadMarkerPane`)**:
+     - Định nghĩa lớp `cadVectorPane` với `z-index: 450 !important` (`pointer-events: auto`) chuyên chứa nét vẽ ranh thửa, đường tim tuyến, đa giác, đường song song Offset.
+     - Định nghĩa lớp `cadMarkerPane` với `z-index: 680 !important` (`pointer-events: auto`) chuyên chứa các nhãn đỉnh (Đ1, Đ2...), nhãn kích thước cạnh, nhãn tâm diện tích và ghim mốc định vị.
+     - Triển khai phương thức `appCadTool.bringCadToFront()`: tự động duyệt và gọi `.bringToFront()` cho toàn bộ các layer vectơ, nhãn và mốc dự án.
+  2. **Tự Động Tái Tạo Hình Học Từ Mốc Dự Án Chưa Gắn Khối (Auto-Reconstruct Unassigned Points)**:
+     - Nâng cấp `reconstructShapesFromPoints(curProj)`: Tự động gom nhóm các mốc dự án chưa có `shapeName`:
+       - $\ge 3$ mốc: dựng thành đa giác khép kín ranh thửa (`mode: 'polygon'`).
+       - $2$ mốc: dựng thành đường tim tuyến (`mode: 'polyline'`).
+       - $1$ mốc (hoặc điểm rời): dựng thành lớp điểm mốc định vị (`mode: 'point'`).
+     - Bổ sung `appCadTool.autoLoadAllProjectDataToCad(projName)`: Đồng bộ 1 chạm toàn bộ khối, mốc, thửa lên trên cùng MiniCAD.
+     - Thêm phương thức `appCadTool.zoomToAllShapes()`: Tự động zoom vừa vặn (fitBounds) toàn bộ các đỉnh/mốc khi nạp.
+  3. **Đảm Bảo Xuất Dữ Liệu Tức Thì (Instant Export Fallback)**:
+     - Trong `appCadTool._getAllExportShapes()`: Nếu `this.savedShapes` rỗng nhưng dự án có mốc, tự động nạp từ file lưu hoặc tái tạo từ `reconstructShapesFromPoints`.
+     - Ngay lập tức mở khóa chức năng xuất dữ liệu ra AutoCAD DWG/DXF, GeoJSON, KML, GPX, CSV, Excel, PDF và Bảng kê 6 tab.
+  4. **Bổ Sung Nút Điều Khiển Trên Giao Diện (`index.html`)**:
+     - Thêm nút `#btnCadAutoSyncProjectData` (`⚡ Đồng bộ mốc/thửa`) tại Tab 3 MiniCAD.
+     - Thêm nút `#btnCadLoadProjectAll` (`⚡ NẠP TẤT CẢ DỮ LIỆU`) tại footer Modal nạp dự án.
+     - Thêm nút `#btnCadLoadPointsOnly` (`📍 Nạp Điểm rời`) tại footer Modal nạp dự án.
+  5. **Kiểm Thử & Xác Minh Hồi Quy 100%**:
+     - Tạo bộ test chuyên biệt `tests/cad_topmost_data_and_export.test.js`: **26/26 tests PASS 100%**.
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **477/477 tests PASS 100% (0 fail)**.
+
 ### [2026-11-18] WP-M Tích hợp Bản đồ Quy hoạch Guland 2030 làm Bản đồ nền & Bộ chọn tỉnh toàn diện (F-015/F-016)
 - **Yêu cầu từ người dùng**:
   1. `chưa thể sử dụng các lớp bản đồ của Guland như bản đồ nền (bên dưới) để thao tác xem các điểm, tuyến, đa giác (ở trên cùng)`
@@ -1375,3 +1464,25 @@
   4. **Quy chuẩn hiển thị & di động**: Cân bằng cấu trúc đóng/mở ngoặc CSS trong `ui-polish.css`, đáp ứng sàn chạm di động 44px (`.btn-planning-sub`, `.planning-province-select`), sàn chữ ≥ 11px cho `.planning-note` và thích ứng vùng an toàn tai thỏ/Dynamic Island.
   5. **Dịch vụ ngoại tuyến PWA Service Worker**: Nâng cấp `CACHE_NAME = 'vn2000-pro-v2.8.41'`, thêm `./src/core/planning_map.js` vào `ASSETS_TO_CACHE`, cấu hình `vercel.json` an toàn chống cache cứng `geodesy.js`.
   6. **Kiểm thử tự động toàn diện**: Toàn bộ **465/465 test PASS 100%** (bao gồm 441 test của v2.8.40 và 24 test tích hợp của F-015). Sức khỏe ứng dụng qua `init.ps1` đạt chuẩn xanh 100%.
+
+- **2026-11-18 (Tích hợp Xuất Kèm Lớp Bản Đồ Guland 2030 & Tệp Bản Đồ PDF/Ảnh Vào Bản Vẽ Kỹ Thuật)**:
+  1. **Hộp thoại xuất MiniCAD (`#modalCadExportConfig`)**:
+     - Bổ sung nhóm điều khiển: `CHỌN LỚP BẢN ĐỒ NỀN, GULAND & FILE PDF XUẤT KÈM`.
+     - Tùy chọn nền cơ sở: Giấy trắng, OpenStreetMap, Vệ tinh Esri, Sentinel-2 10m, ESA WorldCover.
+     - Lớp quy hoạch Guland: Checkbox bật/tắt `#cadExportCheckGuland`, bộ chọn 63 tỉnh `#cadExportGulandProvince`, thanh trượt độ mờ `#cadExportGulandOpacity`, checkbox in kèm ranh thửa đất quy hoạch `#cadExportGulandLand`.
+     - Lớp bản đồ PDF / Ảnh bổ sung (`appPlanOverlay`): Checkbox `#cadExportPlanOverlay` kèm nhãn badge đếm số lượng `#cadExportPlanOverlayCountBadge`, danh sách từng tệp PDF/ảnh nắn tọa độ `#cadExportPlanOverlayList` với checkbox chọn độc lập từng file, nút Chọn tất cả / Bỏ chọn nhanh.
+  2. **Hộp thoại xuất Bản đồ Dự án / Sổ đo (`#modalExportData` / `#modalExportDwg`)**:
+     - Bổ sung bước 2.5: `CHỌN NỀN BẢN ĐỒ, GULAND & TỆP PDF XUẤT KÈM`.
+     - Đồng bộ đầy đủ bộ chọn nền `#selExportBasemap`, quy hoạch Guland `#chkExportGulandPlanning`, bộ chọn tỉnh `#selExportGulandProvince`, thửa đất `#chkExportGulandLand`.
+     - Lớp bản đồ PDF `#chkExportPlanOverlay` kèm danh sách tệp `#selExportPlanOverlayList`.
+  3. **Thuật toán & Động cơ nạp ngói (`app.js`)**:
+     - Xây dựng `planExportGuland(provinceSlug, frame, pxPerMeter, toLatLng, maxTiles, showLand, opacity)`: tính toán z-level và danh sách ô ngói theo EPSG:3857, ghép chuẩn xác tọa độ affine VN-2000.
+     - Nâng cấp `loadExportBasemap`: hỗ trợ tự động retry `fallbackUrl` nếu ngói CDN chính gặp sự cố, đảm bảo không làm gián đoạn việc xuất bản vẽ.
+     - Nâng cấp `_prepareExportBasemap`: tải đồng thời cả ngói nền cơ sở và ngói quy hoạch Guland qua `Promise.all`.
+     - Nâng cấp `appPlanOverlay`: thêm `renderExportFileList()`, `getSelectedExportIds()`, và `drawForExport(ctx, rect, toCanvas, selectedIds)` chỉ xuất các tệp PDF/ảnh đã được tích chọn.
+     - Tích hợp vẽ lớp Guland và PDF overlays vào `exportPdf()`, `exportOptimizedImage()` của MiniCAD và `exportPdfFile()` của Bản đồ dự án.
+  4. **Kiểm thử tự động & Trực quan**:
+     - Thêm bộ test `tests/export_guland_and_pdf_layers.test.js`: 7/7 test PASS.
+     - Chạy toàn bộ test suite hồi quy `tests/*.test.js`: **494/494 test PASS 100% (0 fail)**.
+     - Kiểm thử trực quan và chụp ảnh màn hình bằng Chrome DevTools MCP xác nhận giao diện chuẩn nét, chống chữ nhỏ ≥ 11px.
+

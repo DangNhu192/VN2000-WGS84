@@ -378,6 +378,68 @@ function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_
     return { kind, z, tiles, credit: src.credit, alpha: src.alpha, label: src.label };
 }
 
+// Lập kế hoạch tải ngói bản đồ quy hoạch Guland 2030 (kèm ngói thửa đất nếu chọn)
+function planExportGuland(provinceSlug, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_BASEMAP_MAX_TILES, showLand = false, opacity = 0.7) {
+    const planning = (typeof appPlanning !== 'undefined' && appPlanning) ? appPlanning : ((typeof window !== 'undefined' && window.appPlanning) ? window.appPlanning : (typeof global !== 'undefined' ? global.appPlanning : null));
+    if (!planning || typeof planning.getProvince !== 'function') return null;
+    const prov = planning.getProvince(provinceSlug);
+    if (!prov || !prov.url || !frame || !(pxPerMeter > 0) || typeof toLatLng !== 'function') return null;
+    if (!isFinite(frame.e0) || !isFinite(frame.e1) || !isFinite(frame.n0) || !isFinite(frame.n1) || !isFinite(pxPerMeter)) return null;
+
+    const corners = [[frame.e0, frame.n0], [frame.e1, frame.n0], [frame.e0, frame.n1], [frame.e1, frame.n1]]
+        .map(([e, n]) => toLatLng(e, n));
+    if (corners.some(c => !c || !isFinite(c.lat) || !isFinite(c.lng))) return null;
+    const lats = corners.map(c => c.lat), lngs = corners.map(c => c.lng);
+    const latMin = Math.min(...lats), latMax = Math.max(...lats);
+    const lngMin = Math.min(...lngs), lngMax = Math.max(...lngs);
+    const midLat = (latMin + latMax) / 2;
+
+    const targetRes = 1 / pxPerMeter;
+    let z = Math.ceil(Math.log2(156543.03 * Math.cos(midLat * Math.PI / 180) / targetRes));
+    const maxZ = prov.maxNativeZoom || 18;
+    z = Math.max(1, Math.min(maxZ, z));
+
+    const tileMultiplier = (showLand && prov.landUrl) ? 2 : 1;
+    let range;
+    for (; z >= 1; z--) {
+        const a = _tileFromLatLng(latMax, lngMin, z), b = _tileFromLatLng(latMin, lngMax, z);
+        range = { x0: Math.floor(a.x), x1: Math.floor(b.x), y0: Math.floor(a.y), y1: Math.floor(b.y) };
+        if ((range.x1 - range.x0 + 1) * (range.y1 - range.y0 + 1) * tileMultiplier <= maxTiles) break;
+    }
+    const n = Math.pow(2, z);
+    const tiles = [];
+    for (let ty = range.y0; ty <= range.y1; ty++) {
+        for (let tx = range.x0; tx <= range.x1; tx++) {
+            if (ty < 0 || ty >= n) continue;
+            const wx = ((tx % n) + n) % n;
+            tiles.push({
+                x: tx,
+                y: ty,
+                url: prov.url.replace('{z}', z).replace('{x}', wx).replace('{y}', ty),
+                fallbackUrl: prov.fallback ? prov.fallback.replace('{z}', z).replace('{x}', wx).replace('{y}', ty) : null
+            });
+            if (showLand && prov.landUrl) {
+                tiles.push({
+                    x: tx,
+                    y: ty,
+                    isLand: true,
+                    url: prov.landUrl.replace('{z}', z).replace('{x}', wx).replace('{y}', ty),
+                    fallbackUrl: null
+                });
+            }
+        }
+    }
+    return {
+        kind: 'guland',
+        province: prov,
+        z,
+        tiles,
+        credit: `Quy hoạch sử dụng đất 2030 - ${prov.name} (Guland)`,
+        alpha: Math.max(0.2, Math.min(1, opacity || 0.7)),
+        label: `Quy hoạch ${prov.name}`
+    };
+}
+
 // Tải ảnh các ô (crossOrigin) — ô lỗi/hết giờ bị bỏ qua, không làm hỏng bản vẽ.
 function loadExportBasemap(plan, opts = {}) {
     const ImageCtor = opts.Image || (typeof Image !== 'undefined' ? Image : null);
@@ -389,6 +451,7 @@ function loadExportBasemap(plan, opts = {}) {
     const loadOne = (t) => new Promise((resolve) => {
         const img = new ImageCtor();
         let settled = false;
+        let triedFallback = false;
         const finish = (ok) => {
             if (settled) return; settled = true;
             clearTimeout(timer);
@@ -400,7 +463,14 @@ function loadExportBasemap(plan, opts = {}) {
         const timer = setTimeout(() => finish(false), timeoutMs);
         img.crossOrigin = 'anonymous';
         img.onload = () => finish(true);
-        img.onerror = () => finish(false);
+        img.onerror = () => {
+            if (!triedFallback && t.fallbackUrl && img.src !== t.fallbackUrl) {
+                triedFallback = true;
+                img.src = t.fallbackUrl;
+            } else {
+                finish(false);
+            }
+        };
         img.src = t.url;
     });
     const worker = async () => { while (queue.length) await loadOne(queue.shift()); };
@@ -1513,7 +1583,7 @@ const appNav = window.appNav = {
             'mapProjectBar', 'barCoordPicker', 'mapCadToolbar', 'mapDistanceHud',
             'cadStatusHud', 'cadFloatingCmdBar', 'cadThumbActionBar', 'cadTouchLoupe',
             'cadBlocksStatsPanel', 'cadBlocksPanel', 'projectMarksBlocksPanel',
-            'mapBottomSheet', 'mapPointMeasureBox'
+            'mapBottomSheet', 'mapPointMeasureBox', 'mapProjectPlanningCtrl', 'cadPlanningCtrl'
         ].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
@@ -1748,12 +1818,22 @@ const appNav = window.appNav = {
         if (appMap.initRightControlsDrag) appMap.initRightControlsDrag();
         if (appMap.updateFabControlsVisibility) appMap.updateFabControlsVisibility('cad');
 
-        // Mở toàn bộ công cụ MiniCAD
+        // Mở toàn bộ công cụ MiniCAD và tự động nạp mốc/khối dự án
         if (typeof appCadTool !== 'undefined') {
-            if (options && options.loadProject && AppState.currentProject) {
-                appCadTool.loadShapesForProject(AppState.currentProject);
+            const curProj = AppState.currentProject;
+            if (curProj) {
+                appCadTool.loadShapesForProject(curProj);
             }
             appCadTool.openToolbar();
+            if (typeof appCadTool.bringCadToFront === 'function') {
+                appCadTool.bringCadToFront();
+            }
+            if (typeof appCadTool.zoomToAllShapes === 'function') {
+                setTimeout(() => appCadTool.zoomToAllShapes(), 250);
+            }
+        }
+        if (typeof appMap !== 'undefined' && appMap.loadProjectMarkers) {
+            appMap.loadProjectMarkers();
         }
         if (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en' && typeof document !== 'undefined') {
             appI18n.walkAndTranslate(document.body);
@@ -7703,7 +7783,12 @@ const appMap = {
                 className: 'project-landmark-pin map-proj-point-dot'
             });
 
-            const marker = L.marker([lat, lng], { icon: customIcon, zIndexOffset: 1500 });
+            const markerPane = (AppState.leafletMap && typeof AppState.leafletMap.getPane === 'function' && AppState.leafletMap.getPane('cadMarkerPane')) ? 'cadMarkerPane' : undefined;
+            const marker = L.marker([lat, lng], { 
+                icon: customIcon, 
+                zIndexOffset: 1500,
+                ...(markerPane ? { pane: markerPane } : {})
+            });
 
             marker.on('mouseover', () => {
                 marker.getElement()?.querySelector('.project-landmark-pin')?.classList.add('expanded');
@@ -7753,10 +7838,12 @@ const appMap = {
             const lineCoords = validCoords.slice();
             lineCoords.push(validCoords[0]); // Nối khép góc về điểm đầu
 
+            const vecPane = (AppState.leafletMap && typeof AppState.leafletMap.getPane === 'function' && AppState.leafletMap.getPane('cadVectorPane')) ? 'cadVectorPane' : undefined;
             AppState.projectPolyline = L.polyline(lineCoords, {
                 color: '#38bdf8',
                 weight: 2.5,
-                dashArray: '5, 8'
+                dashArray: '5, 8',
+                ...(vecPane ? { pane: vecPane } : {})
             });
             AppState.projectMarkersGroup.addLayer(AppState.projectPolyline);
 
@@ -7775,7 +7862,8 @@ const appMap = {
                 color: '#10b981',
                 weight: 2,
                 fillColor: '#34d399',
-                fillOpacity: 0.15
+                fillOpacity: 0.15,
+                ...(vecPane ? { pane: vecPane } : {})
             }).addTo(AppState.leafletMap);
 
             // Tính diện tích đa giác theo công thức Gauss
@@ -10443,8 +10531,37 @@ function doGet(e) {
                 if (savedMeta.checker) setVal('txtExportChecker', savedMeta.checker);
                 if (savedMeta.drawingCode) setVal('txtExportDrawingCode', savedMeta.drawingCode);
                 if (savedMeta.notes) setVal('txtExportNotes', savedMeta.notes);
-                if (savedMeta.scaleVal) setVal('selExportMapScale', savedMeta.scaleVal);
+                if (savedMeta.scaleVal) {
+                    const selEl = document.getElementById('selExportMapScale');
+                    const hasOpt = Array.from(selEl?.options || []).some(o => o.value === String(savedMeta.scaleVal));
+                    if (hasOpt) {
+                        setVal('selExportMapScale', savedMeta.scaleVal);
+                    } else if (savedMeta.scaleVal && !isNaN(parseInt(savedMeta.scaleVal))) {
+                        setVal('selExportMapScale', 'custom');
+                        const customInput = document.getElementById('selExportCustomScaleInput');
+                        if (customInput) customInput.value = savedMeta.scaleVal;
+                        const wrap = document.getElementById('selExportCustomScaleWrap');
+                        if (wrap) wrap.style.display = 'flex';
+                    }
+                }
                 if (savedMeta.paperSize) setVal('selExportPaperSize', savedMeta.paperSize);
+                if (savedMeta.basemap) setVal('selExportBasemap', savedMeta.basemap);
+                const chkGuland = document.getElementById('chkExportGulandPlanning');
+                if (chkGuland && typeof savedMeta.showGuland === 'boolean') chkGuland.checked = savedMeta.showGuland;
+                const chkGulandLand = document.getElementById('chkExportGulandLand');
+                if (chkGulandLand && typeof savedMeta.gulandLand === 'boolean') chkGulandLand.checked = savedMeta.gulandLand;
+                const chkPlanOv = document.getElementById('chkExportPlanOverlay');
+                if (chkPlanOv && typeof savedMeta.printPlanOverlay === 'boolean') chkPlanOv.checked = savedMeta.printPlanOverlay;
+            }
+
+            // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
+            const provSel = document.getElementById('selExportGulandProvince');
+            if (provSel && typeof appPlanning !== 'undefined' && appPlanning.provinces) {
+                if (provSel.options.length <= 1) {
+                    provSel.innerHTML = appPlanning.provinces.map(p => `<option value="${p.slug}">${p.name} (KTT ${p.ktt}°)</option>`).join('');
+                }
+                const activeProv = (typeof appPlanning.targets !== 'undefined' && appPlanning.targets.projectMap?.provinceSlug) || (appPlanning.getProvinceByKtt && appPlanning.getProvinceByKtt(AppState.kttVal)?.slug) || 'dong-thap';
+                provSel.value = savedMeta?.gulandProvince || activeProv;
             }
         } catch (e) {}
 
@@ -10463,12 +10580,21 @@ function doGet(e) {
         // Mặc định chọn định dạng: Excel nếu chuyển đổi, DWG nếu bản đồ / sổ đo
         const defaultFmt = this.exportContext === 'transform' ? 'excel' : (this.selectedExportFormat || 'dwg');
         this.selectExportFormat(defaultFmt);
+        if (typeof appPlanOverlay !== 'undefined') {
+            appPlanOverlay.updateExportOption();
+            appPlanOverlay.renderExportFileList('selExportPlanOverlayList', () => this.updateExportPreview());
+        }
         this.updateExportPreview();
     },
 
     saveTitleBlockInfo(showToastMsg = false) {
         try {
             const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
+            let scaleValToSave = document.getElementById('selExportMapScale')?.value || '1000';
+            if (scaleValToSave === 'custom') {
+                const customVal = parseInt(document.getElementById('selExportCustomScaleInput')?.value, 10);
+                scaleValToSave = (!isNaN(customVal) && customVal > 0) ? String(customVal) : '1000';
+            }
             const data = {
                 drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
                 projectName: getVal('txtExportProjectName'),
@@ -10480,8 +10606,13 @@ function doGet(e) {
                 checker: getVal('txtExportChecker'),
                 drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
                 notes: getVal('txtExportNotes'),
-                scaleVal: document.getElementById('selExportMapScale')?.value || '1000',
+                scaleVal: scaleValToSave,
                 paperSize: document.getElementById('selExportPaperSize')?.value || 'A4-L',
+                basemap: document.getElementById('selExportBasemap')?.value || 'none',
+                showGuland: document.getElementById('chkExportGulandPlanning')?.checked || false,
+                gulandProvince: document.getElementById('selExportGulandProvince')?.value || 'dong-thap',
+                gulandLand: document.getElementById('chkExportGulandLand')?.checked || false,
+                printPlanOverlay: document.getElementById('chkExportPlanOverlay')?.checked || false,
                 savedAt: Date.now()
             };
             localStorage.setItem('vn2k_export_title_block', JSON.stringify(data));
@@ -10575,7 +10706,11 @@ function doGet(e) {
 
     getExportOptions() {
         const selScale = document.getElementById('selExportMapScale');
-        const scaleVal = selScale ? selScale.value : '1000';
+        let scaleVal = selScale ? selScale.value : '1000';
+        if (scaleVal === 'custom') {
+            const customVal = parseInt(document.getElementById('selExportCustomScaleInput')?.value, 10);
+            scaleVal = (!isNaN(customVal) && customVal > 0) ? String(customVal) : '1000';
+        }
         const selPaper = document.getElementById('selExportPaperSize');
         const paperSize = selPaper ? selPaper.value : 'A4-L';
 
@@ -10615,19 +10750,51 @@ function doGet(e) {
             format: chosenFormat
         };
 
-        return { scaleVal, paperSize, layers, meta };
+        const basemap = document.getElementById('selExportBasemap')?.value || 'none';
+        const showGuland = document.getElementById('chkExportGulandPlanning')?.checked || false;
+        const gulandProvince = document.getElementById('selExportGulandProvince')?.value || (AppState.provinceName || 'dong-thap');
+        const gulandLand = document.getElementById('chkExportGulandLand')?.checked || false;
+        const printPlanOverlay = document.getElementById('chkExportPlanOverlay')?.checked || false;
+        const selectedPlanOverlayIds = (typeof appPlanOverlay !== 'undefined' && typeof appPlanOverlay.getSelectedExportIds === 'function')
+            ? appPlanOverlay.getSelectedExportIds('selExportPlanOverlayList')
+            : [];
+
+        return {
+            scaleVal, paperSize, layers, meta,
+            basemap, showGuland, gulandProvince, gulandLand, printPlanOverlay, selectedPlanOverlayIds
+        };
     },
 
     getExportScaleFactor(scaleVal, boundsW, boundsH, paperSize = 'A4-L') {
-        if (scaleVal !== 'fit') return parseInt(scaleVal) || 1000;
-        const paperW_m = paperSize === 'A3-L' ? 0.380 : (paperSize === 'A4-P' ? 0.170 : 0.257);
-        const paperH_m = paperSize === 'A3-L' ? 0.267 : (paperSize === 'A4-P' ? 0.257 : 0.180);
-        const needed = Math.max((boundsW || 100) / paperW_m, (boundsH || 100) / paperH_m);
+        if (scaleVal !== 'fit') {
+            if (scaleVal === 'custom') {
+                const customVal = parseInt(document.getElementById('selExportCustomScaleInput')?.value);
+                return (customVal && customVal > 0) ? customVal : 1000;
+            }
+            return parseInt(scaleVal) || 1000;
+        }
+        const paperMap = {
+            'A0-L': { w: 1.100, h: 0.780 },
+            'A0-P': { w: 0.780, h: 1.100 },
+            'A1-L': { w: 0.780, h: 0.530 },
+            'A1-P': { w: 0.530, h: 0.780 },
+            'A2-L': { w: 0.530, h: 0.370 },
+            'A2-P': { w: 0.370, h: 0.530 },
+            'A3-L': { w: 0.380, h: 0.267 },
+            'A3-P': { w: 0.267, h: 0.380 },
+            'A4-L': { w: 0.257, h: 0.180 },
+            'A4-P': { w: 0.170, h: 0.257 }
+        };
+        const pDim = paperMap[paperSize] || paperMap['A4-L'];
+        const needed = Math.max((boundsW || 100) / pDim.w, (boundsH || 100) / pDim.h);
         if (needed <= 500) return 500;
         if (needed <= 1000) return 1000;
         if (needed <= 2000) return 2000;
         if (needed <= 5000) return 5000;
-        return 10000;
+        if (needed <= 10000) return 10000;
+        if (needed <= 25000) return 25000;
+        if (needed <= 50000) return 50000;
+        return 100000;
     },
 
     selectExportFormat(format) {
@@ -10691,6 +10858,11 @@ function doGet(e) {
     },
 
     onExportSettingChange() {
+        const selScale = document.getElementById('selExportMapScale') || document.getElementById('selExportScale');
+        const customWrap = document.getElementById('selExportCustomScaleWrap');
+        if (selScale && customWrap) {
+            customWrap.style.display = selScale.value === 'custom' ? 'block' : 'none';
+        }
         this.updateExportPreview();
     },
 
@@ -10983,14 +11155,28 @@ function doGet(e) {
 
         let scaleVal = 1000;
         if (opts.scaleVal === 'fit') {
-            const paperW_m = opts.paperSize === 'A3-L' ? 0.380 : (opts.paperSize === 'A4-P' ? 0.170 : 0.257);
-            const paperH_m = opts.paperSize === 'A3-L' ? 0.267 : (opts.paperSize === 'A4-P' ? 0.257 : 0.180);
-            const neededScale = Math.max(spanX / paperW_m, spanY / paperH_m);
+            const paperMap = {
+                'A0-L': { w: 1.100, h: 0.780 },
+                'A0-P': { w: 0.780, h: 1.100 },
+                'A1-L': { w: 0.780, h: 0.530 },
+                'A1-P': { w: 0.530, h: 0.780 },
+                'A2-L': { w: 0.530, h: 0.370 },
+                'A2-P': { w: 0.370, h: 0.530 },
+                'A3-L': { w: 0.380, h: 0.267 },
+                'A3-P': { w: 0.267, h: 0.380 },
+                'A4-L': { w: 0.257, h: 0.180 },
+                'A4-P': { w: 0.170, h: 0.257 }
+            };
+            const pDim = paperMap[opts.paperSize] || paperMap['A4-L'];
+            const neededScale = Math.max(spanX / pDim.w, spanY / pDim.h);
             if (neededScale <= 500) scaleVal = 500;
             else if (neededScale <= 1000) scaleVal = 1000;
             else if (neededScale <= 2000) scaleVal = 2000;
             else if (neededScale <= 5000) scaleVal = 5000;
-            else scaleVal = 10000;
+            else if (neededScale <= 10000) scaleVal = 10000;
+            else if (neededScale <= 25000) scaleVal = 25000;
+            else if (neededScale <= 50000) scaleVal = 50000;
+            else scaleVal = 100000;
         } else {
             scaleVal = parseInt(opts.scaleVal) || 1000;
         }
@@ -11046,7 +11232,10 @@ function doGet(e) {
             }
         }
 
-        const pageSizeRule = opts.paperSize === 'A3-L' ? 'size: A3 landscape;' : (opts.paperSize === 'A4-L' ? 'size: A4 landscape;' : 'size: A4 portrait;');
+        const pSizeParts = (opts.paperSize || 'A4-L').split('-');
+        const pSizeName = pSizeParts[0] || 'A4';
+        const pSizeOrient = pSizeParts[1] === 'P' ? 'portrait' : 'landscape';
+        const pageSizeRule = `size: ${pSizeName} ${pSizeOrient};`;
 
         const reportHtml = `<!DOCTYPE html>
 <html lang="vi">
@@ -11861,14 +12050,28 @@ function doGet(e) {
         // Tính tỷ lệ trắc địa
         let scaleVal = 1000;
         if (opts.scaleVal === 'fit') {
-            const paperW_m = opts.paperSize === 'A3-L' ? 0.380 : (opts.paperSize === 'A4-P' ? 0.170 : 0.257);
-            const paperH_m = opts.paperSize === 'A3-L' ? 0.267 : (opts.paperSize === 'A4-P' ? 0.257 : 0.180);
-            const neededScale = Math.max(spanX / paperW_m, spanY / paperH_m);
+            const paperMap = {
+                'A0-L': { w: 1.100, h: 0.780 },
+                'A0-P': { w: 0.780, h: 1.100 },
+                'A1-L': { w: 0.780, h: 0.530 },
+                'A1-P': { w: 0.530, h: 0.780 },
+                'A2-L': { w: 0.530, h: 0.370 },
+                'A2-P': { w: 0.370, h: 0.530 },
+                'A3-L': { w: 0.380, h: 0.267 },
+                'A3-P': { w: 0.267, h: 0.380 },
+                'A4-L': { w: 0.257, h: 0.180 },
+                'A4-P': { w: 0.170, h: 0.257 }
+            };
+            const pDim = paperMap[opts.paperSize] || paperMap['A4-L'];
+            const neededScale = Math.max(spanX / pDim.w, spanY / pDim.h);
             if (neededScale <= 500) scaleVal = 500;
             else if (neededScale <= 1000) scaleVal = 1000;
             else if (neededScale <= 2000) scaleVal = 2000;
             else if (neededScale <= 5000) scaleVal = 5000;
-            else scaleVal = 10000;
+            else if (neededScale <= 10000) scaleVal = 10000;
+            else if (neededScale <= 25000) scaleVal = 25000;
+            else if (neededScale <= 50000) scaleVal = 50000;
+            else scaleVal = 100000;
         } else {
             scaleVal = parseInt(opts.scaleVal) || 1000;
         }
@@ -20440,6 +20643,21 @@ const appCadTool = {
 
     ensureLayers() {
         if (!AppState.leafletMap) return;
+        const map = AppState.leafletMap;
+        if (typeof map.getPane === 'function') {
+            let vPane = map.getPane('cadVectorPane');
+            if (!vPane && typeof map.createPane === 'function') {
+                vPane = map.createPane('cadVectorPane');
+                vPane.style.zIndex = 450;
+                vPane.style.pointerEvents = 'auto';
+            }
+            let mPane = map.getPane('cadMarkerPane');
+            if (!mPane && typeof map.createPane === 'function') {
+                mPane = map.createPane('cadMarkerPane');
+                mPane.style.zIndex = 680;
+                mPane.style.pointerEvents = 'auto';
+            }
+        }
         if (!this.layers.group) {
             this.layers.group = L.layerGroup().addTo(AppState.leafletMap);
         }
@@ -20608,6 +20826,7 @@ const appCadTool = {
             this.pointLayerId = activePoint ? activePoint.id : null;
         }
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         if (this.updateCmdRibbonActiveStates) this.updateCmdRibbonActiveStates();
         if (this.renderBlocksPanel) this.renderBlocksPanel();
@@ -20629,7 +20848,8 @@ const appCadTool = {
             'modalCadAreaTable', 'modalCadPointTable', 'modalCadExportConfig',
             'modalCadLoadProject', 'modalCadPolarInput', 'modalCadCoordInput',
             'modalCadLayers', 'modalCadEditAnnotation', 'modalCadCreateArrow',
-            'modalCadGisImport', 'modalCadInquiry', 'modalCadQSelect', 'modalCadSymbols'
+            'modalCadGisImport', 'modalCadInquiry', 'modalCadQSelect', 'modalCadSymbols',
+            'cadPlanningCtrl'
         ].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -21323,6 +21543,7 @@ const appCadTool = {
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
@@ -21368,6 +21589,7 @@ const appCadTool = {
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
@@ -21778,6 +22000,7 @@ const appCadTool = {
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
@@ -21838,6 +22061,7 @@ const appCadTool = {
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
@@ -21942,6 +22166,7 @@ const appCadTool = {
         this.syncShapeNameSuggestion();
         this.syncToolButtons();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         if (this.updateCmdRibbonActiveStates) this.updateCmdRibbonActiveStates();
     },
@@ -22109,6 +22334,14 @@ const appCadTool = {
 
 
     _getAllExportShapes() {
+        // Tự động kiểm tra: nếu savedShapes rỗng mà dự án hiện tại có mốc, tự động nạp hoặc tái tạo
+        if ((!this.savedShapes || this.savedShapes.length === 0) && AppState.currentProject) {
+            try {
+                if (!this.loadShapesForProject(AppState.currentProject)) {
+                    this.reconstructShapesFromPoints(AppState.currentProject);
+                }
+            } catch (_) {}
+        }
         const allShapes = [];
         (this.savedShapes || []).forEach((s, idx) => {
             const rawVerts = s.vertices || [];
@@ -23215,6 +23448,7 @@ const appCadTool = {
 
         this.vertices.push(v);
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         triggerHaptic('light');
         showToast(`📍 Đã thêm đỉnh ${v.name}: X=${v.x.toFixed(2)}, Y=${v.y.toFixed(2)}`);
@@ -23229,6 +23463,7 @@ const appCadTool = {
         this.pushHistoryState(`Lùi đỉnh ${this.vertices[this.vertices.length - 1].name}`);
         const removed = this.vertices.pop();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         showToast(`↩ Đã lùi đỉnh: ${removed.name} [Del]`);
     },
@@ -23240,6 +23475,7 @@ const appCadTool = {
         }
         this.setMode('polygon');
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         const stats = this.calculateAreaAndPerimeter();
         showToast(`🔒 Đã khép góc đa giác ranh! S = ${stats.areaFormatted} m²`);
@@ -23332,6 +23568,7 @@ const appCadTool = {
         }
 
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
 
@@ -23376,6 +23613,7 @@ const appCadTool = {
         // syncShapesToProjectPoints bỏ qua khi bản vẽ trống nên phải tự dọn đỉnh "ma" khỏi Sổ đo
         if (this.savedShapes.length === 0) this.pruneCadProjectPoints();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
@@ -25188,11 +25426,11 @@ const appCadTool = {
             }
         });
 
-        if (hasShapeTag && shapeMap.size > 0) {
-            const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
-            const reconstructed = [];
-            let cIdx = 0;
+        const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
+        const reconstructed = [];
+        let cIdx = 0;
 
+        if (hasShapeTag && shapeMap.size > 0) {
             shapeMap.forEach((sObj, sName) => {
                 const validVerts = sObj.vertices.map((v, i) => {
                     const norm = this._normalizeVertex(v, i);
@@ -25226,15 +25464,66 @@ const appCadTool = {
                     });
                 }
             });
+        }
 
-            if (reconstructed.length > 0) {
-                this.savedShapes = reconstructed;
-                // Lưu lại ngay vào CAD storage
-                const cleanKey = this.getProjectStorageKey(curProj);
-                const data = { savedShapes: this.savedShapes, mode: this.mode, updated: Date.now() };
-                const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
-                return storeCadShapes(cleanKey, curProj, json);
+        // Nhóm các mốc dự án chưa có gắn thẻ khối riêng (Mốc từ Sổ đo, Chuyển đổi tọa độ, GPS, hoặc file nạp vào)
+        const unassignedPts = pts.filter(p => !p.shapeName && !p.blockName);
+        if (unassignedPts.length > 0) {
+            const validVerts = unassignedPts.map((v, i) => {
+                const norm = this._normalizeVertex(v, i);
+                return {
+                    ...norm,
+                    isSnapped: true,
+                    snapSource: `Dự án: ${curProj}`,
+                    shapeName: `Mốc dự án`,
+                    style: v.pointStyle || undefined,
+                    color: v.pointColor || undefined,
+                    shapeOrder: i + 1
+                };
+            }).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
+
+            if (validVerts.length > 0) {
+                const sColor = colorPalette[cIdx % colorPalette.length];
+                cIdx++;
+                let sMode = 'point';
+                const shortProj = curProj.replace(/\.[^/.]+$/, "");
+                let sName = `Mốc dự án`;
+                if (reconstructed.length === 0) {
+                    if (validVerts.length >= 3 && AppState.isPolygonClosed !== false) {
+                        sMode = 'polygon';
+                        sName = `Ranh thửa ${shortProj}`;
+                    } else if (validVerts.length >= 2) {
+                        sMode = 'polyline';
+                        sName = `Tuyến ${shortProj}`;
+                    } else {
+                        sMode = 'point';
+                        sName = `Điểm mốc ${shortProj}`;
+                    }
+                } else {
+                    sMode = 'point';
+                    sName = `Điểm mốc ${shortProj}`;
+                }
+
+                reconstructed.push({
+                    id: 'recon_shape_' + Date.now() + '_' + cIdx,
+                    name: sName,
+                    shortName: sName,
+                    mode: sMode,
+                    color: sColor,
+                    vertices: validVerts,
+                    selected: true,
+                    stats: this.calculateAreaAndPerimeter(validVerts, sMode)
+                });
             }
+        }
+
+        if (reconstructed.length > 0) {
+            this.savedShapes = reconstructed;
+            // Lưu lại ngay vào CAD storage
+            const cleanKey = this.getProjectStorageKey(curProj);
+            const data = { savedShapes: this.savedShapes, mode: this.mode, updated: Date.now() };
+            const json = JSON.stringify(data, (k, val) => (k === 'snappedToEdge' || k === '_pinned') ? undefined : val);
+            return storeCadShapes(cleanKey, curProj, json);
         }
         return false;
     },
@@ -25496,6 +25785,8 @@ const appCadTool = {
         const showCenterLabels = this.displaySettings.showCenterLabels !== false;
 
         const map = AppState.leafletMap;
+        const vPaneName = (map && typeof map.getPane === 'function' && map.getPane('cadVectorPane')) ? 'cadVectorPane' : undefined;
+        const mPaneName = (map && typeof map.getPane === 'function' && map.getPane('cadMarkerPane')) ? 'cadMarkerPane' : undefined;
         const totalVerts = this.savedShapes.reduce((n, s) => n + (s.selected === false ? 0 : (s.vertices || []).length), 0);
         this._largeDrawing = totalVerts > this.DETAIL_VERTEX_LIMIT;
         let detailSet = null, labelSet = null;
@@ -25551,8 +25842,10 @@ const appCadTool = {
                     fillColor: sColor,
                     fillOpacity: 0.18,
                     lineJoin: 'round',
-                    interactive: true
+                    interactive: true,
+                    pane: vPaneName
                 }).addTo(this.layers.group);
+                if (typeof sShapeLayer.bringToFront === 'function') sShapeLayer.bringToFront();
 
                 // Khi rê chuột hoặc click vào polygon: hiện/ẩn cự ly các cạnh và hiện chấm góc đỉnh
                 sShapeLayer.on('mouseover', () => {
@@ -25648,7 +25941,7 @@ const appCadTool = {
 
                 // iconAnchor [0, 0] kết hợp transform: translate(-50%, -50%) định tâm hoàn hảo, không bị trôi offset
                 const centerIcon = L.divIcon({ className: 'cad-center-divicon', html: badgeHtml, iconSize: [0, 0], iconAnchor: [0, 0] });
-                sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: true, zIndexOffset: 2450 }).addTo(this.layers.group);
+                sCenterMarker = L.marker([cLat, cLng], { icon: centerIcon, interactive: true, zIndexOffset: 2450, pane: mPaneName }).addTo(this.layers.group);
                 sCenterMarker.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
                     this.showQuickEditPopup(e.latlng, { type: 'shape', shapeIndex: sIdx, shape: shape });
@@ -25661,8 +25954,10 @@ const appCadTool = {
                     weight: isSelected ? 4 : 2.5,
                     dashArray: isSelected ? null : '4, 4',
                     lineJoin: 'round',
-                    interactive: true
+                    interactive: true,
+                    pane: vPaneName
                 }).addTo(this.layers.group);
+                if (typeof sShapeLayer.bringToFront === 'function') sShapeLayer.bringToFront();
                 sShapeLayer.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
                     if (this.mode === 'select') {
@@ -25692,7 +25987,7 @@ const appCadTool = {
                         iconSize: [52, 18],
                         iconAnchor: [26, 9]
                     });
-                    const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2350 }).addTo(this.layers.group);
+                    const edgeMarker = L.marker([midLat, midLng], { icon: labelIcon, interactive: true, zIndexOffset: 2350, pane: mPaneName }).addTo(this.layers.group);
                     edgeMarker._pinned = isDistPinned;
                     edgeMarkers.push(edgeMarker);
 
@@ -25768,7 +26063,7 @@ const appCadTool = {
                     : `background: ${ptColor}; border-color: #ffffff;`;
                 const iconHtml = `<div class="${badgeCls.join(' ')}" style="${badgeStyle}" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
-                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked && this.isActive }).addTo(this.layers.group);
+                const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked && this.isActive, pane: mPaneName }).addTo(this.layers.group);
                 // Đỉnh đang mang ký hiệu hình thì coi như đã ghim, để mouseout của khối không gỡ dot-visible
                 marker._pinned = isExpanded || isDotGlyph;
                 vertexMarkers.push(marker);
@@ -26006,16 +26301,20 @@ const appCadTool = {
                     fillColor: isSelfIntersecting ? '#f87171' : '#38bdf8',
                     fillOpacity: isSelfIntersecting ? 0.35 : 0.22,
                     lineJoin: 'round',
-                    interactive: false
+                    interactive: false,
+                    pane: vPaneName
                 }).addTo(this.layers.group);
+                if (typeof this.layers.shape.bringToFront === 'function') this.layers.shape.bringToFront();
             } else {
                 this.layers.shape = L.polyline(latlngs, {
                     color: '#06b6d4',
                     weight: 3,
                     dashArray: '6, 6',
                     lineJoin: 'round',
-                    interactive: false
+                    interactive: false,
+                    pane: vPaneName
                 }).addTo(this.layers.group);
+                if (typeof this.layers.shape.bringToFront === 'function') this.layers.shape.bringToFront();
             }
         }
 
@@ -26105,7 +26404,8 @@ const appCadTool = {
             const marker = L.marker([v.lat, v.lng], { 
                 icon, 
                 zIndexOffset: 2500,
-                draggable: true 
+                draggable: true,
+                ...(mPaneName ? { pane: mPaneName } : {})
             }).addTo(this.layers.group);
             marker._pinned = (showVertices === true || this._pinned === true);
 
@@ -26819,20 +27119,26 @@ const appCadTool = {
             this.layers.group.removeLayer(this.layers.offsetLayer);
         }
 
+        const vPane = (this.layers.map && typeof this.layers.map.getPane === 'function' && this.layers.map.getPane('cadVectorPane')) ? 'cadVectorPane' : undefined;
         if (isClosed) {
             this.layers.offsetLayer = L.polygon(offsetPts, {
                 color: '#a855f7',
                 weight: 2,
                 dashArray: '5, 5',
                 fillColor: '#c084fc',
-                fillOpacity: 0.15
+                fillOpacity: 0.15,
+                ...(vPane ? { pane: vPane } : {})
             }).addTo(this.layers.group);
         } else {
             this.layers.offsetLayer = L.polyline(offsetPts, {
                 color: '#a855f7',
                 weight: 2,
-                dashArray: '5, 5'
+                dashArray: '5, 5',
+                ...(vPane ? { pane: vPane } : {})
             }).addTo(this.layers.group);
+        }
+        if (this.layers.offsetLayer?.bringToFront) {
+            try { this.layers.offsetLayer.bringToFront(); } catch (e) {}
         }
 
         showToast(`✓ Đã dựng đường song song Offset ${d > 0 ? '+' : ''}${d}m (đường màu tím)`);
@@ -26968,8 +27274,44 @@ const appCadTool = {
             setVal('cadExportDrawingCode', savedMeta?.drawingCode || 'SĐ-01/01');
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
+            if (savedMeta?.customScale) setVal('cadExportCustomScaleInput', savedMeta.customScale);
+            const customWrapEl = document.getElementById('cadExportCustomScaleWrap');
+            if (customWrapEl) {
+                customWrapEl.style.display = (savedMeta?.scaleVal === 'custom') ? 'block' : 'none';
+            }
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
             if (savedMeta?.basemap) setVal('cadExportBasemap', savedMeta.basemap);
+
+            // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
+            const provSel = document.getElementById('cadExportGulandProvince');
+            if (provSel && typeof appPlanning !== 'undefined' && appPlanning.provinces) {
+                if (provSel.options.length <= 1) {
+                    provSel.innerHTML = appPlanning.provinces.map(p => `<option value="${p.slug}">${p.name} (KTT ${p.ktt}°)</option>`).join('');
+                }
+                const activeProv = (typeof appPlanning.targets !== 'undefined' && appPlanning.targets.cadMap?.provinceSlug) || (appPlanning.getProvinceByKtt && appPlanning.getProvinceByKtt(AppState.kttVal)?.slug) || 'dong-thap';
+                provSel.value = savedMeta?.gulandProvince || activeProv;
+            }
+
+            // Khôi phục trạng thái Guland và PDF
+            const chkGuland = document.getElementById('cadExportCheckGuland');
+            const wrapGuland = document.getElementById('cadExportGulandConfigWrap');
+            if (chkGuland) {
+                chkGuland.checked = typeof savedMeta?.showGuland === 'boolean' ? savedMeta.showGuland : false;
+                if (wrapGuland) wrapGuland.style.display = chkGuland.checked ? 'block' : 'none';
+            }
+            if (savedMeta?.gulandOpacity) setVal('cadExportGulandOpacity', savedMeta.gulandOpacity);
+            const chkGulandLand = document.getElementById('cadExportGulandLand');
+            if (chkGulandLand && typeof savedMeta?.gulandLand === 'boolean') {
+                chkGulandLand.checked = savedMeta.gulandLand;
+            }
+
+            const chkPlanOv = document.getElementById('cadExportPlanOverlay');
+            const listPlanOv = document.getElementById('cadExportPlanOverlayList');
+            if (chkPlanOv) {
+                chkPlanOv.checked = typeof savedMeta?.printPlanOverlay === 'boolean' ? savedMeta.printPlanOverlay : true;
+                if (listPlanOv) listPlanOv.style.display = chkPlanOv.checked ? 'flex' : 'none';
+            }
+
             // Khôi phục trạng thái tùy chọn hiển thị thông tin khối & thành phần
             if (savedMeta) {
                 if (typeof savedMeta.showBlockInfo === 'boolean') {
@@ -27006,7 +27348,10 @@ const appCadTool = {
 
         this.renderExportBlockPicker();
         this.selectExportFormat(this._exportFormat || 'dwg');
-        if (typeof appPlanOverlay !== 'undefined') appPlanOverlay.updateExportOption();
+        if (typeof appPlanOverlay !== 'undefined') {
+            appPlanOverlay.updateExportOption();
+            appPlanOverlay.renderExportFileList('cadExportPlanOverlayList', () => this.onExportSettingChange());
+        }
         setTimeout(() => {
             this.checkScalePaperFit();
             this.renderExportPreview();
@@ -27098,10 +27443,39 @@ const appCadTool = {
     },
 
     onExportSettingChange() {
-        const scaleVal = document.getElementById('cadExportScale')?.value || 'auto';
+        const selScale = document.getElementById('cadExportScale');
+        const customWrap = document.getElementById('cadExportCustomScaleWrap');
+        const customInput = document.getElementById('cadExportCustomScaleInput');
+        const scaleVal = selScale?.value || 'auto';
+        const isCustom = scaleVal === 'custom';
+
+        if (customWrap) {
+            customWrap.style.display = isCustom ? 'block' : 'none';
+        }
+
+        const chkGuland = document.getElementById('cadExportCheckGuland');
+        const wrapGuland = document.getElementById('cadExportGulandConfigWrap');
+        if (wrapGuland && chkGuland) {
+            wrapGuland.style.display = chkGuland.checked ? 'block' : 'none';
+        }
+        const chkPlanOv = document.getElementById('cadExportPlanOverlay');
+        const listPlanOv = document.getElementById('cadExportPlanOverlayList');
+        if (listPlanOv && chkPlanOv) {
+            listPlanOv.style.display = chkPlanOv.checked ? 'flex' : 'none';
+        }
+
         const scaleTag = document.getElementById('cadExportPreviewScaleTag');
         if (scaleTag) {
-            scaleTag.textContent = (scaleVal === 'auto') ? 'Tỷ lệ Tự động' : (scaleVal === 'fit' ? 'Vừa khung nhìn' : `Tỉ lệ 1:${scaleVal}`);
+            if (scaleVal === 'auto') {
+                scaleTag.textContent = 'Tỷ lệ Tự động';
+            } else if (scaleVal === 'fit') {
+                scaleTag.textContent = 'Vừa khung nhìn';
+            } else if (isCustom) {
+                const cVal = parseInt(customInput?.value) || 1000;
+                scaleTag.textContent = `Tỉ lệ 1:${cVal} (Nhập tay)`;
+            } else {
+                scaleTag.textContent = `Tỉ lệ 1:${scaleVal}`;
+            }
         }
         this.checkScalePaperFit();
         this.renderExportPreview();
@@ -27169,7 +27543,7 @@ const appCadTool = {
             <rect width="${W_svg}" height="${H_svg}" fill="url(#cadGridPat)"/>
             <!-- Khung giấy tỷ lệ -->
             <rect x="${pad}" y="${pad}" width="${drawW}" height="${drawH}" fill="none" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1.2" stroke-dasharray="4,4" rx="4"/>
-            <text x="${pad + 6}" y="${pad + 14}" fill="#38bdf8" font-size="9" font-weight="bold" font-family="sans-serif">KHỔ GIẤY ${L.W_paper === 420 ? 'A3' : 'A4'} • TỶ LỆ 1:${L.scaleVal}</text>
+            <text x="${pad + 6}" y="${pad + 14}" fill="#38bdf8" font-size="9" font-weight="bold" font-family="sans-serif">KHỔ GIẤY ${L.paperLabel || (L.W_paper >= 420 ? 'A3' : 'A4')} • TỶ LỆ 1:${L.scaleVal}</text>
         `;
 
         // Render từng khối/thửa
@@ -27221,6 +27595,7 @@ const appCadTool = {
                 checker: getVal('cadExportChecker'),
                 drawingCode: getVal('cadExportDrawingCode') || 'SĐ-01/01',
                 scaleVal: document.getElementById('cadExportScale')?.value || '500',
+                customScale: parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000,
                 paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
                 savedAt: Date.now()
             };
@@ -27454,6 +27829,7 @@ const appCadTool = {
 
         // Cập nhật MiniCAD UI & HUD
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         if (this.renderBlocksPanel) this.renderBlocksPanel();
         this.updateCurrentProjectBadge();
@@ -28046,8 +28422,17 @@ const appCadTool = {
                 showToast("⚠️ Cần ít nhất 3 mốc để tạo đa giác ranh khép kín!", true);
                 return;
             }
+            if (mode === 'polyline' && vertices.length < 2) {
+                showToast("⚠️ Cần ít nhất 2 mốc để tạo tuyến!", true);
+                return;
+            }
+            if (mode === 'point' && vertices.length < 1) {
+                showToast("⚠️ Vui lòng chọn ít nhất 1 mốc để nạp!", true);
+                return;
+            }
 
             const shapeColor = colorPalette[this.savedShapes.length % colorPalette.length];
+            const modeLabel = (mode === 'polygon' ? 'Đa giác' : (mode === 'polyline' ? 'Tuyến' : 'Điểm rời'));
             const shape = {
                 id: 'proj_shape_' + Date.now(),
                 name: finalName,
@@ -28060,14 +28445,14 @@ const appCadTool = {
                 stats: this.calculateAreaAndPerimeter(vertices, mode)
             };
             this.savedShapes.push(shape);
-            showToast(`✓ Đã nạp ${vertices.length} mốc từ "${selProj}" thành khối [${mode === 'polygon' ? 'Đa giác' : 'Tuyến'}]: "${finalName}"!`);
+            showToast(`✓ Đã nạp ${vertices.length} mốc từ "${selProj}" thành khối [${modeLabel}]: "${finalName}"!`);
         } else {
             // Tự động phân tách nạp thành các khối riêng biệt theo đúng ranh thửa của từng khối
             let loadedShapesCount = 0;
             let loadedVertCount = 0;
 
             shapeGroups.forEach((sObj, sName) => {
-                if (sObj.vertices.length >= 2) {
+                if (sObj.vertices.length >= 1) {
                     const sMode = (sObj.vertices.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
                     const sColor = sObj.color || colorPalette[(this.savedShapes.length + loadedShapesCount) % colorPalette.length];
                     const shape = {
@@ -28096,7 +28481,123 @@ const appCadTool = {
         this.updateUi();
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
+        this.zoomToAllShapes();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.closeLoadProjectModal();
+    },
+
+    autoLoadAllProjectDataToCad(projName) {
+        const curProj = projName || document.getElementById('cadLoadProjectSelect')?.value || AppState.currentProject;
+        if (!curProj) {
+            showToast("⚠️ Chưa chọn dự án để nạp dữ liệu!", true);
+            return;
+        }
+
+        AppState.currentProject = curProj;
+        localStorage.setItem('vn2k_cur_project', curProj);
+
+        // 1. Nạp hoặc tái tạo toàn bộ khối và mốc
+        let loaded = this.loadShapesForProject(curProj);
+        if (!loaded || !this.savedShapes || this.savedShapes.length === 0) {
+            loaded = this.reconstructShapesFromPoints(curProj);
+        }
+
+        // 2. Bổ sung các mốc dự án chưa thuộc khối nào vào lớp điểm rời
+        const pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(curProj) : [];
+        if (pts && pts.length > 0) {
+            const existingCoordKeys = new Set();
+            (this.savedShapes || []).forEach(s => {
+                (s.vertices || []).forEach(v => {
+                    if (isFinite(v.lat) && isFinite(v.lng)) {
+                        existingCoordKeys.add(v.lat.toFixed(6) + '_' + v.lng.toFixed(6));
+                    }
+                });
+            });
+
+            const unattachedPts = pts.filter(p => {
+                const lat = parseFloat(p.lat);
+                const lng = parseFloat(p.lng);
+                return isFinite(lat) && isFinite(lng) && !existingCoordKeys.has(lat.toFixed(6) + '_' + lng.toFixed(6));
+            });
+
+            if (unattachedPts.length > 0) {
+                const unattachedVerts = unattachedPts.map((v, i) => this._normalizeVertex(v, i)).filter(Boolean);
+                if (unattachedVerts.length > 0) {
+                    const shortProj = curProj.replace(/\.[^/.]+$/, "");
+                    this.savedShapes.push({
+                        id: 'proj_shape_pts_' + Date.now(),
+                        name: `Mốc dự án ${shortProj}`,
+                        shortName: `Mốc ${shortProj}`,
+                        mode: 'point',
+                        vertices: unattachedVerts,
+                        color: '#f59e0b',
+                        layer: this.currentLayer || 'RANH_THUA',
+                        selected: true,
+                        stats: this.calculateAreaAndPerimeter(unattachedVerts, 'point')
+                    });
+                }
+            }
+        }
+
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (this.redrawAllShapes) this.redrawAllShapes();
+        this.updateUi();
+        this.saveShapesForProject(curProj);
+        this.persistSession();
+        this.zoomToAllShapes();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
+        this.closeLoadProjectModal();
+
+        const totalShapes = this.savedShapes ? this.savedShapes.length : 0;
+        const totalVerts = (this.savedShapes || []).reduce((n, s) => n + (s.vertices || []).length, 0);
+        showToast(`✓ Đã nạp & hiển thị thành công ${totalShapes} đối tượng (${totalVerts} đỉnh/mốc) từ "${curProj}" lên trên cùng MiniCAD!`, true);
+    },
+
+    zoomToAllShapes() {
+        if (!AppState.leafletMap) return;
+        const allVerts = [];
+        (this.savedShapes || []).forEach(s => {
+            (s.vertices || []).forEach(v => {
+                if (v && isFinite(v.lat) && isFinite(v.lng)) allVerts.push([v.lat, v.lng]);
+            });
+        });
+        (this.vertices || []).forEach(v => {
+            if (v && isFinite(v.lat) && isFinite(v.lng)) allVerts.push([v.lat, v.lng]);
+        });
+        if (allVerts.length === 0 && AppState.currentProject && typeof appData !== 'undefined' && appData.getPoints) {
+            const pts = appData.getPoints(AppState.currentProject) || [];
+            pts.forEach(p => {
+                const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+                if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) allVerts.push([lat, lng]);
+            });
+        }
+        if (allVerts.length > 0) {
+            try {
+                AppState.leafletMap.fitBounds(L.latLngBounds(allVerts).pad(0.18), { maxZoom: 22 });
+            } catch (_) {}
+        }
+    },
+
+    bringCadToFront() {
+        if (!AppState.leafletMap) return;
+        const map = AppState.leafletMap;
+        if (typeof map.getPane === 'function') {
+            const vPane = map.getPane('cadVectorPane');
+            if (vPane) vPane.style.zIndex = 450;
+            const mPane = map.getPane('cadMarkerPane');
+            if (mPane) mPane.style.zIndex = 680;
+        }
+        if (this.layers && this.layers.group) {
+            this.layers.group.eachLayer(l => {
+                if (typeof l.bringToFront === 'function') l.bringToFront();
+            });
+        }
+        if (AppState.projectMarkersGroup && typeof AppState.projectMarkersGroup.eachLayer === 'function') {
+            AppState.projectMarkersGroup.eachLayer(l => {
+                if (typeof l.bringToFront === 'function') l.bringToFront();
+            });
+        }
     },
 
     confirmLoadProjectAsSnap() {
@@ -30501,7 +31002,30 @@ const appCadTool = {
             case 'GULAND':
             case 'QUYHOACHGULAND':
                 if (typeof appPlanning !== 'undefined' && typeof appPlanning.toggleCadPlanning === 'function') {
-                    appPlanning.toggleCadPlanning();
+                    if (arg) {
+                        const upArg = arg.toUpperCase();
+                        if (upArg === 'OFF' || upArg === 'TAT' || upArg === '0') {
+                            appPlanning.toggleCadPlanning(false);
+                        } else if (upArg === 'ON' || upArg === 'BAT' || upArg === '1') {
+                            appPlanning.toggleCadPlanning(true);
+                        } else {
+                            const found = appPlanning.provinces && appPlanning.provinces.find(p => 
+                                p.slug.toLowerCase().includes(arg.toLowerCase()) || 
+                                p.name.toLowerCase().includes(arg.toLowerCase())
+                            );
+                            if (found) {
+                                appPlanning.setProvince('cadMap', found.slug, true);
+                                if (!appPlanning.targets.cadMap.active) {
+                                    appPlanning.toggleCadPlanning(true);
+                                }
+                                if (typeof showToast === 'function') showToast(`📐 MiniCAD: Đã chuyển quy hoạch sang ${found.name}`);
+                            } else {
+                                appPlanning.toggleCadPlanning();
+                            }
+                        }
+                    } else {
+                        appPlanning.toggleCadPlanning();
+                    }
                 }
                 break;
             case 'DIST':
@@ -31205,6 +31729,7 @@ const appCadTool = {
             nameInput.value = s.name || '';
         }
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         showToast(`✏️ Đang tiếp tục vẽ khối "${s.name}". Hãy nhấp trên bản đồ để thêm đỉnh hoặc khép góc.`);
@@ -31241,6 +31766,7 @@ const appCadTool = {
         this.persistSession();
         this.deselectCurrent();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
@@ -31472,6 +31998,7 @@ const appCadTool = {
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
@@ -32843,36 +33370,70 @@ const appCadTool = {
         const v = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         return { e: v.Y, n: v.X };
     },
-    // Trả về true nếu đã bắt đầu tải nền (hàm xuất sẽ được gọi lại qua rerun khi tải xong).
+    // Trả về true nếu đã bắt đầu tải nền / quy hoạch (hàm xuất sẽ được gọi lại qua rerun khi tải xong).
     _prepareExportBasemap(meta, frame, pxPerMeter, rerun) {
-        if (!meta || !EXPORT_BASEMAPS[meta.basemap]) return false;
-        if (this._exportBasemapBusy) { showToast('⏳ Đang tải nền bản đồ, vui lòng chờ...'); return true; }
-        let plan = null;
-        try { plan = planExportBasemap(meta.basemap, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n)); } catch (e) { plan = null; }
-        if (!plan || !plan.tiles.length) {
-            showToast('⚠️ Không xác định được vùng nền bản đồ — bản vẽ xuất không có nền.', true);
-            rerun({ none: true });
+        const needBasemap = meta && meta.basemap && EXPORT_BASEMAPS[meta.basemap];
+        const needGuland = meta && meta.showGuland && typeof appPlanning !== 'undefined';
+        if (!needBasemap && !needGuland) return false;
+        if (this._exportBasemapBusy) { showToast('⏳ Đang tải lớp bản đồ, vui lòng chờ...'); return true; }
+
+        let bmPlan = null;
+        let guPlan = null;
+
+        if (needBasemap) {
+            try { bmPlan = planExportBasemap(meta.basemap, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n)); } catch (e) { bmPlan = null; }
+        }
+        if (needGuland) {
+            try {
+                guPlan = planExportGuland(meta.gulandProvince, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), EXPORT_BASEMAP_MAX_TILES, meta.gulandLand, meta.gulandOpacity);
+            } catch (e) { guPlan = null; }
+        }
+
+        const totalTiles = (bmPlan?.tiles?.length || 0) + (guPlan?.tiles?.length || 0);
+        if (totalTiles === 0) {
+            rerun({ basemap: null, guland: null });
             return true;
         }
+
         this._exportBasemapBusy = true;
-        showToast(`⏳ Đang tải nền ${plan.label.toLowerCase()} (${plan.tiles.length} ô ảnh)...`);
-        const finish = (bm) => {
+        const labels = [];
+        if (bmPlan) labels.push(bmPlan.label);
+        if (guPlan) labels.push(guPlan.label);
+        showToast(`⏳ Đang tải lớp bản đồ ${labels.join(' + ')} (${totalTiles} ô ảnh)...`);
+
+        const pBm = bmPlan ? loadExportBasemap(bmPlan) : Promise.resolve(null);
+        const pGu = guPlan ? loadExportBasemap(guPlan) : Promise.resolve(null);
+
+        Promise.all([pBm, pGu]).then(([loadedBm, loadedGu]) => {
             this._exportBasemapBusy = false;
-            if (!bm || !bm.loaded) {
-                showToast('⚠️ Không tải được nền bản đồ (kiểm tra mạng) — bản vẽ xuất không có nền.', true);
-                bm = { none: true };
-            } else if (bm.failed) {
-                showToast(`⚠️ ${bm.failed}/${bm.tiles.length} ô ảnh nền không tải được, phần đó để trắng.`, true);
+            if (loadedBm && loadedBm.failed) {
+                showToast(`⚠️ ${loadedBm.failed}/${loadedBm.tiles.length} ô ảnh nền cơ sở không tải được.`, true);
             }
-            rerun(bm);
-        };
-        loadExportBasemap(plan).then(finish, () => finish(null));
+            if (loadedGu && loadedGu.failed) {
+                showToast(`⚠️ ${loadedGu.failed}/${loadedGu.tiles.length} ô quy hoạch Guland không tải được.`, true);
+            }
+            const merged = Object.assign({}, loadedBm || { none: true }, {
+                basemap: loadedBm,
+                guland: loadedGu
+            });
+            rerun(merged);
+        }).catch(() => {
+            this._exportBasemapBusy = false;
+            rerun({ none: true, basemap: null, guland: null });
+        });
+
         return true;
     },
 
     _getExportMeta() {
         const rawScaleVal = document.getElementById('cadExportScale')?.value;
-        const scaleVal = (rawScaleVal && rawScaleVal !== 'auto') ? parseInt(rawScaleVal) : null;
+        let scaleVal = null;
+        if (rawScaleVal === 'custom') {
+            const customNum = parseInt(document.getElementById('cadExportCustomScaleInput')?.value);
+            scaleVal = (customNum && customNum > 0) ? customNum : 1000;
+        } else if (rawScaleVal && rawScaleVal !== 'auto') {
+            scaleVal = parseInt(rawScaleVal) || null;
+        }
         const paper = document.getElementById('cadExportPaperSize')?.value || 'A3';
         const drawingName = document.getElementById('cadExportDrawingName')?.value?.trim() || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT';
         const projectName = document.getElementById('cadExportProjectName')?.value?.trim() || AppState.currentProject.replace(/\.[^/.]+$/, "");
@@ -32921,27 +33482,55 @@ const appCadTool = {
         }
         const planOvEl = document.getElementById('cadExportPlanOverlay');
         const printPlanOverlay = planOvEl ? planOvEl.checked !== false : true;
+        const selectedPlanOverlayIds = (typeof appPlanOverlay !== 'undefined' && typeof appPlanOverlay.getSelectedExportIds === 'function')
+            ? appPlanOverlay.getSelectedExportIds('cadExportPlanOverlayList')
+            : [];
         const basemapVal = document.getElementById('cadExportBasemap')?.value;
         const basemap = ['street', 'satellite', 'sentinel2', 'worldcover'].includes(basemapVal) ? basemapVal : 'none';
+
+        const showGuland = document.getElementById('cadExportCheckGuland')?.checked || false;
+        const gulandProvince = document.getElementById('cadExportGulandProvince')?.value || (AppState.provinceName || 'dong-thap');
+        const gulandOpacity = parseFloat(document.getElementById('cadExportGulandOpacity')?.value || '0.7');
+        const gulandLand = document.getElementById('cadExportGulandLand')?.checked || false;
+
         const customAreaVal = parseFloat(document.getElementById('cadCustomProjectArea')?.value || '0');
         const customTotalArea = (!isNaN(customAreaVal) && customAreaVal > 0) ? customAreaVal : null;
 
+        const customScaleVal = parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000;
         // Lưu cấu hình vào localStorage để người dùng không phải nhập lại
         try {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
-                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, scaleVal, paper, showPercent, showBlockInfo, customTotalArea,
-                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap
+                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode,
+                scaleVal: rawScaleVal, customScale: customScaleVal, paper, showPercent, showBlockInfo, customTotalArea,
+                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap,
+                showGuland, gulandProvince, gulandOpacity, gulandLand, printPlanOverlay
             }));
         } catch (e) {}
 
-        const paperW = paper === 'A3' ? 420 : 297;
-        const paperH = paper === 'A3' ? 297 : 210;
+        const paperDimensions = {
+            'A0':   { w: 1189, h: 841, label: 'A0 (Ngang)' },
+            'A0-P': { w: 841, h: 1189, label: 'A0 (Đứng)' },
+            'A1':   { w: 841, h: 594, label: 'A1 (Ngang)' },
+            'A1-P': { w: 594, h: 841, label: 'A1 (Đứng)' },
+            'A2':   { w: 594, h: 420, label: 'A2 (Ngang)' },
+            'A2-P': { w: 420, h: 594, label: 'A2 (Đứng)' },
+            'A3':   { w: 420, h: 297, label: 'A3 (Ngang)' },
+            'A3-P': { w: 297, h: 420, label: 'A3 (Đứng)' },
+            'A4':   { w: 297, h: 210, label: 'A4 (Ngang)' },
+            'A4-P': { w: 210, h: 297, label: 'A4 (Đứng)' }
+        };
+        const pDim = paperDimensions[paper] || paperDimensions['A3'];
+        const paperW = pDim.w;
+        const paperH = pDim.h;
+        const paperLabel = pDim.label;
+
         return {
-            scaleVal, paper, paperW, paperH,
+            scaleVal, rawScaleVal, customScale: customScaleVal, paper, paperW, paperH, paperLabel,
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
             showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
-            basemap, printPlanOverlay
+            basemap, printPlanOverlay,
+            showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds
         };
     },
 
@@ -33043,8 +33632,9 @@ const appCadTool = {
         const M_top_mm = 10.0;
         const M_bottom_mm = 10.0;
 
-        // Cột bảng biểu & Khung tên bên phải (mm trên giấy): A3 = 75mm, A4 = 60mm
-        const W_panel_mm = (W_paper >= 420) ? 75.0 : 60.0;
+        // Cột bảng biểu & Khung tên bên phải (mm trên giấy): A0/A1 = 90mm, A2/A3 = 75mm, A4 = 60mm
+        const maxPaperDim = Math.max(W_paper, H_paper);
+        const W_panel_mm = (maxPaperDim >= 841) ? 90.0 : ((maxPaperDim >= 420) ? 75.0 : (W_paper <= 210 ? 50.0 : 60.0));
         const W_inner_mm = W_paper - M_left_mm - M_right_mm;
         const H_inner_mm = H_paper - M_top_mm - M_bottom_mm;
         const W_map_mm = W_inner_mm - W_panel_mm;
@@ -33097,7 +33687,8 @@ const appCadTool = {
         const rawScale = Math.max(reqScaleX, reqScaleY);
         const standardScales = [
             20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500,
-            600, 750, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000, 10000
+            600, 750, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000, 10000,
+            25000, 50000, 100000
         ];
         let autoSuggestedScale = 500;
         for (const sc of standardScales) {
@@ -33155,7 +33746,10 @@ const appCadTool = {
 
         // Khoảng cách dấu chữ thập lưới tọa độ (km / m)
         let gridInterval = 50;
-        if (scaleVal >= 5000) gridInterval = 500;
+        if (scaleVal >= 50000) gridInterval = 5000;
+        else if (scaleVal >= 25000) gridInterval = 2500;
+        else if (scaleVal >= 10000) gridInterval = 1000;
+        else if (scaleVal >= 5000) gridInterval = 500;
         else if (scaleVal >= 2000) gridInterval = 200;
         else if (scaleVal >= 1000) gridInterval = 100;
         else if (scaleVal >= 500) gridInterval = 50;
@@ -33166,7 +33760,7 @@ const appCadTool = {
         const fits = (spanCadX <= W_map * 0.95 && spanCadY <= H_map * 0.95);
 
         return {
-            scaleVal, S, isAuto, autoSuggestedScale, W_paper, H_paper,
+            scaleVal, S, isAuto, autoSuggestedScale, W_paper, H_paper, paperLabel: meta.paperLabel || meta.paper,
             M_left_mm, M_right_mm, M_top_mm, M_bottom_mm,
             W_sheet, H_sheet, W_inner, H_inner,
             W_panel_mm, W_panel, W_map, H_map,
@@ -33195,12 +33789,13 @@ const appCadTool = {
         const L = this._calculatePaperLayout(selectedShapes, meta);
 
         noticeEl.style.display = 'block';
+        const paperNameStr = L.paperLabel || (L.W_paper >= 420 ? 'A3' : 'A4');
         if (L.isAuto) {
             noticeEl.innerHTML = `
                 <div style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(56, 189, 248, 0.45); padding: 7px 10px; border-radius: 6px; color: #38bdf8; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span>⚡</span>
-                        <span><b>Tự động tối ưu:</b> Đã chọn tỷ lệ chuẩn <b>1:${L.scaleVal}</b> trên khổ ${L.W_paper === 420 ? 'A3' : 'A4'} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
+                        <span><b>Tự động tối ưu:</b> Đã chọn tỷ lệ chuẩn <b>1:${L.scaleVal}</b> trên khổ ${paperNameStr} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
                     </div>
                     <span style="background: rgba(56,189,248,0.2); padding: 2px 8px; border-radius: 4px; color: #e0f2fe; font-size: 11px;">Chuẩn kỹ thuật (To, rõ ~85% khung nhìn)</span>
                 </div>
@@ -33210,7 +33805,7 @@ const appCadTool = {
                 <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 7px 10px; border-radius: 6px; color: #4ade80; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span>✅</span>
-                        <span><b>Vừa vặn tuyệt đối:</b> Tỷ lệ 1:${L.scaleVal} trên khổ ${L.W_paper === 420 ? 'A3' : 'A4'} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
+                        <span><b>Vừa vặn tuyệt đối:</b> Tỷ lệ 1:${L.scaleVal} trên khổ ${paperNameStr} (Ranh đất: ${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m | Vùng vẽ: ${L.W_map.toFixed(1)}×${L.H_map.toFixed(1)}m)</span>
                     </div>
                 </div>
             `;
@@ -33219,7 +33814,7 @@ const appCadTool = {
                 <div style="background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.45); padding: 7px 10px; border-radius: 6px; color: #facc15; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span>⚠️</span>
-                        <span><b>Vượt kích thước vùng vẽ:</b> Ranh (${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m) vượt khổ ${L.W_paper === 420 ? 'A3' : 'A4'} ở 1:${L.scaleVal}. Khuyến nghị: <b>1:${L.autoSuggestedScale}</b>.</span>
+                        <span><b>Vượt kích thước vùng vẽ:</b> Ranh (${L.spanCadX.toFixed(1)}×${L.spanCadY.toFixed(1)}m) vượt khổ ${paperNameStr} ở 1:${L.scaleVal}. Khuyến nghị: <b>1:${L.autoSuggestedScale}</b>.</span>
                     </div>
                     <button type="button" class="btn-sm" style="padding: 3px 10px; font-size: 11px; font-weight: 800; background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: #0f172a; border: none; border-radius: 4px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.3);" onclick="appCadTool.applySuggestedScale(${L.autoSuggestedScale})" title="Bấm để chuyển ngay sang tỷ lệ khuyến nghị 1:${L.autoSuggestedScale}">
                         ⚡ Đổi sang 1:${L.autoSuggestedScale}
@@ -33247,7 +33842,10 @@ const appCadTool = {
                 scaleSelect.add(opt);
                 scaleSelect.value = String(val);
             }
+            const customWrap = document.getElementById('cadExportCustomScaleWrap');
+            if (customWrap) customWrap.style.display = 'none';
             this.checkScalePaperFit();
+            this.renderExportPreview();
             showToast(`✅ Đã chuyển tỷ lệ sang 1:${val}`);
         }
     },
@@ -33268,7 +33866,7 @@ const appCadTool = {
 
         // Cảnh báo người dùng nếu tỉ lệ chưa vừa vặn
         if (!L.fits) {
-            showToast(`⚠️ Chú ý: Ranh đất hơi lớn so với vùng vẽ khổ ${L.W_paper === 420 ? 'A3' : 'A4'} ở tỷ lệ 1:${L.scaleVal}. Khung bản vẽ vẫn được căn chỉnh chính xác.`, false);
+            showToast(`⚠️ Chú ý: Ranh đất hơi lớn so với vùng vẽ khổ ${L.paperLabel || (L.W_paper >= 420 ? 'A3' : 'A4')} ở tỷ lệ 1:${L.scaleVal}. Khung bản vẽ vẫn được căn chỉnh chính xác.`, false);
         }
 
         // Tính tổng diện tích đo thực tế
@@ -34006,8 +34604,17 @@ const appCadTool = {
 
         showToast(`⏳ Đang kết xuất bản vẽ PDF vector khổ ${meta.paper} tỷ lệ 1:${L.scaleVal}...`);
 
-        // Độ phân giải cao cho bản in PDF: 8 pixels/mm (~203.2 DPI, sắc nét tuyệt đối, kết xuất dưới 0.5s)
-        const pxPerMm = 8.0;
+        // Độ phân giải thích ứng theo kích thước khổ giấy (tránh tràn RAM Canvas trên web/mobile)
+        // A0 (1189mm): 3.5 px/mm (~4161x2943 px ~ 12MP)
+        // A1 (841mm):  4.5 px/mm (~3784x2673 px ~ 10MP)
+        // A2 (594mm):  6.0 px/mm (~3564x2520 px ~ 9MP)
+        // A3 / A4:     8.0 px/mm (~3360x2376 px ~ 8MP)
+        const maxPaperMm = Math.max(meta.paperW, meta.paperH);
+        let pxPerMm = 8.0;
+        if (maxPaperMm >= 1100) pxPerMm = 3.5;
+        else if (maxPaperMm >= 800) pxPerMm = 4.5;
+        else if (maxPaperMm >= 550) pxPerMm = 6.0;
+
         const W_px = Math.round(meta.paperW * pxPerMm);
         const H_px = Math.round(meta.paperH * pxPerMm);
 
@@ -34040,10 +34647,17 @@ const appCadTool = {
             const bx = toCvX(L.Xin0), by = toCvY(L.Yin1);
             const mapRect = { x: bx, y: by, w: toCvX(L.Xpanel0) - bx, h: toCvDist(L.H_inner) };
             const toCanvasRaw = (e, n) => ({ x: (e - L.X0) * pxPerMeter, y: H_px - (n - L.Y0) * pxPerMeter });
-            if (opts.basemap && opts.basemap.tiles) {
-                drawExportBasemap(ctx, opts.basemap, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+            const bmObj = (opts.basemap && opts.basemap.basemap) ? opts.basemap.basemap : opts.basemap;
+            const guObj = (opts.basemap && opts.basemap.guland) ? opts.basemap.guland : opts.guland;
+            if (bmObj && bmObj.tiles) {
+                drawExportBasemap(ctx, bmObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
             }
-            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw);
+            if (guObj && guObj.tiles) {
+                drawExportBasemap(ctx, guObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+            }
+            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
+                appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
+            }
         }
 
         // 2. Khung Ngoài (Mảnh)
@@ -34685,10 +35299,11 @@ const appCadTool = {
                 return;
             }
 
+            const orientation = (meta.paperW >= meta.paperH) ? 'landscape' : 'portrait';
             const doc = new jspdfObj({
-                orientation: 'landscape',
+                orientation: orientation,
                 unit: 'mm',
-                format: meta.paper.toLowerCase() === 'a4' ? 'a4' : 'a3',
+                format: [meta.paperW, meta.paperH],
                 compress: true
             });
 
@@ -35201,10 +35816,17 @@ const appCadTool = {
         {
             const mapRect = { x: pad, y: pad, w: W - 2 * pad, h: mapBottom - pad };
             const toCanvasRaw = (e, n) => ({ x: toX(e), y: toY(n) });
-            if (customOpts.basemap && customOpts.basemap.tiles) {
-                drawExportBasemap(ctx, customOpts.basemap, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+            const bmObj = (customOpts.basemap && customOpts.basemap.basemap) ? customOpts.basemap.basemap : customOpts.basemap;
+            const guObj = (customOpts.basemap && customOpts.basemap.guland) ? customOpts.basemap.guland : customOpts.guland;
+            if (bmObj && bmObj.tiles) {
+                drawExportBasemap(ctx, bmObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
             }
-            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw);
+            if (guObj && guObj.tiles) {
+                drawExportBasemap(ctx, guObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+            }
+            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
+                appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
+            }
         }
 
         // Grid lines
@@ -42518,10 +43140,118 @@ const appPlanOverlay = {
         if (row) row.style.display = n ? 'flex' : 'none';
         const lbl = document.getElementById('cadExportPlanOverlayCount');
         if (lbl) lbl.textContent = String(n);
+        const cadBadge = document.getElementById('cadExportPlanOverlayCountBadge');
+        if (cadBadge) cadBadge.innerHTML = `<span id="cadExportPlanOverlayCount">${n}</span>/${this.items.length} tệp`;
+        const selBadge = document.getElementById('selExportPlanOverlayCountBadge');
+        if (selBadge) selBadge.textContent = `${n}/${this.items.length} tệp`;
     },
+
+    // Hiển thị danh sách các file PDF / ảnh với checkbox chọn độc lập cho từng file khi xuất
+    renderExportFileList(containerId, onToggleCallback) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const isCad = containerId === 'cadExportPlanOverlayList';
+        const badge = document.getElementById(isCad ? 'cadExportPlanOverlayCountBadge' : 'selExportPlanOverlayCountBadge');
+
+        if (!this.items || this.items.length === 0) {
+            container.innerHTML = '<div style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:11px;">Chưa có tệp PDF hoặc ảnh bản đồ nào trong dự án này. Hãy nạp tệp tại mục Bản đồ nền PDF.</div>';
+            if (badge) badge.textContent = isCad ? '0 tệp' : '0 tệp';
+            return;
+        }
+
+        const updateBadge = () => {
+            const checkedCount = container.querySelectorAll('.chk-export-plan-item:checked').length;
+            if (badge) {
+                if (isCad) {
+                    badge.innerHTML = `<span id="cadExportPlanOverlayCount">${checkedCount}</span>/${this.items.length} tệp`;
+                } else {
+                    badge.textContent = `${checkedCount}/${this.items.length} tệp`;
+                }
+            }
+        };
+
+        let html = `
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid rgba(148,163,184,0.15);">
+                <span style="font-size:11px;color:#94a3b8;font-weight:600;">Chọn tệp xuất kèm (${this.items.length} tệp):</span>
+                <div style="display:flex;gap:4px;">
+                    <button type="button" class="btn-sm" style="font-size:11px;padding:1px 5px;height:22px;line-height:20px;" id="${containerId}_btnSelectAll">Tất cả</button>
+                    <button type="button" class="btn-sm" style="font-size:11px;padding:1px 5px;height:22px;line-height:20px;" id="${containerId}_btnUnselectAll">Bỏ chọn</button>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto;padding-right:2px;">
+        `;
+
+        this.items.forEach(it => {
+            const isChecked = it.visible !== false;
+            const acc = it.source === 'worldfile' ? 'tệp tọa độ' : (it.rms != null ? `±${it.rms.toFixed(2)}m` : `${(it.points || []).length} điểm`);
+            const opPct = Math.round((it.opacity || 0.7) * 100);
+            html += `
+                <label class="cad-check-label" style="display:flex;align-items:center;gap:6px;padding:4px 6px;background:rgba(15,23,42,0.5);border:1px solid rgba(148,163,184,0.2);border-radius:5px;cursor:pointer;">
+                    <input type="checkbox" class="chk-export-plan-item" data-id="${escapeHtml(it.id)}" ${isChecked ? 'checked' : ''} style="width:14px;height:14px;accent-color:#0284c7;flex-shrink:0;">
+                    <div style="display:flex;flex-direction:column;min-width:0;flex:1;">
+                        <span style="font-size:11px;font-weight:600;color:#f8fafc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(it.name)}">📄 ${escapeHtml(it.name)}</span>
+                        <span style="font-size:11px;color:#94a3b8;">${it.w}×${it.h}px • ${acc} • Mờ ${opPct}%</span>
+                    </div>
+                </label>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+        updateBadge();
+
+        container.querySelectorAll('.chk-export-plan-item').forEach(chk => {
+            chk.addEventListener('change', () => {
+                updateBadge();
+                if (typeof onToggleCallback === 'function') onToggleCallback();
+            });
+        });
+
+        const btnAll = document.getElementById(`${containerId}_btnSelectAll`);
+        if (btnAll) {
+            btnAll.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                container.querySelectorAll('.chk-export-plan-item').forEach(c => { c.checked = true; });
+                updateBadge();
+                if (typeof onToggleCallback === 'function') onToggleCallback();
+            });
+        }
+
+        const btnNone = document.getElementById(`${containerId}_btnUnselectAll`);
+        if (btnNone) {
+            btnNone.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                container.querySelectorAll('.chk-export-plan-item').forEach(c => { c.checked = false; });
+                updateBadge();
+                if (typeof onToggleCallback === 'function') onToggleCallback();
+            });
+        }
+    },
+
+    // Lấy danh sách ID các tệp PDF / ảnh được chọn xuất từ container
+    getSelectedExportIds(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return this.visibleItems().map(it => it.id);
+        }
+        const allChks = container.querySelectorAll('.chk-export-plan-item');
+        if (allChks.length === 0) {
+            return this.visibleItems().map(it => it.id);
+        }
+        const chks = container.querySelectorAll('.chk-export-plan-item:checked');
+        return Array.from(chks).map(c => c.getAttribute('data-id')).filter(Boolean);
+    },
+
     // rect: khung bản đồ trên canvas; toCanvas(e, n) theo KTT của bản vẽ
-    drawForExport(ctx, rect, toCanvas) {
-        const list = this.visibleItems();
+    // selectedIds: mảng các item.id được chọn xuất (nếu null thì xuất toàn bộ visibleItems)
+    drawForExport(ctx, rect, toCanvas, selectedIds = null) {
+        let list;
+        if (Array.isArray(selectedIds)) {
+            list = this.items.filter(it => selectedIds.includes(it.id) && it.img && it.img.complete && it.img.naturalWidth);
+        } else {
+            list = this.visibleItems();
+        }
         if (!ctx || !list.length) return 0;
         ctx.save();
         ctx.beginPath();
@@ -42869,7 +43599,12 @@ const appMapLayers = {
                     <button type="button" class="btn-sm" style="min-height:30px;font-size:11px;padding:2px 8px;" onclick="appPlanning.panToProvince('${curTarget}', document.getElementById('mlGulandProvSelect').value)">🎯 Về tâm tỉnh</button>
                     <button type="button" class="btn-sm" style="min-height:30px;font-size:11px;padding:2px 8px;" onclick="appPlanning.togglePanel('${curTarget}', true); appMapLayers.close();">⚙️ Bảng nổi</button>
                 </div>
-            </div>` : '';
+            </div>` : `<div class="ml-sub-controls" style="margin-top:4px;padding:6px;background:rgba(15,23,42,0.25);border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;">
+                <span style="color:#94a3b8;font-size:11.5px;">Chọn tỉnh hiển thị:</span>
+                <select id="mlGulandProvSelect" style="flex:1;max-width:180px;background:#1e293b;color:#f8fafc;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;" onchange="appPlanning.setProvinceGlobal(this.value, false); appMapLayers.renderPanel();">
+                    ${provOpts}
+                </select>
+            </div>`;
 
             overlays.push(row(
                 { swatch: '<span class="ml-swatch" style="background:#f59e0b"></span>', input: this._switch('mlGulandSwitch', isGulandOn, `appPlanning.toggle('${curTarget}', this.checked); appMapLayers.renderPanel();`, 'Bản đồ Quy hoạch 2030 (Guland)') },
@@ -42981,6 +43716,7 @@ if (typeof module !== 'undefined' && module.exports) {
         MAP_BASES,
         EXPORT_BASEMAPS,
         planExportBasemap,
+        planExportGuland,
         loadExportBasemap,
         exportTileTransform,
         drawExportBasemap,

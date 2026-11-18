@@ -262,6 +262,49 @@
         return L.tileLayer(provinceObj.landUrl, opts);
     }
 
+    /**
+     * Dọn dẹp triệt để mọi lớp gạch Guland (Quy hoạch + Ranh thửa) khỏi bản đồ Leaflet.
+     * Đảm bảo không bao giờ bị nhân đôi hoặc sót lại layer mồ côi trên bản đồ.
+     */
+    function removeAllGulandLayersFromMap(map) {
+        if (!map || typeof map.eachLayer !== 'function') return;
+        try {
+            const layersToRemove = [];
+            map.eachLayer(l => {
+                if (!l) return;
+                const cls = (l.options && l.options.className) || '';
+                const url = l._url || (l.options && l.options.url) || '';
+                if (cls === 'leaflet-layer-guland-planning' || 
+                    cls === 'leaflet-layer-guland-land' ||
+                    (typeof url === 'string' && (url.includes('vcdn.cloud') || url.includes('guland')))) {
+                    layersToRemove.push(l);
+                }
+            });
+            layersToRemove.forEach(l => {
+                try { map.removeLayer(l); } catch (_) {}
+            });
+        } catch (e) {
+            console.warn('[GulandPlanning] Lỗi dọn dẹp layer:', e);
+        }
+    }
+
+    /**
+     * Đồng bộ trạng thái giữa projectMap và cadMap vì cả 2 cùng dùng chung AppState.leafletMap.
+     */
+    function syncMainMapTargets(sourceKey) {
+        const otherKey = (sourceKey === 'projectMap') ? 'cadMap' : (sourceKey === 'cadMap' ? 'projectMap' : null);
+        if (!otherKey) return;
+        const src = targets[sourceKey];
+        const dst = targets[otherKey];
+        if (!src || !dst) return;
+        dst.active = src.active;
+        dst.layer = src.layer;
+        dst.landLayer = src.landLayer;
+        dst.provinceSlug = src.provinceSlug;
+        dst.opacity = src.opacity;
+        dst.showLand = src.showLand;
+    }
+
     function getMapInstance(targetKey) {
         if (targetKey === 'liveMap') {
             if (typeof appTransform !== 'undefined') {
@@ -322,20 +365,18 @@
             const nextState = (typeof forceState === 'boolean') ? forceState : !t.active;
             const provObj = getProvinceBySlug(t.provinceSlug);
 
+            // Luôn gỡ bỏ triệt để mọi layer Guland đang có trên bản đồ này để đảm bảo không bao giờ bị nhân đôi
+            removeAllGulandLayersFromMap(map);
+            t.layer = null;
+            t.landLayer = null;
+
             if (nextState) {
-                if (t.layer) {
-                    try { map.removeLayer(t.layer); } catch (_) {}
-                    t.layer = null;
-                }
                 t.layer = createLeafletLayer(provObj, t.opacity, map);
                 if (t.layer) {
                     t.layer.addTo(map);
                 }
 
                 if (t.showLand && provObj.landUrl) {
-                    if (t.landLayer) {
-                        try { map.removeLayer(t.landLayer); } catch (_) {}
-                    }
                     t.landLayer = createLandLayer(provObj, map);
                     if (t.landLayer) {
                         t.landLayer.addTo(map);
@@ -352,37 +393,16 @@
 
                 t.active = true;
             } else {
-                if (t.layer) {
-                    try { map.removeLayer(t.layer); } catch (_) {}
-                    t.layer = null;
-                }
-                if (t.landLayer) {
-                    try { map.removeLayer(t.landLayer); } catch (_) {}
-                    t.landLayer = null;
-                }
                 t.active = false;
             }
 
-            // Đồng bộ giữa projectMap và cadMap (cùng chia sẻ AppState.leafletMap)
-            if (targetKey === 'projectMap' && targets.cadMap) {
-                targets.cadMap.active = t.active;
-                targets.cadMap.layer = t.layer;
-                targets.cadMap.landLayer = t.landLayer;
-                targets.cadMap.provinceSlug = t.provinceSlug;
-                targets.cadMap.opacity = t.opacity;
-                targets.cadMap.showLand = t.showLand;
-                this.updateTargetUI('cadMap');
-            } else if (targetKey === 'cadMap' && targets.projectMap) {
-                targets.projectMap.active = t.active;
-                targets.projectMap.layer = t.layer;
-                targets.projectMap.landLayer = t.landLayer;
-                targets.projectMap.provinceSlug = t.provinceSlug;
-                targets.projectMap.opacity = t.opacity;
-                targets.projectMap.showLand = t.showLand;
-                this.updateTargetUI('projectMap');
-            }
+            // Đồng bộ trạng thái giữa projectMap và cadMap (cùng chung AppState.leafletMap)
+            syncMainMapTargets(targetKey);
 
             this.updateTargetUI(targetKey);
+            if (targetKey === 'projectMap') this.updateTargetUI('cadMap');
+            else if (targetKey === 'cadMap') this.updateTargetUI('projectMap');
+
             return t.active;
         },
 
@@ -396,12 +416,12 @@
             const map = getMapInstance(targetKey);
             const provObj = getProvinceBySlug(t.provinceSlug);
 
-            if (t.active && map) {
+            if (map) {
                 if (t.landLayer) {
                     try { map.removeLayer(t.landLayer); } catch (_) {}
                     t.landLayer = null;
                 }
-                if (t.showLand && provObj.landUrl) {
+                if (t.active && t.showLand && provObj.landUrl) {
                     t.landLayer = createLandLayer(provObj, map);
                     if (t.landLayer) {
                         t.landLayer.addTo(map);
@@ -409,17 +429,10 @@
                 }
             }
 
-            if (targetKey === 'projectMap' && targets.cadMap) {
-                targets.cadMap.showLand = t.showLand;
-                targets.cadMap.landLayer = t.landLayer;
-                this.updateTargetUI('cadMap');
-            } else if (targetKey === 'cadMap' && targets.projectMap) {
-                targets.projectMap.showLand = t.showLand;
-                targets.projectMap.landLayer = t.landLayer;
-                this.updateTargetUI('projectMap');
-            }
-
+            syncMainMapTargets(targetKey);
             this.updateTargetUI(targetKey);
+            if (targetKey === 'projectMap') this.updateTargetUI('cadMap');
+            else if (targetKey === 'cadMap') this.updateTargetUI('projectMap');
         },
 
         /**
@@ -435,15 +448,10 @@
             }
             savePreferences(null, val);
 
-            if (targetKey === 'projectMap' && targets.cadMap) {
-                targets.cadMap.opacity = val;
-                this.updateTargetUI('cadMap');
-            } else if (targetKey === 'cadMap' && targets.projectMap) {
-                targets.projectMap.opacity = val;
-                this.updateTargetUI('projectMap');
-            }
-
+            syncMainMapTargets(targetKey);
             this.updateTargetUI(targetKey);
+            if (targetKey === 'projectMap') this.updateTargetUI('cadMap');
+            else if (targetKey === 'cadMap') this.updateTargetUI('projectMap');
         },
 
         /**
@@ -456,31 +464,23 @@
             t.provinceSlug = provObj.slug;
             savePreferences(provObj.slug, null);
 
-            if (targetKey === 'projectMap' && targets.cadMap) {
-                targets.cadMap.provinceSlug = provObj.slug;
-            } else if (targetKey === 'cadMap' && targets.projectMap) {
-                targets.projectMap.provinceSlug = provObj.slug;
-            }
-
             const map = getMapInstance(targetKey);
-            if (t.active && map) {
-                if (t.layer) {
-                    try { map.removeLayer(t.layer); } catch (_) {}
-                    t.layer = null;
-                }
-                t.layer = createLeafletLayer(provObj, t.opacity, map);
-                if (t.layer) {
-                    t.layer.addTo(map);
-                }
+            if (map) {
+                removeAllGulandLayersFromMap(map);
+                t.layer = null;
+                t.landLayer = null;
 
-                if (t.landLayer) {
-                    try { map.removeLayer(t.landLayer); } catch (_) {}
-                    t.landLayer = null;
-                }
-                if (t.showLand && provObj.landUrl) {
-                    t.landLayer = createLandLayer(provObj, map);
-                    if (t.landLayer) {
-                        t.landLayer.addTo(map);
+                if (t.active) {
+                    t.layer = createLeafletLayer(provObj, t.opacity, map);
+                    if (t.layer) {
+                        t.layer.addTo(map);
+                    }
+
+                    if (t.showLand && provObj.landUrl) {
+                        t.landLayer = createLandLayer(provObj, map);
+                        if (t.landLayer) {
+                            t.landLayer.addTo(map);
+                        }
                     }
                 }
             }
@@ -497,6 +497,8 @@
                 } catch (_) {}
             }
 
+            syncMainMapTargets(targetKey);
+
             this.updateTargetUI(targetKey);
             if (targetKey === 'projectMap') this.updateTargetUI('cadMap');
             else if (targetKey === 'cadMap') this.updateTargetUI('projectMap');
@@ -506,6 +508,17 @@
                 if (modal && modal.style.display !== 'none') {
                     appMapLayers.renderPanel();
                 }
+            }
+        },
+
+        /**
+         * Tiện ích di chuyển hoặc đổi tỉnh nhanh
+         */
+        panToProvince(targetKey, slug) {
+            if (slug) {
+                this.setProvince(targetKey, slug, true);
+            } else {
+                this.panToCurrentProvince(targetKey);
             }
         },
 
@@ -521,8 +534,9 @@
 
             let mapToPan = null;
             if (typeof AppState !== 'undefined' && AppState.leafletMap) {
-                const activeKey = (AppState.mapMode === 'cad') ? 'cadMap' : 'projectMap';
-                if (targets[activeKey] && targets[activeKey].active) {
+                const isMainActive = (targets.projectMap && targets.projectMap.active) || (targets.cadMap && targets.cadMap.active);
+                if (isMainActive) {
+                    const activeKey = (AppState.mapMode === 'cad') ? 'cadMap' : 'projectMap';
                     this.setProvince(activeKey, provObj.slug, false);
                 }
                 mapToPan = AppState.leafletMap;
@@ -693,14 +707,18 @@
                 }
             }
 
-            // Đồng bộ checkbox trên MiniCAD Tab 4
-            const cadChk = document.getElementById('cadCheckShowGulandPlanning');
-            if (cadChk && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
-                cadChk.checked = !!t.active;
+            // Đồng bộ nút và trạng thái trên cả MiniCAD và Bản đồ dự án
+            const projBtn = document.getElementById('btnMapProjectPlanning');
+            if (projBtn && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
+                projBtn.classList.toggle('active', !!t.active);
             }
             const cadBtn = document.getElementById('btnCadPlanning');
             if (cadBtn && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
                 cadBtn.classList.toggle('active', !!t.active);
+            }
+            const cadChk = document.getElementById('cadCheckShowGulandPlanning');
+            if (cadChk && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
+                cadChk.checked = !!t.active;
             }
             const mlSw = document.getElementById('mlGulandSwitch');
             if (mlSw && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
@@ -764,8 +782,8 @@
                 }
             }
             const willOpen = !targets.liveMap.active;
-            this.toggle('liveMap');
-            this.togglePanel('liveMap', true);
+            this.toggle('liveMap', willOpen);
+            this.togglePanel('liveMap', willOpen);
             if (typeof showToast === 'function') {
                 const prov = getProvinceBySlug(targets.liveMap.provinceSlug);
                 showToast(willOpen ? `📐 Live Map: Đã bật Quy hoạch ${prov.name}` : `Live Map: Đã tắt lớp Quy hoạch`);
@@ -777,8 +795,8 @@
                 appTransformMap.init();
             }
             const willOpen = !targets.transformMap.active;
-            this.toggle('transformMap');
-            this.togglePanel('transformMap', true);
+            this.toggle('transformMap', willOpen);
+            this.togglePanel('transformMap', willOpen);
             if (typeof showToast === 'function') {
                 const prov = getProvinceBySlug(targets.transformMap.provinceSlug);
                 showToast(willOpen ? `📐 Bản đồ Chuyển đổi: Đã bật Quy hoạch ${prov.name}` : `Bản đồ Chuyển đổi: Đã tắt lớp Quy hoạch`);
@@ -790,8 +808,8 @@
                 appMap.initMap();
             }
             const willOpen = !targets.projectMap.active;
-            this.toggle('projectMap');
-            this.togglePanel('projectMap', true);
+            this.toggle('projectMap', willOpen);
+            this.togglePanel('projectMap', willOpen);
             if (typeof showToast === 'function') {
                 const prov = getProvinceBySlug(targets.projectMap.provinceSlug);
                 showToast(willOpen ? `📐 Bản đồ Dự án: Đã bật Quy hoạch ${prov.name}` : `Bản đồ Dự án: Đã tắt lớp Quy hoạch`);

@@ -3091,3 +3091,14 @@ body[data-theme="light"] .home-gps-cta b { color: #047857; }
   padding-top: 6px;
   margin-top: 2px;
 }
+
+/* Đảm bảo toàn bộ nét vẽ và mốc MiniCAD luôn hiển thị ở tầng trên cùng */
+.leaflet-pane.leaflet-cadVectorPane-pane {
+  z-index: 450 !important;
+  pointer-events: auto;
+}
+
+.leaflet-pane.leaflet-cadMarkerPane-pane {
+  z-index: 680 !important;
+  pointer-events: auto;
+}

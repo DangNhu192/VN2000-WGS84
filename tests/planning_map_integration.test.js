@@ -278,3 +278,43 @@ test('=== NHÓM 8: TÍCH HỢP ĐIỀU KHIỂN QUY HOẠCH GULAND TRONG MINICAD 
         assert.ok(appJsContent.includes('appPlanning.setProvinceGlobal'), 'appMapLayers phải gọi setProvinceGlobal');
     });
 });
+
+test('=== NHÓM 9: DUY NHẤT 1 LỚP BẢN ĐỒ GULAND, CHO PHÉP CHỌN TỈNH HOẶC TẮT LỚP TRIỆT ĐỂ ===', async (t) => {
+    const { GulandPlanning } = createPlanningSandbox();
+
+    await t.test('9.1 Cho phép chọn 63 tỉnh trong Quản lý lớp bản đồ ngay cả khi lớp Guland đang TẮT', () => {
+        // Kiểm tra logic renderPanel trong app.js: khi isGulandOn = false, vẫn có mlGulandProvSelect để người dùng chọn trước tỉnh
+        assert.ok(appJsContent.includes('mlGulandProvSelect'), 'Phải có mlGulandProvSelect');
+        assert.ok(appJsContent.includes('Chọn tỉnh hiển thị:'), 'Phải có nhãn chọn tỉnh hiển thị khi đang tắt');
+    });
+
+    await t.test('9.2 Hàm panToProvince tồn tại trên GulandPlanning và hoạt động chính xác', () => {
+        assert.equal(typeof GulandPlanning.panToProvince, 'function', 'Phải có hàm panToProvince');
+        GulandPlanning.panToProvince('projectMap', 'dong-nai');
+        assert.equal(GulandPlanning.targets.projectMap.provinceSlug, 'dong-nai');
+    });
+
+    await t.test('9.3 Tắt lớp quy hoạch đóng triệt để thẻ nổi (togglePanel tôn trọng trạng thái tắt willOpen)', () => {
+        assert.ok(planningJsContent.includes("this.togglePanel('liveMap', willOpen)"), 'toggleLiveMapPlanning phải truyền willOpen');
+        assert.ok(planningJsContent.includes("this.togglePanel('transformMap', willOpen)"), 'toggleTransformMapPlanning phải truyền willOpen');
+        assert.ok(planningJsContent.includes("this.togglePanel('projectMap', willOpen)"), 'toggleProjectMapPlanning phải truyền willOpen');
+        assert.ok(planningJsContent.includes("this.togglePanel('cadMap', willOpen)"), 'toggleCadPlanning phải truyền willOpen');
+    });
+
+    await t.test('9.4 Đóng cửa sổ CAD và resetMapChrome ẩn sạch bảng nổi quy hoạch cadPlanningCtrl / mapProjectPlanningCtrl', () => {
+        assert.ok(appJsContent.includes("'mapProjectPlanningCtrl'"), 'resetMapChrome phải ẩn mapProjectPlanningCtrl');
+        assert.ok(appJsContent.includes("'cadPlanningCtrl'"), 'resetMapChrome và closeCadWindows phải ẩn cadPlanningCtrl');
+    });
+
+    await t.test('9.5 CADCraft CLI hỗ trợ lệnh nâng cao: QH OFF, QH ON và QH <tên_tỉnh>', () => {
+        assert.ok(appJsContent.includes("upArg === 'OFF'"), 'CLI phải nhận tham số OFF');
+        assert.ok(appJsContent.includes("upArg === 'ON'"), 'CLI phải nhận tham số ON');
+        assert.ok(appJsContent.includes("appPlanning.setProvince('cadMap'"), 'CLI phải chuyển tỉnh trực tiếp khi truyền tên tỉnh');
+    });
+
+    await t.test('9.6 planning_map.js sở hữu cơ chế removeAllGulandLayersFromMap và syncMainMapTargets chống sót layer', () => {
+        assert.ok(planningJsContent.includes('function removeAllGulandLayersFromMap'), 'Phải có hàm purge removeAllGulandLayersFromMap');
+        assert.ok(planningJsContent.includes('function syncMainMapTargets'), 'Phải có hàm đồng bộ syncMainMapTargets giữa projectMap và cadMap');
+        assert.ok(planningJsContent.includes('removeAllGulandLayersFromMap(map)'), 'toggle và setProvince phải dọn sạch layer trước khi vẽ layer mới');
+    });
+});

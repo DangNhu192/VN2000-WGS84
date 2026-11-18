@@ -2386,6 +2386,11 @@
               onclick="appCadTool.openLoadProjectModal()" title="Nạp mốc tọa độ từ các dự án đã lưu vào MiniCAD">
               📁 Nạp mốc dự án
             </button>
+            <button id="btnCadAutoSyncProjectData" class="cad-btn"
+              style="background: rgba(2, 132, 199, 0.25); border-color: #0284c7; color: #38bdf8; font-weight: 700;"
+              onclick="appCadTool.autoLoadAllProjectDataToCad()" title="Tự động đồng bộ và hiển thị tất cả mốc, tuyến, thửa đã lưu lên trên cùng bản vẽ MiniCAD">
+              ⚡ Đồng bộ mốc/thửa
+            </button>
             <button class="cad-btn"
               style="background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;"
               onclick="appCadTool.saveAsNewProject()"
@@ -6147,33 +6152,109 @@
                 <option value="2000">1:2.000 (1mm = 2.0m - Tuyến, Quy hoạch)</option>
                 <option value="5000">1:5.000 (1mm = 5.0m - Địa hình, Phân khu)</option>
                 <option value="10000">1:10.000 (1mm = 10m - Vùng, Tổng thể)</option>
+                <option value="25000">1:25.000 (1mm = 25m - Bản đồ lớn, Đánh giá)</option>
+                <option value="50000">1:50.000 (1mm = 50m - Bản đồ lớn, Cấp huyện/tỉnh)</option>
+                <option value="100000">1:100.000 (1mm = 100m - Tổng thể vùng lớn)</option>
                 <option value="fit">Vừa khung bản vẽ (Tự động tính)</option>
+                <option value="custom">✍️ Tùy chỉnh (Nhập tay tỉ lệ)...</option>
               </select>
+              <div id="cadExportCustomScaleWrap" style="display: none; margin-top: 6px; align-items: center; gap: 6px; background: rgba(15, 23, 42, 0.7); padding: 5px 8px; border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.45);">
+                <span style="font-size: 12px; font-weight: 700; color: #38bdf8; white-space: nowrap;">Tỉ lệ 1 :</span>
+                <input type="number" id="cadExportCustomScaleInput" min="1" max="10000000" step="1" placeholder="VD: 1500, 25000..." 
+                       style="height: 30px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 4px; padding: 0 8px; background: #0f172a; color: #38bdf8; border: 1px solid #0284c7;" 
+                       oninput="appCadTool.onExportSettingChange()">
+                <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">(Nhập tay)</span>
+              </div>
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">Khổ giấy xuất:</label>
               <select id="cadExportPaperSize" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.onExportSettingChange()">
-                <option value="A3" selected>Khổ A3 (420 x 297 mm) Ngang</option>
-                <option value="A4">Khổ A4 (297 x 210 mm) Ngang</option>
-                <option value="A4-P">Khổ A4 (210 x 297 mm) Đứng</option>
+                <option value="A0">Khổ A0 (1189 × 841 mm) Ngang - Bản đồ lớn</option>
+                <option value="A0-P">Khổ A0 (841 × 1189 mm) Đứng</option>
+                <option value="A1">Khổ A1 (841 × 594 mm) Ngang - Bản đồ phân khu</option>
+                <option value="A1-P">Khổ A1 (594 × 841 mm) Đứng</option>
+                <option value="A2">Khổ A2 (594 × 420 mm) Ngang - Bản đồ tổng thể</option>
+                <option value="A2-P">Khổ A2 (420 × 594 mm) Đứng</option>
+                <option value="A3" selected>Khổ A3 (420 × 297 mm) Ngang - Chuẩn địa chính</option>
+                <option value="A3-P">Khổ A3 (297 × 420 mm) Đứng</option>
+                <option value="A4">Khổ A4 (297 × 210 mm) Ngang</option>
+                <option value="A4-P">Khổ A4 (210 × 297 mm) Đứng</option>
               </select>
             </div>
           </div>
-          <div style="margin-top: 8px;">
-            <label for="cadExportBasemap" style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">Nền bản đồ (xuất PDF / PNG):</label>
-            <select id="cadExportBasemap" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.onExportSettingChange()">
-              <option value="none" selected>Không nền (giấy trắng)</option>
-              <option value="street">🗺️ Bản đồ đường phố (OpenStreetMap)</option>
-              <option value="satellite">🛰️ Ảnh vệ tinh (Esri World Imagery)</option>
-              <option value="sentinel2">🛰️ Ảnh Sentinel-2 không mây 2016 (10 m)</option>
-              <option value="worldcover">🌾 Lớp phủ mặt đất ESA WorldCover (10 m)</option>
-            </select>
-            <div style="font-size: 11px; color: #64748b; margin-top: 3px;">Cần mạng để tải ảnh nền; nét vẽ, điểm, tuyến, đa giác in đè lên nền.</div>
+          <!-- NỀN BẢN ĐỒ & LỚP PHỦ QUY HOẠCH GULAND / FILE PDF -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <span>🗺️</span> CHỌN LỚP BẢN ĐỒ NỀN, GULAND &amp; FILE PDF XUẤT KÈM
+              </span>
+            </div>
+
+            <!-- Nền bản đồ cơ sở -->
+            <div>
+              <label for="cadExportBasemap" style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">1. Bản đồ nền cơ sở (xuất PDF / PNG):</label>
+              <select id="cadExportBasemap" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.onExportSettingChange()">
+                <option value="none" selected>Không nền (Giấy trắng chuẩn kỹ thuật)</option>
+                <option value="street">🗺️ Bản đồ đường phố (OpenStreetMap)</option>
+                <option value="satellite">🛰️ Ảnh vệ tinh độ nét cao (Esri World Imagery)</option>
+                <option value="sentinel2">🛰️ Ảnh Sentinel-2 không mây 2016 (10m)</option>
+                <option value="worldcover">🌾 Lớp phủ mặt đất ESA WorldCover (10m)</option>
+              </select>
+            </div>
+
+            <!-- Tùy chọn 2: Lớp bản đồ quy hoạch Guland 2030 -->
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+              <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+                <span style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #facc15; font-size: 11.5px;">
+                  <input type="checkbox" id="cadExportCheckGuland" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 16px; height: 16px;">
+                  <span>🏛️ In kèm lớp quy hoạch Guland 2030</span>
+                </span>
+                <span id="cadExportGulandBadge" style="font-size: 11px; color: #facc15; background: rgba(250, 204, 21, 0.15); padding: 1px 6px; border-radius: 4px;">63 tỉnh</span>
+              </label>
+
+              <!-- Khung cấu hình chi tiết Guland -->
+              <div id="cadExportGulandConfigWrap" style="display: none; flex-direction: column; gap: 6px; padding-top: 4px; border-top: 1px dashed rgba(250, 204, 21, 0.25);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <div>
+                    <label style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 2px;">Tỉnh thành quy hoạch:</label>
+                    <select id="cadExportGulandProvince" class="app-select" style="height: 32px; font-size: 11.5px; font-weight: 600; width: 100%; border-radius: 5px;" onchange="appCadTool.onExportSettingChange()">
+                      <!-- Nạp động 63 tỉnh -->
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 2px;">Độ mờ lớp quy hoạch:</label>
+                    <select id="cadExportGulandOpacity" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%; border-radius: 5px;" onchange="appCadTool.onExportSettingChange()">
+                      <option value="0.9">Đậm rõ (90%)</option>
+                      <option value="0.75">Chuẩn in (75%)</option>
+                      <option value="0.6" selected>Hài hòa (60%)</option>
+                      <option value="0.45">Mờ nhẹ (45%)</option>
+                      <option value="0.3">Rất mờ (30%)</option>
+                    </select>
+                  </div>
+                </div>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #cbd5e1; font-size: 11px;">
+                  <input type="checkbox" id="cadExportGulandLand" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 14px; height: 14px;">
+                  <span>In kèm ranh thửa đất quy hoạch (nếu có dữ liệu)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Tùy chọn 3: Lớp bản đồ từ file PDF / File ảnh bổ sung (appPlanOverlay) -->
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="cadExportPlanOverlay" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px;">
+                  <span style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">📄 In kèm lớp bản đồ từ tệp PDF / Ảnh nắn tọa độ</span>
+                </label>
+                <span id="cadExportPlanOverlayCountBadge" style="font-size: 11px; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 1px 6px; border-radius: 4px;"><span id="cadExportPlanOverlayCount">0</span> tệp</span>
+              </div>
+
+              <!-- Danh sách từng file PDF / ảnh lớp bản đồ đã chèn -->
+              <div id="cadExportPlanOverlayList" style="display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; padding: 4px; background: rgba(15, 23, 42, 0.6); border-radius: 5px;">
+                <!-- Nạp động danh sách từng file PDF / ảnh -->
+              </div>
+            </div>
           </div>
-          <label id="cadExportPlanOverlayRow" class="cad-check-label" style="display: none; margin-top: 6px; align-items: center; gap: 6px;">
-            <input type="checkbox" id="cadExportPlanOverlay" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px;">
-            <span style="font-size: 12px;">In ảnh nền quy hoạch (<span id="cadExportPlanOverlayCount">0</span> ảnh đang hiện) dưới nét vẽ</span>
-          </label>
           <!-- Vùng cảnh báo tương thích tỷ lệ và khổ giấy thời gian thực -->
           <div id="cadScaleFitNotice" style="margin-top: 4px; padding: 6px 10px; border-radius: 6px; font-size: 11px; display: none;"></div>
         </div>
@@ -6577,10 +6658,15 @@
 
         <!-- Nhóm nút hành động theo Tab Khối -->
         <div id="cadLoadBlocksFooterActions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn-sm btn-blue" id="btnCadLoadProjectAll" style="height: 36px; padding: 0 14px; font-weight: 800; font-size: 12px;"
+            onclick="appCadTool.autoLoadAllProjectDataToCad()"
+            title="Tự động nạp toàn bộ các khối, tuyến, thửa và mốc của dự án lên trên cùng bản vẽ MiniCAD">
+            ⚡ NẠP TẤT CẢ DỮ LIỆU
+          </button>
           <button class="btn-sm btn-green" style="height: 36px; padding: 0 16px; font-weight: 800; font-size: 12px;"
             onclick="appCadTool.confirmLoadProjectAsBlocks()"
             title="Nạp nguyên vẹn các khối đã chọn vào bản vẽ MiniCAD hiện tại">
-            📥 NẠP CÁC KHỐI ĐÃ CHỌN VÀO BẢN VẼ
+            📥 NẠP CÁC KHỐI ĐÃ CHỌN
           </button>
         </div>
 
@@ -6597,6 +6683,12 @@
             onclick="appCadTool.confirmLoadProjectAsSnap()"
             title="Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do">
             🧲 Bật để Snap
+          </button>
+          <button class="btn-sm" id="btnCadLoadPointsOnly"
+            style="height: 36px; padding: 0 11px; background: rgba(245, 158, 11, 0.25); color: #fbbf24; border: 1px solid #f59e0b; font-weight: 700;"
+            onclick="appCadTool.confirmLoadProjectAsShape('point')"
+            title="Nạp thành lớp điểm rời trong MiniCAD để xem và xuất dữ liệu">
+            📍 Nạp Điểm rời
           </button>
           <button class="btn-sm btn-blue" style="height: 36px; padding: 0 12px; font-weight: 700;"
             onclick="appCadTool.confirmLoadProjectAsShape('polyline')"
@@ -8308,15 +8400,33 @@
                 <option value="2000">1:2.000 (1mm = 2.0m - Tuyến, Quy hoạch)</option>
                 <option value="5000">1:5.000 (1mm = 5.0m - Địa hình, Phân khu)</option>
                 <option value="10000">1:10.000 (1mm = 10m - Vùng, Tổng thể)</option>
+                <option value="25000">1:25.000 (1mm = 25m - Bản đồ lớn, Đánh giá)</option>
+                <option value="50000">1:50.000 (1mm = 50m - Bản đồ lớn, Cấp huyện/tỉnh)</option>
+                <option value="100000">1:100.000 (1mm = 100m - Tổng thể vùng lớn)</option>
                 <option value="fit">Vừa khung bản vẽ (Tự động tính)</option>
+                <option value="custom">✍️ Tùy chỉnh (Nhập tay tỉ lệ)...</option>
               </select>
+              <div id="selExportCustomScaleWrap" style="display: none; margin-top: 6px; align-items: center; gap: 6px; background: rgba(15, 23, 42, 0.7); padding: 5px 8px; border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.45);">
+                <span style="font-size: 12px; font-weight: 700; color: #38bdf8; white-space: nowrap;">Tỉ lệ 1 :</span>
+                <input type="number" id="selExportCustomScaleInput" min="1" max="10000000" step="1" placeholder="VD: 1500, 25000..." 
+                       style="height: 30px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 4px; padding: 0 8px; background: #0f172a; color: #38bdf8; border: 1px solid #0284c7;" 
+                       oninput="appData.onExportSettingChange()">
+                <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">(Nhập tay)</span>
+              </div>
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">Khổ giấy xuất:</label>
               <select id="selExportPaperSize" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()">
-                <option value="A4-L" selected>A4 Ngang (297×210)</option>
-                <option value="A4-P">A4 Đứng (210×297)</option>
-                <option value="A3-L">A3 Ngang (420×297)</option>
+                <option value="A0-L">A0 Ngang (1189×841 mm) - Bản đồ lớn</option>
+                <option value="A0-P">A0 Đứng (841×1189 mm)</option>
+                <option value="A1-L">A1 Ngang (841×594 mm) - Bản đồ phân khu</option>
+                <option value="A1-P">A1 Đứng (594×841 mm)</option>
+                <option value="A2-L">A2 Ngang (594×420 mm) - Bản đồ tổng thể</option>
+                <option value="A2-P">A2 Đứng (420×594 mm)</option>
+                <option value="A3-L">A3 Ngang (420×297 mm) - Chuẩn địa chính</option>
+                <option value="A3-P">A3 Đứng (297×420 mm)</option>
+                <option value="A4-L" selected>A4 Ngang (297×210 mm)</option>
+                <option value="A4-P">A4 Đứng (210×297 mm)</option>
               </select>
             </div>
           </div>
@@ -8399,6 +8509,58 @@
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Ghi chú kỹ thuật bản vẽ:</label>
               <input type="text" id="txtExportNotes" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Đo vẽ bằng máy toàn đạc điện tử / GPS RTK..." oninput="appData.saveTitleBlockInfo(false)">
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 2.5: CHỌN NỀN BẢN ĐỒ, LỚP GULAND & TỆP PDF QUY HOẠCH XUẤT KÈM -->
+        <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span>🗺️</span> CHỌN NỀN BẢN ĐỒ, GULAND &amp; TỆP PDF XUẤT KÈM
+            </span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label for="selExportBasemap" style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Nền bản đồ cơ sở:</label>
+              <select id="selExportBasemap" class="app-select" style="height: 34px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()">
+                <option value="none" selected>Không nền (Giấy trắng chuẩn kỹ thuật)</option>
+                <option value="street">🗺️ Bản đồ đường phố (OpenStreetMap)</option>
+                <option value="satellite">🛰️ Ảnh vệ tinh (Esri World Imagery)</option>
+                <option value="sentinel2">🛰️ Ảnh Sentinel-2 không mây 2016 (10m)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #facc15; font-weight: 700; display: block; margin-bottom: 2px;">Tỉnh thành quy hoạch Guland:</label>
+              <select id="selExportGulandProvince" class="app-select" style="height: 34px; font-size: 11.5px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()">
+                <!-- Nạp động 63 tỉnh -->
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11.5px; margin-top: 2px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-weight: 700;">
+              <input type="checkbox" id="chkExportGulandPlanning" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 15px; height: 15px;">
+              <span>🏛️ In kèm lớp quy hoạch Guland</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #cbd5e1;">
+              <input type="checkbox" id="chkExportGulandLand" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 14px; height: 14px;">
+              <span>Kèm ranh thửa đất Guland</span>
+            </label>
+          </div>
+
+          <!-- Lớp PDF / Ảnh chèn thêm -->
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #38bdf8; font-weight: 700; font-size: 11.5px;">
+                <input type="checkbox" id="chkExportPlanOverlay" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+                <span>📄 In kèm lớp bản đồ từ tệp PDF / Ảnh nắn tọa độ</span>
+              </label>
+              <span id="selExportPlanOverlayCountBadge" style="font-size: 11px; color: #38bdf8;">0 tệp</span>
+            </div>
+            <div id="selExportPlanOverlayList" style="display: flex; flex-direction: column; gap: 3px; max-height: 100px; overflow-y: auto;">
+              <!-- Danh sách tệp PDF / ảnh -->
             </div>
           </div>
         </div>
