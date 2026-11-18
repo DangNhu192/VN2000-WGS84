@@ -339,7 +339,7 @@ console.log('\n— Bật/tắt hàng loạt: tách dạng, không ghi nhầm c�
 // =====================================================================
 console.log('\n— renderGeometry: dựng ký hiệu theo kiểu/màu và theo nhóm —');
 {
-    const geomBody = appJs.slice(appJs.indexOf('renderGeometry() {'), appJs.indexOf('renderGeometry() {') + 26000);
+    const geomBody = appJs.slice(appJs.indexOf('    renderGeometry(opts = {}) {'), appJs.indexOf('    renderGeometry(opts = {}) {') + 26000);
     assert(geomBody.includes('if (isPointLayer && !groupVis.visible) return;'),
         'Điểm rời khi tắt nhóm: KHÔNG dựng marker (ẩn hẳn trên bản đồ, không chỉ mờ)');
     assert(geomBody.includes("'sty-' + ptStyle"),

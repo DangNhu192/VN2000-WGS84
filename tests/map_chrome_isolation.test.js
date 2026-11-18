@@ -133,8 +133,8 @@ console.log('\n— FAB theo chế độ: live_gps chỉ xem vị trí —');
     ids.forEach(id => { elements[id] = { style: { display: 'flex' } }; });
 
     const documentStub = { getElementById: id => elements[id] || null };
-    const api = new Function('document',
-        `return ({ ${extractMethod('updateFabControlsVisibility')} });`)(documentStub);
+    const api = new Function('document', 'AppState',
+        `return ({ ${extractMethod('updateFabControlsVisibility')}, ${extractMethod('setReferenceLayersInteractive')} });`)(documentStub, {});
 
     api.updateFabControlsVisibility('live_gps');
     assert(ids.every(id => elements[id].style.display === 'none'),

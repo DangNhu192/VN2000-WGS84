@@ -202,7 +202,7 @@ console.log('\n--- NHÓM 2: DEL ĐỈNH / ESC / XÓA HẾT PHẢI CỨU ĐƯỢC
 // --- NHÓM 3: offset, phím C, zoom ---
 console.log('\n--- NHÓM 3: OFFSET / PHÍM C / SIÊU ZOOM ---');
 {
-    const grpStart = appJs.indexOf('renderGeometry() {');
+    const grpStart = appJs.indexOf('    renderGeometry(opts = {}) {');
     const grp = appJs.slice(grpStart, grpStart + 700);
     assert(/this\.layers\.group\.clearLayers\(\);[\s\S]{0,420}addLayer\(this\.layers\.offsetLayer\)/.test(grp),
         'renderGeometry vẽ lại đường Offset phụ (không bị clearLayers xóa trắng)');

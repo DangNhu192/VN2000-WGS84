@@ -494,6 +494,184 @@ function geometryToWkt(f, precision, order) {
 
 function round(v, precision) { return Number((Number(v) || 0).toFixed(precision)); }
 
+// ============================== DGN (MicroStation V7 / ISFF) ==============================
+// Bản đồ địa chính (Famis / MicroStation SE, J) lưu dạng DGN V7: chuỗi phần tử nhị phân, tọa độ là số
+// nguyên UOR. Đọc: đường (3), đường gấp khúc (4), vùng (6), đường cong (11), chuỗi/vùng phức (12/14),
+// elip (15), cung (16), chữ (17). Ô (cell, 2) đọc từng thành phần. DGN V8 (vỏ OLE) chưa hỗ trợ.
+// Tọa độ trả về theo mét chiếu: lng = X của DGN (Đông), lat = Y của DGN (Bắc), crs = 'projected'.
+const DGN_MAX_ELEMENTS = 500000;
+
+/** Số nguyên 32 bit của DGN V7: hai từ 16 bit, từ cao trước, mỗi từ byte thấp trước. */
+function dgnInt32(b, o) { return ((b[o + 1] << 24) | (b[o] << 16) | (b[o + 3] << 8) | b[o + 2]); }
+function dgnInt16(b, o) { return b[o] | (b[o + 1] << 8); }
+
+/** Số thực VAX D-float 8 byte → số JS. */
+function dgnVaxDouble(b, o) {
+    const w0 = b[o] | (b[o + 1] << 8), w1 = b[o + 2] | (b[o + 3] << 8);
+    const w2 = b[o + 4] | (b[o + 5] << 8), w3 = b[o + 6] | (b[o + 7] << 8);
+    const exp = (w0 >> 7) & 0xff;
+    if (exp === 0) return 0;
+    const sign = (w0 & 0x8000) ? -1 : 1;
+    const frac = ((w0 & 0x7f) * 281474976710656 + w1 * 4294967296 + w2 * 65536 + w3) / 36028797018963968; // 2^48, 2^32, 2^16 / 2^55
+    return sign * (1 + frac) * Math.pow(2, exp - 129);
+}
+
+/** Góc DGN (1/360000 độ); quét âm mã hóa bằng bit dấu riêng. */
+function dgnAngle(b, o, signed) {
+    let v = dgnInt32(b, o) >>> 0;
+    if (signed && (v & 0x80000000)) v = -(v & 0x7fffffff);
+    else if (!signed) v = dgnInt32(b, o);
+    return v / 360000;
+}
+
+function dgnArcPoints(cx, cy, a, bAxis, rotDeg, startDeg, sweepDeg) {
+    const n = Math.max(8, Math.min(180, Math.ceil(Math.abs(sweepDeg) / 5)));
+    const rot = rotDeg * Math.PI / 180, cr = Math.cos(rot), sr = Math.sin(rot);
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+        const t = (startDeg + sweepDeg * i / n) * Math.PI / 180;
+        const x = a * Math.cos(t), y = bAxis * Math.sin(t);
+        pts.push([cx + x * cr - y * sr, cy + x * sr + y * cr]);
+    }
+    return pts;
+}
+
+function dgnDecodeText(b, o, n) {
+    if (n >= 2 && b[o] === 0xff && b[o + 1] === 0xfd) { // văn bản Unicode (UTF-16LE)
+        let s = '';
+        for (let i = o + 2; i + 1 < o + n; i += 2) s += String.fromCharCode(b[i] | (b[i + 1] << 8));
+        return s.replace(/\0+$/, '').trim();
+    }
+    let s = '';
+    for (let i = o; i < o + n && i < b.length; i++) { if (b[i] === 0) break; s += String.fromCharCode(b[i]); }
+    return s.trim();
+}
+
+/** Đọc DGN V7 → { ok, format: 'dgn', error, features, counts, meta }. */
+function readDgn(input) {
+    const b = input instanceof Uint8Array ? input : new Uint8Array(input || []);
+    const fail = (error) => ({ ok: false, format: 'dgn', error, features: [], counts: emptyCounts() });
+    if (b.length >= 8 && b[0] === 0xd0 && b[1] === 0xcf && b[2] === 0x11 && b[3] === 0xe0) return fail('DGN_V8_CHUA_HO_TRO');
+    if (b.length < 4 || (b[0] !== 0x08 && b[0] !== 0xc8) || b[1] !== 0x09) return fail('DGN_KHONG_HOP_LE');
+
+    let scale = 1, ox = 0, oy = 0, is3d = (b[0] === 0xc8);
+    const features = [];
+    const levels = new Set();
+    let complex = null; // chuỗi/vùng phức đang gom thành phần
+
+    const finishComplex = () => {
+        if (!complex) return;
+        const pts = complex.pts;
+        if (pts.length >= 2) {
+            const closed = complex.kind === 'polygon' && pts.length >= 3;
+            if (closed && !sameXY(pts[0], pts[pts.length - 1])) pts.push(pts[0].slice());
+            features.push({ kind: closed ? 'polygon' : 'line', name: 'Feature', note: complex.note, crs: 'projected', rings: [pts.map(p => pos(p[0], p[1], 0))] });
+        }
+        complex = null;
+    };
+    const emit = (kind, pts, note, name) => {
+        if (complex) {
+            const tail = complex.pts[complex.pts.length - 1];
+            pts.forEach((p, i) => { if (!(i === 0 && tail && sameXY(tail, p))) complex.pts.push(p); });
+            if (--complex.left <= 0) finishComplex();
+            return;
+        }
+        if (kind === 'point') { features.push(Object.assign(pointFeature(0, pts[0][0], pts[0][1], name, note), { crs: 'projected' })); return; }
+        if (pts.length < 2) return;
+        const closed = kind === 'polygon' && pts.length >= 3;
+        if (closed && !sameXY(pts[0], pts[pts.length - 1])) pts.push(pts[0].slice());
+        features.push({ kind: closed ? 'polygon' : 'line', name: 'Feature', note, crs: 'projected', rings: [pts.map(p => pos(p[0], p[1], 0))] });
+    };
+    const xy = (o) => [(dgnInt32(b, o) - ox) * scale, (dgnInt32(b, o + 4) - oy) * scale];
+
+    let off = 0, count = 0;
+    while (off + 4 <= b.length && count++ < DGN_MAX_ELEMENTS) {
+        if (b[off] === 0xff && b[off + 1] === 0xff) break; // hết tệp
+        const level = b[off] & 0x3f, isComplex = !!(b[off] & 0x80);
+        const type = b[off + 1] & 0x7f, deleted = !!(b[off + 1] & 0x80);
+        const size = (dgnInt16(b, off + 2) + 2) * 2;
+        if (size < 4 || off + size > b.length) break; // phần tử hỏng: dừng an toàn, giữ phần đã đọc
+        const e = off;
+        off += size;
+        if (deleted) continue;
+        if (type === 9) { // TCB: đơn vị và gốc tọa độ
+            if (size > 1264) {
+                const su = dgnInt32(b, e + 1112) >>> 0, uor = dgnInt32(b, e + 1116) >>> 0;
+                if (su > 0 && uor > 0) scale = 1 / (su * uor);
+                is3d = !!(b[e + 1214] & 0x40);
+                const gx = dgnVaxDouble(b, e + 1240), gy = dgnVaxDouble(b, e + 1248);
+                if (isFinite(gx) && isFinite(gy)) { ox = gx; oy = gy; }
+            }
+            continue;
+        }
+        if (complex && !isComplex) finishComplex(); // phức kết thúc sớm hơn khai báo
+        if (size < 36 || [3, 4, 6, 11, 12, 14, 15, 16, 17].indexOf(type) < 0) continue;
+        const note = 'Lớp ' + level;
+        levels.add(level);
+        const vtxSize = is3d ? 12 : 8;
+        switch (type) {
+            case 3: { // đường thẳng
+                if (size < 36 + 2 * vtxSize) break;
+                emit('line', [xy(e + 36), xy(e + 36 + vtxSize)], note);
+                break;
+            }
+            case 4: case 6: case 11: { // đường gấp khúc / vùng / đường cong
+                const n = dgnInt16(b, e + 36);
+                if (n < 1 || 38 + n * vtxSize > size) break;
+                const pts = [];
+                for (let i = 0; i < n; i++) pts.push(xy(e + 38 + i * vtxSize));
+                emit(type === 6 ? 'polygon' : 'line', pts, note);
+                break;
+            }
+            case 12: case 14: { // đầu chuỗi / vùng phức: các phần tử tiếp theo (cờ phức) là thành phần
+                finishComplex();
+                const n = dgnInt16(b, e + 38);
+                if (n > 0) complex = { kind: type === 14 ? 'polygon' : 'line', pts: [], left: n, note };
+                break;
+            }
+            case 15: case 16: { // elip / cung (2D chính xác; 3D bỏ qua phép xoay)
+                let a, c, rot = 0, start = 0, sweep = 360, cx, cy;
+                if (type === 15) {
+                    a = dgnVaxDouble(b, e + 36) * scale; c = dgnVaxDouble(b, e + 44) * scale;
+                    if (is3d) { cx = (dgnVaxDouble(b, e + 68) - ox) * scale; cy = (dgnVaxDouble(b, e + 76) - oy) * scale; }
+                    else { rot = dgnAngle(b, e + 52, false); cx = (dgnVaxDouble(b, e + 56) - ox) * scale; cy = (dgnVaxDouble(b, e + 64) - oy) * scale; }
+                } else {
+                    start = dgnAngle(b, e + 36, false); sweep = dgnAngle(b, e + 40, true);
+                    if (sweep === 0) sweep = 360;
+                    a = dgnVaxDouble(b, e + 44) * scale; c = dgnVaxDouble(b, e + 52) * scale;
+                    if (is3d) { cx = (dgnVaxDouble(b, e + 76) - ox) * scale; cy = (dgnVaxDouble(b, e + 84) - oy) * scale; }
+                    else { rot = dgnAngle(b, e + 60, false); cx = (dgnVaxDouble(b, e + 64) - ox) * scale; cy = (dgnVaxDouble(b, e + 72) - oy) * scale; }
+                }
+                if (![a, c, cx, cy].every(isFinite) || a <= 0) break;
+                const pts = dgnArcPoints(cx, cy, a, c || a, rot, start, sweep);
+                emit(type === 15 ? 'polygon' : 'line', pts, note);
+                break;
+            }
+            case 17: { // chữ → điểm mang tên là nội dung chữ
+                const o = is3d ? 62 : 50, nOff = is3d ? 74 : 58, tOff = is3d ? 76 : 60;
+                if (size < tOff) break;
+                const text = dgnDecodeText(b, e + tOff, Math.min(b[e + nOff], size - tOff));
+                if (!text) break;
+                emit('point', [xy(e + o)], note, text);
+                break;
+            }
+        }
+    }
+    finishComplex();
+
+    const counts = emptyCounts();
+    features.forEach(f => {
+        if (f.kind === 'point') counts.points += ringPointCount(f.rings);
+        else if (f.kind === 'line') { counts.lines++; counts.vertices += ringPointCount(f.rings); }
+        else { counts.polygons++; counts.vertices += ringPointCount(f.rings); }
+    });
+    return {
+        ok: features.length > 0, format: 'dgn', error: features.length ? null : 'KHONG_TIM_THAY_HINH_HOC',
+        features, counts, meta: { is3d, scale, levels: Array.from(levels).sort((x, y) => x - y) }
+    };
+}
+GisIO.readDgn = readDgn;
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = GisIO;
 } else if (typeof window !== 'undefined') {
