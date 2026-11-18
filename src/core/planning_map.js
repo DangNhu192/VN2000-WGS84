@@ -115,6 +115,18 @@
             showLand: false,
             provinceSlug: 'dong-thap',
             opacity: 0.65
+        },
+        cadMap: {
+            id: 'cadMap',
+            containerId: 'map-view-container',
+            btnId: 'btnCadPlanning',
+            panelId: 'cadPlanningCtrl',
+            layer: null,
+            landLayer: null,
+            active: false,
+            showLand: false,
+            provinceSlug: 'dong-thap',
+            opacity: 0.65
         }
     };
 
@@ -170,21 +182,47 @@
         return PROVINCES_DATA.find(p => Math.abs(p.ktt - num) < 0.05) || null;
     }
 
-    function createLeafletLayer(provinceObj, opacity) {
+    function getOrCreatePlanningPane(map) {
+        if (!map || typeof map.getPane !== 'function') return null;
+        let pane = map.getPane('planningOverlayPane');
+        if (!pane) {
+            pane = map.createPane('planningOverlayPane');
+            pane.style.zIndex = 230; // Trên nền bản đồ (200), dưới ranh giới (240), dưới PDF (250) và dưới vector (400)
+            pane.style.pointerEvents = 'none'; // Không cản trở bắt điểm, chọn hình, chấm tọa độ
+        }
+        return 'planningOverlayPane';
+    }
+
+    function getOrCreateLandPane(map) {
+        if (!map || typeof map.getPane !== 'function') return null;
+        let pane = map.getPane('planningLandPane');
+        if (!pane) {
+            pane = map.createPane('planningLandPane');
+            pane.style.zIndex = 235;
+            pane.style.pointerEvents = 'none';
+        }
+        return 'planningLandPane';
+    }
+
+    function createLeafletLayer(provinceObj, opacity, map) {
         if (typeof L === 'undefined') return null;
         const op = (typeof opacity === 'number') ? opacity : 0.65;
         const maxNative = provinceObj.maxNativeZoom || 18;
+        const paneName = map ? getOrCreatePlanningPane(map) : undefined;
         
-        const layer = L.tileLayer(provinceObj.url, {
+        const opts = {
             minZoom: 10,
             maxZoom: 24,
             maxNativeZoom: maxNative,
             opacity: op,
             transparent: true,
-            zIndex: 350,
+            zIndex: 230,
             className: 'leaflet-layer-guland-planning',
             errorTileUrl: TRANSPARENT_1PX
-        });
+        };
+        if (paneName) opts.pane = paneName;
+
+        const layer = L.tileLayer(provinceObj.url, opts);
 
         // Tự động chuyển URL dự phòng nếu CDN trả về lỗi
         layer.on('tileerror', function (e) {
@@ -206,18 +244,22 @@
         return layer;
     }
 
-    function createLandLayer(provinceObj) {
+    function createLandLayer(provinceObj, map) {
         if (typeof L === 'undefined' || !provinceObj.landUrl) return null;
-        return L.tileLayer(provinceObj.landUrl, {
+        const paneName = map ? getOrCreateLandPane(map) : undefined;
+        const opts = {
             minZoom: 16,
             maxZoom: 24,
             maxNativeZoom: 18,
             opacity: 0.85,
             transparent: true,
-            zIndex: 360,
+            zIndex: 235,
             className: 'leaflet-layer-guland-land',
             errorTileUrl: TRANSPARENT_1PX
-        });
+        };
+        if (paneName) opts.pane = paneName;
+
+        return L.tileLayer(provinceObj.landUrl, opts);
     }
 
     function getMapInstance(targetKey) {
@@ -239,7 +281,7 @@
             }
             return null;
         }
-        if (targetKey === 'projectMap') {
+        if (targetKey === 'projectMap' || targetKey === 'cadMap') {
             if (typeof appMap !== 'undefined' && typeof AppState !== 'undefined') {
                 if (!AppState.leafletMap && typeof appMap.initMap === 'function') {
                     appMap.initMap();
@@ -285,7 +327,7 @@
                     try { map.removeLayer(t.layer); } catch (_) {}
                     t.layer = null;
                 }
-                t.layer = createLeafletLayer(provObj, t.opacity);
+                t.layer = createLeafletLayer(provObj, t.opacity, map);
                 if (t.layer) {
                     t.layer.addTo(map);
                 }
@@ -294,7 +336,7 @@
                     if (t.landLayer) {
                         try { map.removeLayer(t.landLayer); } catch (_) {}
                     }
-                    t.landLayer = createLandLayer(provObj);
+                    t.landLayer = createLandLayer(provObj, map);
                     if (t.landLayer) {
                         t.landLayer.addTo(map);
                     }
@@ -321,6 +363,25 @@
                 t.active = false;
             }
 
+            // Đồng bộ giữa projectMap và cadMap (cùng chia sẻ AppState.leafletMap)
+            if (targetKey === 'projectMap' && targets.cadMap) {
+                targets.cadMap.active = t.active;
+                targets.cadMap.layer = t.layer;
+                targets.cadMap.landLayer = t.landLayer;
+                targets.cadMap.provinceSlug = t.provinceSlug;
+                targets.cadMap.opacity = t.opacity;
+                targets.cadMap.showLand = t.showLand;
+                this.updateTargetUI('cadMap');
+            } else if (targetKey === 'cadMap' && targets.projectMap) {
+                targets.projectMap.active = t.active;
+                targets.projectMap.layer = t.layer;
+                targets.projectMap.landLayer = t.landLayer;
+                targets.projectMap.provinceSlug = t.provinceSlug;
+                targets.projectMap.opacity = t.opacity;
+                targets.projectMap.showLand = t.showLand;
+                this.updateTargetUI('projectMap');
+            }
+
             this.updateTargetUI(targetKey);
             return t.active;
         },
@@ -341,12 +402,23 @@
                     t.landLayer = null;
                 }
                 if (t.showLand && provObj.landUrl) {
-                    t.landLayer = createLandLayer(provObj);
+                    t.landLayer = createLandLayer(provObj, map);
                     if (t.landLayer) {
                         t.landLayer.addTo(map);
                     }
                 }
             }
+
+            if (targetKey === 'projectMap' && targets.cadMap) {
+                targets.cadMap.showLand = t.showLand;
+                targets.cadMap.landLayer = t.landLayer;
+                this.updateTargetUI('cadMap');
+            } else if (targetKey === 'cadMap' && targets.projectMap) {
+                targets.projectMap.showLand = t.showLand;
+                targets.projectMap.landLayer = t.landLayer;
+                this.updateTargetUI('projectMap');
+            }
+
             this.updateTargetUI(targetKey);
         },
 
@@ -362,6 +434,15 @@
                 t.layer.setOpacity(val);
             }
             savePreferences(null, val);
+
+            if (targetKey === 'projectMap' && targets.cadMap) {
+                targets.cadMap.opacity = val;
+                this.updateTargetUI('cadMap');
+            } else if (targetKey === 'cadMap' && targets.projectMap) {
+                targets.projectMap.opacity = val;
+                this.updateTargetUI('projectMap');
+            }
+
             this.updateTargetUI(targetKey);
         },
 
@@ -375,13 +456,19 @@
             t.provinceSlug = provObj.slug;
             savePreferences(provObj.slug, null);
 
+            if (targetKey === 'projectMap' && targets.cadMap) {
+                targets.cadMap.provinceSlug = provObj.slug;
+            } else if (targetKey === 'cadMap' && targets.projectMap) {
+                targets.projectMap.provinceSlug = provObj.slug;
+            }
+
             const map = getMapInstance(targetKey);
             if (t.active && map) {
                 if (t.layer) {
                     try { map.removeLayer(t.layer); } catch (_) {}
                     t.layer = null;
                 }
-                t.layer = createLeafletLayer(provObj, t.opacity);
+                t.layer = createLeafletLayer(provObj, t.opacity, map);
                 if (t.layer) {
                     t.layer.addTo(map);
                 }
@@ -391,7 +478,7 @@
                     t.landLayer = null;
                 }
                 if (t.showLand && provObj.landUrl) {
-                    t.landLayer = createLandLayer(provObj);
+                    t.landLayer = createLandLayer(provObj, map);
                     if (t.landLayer) {
                         t.landLayer.addTo(map);
                     }
@@ -411,6 +498,54 @@
             }
 
             this.updateTargetUI(targetKey);
+            if (targetKey === 'projectMap') this.updateTargetUI('cadMap');
+            else if (targetKey === 'cadMap') this.updateTargetUI('projectMap');
+
+            if (typeof appMapLayers !== 'undefined' && appMapLayers.renderPanel) {
+                const modal = document.getElementById('modalMapLayers');
+                if (modal && modal.style.display !== 'none') {
+                    appMapLayers.renderPanel();
+                }
+            }
+        },
+
+        /**
+         * Chuyển tỉnh toàn cục trên mọi giao diện
+         */
+        setProvinceGlobal(slug, panToCenter) {
+            const provObj = getProvinceBySlug(slug);
+            Object.keys(targets).forEach(k => {
+                targets[k].provinceSlug = provObj.slug;
+            });
+            savePreferences(provObj.slug, null);
+
+            let mapToPan = null;
+            if (typeof AppState !== 'undefined' && AppState.leafletMap) {
+                const activeKey = (AppState.mapMode === 'cad') ? 'cadMap' : 'projectMap';
+                if (targets[activeKey] && targets[activeKey].active) {
+                    this.setProvince(activeKey, provObj.slug, false);
+                }
+                mapToPan = AppState.leafletMap;
+            }
+            if (typeof appTransform !== 'undefined' && appTransform._liveMap) {
+                if (targets.liveMap.active) this.setProvince('liveMap', provObj.slug, false);
+                if (!mapToPan) mapToPan = appTransform._liveMap;
+            }
+            if (typeof appTransformMap !== 'undefined' && appTransformMap.map) {
+                if (targets.transformMap.active) this.setProvince('transformMap', provObj.slug, false);
+                if (!mapToPan) mapToPan = appTransformMap.map;
+            }
+
+            if (panToCenter && mapToPan && provObj.center) {
+                try {
+                    const curZoom = (typeof mapToPan.getZoom === 'function') ? mapToPan.getZoom() : 12;
+                    const targetZoom = Math.max(curZoom, provObj.zoom || 12);
+                    if (typeof mapToPan.flyTo === 'function') mapToPan.flyTo(provObj.center, targetZoom, { duration: 1.2 });
+                    else if (typeof mapToPan.setView === 'function') mapToPan.setView(provObj.center, targetZoom);
+                } catch (_) {}
+            }
+
+            Object.keys(targets).forEach(k => this.updateTargetUI(k));
         },
 
         /**
@@ -455,61 +590,67 @@
         },
 
         /**
+         * Dựng khung điều khiển Floating Card cho một bề mặt
+         */
+        syncPanelHtml(k) {
+            if (typeof document === 'undefined') return;
+            const t = targets[k];
+            if (!t) return;
+            const panel = document.getElementById(t.panelId);
+            if (!panel) return;
+            const provObj = getProvinceBySlug(t.provinceSlug);
+            const percent = Math.round((t.opacity || 0.65) * 100);
+            panel.innerHTML = `
+                <div class="planning-ctrl-header">
+                    <div class="planning-ctrl-title">
+                        <span class="planning-icon">📐</span>
+                        <span class="planning-title-text">BẢN ĐỒ QUY HOẠCH 2030</span>
+                    </div>
+                    <div class="planning-ctrl-status ${t.active ? 'is-active' : ''}">
+                        ${t.active ? '🟢 Đang hiện' : '⚪ Đang tắt'}
+                    </div>
+                    <button type="button" class="btn-planning-close" onclick="appPlanning.togglePanel('${k}', false)" title="Đóng bảng điều khiển">✕</button>
+                </div>
+                <div class="planning-ctrl-body">
+                    <div class="planning-row">
+                        <label class="planning-label">Tỉnh / Thành (63 tỉnh):</label>
+                        <select class="planning-province-select" onchange="appPlanning.setProvince('${k}', this.value, true)" title="Chọn tỉnh thành quy hoạch">
+                            ${this.renderProvinceOptionsHtml(t.provinceSlug)}
+                        </select>
+                    </div>
+                    <div class="planning-row">
+                        <label class="planning-label">Độ mờ: <b class="planning-opacity-text">${percent}%</b></label>
+                        <input type="range" class="planning-opacity-slider" min="10" max="100" value="${percent}" 
+                               oninput="appPlanning.onSliderChange('${k}', this.value)" title="Kéo để nhìn xuyên thấu xuống ảnh vệ tinh">
+                    </div>
+                    <div class="planning-row" style="margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
+                        <label class="planning-label" style="margin: 0; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <input type="checkbox" class="planning-land-checkbox" ${t.showLand ? 'checked' : ''} onchange="appPlanning.toggleLandParcel('${k}', this.checked)">
+                            <span style="font-size: 11px;">Ranh thửa đất (Sổ đỏ)</span>
+                        </label>
+                        <span class="planning-note-badge" style="font-size: 10px; color: ${provObj.landUrl ? '#10b981' : '#94a3b8'};">${provObj.landUrl ? '✓ Có sẵn' : 'Đang cập nhật'}</span>
+                    </div>
+                    <div class="planning-actions-row">
+                        <button type="button" class="btn-planning-sub ${t.active ? 'btn-active-glow' : ''}" onclick="appPlanning.toggle('${k}')">
+                            ${t.active ? '⏸️ Tắt lớp phủ' : '▶️ Bật lớp phủ'}
+                        </button>
+                        <button type="button" class="btn-planning-sub" onclick="appPlanning.panToCurrentProvince('${k}')" title="Phóng nhanh tới tâm tỉnh">
+                            🎯 Về tâm tỉnh
+                        </button>
+                    </div>
+                    <div class="planning-note">
+                        ℹ️ Dữ liệu số hóa tham khảo Guland 2030 • Nền quy hoạch nằm bên dưới, cho phép thao tác xem các điểm, tuyến, đa giác ở trên cùng.
+                    </div>
+                </div>
+            `;
+        },
+
+        /**
          * Dựng khung điều khiển Floating Card cho từng bề mặt
          */
         syncAllPanelsHtml() {
             if (typeof document === 'undefined') return;
-            Object.keys(targets).forEach(k => {
-                const panel = document.getElementById(targets[k].panelId);
-                if (panel) {
-                    const t = targets[k];
-                    const provObj = getProvinceBySlug(t.provinceSlug);
-                    const percent = Math.round(t.opacity * 100);
-                    panel.innerHTML = `
-                        <div class="planning-ctrl-header">
-                            <div class="planning-ctrl-title">
-                                <span class="planning-icon">📐</span>
-                                <span class="planning-title-text">BẢN ĐỒ QUY HOẠCH 2030</span>
-                            </div>
-                            <div class="planning-ctrl-status ${t.active ? 'is-active' : ''}">
-                                ${t.active ? '🟢 Đang hiện' : '⚪ Đang tắt'}
-                            </div>
-                            <button type="button" class="btn-planning-close" onclick="appPlanning.togglePanel('${k}', false)" title="Đóng bảng điều khiển">✕</button>
-                        </div>
-                        <div class="planning-ctrl-body">
-                            <div class="planning-row">
-                                <label class="planning-label">Tỉnh / Thành:</label>
-                                <select class="planning-province-select" onchange="appPlanning.setProvince('${k}', this.value, true)" title="Chọn tỉnh thành quy hoạch">
-                                    ${this.renderProvinceOptionsHtml(t.provinceSlug)}
-                                </select>
-                            </div>
-                            <div class="planning-row">
-                                <label class="planning-label">Độ mờ: <b class="planning-opacity-text">${percent}%</b></label>
-                                <input type="range" class="planning-opacity-slider" min="10" max="100" value="${percent}" 
-                                       oninput="appPlanning.onSliderChange('${k}', this.value)" title="Kéo để nhìn xuyên thấu xuống ảnh vệ tinh">
-                            </div>
-                            <div class="planning-row" style="margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
-                                <label class="planning-label" style="margin: 0; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                    <input type="checkbox" class="planning-land-checkbox" ${t.showLand ? 'checked' : ''} onchange="appPlanning.toggleLandParcel('${k}', this.checked)">
-                                    <span style="font-size: 11px;">Ranh thửa đất (Sổ đỏ)</span>
-                                </label>
-                                <span class="planning-note-badge" style="font-size: 10px; color: ${provObj.landUrl ? '#10b981' : '#94a3b8'};">${provObj.landUrl ? '✓ Có sẵn' : 'Đang cập nhật'}</span>
-                            </div>
-                            <div class="planning-actions-row">
-                                <button type="button" class="btn-planning-sub ${t.active ? 'btn-active-glow' : ''}" onclick="appPlanning.toggle('${k}')">
-                                    ${t.active ? '⏸️ Tắt lớp phủ' : '▶️ Bật lớp phủ'}
-                                </button>
-                                <button type="button" class="btn-planning-sub" onclick="appPlanning.panToCurrentProvince('${k}')" title="Phóng nhanh tới tâm tỉnh">
-                                    🎯 Về tâm tỉnh
-                                </button>
-                            </div>
-                            <div class="planning-note">
-                                ℹ️ Dữ liệu số hóa tham khảo Guland 2030 • Phủ đè trực quan trên vệ tinh
-                            </div>
-                        </div>
-                    `;
-                }
-            });
+            Object.keys(targets).forEach(k => this.syncPanelHtml(k));
         },
 
         onSliderChange(targetKey, val) {
@@ -523,9 +664,15 @@
             if (!t) return;
             const panel = document.getElementById(t.panelId);
             if (!panel) return;
+            if (!panel.innerHTML || panel.innerHTML.trim() === '') {
+                this.syncPanelHtml(targetKey);
+            }
             const isShown = panel.style.display !== 'none';
             const willShow = (typeof forceShow === 'boolean') ? forceShow : !isShown;
             panel.style.display = willShow ? 'flex' : 'none';
+            if (willShow) {
+                this.updateTargetUI(targetKey);
+            }
         },
 
         updateTargetUI(targetKey) {
@@ -546,9 +693,27 @@
                 }
             }
 
+            // Đồng bộ checkbox trên MiniCAD Tab 4
+            const cadChk = document.getElementById('cadCheckShowGulandPlanning');
+            if (cadChk && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
+                cadChk.checked = !!t.active;
+            }
+            const cadBtn = document.getElementById('btnCadPlanning');
+            if (cadBtn && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
+                cadBtn.classList.toggle('active', !!t.active);
+            }
+            const mlSw = document.getElementById('mlGulandSwitch');
+            if (mlSw && (targetKey === 'projectMap' || targetKey === 'cadMap')) {
+                mlSw.checked = !!t.active;
+            }
+
             // Bảng điều khiển
             const panel = document.getElementById(t.panelId);
             if (panel) {
+                if (!panel.innerHTML || panel.innerHTML.trim() === '') {
+                    this.syncPanelHtml(targetKey);
+                    return;
+                }
                 const statusEl = panel.querySelector('.planning-ctrl-status');
                 if (statusEl) {
                     statusEl.className = `planning-ctrl-status ${t.active ? 'is-active' : ''}`;
@@ -631,10 +796,38 @@
                 const prov = getProvinceBySlug(targets.projectMap.provinceSlug);
                 showToast(willOpen ? `📐 Bản đồ Dự án: Đã bật Quy hoạch ${prov.name}` : `Bản đồ Dự án: Đã tắt lớp Quy hoạch`);
             }
+        },
+
+        toggleCadPlanning(forceState) {
+            if (typeof appMap !== 'undefined' && typeof AppState !== 'undefined' && !AppState.leafletMap && typeof appMap.initMap === 'function') {
+                appMap.initMap();
+            }
+            const willOpen = (typeof forceState === 'boolean') ? forceState : !targets.cadMap.active;
+            this.toggle('cadMap', willOpen);
+            this.togglePanel('cadMap', willOpen);
+            const chk = document.getElementById('cadCheckShowGulandPlanning');
+            if (chk) chk.checked = willOpen;
+            const btn = document.getElementById('btnCadPlanning');
+            if (btn) btn.classList.toggle('active', willOpen);
+            if (typeof showToast === 'function') {
+                const prov = getProvinceBySlug(targets.cadMap.provinceSlug);
+                showToast(willOpen ? `📐 MiniCAD: Đã bật Quy hoạch ${prov.name} làm nền` : `MiniCAD: Đã tắt lớp Quy hoạch`);
+            }
         }
     };
 
     global.GulandPlanning = GulandPlanning;
     global.appPlanning = GulandPlanning;
+
+    // Tự động khởi tạo ngay khi tài liệu sẵn sàng
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => GulandPlanning.init());
+        } else {
+            GulandPlanning.init();
+        }
+    } else if (typeof document !== 'undefined' && typeof document.getElementById === 'function') {
+        try { GulandPlanning.init(); } catch (_) {}
+    }
 
 })(typeof window !== 'undefined' ? window : this);

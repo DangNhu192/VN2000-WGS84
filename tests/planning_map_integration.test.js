@@ -22,6 +22,8 @@ const indexHtmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 const swJsContent = fs.readFileSync(swJsPath, 'utf8');
 const uiPolishCssContent = fs.readFileSync(uiPolishCssPath, 'utf8');
 const designMdContent = fs.readFileSync(designMdPath, 'utf8');
+const appJsPath = path.join(ROOT_DIR, 'app.js');
+const appJsContent = fs.readFileSync(appJsPath, 'utf8');
 
 // Giả lập môi trường trình duyệt cho planning_map.js
 function createPlanningSandbox() {
@@ -215,5 +217,64 @@ test('=== NHÓM 6: THIẾT KẾ GIAO DIỆN & ĐẶC TẢ DESIGN.MD ===', async 
         // Kiểm tra sàn chạm di động
         assert.ok(uiPolishCssContent.includes('min-height: 44px !important'), 'Nút tương tác phụ phải có min-height: 44px trên mobile');
         assert.ok(uiPolishCssContent.includes('min-height: 40px !important'), 'Nút toggle phải có min-height: 40px trên mobile');
+    });
+});
+
+test('=== NHÓM 7: BẢN ĐỒ NỀN QUY HOẠCH GULAND DƯỚI LỚP VECTƠ (POINTER-EVENTS NONE & PANE 230) ===', async (t) => {
+    const { GulandPlanning } = createPlanningSandbox();
+
+    await t.test('7.1 Lớp bản đồ quy hoạch sử dụng custom Leaflet Pane planningOverlayPane (zIndex: 230, pointerEvents: none)', () => {
+        assert.ok(planningJsContent.includes("'planningOverlayPane'"), 'Phải định nghĩa planningOverlayPane');
+        assert.ok(planningJsContent.includes('pane.style.zIndex = 230'), 'zIndex phải là 230 (nằm dưới vector overlayPane 400)');
+        assert.ok(planningJsContent.includes("pane.style.pointerEvents = 'none'"), 'pointerEvents phải là none để không chặn click/thao tác đỉnh thửa');
+    });
+
+    await t.test('7.2 Lớp thửa đất sử dụng custom Leaflet Pane planningLandPane (zIndex: 235, pointerEvents: none)', () => {
+        assert.ok(planningJsContent.includes("'planningLandPane'"), 'Phải định nghĩa planningLandPane');
+        assert.ok(planningJsContent.includes('pane.style.zIndex = 235'), 'zIndex của thửa đất phải là 235');
+    });
+
+    await t.test('7.3 GulandPlanning.targets hỗ trợ mục tiêu cadMap độc lập cho MiniCAD', () => {
+        assert.ok(GulandPlanning.targets.cadMap, 'targets phải có cadMap');
+        assert.equal(GulandPlanning.targets.cadMap.containerId, 'map-view-container');
+        assert.equal(GulandPlanning.targets.cadMap.btnId, 'btnCadPlanning');
+        assert.equal(GulandPlanning.targets.cadMap.panelId, 'cadPlanningCtrl');
+    });
+
+    await t.test('7.4 Hàm setProvinceGlobal đồng bộ chọn tỉnh trên tất cả các bản đồ', () => {
+        assert.ok(typeof GulandPlanning.setProvinceGlobal === 'function', 'Phải có hàm setProvinceGlobal');
+        GulandPlanning.setProvinceGlobal('da-nang', false);
+        assert.equal(GulandPlanning.targets.liveMap.provinceSlug, 'da-nang');
+        assert.equal(GulandPlanning.targets.projectMap.provinceSlug, 'da-nang');
+        assert.equal(GulandPlanning.targets.cadMap.provinceSlug, 'da-nang');
+    });
+});
+
+test('=== NHÓM 8: TÍCH HỢP ĐIỀU KHIỂN QUY HOẠCH GULAND TRONG MINICAD & MAP LAYERS MODAL ===', async (t) => {
+    await t.test('8.1 MiniCAD có nút #btnCadPlanning, checkbox #cadCheckShowGulandPlanning và thẻ nổi #cadPlanningCtrl', () => {
+        assert.ok(indexHtmlContent.includes('id="btnCadPlanning"'), 'index.html phải có nút #btnCadPlanning');
+        assert.ok(indexHtmlContent.includes('id="cadCheckShowGulandPlanning"'), 'index.html phải có checkbox #cadCheckShowGulandPlanning');
+        assert.ok(indexHtmlContent.includes('id="cadPlanningCtrl"'), 'index.html phải có thẻ nổi #cadPlanningCtrl');
+        assert.ok(uiPolishCssContent.includes('#cadPlanningCtrl'), 'ui-polish.css phải định vị #cadPlanningCtrl');
+    });
+
+    await t.test('8.2 MiniCAD CADCraft CLI hỗ trợ lệnh QH, GULAND và QUYHOACHGULAND', () => {
+        assert.ok(appJsContent.includes("cmd: 'QH'"), 'cadCommandList phải có lệnh QH');
+        assert.ok(appJsContent.includes("cmd: 'GULAND'"), 'cadCommandList phải có lệnh GULAND');
+        assert.ok(appJsContent.includes("case 'QH':"), 'executeCommandLine phải có case QH');
+        assert.ok(appJsContent.includes("case 'GULAND':"), 'executeCommandLine phải có case GULAND');
+        assert.ok(appJsContent.includes("appPlanning.toggleCadPlanning"), 'Lệnh CLI phải gọi appPlanning.toggleCadPlanning()');
+    });
+
+    await t.test('8.3 MiniCAD toggleDisplayOption và syncDisplayCheckboxes xử lý showGulandPlanning', () => {
+        assert.ok(appJsContent.includes("key === 'showGulandPlanning'"), 'toggleDisplayOption phải xử lý showGulandPlanning');
+        assert.ok(appJsContent.includes("setVal('cadCheckShowGulandPlanning'"), 'syncDisplayCheckboxes phải cập nhật cadCheckShowGulandPlanning');
+    });
+
+    await t.test('8.4 appMapLayers.renderPanel trong app.js chứa bộ chọn 63 tỉnh, thanh trượt độ mờ và công tắc Guland', () => {
+        assert.ok(appJsContent.includes('mlGulandSwitch'), 'appMapLayers phải có mlGulandSwitch');
+        assert.ok(appJsContent.includes('mlGulandProvSelect'), 'appMapLayers phải có bộ chọn mlGulandProvSelect');
+        assert.ok(appJsContent.includes('Bản đồ Quy hoạch 2030 (Guland)'), 'appMapLayers phải có nhãn tiếng Việt');
+        assert.ok(appJsContent.includes('appPlanning.setProvinceGlobal'), 'appMapLayers phải gọi setProvinceGlobal');
     });
 });

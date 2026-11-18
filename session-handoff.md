@@ -2,7 +2,31 @@
 
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-09: WP-M — TỐI ƯU HÓA CHỈ ĐƯỜNG & LỘ TRÌNH GIAO THÔNG (XE MÁY, Ô TÔ CON, XE 16 CHỖ) (F-012)
+## Phiên hiện tại — 2026-11-18: WP-M — TÍCH HỢP BẢN ĐỒ QUY HOẠCH GULAND 2030 LÀM NỀN DƯỚI LỚP VECTƠ & BỘ CHỌN 63 TỈNH (F-015/F-016)
+- **Yêu cầu từ người dùng**:
+  1. Chưa thể sử dụng các lớp bản đồ của Guland như bản đồ nền (bên dưới) để thao tác xem các điểm, tuyến, đa giác (ở trên cùng).
+  2. Hiện tại chưa cho phép chọn tỉnh để lấy lớp bản đồ của Guland.
+- **Giải pháp & Kiến trúc triển khai**:
+  1. **Leaflet Custom Panes**:
+     - `planningOverlayPane` (zIndex: 230) cho quy hoạch 2030 và `planningLandPane` (zIndex: 235) cho ranh thửa đất, nằm dưới `overlayPane` (zIndex: 400 - các nét vẽ đa giác, tuyến, điểm) và `markerPane` (zIndex: 600 - các mốc tọa độ).
+     - Đặt `pointerEvents = 'none'` cho các pane này, đảm bảo 100% sự kiện click/tap/touch truyền xuyên qua xuống bản đồ và không cản trở bắt điểm hay vẽ hình vector ở lớp trên.
+  2. **Bộ chọn 63 tỉnh thành & Tích hợp vào Hộp thoại Quản lý Lớp Bản đồ (`modalMapLayers`)**:
+     - Thêm card `Bản đồ Quy hoạch 2030 (Guland)` trong `appMapLayers.renderPanel()`.
+     - Dropdown `#mlGulandProvSelect` đầy đủ 63 tỉnh thành, thanh trượt opacity 10%-100%, checkbox lớp thửa đất, nút `🎯 Về tâm tỉnh` và `⚙️ Bảng nổi`.
+     - Hàm `appPlanning.setProvinceGlobal(slug, panToCenter)` đồng bộ chọn tỉnh trên toàn bộ ứng dụng.
+  3. **Tích hợp MiniCAD**:
+     - Tab 3: Nút bấm `#btnCadPlanning` (`📐 Quy hoạch Guland`).
+     - Tab 4: Checkbox `#cadCheckShowGulandPlanning` trong nhóm `HIỂN THỊ`.
+     - Thẻ nổi: `#cadPlanningCtrl` ở góc trên bên phải bản đồ.
+     - Dòng lệnh CADCraft 2D CLI: Lệnh `QH`, `GULAND`, `QUYHOACHGULAND`.
+  4. **Kiểm thử tự động**:
+     - `tests/planning_map_integration.test.js`: 34/34 tests PASS.
+     - Toàn bộ suite `tests/*.test.js`: 476/476 tests PASS 100%.
+
+## Phiên trước — 2026-11-18: WP-L — BẬT / TẮT LỚP BẢN ĐỒ PDF & ẢNH QUY HOẠCH (F-016)
+- **Yêu cầu**: `cho phép bật/tắt lớp bản đồ được chèn bởi file PDF`. Master toggle `appPlanOverlay.toggleAll()`, MiniCAD checkbox & nút bấm, modalMapLayers slider & sub-controls, lệnh CLI `PDF`/`PLAN`.
+
+## Phiên trước — 2026-11-09: WP-I — TỐI ƯU HÓA CHỈ ĐƯỜNG & LỘ TRÌNH GIAO THÔNG (XE MÁY, Ô TÔ CON, XE 16 CHỖ) (F-012)
 - **Yêu cầu từ người dùng**:
   1. Thêm chức năng tối ưu hóa lộ trình giao thông cho các điểm mốc theo 3 loại phương tiện: Xe máy, Ô tô con, Ô tô 16 chỗ.
   2. Hỗ trợ 3 nguồn dữ liệu điểm: (1) Chấm trực tiếp trên bản đồ Leaflet; (2) Chọn mốc từ Quản lý dữ liệu mốc; (3) Nhập/dán bảng tọa độ (VN-2000 hoặc WGS-84).

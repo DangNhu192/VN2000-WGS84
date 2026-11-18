@@ -2050,6 +2050,8 @@
 
         <!-- Bảng điều khiển nổi Bản đồ Quy hoạch cho Bản đồ Dự án -->
         <div id="mapProjectPlanningCtrl" class="planning-float-card" style="display: none;"></div>
+        <!-- Bảng điều khiển nổi Bản đồ Quy hoạch cho MiniCAD -->
+        <div id="cadPlanningCtrl" class="planning-float-card" style="display: none;"></div>
 
         <!-- HUD Đo Đạc Khoảng Cách & Đa Giác Tuyến Mốc -->
         <div id="mapDistanceHud" class="map-distance-hud" style="display: none;">
@@ -2418,6 +2420,12 @@
               title="Bật / tắt nhanh hiển thị lớp bản đồ quy hoạch/PDF trên bản đồ (Lệnh CAD: PDF hoặc PLAN)">
               👁️ Bản đồ PDF
             </button>
+            <button id="btnCadPlanning" class="cad-btn"
+              style="background: rgba(14, 165, 233, 0.22); border-color: #0ea5e9; color: #38bdf8; font-weight: 700;"
+              onclick="appPlanning.toggleCadPlanning()"
+              title="Bật/Tắt & Chọn Tỉnh Bản đồ Quy hoạch 2030 (Guland) làm nền dưới nét vẽ MiniCAD">
+              📐 Quy hoạch Guland
+            </button>
           </div>
 
           <!-- TAB 4: TRỢ VẼ & OSNAP BẮT ĐIỂM (ASSIST & OSNAP) -->
@@ -2507,6 +2515,11 @@
               <input type="checkbox" id="cadCheckShowPlanOverlay" checked
                 onchange="appCadTool.toggleDisplayOption('showPlanOverlay', this.checked)">
               <span>🗺️ Bản đồ PDF</span>
+            </label>
+            <label class="cad-check-label" title="Hiện hoặc ẩn lớp bản đồ quy hoạch 2030 Guland làm nền bên dưới nét vẽ (Lệnh CAD: QH / GULAND)">
+              <input type="checkbox" id="cadCheckShowGulandPlanning"
+                onchange="appPlanning.toggleCadPlanning(this.checked)">
+              <span>📐 Quy hoạch Guland</span>
             </label>
           </div>
         </div>

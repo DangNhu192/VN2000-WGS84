@@ -19463,6 +19463,7 @@ const appCadTool = {
         setVal('cadCheckShowAnnotations', s.showAnnotations);
         setVal('cadCheckShowBoundaries', s.showBoundaries);
         setVal('cadCheckShowPlanOverlay', typeof appPlanOverlay !== 'undefined' ? appPlanOverlay.isMasterVisible() : s.showPlanOverlay);
+        setVal('cadCheckShowGulandPlanning', typeof appPlanning !== 'undefined' && appPlanning.targets && appPlanning.targets.cadMap ? appPlanning.targets.cadMap.active : false);
         setVal('cadCheckSnapLine', this.snapLineEnabled);
 
         // Checkboxes trong Modal Xuất bản vẽ
@@ -19546,6 +19547,11 @@ const appCadTool = {
                 appPlanOverlay.toggleAll(!!checked, true);
             }
         }
+        if (key === 'showGulandPlanning') {
+            if (typeof appPlanning !== 'undefined' && typeof appPlanning.toggleCadPlanning === 'function') {
+                appPlanning.toggleCadPlanning(!!checked);
+            }
+        }
         try {
             localStorage.setItem('vn2k_cad_display_settings_v3', JSON.stringify(this.displaySettings));
         } catch (e) {}
@@ -19562,7 +19568,8 @@ const appCadTool = {
             showCenterLabels: '🏷️ Ký hiệu & Tâm khối',
             showAnnotations: '🏹 Ghi chú kỹ thuật',
             showBoundaries: '📐 Nét ranh khối',
-            showPlanOverlay: '🗺️ Bản đồ nền PDF / Quy hoạch'
+            showPlanOverlay: '🗺️ Bản đồ nền PDF / Quy hoạch',
+            showGulandPlanning: '📐 Bản đồ Quy hoạch 2030 (Guland)'
         };
         const name = labels[key] || key;
         showToast((checked ? '👁️ Đã BẬT: ' : '🙈 Đã TẮT: ') + name);
@@ -30296,6 +30303,8 @@ const appCadTool = {
         { cmd: 'DYN', desc: '📏 Bật/Tắt thước đo cự ly & góc động [DYN]' },
         { cmd: 'PDF', desc: '🗺️ Bật/Tắt hiển thị lớp bản đồ nền/quy hoạch PDF [PLAN]' },
         { cmd: 'PLAN', desc: '🗺️ Bật/Tắt hiển thị lớp bản đồ nền/quy hoạch PDF [PDF]' },
+        { cmd: 'QH', desc: '📐 Bật/Tắt lớp bản đồ quy hoạch 2030 Guland [GULAND]' },
+        { cmd: 'GULAND', desc: '📐 Bật/Tắt lớp bản đồ quy hoạch 2030 Guland [QH]' },
         { cmd: 'ESC', desc: '✖ Thoát công cụ hiện tại / Bỏ chọn [Escape]' }
     ],
 
@@ -30486,6 +30495,13 @@ const appCadTool = {
             case 'QUYHOACH':
                 if (typeof appPlanOverlay !== 'undefined') {
                     appPlanOverlay.toggleAll();
+                }
+                break;
+            case 'QH':
+            case 'GULAND':
+            case 'QUYHOACHGULAND':
+                if (typeof appPlanning !== 'undefined' && typeof appPlanning.toggleCadPlanning === 'function') {
+                    appPlanning.toggleCadPlanning();
                 }
                 break;
             case 'DIST':
@@ -42817,6 +42833,50 @@ const appMapLayers = {
             row({ swatch: '<span class="ml-swatch" style="background:#10b981"></span>', input: this._switch('mlXa', !!AppState.isDtCommunesVisible, 'appMap.toggleDongThapCommunes(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới xã Đồng Tháp') },
                 'Ranh giới xã Đồng Tháp', '102 xã, phường')
         ];
+        if (typeof appPlanning !== 'undefined' && appPlanning.provinces) {
+            const curTarget = inCad ? 'cadMap' : 'projectMap';
+            const tgtState = (appPlanning.targets && appPlanning.targets[curTarget]) || {
+                active: false,
+                provinceSlug: 'dong-thap',
+                opacity: 0.75,
+                showLand: false
+            };
+            const isGulandOn = !!tgtState.active;
+            const currentSlug = tgtState.provinceSlug || 'dong-thap';
+            const provOpts = appPlanning.provinces.map(p => 
+                `<option value="${p.slug}" ${p.slug === currentSlug ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+            ).join('');
+            const pct = Math.round((tgtState.opacity != null ? tgtState.opacity : 0.75) * 100);
+
+            const gulandExtra = isGulandOn ? `<div class="ml-sub-controls" style="margin-top:6px;padding:8px;background:rgba(15,23,42,0.4);border-radius:6px;display:flex;flex-direction:column;gap:6px;">
+                <label style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;">
+                    <span style="font-weight:600;color:#94a3b8;">Chọn tỉnh / thành:</span>
+                    <select id="mlGulandProvSelect" style="flex:1;max-width:180px;background:#1e293b;color:#f8fafc;border:1px solid #475569;border-radius:4px;padding:3px 6px;font-size:12px;" onchange="appPlanning.setProvinceGlobal(this.value, true); appMapLayers.renderPanel();">
+                        ${provOpts}
+                    </select>
+                </label>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;">
+                    <label class="ml-slider" style="margin:0;font-size:11.5px;flex:1;">
+                        Độ mờ: <input type="range" min="10" max="100" step="5" value="${pct}" oninput="appPlanning.setOpacity('${curTarget}', this.value / 100); const el = document.getElementById('mlGulandOpVal'); if (el) el.textContent = this.value + '%';" style="width:90px;">
+                        <span id="mlGulandOpVal">${pct}%</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:11.5px;cursor:pointer;">
+                        <input type="checkbox" ${tgtState.showLand ? 'checked' : ''} onchange="appPlanning.toggleLandParcel('${curTarget}', this.checked)">
+                        <span>Lớp thửa đất</span>
+                    </label>
+                </div>
+                <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:2px;">
+                    <button type="button" class="btn-sm" style="min-height:30px;font-size:11px;padding:2px 8px;" onclick="appPlanning.panToProvince('${curTarget}', document.getElementById('mlGulandProvSelect').value)">🎯 Về tâm tỉnh</button>
+                    <button type="button" class="btn-sm" style="min-height:30px;font-size:11px;padding:2px 8px;" onclick="appPlanning.togglePanel('${curTarget}', true); appMapLayers.close();">⚙️ Bảng nổi</button>
+                </div>
+            </div>` : '';
+
+            overlays.push(row(
+                { swatch: '<span class="ml-swatch" style="background:#f59e0b"></span>', input: this._switch('mlGulandSwitch', isGulandOn, `appPlanning.toggle('${curTarget}', this.checked); appMapLayers.renderPanel();`, 'Bản đồ Quy hoạch 2030 (Guland)') },
+                'Bản đồ Quy hoạch 2030 (Guland)', 'QH 2030 toàn quốc · 63 tỉnh/thành',
+                gulandExtra
+            ));
+        }
         if (inCad && typeof appPlanOverlay !== 'undefined') {
             const n = appPlanOverlay.items.length;
             const isMaster = appPlanOverlay.isMasterVisible();

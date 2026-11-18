@@ -9,6 +9,30 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-11-18] WP-M Tích hợp Bản đồ Quy hoạch Guland 2030 làm Bản đồ nền & Bộ chọn tỉnh toàn diện (F-015/F-016)
+- **Yêu cầu từ người dùng**:
+  1. `chưa thể sử dụng các lớp bản đồ của Guland như bản đồ nền (bên dưới) để thao tác xem các điểm, tuyến, đa giác (ở trên cùng)`
+  2. `hiện tại chưa cho phép chọn tỉnh để lấy lớp bản đồ của guland)`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Định vị lớp bản đồ nền dưới lớp vectơ & Triệt tiêu cản trở sự kiện (Leaflet Custom Panes)**:
+     - Tạo riêng 2 Leaflet panes chuyên biệt: `planningOverlayPane` (zIndex: 230) cho quy hoạch 2030 và `planningLandPane` (zIndex: 235) cho ranh thửa đất.
+     - Cài đặt `pointerEvents = 'none'` cho cả 2 panes, đảm bảo lớp ngói quy hoạch chỉ đóng vai trò hiển thị trực quan (visual basemap overlay), tuyệt đối không chiếm chuột hay cản trở thao tác click, chọn đối tượng, bắt điểm (OSNAP) hay vẽ điểm, tuyến, đa giác ở các lớp trên (overlayPane: 400, markerPane: 600).
+  2. **Bộ chọn 63 tỉnh thành & Tích hợp vào Hộp thoại Quản lý Lớp Bản đồ (`modalMapLayers`)**:
+     - Thêm card `Bản đồ Quy hoạch 2030 (Guland)` trực tiếp vào danh sách lớp phủ của `appMapLayers.renderPanel()`.
+     - Tích hợp dropdown 63 tỉnh thành Việt Nam (`#mlGulandProvSelect`), thanh trượt độ mờ (10% - 100%), checkbox bật/tắt lớp ranh thửa đất, nút `🎯 Về tâm tỉnh` và nút `⚙️ Bảng nổi`.
+     - Hỗ trợ đổi tỉnh toàn cục qua `appPlanning.setProvinceGlobal(slug, panToCenter)`, tự động cập nhật cả MiniCAD, Bản đồ Dự án, Bản đồ Chuyển đổi và Live Map.
+  3. **Tích hợp toàn diện vào MiniCAD**:
+     - *Thanh công cụ Tab 3 (Dự án & Tệp)*: Bổ sung nút bấm nhanh `#btnCadPlanning` (`📐 Quy hoạch Guland`).
+     - *Tab 4 (Trợ vẽ & Lớp CAD)*: Bổ sung checkbox `#cadCheckShowGulandPlanning` trong nhóm `HIỂN THỊ`, đồng bộ 2 chiều với `syncDisplayCheckboxes()` và `toggleDisplayOption()`.
+     - *Thẻ nổi trên bản đồ MiniCAD*: Thêm thẻ điều khiển `#cadPlanningCtrl` đặt ở góc trên bên phải bản đồ (`ui-polish.css`).
+     - *Dòng lệnh CADCraft 2D CLI*: Bổ sung lệnh `QH`, `GULAND` (alias `QUYHOACHGULAND`) trong `cadCommandList` và `executeCommandLine()`.
+  4. **Khắc phục lỗi thẻ điều khiển rỗng**:
+     - Bổ sung cơ chế `syncPanelHtml(k)` tự động sinh đầy đủ dropdown chọn tỉnh, thanh trượt opacity và công tắc lớp thửa đất cho bất kỳ panel nào khi được gọi mở lần đầu (`togglePanel`).
+     - Tự động kích hoạt `GulandPlanning.init()` ngay khi DOMContentLoaded sẵn sàng.
+  5. **Kiểm thử tự động & Xác minh hồi quy**:
+     - Bổ sung NHÓM 7 & NHÓM 8 trong `tests/planning_map_integration.test.js` (34 test cases).
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **476/476 tests PASS 100% (0 fail)**.
+
 ### [2026-11-18] WP-L Cho phép Bật / Tắt lớp bản đồ chèn từ file PDF & Ảnh quy hoạch (F-016)
 - **Yêu cầu từ người dùng**: `cho phép bật/tắt lớp bản đồ được chèn bởi file PDF`
 - **Các giải pháp kỹ thuật đã hoàn thành**:

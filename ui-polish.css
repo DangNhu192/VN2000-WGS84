@@ -2940,6 +2940,12 @@ body[data-theme="light"] .home-gps-cta b { color: #047857; }
   left: calc(var(--sat-safe-left, 0px) + 12px);
 }
 
+#cadPlanningCtrl {
+  top: calc(var(--sat-safe-top, 0px) + 56px);
+  right: calc(var(--sat-safe-right, 0px) + 12px);
+  left: auto !important;
+}
+
 .planning-ctrl-header {
   display: flex;
   align-items: center;
