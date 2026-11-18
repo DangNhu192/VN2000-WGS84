@@ -1267,3 +1267,12 @@
 - **Sửa**: `installLeafletAutoResize(L, ResizeObserver)` gắn vào mọi bản đồ Leaflet (qua `L.Map.addInitHook`) — khung đổi cỡ (hiện ra, mở/thu bảng, xoay máy) thì `invalidateSize({ debounceMoveend: true })`, bỏ qua khi khung 0×0, ngừng theo dõi khi bản đồ bị gỡ. Thêm dự phòng `invalidateSize()` 250 ms sau khi tạo bản đồ lộ trình.
 - **Kiểm tra** (trang thật + trình duyệt cục bộ, 375/390 px và 1366 px, mỗi chức năng mở trên trang mới): Bản đồ dự án, Chấm tọa độ (cả nút ở Trang chủ), Cắm mốc, bản đồ nhỏ ở Chuyển đổi/Hàng loạt, MiniCAD, GPS trực tiếp đều phủ 100% trước và sau khi sửa; Lộ trình 9–11% / 2% → 100%. Camera, Trắc dọc không có bản đồ; Giao hội mở bản đồ dự án.
 - Test mới `tests/map_auto_resize.test.js` (3). `npm test` **409/409 PASS**. Phiên bản 2.8.35.
+
+## 2026-11-18 — WP-R: Mục lục chức năng — phương án A "danh sách gọn" (v2.8.36)
+- **Chọn từ bản thiết kế** (canvas "Tối ưu mục lục chức năng", 3 phương án): người dùng chọn **A · Danh sách gọn**.
+- **Một bộ dựng chung** trong `app-shell.js` (`indexModel`, `filterModel`, `render`) cho menu ☰ (`#drawerFeatureIndex`) và "Tất cả chức năng" ở Trang chủ (`#homeFeatureHubList`). Nguồn duy nhất vẫn là menu ☰ cũ (ẩn bằng CSS): mỗi dòng bấm mục cũ tương ứng, nên trình xử lý, mục "đang mở" (`.selected`) và tìm kiếm cũ giữ nguyên.
+- Mỗi chức năng một dòng: biểu tượng nét theo màu nhóm, **tên gọn** (bỏ "1.1", bỏ chữ in hoa), mô tả một dòng, **★ = đang hiện trên Trang chủ**; nút lọc nhóm (Tất cả · Chuyển đổi · Thực địa · Dữ liệu · Tính toán · Hệ thống); tìm không dấu theo tên mới, tên cũ, mô tả, từ khóa (vd. "dwg" → Sổ đo, MiniCAD).
+- **Menu ☰**: đầu gọn (tiêu đề + nút đóng 44 px), **bỏ 3 chấm macOS**, bỏ vòng ✓ và nhãn "4 mục", ẩn dải dự án/KTT (đã có trên thanh tiêu đề). Mỗi lần mở: về "Tất cả", ô tìm trống; bấm mục không đổi màn hình (Ngày giờ, Ủng hộ…) vẫn đóng menu.
+- Sáng/Tối/Thực địa đều có màu riêng; Trang chủ trên màn ≥ 900 px chia hai cột mỗi nhóm.
+- Sự kiện mới: `vn2000:draweropen` (openTreeMenu), `vn2000:homechange` (renderDashboard) để vẽ lại ★ và mục đang mở.
+- Test mới `tests/feature_index.test.js` (5); `unified_shell.test.js` đổi `.hub-tile` → `.fi-row`. `npm test` **414/414 PASS**. Phiên bản 2.8.36.

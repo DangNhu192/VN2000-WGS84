@@ -825,6 +825,7 @@ const appNav = window.appNav = {
         }
         document.body.classList.add('drawer-open');
         appNav.updateTreeNavState();
+        document.dispatchEvent(new CustomEvent('vn2000:draweropen'));
     },
 
     closeTreeMenu(immediate = false) {
@@ -2108,6 +2109,8 @@ const appDashboard = {
         const badge = document.getElementById('pinnedFeaturesCountBadge');
         if (badge) badge.textContent = isEn ? `${pinnedFeatures.length} items` : `${pinnedFeatures.length} mục`;
         appDashboard.applyHomeWidgets();
+        // Mục lục chức năng (app-shell.js) đánh dấu ★ các chức năng đang hiện trên Trang chủ.
+        if (typeof document.dispatchEvent === 'function' && typeof CustomEvent === 'function') document.dispatchEvent(new CustomEvent('vn2000:homechange'));
 
         // 2. Render Accordion Tools
         appDashboard.renderAccordionToolsOnly();
@@ -37152,6 +37155,7 @@ const appI18n = {
             'settings.general.layout_label': '🏠 Trang chủ:',
             'settings.general.home_customize': 'Chọn chức năng hiện trên Trang chủ',
             'pin.tab_home': '🏠 Trang chủ',
+            'menu.index_title': 'Mục lục chức năng',
             'pin.tab_taskbar': '📱 Thanh dưới',
             'pin.save': 'Lưu thay đổi',
             'pin.close': 'Đóng',
@@ -37324,6 +37328,7 @@ const appI18n = {
             'settings.general.layout_label': '🏠 Home screen:',
             'settings.general.home_customize': 'Choose features shown on Home',
             'pin.tab_home': '🏠 Home',
+            'menu.index_title': 'All features',
             'pin.tab_taskbar': '📱 Bottom bar',
             'pin.save': 'Save changes',
             'pin.close': 'Close',
