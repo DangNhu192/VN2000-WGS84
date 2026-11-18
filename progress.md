@@ -1260,3 +1260,10 @@
 - Thực địa + Tùy chỉnh vùng chạm 44 px; màn ≤ 400 px: Thực địa chỉ còn biểu tượng, ẩn nhãn "4 mục" để tiêu đề một dòng. Bước 3 lời chào trỏ tới nút Tùy chỉnh.
 - **Kết quả đo**: người dùng cũ 375×812 → 1.043 px (trước 1.755); người mới (có 3 bước) 1.428 px; máy tính 1366×900 vừa một màn hình. 0 lỗi JS; kiểm 320 px, Thực địa, máy tính.
 - `npm test` **406/406 PASS** (thêm test thứ tự Trang chủ, sửa test mặc định). Phiên bản 2.8.34 (`?v=`, `CACHE_NAME`, package.json, feature_list, README, trang Giới thiệu).
+
+## 2026-11-18 — WP-Q: Sửa bản đồ "Tối ưu lộ trình" chỉ hiện 1 ô ảnh; kiểm tra bản đồ mọi chức năng (v2.8.35)
+- **Lỗi**: mở "Tối ưu lộ trình" lần đầu, bản đồ chỉ hiện một ô ảnh ở góc trên trái (ô ảnh phủ 11% khung trên điện thoại, 2% trên máy tính); mở lần hai mới đúng.
+- **Nguyên nhân**: `appNav.showScreen` gọi `appRouting.init()` trước khi hiện màn hình, nên `L.map('leaflet-routing-map')` được tạo khi khung còn 0×0; `ensureMap()` chỉ gọi `invalidateSize()` ở những lần mở sau.
+- **Sửa**: `installLeafletAutoResize(L, ResizeObserver)` gắn vào mọi bản đồ Leaflet (qua `L.Map.addInitHook`) — khung đổi cỡ (hiện ra, mở/thu bảng, xoay máy) thì `invalidateSize({ debounceMoveend: true })`, bỏ qua khi khung 0×0, ngừng theo dõi khi bản đồ bị gỡ. Thêm dự phòng `invalidateSize()` 250 ms sau khi tạo bản đồ lộ trình.
+- **Kiểm tra** (trang thật + trình duyệt cục bộ, 375/390 px và 1366 px, mỗi chức năng mở trên trang mới): Bản đồ dự án, Chấm tọa độ (cả nút ở Trang chủ), Cắm mốc, bản đồ nhỏ ở Chuyển đổi/Hàng loạt, MiniCAD, GPS trực tiếp đều phủ 100% trước và sau khi sửa; Lộ trình 9–11% / 2% → 100%. Camera, Trắc dọc không có bản đồ; Giao hội mở bản đồ dự án.
+- Test mới `tests/map_auto_resize.test.js` (3). `npm test` **409/409 PASS**. Phiên bản 2.8.35.

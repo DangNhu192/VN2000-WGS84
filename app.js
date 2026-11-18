@@ -298,6 +298,35 @@ const appSettings = {
 };
 appSettings.load();
 
+// ================= 1b. BẢN ĐỒ TỰ ĐO LẠI KÍCH THƯỚC =================
+// Leaflet chỉ đo khung bản đồ lúc tạo. Màn hình nào tạo bản đồ khi khung còn ẩn (0×0)
+// — như "Tối ưu lộ trình" lần mở đầu — sẽ chỉ tải 1 ô ảnh ở góc trên trái.
+// Theo dõi kích thước khung của MỌI bản đồ: khi khung đổi cỡ (hiện ra, mở/thu bảng,
+// xoay máy) thì báo Leaflet đo lại. Bỏ qua lúc khung 0×0 (đang ẩn).
+function installLeafletAutoResize(Lib, RO) {
+    if (!Lib || !Lib.Map || typeof Lib.Map.addInitHook !== 'function' || typeof RO !== 'function') return false;
+    Lib.Map.addInitHook(function () {
+        const map = this;
+        const el = map.getContainer && map.getContainer();
+        if (!el) return;
+        let pending = false;
+        const observer = new RO(entries => {
+            const box = entries && entries[0] && entries[0].contentRect;
+            if (!box || box.width < 1 || box.height < 1 || pending) return;
+            pending = true;
+            const run = () => {
+                pending = false;
+                if (map._loaded && map.getContainer()) map.invalidateSize({ debounceMoveend: true });
+            };
+            if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else run();
+        });
+        observer.observe(el);
+        map.on('unload', () => observer.disconnect());
+    });
+    return true;
+}
+if (typeof L !== 'undefined' && typeof ResizeObserver !== 'undefined') installLeafletAutoResize(L, ResizeObserver);
+
 // ================= 2. TIỆN ÍCH TOAST & CLIPBOARD =================
 function showToast(msg, isLong = false) {
     if (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en' && typeof appI18n.translateString === 'function') {
@@ -35935,6 +35964,10 @@ const appRouting = {
 
         this.markersLayer = L.layerGroup().addTo(this.map);
 
+        // Bản đồ được tạo trước khi màn hình hiện ra (khung còn 0×0): đo lại sau khi hiện.
+        // (Trình duyệt có ResizeObserver đã tự đo lại qua installLeafletAutoResize; đây là dự phòng.)
+        setTimeout(() => { if (this.map && typeof this.map.invalidateSize === 'function') this.map.invalidateSize(); }, 250);
+
         // Click trên bản đồ để thêm điểm
         this.map.on('click', (e) => {
             if (this.isNavigating) return;
@@ -41469,6 +41502,7 @@ if (typeof window !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         AppState,
+        installLeafletAutoResize,
         appDashboard,
         appData,
         safeUserText,
