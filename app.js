@@ -298,6 +298,160 @@ const appSettings = {
 };
 appSettings.load();
 
+// ================= 1a. NỀN BẢN ĐỒ CHO BẢN VẼ XUẤT (PDF / PNG) =================
+// Vẽ ô ảnh bản đồ (Web Mercator) xuống khung bản vẽ VN-2000. Mỗi ô được đặt bằng một
+// phép biến đổi affine riêng tính từ 3 góc của ô (WGS84 → VN-2000 → điểm ảnh), nên vẫn
+// khớp khi vùng vẽ rộng cả tỉnh (độ hội tụ kinh tuyến, tỉ lệ thay đổi theo vĩ độ).
+// Chỉ dùng nguồn cho phép đọc chéo (CORS) để ảnh xuất không bị "nhiễm bẩn":
+// ảnh Google của bản đồ chính không cho phép nên không dùng được ở đây.
+const EXPORT_BASEMAPS = {
+    street: {
+        label: 'Bản đồ đường phố',
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        maxZoom: 19, alpha: 0.75,
+        credit: '© OpenStreetMap contributors'
+    },
+    satellite: {
+        label: 'Ảnh vệ tinh',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 18, alpha: 0.85,
+        credit: 'Ảnh vệ tinh: Esri, Maxar, Earthstar Geographics'
+    }
+};
+const EXPORT_BASEMAP_MAX_TILES = 160;
+
+function _tileFromLatLng(lat, lng, z) {
+    const n = Math.pow(2, z);
+    const latR = Math.max(-85.0511, Math.min(85.0511, lat)) * Math.PI / 180;
+    return {
+        x: (lng + 180) / 360 * n,
+        y: (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n
+    };
+}
+function _latLngFromTile(x, y, z) {
+    const n = Math.pow(2, z);
+    const lng = x / n * 360 - 180;
+    const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+    return { lat, lng };
+}
+
+// frame: { e0, e1, n0, n1 } (mét VN-2000: Đông, Bắc); pxPerMeter: độ phân giải bản vẽ;
+// toLatLng(e, n) → { lat, lng }. Trả về mức thu phóng và danh sách ô cần tải.
+function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_BASEMAP_MAX_TILES) {
+    const src = EXPORT_BASEMAPS[kind];
+    if (!src || !frame || !(pxPerMeter > 0) || typeof toLatLng !== 'function') return null;
+    const corners = [[frame.e0, frame.n0], [frame.e1, frame.n0], [frame.e0, frame.n1], [frame.e1, frame.n1]]
+        .map(([e, n]) => toLatLng(e, n));
+    if (corners.some(c => !c || !isFinite(c.lat) || !isFinite(c.lng))) return null;
+    const lats = corners.map(c => c.lat), lngs = corners.map(c => c.lng);
+    const latMin = Math.min(...lats), latMax = Math.max(...lats);
+    const lngMin = Math.min(...lngs), lngMax = Math.max(...lngs);
+    const midLat = (latMin + latMax) / 2;
+    // Mét trên một điểm ảnh ô (256 px) ở mức z: 156543.03 · cos(φ) / 2^z — chọn z khớp độ nét bản vẽ.
+    const targetRes = 1 / pxPerMeter;
+    let z = Math.ceil(Math.log2(156543.03 * Math.cos(midLat * Math.PI / 180) / targetRes));
+    z = Math.max(1, Math.min(src.maxZoom, z));
+    let range;
+    for (; z >= 1; z--) {
+        const a = _tileFromLatLng(latMax, lngMin, z), b = _tileFromLatLng(latMin, lngMax, z);
+        range = { x0: Math.floor(a.x), x1: Math.floor(b.x), y0: Math.floor(a.y), y1: Math.floor(b.y) };
+        if ((range.x1 - range.x0 + 1) * (range.y1 - range.y0 + 1) <= maxTiles) break;
+    }
+    const n = Math.pow(2, z);
+    const tiles = [];
+    for (let ty = range.y0; ty <= range.y1; ty++) {
+        for (let tx = range.x0; tx <= range.x1; tx++) {
+            if (ty < 0 || ty >= n) continue;
+            const wx = ((tx % n) + n) % n;
+            tiles.push({ x: tx, y: ty, url: src.url.replace('{z}', z).replace('{x}', wx).replace('{y}', ty) });
+        }
+    }
+    return { kind, z, tiles, credit: src.credit, alpha: src.alpha, label: src.label };
+}
+
+// Tải ảnh các ô (crossOrigin) — ô lỗi/hết giờ bị bỏ qua, không làm hỏng bản vẽ.
+function loadExportBasemap(plan, opts = {}) {
+    const ImageCtor = opts.Image || (typeof Image !== 'undefined' ? Image : null);
+    if (!plan || !ImageCtor) return Promise.resolve(null);
+    const timeoutMs = opts.timeoutMs || 10000;
+    const concurrency = opts.concurrency || 8;
+    const queue = plan.tiles.slice();
+    let done = 0;
+    const loadOne = (t) => new Promise((resolve) => {
+        const img = new ImageCtor();
+        let settled = false;
+        const finish = (ok) => {
+            if (settled) return; settled = true;
+            clearTimeout(timer);
+            if (ok) t.img = img; else t.failed = true;
+            done++;
+            if (typeof opts.onProgress === 'function') opts.onProgress(done, plan.tiles.length);
+            resolve();
+        };
+        const timer = setTimeout(() => finish(false), timeoutMs);
+        img.crossOrigin = 'anonymous';
+        img.onload = () => finish(true);
+        img.onerror = () => finish(false);
+        img.src = t.url;
+    });
+    const worker = async () => { while (queue.length) await loadOne(queue.shift()); };
+    return Promise.all(Array.from({ length: Math.min(concurrency, queue.length || 1) }, worker)).then(() => {
+        const loaded = plan.tiles.filter(t => t.img).length;
+        return Object.assign({}, plan, { loaded, failed: plan.tiles.length - loaded });
+    });
+}
+
+// Hệ số affine đặt ảnh ô (0..256 px) lên canvas từ 3 góc ô: [a, b, c, d, e, f] cho ctx.transform.
+function exportTileTransform(tile, z, toCanvas, toVn2k) {
+    const pt = (dx, dy) => {
+        const ll = _latLngFromTile(tile.x + dx, tile.y + dy, z);
+        const v = toVn2k(ll.lat, ll.lng);
+        return toCanvas(v.e, v.n);
+    };
+    const tl = pt(0, 0), tr = pt(1, 0), bl = pt(0, 1);
+    if (![tl, tr, bl].every(p => p && isFinite(p.x) && isFinite(p.y))) return null;
+    return [(tr.x - tl.x) / 256, (tr.y - tl.y) / 256, (bl.x - tl.x) / 256, (bl.y - tl.y) / 256, tl.x, tl.y];
+}
+
+// Vẽ nền vào khung rect (điểm ảnh canvas) — gọi sau nền trắng, trước lưới và nét vẽ.
+function drawExportBasemap(ctx, basemap, rect, toCanvas, toVn2k) {
+    if (!ctx || !basemap || !basemap.tiles || !rect) return 0;
+    let drawn = 0;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.globalAlpha = basemap.alpha || 1;
+    basemap.tiles.forEach(t => {
+        if (!t.img) return;
+        const m = exportTileTransform(t, basemap.z, toCanvas, toVn2k);
+        if (!m) return;
+        ctx.save();
+        ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+        // Phủ chồng 0.5 px để không lộ đường nối mảnh giữa các ô
+        ctx.drawImage(t.img, -0.5, -0.5, 257, 257);
+        ctx.restore();
+        drawn++;
+    });
+    ctx.globalAlpha = 1;
+    // Ghi nguồn bản đồ ở góc dưới phải khung
+    if (drawn > 0 && basemap.credit) {
+        const fs = Math.max(10, Math.round(rect.h * 0.012));
+        ctx.font = `${fs}px Arial, sans-serif`;
+        const tw = ctx.measureText(basemap.credit).width;
+        const pad = Math.round(fs * 0.4);
+        const bx = rect.x + rect.w - tw - pad * 3, by = rect.y + rect.h - fs - pad * 3;
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(bx, by, tw + pad * 2, fs + pad * 2);
+        ctx.fillStyle = '#334155';
+        ctx.textBaseline = 'top';
+        ctx.fillText(basemap.credit, bx + pad, by + pad);
+        ctx.textBaseline = 'alphabetic';
+    }
+    ctx.restore();
+    return drawn;
+}
+
 // ================= 1b. BẢN ĐỒ TỰ ĐO LẠI KÍCH THƯỚC =================
 // Leaflet chỉ đo khung bản đồ lúc tạo. Màn hình nào tạo bản đồ khi khung còn ẩn (0×0)
 // — như "Tối ưu lộ trình" lần mở đầu — sẽ chỉ tải 1 ô ảnh ở góc trên trái.
@@ -7148,6 +7302,7 @@ const appMap = {
         if (!window.VIETNAM_34_PROVINCES) return;
         try {
             AppState.layer34Prov = L.geoJSON(window.VIETNAM_34_PROVINCES, {
+                interactive: AppState.mapMode !== 'cad',
                 style: {
                     color: "#f43f5e",
                     weight: 2,
@@ -7208,6 +7363,7 @@ const appMap = {
         if (!window.DONG_THAP_COMMUNES) return;
         try {
             AppState.layerDtCommunes = L.geoJSON(window.DONG_THAP_COMMUNES, {
+                interactive: AppState.mapMode !== 'cad',
                 style: {
                     color: "#10b981",
                     weight: 1.5,
@@ -7853,8 +8009,9 @@ const appMap = {
             if (btnFitProj) btnFitProj.style.display = 'none';
             if (btnFitBoth) btnFitBoth.style.display = 'flex';
         } else if (mode === 'cad') {
-            if (btn34) btn34.style.display = 'none';
-            if (btnDt) btnDt.style.display = 'none';
+            // Ranh giới 34 tỉnh / xã Đồng Tháp là lớp nền tham chiếu: MiniCAD cũng cần để vẽ đúng địa giới.
+            if (btn34) btn34.style.display = 'flex';
+            if (btnDt) btnDt.style.display = 'flex';
             if (btnFitProj) btnFitProj.style.display = 'none';
             if (btnFitBoth) btnFitBoth.style.display = 'none';
         } else if (mode === 'live_gps') {
@@ -7870,6 +8027,20 @@ const appMap = {
             if (btnFitProj) btnFitProj.style.display = 'flex';
             if (btnFitBoth) btnFitBoth.style.display = 'none';
         }
+        this.setReferenceLayersInteractive(mode !== 'cad');
+    },
+
+    /** Trong MiniCAD lớp ranh giới chỉ để xem: chạm vào vùng xã/tỉnh không mở bảng thông tin mà đi thẳng
+     *  xuống công cụ vẽ. Bản đồ dùng canvas (preferCanvas) nên đổi options.interactive có hiệu lực ngay. */
+    setReferenceLayersInteractive(on) {
+        const interactive = on !== false;
+        [AppState.layer34Prov, AppState.layerDtCommunes].forEach(group => {
+            if (!group || typeof group.eachLayer !== 'function') return;
+            group.eachLayer(l => {
+                l.options.interactive = interactive;
+                if (!interactive && typeof l.closePopup === 'function') l.closePopup();
+            });
+        });
     },
 
     onMapClick(lat, lng) {
@@ -17983,7 +18154,7 @@ const appElevationProfile = {
 // Không đụng tới DOM ngoài các <select> mà chính panel gọi nó truyền vào,
 // nên cả Bản đồ dự án lẫn MiniCAD dùng chung mà không vay giao diện của nhau (AGENTS.md §2).
 const appGis = {
-    ACCEPT: '.geojson,.json,.kml,.kmz,.gpx,.wkt,.txt',
+    ACCEPT: '.geojson,.json,.kml,.kmz,.gpx,.wkt,.dgn,.txt',
 
     // Danh sách tỉnh đã chuẩn hóa để nạp vào <select> KTT của mọi panel
     fillKttSelect(sel) {
@@ -18032,14 +18203,16 @@ const appGis = {
             showToast('❌ Chưa nạp được động cơ GIS (src/core/gis_io.js)!', true);
             return;
         }
+        // Bản đồ địa chính MicroStation (.dgn) là tệp nhị phân; các định dạng GIS khác là văn bản.
+        const isDgn = /\.dgn$/i.test(file.name || '');
         const reader = new FileReader();
         reader.onload = (e) => {
-            const result = GisIO.read(e.target.result, file.name);
+            const result = isDgn ? GisIO.readDgn(e.target.result) : GisIO.read(e.target.result, file.name);
             result.fileName = file.name;
             onDone(result);
         };
         reader.onerror = () => { showToast('❌ Không đọc được tệp! Kiểm tra lại quyền truy cập file.', true); };
-        reader.readAsText(file, 'UTF-8');
+        if (isDgn) reader.readAsArrayBuffer(file); else reader.readAsText(file, 'UTF-8');
     },
 
     summarize(result) {
@@ -18048,7 +18221,9 @@ const appGis = {
             const map = {
                 KMZ_CAN_CONVERT_SANG_KML: 'KMZ là KML nén ZIP — hãy mở trong QGIS/Google Earth rồi xuất ra .kml',
                 FILE_RONG: 'tệp rỗng',
-                KHONG_NHAN_DANG_DUOC_DINH_DANG: 'không nhận dạng được định dạng (chỉ hỗ trợ GeoJSON / KML / GPX / WKT)',
+                KHONG_NHAN_DANG_DUOC_DINH_DANG: 'không nhận dạng được định dạng (hỗ trợ GeoJSON / KML / GPX / WKT / DGN)',
+                DGN_V8_CHUA_HO_TRO: 'DGN V8 chưa hỗ trợ — trong MicroStation chọn File › Save As › loại "MicroStation V7 DGN" rồi nạp lại',
+                DGN_KHONG_HOP_LE: 'không phải tệp DGN MicroStation hợp lệ',
                 KHONG_TIM_THAY_HINH_HOC: 'không tìm thấy hình học nào'
             };
             return map[result.error] || String(result.error || 'tệp lỗi');
@@ -24905,9 +25080,21 @@ const appCadTool = {
         }
     },
 
+    // Bản vẽ rất lớn (vd. bản đồ địa chính .dgn) không chép từng đỉnh sang Sổ đo: bản sao đó gấp đôi dung lượng
+    // và vượt bộ nhớ trình duyệt (~5 MB), làm hiện cảnh báo "bộ nhớ đầy" mỗi lần lưu dù bản vẽ đã lưu được.
+    POINT_SYNC_VERTEX_LIMIT: 5000,
+
     syncShapesToProjectPoints(projName) {
         const curProj = projName || AppState.currentProject;
         if (!curProj || !this.savedShapes || this.savedShapes.length === 0) return;
+        const totalVerts = this.savedShapes.reduce((n, s) => n + (s.vertices || []).length, 0);
+        if (totalVerts > this.POINT_SYNC_VERTEX_LIMIT) {
+            if (this._pointSyncSkippedFor !== curProj) {
+                this._pointSyncSkippedFor = curProj;
+                if (typeof showToast === 'function') showToast(`Bản vẽ có ${totalVerts.toLocaleString('vi-VN')} đỉnh: đã lưu bản vẽ, nhưng không chép đỉnh sang Sổ đo vì bộ nhớ trình duyệt có hạn.`, true);
+            }
+            return;
+        }
 
         // BẢO VỆ CHỐNG TỰ ĐỘNG THÊM VÀO DỰ ÁN ĐÃ XÓA HOẶC TRONG THÙNG RÁC
         if (typeof appData !== 'undefined') {
@@ -25253,8 +25440,26 @@ const appCadTool = {
         }
     },
 
-    renderGeometry() {
-        this.persistSession();
+    // Bản vẽ lớn (nhiều nghìn đỉnh — nạp GIS/DGN/Excel): mỗi đỉnh tạo 3 đối tượng bản đồ (đỉnh kéo được,
+    // nhãn cạnh, đường bắt) nên 16.500 đỉnh làm trình duyệt đứng ~45 giây. Khi tổng số đỉnh vượt ngưỡng,
+    // chỉ dựng các đối tượng đó cho khối trong khung nhìn (nếu số đỉnh trong khung ≤ ngưỡng);
+    // phần còn lại vẽ nét ranh / chấm điểm trên canvas. Kéo hoặc thu phóng bản đồ → vẽ lại.
+    DETAIL_VERTEX_LIMIT: 1500,
+    LARGE_LABEL_LIMIT: 300,
+
+    _watchViewForDetail(map) {
+        if (!map || typeof map.on !== 'function' || this._detailWatchMap === map) return;
+        this._detailWatchMap = map;
+        let timer = null;
+        map.on('moveend', () => {
+            if (!this._largeDrawing || !this.layers.group || !this.layers.group._map) return;
+            clearTimeout(timer);
+            timer = setTimeout(() => this.renderGeometry({ persist: false }), 120);
+        });
+    },
+
+    renderGeometry(opts = {}) {
+        if (opts.persist !== false) this.persistSession();
         this.ensureLayers();
         if (!this.layers.group) return;
         this.layers.group.clearLayers();
@@ -25271,6 +25476,30 @@ const appCadTool = {
         const showDistances = this.displaySettings.showDistances === true;
         const showCenterLabels = this.displaySettings.showCenterLabels !== false;
 
+        const map = AppState.leafletMap;
+        const totalVerts = this.savedShapes.reduce((n, s) => n + (s.selected === false ? 0 : (s.vertices || []).length), 0);
+        this._largeDrawing = totalVerts > this.DETAIL_VERTEX_LIMIT;
+        let detailSet = null, labelSet = null;
+        if (this._largeDrawing) {
+            detailSet = new Set();
+            labelSet = new Set();
+            const view = map && typeof map.getBounds === 'function' ? map.getBounds().pad(0.15) : null;
+            const inView = [];
+            let vertsInView = 0;
+            if (view) this.savedShapes.forEach((s, i) => {
+                if (s.selected === false || !(s.vertices || []).length) return;
+                if (s.vertices.some(v => view.contains([v.lat, v.lng]))) { inView.push(i); vertsInView += s.vertices.length; }
+            });
+            if (vertsInView <= this.DETAIL_VERTEX_LIMIT) inView.forEach(i => detailSet.add(i));
+            if (inView.length <= this.LARGE_LABEL_LIMIT) inView.forEach(i => labelSet.add(i));
+            if (this.selectedItem && this.selectedItem.type === 'shape') detailSet.add(this.selectedItem.index);
+            this._watchViewForDetail(map);
+            if (!this._largeHintShown && typeof showToast === 'function') {
+                this._largeHintShown = true;
+                showToast(`Bản vẽ lớn (${totalVerts.toLocaleString('vi-VN')} đỉnh): phóng to vùng cần sửa để hiện đỉnh và cự ly cạnh.`);
+            }
+        }
+
         // 0. Vẽ tất cả các cấu trúc / thửa đã lưu trước đó (có check có hiển thị, bỏ check thì ẩn)
         this.savedShapes.forEach((shape, sIdx) => {
             if (shape.selected === false) return;
@@ -25281,8 +25510,10 @@ const appCadTool = {
             const sVerts = shape.vertices;
             const sLen = sVerts.length;
             if (sLen === 0) return;
-            // Luôn đảm bảo shape.stats đồng bộ mới nhất 100% (bảo toàn điều chỉnh hiển thị nếu có)
-            shape.stats = this.getEffectiveStats(shape);
+            // Luôn đảm bảo shape.stats đồng bộ mới nhất 100% (bảo toàn điều chỉnh hiển thị nếu có).
+            // Vẽ lại do kéo/thu phóng bản đồ (persist: false) không đổi hình → dùng lại số liệu cũ.
+            if (opts.persist !== false || !shape.stats) shape.stats = this.getEffectiveStats(shape);
+            const detailed = !detailSet || detailSet.has(sIdx);
             const sLatLngs = sVerts.map(v => [v.lat, v.lng]);
             const sColor = shape.color || '#10b981';
             const isPointLayer = shape.mode === 'point';
@@ -25344,7 +25575,7 @@ const appCadTool = {
                     });
                 });
 
-                if (showCenterLabels && !isPointLayer) {
+                if (showCenterLabels && !isPointLayer && (!labelSet || labelSet.has(sIdx) || detailed)) {
                 // Nhãn tâm khối: Vị trí tâm trực quan tối ưu (Pole of Inaccessibility cho cả khối chữ L)
                 // và Scale kích thước vừa khít theo khoảng cách mép trong lòng khối
                 const [cLat, cLng, clearanceDeg] = this.calculatePolygonVisualCenter(sVerts);
@@ -25422,7 +25653,7 @@ const appCadTool = {
             }
 
             // Nhãn cạnh và cự ly: Ẩn mặc định, hiển thị khi click hoặc rê chuột đến đỉnh/cạnh
-            if (sLen >= 2 && !isPointLayer && shape.stats?.edges) {
+            if (detailed && sLen >= 2 && !isPointLayer && shape.stats?.edges) {
                 const isClosed = shape.mode === 'polygon' && sLen >= 3;
                 const edgeCount = isClosed ? sLen : sLen - 1;
 
@@ -25485,7 +25716,13 @@ const appCadTool = {
             // Đỉnh của cấu trúc đã lưu & điểm rời của lớp điểm.
             // Nhóm "Đỉnh khối & tuyến" (showVertices) chỉ bung nhãn đỉnh; nhóm "Điểm rời" (showPoints)
             // ẩn hẳn marker; nhóm "Nhãn tên" (showLabels) quyết định có hiện chữ tên điểm/đỉnh hay không.
-            {
+            if (!detailed) {
+                // Bản vẽ lớn, khối ngoài khung nhìn chi tiết: điểm rời thành chấm trên canvas (không kéo được).
+                const groupVis = this.resolveGroupVisibility(shape);
+                if (isPointLayer && groupVis.visible) sVerts.forEach(v => {
+                    L.circleMarker([v.lat, v.lng], { radius: 3, color: '#ffffff', weight: 1, fillColor: this.getPointColorFor(shape, v), fillOpacity: 1, interactive: false }).addTo(this.layers.group);
+                });
+            } else {
             const groupVis = this.resolveGroupVisibility(shape);
             sVerts.forEach((v, vIdx) => {
                 if (isPointLayer && !groupVis.visible) return;
@@ -26713,6 +26950,7 @@ const appCadTool = {
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
+            if (savedMeta?.basemap) setVal('cadExportBasemap', savedMeta.basemap);
             // Khôi phục trạng thái tùy chọn hiển thị thông tin khối & thành phần
             if (savedMeta) {
                 if (typeof savedMeta.showBlockInfo === 'boolean') {
@@ -31081,7 +31319,7 @@ const appCadTool = {
         this._gisResult = null;
         appGis.fillKttSelect(document.getElementById('cadGisKtt'));
         const summary = document.getElementById('cadGisSummary');
-        if (summary) summary.textContent = 'Chưa chọn tệp — hỗ trợ .geojson · .kml · .gpx · .wkt';
+        if (summary) summary.textContent = 'Chưa chọn tệp — hỗ trợ .geojson · .kml · .gpx · .wkt · .dgn (MicroStation V7)';
         const fileInput = document.getElementById('cadFileInputGis');
         if (fileInput) fileInput.value = '';
         const layerName = document.getElementById('cadGisLayerName');
@@ -32558,6 +32796,41 @@ const appCadTool = {
     },
 
     // === HELPER: Lấy thông tin xuất bản vẽ từ form ===
+    // ---- Nền bản đồ cho bản vẽ xuất (xem EXPORT_BASEMAPS) ----
+    _exportBasemapToLatLng(e, n) {
+        return convertVn2kToWgs(n, e, AppState.kttVal, AppState.scaleFactor);
+    },
+    _exportBasemapToVn2k(lat, lng) {
+        const v = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+        return { e: v.Y, n: v.X };
+    },
+    // Trả về true nếu đã bắt đầu tải nền (hàm xuất sẽ được gọi lại qua rerun khi tải xong).
+    _prepareExportBasemap(meta, frame, pxPerMeter, rerun) {
+        if (!meta || !EXPORT_BASEMAPS[meta.basemap]) return false;
+        if (this._exportBasemapBusy) { showToast('⏳ Đang tải nền bản đồ, vui lòng chờ...'); return true; }
+        let plan = null;
+        try { plan = planExportBasemap(meta.basemap, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n)); } catch (e) { plan = null; }
+        if (!plan || !plan.tiles.length) {
+            showToast('⚠️ Không xác định được vùng nền bản đồ — bản vẽ xuất không có nền.', true);
+            rerun({ none: true });
+            return true;
+        }
+        this._exportBasemapBusy = true;
+        showToast(`⏳ Đang tải nền ${plan.label.toLowerCase()} (${plan.tiles.length} ô ảnh)...`);
+        const finish = (bm) => {
+            this._exportBasemapBusy = false;
+            if (!bm || !bm.loaded) {
+                showToast('⚠️ Không tải được nền bản đồ (kiểm tra mạng) — bản vẽ xuất không có nền.', true);
+                bm = { none: true };
+            } else if (bm.failed) {
+                showToast(`⚠️ ${bm.failed}/${bm.tiles.length} ô ảnh nền không tải được, phần đó để trắng.`, true);
+            }
+            rerun(bm);
+        };
+        loadExportBasemap(plan).then(finish, () => finish(null));
+        return true;
+    },
+
     _getExportMeta() {
         const rawScaleVal = document.getElementById('cadExportScale')?.value;
         const scaleVal = (rawScaleVal && rawScaleVal !== 'auto') ? parseInt(rawScaleVal) : null;
@@ -32607,6 +32880,8 @@ const appCadTool = {
         } else if (document.getElementById('cadShowBlockInfo')) {
             showBlockInfo = document.getElementById('cadShowBlockInfo').checked;
         }
+        const basemapVal = document.getElementById('cadExportBasemap')?.value;
+        const basemap = (basemapVal === 'street' || basemapVal === 'satellite') ? basemapVal : 'none';
         const customAreaVal = parseFloat(document.getElementById('cadCustomProjectArea')?.value || '0');
         const customTotalArea = (!isNaN(customAreaVal) && customAreaVal > 0) ? customAreaVal : null;
 
@@ -32614,7 +32889,7 @@ const appCadTool = {
         try {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
                 drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, scaleVal, paper, showPercent, showBlockInfo, customTotalArea,
-                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries
+                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap
             }));
         } catch (e) {}
 
@@ -32624,7 +32899,8 @@ const appCadTool = {
             scaleVal, paper, paperW, paperH,
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
-            showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries
+            showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
+            basemap
         };
     },
 
@@ -33673,7 +33949,7 @@ const appCadTool = {
     },
 
     // === 3. XUẤT BẢN VẼ PDF CHUẨN IN ẤN ĐỘ PHÂN GIẢI CAO (A3/A4 CHUẨN TỶ LỆ) ===
-    exportPdf() {
+    exportPdf(opts = {}) {
         const allShapes = this._getAllExportShapes();
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         if (selectedShapes.length === 0) {
@@ -33694,6 +33970,11 @@ const appCadTool = {
         const W_px = Math.round(meta.paperW * pxPerMm);
         const H_px = Math.round(meta.paperH * pxPerMm);
 
+        // Nền bản đồ: tải ô ảnh trước rồi kết xuất lại (giữ phần vẽ đồng bộ như cũ)
+        if (!opts.basemap && this._prepareExportBasemap(meta,
+            { e0: L.Xin0, e1: L.Xpanel0, n0: L.Yin0, n1: L.Yin1 }, pxPerMm / S,
+            bm => this.exportPdf({ basemap: bm }))) return;
+
         const canvas = document.createElement('canvas');
         canvas.width = W_px;
         canvas.height = H_px;
@@ -33712,6 +33993,15 @@ const appCadTool = {
         // 1. Nền giấy trắng
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, W_px, H_px);
+
+        // 1b. Nền bản đồ / ảnh vệ tinh trong khung bản đồ (dưới lưới và nét vẽ)
+        if (opts.basemap && opts.basemap.tiles) {
+            const bx = toCvX(L.Xin0), by = toCvY(L.Yin1);
+            drawExportBasemap(ctx, opts.basemap,
+                { x: bx, y: by, w: toCvX(L.Xpanel0) - bx, h: toCvDist(L.H_inner) },
+                (e, n) => ({ x: (e - L.X0) * pxPerMeter, y: H_px - (n - L.Y0) * pxPerMeter }),
+                (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+        }
 
         // 2. Khung Ngoài (Mảnh)
         ctx.strokeStyle = '#64748b';
@@ -34854,10 +35144,22 @@ const appCadTool = {
 
         const toX = cx => pad + (cx - minX) * sc;
         const toY = cy => (H - 250 - summaryTableH - pad) - (cy - minY) * sc;
+        const mapBottom = H - 250 - summaryTableH - pad;
+
+        // Nền bản đồ: tải ô ảnh trước rồi kết xuất lại
+        if (!customOpts.basemap && this._prepareExportBasemap(meta,
+            { e0: minX, e1: minX + (W - 2 * pad) / sc, n0: minY, n1: minY + (mapBottom - pad) / sc }, sc,
+            bm => this.exportOptimizedImage(Object.assign({}, customOpts, { basemap: bm })))) return;
 
         // Nền trắng tinh khôi chuẩn bản vẽ kỹ thuật
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, W, H);
+
+        if (customOpts.basemap && customOpts.basemap.tiles) {
+            drawExportBasemap(ctx, customOpts.basemap, { x: pad, y: pad, w: W - 2 * pad, h: mapBottom - pad },
+                (e, n) => ({ x: toX(e), y: toY(n) }),
+                (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+        }
 
         // Grid lines
         ctx.strokeStyle = '#B0BEC580';
@@ -41508,6 +41810,11 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         AppState,
         installLeafletAutoResize,
+        EXPORT_BASEMAPS,
+        planExportBasemap,
+        loadExportBasemap,
+        exportTileTransform,
+        drawExportBasemap,
         appDashboard,
         appData,
         safeUserText,
