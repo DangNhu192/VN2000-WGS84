@@ -1,0 +1,434 @@
+/* ==========================================================================
+   LỚP GIAO DIỆN THỐNG NHẤT — nạp SAU CÙNG (sau style.css, field-workspace.css, ui-polish.css).
+   Một bộ quy tắc cho: thanh ngữ cảnh, trang chủ, thẻ, tiêu đề thẻ, nút, tab, ô nhập — áp cho mọi màn hình.
+   Chỉ đổi hình thức, không đổi chức năng. Chế độ Thực địa (body.field-mode) giữ bộ tương phản cao riêng.
+   Token theo DESIGN.md.
+   ========================================================================== */
+:root {
+  --u-surface: var(--bg-card, #131d31);
+  --u-surface-2: #1b2740;
+  --u-input: #0b1424;
+  --u-line: rgba(148, 163, 184, 0.22);
+  --u-line-strong: rgba(56, 189, 248, 0.45);
+  --u-ink: var(--text-main, #f8fafc);
+  --u-muted: var(--text-muted, #94a3b8);
+  --u-primary: #0284c7;
+  --u-primary-ink: #ffffff;
+  --u-success: #059669;
+  --u-danger-bg: rgba(239, 68, 68, 0.14);
+  --u-danger-ink: #fca5a5;
+  --u-danger-line: rgba(239, 68, 68, 0.5);
+  --u-warn-bg: rgba(245, 158, 11, 0.14);
+  --u-warn-ink: #fbbf24;
+  --u-warn-line: rgba(245, 158, 11, 0.5);
+  --u-radius: 12px;
+  --u-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --u-surface: #ffffff;
+  --u-surface-2: #f1f5f9;
+  --u-input: #f8fafc;
+  --u-line: rgba(15, 23, 42, 0.16);
+  --u-line-strong: rgba(2, 132, 199, 0.5);
+  --u-ink: #0f172a;
+  --u-muted: #475569;
+  --u-danger-bg: rgba(220, 38, 38, 0.08);
+  --u-danger-ink: #b91c1c;
+  --u-danger-line: rgba(220, 38, 38, 0.45);
+  --u-warn-bg: rgba(217, 119, 6, 0.1);
+  --u-warn-ink: #92400e;
+  --u-warn-line: rgba(217, 119, 6, 0.45);
+}
+
+/* ---------- 1. THANH NGỮ CẢNH: tên màn hình + dự án (điện thoại dọc) ---------- */
+.app-context-bar { display: none; }
+@media (max-width: 600px) {
+  .app-context-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex: 0 0 auto; min-height: 36px;
+    padding: 4px calc(var(--sat-safe-right, 0px) + 14px) 4px calc(var(--sat-safe-left, 0px) + 14px);
+    background: var(--u-surface); border-bottom: 1px solid var(--u-line);
+  }
+  .ctx-title { margin: 0; min-width: 0; flex: 1 1 auto; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--u-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctx-project { flex: 0 1 46%; min-width: 0; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--u-line); background: transparent; color: var(--u-muted); font: 600 12px/1 inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .ctx-project[hidden] { display: none; }
+  body.field-mode .app-context-bar { background: #000; border-color: #aaa; }
+  body.field-mode .ctx-title { color: #fff; }
+  body.field-mode .ctx-project { color: #ffdf00; border-color: #aaa; }
+}
+@media (orientation: landscape) and (max-height: 620px) { .app-context-bar { display: none !important; } }
+
+/* ---------- 2. TRANG CHỦ: truy cập nhanh + tất cả chức năng ---------- */
+/* Bảng "Tất cả chức năng" thay cho mục thu gọn "Công cụ khác" (cùng nội dung, luôn mở, có nhóm). */
+.accordion-advanced-wrapper { display: none !important; }
+
+/* 2a. Thành phần bật/tắt trong "Tùy chỉnh Trang chủ" (appDashboard.applyHomeWidgets → data-home-off). */
+#screen-menu[data-home-off~="quick"] #fwQuick,
+#screen-menu[data-home-off~="gps"] :is(#btnHomeGpsOn, #heroLiveHudCard),
+#screen-menu[data-home-off~="project"] :is(#dashboardInfoRow, .dashboard-quick-chips) { display: none !important; }
+#screen-menu[data-home-off~="all"] #homeFeatureHubBody { display: none; }
+
+/* 2b. "Tất cả chức năng": tiêu đề là nút mở/thu gọn (mặc định thu gọn, nhớ lựa chọn). */
+.home-feature-hub { margin-top: 18px; }
+.hub-title { margin: 0 0 10px; font-size: 16px; font-weight: 700; color: var(--u-ink); letter-spacing: -0.01em; }
+.hub-toggle {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 14px;
+  border-radius: var(--u-radius); border: 1px solid var(--u-line); background: var(--u-surface);
+  color: var(--u-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.hub-toggle:hover, .hub-toggle:focus-visible { border-color: var(--u-line-strong); outline: none; }
+.hub-count { font-size: 12px; font-weight: 700; color: var(--u-muted); background: var(--u-surface-2); border-radius: 999px; padding: 2px 8px; }
+.hub-count:empty { display: none; }
+.hub-chevron { margin-left: auto; color: var(--u-muted); transition: transform 0.2s var(--u-ease); }
+.hub-toggle[aria-expanded="true"] .hub-chevron { transform: rotate(180deg); }
+.hub-search { display: block; width: 100%; min-width: 0; height: 40px; margin-bottom: 10px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--u-line); background: var(--u-input); color: var(--u-ink); font-size: 14px; user-select: text; -webkit-user-select: text; }
+.hub-search:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 1px; }
+
+/* 2d. Mục lục chức năng — phương án A "danh sách gọn" (app-shell.js), dùng chung cho
+   menu ☰ (#drawerFeatureIndex) và "Tất cả chức năng" ở Trang chủ (#homeFeatureHubList).
+   Mỗi chức năng một dòng: biểu tượng nét theo màu nhóm, tên gọn, mô tả một dòng, ★ = đang hiện trên Trang chủ. */
+#navTreeDrawer { background: #0a1322 !important; }
+[data-theme="light"] #navTreeDrawer { background: #f8fafc !important; }
+#navTreeDrawer :is(.drawer-tree-body, #drawerStatusInfo) { display: none !important; }
+.fi-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 6px 6px 16px; }
+.fi-title { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.01em; color: var(--u-ink); }
+.fi-close { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; background: transparent; color: var(--u-muted); cursor: pointer; }
+.fi-close:hover, .fi-close:focus-visible { background: var(--u-surface-2); color: var(--u-ink); outline: none; }
+.fi-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.fi-search { position: relative; padding: 4px 16px 10px; }
+.fi-search-icon { position: absolute; left: 30px; top: 17px; color: var(--u-muted); pointer-events: none; }
+.fi-search input { width: 100%; height: 44px; box-sizing: border-box; padding: 0 14px 0 42px; border-radius: 12px; border: 1px solid var(--u-line); background: var(--u-input); color: var(--u-ink); font: inherit; font-size: 15px; user-select: text; -webkit-user-select: text; }
+.fi-search input:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 1px; }
+#drawerFeatureIndex { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 8px 24px; -webkit-overflow-scrolling: touch; }
+.fi-chips { display: flex; gap: 8px; overflow-x: auto; padding: 0 8px 6px; scrollbar-width: none; }
+.fi-chips::-webkit-scrollbar { display: none; }
+#homeFeatureHubList .fi-chips { padding: 0 0 6px; }
+.fi-chip { position: relative; flex: 0 0 auto; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--u-line); background: transparent; color: var(--u-ink); font: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.fi-chip::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 44px; margin-top: -22px; }
+.fi-chip[aria-pressed="true"] { background: #e0f2fe; border-color: #e0f2fe; color: #0c4a6e; }
+[data-theme="light"] .fi-chip[aria-pressed="true"] { background: #0369a1; border-color: #0369a1; color: #fff; }
+.fi-chip:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 2px; }
+.fi-list { display: flex; flex-direction: column; }
+.fi-group { margin-top: 14px; }
+.fi-group-title { margin: 0 8px 4px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--u-muted); }
+.fi-count { font-weight: 600; letter-spacing: 0; text-transform: none; }
+.fi-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--fi-c); }
+.fi-row { width: 100%; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 6px 8px; border: 0; border-radius: 12px; background: transparent; color: var(--u-ink); font: inherit; text-align: left; cursor: pointer; }
+.fi-row:hover { background: var(--u-surface-2); }
+.fi-row:focus-visible { background: var(--u-surface-2); outline: 2px solid var(--border-focus, #38bdf8); outline-offset: -2px; }
+.fi-row[aria-current="page"] { background: rgba(2, 132, 199, 0.16); }
+.fi-icon { flex: 0 0 36px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--fi-bg); color: var(--fi-c); }
+.fi-home .fi-icon { background: #0284c7; color: #fff; }
+.fi-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fi-name { font-size: 15px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fi-sub { font-size: 12.5px; line-height: 1.35; color: var(--u-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fi-sub:empty { display: none; }
+.fi-end { flex: 0 0 auto; display: flex; color: var(--u-muted); }
+.fi-star { display: inline-flex; color: #fbbf24; }
+.fi-star svg { fill: currentColor; }
+[data-theme="light"] .fi-star { color: #b45309; }
+.fi-legend { margin: 20px 8px 0; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--u-muted); }
+.fi-empty { margin: 32px 16px; text-align: center; font-size: 14px; color: var(--u-muted); }
+@media (min-width: 900px) {
+  /* Trang chủ trên màn rộng: mỗi nhóm hai cột cho ngắn trang. */
+  #homeFeatureHubList .fi-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8px; }
+  #homeFeatureHubList .fi-group-title { grid-column: 1 / -1; }
+}
+.fi-group[data-fi-color="sky"] { --fi-c: #38bdf8; --fi-bg: rgba(56, 189, 248, 0.14); }
+.fi-group[data-fi-color="green"] { --fi-c: #34d399; --fi-bg: rgba(52, 211, 153, 0.14); }
+.fi-group[data-fi-color="violet"] { --fi-c: #c4b5fd; --fi-bg: rgba(167, 139, 250, 0.16); }
+.fi-group[data-fi-color="amber"] { --fi-c: #fbbf24; --fi-bg: rgba(251, 191, 36, 0.14); }
+.fi-group[data-fi-color="slate"] { --fi-c: #cbd5e1; --fi-bg: rgba(148, 163, 184, 0.18); }
+[data-theme="light"] .fi-group[data-fi-color="sky"] { --fi-c: #0369a1; --fi-bg: #e0f2fe; }
+[data-theme="light"] .fi-group[data-fi-color="green"] { --fi-c: #047857; --fi-bg: #d1fae5; }
+[data-theme="light"] .fi-group[data-fi-color="violet"] { --fi-c: #6d28d9; --fi-bg: #ede9fe; }
+[data-theme="light"] .fi-group[data-fi-color="amber"] { --fi-c: #b45309; --fi-bg: #fef3c7; }
+[data-theme="light"] .fi-group[data-fi-color="slate"] { --fi-c: #334155; --fi-bg: #e2e8f0; }
+
+/* 2b'. Thanh "Chức năng của tôi" ở đầu Trang chủ: nút Thực địa + Tùy chỉnh cùng một hàng (vùng chạm 44px).
+   Chuyển đổi nhanh (#fieldWorkspace) nằm ngay dưới các ô, rộng bằng các ô. */
+#dashboardModernHub #fieldWorkspace { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+#dashboardModernHub .dashboard-section-bar { gap: 8px; }
+#dashboardModernHub .dashboard-bar-title { min-width: 0; }
+.dash-bar-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.dashboard-section-bar #fwToolbar { display: flex !important; margin: 0 !important; gap: 0 !important; }
+.dashboard-section-bar :is(#fwField, .btn-customize-pins) {
+  display: inline-flex !important; align-items: center !important; justify-content: center; gap: 6px !important;
+  height: auto !important; min-height: 44px !important; padding: 0 14px !important; margin: 0 !important;
+  border-radius: 999px !important; font: inherit; font-size: 14px !important; font-weight: 700 !important;
+  white-space: nowrap; cursor: pointer;
+}
+.dashboard-section-bar #fwField { background: transparent !important; border: 1px solid var(--u-line) !important; color: var(--u-ink) !important; box-shadow: none !important; }
+.dashboard-section-bar #fwField[aria-pressed="true"] { background: #ffdf00 !important; color: #000 !important; border-color: #ffdf00 !important; }
+.dashboard-section-bar :is(#fwField, .btn-customize-pins):focus-visible { outline: 2px solid var(--border-focus, #38bdf8) !important; outline-offset: 2px; }
+body.field-mode .dashboard-section-bar #fwField { min-height: 48px !important; border-color: #aaa !important; }
+body.field-mode .dashboard-section-bar #fwField[aria-pressed="true"] { color: #000 !important; }
+@media (max-width: 400px) {
+  /* Màn hẹp: nút Thực địa chỉ còn biểu tượng (tên vẫn đọc được cho trình đọc màn hình). */
+  .dashboard-section-bar #fwField { width: 44px; padding: 0 !important; }
+  .dashboard-section-bar #fwField span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* Giữ tiêu đề "Chức năng của tôi" trên một dòng: bỏ nhãn "4 mục" (số ô đã thấy ngay bên dưới). */
+  #dashboardModernHub #pinnedFeaturesCountBadge { display: none !important; }
+}
+
+/* 2c. Ô "Chức năng của tôi" — số ô quyết định bố cục (appDashboard.homeLayoutFor):
+   hero = 1 khối lớn · duo = 2 khối lớn · grid = 3–4 ô vừa · compact = từ 5 ô, lưới ô gọn. */
+#dashboardModernHub #bigActionTilesGrid { display: grid !important; gap: 10px !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+#dashboardModernHub #bigActionTilesGrid[data-layout="hero"] { grid-template-columns: minmax(0, 1fr) !important; }
+#dashboardModernHub #bigActionTilesGrid[data-layout="grid"][data-count="3"] > :first-child { grid-column: 1 / -1; }
+#dashboardModernHub #bigActionTilesGrid[data-layout="compact"] { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+@media (min-width: 900px) {
+  #dashboardModernHub #bigActionTilesGrid[data-layout="grid"][data-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  #dashboardModernHub #bigActionTilesGrid[data-layout="grid"][data-count="3"] > :first-child { grid-column: auto; }
+  #dashboardModernHub #bigActionTilesGrid[data-layout="grid"][data-count="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  #dashboardModernHub #bigActionTilesGrid[data-layout="compact"] { grid-template-columns: repeat(var(--tile-cols, 6), minmax(0, 1fr)) !important; }
+}
+
+/* Ô là <button>: bỏ kiểu nút mặc định của trình duyệt. */
+#dashboardModernHub .big-action-tile { font: inherit; color: inherit; text-align: left; width: 100%; margin: 0; -webkit-appearance: none; appearance: none; }
+#dashboardModernHub .big-action-tile:focus-visible { outline: 2px solid var(--border-focus, #38bdf8) !important; outline-offset: 2px; }
+#dashboardModernHub .big-tile-bottom { display: flex; flex-direction: column; gap: 3px; }
+#dashboardModernHub .big-tile-sub { display: none; }
+#dashboardModernHub #bigActionTilesGrid:is([data-layout="hero"], [data-layout="duo"]) .big-tile-sub {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 13px; line-height: 1.35; color: var(--u-muted);
+}
+
+body:not(.field-mode) #dashboardModernHub .big-action-tile {
+  display: flex !important; flex-direction: row !important; align-items: center !important; gap: 10px !important;
+  min-height: 58px !important; height: auto !important; padding: 8px 12px !important;
+  border-radius: var(--u-radius) !important; border: 1px solid var(--u-line) !important;
+  background: var(--u-surface) !important; box-shadow: none !important;
+}
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-top { display: contents !important; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-icon-box { flex: 0 0 36px !important; width: 36px !important; height: 36px !important; border-radius: 10px !important; font-size: 18px !important; box-shadow: none !important; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-bottom { min-width: 0 !important; flex: 1 1 auto !important; order: 2; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .big-tile-title { font-size: 14px !important; font-weight: 600 !important; line-height: 1.3 !important; color: var(--u-ink) !important; }
+body:not(.field-mode) #dashboardModernHub .big-action-tile .tile-metric-pill { order: 3; flex: 0 0 auto; font-size: 11px !important; }
+@media (max-width: 600px) { #dashboardModernHub .big-action-tile .tile-metric-pill { display: none !important; } }
+
+/* 1 chức năng: một khối lớn ngang, có mô tả. */
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="hero"] .big-action-tile { min-height: 96px !important; padding: 16px !important; gap: 14px !important; }
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="hero"] .big-tile-icon-box { flex-basis: 56px !important; width: 56px !important; height: 56px !important; border-radius: 14px !important; font-size: 28px !important; }
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="hero"] .big-tile-title { font-size: 18px !important; font-weight: 700 !important; }
+@media (max-width: 600px) { #dashboardModernHub #bigActionTilesGrid[data-layout="hero"] .tile-metric-pill { display: inline-flex !important; } }
+
+/* 2 chức năng: hai khối lớn dọc, có mô tả. */
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="duo"] .big-action-tile { flex-direction: column !important; align-items: flex-start !important; min-height: 132px !important; padding: 14px !important; }
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="duo"] .big-tile-icon-box { flex-basis: 48px !important; width: 48px !important; height: 48px !important; border-radius: 12px !important; font-size: 24px !important; }
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="duo"] .big-tile-bottom { flex: 0 0 auto !important; width: 100%; }
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="duo"] .big-tile-title { font-size: 16px !important; font-weight: 700 !important; }
+#dashboardModernHub #bigActionTilesGrid[data-layout="duo"] .tile-metric-pill { display: none !important; }
+
+/* Từ 5 chức năng: ô gọn, biểu tượng trên, tên ngắn dưới. */
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="compact"] .big-action-tile { flex-direction: column !important; align-items: center !important; justify-content: center !important; text-align: center !important; min-height: 88px !important; padding: 10px 6px !important; gap: 6px !important; }
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="compact"] .big-tile-bottom { flex: 0 0 auto !important; width: 100%; align-items: center; }
+body:not(.field-mode) #dashboardModernHub #bigActionTilesGrid[data-layout="compact"] .big-tile-title { font-size: 12.5px !important; line-height: 1.25 !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#dashboardModernHub #bigActionTilesGrid[data-layout="compact"] .tile-metric-pill { display: none !important; }
+
+/* Hộp "Tùy chỉnh Trang chủ" */
+#modalCustomizePinned .pin-section-title { margin: 12px 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--u-muted); }
+#modalCustomizePinned .pin-picker-name { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-weight: 600; font-size: 14px; line-height: 1.3; color: var(--u-ink); }
+#modalCustomizePinned .pin-picker-item { gap: 8px; }
+#modalCustomizePinned .pin-picker-tools { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+#modalCustomizePinned .pin-order-badge { flex: 0 0 24px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--u-primary); color: #fff; font-size: 12px; font-weight: 700; }
+#modalCustomizePinned .pin-move-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--u-line); background: var(--u-surface-2); color: var(--u-ink); font-size: 12px; cursor: pointer; }
+#modalCustomizePinned .pin-move-btn:disabled { opacity: 0.35; cursor: default; }
+#modalCustomizePinned .home-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; max-width: 220px; margin: 0 auto; padding: 8px; border-radius: 10px; border: 1px dashed var(--u-line); background: var(--u-input); }
+#modalCustomizePinned .home-preview[data-layout="hero"] { grid-template-columns: minmax(0, 1fr); }
+#modalCustomizePinned .home-preview[data-layout="compact"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#modalCustomizePinned .home-preview-tile { display: grid; place-items: center; height: 30px; border-radius: 6px; background: var(--u-surface-2); font-size: 14px; }
+#modalCustomizePinned .home-preview:is([data-layout="hero"], [data-layout="duo"]) .home-preview-tile { height: 52px; font-size: 22px; }
+#modalCustomizePinned .home-preview-label { margin-top: 6px; text-align: center; font-size: 12px; color: var(--u-muted); }
+#modalCustomizePinned .home-widget-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; margin: 0 0 6px; padding: 8px 12px; border: 1px solid var(--u-line); border-radius: 10px; background: var(--u-surface); cursor: pointer; }
+#modalCustomizePinned .home-widget-text { display: grid; gap: 2px; min-width: 0; }
+#modalCustomizePinned .home-widget-text b { font-size: 14px; color: var(--u-ink); }
+#modalCustomizePinned .home-widget-text small { font-size: 12px; color: var(--u-muted); }
+#modalCustomizePinned .home-widget-switch { -webkit-appearance: none; appearance: none; position: relative; flex: 0 0 44px; width: 44px; height: 26px; margin: 0; border-radius: 13px; background: #64748b; cursor: pointer; transition: background 0.2s var(--u-ease); }
+#modalCustomizePinned .home-widget-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform 0.2s var(--u-ease); }
+#modalCustomizePinned .home-widget-switch:checked { background: var(--u-primary); }
+#modalCustomizePinned .home-widget-switch:checked::after { transform: translateX(18px); }
+#modalCustomizePinned .home-widget-switch:focus-visible { outline: 2px solid var(--border-focus, #38bdf8); outline-offset: 2px; }
+.home-layout-summary { margin: 0 0 8px; font-size: 13px; color: var(--u-muted); }
+#dashboardModernHub .dashboard-bar-title .bar-title-text { font-size: 17px !important; font-weight: 700 !important; letter-spacing: -0.01em !important; text-transform: none !important; color: var(--u-ink) !important; }
+#dashboardModernHub .dashboard-bar-title .bar-title-icon { display: none !important; }
+
+/* ---------- 3. THẺ & TIÊU ĐỀ THẺ ---------- */
+body:not(.field-mode) .screen-view .app-card {
+  background: var(--u-surface) !important; border: 1px solid var(--u-line) !important;
+  border-radius: 14px !important; box-shadow: none !important;
+}
+body:not(.field-mode) .screen-view .card-header { border-bottom: 1px solid var(--u-line) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .card-title {
+  font-size: 15px !important; font-weight: 700 !important; letter-spacing: -0.005em !important;
+  text-transform: none !important; color: var(--u-ink) !important; text-shadow: none !important;
+}
+body:not(.field-mode) .screen-view .form-label { font-size: 13px !important; font-weight: 600 !important; color: var(--u-muted) !important; text-transform: none !important; letter-spacing: 0 !important; }
+
+/* ---------- 4. NÚT: một hình dạng, 4 vai trò màu (chính / thành công / nguy hiểm / trung tính) ---------- */
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm {
+  border-radius: 10px !important; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important;
+  text-transform: none !important; box-shadow: none !important; text-shadow: none !important;
+  background: var(--u-surface-2) !important; background-image: none !important; color: var(--u-ink) !important; border: 1px solid var(--u-line) !important;
+  transition: background-color 0.2s var(--u-ease), border-color 0.2s var(--u-ease) !important;
+}
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm.btn-blue { background: var(--u-primary) !important; color: var(--u-primary-ink) !important; border-color: transparent !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm.btn-green { background: var(--u-success) !important; color: #fff !important; border-color: transparent !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm.btn-red { background: var(--u-danger-bg) !important; color: var(--u-danger-ink) !important; border-color: var(--u-danger-line) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm:is(.btn-amber, .btn-orange) { background: var(--u-warn-bg) !important; color: var(--u-warn-ink) !important; border-color: var(--u-warn-line) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-sm:disabled { opacity: 0.5 !important; cursor: not-allowed !important; }
+
+/* Nút hành động chính của mỗi thẻ */
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-convert {
+  min-height: 48px !important; border-radius: var(--u-radius) !important; border: 1px solid transparent !important;
+  font-size: 15px !important; font-weight: 700 !important; letter-spacing: 0 !important; text-transform: none !important;
+  background: var(--u-primary) !important; background-image: none !important; color: var(--u-primary-ink) !important;
+  box-shadow: none !important; text-shadow: none !important;
+}
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-convert.btn-vn2k-to-wgs { background: var(--u-success) !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) .btn-convert.btn-view-map-large { background: var(--u-surface-2) !important; color: var(--u-ink) !important; border-color: var(--u-line) !important; }
+
+/* ---------- 5. TAB: một kiểu "segmented control" cuộn ngang cho mọi màn hình ---------- */
+body:not(.field-mode) :is(#screen-transform .transform-subtabs, #screen-camera .camera-tabs-bar, #screen-about .about-tab-bar) {
+  display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 4px !important;
+  height: auto !important; padding: 4px !important; margin-bottom: 12px !important;
+  background: var(--u-input) !important; border: 1px solid var(--u-line) !important; border-radius: var(--u-radius) !important;
+  overflow-x: auto !important; overflow-y: hidden !important; scrollbar-width: none !important; box-shadow: none !important;
+}
+body:not(.field-mode) :is(#screen-transform .transform-subtabs, #screen-camera .camera-tabs-bar, #screen-about .about-tab-bar)::-webkit-scrollbar { display: none !important; }
+body:not(.field-mode) :is(#screen-transform .btn-subtab, #screen-camera .camera-tab-btn, #screen-about .about-tab-btn, #screen-profile .profile-mode-btn) {
+  flex: 1 0 auto !important; min-height: 40px !important; height: 40px !important; padding: 0 12px !important;
+  display: inline-flex !important; flex-direction: row !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
+  border-radius: 9px !important; border: 1px solid transparent !important; background: transparent !important; background-image: none !important;
+  color: var(--u-muted) !important; font-size: 13px !important; font-weight: 600 !important; letter-spacing: 0 !important; text-transform: none !important;
+  white-space: nowrap !important; box-shadow: none !important; transform: none !important;
+}
+body:not(.field-mode) :is(#screen-transform .btn-subtab, #screen-camera .camera-tab-btn, #screen-about .about-tab-btn, #screen-profile .profile-mode-btn).active {
+  background: var(--u-primary) !important; color: var(--u-primary-ink) !important;
+}
+body:not(.field-mode) #screen-transform .transform-subtabs .btn-help-circle-sm { flex: 0 0 auto !important; margin-left: 4px !important; }
+
+/* ---------- 6. Ô NHẬP ---------- */
+body:not(.field-mode) :is(.screen-view, .modal-overlay) :is(input.app-input, select.app-select, textarea.app-input) {
+  border-radius: 10px !important; border: 1px solid var(--u-line) !important; background-color: var(--u-input) !important;
+  color: var(--u-ink) !important; box-shadow: none !important;
+}
+body:not(.field-mode) :is(.screen-view, .modal-overlay) :is(input.app-input, select.app-select) { min-height: 44px !important; font-size: 15px !important; }
+body:not(.field-mode) :is(.screen-view, .modal-overlay) :is(input.app-input, select.app-select, textarea.app-input):focus { border-color: var(--border-focus, #38bdf8) !important; outline: 2px solid rgba(56, 189, 248, 0.35) !important; outline-offset: 0 !important; }
+
+/* ---------- 7. Màn Tối ưu lộ trình: dùng tên màn hình chung, bỏ tiêu đề lặp trên điện thoại ---------- */
+@media (max-width: 600px) {
+  #routingTopToolbar > :first-child > :not(button) { display: none !important; }
+}
+
+/* ---------- 8. Tinh chỉnh theo màn hình ---------- */
+/* Trắc dọc: hàng nút hẹp → chữ nhỏ hơn một nấc và cắt gọn thay vì chồng lên nhau. */
+body:not(.field-mode) #screen-profile .btn-sm { font-size: 12.5px !important; padding-left: 8px !important; padding-right: 8px !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+/* Chuyển đổi: đầu bản đồ trực quan gọn một hàng trên điện thoại (tên bản đồ đã rõ theo ngữ cảnh). */
+@media (max-width: 600px) {
+  #transformSplitLayout .transform-live-map-header { padding: 6px 8px !important; }
+  #transformSplitLayout .transform-live-map-header > :first-child { display: none !important; }
+  #transformSplitLayout .transform-live-map-header > :last-child { flex-wrap: nowrap !important; overflow-x: auto !important; scrollbar-width: none !important; width: 100% !important; }
+  #transformSplitLayout .transform-live-map-header .btn-sm { flex: 1 0 auto !important; }
+}
+
+/* ---------- 9. Chế độ Thực địa: bảng chức năng & ô truy cập nhanh tương phản cao ---------- */
+body.field-mode :is(.hub-title, #dashboardModernHub .dashboard-bar-title .bar-title-text) { color: #fff !important; }
+body.field-mode .fi-group-title { color: #ffdf00; }
+body.field-mode :is(.hub-search, .fi-search input) { background: #101010; color: #fff; border-color: #ccc; min-height: 48px; }
+body.field-mode #navTreeDrawer { background: #000 !important; }
+body.field-mode .fi-row { color: #fff; min-height: 60px; }
+body.field-mode .fi-icon { background: #1a1a1a; }
+body.field-mode .fi-sub { color: #ddd; }
+body.field-mode .fi-row:focus-visible { outline: 3px solid #ffdf00; outline-offset: -3px; }
+body.field-mode .fi-chip { color: #fff; border-color: #aaa; min-height: 44px; }
+body.field-mode .fi-chip[aria-pressed="true"] { background: #ffdf00; border-color: #ffdf00; color: #000; }
+body.field-mode .hub-toggle { background: #000; color: #fff; border-color: #aaa; min-height: 52px; }
+body.field-mode .hub-count { background: #1a1a1a; color: #ffdf00; }
+body.field-mode #dashboardModernHub .big-tile-sub { color: #ddd !important; }
+
+/* ---------- 10. Thanh "Có phiên bản mới" (service worker) ---------- */
+.sw-update-bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--sat-safe-bottom, env(safe-area-inset-bottom, 0px)) + 96px);
+  z-index: 100000; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  width: min(92vw, 420px); padding: 10px 12px; border-radius: 14px;
+  background: var(--u-surface); color: var(--u-ink); border: 1px solid var(--u-line-strong);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); font-size: 14px;
+}
+.sw-update-bar[hidden] { display: none; }
+.sw-update-bar > span { flex: 1 1 100%; text-align: center; }
+.sw-update-bar button { min-height: 44px; padding: 0 14px; border-radius: 10px; font: 600 14px/1 inherit; cursor: pointer; }
+#btnSwUpdate { background: var(--u-primary); color: #fff; border: 0; }
+#btnSwLater { background: transparent; color: var(--u-muted); border: 1px solid var(--u-line); }
+
+/* ---------- 11. Dễ đọc, dễ bấm ngoài thực địa ---------- */
+/* Điện thoại: bỏ nút Sáng/Tối khỏi thanh tiêu đề (vẫn có trong Cài đặt → Chung) để chip KTT hiện đủ "105°45' · 3°". */
+@media (max-width: 600px) { header.app-header #btnHeaderThemeToggle { display: none !important; } }
+
+/* Hàng 3 nút nhiều chữ (Cài đặt → Chung): xuống dòng trong nút thay vì tràn đè sang nút bên cạnh. */
+:is(#btnCoordFmtDD, #btnCoordFmtDMS, #btnCoordFmtDMM, #btnDecimals2, #btnDecimals3, #btnDecimals4) {
+  white-space: normal !important; height: auto !important; min-height: 44px !important;
+  line-height: 1.25 !important; padding: 6px 6px !important; overflow-wrap: anywhere; font-size: 12.5px !important;
+}
+#screen-routing button[onclick*="togglePointsListSheet"] { flex: 0 0 auto; min-width: max-content; }
+
+/* Vùng chạm còn thiếu — cùng cách WP-F (ui-polish.css §6): ::after trong suốt, kích thước nhìn thấy không đổi. */
+.sheet-tab-btn, #btnSheetMui3, #btnSheetMui6, .btn-subtab-back, #btnSheetPickToggle, #btnSheetToggleCollapse,
+.btn-card-mini, #btnSettingsHelpGuide, #cadStatsPill, #cadCurrentLayerPill, #cadCurrentProjectBadge { position: relative; }
+@media (max-width: 900px), (pointer: coarse) {
+  .sheet-tab-btn::after, #btnSheetMui3::after, #btnSheetMui6::after, .btn-subtab-back::after, #btnSheetPickToggle::after,
+  .btn-card-mini::after, #cadStatsPill::after, #cadCurrentLayerPill::after, #cadCurrentProjectBadge::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; margin-top: -22px;
+  }
+  #btnSheetToggleCollapse::after, #btnSettingsHelpGuide::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
+  }
+  input[type="checkbox"]:is(#chkMultiSelectAll, #chkSaveMultiToProject, #chkRoutingRoundTrip) { width: 24px !important; height: 24px !important; }
+}
+
+/* Chip KTT trên thanh tiêu đề: 📍 là ::before; màn ≤ 420 px bỏ biểu tượng để hiện đủ "105°45' · 3°". */
+header.app-header .header-ktt-chip::before { content: "📍"; margin-right: 4px; }
+@media (max-width: 420px) {
+  header.app-header .header-ktt-chip::before { content: none; }
+  header.app-header .header-ktt-chip { padding: 0 8px !important; }
+}
+
+/* ===== Lớp bản đồ (appMapLayers) ===== */
+#modalMapLayers .ml-box { max-height: calc(var(--ui-avail-h, var(--app-vh, 100dvh)) - 24px); overflow-y: auto; }
+#mapLayersBody { display: flex; flex-direction: column; gap: 16px; color: #e2e8f0; }
+#mapLayersBody .ml-group { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
+#mapLayersBody .ml-group > legend, #mapLayersBody .ml-group > h4 { margin: 0 0 4px; padding: 0; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8; }
+#mapLayersBody .ml-base { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px; border-radius: 12px; background: #131c31; border: 1.5px solid rgba(148,163,184,.16); cursor: pointer; }
+#mapLayersBody .ml-base.is-on { background: #0c2a44; border-color: #38bdf8; }
+#mapLayersBody .ml-base input { width: 18px; height: 18px; accent-color: #0284c7; margin: 0; flex: none; }
+#mapLayersBody .ml-thumb { width: 36px; height: 36px; border-radius: 8px; flex: none; border: 1px solid rgba(148,163,184,.35); }
+#mapLayersBody .ml-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+#mapLayersBody .ml-text b { font-size: 14px; color: #f1f5f9; }
+#mapLayersBody .ml-text small { font-size: 12px; color: #94a3b8; overflow-wrap: anywhere; }
+#mapLayersBody .ml-row { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #131c31; border: 1px solid rgba(148,163,184,.16); }
+#mapLayersBody .ml-row-head { display: flex; align-items: center; gap: 10px; }
+#mapLayersBody .ml-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+#mapLayersBody .ml-switch { appearance: none; -webkit-appearance: none; width: 44px; height: 26px; border-radius: 13px; background: #334155; position: relative; cursor: pointer; flex: none; margin: 0; }
+#mapLayersBody .ml-switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #e2e8f0; transition: left .15s; }
+#mapLayersBody .ml-switch:checked { background: #0284c7; }
+#mapLayersBody .ml-switch:checked::after { left: 21px; }
+#mapLayersBody .ml-switch:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+#mapLayersBody .ml-sub-controls { display: flex; flex-direction: column; gap: 8px; padding-left: 22px; font-size: 12px; color: #94a3b8; }
+#mapLayersBody .ml-sub-controls label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#mapLayersBody .ml-sub-controls select, #mapLayersBody .ml-sub-controls input[type=date] { min-height: 36px; background: #0b1220; color: #f1f5f9; border: 1px solid rgba(148,163,184,.35); border-radius: 8px; padding: 0 8px; font-size: 13px; }
+#mapLayersBody .ml-slider input[type=range] { flex: 1; min-width: 120px; accent-color: #38bdf8; }
+#mapLayersBody .ml-slider span { min-width: 38px; text-align: right; color: #e2e8f0; font-weight: 700; }
+#mapLayersBody .ml-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+#mapLayersBody .ml-legend span { display: inline-flex; align-items: center; gap: 5px; color: #cbd5e1; }
+#mapLayersBody .ml-legend i { width: 11px; height: 11px; border-radius: 2px; border: 1px solid rgba(0,0,0,.3); }
+#mapLayersBody .ml-add-btn { min-height: 44px; border-radius: 12px; border: 1.5px dashed rgba(56,189,248,.55); background: transparent; color: #7dd3fc; font-size: 13px; font-weight: 700; cursor: pointer; padding: 6px 12px; }
+#mapLayersBody .ml-add { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: #131c31; border: 1px solid rgba(56,189,248,.35); }
+#mapLayersBody .ml-add label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 600; color: #cbd5e1; }
+#mapLayersBody .ml-add input[type=text], #mapLayersBody .ml-add input[type=url], #mapLayersBody .ml-add select { min-height: 42px; background: #0b1220; color: #f1f5f9; border: 1px solid rgba(148,163,184,.35); border-radius: 10px; padding: 0 10px; font-size: 13.5px; }
+#mapLayersBody .ml-add .ml-check { flex-direction: row; align-items: flex-start; gap: 8px; font-weight: 500; line-height: 1.45; }
+#mapLayersBody .ml-add .ml-check input { width: 18px; height: 18px; margin-top: 2px; flex: none; accent-color: #0284c7; }
+#mapLayersBody .ml-note { margin: 0; font-size: 12px; line-height: 1.5; color: #94a3b8; }
+#leaflet-map.map-base-none { background: #ffffff; }
+#leaflet-map .leaflet-control-attribution { font-size: 11px; max-width: 70vw; background: rgba(255,255,255,.82); color: #1e293b; }
+#leaflet-map .leaflet-control-attribution a { color: #0369a1; }

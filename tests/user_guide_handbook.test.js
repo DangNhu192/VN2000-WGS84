@@ -50,11 +50,11 @@ test('3. Verify large screen showcase with real high-resolution screenshots & st
   assert.ok(html.includes('step-number-circle'), 'Must have clear step-by-step number indicators');
 
   // Kiểm tra sử dụng ảnh thực tế chất lượng cao
-  assert.ok(html.includes('desktop_fn1_transform.png'), 'Must include desktop transform screenshot');
-  assert.ok(html.includes('desktop_fn5_batch.png'), 'Must include desktop batch screenshot');
-  assert.ok(html.includes('desktop_fn2_project.png'), 'Must include desktop project screenshot');
-  assert.ok(html.includes('desktop_fn6_cad.png'), 'Must include desktop cad screenshot');
-  assert.ok(html.includes('desktop_fn7_profile.png'), 'Must include desktop profile screenshot');
+  assert.ok(html.includes('desktop_fn1_transform.webp') && require('fs').existsSync(require('path').join(__dirname, '..', 'assets/tutorial_screens/desktop_fn1_transform.webp')), 'Must include desktop transform screenshot');
+  assert.ok(html.includes('desktop_fn5_batch.webp') && require('fs').existsSync(require('path').join(__dirname, '..', 'assets/tutorial_screens/desktop_fn5_batch.webp')), 'Must include desktop batch screenshot');
+  assert.ok(html.includes('desktop_fn2_project.webp') && require('fs').existsSync(require('path').join(__dirname, '..', 'assets/tutorial_screens/desktop_fn2_project.webp')), 'Must include desktop project screenshot');
+  assert.ok(html.includes('desktop_fn6_cad.webp') && require('fs').existsSync(require('path').join(__dirname, '..', 'assets/tutorial_screens/desktop_fn6_cad.webp')), 'Must include desktop cad screenshot');
+  assert.ok(html.includes('desktop_fn7_profile.webp') && require('fs').existsSync(require('path').join(__dirname, '..', 'assets/tutorial_screens/desktop_fn7_profile.webp')), 'Must include desktop profile screenshot');
 
   // Kiểm tra tính năng Lightbox phóng to ảnh và thanh tìm kiếm nhanh
   assert.ok(html.includes('openLightbox'), 'Must provide openLightbox for 100% zoom inspection');

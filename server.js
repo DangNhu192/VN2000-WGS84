@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const PORT = 8080;
+const PORT = Number(process.env.PORT) || 8080;
+const ROOT = path.resolve(__dirname);
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
@@ -21,7 +22,15 @@ const server = http.createServer((req, res) => {
     let reqUrl = req.url.split('?')[0];
     if (reqUrl === '/') reqUrl = '/index.html';
 
-    let filePath = path.join(__dirname, decodeURIComponent(reqUrl));
+    let decoded;
+    try { decoded = decodeURIComponent(reqUrl); } catch (e) { decoded = null; }
+    // Chặn đọc file ngoài thư mục dự án (vd. "/..%2f..%2fetc/passwd") — máy chủ mở cho cả mạng Wi-Fi.
+    let filePath = decoded === null ? null : path.resolve(__dirname, '.' + path.posix.normalize('/' + decoded));
+    if (!filePath || (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) || /(^|[\\/])\./.test(path.relative(ROOT, filePath))) {
+        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('403 Forbidden');
+        return;
+    }
 
     fs.stat(filePath, (err, stats) => {
         if (err || !stats.isFile()) {
@@ -35,7 +44,6 @@ const server = http.createServer((req, res) => {
 
         res.writeHead(200, {
             'Content-Type': contentType,
-            'Access-Control-Allow-Origin': '*',
             'Cache-Control': 'no-cache'
         });
 

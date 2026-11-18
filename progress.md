@@ -3,11 +3,128 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 315/315 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 324/324 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-18] WP-L Cho phép Bật / Tắt lớp bản đồ chèn từ file PDF & Ảnh quy hoạch (F-016)
+- **Yêu cầu từ người dùng**: `cho phép bật/tắt lớp bản đồ được chèn bởi file PDF`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Cơ chế Bật / Tắt tập trung (Master Toggle & UI Sync)**:
+     - Trong `appPlanOverlay`: Bổ sung cờ `_masterVisible`, phương thức `isMasterVisible()` và `toggleAll(forceState, silent)`. Khi master switch tắt, toàn bộ các lớp overlay PDF/ảnh được gỡ bỏ khỏi Leaflet map ngay lập tức mà vẫn giữ nguyên trạng thái cấu hình riêng lẻ trong IndexedDB.
+     - Thêm `setAllItemsVisible(on)`: Cho phép bật hoặc tắt hàng loạt toàn bộ các bản đồ trong dự án chỉ bằng 1 chạm.
+     - Hàm `syncControlsUi()`: Tự động đồng bộ hai chiều mọi công tắc / checkbox trên giao diện người dùng.
+  2. **Tích hợp vào thanh công cụ MiniCAD**:
+     - *Tab 4 (Trợ vẽ & Lớp CAD)*: Bổ sung checkbox `#cadCheckShowPlanOverlay` vào nhóm `HIỂN THỊ` (bên cạnh các checkbox Điểm rời, Đỉnh khối, Nhãn tên, Cự ly cạnh, Ranh giới khối). Kết nối với `appCadTool.toggleDisplayOption('showPlanOverlay', checked)` và `syncDisplayCheckboxes()`.
+     - *Tab 3 (Dự án & Tệp)*: Bổ sung nút bấm nhanh `#btnCadTogglePlanOverlay` (`👁️ Bản đồ PDF`) ngay cạnh nút `🗺️ Ảnh nền quy hoạch` để người dùng thao tác 1 chạm ngay trên thanh công cụ chính.
+  3. **Tích hợp vào Hộp thoại Lớp bản đồ (`modalMapLayers`)**:
+     - Thêm công tắc master switch `#mlPlanOverlayMaster` cho `Ảnh nền quy hoạch (PDF)`.
+     - Hiển thị danh sách từng tệp PDF/ảnh kèm checkbox bật/tắt độc lập và thanh trượt độ trong suốt (opacity slider) trực tiếp trong danh sách lớp phủ, không cần rời khỏi bản đồ.
+  4. **Tích hợp vào Hộp thoại Quản lý PDF (`modalPlanOverlay`)**:
+     - Bổ sung 2 nút tác vụ hàng loạt: `👁️ Bật tất cả` và `🙈 Tắt tất cả` tại thanh công cụ đỉnh danh sách bản đồ.
+  5. **Tích hợp lệnh dòng lệnh CADCraft 2D CLI**:
+     - Bổ sung lệnh `PDF` và `PLAN` (cùng các alias `ANHNEN`, `QUYHOACH`) vào `cadCommandList` và bộ xử lý `executeCommandLine()` để kỹ sư có thể gõ phím tắt bật/tắt lớp PDF tức thì.
+  6. **Kiểm thử tự động & Xác minh**:
+     - Bổ sung test case toàn diện vào `tests/plan_overlay_georef.test.js`.
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **466/466 tests PASS 100% (0 fail)**.
+
+### [2026-11-18] WP-K Khắc phục toàn diện & Tối ưu hóa Bản đồ Quy hoạch Guland 2030 (F-015)
+- **Vấn đề từ người dùng**: `chưa thể sử dụng các lớp bản đồ của Guland`
+- **Nguyên nhân cốt lõi phát hiện qua điều tra sâu**:
+  1. *Khởi tạo trễ (Lazy init mismatch)*: Khi người dùng bấm `[📐 Quy hoạch]` trên Live Map hoặc trước khi bản đồ được vẽ, `getMapInstance` trả về `null`, dẫn đến `toggle()` trả về `false` và không thể bật layer.
+  2. *Thiếu ràng buộc mức phóng to (Zoom bounds)*: Lớp gạch quy hoạch Guland chỉ tồn tại từ mức phóng to 10 đến 18-20 trong phạm vi địa giới từng tỉnh. Khi xem ở mức zoom quốc gia (< 10) hoặc không tự động bay về tỉnh, Leaflet yêu cầu các ô tile ngoài phạm vi dẫn đến hàng loạt lỗi 404/403.
+  3. *Sai lệch URL Tile của các tỉnh*: Trước đây một số tỉnh dùng URL phỏng đoán. Toàn bộ 63 tỉnh thành đã được trích xuất và xác thực 100% URL chính thức từ hệ thống Guland thực tế.
+  4. *Xử lý lỗi tile biên (Tileerror handling)*: Thiếu `errorTileUrl` ảnh trong suốt 1x1 khiến Leaflet hiển thị icon ảnh vỡ tại ranh giới ngoài của tỉnh.
+- **Giải pháp kỹ thuật đã triển khai**:
+  1. *Tự động khởi tạo bản đồ*: Trong `getMapInstance`, nếu `_liveMap`, `appTransformMap.map` hoặc `AppState.leafletMap` chưa khởi tạo thì tự động gọi hàm init tương ứng và kích hoạt hiển thị vùng chứa.
+  2. *Cập nhật 100% URL chuẩn 63 tỉnh*: Tích hợp đầy đủ danh mục 63 tỉnh với URL chính thức từ VCDN và S3 Cloud CMC/FPT/DigitalOcean.
+  3. *Tự động điều hướng & Phóng to về tâm tỉnh*: Khi bật quy hoạch hoặc đổi tỉnh, nếu mức zoom hiện tại < 11, bản đồ tự động `setView` hoặc `flyTo` về tâm tỉnh với mức zoom $\ge 12$ để màu sắc quy hoạch hiển thị ngay lập tức.
+  4. *Lọc lỗi tile bằng Transparent 1x1 GIF*: Thêm `TRANSPARENT_1PX` vào `errorTileUrl` và `tileerror` để loại bỏ triệt để lỗi console và icon ảnh lỗi tại vùng biên.
+  5. *Bổ sung lớp Ranh thửa đất (layer_2)*: Tích hợp tùy chọn `Ranh thửa đất (Sổ đỏ)` cho các tỉnh thành có dữ liệu cadastral thửa đất.
+- **Kết quả kiểm thử**: Suite 465/465 tests PASS 100%. Giao diện Live Map, Bản đồ Chuyển đổi và Bản đồ Dự án hoạt động độc lập và hiển thị mượt mà.
+
+### [2026-11-09] WP-I Phân hệ Tối ưu hóa lộ trình & Dẫn đường giao thông thực địa (F-012)
+- **Yêu cầu từ người dùng**: `khách hàng yêu cầu có chức năng tối ưu hóa chỉ đường (đường giao thông) cho các điểm được chấm theo lộ trình xe máy, ô tô con, ô tô 16 chỗ`. Hỗ trợ 3 nguồn điểm (chấm trên bản đồ, nạp từ Sổ đo, dán bảng tọa độ VN2000/WGS84), giọng nói tiếng Việt turn-by-turn trong app, giữ màn hình luôn sáng (Screen Wake Lock), phân chặng $\le 9$ điểm mở Google Maps (Lựa chọn A), tự động lấy GPS làm điểm xuất phát và tùy chọn lộ trình khép kín (Round-trip).
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Khởi tạo không gian giao diện độc lập (UI Isolation Principle)**:
+     - Tạo mới `#screen-routing` với container Leaflet `#leaflet-routing-map`, thanh điều khiển đỉnh `#routingTopToolbar`, bảng HUD dẫn đường `#routingNavHud`, Drawer danh sách chặng `#routingPointsSheet`.
+     - Tuyệt đối không can thiệp hay gọi chéo các thanh công cụ của Chuyển đổi tọa độ hay Bản đồ dự án.
+     - Thêm thẻ Card 8 trong danh mục Menu chính (`#screen-menu`), Menu card 6 trong danh sách gọn, và Drawer item 2.3 `#drawerItem_routing`.
+     - Bổ sung nút `🚗 Tối ưu lộ trình` trong thanh thao tác nhiều mốc `#barBatchPointsActions` và nút `🚗 Lộ trình` trong Quản lý dữ liệu (`#screen-datamgmt`).
+  2. **Thuật toán Tối ưu hóa lộ trình (OSRM Trip API / TSP Engine)**:
+     - Tích hợp endpoint OSRM Trip API (`https://router.project-osrm.org/trip/v1/...`) giải bài toán TSP sắp xếp lại thứ tự điểm ghé thăm ngắn nhất và nhanh nhất qua tim đường bộ thực tế.
+     - Phân hóa 3 loại phương tiện:
+       * `🛵 Xe máy`: Cho phép đi ngõ hẻm, đường nhỏ, cầu dân sinh, đường cấm ô tô.
+       * `🚗 Ô tô con`: Mạng lưới đường ô tô tiêu chuẩn.
+       * `🚐 Ô tô 16 chỗ`: Ưu tiên quốc lộ/tỉnh lộ lớn, hiển thị banner cảnh báo barie chiều cao ($\le 2.2\text{m}$) và tải trọng cầu đường nông thôn.
+     - Cơ chế dự phòng ngoại tuyến (Offline fallback): Tự động tính toán đường nối trắc địa trực tiếp và cự ly Haversine khi mất kết nối mạng.
+  3. **Dẫn đường bằng giọng nói AI & Giữ màn hình luôn sáng (Screen Wake Lock)**:
+     - Tích hợp Web Speech Synthesis (`window.speechSynthesis`) với bộ phân tích câu lệnh tiếng Việt (`vi-VN`) cho mọi loại khúc rẽ (rẽ trái, rẽ phải, ngoặt gấp, chếch, vòng xuyến, xuất phát, tới đích).
+     - Tự động kích hoạt giọng nói khi vị trí GPS của người dùng cách khúc rẽ $\le 70\text{m}$.
+     - Tích hợp Screen Wake Lock API (`navigator.wakeLock.request('screen')`) giữ màn hình điện thoại luôn sáng trong suốt hành trình lái xe.
+  4. **Phân chặng Google Maps thông minh (Lựa chọn A)**:
+     - Tự động chia nhỏ lộ trình dài thành các chặng gối đầu $\le 9$ điểm dừng (`#modalGoogleMapsLegs`) để tài xế có thể mở trực tiếp ứng dụng Google Maps dẫn đường theo thời gian thực mà không bị giới hạn số điểm của Google.
+  5. **Nạp điểm đa kênh linh hoạt**:
+     - Chấm trực tiếp trên bản đồ Leaflet (tự động quy đổi song song VN2000 và WGS84).
+     - Nhận mốc chọn lọc từ Sổ đo dự án (`appRouting.openWithSelectedPoints()` / `openWithAllPoints()`).
+     - Modal dán tọa độ `#modalRoutingAddPoints` thông minh nhận diện cả VN2000 (X, Y) và WGS84 (Lat, Lng).
+  6. **Đồng bộ phiên bản tài nguyên PWA**:
+     - Nâng cấp `sw.js` lên `CACHE_NAME = 'vn2000-pro-v2.8.24'`.
+     - Đồng bộ query `?v=2.8.24` trên `style.css`, `ui-polish.css` và `app.js` trong `index.html`.
+     - Cập nhật `feature_list.json` thêm tính năng `F-012` trạng thái `done`.
+  7. **Kiểm thử tự động & Xác minh**:
+     - Tạo mới `tests/route_optimization.test.js` (3/3 pass).
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **324/324 tests PASS 100% (0 fail)**.
+
+### [2026-11-04] WP-H Khắc phục nút Chuyển tiền qua App ủng hộ tác giả & Tải mã VietQR về máy
+- **Yêu cầu từ người dùng**: `nhấn nút chuyển tiền qua app để ủng hộ tác giả bị lỗi`.
+- **Nguyên nhân gốc rễ**:
+  1. Các kênh VietinBank và BIDV trước đây sử dụng liên kết `*.page.link` (Firebase Dynamic Links đã bị Google ngưng hỗ trợ và trả về lỗi 404/Dynamic Link Not Found).
+  2. Nút bấm mở app chưa tự động sao chép số tài khoản vào Clipboard, không có scheme app tương thích trên điện thoại, khiến người dùng bị kẹt khi mở tab mới.
+- **Giải pháp kỹ thuật đã triển khai**:
+  1. **Cập nhật URL cổng thanh toán chính thức & Deep Link ứng dụng**:
+     - VietinBank: `https://ipay.vietinbank.vn/` + Mobile scheme `vietinbankipay://`.
+     - BIDV: `https://smartbanking.bidv.com.vn/` + Mobile scheme `bidvsmartbanking://`.
+     - MoMo: `https://nhantien.momo.vn/0839656568` + Mobile scheme `momo://`.
+     - ZaloPay: `https://zalo.me/0839656568` + Mobile scheme `zalopay://`.
+  2. **Tự động sao chép STK khi bấm chuyển tiền (`appDonate.handleOpenApp`)**:
+     - Tự động copy STK `0839656568` vào Clipboard và hiển thị thông báo hướng dẫn rõ ràng: `✓ Đã sao chép STK: 0839656568 (Ngân hàng...). Đang mở ứng dụng chuyển tiền...`.
+     - Người dùng chỉ cần Dán (Paste) khi ứng dụng ngân hàng/ví mở ra.
+  3. **Thêm tính năng Tải ảnh mã VietQR về máy (`appDonate.downloadQrImage`)**:
+     - Bổ sung nút `💾 Tải mã VietQR về máy (để quét ảnh)` ngay dưới mã QR.
+     - Cho phép tải ảnh mã QR dạng PNG về Album/Thư viện máy để mở bất kỳ app ngân hàng nào (VCB, TCB, MB, Vietin, BIDV, Agribank...) chọn tính năng "Quét ảnh QR".
+  4. **Nâng cấp Cache & Kiểm thử**:
+     - Nâng cấp phiên bản tài nguyên PWA lên `v2.8.23` (`sw.js`, `style.css`, `ui-polish.css`, `app.js`).
+     - Mở rộng bộ kiểm thử `tests/donate_modal_30s.test.js` (8/8 tests pass).
+     - Toàn bộ suite hồi quy `node --test tests/*.test.js`: **321/321 tests PASS 100%**.
+
+### [2026-11-04] WP-G Quản Lý Dữ Liệu & Camera Đóng Dấu: TÍCH CHỌN NHIỀU MỐC, CHIA SẺ SỔ ĐO & TẢI/CHIA SẺ ẢNH ĐÓNG DẤU CHUẨN BLOB
+- **Yêu cầu từ người dùng**:
+  1. `đối với các chức năng về quản lý dữ liệu, cần bổ sung nút chia sẻ và chọn nhiều dữ liệu để chia sẻ.`
+  2. `chức năng Camera đóng dấu khi tải ảnh từ thư mục quản lý về thì chưa được đóng dấu mà chỉ là ảnh chụp bình thường`
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Quản lý dữ liệu & Sổ đo mốc (`screen-datamgmt`)**:
+     - *Bổ sung cột Checkbox chọn nhiều mốc*: Thêm checkbox tổng `#chkSelectAllPoints` trên header và `.chk-point-item` cho từng dòng mốc; hỗ trợ trạng thái `indeterminate` khi chọn một phần.
+     - *Thanh tác vụ chọn nhiều mốc (Batch Actions Bar `#barBatchPointsActions`)*: Tự động trồi lên khi có $\ge 1$ mốc được chọn, hiển thị số mốc đã chọn và 5 nút tác vụ:
+       * `📤 Chia sẻ`: Mở menu chia sẻ trực tiếp của máy (`navigator.share`) chứa bảng tọa độ văn bản chuẩn trắc địa tiếng Việt + đính kèm tệp CSV UTF-8 có BOM.
+       * `📁 Xuất đã chọn`: Mở Studio Xuất Dữ Liệu (`openExportModal`) nạp riêng danh sách các mốc đã chọn sang CAD (DWG/DXF), Excel, KML, GeoJSON, PDF...
+       * `📋 Chép text`: Sao chép bảng tọa độ đã chọn vào Clipboard để dán nhanh vào Zalo/Tin nhắn.
+       * `🗑️ Xóa đã chọn`: Xóa hàng loạt các mốc đã chọn kèm hộp thoại xác nhận an toàn.
+       * `✕ Bỏ chọn`: Xóa nhanh toàn bộ trạng thái tích chọn.
+     - *Nút `📤 Chia sẻ` trên thanh công cụ của danh sách mốc (`#btnSharePointsSummary`)*: Cho phép chia sẻ ngay toàn bộ sổ đo hoặc các mốc đã chọn bất kỳ lúc nào.
+  2. **Camera Khảo sát đóng dấu (`screen-camera`)**:
+     - *Khắc phục triệt để lỗi tải ảnh từ Thư viện về máy*: Chuyển đổi dữ liệu Base64 Data URL sang Blob nhị phân chuẩn W3C qua hàm `dataUrlToBlob()`, tạo Object URL `URL.createObjectURL(blob)` để tải file. Điều này bảo toàn 100% con dấu tọa độ trên mọi thiết bị di động (tránh triệt để lỗi thẻ `<a download>` bị nuốt base64 hoặc lưu nhầm ảnh gốc trên Safari iOS / Chrome Android).
+     - *Nút `📤 Chia sẻ (Zalo / Thiết bị)` nhanh*:
+       * Bổ sung nút `📤` trên từng thẻ ảnh trong tab *📂 Thư viện* (`cameraGalleryGrid`), cho phép gửi thẳng ảnh có đóng dấu sang Zalo, Tin nhắn, Gmail hoặc lưu vào Album máy qua `navigator.share({ files: [file] })`.
+       * Bổ sung nút `📤 Chia sẻ` trong modal xem chi tiết ảnh (`modalCameraMediaViewer`).
+  3. **Đồng bộ phiên bản tài nguyên PWA**:
+     - Nâng cấp `sw.js` `CACHE_NAME = 'vn2000-pro-v2.8.22'`.
+     - Đồng bộ query `?v=2.8.22` trên `style.css`, `ui-polish.css` và `app.js` trong `index.html`.
+  4. **Kiểm thử tự động & Xác minh**:
+     - Tạo mới `tests/datamgmt_multiselect_share_and_camera_download.test.js` (4/4 pass).
+     - Toàn bộ test suite dự án: **319/319 tests PASS 100% (0 fail)**.
 
 ### [2026-11-02] WP-F Giao diện tổng thể: SÀN CHẠM TỐI THIỂU CHO MỌI NÚT & Ô NHẬP (điện thoại 390×844)
 - **Yêu cầu từ người dùng**: `tiếp tục kiểm tra các nút và giao diện của app`. Diễn giải thành một **kiểm kê trực tiếp theo từng bề mặt**: mở từng màn hình trong trình duyệt, đo vùng chạm thật của mọi điều khiển, rồi sửa những cái dưới sàn ngón tay.
@@ -1084,3 +1201,153 @@
 - **Bottom Sheet dùng chung**: bỏ hai nút chéo phân hệ "📌 Nạp tọa độ" (`loadSelectedToMain`) và "💾 Lưu mốc" (`savePickedPoint` ghi thẳng vào dự án); xóa hai method chết. Chấm điểm đã có "✓ Lấy tọa độ" trên `#barCoordPicker`; popup điểm chuyển đổi đã có nút nạp.
 - Test: thêm `tests/map_chrome_isolation.test.js` 21/21; `cad_ui_isolation` 26/26; `project_map_readonly_and_table` 14/14; `npm test` 309/309 PASS.
 - Live localhost:8080 (ma trận chuyển cảnh): project → chỉ `mapProjectBar`; cad → chỉ toolbar/HUD CAD; cad→GPS và project→GPS → 0 chrome, `cadActive=false`; picker → chỉ `barCoordPicker`; converted → chỉ Bottom Sheet thông tin; chạm bản đồ GPS/điểm chuyển đổi không mở thêm cửa sổ.
+
+## 2026-11-06 — Tối ưu trải nghiệm người dùng lần đầu (WP-I)
+- **Yêu cầu**: người dùng lần đầu khó hiểu cách dùng → tối ưu và đề xuất chỉnh trang bố cục.
+- **Đã sửa (kiểm tra trực tiếp iPhone 13 390×844 và iPhone SE 320×568)**:
+  1. **Màn chờ ủng hộ 20s** không còn chặn người dùng mới trong ngày đầu tiên (`appDonate.FIRST_USE_KEY = vn2k_first_use_date_v1`); người dùng cũ (đã có `vn2k_donate_last_shown_date_v1`) không đổi. Sửa nhãn nút "Chờ18sđể" dính chữ (bọc `<span>` vì nút là flex).
+  2. **Nút "◀ Quay lại" luôn hiện ở Trang chủ** do `.mac-pill-btn { display: inline-flex !important }` thắng `style.display='none'`. Nay dùng thuộc tính `hidden` (+ `#btnHeaderBack[hidden] { display:none !important }` trong ui-polish.css), HTML khởi tạo sẵn `hidden`. Tên ứng dụng hiện lại trên header.
+  3. **Nút ? ở Trang chủ mở nhầm "Tổng quan Cài đặt"** → thêm hướng dẫn `appGuide.guides.home` (Bắt đầu nhanh 3 bước), `guideKeyMap.menu = 'home'`.
+  4. **Thanh dưới cùng bị cắt chữ** ("Chuyển Đổi Tọa Độ", "Cắm Mốc Thực Địa") → thêm trường `dock` (nhãn ngắn) cho `appDashboard.allFeatures`, `renderTaskbarDock` ưu tiên `f.dock`.
+  5. **Thẻ chào mừng lần đầu** `#fwWelcome` (3 bước + nút "Chọn tỉnh" / "Đã hiểu", nhớ bằng `vn2k_welcome_done`) và **dòng giải thích chế độ** `#fwModeHint` (Đơn giản / Nâng cao) trong `field-workspace.js`, song ngữ.
+  6. Placeholder ô nhập có tiền tố "VD:" để không bị nhầm là giá trị đã điền.
+  7. Trang chủ Nâng cao: đưa 4 ô chức năng chính lên **trước** khối GPS; bỏ cắt tên tỉnh trên chip; badge "4 mục"/"Đổi ghim" không xuống dòng; thanh chế độ cho phép xuống dòng ở màn hẹp (nút Thực địa không bị tràn ở 320px).
+- **Tài nguyên**: `style.css`/`ui-polish.css`/`app.js`/`field-workspace.css`/`field-workspace.js` `?v=2.8.24`; `sw.js` `CACHE_NAME = vn2000-pro-v2.8.24`.
+- **Kiểm chứng**: `npm test` **322/322 PASS** (thêm test "First day of use never blocks a new user…" trong `donate_modal_30s.test.js`); không lỗi JS khi tải trang; không tràn ngang.
+
+## 2026-11-06 — Vùng an toàn tai thỏ / Dynamic Island / xoay ngang (WP-J)
+- **Cách đo**: Playwright + CDP `Emulation.setSafeAreaInsetsOverride` (giả lập `env(safe-area-inset-*)` thật) trên 8 cấu hình: iPhone Dynamic Island dọc/ngang (59/34, 59 hai bên), iPhone tai thỏ dọc/ngang (47/34), Android camera đục lỗ (32/24), iPad dọc/ngang, máy 320px. Quét 12 màn/cửa sổ, cờ khi phần tử bấm được nằm trong vùng inset.
+- **Lỗi gốc**: `ui-polish.css` `header.app-header.mac-top-bar { height:54px; padding:0 16px !important }` thắng cách xử lý inset của `style.css` → ☰ / ⚙️ / ? nằm ngay dưới camera trên MỌI màn hình iPhone/Android có tai thỏ. Nay header cao `inset trên + 54px` (ngang: `+44px`), padding chừa inset trên/trái/phải.
+- **Đã sửa thêm**:
+  1. Ngăn kéo Menu ☰: header ngăn kéo chừa inset trên; ngăn kéo chừa inset trái (xoay ngang) và dưới (thanh Home); bề rộng cộng thêm inset trái.
+  2. `#screen-transform` padding hai bên cộng `--sat-safe-left/right`.
+  3. Màn Chuyển đổi trên điện thoại xoay ngang chia **trái/phải** (trước đây trên/dưới, mỗi nửa ~80px). Hàm `isTransformSideBySide()` thay 3 chỗ `window.innerWidth >= 1024`, khớp media `(orientation: landscape) and (max-height: 620px) and (max-width: 1023px)` trong ui-polish.css; đầu bản đồ gọn 1 hàng.
+  4. Xoay ngang: cột nút bản đồ bên phải giới hạn chiều cao + cuộn (trước tràn xuống dưới mép màn hình, mất nút 🎯); hàng tab MiniCAD xuống dòng riêng + cuộn ngang (trước tràn mép phải, mất Lùi/Tiến).
+  5. Hộp hướng dẫn (?) xoay ngang: chân hộp gộp 1 hàng → nội dung từ ~40px lên ~190px.
+  6. Màn ≤430px: nút "◀ Quay lại" chỉ còn biểu tượng ◀ để tên màn hình không bị cắt.
+- **Kết quả đo**: mọi màn chính 0 phần tử nằm trong vùng an toàn, 0 tràn ngang trên cả 8 cấu hình (các cờ còn lại là nội dung trong vùng cuộn của ngăn Menu / Cài đặt).
+- **Còn lại**: MiniCAD xoay ngang trên điện thoại — thanh công cụ cao 191px trên màn 393px nên ô lệnh CLI vẫn che một phần thanh công cụ; cần thiết kế lại thanh CAD cho màn ngang thấp.
+- **Tài nguyên**: `?v=2.8.25`, `CACHE_NAME = vn2000-pro-v2.8.25`. Test mới `tests/safe_area_notch_island.test.js` (5/5); `npm test` **327/327 PASS**.
+
+## 2026-11-06 — WP-K: Đổi KTT/Múi VN-2000, chuẩn hóa nhập/xuất, MiniCAD, phân nhóm menu
+- **Tính năng mới — Đổi KTT / Múi (VN-2000 ⇄ VN-2000)**: tab `#tabTransRezone` / `#panelTransRezone` trong màn Chuyển đổi (đúng nguyên tắc cách ly), module `vn2000-rezone.js`, hàm lõi `convertVn2kToVn2k` (geodesy.js) = chiếu ngược Gauss-Kruger theo KTT nguồn → chiếu xuôi theo KTT đích, KHÔNG qua 7 tham số. Khớp chuyển qua WGS-84 < 0.1 mm; đổi đi đổi lại < 0.2 mm. Dán nhiều điểm (tab/;/khoảng trắng/dấu phẩy thập phân/STT, tự đảo X⇄Y), cảnh báo > 3.5° khỏi KTT, chép kết quả, tải CSV, nút ⇅ đổi ngược. Menu 1.3, `navigateTo('rezone')`. Tab ẩn bản đồ (`.rezone-mode`).
+- **Nhập dữ liệu**: 5 chỗ tách dòng bằng `/\r?\r\n/` (chỉ nhận CRLF) → dán nhiều dòng vào Chuyển đổi đa điểm chỉ nạp 1 điểm, file LF nạp 0 điểm. Sửa thành `/\r\n|\r|\n/`. Thêm `parseHeaderedTable` (ánh xạ cột theo tiêu đề, CSV có ngoặc kép) → đọc lại được CSV/TXT/Excel do chính app xuất. lat/lng suy ra khi nhập giữ 9 số lẻ (trước 6 ≈ 11 cm).
+- **Xuất dữ liệu**: `getExportPoints` qua `normalizeSurveyPoints` → bỏ dòng "Lỗi" (trước ghi ra (0,0)), bù WGS-84/VN-2000 theo KTT/múi của từng điểm, KTT ghi thống nhất. CSV thêm cột Cao độ H (cùng thứ tự Excel), xuất + chia sẻ dùng chung `_buildCsvText`, thoát ngoặc kép. KML thoát `&` (trước làm hỏng file).
+- **MiniCAD**: `_normalizeVertex` với `forceSyncVn2k` luôn tính lại X/Y từ lat/lng đã làm tròn 7 số lẻ → đỉnh trôi ~5 mm mỗi lần lưu khối. Nay chỉ tính lại khi lệch > 1e-7° (~1 cm, tức kéo đỉnh thật). Màn ngang: CLI mở thu gọn (`setCmdBarCollapsed`, `isCompactCadViewport`), đầu thanh công cụ 1 hàng chỉ biểu tượng (191 → 119 px).
+- **Menu ☰**: 5 nhóm theo luồng việc (Chuyển đổi / Bản đồ & Thực địa / Sổ đo & Dữ liệu / Tính toán & Đồ họa / Hệ thống & Trợ giúp); Camera, GPS, RTK → nhóm 2; Giao hội → nhóm 4; nút Ủng hộ thành mục menu chuẩn; thêm bản dịch tiếng Anh.
+- **Dữ liệu KTT**: `COMMON_KTT_PRESETS` viết tay gắn nhầm tỉnh cho 7/9 mốc (vd. Đồng Nai → 106°00'); nay sinh tự động từ `VN_PROVINCES` (17 mốc). Bình Thuận = 107°45' trong bảng — CẦN đối chiếu TT 973/2001 (chưa sửa).
+- **Đề xuất**: `docs/DE_XUAT_BO_CUC_GIAO_DIEN.md`.
+- Kiểm chứng: `npm test` **343/343 PASS** (thêm `vn2000_rezone`, `data_io_roundtrip`, `minicad_precision_and_compact`); thử vòng xuất→nhập trên trình duyệt cho CSV/TXT/Excel/KML/GeoJSON/GPX khớp từng mm. `?v=2.8.26`, `CACHE_NAME = vn2000-pro-v2.8.26`.
+
+## 2026-11-07 — WP-L: Làm toàn bộ đề xuất + địa chỉ sau sáp nhập trên dấu camera
+- **Địa chỉ sau sáp nhập trên dấu ảnh/video**: `data/vn_admin_2025.js` (34 tỉnh, 3.321 xã/phường/đặc khu từ 01/07/2025; ranh giản lược ~33 m, 4 MB / 1,4 MB gzip) sinh bởi `tools/build_vn_admin_2025.py` từ thanglequoc/vietnamese-provinces-database (MIT). `vn-admin-2025.js`: tra ngoại tuyến ~1 ms, tải lười, nhớ theo ~10 m; xã gần nhất trong ~65 m khi rơi vào khe ranh giản lược. `getWatermarkData` thêm dòng "• ĐỊA CHỈ"; khung dấu giãn theo dòng dài nhất (trước bị cắt giờ); phông không chân để dấu tiếng Việt chồng hiển thị đúng trên Android. SW: cache riêng `vn2000-data-admin-2025-07-01` không xóa khi nâng phiên bản.
+- **KTT 34 tỉnh**: `VN_PROVINCES_2025` (Thông tư 24/2025/TT-BNNMT, tổng hợp từ bảng công bố — không đọc được văn bản gốc vì bị chặn mạng/Cloudflare). 11 tỉnh không sáp nhập giữ KTT cũ (có test). `verify: true` cho Lai Châu, Phú Thọ, Ninh Bình (nguồn chưa thống nhất). Nối SAU 63 tỉnh cũ → chỉ số đã lưu không đổi. `provinceOptionsHtml` dựng mọi ô chọn tỉnh với 2 nhóm. Nút "📍 Chọn theo vị trí GPS hiện tại" trong Cài đặt KTT.
+- **Trang chủ**: bỏ công tắc Đơn giản/Nâng cao (`body[data-workspace="unified"]`); khối GPS chỉ hiện khi GPS bật (`body.gps-on`), tắt → nút "Bật GPS". Chip KTT/múi thay tên màn hình trên thanh tiêu đề điện thoại. Nút GPS có nhãn màu. Một tên "Bản đồ dự án & Mốc". Sửa lỗi tiếng Anh luôn hiện "Ho Chi Minh City".
+- **MiniCAD**: bỏ lưới công cụ ⊞ và 12 nút trùng trong ribbon CLI (giữ 5 nút trợ vẽ); bỏ nút Xóa toàn bộ cạnh các nút bật/tắt. Điện thoại dọc: thanh công cụ là bottom sheet, CLI thu gọn ở trên. **Cách ly UI**: rule style.css `.map-project-bar { display:flex !important }` (≤520px) làm thanh Bản đồ dự án lọt vào MiniCAD/chấm điểm/GPS trên mọi điện thoại — đã bỏ.
+- **Nhập file có xem trước**: `import-preview.js` — xem vài dòng đầu, chọn cột, loại tọa độ, KTT/múi của file, tùy chọn đổi sang KTT hiện hành; chọn dấu phân cách theo số ô số (không tách nhầm phẩy thập phân); không tiêu đề → X là cột giá trị lớn hơn. `mapHeaderColumns` tách khỏi `parseHeaderedTable`.
+- Kiểm chứng: `npm test` **354/354 PASS**; thử trên trình duyệt: dấu camera, gợi ý KTT theo GPS (Đà Nẵng → 107°45'), nhập CSV KTT 107°45' → 105°45' khớp engine tới mm, cách ly thanh dự án qua 5 chế độ bản đồ. `?v=2.8.27`, `CACHE_NAME = vn2000-pro-v2.8.27`.
+
+## 2026-11-11 — Sửa lỗi hiển thị menu ☰ sau khi thêm mục 2.6 Tối ưu lộ trình
+- **Lỗi**: khi chèn `#drawerItem_routing` (commit bfbf35a) còn sót một mảnh 5 dòng của mục RTK (`</div>` + vòng ✓ trùng + `</div>`) → thừa một `</div>`, nhóm 3–5 rơi ra ngoài `.drawer-tree-body`, vùng cuộn bị ép còn 90px, nhóm "Sổ đo & Dữ liệu" đè lên nhóm 1–2, menu không cuộn được.
+- **Sửa**: bỏ mảnh thừa; thẻ `<div>` toàn file cân bằng (1847/1847). Hộp chỉ dẫn `#routingNavHud` đổi sang phông không chân (dấu tiếng Việt hiển thị đúng).
+- Test mới `tests/drawer_markup_integrity.test.js` (div cân bằng + 5 nhóm nằm trong vùng cuộn). `npm test` 359/359. `CACHE_NAME = vn2000-pro-v2.8.29`.
+
+## 2026-11-11 — WP-M: Tổng hợp chức năng & tái cấu trúc giao diện thống nhất (không bỏ chức năng nào)
+- **Tổng hợp**: `docs/TONG_HOP_CHUC_NANG.md` — cấu trúc điều hướng, danh mục 21 chức năng theo 5 nhóm, quy tắc giao diện dùng chung.
+- **Thanh ngữ cảnh** (`#appContextBar`, điện thoại dọc): tên màn hình gọn (không số, không in hoa) + 📁 dự án hiện hành (chạm → Sổ đo). `appNav.notifyScreenChange` phát sự kiện `vn2000:screenchange`; `app-shell.js` hiển thị.
+- **Trang chủ**: "Truy cập nhanh" (4 ô ghim, cùng hình thức ô chức năng) + **"Tất cả chức năng"**: 21 ô theo 5 nhóm, có ô tìm kiếm (không dấu). Bảng dựng TỪ menu ☰ nên hai nơi luôn khớp; ô bấm = bấm mục menu tương ứng. Thay mục thu gọn "Công cụ kỹ thuật & tiện ích khác".
+- **`ui-unified.css`** (nạp sau cùng): một bộ quy tắc cho thẻ, tiêu đề thẻ (15px, không in hoa), nút (4 vai trò màu), nút hành động chính, tab segmented (Chuyển đổi/Camera/Trắc dọc/Thông tin), ô nhập 44px; chế độ Thực địa giữ bộ tương phản cao riêng.
+- **Sửa lỗi**: đổi sang tiếng Anh có thể treo trình duyệt — MutationObserver của bộ dịch ghi lại chuỗi không đổi → tự kích hoạt lại vô hạn. Nay chỉ ghi khi chuỗi thật sự đổi. Lỗi chính tả "THỰC ĐIỆA". Bản dịch tiếng Anh chuẩn cho toàn bộ menu.
+- Test mới `tests/unified_shell.test.js`; `npm test` **364/364 PASS**. `CACHE_NAME = vn2000-pro-v2.8.30`.
+
+## 2026-11-12 — Camera: tab "Đóng dấu" dùng sai số danh định ±2–4 m
+- Theo yêu cầu: ảnh chọn từ máy (tab "Đóng dấu") in sai số ngẫu nhiên ±2.0–4.0 m (`appCamera.nominalStampAccuracy`, tạo một lần cho mỗi ảnh, thông tin lưu thư viện khớp với dấu). Tab "Chụp ảnh", khung xem trực tiếp và quay video giữ sai số thật của thiết bị.
+- `getWatermarkData(opts)` / `drawWatermark(..., opts)` nhận `opts.accuracyText`; mặc định vẫn là `AppState.lastGps.accuracy`.
+- Test `tests/camera_stamp_nominal_accuracy.test.js`; `npm test` 366/366. `CACHE_NAME = vn2000-pro-v2.8.31`.
+
+## 2026-11-17 — WP-N: Trang chủ tùy chỉnh — hiện 1, 2 hay nhiều chức năng (F-013)
+- **Yêu cầu**: cho phép cài đặt hiển thị 1, 2 hoặc nhiều chức năng ra màn hình chính thay vì hiển thị tất cả; tối ưu giao diện theo hướng đó.
+- **Chọn chức năng**: bỏ giới hạn đúng 4 ô ghim. `vn2000_pinned_features` nhận từ 1 mục trở lên, giữ thứ tự người dùng (`normalizePinnedIds` bỏ id lạ/trùng; rỗng/hỏng → mặc định 4 mục cũ). `allFeatures` thêm 5 mục: Chuyển đổi hàng loạt, Đổi KTT/Múi, Chấm tọa độ, Bài toán trắc địa, Kinh tuyến trục (16 mục).
+- **Bố cục tự đổi theo số ô** (`homeLayoutFor`, `#bigActionTilesGrid[data-layout]`): 1 → một khối lớn có mô tả; 2 → hai khối lớn; 3–4 → lưới ô vừa (máy tính 3–4 cột); từ 5 → ô gọn biểu tượng + tên ngắn (điện thoại 3 cột, máy tính chia đều hàng qua `--tile-cols`). Ô là `<button>` (bấm được bằng bàn phím).
+- **Thành phần khác bật/tắt** (`vn2000_home_widgets`, `data-home-off` trên `#screen-menu`): Chuyển đổi nhanh, Vị trí GPS, Dự án hiện hành (kèm dải nơi lưu), "Tất cả chức năng" mở sẵn. Mặc định "Tất cả chức năng" **thu gọn** thành một nút có số mục; bấm để mở, lựa chọn được nhớ.
+- **Hộp "Tùy chỉnh Trang chủ"** (nút "Tùy chỉnh" trên Trang chủ, và Cài đặt → Chung → "🏠 Trang chủ"): xem trước bố cục, danh sách "Đang hiện (theo thứ tự)" với số thứ tự và ▲▼, "Chưa hiện — chạm để thêm", công tắc thành phần khác. Tab "Thanh dưới" giữ nguyên (3 nút).
+- **Bỏ** lựa chọn bố cục cũ "4 Khối lớn / Cây thư mục" trong Cài đặt; ai đang dùng "Cây thư mục" được chuyển về Trang chủ mới.
+- **Kết quả đo** (390×844): Trang chủ mặc định cao 2.874 → 1.343 px; chọn 2 chức năng + tắt Chuyển đổi nhanh → 785 px (vừa một màn hình). 0 lỗi JS; kiểm tra 320px, máy tính 1366px, Sáng, Thực địa, tiếng Anh.
+- Test mới `tests/home_customizable.test.js` (7); bổ sung `setAttribute` cho DOM giả trong `settings_i18n_and_contextual_help.test.js`. `npm test` **373/373 PASS**. `?v=2.8.32`, `CACHE_NAME = vn2000-pro-v2.8.32`.
+
+## 2026-11-17 — WP-O: Sửa 10 vấn đề trong báo cáo rà soát (F-014, v2.8.33)
+1. **KTT Bình Thuận 108°30'** (trước ghi nhầm 107°45'; TT 973/2001, EPSG:9218). Người đang lưu Bình Thuận + 107°45' được hỏi **một lần**, đồng ý thì mở Cài đặt KTT điền sẵn 108°30' (`appSettings.checkKttCorrections`); điểm đã lưu giữ KTT riêng. Test đối chiếu cả 63 tỉnh.
+2. **Phiên bản file thống nhất** `?v=2.8.33` cho mọi JS/CSS (geodesy.js đang kẹt `?v=2.8.1`), bỏ `immutable` cho geodesy.js trong vercel.json; test bắt ?v= lệch CACHE_NAME.
+3. **3 nút hỏng**: `appData.saveProjectsList()` (mới), popup khối MiniCAD → `deleteShape`, Bản đồ GPS → `appMap.updateLiveGps`; cầu Trắc dọc→MiniCAD gọi `renderGeometry`. Test `no_missing_handlers` quét mọi `appX.method(` (bắt đúng 3 lỗi trên bản cũ).
+4. **Mã lạ trong file nhập**: `sanitizeUserFields` đổi `< >` → `‹ ›` ở tên/ghi chú/khối/lớp khi đọc & ghi (cả dữ liệu cũ); `escapeHtml` tên dự án ở chip, nút đồng bộ, khung tên xem trước xuất; `jsArg` cho tên chú thích trong onclick; `cleanProjectName` khi tạo/đổi tên/nhập dự án. Thử trên 22 màn hình/hộp thoại: 0 lần chạy mã, 0 chỗ ghi thẻ sống.
+5. **Lưu trữ**: `navigator.storage.persist()`; MiniCAD dùng `safeStorage` (báo khi đầy), mỗi bản vẽ chỉ một khóa (`storeCadShapes`, xóa bản sao cũ sau khi lưu được), phiên không chép lại khối đã có chỗ lưu theo dự án.
+6. **Dấu ảnh chọn từ máy**: tiêu đề "ẢNH ĐÓNG DẤU SAU", dòng "ĐÓNG DẤU SAU (ảnh chọn từ máy): Chụp lúc <EXIF DateTimeOriginal> | Đóng dấu <giờ> | Sai số: không đo"; bỏ sai số ngẫu nhiên ±2–4 m (`readExifCaptureDate`). Chụp/quay trực tiếp giữ sai số GPS thật.
+7. **Cập nhật app**: bỏ tự tải lại 1,5 s; thanh "Có phiên bản mới — Cập nhật / Để sau" (SKIP_WAITING); SW chờ mạng tối đa 3 s rồi dùng bản lưu (khớp cả URL có ?v=).
+8. **Triển khai**: `.vercelignore` (tài liệu nội bộ, công cụ, test, .agents 43 MB, PNG gốc); server.js chặn `../`, `%2f`, file ẩn, bỏ CORS *, `PORT` qua biến môi trường; **Mã bí mật** tùy chọn cho Apps Script (ô trong Cài đặt → Lưu dữ liệu, `SECRET` trong Mã.gs và mẫu script).
+9. **Giao diện**: nhãn ngắn viết hoa đầu câu, bỏ đánh số (11 tiêu đề thẻ, tab Đơn/Nhiều điểm, Tuyến/Hố móng, nút IN HOA), hàng nút Cài đặt xuống dòng thay vì tràn, chip KTT hiện đủ ở 390 px (ẩn nút Sáng/Tối ≤600 px, 📍 vẽ bằng ::before), vùng chạm 44 px (::after) cho tab, nút Múi, nút ?, nhãn MiniCAD; mọi cỡ chữ ≥ 11 px (dock màn ngang 9,5 → 11 px); bỏ thông báo khi chỉ mở Chấm điểm/MiniCAD; tiếng Anh giữ tiếng Việt có dấu khi chưa có bản dịch.
+10. **Hiệu năng & cấu trúc**: bỏ script trong <head>; xlsx, jspdf, ranh giới 34 tỉnh, xã Đồng Tháp nạp khi cần (`loadLib`/`needLib`, SW vẫn lưu sẵn — xuất Excel ngoại tuyến đã thử); ảnh hướng dẫn WebP 5,7 MB → 0,9 MB, logo 997 KB → 39 KB; xóa 39 khóa trùng (11 hàm + 28 mục từ điển); xóa modern-react; phiên bản 2.8.33 ở package.json, feature_list, README, màn Giới thiệu.
+- **Chưa làm (lớn, nên làm dần)**: tách app.js theo phân hệ, giảm ~3.100 `!important`, chuyển điểm/bản vẽ sang IndexedDB; còn nhãn nhỏ viết Hoa Mỗi Chữ trong một số khung. Màn 320 px trên màn con: chip KTT vẫn bị cắt.
+- Kiểm chứng: `npm test` **405/405 PASS** (11 file test mới); 20 màn hình điện thoại/máy tính 0 lỗi JS, 0 tràn ngang; bấm thử 3 nút, xuất Excel/PDF nạp thư viện khi cần, bản đồ nạp ranh giới khi mở, thanh Cập nhật (không tự tải lại, bấm thì tải lại 1 lần), xuất Excel khi mất mạng.
+
+## 2026-11-17 — WP-P: Trang chủ gọn — "Chức năng của tôi" lên đầu (v2.8.34)
+- **Vấn đề trên bản đang chạy (v2.8.33)**: người chưa đổi cài đặt vẫn thấy gần như mọi thứ (Thực địa, 3 bước, Chuyển đổi nhanh, 4 ô, GPS, Dự án, Tất cả chức năng — cao 1.755 px ở 375×812); nút "Tùy chỉnh" nằm dưới khối chuyển đổi nên không thấy.
+- **Thứ tự mới**: thanh "Chức năng của tôi" (đổi tên từ "Truy cập nhanh") + nút Thực địa + nút Tùy chỉnh ở **đầu** Trang chủ → các ô đã chọn → (3 bước lần đầu) → Chuyển đổi nhanh → Tất cả chức năng. `#fieldWorkspace` chuyển vào trong `#dashboardModernHub` ngay sau `#bigActionTilesGrid`, rộng bằng các ô; `#fwToolbar` chuyển lên thanh tiêu đề (field-workspace.js dịch nhãn theo `#fieldWorkspace, #fwToolbar`).
+- **Mặc định gọn**: `HOME_WIDGET_DEFAULTS = { quick: true, gps: false, project: false, all: false }` — GPS và dự án đã có trên thanh tiêu đề. Người đã lưu lựa chọn (`vn2000_home_widgets`) giữ nguyên.
+- Thực địa + Tùy chỉnh vùng chạm 44 px; màn ≤ 400 px: Thực địa chỉ còn biểu tượng, ẩn nhãn "4 mục" để tiêu đề một dòng. Bước 3 lời chào trỏ tới nút Tùy chỉnh.
+- **Kết quả đo**: người dùng cũ 375×812 → 1.043 px (trước 1.755); người mới (có 3 bước) 1.428 px; máy tính 1366×900 vừa một màn hình. 0 lỗi JS; kiểm 320 px, Thực địa, máy tính.
+- `npm test` **406/406 PASS** (thêm test thứ tự Trang chủ, sửa test mặc định). Phiên bản 2.8.34 (`?v=`, `CACHE_NAME`, package.json, feature_list, README, trang Giới thiệu).
+
+## 2026-11-18 — WP-Q: Sửa bản đồ "Tối ưu lộ trình" chỉ hiện 1 ô ảnh; kiểm tra bản đồ mọi chức năng (v2.8.35)
+- **Lỗi**: mở "Tối ưu lộ trình" lần đầu, bản đồ chỉ hiện một ô ảnh ở góc trên trái (ô ảnh phủ 11% khung trên điện thoại, 2% trên máy tính); mở lần hai mới đúng.
+- **Nguyên nhân**: `appNav.showScreen` gọi `appRouting.init()` trước khi hiện màn hình, nên `L.map('leaflet-routing-map')` được tạo khi khung còn 0×0; `ensureMap()` chỉ gọi `invalidateSize()` ở những lần mở sau.
+- **Sửa**: `installLeafletAutoResize(L, ResizeObserver)` gắn vào mọi bản đồ Leaflet (qua `L.Map.addInitHook`) — khung đổi cỡ (hiện ra, mở/thu bảng, xoay máy) thì `invalidateSize({ debounceMoveend: true })`, bỏ qua khi khung 0×0, ngừng theo dõi khi bản đồ bị gỡ. Thêm dự phòng `invalidateSize()` 250 ms sau khi tạo bản đồ lộ trình.
+- **Kiểm tra** (trang thật + trình duyệt cục bộ, 375/390 px và 1366 px, mỗi chức năng mở trên trang mới): Bản đồ dự án, Chấm tọa độ (cả nút ở Trang chủ), Cắm mốc, bản đồ nhỏ ở Chuyển đổi/Hàng loạt, MiniCAD, GPS trực tiếp đều phủ 100% trước và sau khi sửa; Lộ trình 9–11% / 2% → 100%. Camera, Trắc dọc không có bản đồ; Giao hội mở bản đồ dự án.
+- Test mới `tests/map_auto_resize.test.js` (3). `npm test` **409/409 PASS**. Phiên bản 2.8.35.
+
+## 2026-11-18 — WP-R: Mục lục chức năng — phương án A "danh sách gọn" (v2.8.36)
+- **Chọn từ bản thiết kế** (canvas "Tối ưu mục lục chức năng", 3 phương án): người dùng chọn **A · Danh sách gọn**.
+- **Một bộ dựng chung** trong `app-shell.js` (`indexModel`, `filterModel`, `render`) cho menu ☰ (`#drawerFeatureIndex`) và "Tất cả chức năng" ở Trang chủ (`#homeFeatureHubList`). Nguồn duy nhất vẫn là menu ☰ cũ (ẩn bằng CSS): mỗi dòng bấm mục cũ tương ứng, nên trình xử lý, mục "đang mở" (`.selected`) và tìm kiếm cũ giữ nguyên.
+- Mỗi chức năng một dòng: biểu tượng nét theo màu nhóm, **tên gọn** (bỏ "1.1", bỏ chữ in hoa), mô tả một dòng, **★ = đang hiện trên Trang chủ**; nút lọc nhóm (Tất cả · Chuyển đổi · Thực địa · Dữ liệu · Tính toán · Hệ thống); tìm không dấu theo tên mới, tên cũ, mô tả, từ khóa (vd. "dwg" → Sổ đo, MiniCAD).
+- **Menu ☰**: đầu gọn (tiêu đề + nút đóng 44 px), **bỏ 3 chấm macOS**, bỏ vòng ✓ và nhãn "4 mục", ẩn dải dự án/KTT (đã có trên thanh tiêu đề). Mỗi lần mở: về "Tất cả", ô tìm trống; bấm mục không đổi màn hình (Ngày giờ, Ủng hộ…) vẫn đóng menu.
+- Sáng/Tối/Thực địa đều có màu riêng; Trang chủ trên màn ≥ 900 px chia hai cột mỗi nhóm.
+- Sự kiện mới: `vn2000:draweropen` (openTreeMenu), `vn2000:homechange` (renderDashboard) để vẽ lại ★ và mục đang mở.
+- Test mới `tests/feature_index.test.js` (5); `unified_shell.test.js` đổi `.hub-tile` → `.fi-row`. `npm test` **414/414 PASS**. Phiên bản 2.8.36.
+
+## 2026-11-18 — WP-S: MiniCAD — nạp DGN, chống treo khi nạp tệp lớn, lớp ranh giới Đồng Tháp, xuất có nền bản đồ (v2.8.37)
+- **Nạp tệp làm treo trình duyệt**: mỗi đỉnh từng dựng 3–4 đối tượng DOM (điểm đỉnh, nhãn cạnh, đường bắt chạm) → bản vẽ 1.500 thửa mất ~45 s. Nay khi tổng số đỉnh > `DETAIL_VERTEX_LIMIT` (1.500) chỉ dựng chi tiết cho thửa trong vùng đang xem (≤ 1.500 đỉnh) và thửa đang chọn; nhãn tâm khi ≤ 300 thửa trong khung; kéo/phóng bản đồ (`moveend`) vẽ lại mà không ghi phiên. Đo được: 1.500 thửa 45 s → 2,4 s; 300 thửa 2 s → 0,45 s; CSV 3.000 điểm 4,9 s → 1,1 s; DGN 2.000 thửa 2,3 s.
+- Bản vẽ > `POINT_SYNC_VERTEX_LIMIT` (5.000 đỉnh) không sao chép đỉnh sang Sổ điểm (nguyên nhân thông báo đầy bộ nhớ). Giới hạn còn lại: bản vẽ rất lớn (> ~5 MB) không lưu được vào localStorage — đề xuất chuyển IndexedDB.
+- **Lớp ranh giới trong MiniCAD**: hiện nút "34 tỉnh" và "Xã Đồng Tháp" ở chế độ `cad`; lớp không bắt chạm (`interactive: false`, `setReferenceLayersInteractive`) để chấm đỉnh không mở popup; trở lại bắt chạm ở Bản đồ dự án.
+- **Nạp .dgn (MicroStation V7 / Famis)**: `GisIO.readDgn` đọc nhị phân ISFF (TCB: đơn vị, gốc tọa độ toàn cục, 2D/3D; phần tử 3/4/6/11/12/14/15/16/17; ghép chuỗi/thửa phức; chữ → điểm có tên). Kết quả hệ chiếu (Đông, Bắc) tự nhận VN-2000. DGN V8 báo hướng dẫn "Save As V7". Đối chiếu GDAL: sai lệch ≤ 2,3e-10 m. Nhận .dgn ở MiniCAD và Dự án.
+- **Xuất có nền bản đồ**: hộp thoại xuất MiniCAD thêm "Nền bản đồ" (Không nền / Bản đồ đường phố OSM / Ảnh vệ tinh Esri) cho PDF và PNG. `planExportBasemap` chọn mức thu phóng theo độ nét bản vẽ (≤ 160 ô), `loadExportBasemap` tải ô `crossOrigin` (ô lỗi bỏ qua, báo số ô thiếu), `drawExportBasemap` đặt từng ô bằng affine 3 góc (WGS84 → VN-2000 → điểm ảnh, sai số < 0,01 px), cắt theo khung bản đồ, ghi nguồn. Ảnh Google của bản đồ chính không dùng được (không cho đọc chéo, làm hỏng ảnh xuất).
+- Test mới `tests/minicad_dgn_basemap_large.test.js` (13) + 2 tệp mẫu `tests/fixtures/*.dgn`; sửa mốc tìm `renderGeometry(opts = {})` trong 3 test cũ. `npm test` **427/427 PASS**. Phiên bản 2.8.37.
+
+## 2026-11-18 — WP-T: MiniCAD — Ảnh nền bản đồ quy hoạch có gắn tọa độ (v2.8.38)
+- **Yêu cầu**: nạp ảnh JPG/PNG/PDF bản đồ quy hoạch (từ UBND xã / Sở NN&MT), gắn tọa độ VN-2000 bằng 2–4 điểm khống chế hoặc tệp .jgw/.tfw, phủ lên bản đồ MiniCAD, chỉnh độ mờ, in làm nền khi xuất PDF/PNG. (Không lấy bản đồ của Guland: dịch vụ thu phí, có bản quyền.)
+- `src/core/georef.js` (mới, thuần JS): đọc/ghi world file (tự đảo khi ghi X Bắc trước), affine theo góc điểm ảnh; 2 điểm = dời + xoay + tỉ lệ đều; ≥ 3 điểm = affine bình phương tối thiểu (gốc trọng tâm), sai số từng điểm + RMS; báo điểm trùng/thẳng hàng.
+- `appPlanOverlay` (app.js): nút **🗺️ Ảnh nền quy hoạch** trong MiniCAD (nhóm Nạp). Hộp thoại `#modalPlanOverlay`: chọn KTT của bản đồ, nạp nhiều tệp (ảnh khớp tệp tọa độ cùng tên được gắn ngay), khung xem ảnh kéo/phóng (chuột, chụm 2 ngón), chạm để thêm điểm, kéo dấu thập để chỉnh, nhập X (Bắc)/Y (Đông), sai số tô màu (xanh ≤ 1 m, vàng ≤ 5 m, đỏ > 5 m). Danh sách ảnh: bật/tắt, độ rõ, Xem, chấm lại điểm, lưu ảnh + .jgw, xóa.
+- Hiển thị: `<img>` trong pane riêng `planOverlayPane` (z 250: trên nền, dưới nét vẽ, không bắt chạm), đặt bằng CSS `matrix()` từ 3 góc ảnh (VN-2000 → WGS84 → `map.project`, không làm tròn); ẩn khi đang hoạt cảnh zoom. Chỉ hiện ở chế độ `cad`.
+- Lưu ảnh trong IndexedDB `VN2000_PlanOverlayDB` theo dự án; ảnh giới hạn 4096 px / 16 MP (điện thoại). PDF dựng bằng pdf.js 3.11 tự lưu trữ (`vendor/pdfjs`, Apache-2.0, nạp khi cần); tệp tọa độ không áp cho PDF.
+- Xuất PDF/PNG: tùy chọn "In ảnh nền quy hoạch" (hiện khi có ảnh), vẽ sau nền bản đồ, trước khung/lưới/nét; ảnh theo KTT khác được quy đổi sang KTT bản vẽ.
+- Kiểm thử trình duyệt: ảnh mẫu 2400×1600 xoay 2°: tệp tọa độ khớp 1e-10; 4 điểm chấm → sai số góc 0 m; lệch trên bản đồ < 0,4 px; bản in PDF lưới ảnh trùng lưới bản vẽ; lưu qua tải lại trang; không hiện ở Bản đồ dự án; chạm thêm điểm trên điện thoại.
+- Test mới `tests/plan_overlay_georef.test.js` (9). `npm test` **436/436 PASS**. Phiên bản 2.8.38.
+
+## 2026-11-18 — Sửa: ảnh nền quy hoạch đọc ảnh bằng onload (v2.8.39)
+- `img.decode()` có thể không bao giờ xong khi trang chạy nền / trong WebView → nạp ảnh treo. Đổi sang `_loadImage` (onload/onerror, quá 20 s báo lỗi). 436/436 PASS.
+
+## 2026-11-18 — WP-U: Bảng "Lớp bản đồ" — nền + lớp phủ mở thay Guland (v2.8.40)
+- **Yêu cầu**: thay lớp bản đồ Guland bằng nguồn miễn phí hợp pháp; bật/tắt, chọn lớp trên Bản đồ dự án và MiniCAD. Bản thiết kế: canvas "Bảng chọn lớp bản đồ — Bản đồ & MiniCAD".
+- Nút 🛰️ (FAB) mở `#modalMapLayers` (`appMapLayers`): **Nền** chọn 1 — Vệ tinh Google (chỉ xem), Ảnh vệ tinh Esri, OSM, **Sentinel-2 không mây 2016** (EOX, CC BY 4.0, ô 3857 tới mức 14), Không nền. **Lớp phủ** — **ESA WorldCover 2021** (CC BY 4.0, Terrascope MapProxy `webmercator/{z}/{x}/{y}`, chú giải 9 lớp, độ rõ), **NASA GIBS** (CC0, chọn ngày + loại ảnh MODIS 7-2-1 / MODIS màu thật / VIIRS NOAA-20, mức 9), ranh giới 34 tỉnh, xã Đồng Tháp; trong MiniCAD có thêm dòng Ảnh nền quy hoạch. **Nguồn tự thêm** WMS/XYZ: bắt buộc https, ghi nguồn, xác nhận được phép (nguồn thương mại như Guland cần khóa API/văn bản).
+- Lớp phủ trong pane `refOverlayPane` (z 240, không bắt chạm). Trạng thái lưu `vn2k_map_overlays_v1`; nền lưu qua `appSettings` (nhận thêm `esri_satellite`, `s2_2016`, `none` — trước đây Esri không được khôi phục). `toggleMapLayer` đổi vòng 3 nền qua `appMapLayers.setBase`.
+- **Ghi nguồn**: bản đồ chính trước tắt `attributionControl` (vi phạm điều kiện OSM/Esri/CC BY) → bật ô ghi nguồn góc trái dưới, tự thêm/gỡ theo lớp.
+- Xuất PDF/PNG: nền thêm "Ảnh Sentinel-2 2016" và "ESA WorldCover" (đã kiểm tra CORS).
+- Test mới `tests/map_layers_panel.test.js` (5). `npm test` **441/441 PASS**. Phiên bản 2.8.40.
+
+## WP-J: Tích hợp Bản đồ Quy hoạch Guland 2030 (63 tỉnh thành - F-015) & Đồng bộ Toàn diện v2.8.41
+- **Mục tiêu**: Đồng bộ toàn diện các nâng cấp nâng cao từ kho `d:\Nhu\APP\VN2000-PWA` (v2.8.40 gồm F-012 Tối ưu hóa lộ trình TSP 2-opt, F-013 Màn hình chính tùy biến Bento Grid, F-014 10 Sửa đổi Đánh giá mã nguồn & KTT Bình Thuận 108°30') sang kho Google Drive `i:\My Drive\AppSheet\UNGDUNGWEB\VN2000-PWA` đồng thời tích hợp trọn vẹn Bản đồ Quy hoạch Guland 2030 (F-015) trên 63 tỉnh thành.
+- **Thực thi**:
+  1. **Đồng bộ mã nguồn & tài nguyên**: Bổ sung `.vercelignore`, `VN2k-WGS84.webp`, `app-shell.js`, `import-preview.js`, `src/core/georef.js`, `ui-unified.css`, `vn-admin-2025.js`, `vn2000-rezone.js`, `tools/`, `vendor/pdfjs/`, `assets/tutorial_screens/`, `tests/fixtures/` và toàn bộ 26 bộ test chuyên sâu từ D.
+  2. **Bảo tồn động cơ Guland 2030**: `src/core/planning_map.js` ánh xạ 63 tỉnh thành Việt Nam với KTT, tọa độ tâm, zoom mặc định, CDN vcdn.cloud và fallback CMC S3; cơ chế tráo đổi lớp mượt mà và kiểm soát độ mờ (opacity slider 0.1 - 1.0).
+  3. **Tách biệt giao diện (UI Isolation - AGENTS.md §2)**: Tích hợp 3 nút điều khiển nổi độc lập `#btnLiveMapTogglePlanning`, `#btnTfMapPlanning`, `#btnMapProjectPlanning` và 3 thẻ điều khiển `#liveMapPlanningCtrl`, `#tfMapPlanningCtrl`, `#mapProjectPlanningCtrl` trên Live Map, Bản đồ Chuyển đổi và Bản đồ Dự án mà không gây can nhiễu chéo.
+  4. **Quy chuẩn hiển thị & di động**: Cân bằng cấu trúc đóng/mở ngoặc CSS trong `ui-polish.css`, đáp ứng sàn chạm di động 44px (`.btn-planning-sub`, `.planning-province-select`), sàn chữ ≥ 11px cho `.planning-note` và thích ứng vùng an toàn tai thỏ/Dynamic Island.
+  5. **Dịch vụ ngoại tuyến PWA Service Worker**: Nâng cấp `CACHE_NAME = 'vn2000-pro-v2.8.41'`, thêm `./src/core/planning_map.js` vào `ASSETS_TO_CACHE`, cấu hình `vercel.json` an toàn chống cache cứng `geodesy.js`.
+  6. **Kiểm thử tự động toàn diện**: Toàn bộ **465/465 test PASS 100%** (bao gồm 441 test của v2.8.40 và 24 test tích hợp của F-015). Sức khỏe ứng dụng qua `init.ps1` đạt chuẩn xanh 100%.

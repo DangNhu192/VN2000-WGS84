@@ -18,30 +18,23 @@ const css = fs.readFileSync(path.join(ROOT_DIR, 'style.css'), 'utf8');
 const js = fs.readFileSync(path.join(ROOT_DIR, 'app.js'), 'utf8');
 
 test('=== 1. KIỂM THỬ GIAO DIỆN BUNG RỘNG / THU GỌN VÀ LƯỚI CÔNG CỤ CLI ===', () => {
-    // 1.1 Header CLI có nút lưới công cụ và nút chuyển đổi chế độ bung rộng/thu gọn
-    assert.ok(html.includes('id="btnCadCmdToolsGrid"'), 'Header phải có nút bật/tắt lưới công cụ 🎛️');
+    // 1.1 Header CLI giữ nút bung rộng/thu gọn; KHÔNG còn lưới công cụ trùng lặp (mọi lệnh ở thanh công cụ)
+    assert.ok(!html.includes('id="btnCadCmdToolsGrid"'), 'Không còn nút lưới công cụ trùng với thanh công cụ');
+    assert.ok(!html.includes('id="cadCmdAllToolsGrid"'), 'Không còn bảng lưới công cụ trùng lặp');
     assert.ok(html.includes('id="btnCadCmdExpandToggle"'), 'Header phải có nút bung rộng/thu gọn ⤢');
     assert.ok(html.includes('id="btnCadCmdCollapseToggle"'), 'Header phải có nút thu nhỏ/mở rộng _');
 
-    // 1.2 Có popup lưới tất cả công cụ CAD (#cadCmdAllToolsGrid)
-    assert.ok(html.includes('id="cadCmdAllToolsGrid"'), 'Phải có bảng lưới tất cả công cụ CAD');
-    assert.ok(html.includes('📐 VẼ ĐỐI TƯỢNG (DRAW)'), 'Lưới có nhóm Vẽ đối tượng');
-    assert.ok(html.includes('✂️ BIÊN TẬP & NHÃN (EDIT & MARKUP)'), 'Lưới có nhóm Biên tập & Nhãn');
-    assert.ok(html.includes('📊 TIỆN ÍCH & TRỢ VẼ (AIDS & DATA)'), 'Lưới có nhóm Tiện ích & Trợ vẽ');
+    // 1.2 Ribbon CLI chỉ còn các chế độ trợ vẽ bật/tắt
+    const rib = html.slice(html.indexOf('id="cadCmdStatusRibbon"'), html.indexOf('</div>', html.indexOf('id="cadCmdStatusRibbon"')));
+    ['btnCadRibbonOsnap', 'btnCadRibbonOrtho', 'btnCadRibbonSnapLine', 'btnCadRibbonDyn', 'btnCadRibbonPolar']
+        .forEach(id => assert.ok(rib.includes(`id="${id}"`), `Ribbon trợ vẽ có #${id}`));
+    assert.equal((rib.match(/<button/g) || []).length, 5, 'Ribbon chỉ có 5 nút trợ vẽ');
+    assert.ok(!rib.includes("quickExecCmd('X')"), 'Không đặt nút Xóa toàn bộ cạnh các nút bật/tắt');
 
-    // 1.3 Thanh ribbon có đầy đủ các nút cốt lõi
-    assert.ok(html.includes('id="btnCadRibbonPoly"'), 'Ribbon có nút Đa giác [P]');
-    assert.ok(html.includes('id="btnCadRibbonLine"'), 'Ribbon có nút Tuyến [L]');
-    assert.ok(html.includes('id="btnCadRibbonRect"'), 'Ribbon có nút Nhà [REC]');
-    assert.ok(html.includes('id="btnCadRibbonCircle"'), 'Ribbon có nút Bán kính [C]');
-    assert.ok(html.includes('id="btnCadRibbonSelect"'), 'Ribbon có nút Chọn [V]');
-    assert.ok(html.includes('id="btnCadRibbonArrow"'), 'Ribbon có nút Mũi tên [DIM]');
-    assert.ok(html.includes('id="btnCadRibbonClose"'), 'Ribbon có nút Khép [CL]');
-    assert.ok(html.includes('id="btnCadRibbonNew"'), 'Ribbon có nút Lưu [N]');
-    assert.ok(html.includes('id="btnCadRibbonOsnap"'), 'Ribbon có nút Snap [F3]');
-    assert.ok(html.includes('id="btnCadRibbonOrtho"'), 'Ribbon có nút Ortho [F8]');
-    assert.ok(html.includes('id="btnCadRibbonSnapLine"'), 'Ribbon có nút Bắt cạnh [B]');
-    assert.ok(html.includes('id="btnCadRibbonDyn"'), 'Ribbon có nút Thước [DYN]');
+    // 1.3 Thanh công cụ là nơi DUY NHẤT chứa lệnh vẽ / sửa / trắc lượng / bảng kê / xuất
+    const bar = html.slice(html.indexOf('id="mapCadToolbar"'), html.indexOf('id="cadFloatingCmdBar"'));
+    ['openInquiryModal()', 'openQSelectModal()', 'openAreaTableModal()', 'openExportModal()', 'clearDrawing()', 'Đa giác [P]', 'Tuyến [L]', 'Nhà [REC]']
+        .forEach(k => assert.ok(bar.includes(k), `Thanh công cụ có ${k}`));
 });
 
 test('=== 2. KIỂM THỬ CSS CHẾ ĐỘ EXPANDED RIBBON & COMPACT ICON MODE ===', () => {

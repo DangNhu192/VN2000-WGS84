@@ -1,0 +1,31 @@
+# Chỉ triển khai các file ứng dụng chạy trên trình duyệt. Tài liệu nội bộ, công cụ, test không đưa lên mạng.
+.agents
+.github
+.codex
+.specs
+.vscode
+tests
+tools
+docs
+progress.md
+session-handoff.md
+feature_list.json
+AGENTS.md
+DESIGN.md
+PRODUCT.md
+README.md
+HUONG_DAN_DONG_BO_GOOGLE_SHEET.md
+Mã.gs
+server.js
+package.json
+package-lock.json
+init.ps1
+*.ps1
+*.bat
+src/core/data_store.js
+src/core/geodesy_engine.js
+src/core/volume_calc.js
+src/core/seed_dgn_base64.json
+
+# Ảnh hướng dẫn: chỉ triển khai bản WebP đang dùng (PNG gốc giữ trong kho để chỉnh sửa)
+assets/tutorial_screens/*.png

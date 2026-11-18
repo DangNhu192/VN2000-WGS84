@@ -27,6 +27,8 @@ if (typeof global.document === 'undefined') {
         querySelectorAll: (selector) => [],
         getElementById: (id) => ({
             classList: { toggle: () => {}, add: () => {}, remove: () => {} },
+            setAttribute: () => {},
+            getAttribute: () => null,
             style: {},
             textContent: '',
             value: ''

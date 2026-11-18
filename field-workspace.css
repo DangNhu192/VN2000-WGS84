@@ -9,7 +9,7 @@ body[data-theme="light"] #fieldWorkspace {
   --fw-surface: #fff; --fw-input: #f7f9fc; --fw-ink: #102137; --fw-muted: #465871;
   --fw-line: #8393a7; --fw-accent: #075985; --fw-on-accent: #fff; --fw-error: #a92020;
 }
-#fwToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+#fwToolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-bottom: 28px; }
 #fwModes { display: inline-flex; gap: 4px; padding: 4px; background: var(--fw-input); border-radius: 10px; }
 #fieldWorkspace button { font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; padding: 10px 14px; border-radius: 8px; transition: color .15s ease, background-color .15s ease; }
 #fwModes button { border: 0; background: transparent; color: var(--fw-muted); }
@@ -44,9 +44,8 @@ body[data-theme="light"] #fieldWorkspace {
 .fw-gps-note { font-size: 13px; line-height: 1.6; padding: 12px; margin-top: 12px; background: #262317; color: #ffdf8a; border-radius: 8px; }
 body[data-theme="light"] .fw-gps-note { background: #fff3cc; color: #634200; }
 #screen-stakeout > .fw-gps-note { margin: 12px; }
-body[data-workspace="simple"] #screen-menu > :is(#dashboardModernHub, #mainCardsHub, #mainTreeContainer, #mainGridContainer, #treeQuickTools) { display: none !important; }
-body[data-workspace="advanced"] #dashboardModernHub { max-width: 1080px; margin-inline: auto; }
-body[data-workspace="advanced"] #dashboardModernHub .big-action-tile { background: var(--bg-card) !important; box-shadow: none !important; }
+#dashboardModernHub { max-width: 1080px; margin-inline: auto; }
+#dashboardModernHub .big-action-tile { background: var(--bg-card) !important; box-shadow: none !important; }
 
 /* Outdoor mode leaves the saved light/dark preference and CAD sunlight setting intact. */
 body.field-mode #fieldWorkspace {
@@ -73,7 +72,7 @@ body.field-mode .fw-gps-note { background: #211d00; color: #ffe76b; }
 body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #ffdf00 !important; outline-offset: 3px; }
 @media (max-width: 600px) {
   #fieldWorkspace { padding: 16px 12px 28px; }
-  #fwToolbar { margin-bottom: 20px; gap: 8px; }
+  #fwToolbar { margin-bottom: 20px; gap: 8px; flex-wrap: wrap; }
   #fieldWorkspace #fwModes button { padding: 10px 8px; white-space: nowrap; }
   #fwModes { flex-shrink: 0; }
   #fieldWorkspace #fwField { padding: 10px; gap: 6px; }
@@ -92,3 +91,54 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
   body.field-mode #btnHeaderBack { width: 48px !important; padding: 0 !important; font-size: 0 !important; }
   body.field-mode #btnHeaderBack::after { content: '←'; font-size: 22px; }
 }
+
+/* First-run guidance on the home screen. */
+#fwWelcome { margin-bottom: 16px; padding: 20px; background: var(--fw-surface); border: 1px solid var(--fw-accent); border-radius: 14px; }
+#fwWelcome h2 { margin: 0 0 12px; font-size: 17px; font-weight: 700; }
+#fwWelcome ol { margin: 0; padding: 0; list-style: none; counter-reset: fw-step; display: grid; gap: 12px; }
+#fwWelcome li { counter-increment: fw-step; display: grid; grid-template-columns: 28px 1fr; column-gap: 10px; font-size: 14px; line-height: 1.5; }
+#fwWelcome li::before { content: counter(fw-step); grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--fw-accent); color: var(--fw-on-accent); font-weight: 700; font-size: 14px; }
+#fwWelcome li span { color: var(--fw-muted); font-size: 13px; }
+#fwWelcomeActions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+#fieldWorkspace #fwWelcomeKtt { flex: 1 1 140px; border: 0; background: var(--fw-accent); color: var(--fw-on-accent); }
+#fieldWorkspace #fwWelcomeDone { flex: 1 1 140px; background: transparent; color: var(--fw-ink); border: 1px solid var(--fw-line); }
+@media (max-width: 600px) {
+  #fwWelcome { padding: 16px; }
+}
+
+/* Tab Đổi KTT / Múi trong màn Chuyển đổi tọa độ. */
+#panelTransRezone .rz-hint { font-size: 12.5px; line-height: 1.5; color: var(--text-secondary, #94a3b8); margin: 0 0 10px; }
+#panelTransRezone .rz-sides { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 12px; }
+#panelTransRezone .rz-side { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 8px 10px 10px; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; }
+#panelTransRezone .rz-side legend { padding: 0 4px; font-size: 12px; font-weight: 700; color: #38bdf8; }
+#panelTransRezone .rz-swap { min-width: 40px; min-height: 40px; font-size: 18px; }
+#panelTransRezone .rz-input { width: 100%; min-height: 110px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; line-height: 1.5; resize: vertical; white-space: pre; }
+#panelTransRezone .rz-status { font-size: 12.5px; line-height: 1.5; margin: 8px 0 0; min-height: 1em; }
+#panelTransRezone .rz-table-wrap { overflow-x: auto; }
+#panelTransRezone .rz-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#panelTransRezone .rz-table :is(th, td) { padding: 6px 8px; text-align: left; border-bottom: 1px solid rgba(148, 163, 184, 0.18); white-space: nowrap; }
+#panelTransRezone .rz-table td.font-mono { font-variant-numeric: tabular-nums; user-select: text; -webkit-user-select: text; }
+#panelTransRezone [hidden] { display: none !important; }
+@media (max-width: 480px) {
+  #panelTransRezone .rz-sides { grid-template-columns: minmax(0, 1fr); }
+  #panelTransRezone .rz-swap { justify-self: center; }
+}
+
+/* Xem trước khi nhập file tọa độ (Sổ đo). */
+.imp-preview { margin: 10px 0 12px; padding: 12px; border-radius: 12px; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.06); }
+.imp-preview[hidden] { display: none !important; }
+.imp-preview-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #38bdf8; margin-bottom: 8px; }
+.imp-file { color: var(--text-secondary, #94a3b8); font-size: 12px; overflow-wrap: anywhere; }
+.imp-table-wrap { overflow-x: auto; max-height: 220px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.25); }
+.imp-table { border-collapse: collapse; font-size: 12px; width: max-content; min-width: 100%; }
+.imp-table :is(th, td) { padding: 5px 8px; border-bottom: 1px solid rgba(148, 163, 184, 0.15); white-space: nowrap; text-align: left; font-variant-numeric: tabular-nums; }
+.imp-table th { position: sticky; top: 0; background: #0f1b31; color: #94a3b8; font-weight: 700; }
+.imp-table tr.imp-head td { color: #fbbf24; font-weight: 700; }
+.imp-mapping, .imp-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.imp-map-item { display: grid; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--text-secondary, #cbd5e1); }
+.imp-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 12px; line-height: 1.45; }
+.imp-check[hidden] { display: none !important; }
+.imp-summary { margin: 10px 0 0; font-size: 12.5px; color: #34d399; }
+.imp-actions { display: flex; gap: 8px; margin-top: 10px; }
+.imp-actions .btn-sm { flex: 1; min-height: 40px; font-weight: 700; }
+body[data-theme="light"] .imp-table th { background: #e2e8f0; color: #334155; }

@@ -24,7 +24,7 @@
 8. **Định vị RTK & Giao hội:** Kết nối rover GNSS ngoài qua Web Bluetooth NMEA, bù tọa độ giao hội 2 mốc.
 
 ## Quality Floor & Standards
-- **Zero Data Loss:** Dữ liệu mốc và cấu hình lưu trữ vĩnh viễn trên máy (IndexedDB / LocalStorage).
+- **Zero Data Loss:** Mốc, bản vẽ và cấu hình lưu trên máy (localStorage, ~5 MB; ảnh/video Camera trong IndexedDB). Ứng dụng xin quyền lưu lâu dài (`navigator.storage.persist`) và báo ngay khi ghi thất bại; người dùng nên xuất file sao lưu định kỳ.
 - **Legibility Floor:** Không dùng cỡ chữ dưới 11px cho bất kỳ phần tử chức năng nào.
 - **Tabular Precision:** Toàn bộ số liệu tọa độ sử dụng phông chữ monospace tabular numbers (`font-variant-numeric: tabular-nums`).
 - **No AI Slop:** Thiết kế theo phong cách Precision Engineering thực dụng, không trang trí rườm rà, không hiệu ứng nảy giật gây mỏi mắt.
