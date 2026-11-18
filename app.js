@@ -614,7 +614,9 @@ const LAZY_LIBS = {
     xlsx: { src: 'xlsx.full.min.js', ready: () => typeof XLSX !== 'undefined' },
     jspdf: { src: 'jspdf.umd.min.js', ready: () => typeof window !== 'undefined' && !!(window.jspdf && window.jspdf.jsPDF) },
     prov34: { src: 'vietnam_34_tinh.js', ready: () => typeof window !== 'undefined' && !!window.VIETNAM_34_PROVINCES },
-    dongthap: { src: 'dong_thap_communes.js', ready: () => typeof window !== 'undefined' && !!window.DONG_THAP_COMMUNES }
+    dongthap: { src: 'dong_thap_communes.js', ready: () => typeof window !== 'undefined' && !!window.DONG_THAP_COMMUNES },
+    // pdf.js 3.11 (Apache-2.0) — đọc PDF bản đồ quy hoạch thành ảnh nền
+    pdfjs: { src: 'vendor/pdfjs/pdf.min.js', ready: () => typeof window !== 'undefined' && !!window.pdfjsLib }
 };
 const _libLoads = {};
 function loadLib(name) {
@@ -8028,6 +8030,7 @@ const appMap = {
             if (btnFitBoth) btnFitBoth.style.display = 'none';
         }
         this.setReferenceLayersInteractive(mode !== 'cad');
+        if (typeof appPlanOverlay !== 'undefined') appPlanOverlay.onMapModeChange(mode);
     },
 
     /** Trong MiniCAD lớp ranh giới chỉ để xem: chạm vào vùng xã/tỉnh không mở bảng thông tin mà đi thẳng
@@ -26987,6 +26990,7 @@ const appCadTool = {
 
         this.renderExportBlockPicker();
         this.selectExportFormat(this._exportFormat || 'dwg');
+        if (typeof appPlanOverlay !== 'undefined') appPlanOverlay.updateExportOption();
         setTimeout(() => {
             this.checkScalePaperFit();
             this.renderExportPreview();
@@ -32880,6 +32884,8 @@ const appCadTool = {
         } else if (document.getElementById('cadShowBlockInfo')) {
             showBlockInfo = document.getElementById('cadShowBlockInfo').checked;
         }
+        const planOvEl = document.getElementById('cadExportPlanOverlay');
+        const printPlanOverlay = planOvEl ? planOvEl.checked !== false : true;
         const basemapVal = document.getElementById('cadExportBasemap')?.value;
         const basemap = (basemapVal === 'street' || basemapVal === 'satellite') ? basemapVal : 'none';
         const customAreaVal = parseFloat(document.getElementById('cadCustomProjectArea')?.value || '0');
@@ -32900,7 +32906,7 @@ const appCadTool = {
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
             showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
-            basemap
+            basemap, printPlanOverlay
         };
     },
 
@@ -33994,13 +34000,15 @@ const appCadTool = {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, W_px, H_px);
 
-        // 1b. Nền bản đồ / ảnh vệ tinh trong khung bản đồ (dưới lưới và nét vẽ)
-        if (opts.basemap && opts.basemap.tiles) {
+        // 1b. Nền bản đồ / ảnh vệ tinh, rồi ảnh nền quy hoạch — trong khung bản đồ, dưới lưới và nét vẽ
+        {
             const bx = toCvX(L.Xin0), by = toCvY(L.Yin1);
-            drawExportBasemap(ctx, opts.basemap,
-                { x: bx, y: by, w: toCvX(L.Xpanel0) - bx, h: toCvDist(L.H_inner) },
-                (e, n) => ({ x: (e - L.X0) * pxPerMeter, y: H_px - (n - L.Y0) * pxPerMeter }),
-                (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+            const mapRect = { x: bx, y: by, w: toCvX(L.Xpanel0) - bx, h: toCvDist(L.H_inner) };
+            const toCanvasRaw = (e, n) => ({ x: (e - L.X0) * pxPerMeter, y: H_px - (n - L.Y0) * pxPerMeter });
+            if (opts.basemap && opts.basemap.tiles) {
+                drawExportBasemap(ctx, opts.basemap, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+            }
+            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw);
         }
 
         // 2. Khung Ngoài (Mảnh)
@@ -35155,10 +35163,13 @@ const appCadTool = {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, W, H);
 
-        if (customOpts.basemap && customOpts.basemap.tiles) {
-            drawExportBasemap(ctx, customOpts.basemap, { x: pad, y: pad, w: W - 2 * pad, h: mapBottom - pad },
-                (e, n) => ({ x: toX(e), y: toY(n) }),
-                (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+        {
+            const mapRect = { x: pad, y: pad, w: W - 2 * pad, h: mapBottom - pad };
+            const toCanvasRaw = (e, n) => ({ x: toX(e), y: toY(n) });
+            if (customOpts.basemap && customOpts.basemap.tiles) {
+                drawExportBasemap(ctx, customOpts.basemap, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
+            }
+            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw);
         }
 
         // Grid lines
@@ -41769,9 +41780,680 @@ const appOcr = {
     }
 };
 
+// ================= ẢNH NỀN BẢN ĐỒ QUY HOẠCH (MiniCAD) =================
+// Nạp ảnh JPG/PNG/WebP hoặc trang PDF của bản đồ quy hoạch, gắn tọa độ VN-2000 bằng tệp
+// .jgw/.pgw/.tfw/.wld hoặc 2–12 điểm khống chế chấm trên ảnh (src/core/georef.js).
+// Ảnh phủ lên bản đồ MiniCAD (dưới nét vẽ, không bắt chạm), chỉnh độ mờ, in làm nền khi xuất PDF/PNG.
+// Ảnh lưu trong IndexedDB theo dự án (localStorage quá nhỏ cho ảnh).
+const appPlanOverlay = {
+    DB_NAME: 'VN2000_PlanOverlayDB',
+    STORE: 'overlays',
+    MAX_SIDE: 4096,          // giới hạn cạnh ảnh để điện thoại (iOS) không thiếu bộ nhớ
+    MAX_PIXELS: 16000000,
+    MAX_POINTS: 12,
+    ACCEPT: '.jpg,.jpeg,.png,.webp,.pdf,.jgw,.jpgw,.jpw,.pgw,.pngw,.tfw,.tifw,.wld,.j2w',
+    items: [],
+    _project: null,
+    _draft: null,
+    _view: { s: 1, tx: 0, ty: 0 },
+
+    // ---------- Lưu trữ IndexedDB ----------
+    _db() {
+        if (this._dbp) return this._dbp;
+        this._dbp = new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') return reject(new Error('Trình duyệt không hỗ trợ IndexedDB'));
+            const req = indexedDB.open(this.DB_NAME, 1);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(this.STORE)) db.createObjectStore(this.STORE, { keyPath: 'id' });
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        }).catch(err => { this._dbp = null; throw err; });
+        return this._dbp;
+    },
+    async _store(mode, op) {
+        const db = await this._db();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(this.STORE, mode);
+            const req = op(tx.objectStore(this.STORE));
+            tx.oncomplete = () => resolve(req ? req.result : undefined);
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error || new Error('Hủy ghi'));
+        });
+    },
+    _record(item) {
+        const { id, project, name, w, h, affine, ktt, k0, opacity, visible, blob, points, source, rms, created } = item;
+        return { id, project, name, w, h, affine, ktt, k0, opacity, visible, blob, points: points || [], source, rms, created };
+    },
+    save(item) {
+        return this._store('readwrite', st => st.put(this._record(item))).catch(err => {
+            showToast('⚠️ Không lưu được ảnh nền vào bộ nhớ máy: ' + (err && err.message || err), true);
+        });
+    },
+    _saveSoon(item) {
+        clearTimeout(item._saveTimer);
+        item._saveTimer = setTimeout(() => this.save(item), 400);
+    },
+
+    // ---------- Nạp theo dự án ----------
+    async ensureLoaded() {
+        const project = AppState.currentProject || '';
+        if (this._project === project && this._loaded) return;
+        this._project = project;
+        this._loaded = false;
+        this.items.forEach(it => this._dispose(it));
+        this.items = [];
+        let rows = [];
+        try { rows = await this._store('readonly', st => st.getAll()); } catch (e) { rows = []; }
+        if (this._project !== project) return;
+        this.items = (rows || []).filter(r => r.project === project && r.blob).sort((a, b) => (a.created || 0) - (b.created || 0));
+        await Promise.all(this.items.map(it => this._prepareImage(it)));
+        this._loaded = true;
+    },
+    _prepareImage(item) {
+        item.url = URL.createObjectURL(item.blob);
+        item.img = new Image();
+        item.img.src = item.url;
+        return (item.img.decode ? item.img.decode() : Promise.resolve()).catch(() => {});
+    },
+    _dispose(item) {
+        if (item.layer && item.layer._map) item.layer.remove();
+        item.layer = null;
+        if (item.url) URL.revokeObjectURL(item.url);
+        item.url = null;
+    },
+
+    // ---------- Quy đổi tọa độ ----------
+    // Điểm ảnh → (Đông, Bắc) VN-2000 theo KTT của ảnh
+    pixelToEN(item, u, v) { return Georef.applyAffine(item.affine, u, v); },
+    pixelToLatLng(item, u, v) {
+        const g = this.pixelToEN(item, u, v);
+        const w = convertVn2kToWgs(g.n, g.e, item.ktt, item.k0);
+        return [w.lat, w.lng];
+    },
+    // Điểm ảnh → (Đông, Bắc) theo KTT của bản vẽ hiện tại (ảnh có thể gắn theo KTT khác)
+    pixelToProjectEN(item, u, v) {
+        const g = this.pixelToEN(item, u, v);
+        if (Math.abs(item.ktt - AppState.kttVal) < 1e-9 && Math.abs(item.k0 - AppState.scaleFactor) < 1e-9) return g;
+        const w = convertVn2kToWgs(g.n, g.e, item.ktt, item.k0);
+        const p = convertWgsToVn2k(w.lat, w.lng, AppState.kttVal, AppState.scaleFactor);
+        return { e: p.Y, n: p.X };
+    },
+    // Ma trận affine [a,b,c,d,e,f] đặt ảnh (điểm ảnh) lên mặt phẳng đích qua 3 góc ảnh
+    matrixFrom(item, project) {
+        const W = item.w, H = item.h;
+        const p0 = project(0, 0), p1 = project(W, 0), p2 = project(0, H);
+        if (![p0, p1, p2].every(p => p && isFinite(p.x) && isFinite(p.y))) return null;
+        return [(p1.x - p0.x) / W, (p1.y - p0.y) / W, (p2.x - p0.x) / H, (p2.y - p0.y) / H, p0.x, p0.y];
+    },
+
+    // ---------- Lớp Leaflet: <img> đặt bằng CSS matrix ----------
+    _layerClass() {
+        if (this._Layer || typeof L === 'undefined') return this._Layer;
+        const self = this;
+        this._Layer = L.Layer.extend({
+            initialize(item) { this.item = item; },
+            onAdd(map) {
+                let pane = map.getPane('planOverlayPane');
+                if (!pane) {
+                    pane = map.createPane('planOverlayPane');
+                    pane.style.zIndex = 250;            // trên nền bản đồ, dưới nét vẽ MiniCAD
+                    pane.style.pointerEvents = 'none';
+                }
+                const img = this._el = document.createElement('img');
+                img.className = 'plan-overlay-img leaflet-zoom-hide';
+                img.alt = '';
+                img.draggable = false;
+                img.src = this.item.url;
+                img.style.cssText = `position:absolute;left:0;top:0;width:${this.item.w}px;height:${this.item.h}px;max-width:none;transform-origin:0 0;pointer-events:none;`;
+                img.style.opacity = this.item.opacity;
+                pane.appendChild(img);
+                map.on('zoomend viewreset', this._update, this);
+                this._update();
+            },
+            onRemove(map) {
+                map.off('zoomend viewreset', this._update, this);
+                if (this._el) this._el.remove();
+                this._el = null;
+            },
+            setOpacity(o) { if (this._el) this._el.style.opacity = o; },
+            _update() {
+                if (!this._map || !this._el) return;
+                // project() không làm tròn như latLngToLayerPoint → ảnh khớp dưới 1 điểm ảnh màn hình
+                const map = this._map, z = map.getZoom(), origin = map.getPixelOrigin();
+                const m = self.matrixFrom(this.item, (u, v) => map.project(L.latLng(self.pixelToLatLng(this.item, u, v)), z)._subtract(origin));
+                if (m) this._el.style.transform = `matrix(${m.join(',')})`;
+            }
+        });
+        return this._Layer;
+    },
+
+    // Chỉ hiện trong MiniCAD (nguyên tắc tách biệt giao diện)
+    onMapModeChange(mode) {
+        if (mode === 'cad') this.ensureLoaded().then(() => this.syncToMap());
+        else this.syncToMap(false);
+    },
+    syncToMap(show) {
+        const map = AppState.leafletMap;
+        if (!map) return;
+        const inCad = show !== undefined ? show : AppState.mapMode === 'cad';
+        const Layer = this._layerClass();
+        if (!Layer) return;
+        this.items.forEach(it => {
+            const want = inCad && it.visible !== false && it.url;
+            if (want && !it.layer) it.layer = new Layer(it);
+            if (want && !it.layer._map) it.layer.addTo(map);
+            if (!want && it.layer && it.layer._map) it.layer.remove();
+        });
+    },
+    zoomTo(id) {
+        const it = this.items.find(i => i.id === id);
+        const map = AppState.leafletMap;
+        if (!it || !map) return;
+        const c = [[0, 0], [it.w, 0], [0, it.h], [it.w, it.h]].map(([u, v]) => this.pixelToLatLng(it, u, v));
+        map.fitBounds(L.latLngBounds(c), { padding: [30, 30] });
+        this.close();
+    },
+
+    // ---------- Hộp thoại ----------
+    async open() {
+        const modal = document.getElementById('modalPlanOverlay');
+        if (!modal) return;
+        if (typeof Georef === 'undefined') { showToast('❌ Chưa nạp src/core/georef.js', true); return; }
+        modal.style.display = 'flex';
+        this._showView('list');
+        await this.ensureLoaded();
+        this.renderList();
+    },
+    close() {
+        const modal = document.getElementById('modalPlanOverlay');
+        if (modal) modal.style.display = 'none';
+        this._discardDraft();
+    },
+    _showView(which) {
+        const list = document.getElementById('planOvListView');
+        const geo = document.getElementById('planOvGeoView');
+        if (list) list.style.display = which === 'list' ? 'block' : 'none';
+        if (geo) geo.style.display = which === 'geo' ? 'block' : 'none';
+    },
+    renderList() {
+        const box = document.getElementById('planOvList');
+        if (!box) return;
+        if (!this.items.length) {
+            box.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12.5px;">Chưa có ảnh nền nào trong dự án này.</div>';
+            return;
+        }
+        box.innerHTML = this.items.map(it => {
+            const id = escapeHtml(it.id);
+            const acc = it.source === 'worldfile' ? 'tệp tọa độ' : (it.rms != null ? `sai số ±${it.rms.toFixed(2)} m` : `${(it.points || []).length} điểm`);
+            return `<div class="plan-ov-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;margin-bottom:6px;background:rgba(30,41,59,0.6);border:1px solid rgba(148,163,184,0.25);border-radius:8px;">
+                <label class="cad-check-label" style="flex:1 1 220px;min-width:0;"><input type="checkbox" ${it.visible !== false ? 'checked' : ''} onchange="appPlanOverlay.setVisible('${id}', this.checked)">
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><b>${escapeHtml(it.name)}</b> <span style="color:#94a3b8;font-size:11px;">${it.w}×${it.h} · ${acc}</span></span></label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;">Độ rõ
+                  <input type="range" min="10" max="100" step="5" value="${Math.round((it.opacity || 0.7) * 100)}" aria-label="Độ rõ ảnh ${escapeHtml(it.name)}" oninput="appPlanOverlay.setOpacity('${id}', this.value / 100)" style="width:110px;"></label>
+                <button class="btn-sm" style="height:32px;" onclick="appPlanOverlay.zoomTo('${id}')" title="Phóng bản đồ tới ảnh">🎯 Xem</button>
+                <button class="btn-sm" style="height:32px;" onclick="appPlanOverlay.editPoints('${id}')" title="Chấm lại điểm khống chế">✏️ Điểm</button>
+                <button class="btn-sm" style="height:32px;" onclick="appPlanOverlay.downloadWorldFile('${id}')" title="Lưu tệp tọa độ để lần sau nạp kèm ảnh">💾 .jgw</button>
+                <button class="btn-sm" style="height:32px;color:#fca5a5;" onclick="appPlanOverlay.remove('${id}')" title="Xóa ảnh nền">🗑</button>
+            </div>`;
+        }).join('');
+    },
+    setVisible(id, on) {
+        const it = this.items.find(i => i.id === id);
+        if (!it) return;
+        it.visible = !!on;
+        this.syncToMap();
+        this.save(it);
+    },
+    setOpacity(id, o) {
+        const it = this.items.find(i => i.id === id);
+        if (!it) return;
+        it.opacity = Math.max(0.1, Math.min(1, +o || 0.7));
+        if (it.layer) it.layer.setOpacity(it.opacity);
+        this._saveSoon(it);
+    },
+    async remove(id) {
+        const it = this.items.find(i => i.id === id);
+        if (!it || !confirm(`Xóa ảnh nền "${it.name}" khỏi dự án?`)) return;
+        this._dispose(it);
+        this.items = this.items.filter(i => i !== it);
+        try { await this._store('readwrite', st => st.delete(id)); } catch (e) {}
+        this.renderList();
+    },
+    downloadWorldFile(id) {
+        const it = this.items.find(i => i.id === id);
+        if (!it) return;
+        const ext = it.blob && /png/.test(it.blob.type) ? 'pgw' : 'jgw';
+        const imgExt = ext === 'pgw' ? 'png' : 'jpg';
+        const base = String(it.name || 'anh_nen').replace(/\.[^.]+$/, '');
+        const dl = (blob, name) => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        };
+        // Lưu kèm ảnh đã dùng (PDF đã chuyển thành ảnh) để cặp ảnh + tệp tọa độ khớp nhau
+        dl(it.blob, `${base}.${imgExt}`);
+        dl(new Blob([Georef.affineToWorldFile(it.affine)], { type: 'text/plain' }), `${base}.${ext}`);
+        showToast(`💾 Đã lưu ${base}.${imgExt} + ${base}.${ext} (KTT ${it.ktt}°)`);
+    },
+
+    // ---------- Nạp tệp ----------
+    pickFiles() {
+        const input = document.getElementById('planOvFile');
+        if (input) { input.value = ''; input.click(); }
+    },
+    async onFilesPicked(event) {
+        const files = Array.from((event && event.target && event.target.files) || []);
+        if (!files.length) return;
+        const worlds = files.filter(f => Georef.isWorldFileName(f.name));
+        const images = files.filter(f => !Georef.isWorldFileName(f.name) && /\.(jpe?g|png|webp|pdf)$/i.test(f.name));
+        const skipped = files.filter(f => !worlds.includes(f) && !images.includes(f));
+        if (skipped.length) showToast(`⚠️ Bỏ qua ${skipped.map(f => f.name).join(', ')} — chỉ nhận JPG, PNG, WebP, PDF và tệp tọa độ (TIFF: lưu lại thành JPG)`, true);
+        if (!images.length) { showToast('⚠️ Chưa có tệp ảnh hoặc PDF bản đồ.', true); return; }
+        await this.ensureLoaded();
+        let pending = null;
+        for (const file of images) {
+            let wf = worlds.find(w => Georef.baseName(w.name) === Georef.baseName(file.name));
+            if (!wf && images.length === 1 && worlds.length === 1) wf = worlds[0];
+            if (wf && /\.pdf$/i.test(file.name)) {
+                // PDF không có lưới điểm ảnh cố định → tệp tọa độ không áp được
+                showToast(`ℹ️ ${wf.name} chỉ dùng cho ảnh JPG/PNG; với PDF hãy chấm điểm khống chế.`, true);
+                wf = null;
+            }
+            let raster;
+            try {
+                raster = await this._rasterize(file, 1);
+            } catch (err) {
+                showToast(`❌ Không đọc được ${file.name}: ${err && err.message || err}`, true);
+                continue;
+            }
+            if (wf) {
+                const parsed = Georef.parseWorldFile(await wf.text());
+                if (!parsed) { showToast(`⚠️ Tệp tọa độ ${wf.name} không hợp lệ — hãy chấm điểm khống chế.`, true); }
+                else {
+                    const m = Georef.worldFileToAffine(parsed);
+                    const k = raster.scale;   // ảnh đã thu nhỏ → điểm ảnh lớn hơn
+                    const affine = { a: m.a / k, b: m.b / k, c: m.c, d: m.d / k, e: m.e / k, f: m.f };
+                    const kt = this._selectedKtt();
+                    await this._addItem({ name: file.name, raster, affine, source: 'worldfile', points: [], rms: null, ktt: kt.ktt, k0: kt.k0 });
+                    continue;
+                }
+            }
+            if (!pending) pending = { file, raster };
+            else showToast(`ℹ️ ${file.name}: nạp lại riêng để chấm điểm khống chế.`, true);
+        }
+        if (pending) this._startDraft(pending.file, pending.raster);
+        else this.renderList();
+    },
+
+    // Ảnh/PDF → Blob JPEG/PNG trong giới hạn bộ nhớ. scale = cạnh mới / cạnh gốc (ảnh), PDF luôn 1.
+    async _rasterize(file, pageNo) {
+        if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') return this._rasterizePdf(file, pageNo);
+        const url = URL.createObjectURL(file);
+        try {
+            const img = new Image();
+            img.src = url;
+            await img.decode();
+            const W = img.naturalWidth, H = img.naturalHeight;
+            if (!W || !H) throw new Error('ảnh rỗng');
+            const k = Math.min(1, this.MAX_SIDE / Math.max(W, H), Math.sqrt(this.MAX_PIXELS / (W * H)));
+            if (k >= 1) return { blob: file, w: W, h: H, scale: 1, pages: 1 };
+            const w = Math.round(W * k), h = Math.round(H * k);
+            const cv = document.createElement('canvas');
+            cv.width = w; cv.height = h;
+            cv.getContext('2d').drawImage(img, 0, 0, w, h);
+            const blob = await new Promise(r => cv.toBlob(r, /png/i.test(file.type) ? 'image/png' : 'image/jpeg', 0.92));
+            return { blob, w, h, scale: w / W, pages: 1 };
+        } finally {
+            URL.revokeObjectURL(url);
+        }
+    },
+    async _rasterizePdf(file, pageNo) {
+        await loadLib('pdfjs');
+        const pdfjs = window.pdfjsLib;
+        pdfjs.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
+        const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+        try {
+            const n = Math.max(1, Math.min(doc.numPages, pageNo || 1));
+            const page = await doc.getPage(n);
+            const vp1 = page.getViewport({ scale: 1 });
+            const k = Math.min(this.MAX_SIDE / Math.max(vp1.width, vp1.height), Math.sqrt(this.MAX_PIXELS / (vp1.width * vp1.height)));
+            const vp = page.getViewport({ scale: k });
+            const cv = document.createElement('canvas');
+            cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, cv.width, cv.height);
+            await page.render({ canvasContext: ctx, viewport: vp }).promise;
+            const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.9));
+            return { blob, w: cv.width, h: cv.height, scale: 1, pages: doc.numPages, page: n };
+        } finally {
+            doc.destroy();
+        }
+    },
+    _selectedKtt() {
+        const sel = document.getElementById('planOvKtt');
+        if (sel && typeof appGis !== 'undefined') {
+            appGis.fillKttSelect(sel);
+            const r = appGis.resolveKtt(sel.value);
+            return { ktt: r.ktt, k0: r.k0 };
+        }
+        return { ktt: AppState.kttVal, k0: AppState.scaleFactor };
+    },
+    async _addItem({ name, raster, affine, source, points, rms, ktt, k0, replaceId }) {
+        let item = replaceId ? this.items.find(i => i.id === replaceId) : null;
+        if (item) {
+            Object.assign(item, { affine, source, points, rms, ktt, k0 });
+            if (item.layer) { item.layer.remove(); item.layer = null; }
+        } else {
+            item = {
+                id: 'po_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                project: AppState.currentProject || '', name, w: raster.w, h: raster.h, affine, ktt, k0,
+                opacity: 0.7, visible: true, blob: raster.blob, points, source, rms, created: Date.now()
+            };
+            await this._prepareImage(item);
+            this.items.push(item);
+        }
+        await this.save(item);
+        this.syncToMap();
+        this.renderList();
+        showToast(`✅ Đã gắn tọa độ ảnh nền "${name || item.name}"`);
+        return item;
+    },
+
+    // ---------- Chấm điểm khống chế ----------
+    _startDraft(file, raster, existing) {
+        this._discardDraft();
+        this._draft = {
+            file, name: existing ? existing.name : file.name, raster,
+            url: URL.createObjectURL(raster.blob),
+            points: existing ? (existing.points || []).map(p => ({ ...p })) : [],
+            replaceId: existing ? existing.id : null
+        };
+        this._showView('geo');
+        const kttSel = document.getElementById('planOvKtt');
+        if (kttSel && typeof appGis !== 'undefined') appGis.fillKttSelect(kttSel);
+        const pageRow = document.getElementById('planOvPageRow');
+        const pageSel = document.getElementById('planOvPage');
+        if (pageRow && pageSel) {
+            const pages = raster.pages || 1;
+            pageRow.style.display = pages > 1 ? 'flex' : 'none';
+            if (pages > 1) {
+                pageSel.innerHTML = Array.from({ length: Math.min(pages, 50) }, (_, i) => `<option value="${i + 1}">Trang ${i + 1}/${pages}</option>`).join('');
+                pageSel.value = String(raster.page || 1);
+            }
+        }
+        const stage = document.getElementById('planOvStage');
+        if (stage) {
+            stage.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = this._draft.url;
+            img.alt = 'Ảnh bản đồ cần gắn tọa độ';
+            img.draggable = false;
+            img.style.cssText = `display:block;width:${raster.w}px;height:${raster.h}px;max-width:none;user-select:none;-webkit-user-select:none;`;
+            stage.style.width = raster.w + 'px';
+            stage.style.height = raster.h + 'px';
+            stage.appendChild(img);
+        }
+        this._bindViewer();
+        requestAnimationFrame(() => { this.fitView(); this.renderPoints(); });
+    },
+    async changePdfPage(n) {
+        const d = this._draft;
+        if (!d || !d.file) return;
+        try {
+            const raster = await this._rasterize(d.file, parseInt(n, 10) || 1);
+            this._startDraft(d.file, raster);
+        } catch (err) { showToast('❌ Không đọc được trang PDF: ' + (err && err.message || err), true); }
+    },
+    editPoints(id) {
+        const it = this.items.find(i => i.id === id);
+        if (!it) return;
+        this._startDraft(null, { blob: it.blob, w: it.w, h: it.h, scale: 1, pages: 1 }, it);
+    },
+    backToList() {
+        this._discardDraft();
+        this._showView('list');
+        this.renderList();
+    },
+    _discardDraft() {
+        if (this._draft && this._draft.url) URL.revokeObjectURL(this._draft.url);
+        this._draft = null;
+    },
+
+    fitView() {
+        const d = this._draft, box = document.getElementById('planOvViewer');
+        if (!d || !box) return;
+        const cw = box.clientWidth || 600, ch = box.clientHeight || 400;
+        const s = Math.min(cw / d.raster.w, ch / d.raster.h) * 0.96;
+        this._view = { s, tx: (cw - d.raster.w * s) / 2, ty: (ch - d.raster.h * s) / 2, fit: s };
+        this._applyView();
+    },
+    zoomBy(f, cx, cy) {
+        const box = document.getElementById('planOvViewer');
+        if (!box || !this._draft) return;
+        const v = this._view;
+        if (cx === undefined) { cx = box.clientWidth / 2; cy = box.clientHeight / 2; }
+        const s = Math.max((v.fit || v.s) * 0.5, Math.min(8, v.s * f));
+        v.tx = cx - (cx - v.tx) * (s / v.s);
+        v.ty = cy - (cy - v.ty) * (s / v.s);
+        v.s = s;
+        this._applyView();
+    },
+    _applyView() {
+        const stage = document.getElementById('planOvStage');
+        const v = this._view;
+        if (stage) stage.style.transform = `translate(${v.tx}px, ${v.ty}px) scale(${v.s})`;
+        this._renderMarks();
+    },
+    _renderMarks() {
+        const marks = document.getElementById('planOvMarks');
+        if (!marks || !this._draft) return;
+        const v = this._view;
+        marks.innerHTML = this._draft.points.map((p, i) => {
+            const x = v.tx + p.u * v.s, y = v.ty + p.v * v.s;
+            const done = isFinite(p.x) && isFinite(p.y);
+            const col = done ? '#22c55e' : '#f59e0b';
+            return `<div style="position:absolute;left:${x}px;top:${y}px;width:0;height:0;">
+                <div style="position:absolute;left:-13px;top:-1px;width:26px;height:2px;background:${col};box-shadow:0 0 0 1px #000;"></div>
+                <div style="position:absolute;left:-1px;top:-13px;width:2px;height:26px;background:${col};box-shadow:0 0 0 1px #000;"></div>
+                <div style="position:absolute;left:6px;top:-24px;padding:1px 6px;border-radius:9px;background:${col};color:#0f172a;font:700 12px/16px Arial,sans-serif;">${i + 1}</div>
+            </div>`;
+        }).join('');
+    },
+    _bindViewer() {
+        const box = document.getElementById('planOvViewer');
+        if (!box || box._planBound) return;
+        box._planBound = true;
+        const pts = new Map();
+        let start = null, moved = false, dragIdx = -1, pinch = null;
+        const local = (e) => { const r = box.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+        const toImg = (p) => ({ u: (p.x - this._view.tx) / this._view.s, v: (p.y - this._view.ty) / this._view.s });
+        box.addEventListener('pointerdown', (e) => {
+            if (!this._draft) return;
+            box.setPointerCapture && box.setPointerCapture(e.pointerId);
+            pts.set(e.pointerId, local(e));
+            if (pts.size === 1) {
+                start = local(e); moved = false;
+                const v = this._view;
+                dragIdx = this._draft.points.findIndex(p => Math.hypot(v.tx + p.u * v.s - start.x, v.ty + p.v * v.s - start.y) < 14);
+                start.tx = v.tx; start.ty = v.ty;
+            } else if (pts.size === 2) {
+                const [a, b] = [...pts.values()];
+                pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: this._view.s };
+                moved = true; dragIdx = -1;
+            }
+        });
+        box.addEventListener('pointermove', (e) => {
+            if (!pts.has(e.pointerId) || !this._draft) return;
+            const p = local(e);
+            pts.set(e.pointerId, p);
+            if (pts.size === 2 && pinch) {
+                const [a, b] = [...pts.values()];
+                const d = Math.hypot(a.x - b.x, a.y - b.y);
+                this.zoomBy((pinch.s * d / pinch.d) / this._view.s, (a.x + b.x) / 2, (a.y + b.y) / 2);
+                return;
+            }
+            if (!start) return;
+            if (Math.hypot(p.x - start.x, p.y - start.y) > 5) moved = true;
+            if (!moved) return;
+            if (dragIdx >= 0) {
+                const q = toImg(p), pt = this._draft.points[dragIdx];
+                pt.u = Math.max(0, Math.min(this._draft.raster.w, q.u));
+                pt.v = Math.max(0, Math.min(this._draft.raster.h, q.v));
+                this._renderMarks();
+            } else {
+                this._view.tx = start.tx + (p.x - start.x);
+                this._view.ty = start.ty + (p.y - start.y);
+                this._applyView();
+            }
+        });
+        const end = (e) => {
+            if (!pts.has(e.pointerId)) return;
+            pts.delete(e.pointerId);
+            if (pts.size < 2) pinch = null;
+            if (pts.size === 0) {
+                if (start && !moved && dragIdx < 0 && e.type === 'pointerup') this.addPointAt(toImg(local(e)));
+                else if (dragIdx >= 0) this.renderPoints();
+                start = null; dragIdx = -1;
+            }
+        };
+        box.addEventListener('pointerup', end);
+        box.addEventListener('pointercancel', end);
+        box.addEventListener('wheel', (e) => {
+            if (!this._draft) return;
+            e.preventDefault();
+            const p = local(e);
+            this.zoomBy(e.deltaY < 0 ? 1.25 : 0.8, p.x, p.y);
+        }, { passive: false });
+    },
+    addPointAt(q) {
+        const d = this._draft;
+        if (!d || q.u < 0 || q.v < 0 || q.u > d.raster.w || q.v > d.raster.h) return;
+        if (d.points.length >= this.MAX_POINTS) { showToast(`⚠️ Tối đa ${this.MAX_POINTS} điểm khống chế.`, true); return; }
+        d.points.push({ u: q.u, v: q.v, x: NaN, y: NaN });
+        this.renderPoints();
+        const inp = document.getElementById(`planOvX${d.points.length - 1}`);
+        if (inp) inp.focus();
+    },
+    removePoint(i) {
+        if (!this._draft) return;
+        this._draft.points.splice(i, 1);
+        this.renderPoints();
+    },
+    setPointCoord(i, axis, val) {
+        const p = this._draft && this._draft.points[i];
+        if (!p) return;
+        const v = parseFloat(String(val).trim().replace(/\s/g, '').replace(',', '.'));
+        p[axis] = isFinite(v) ? v : NaN;
+        this._renderMarks();
+        this._renderFit();
+    },
+    renderPoints() {
+        const tb = document.getElementById('planOvPoints');
+        const d = this._draft;
+        if (!tb || !d) return;
+        const f = (v) => (isFinite(v) ? String(v) : '');
+        tb.innerHTML = d.points.length ? d.points.map((p, i) => `<tr>
+            <td style="padding:3px 6px;font-weight:800;color:#fbbf24;">${i + 1}</td>
+            <td style="padding:3px 6px;color:#94a3b8;font-size:11px;white-space:nowrap;">${Math.round(p.u)}, ${Math.round(p.v)}</td>
+            <td style="padding:3px 4px;"><input id="planOvX${i}" class="app-input" inputmode="decimal" aria-label="X Bắc điểm ${i + 1}" placeholder="X (Bắc) vd 1158000" value="${f(p.x)}" oninput="appPlanOverlay.setPointCoord(${i}, 'x', this.value)" style="width:100%;min-width:120px;height:32px;font-size:12.5px;"></td>
+            <td style="padding:3px 4px;"><input id="planOvY${i}" class="app-input" inputmode="decimal" aria-label="Y Đông điểm ${i + 1}" placeholder="Y (Đông) vd 586000" value="${f(p.y)}" oninput="appPlanOverlay.setPointCoord(${i}, 'y', this.value)" style="width:100%;min-width:110px;height:32px;font-size:12.5px;"></td>
+            <td id="planOvRes${i}" style="padding:3px 6px;font-size:11.5px;white-space:nowrap;color:#94a3b8;">—</td>
+            <td style="padding:3px 4px;"><button class="btn-sm" style="height:32px;min-width:36px;" onclick="appPlanOverlay.removePoint(${i})" aria-label="Xóa điểm ${i + 1}">✕</button></td>
+        </tr>`).join('') : '<tr><td colspan="6" style="padding:10px;color:#94a3b8;font-size:12px;text-align:center;">Chạm vào ảnh tại giao điểm lưới tọa độ hoặc mốc đã biết để thêm điểm 1.</td></tr>';
+        this._renderMarks();
+        this._renderFit();
+    },
+    _controlPoints() {
+        return (this._draft ? this._draft.points : []).filter(p => isFinite(p.x) && isFinite(p.y)).map(p => ({ u: p.u, v: p.v, e: p.y, n: p.x }));
+    },
+    _renderFit() {
+        const info = document.getElementById('planOvFitInfo');
+        const btn = document.getElementById('planOvApply');
+        const cps = this._controlPoints();
+        const fit = cps.length >= 2 ? Georef.fitAffine(cps) : null;
+        const d = this._draft;
+        if (d) {
+            let k = 0;
+            d.points.forEach((p, i) => {
+                const cell = document.getElementById(`planOvRes${i}`);
+                if (!cell) return;
+                const has = isFinite(p.x) && isFinite(p.y);
+                const r = has && fit && fit.residuals && fit.rms != null ? fit.residuals[k] : null;
+                if (has) k++;
+                cell.textContent = r == null ? '—' : `${r.toFixed(2)} m`;
+                cell.style.color = r == null ? '#94a3b8' : (r > 5 ? '#f87171' : r > 1 ? '#fbbf24' : '#4ade80');
+            });
+        }
+        let msg, ok = false;
+        if (cps.length < 2) msg = `Cần ít nhất 2 điểm đã nhập tọa độ (đang có ${cps.length}). Nên dùng 3–4 điểm ở các góc ảnh để kiểm tra sai số.`;
+        else if (!fit || fit.error) msg = fit && fit.error === 'DIEM_TRUNG_NHAU' ? '⚠️ Hai điểm trùng nhau trên ảnh.' : '⚠️ Các điểm thẳng hàng — chọn điểm trải đều các góc ảnh.';
+        else {
+            ok = true;
+            const sc = fit.scale.toFixed(3);
+            msg = fit.rms == null
+                ? `2 điểm: dời + xoay + tỉ lệ đều · ${sc} m/điểm ảnh. Thêm điểm thứ 3 để kiểm tra sai số.`
+                : `${cps.length} điểm (affine) · sai số trung bình ±${fit.rms.toFixed(2)} m · ${sc} m/điểm ảnh${fit.rms > 5 ? ' — ⚠️ sai số lớn: kiểm tra lại số liệu X/Y hoặc vị trí chấm.' : ''}`;
+        }
+        if (info) { info.textContent = msg; info.style.color = ok ? (fit.rms > 5 ? '#fbbf24' : '#86efac') : '#fbbf24'; }
+        if (btn) btn.disabled = !ok;
+        return ok ? fit : null;
+    },
+    async applyDraft() {
+        const d = this._draft;
+        const fit = this._renderFit();
+        if (!d || !fit) return;
+        const kt = this._selectedKtt();
+        const points = d.points.filter(p => isFinite(p.x) && isFinite(p.y)).map(p => ({ u: p.u, v: p.v, x: p.x, y: p.y }));
+        const item = await this._addItem({
+            name: d.name, raster: d.raster, affine: fit.affine, source: 'points', points, rms: fit.rms,
+            ktt: kt.ktt, k0: kt.k0, replaceId: d.replaceId
+        });
+        this._discardDraft();
+        this._showView('list');
+        this.renderList();
+        if (item && AppState.mapMode === 'cad') this.zoomTo(item.id);
+    },
+
+    // ---------- In ảnh nền khi xuất PDF / PNG ----------
+    visibleItems() { return this.items.filter(it => it.visible !== false && it.img && it.img.complete && it.img.naturalWidth); },
+    updateExportOption() {
+        const row = document.getElementById('cadExportPlanOverlayRow');
+        const n = this.visibleItems().length;
+        if (row) row.style.display = n ? 'flex' : 'none';
+        const lbl = document.getElementById('cadExportPlanOverlayCount');
+        if (lbl) lbl.textContent = String(n);
+    },
+    // rect: khung bản đồ trên canvas; toCanvas(e, n) theo KTT của bản vẽ
+    drawForExport(ctx, rect, toCanvas) {
+        const list = this.visibleItems();
+        if (!ctx || !list.length) return 0;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(rect.x, rect.y, rect.w, rect.h);
+        ctx.clip();
+        list.forEach(it => {
+            const m = this.matrixFrom(it, (u, v) => { const g = this.pixelToProjectEN(it, u, v); return toCanvas(g.e, g.n); });
+            if (!m) return;
+            ctx.save();
+            ctx.globalAlpha = Math.max(0.15, Math.min(1, it.opacity || 0.7));
+            ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+            ctx.drawImage(it.img, 0, 0, it.w, it.h);
+            ctx.restore();
+        });
+        ctx.restore();
+        return list.length;
+    }
+};
+
 // ================= GLOBAL WINDOW EXPORTS FOR RELIABLE BROWSER / WEBVIEW COMPATIBILITY =================
 if (typeof window !== 'undefined') {
     window.appNav = appNav;
+    window.appPlanOverlay = appPlanOverlay;
     window.AppState = AppState;
     window.appElevationProfile = appElevationProfile;
     window.appDashboard = appDashboard;
@@ -41810,6 +42492,7 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         AppState,
         installLeafletAutoResize,
+        appPlanOverlay,
         EXPORT_BASEMAPS,
         planExportBasemap,
         loadExportBasemap,
