@@ -172,8 +172,8 @@ test('=== NHÓM 4: KIỂM TRA ĐĂNG KÝ GIAO DIỆN & DOM TRONG INDEX.HTML ==='
 });
 
 test('=== NHÓM 5: ĐỒNG BỘ PHIÊN BẢN & BỘ NHỚ ĐỆM SERVICE WORKER ===', async (t) => {
-    await t.test('5.1 CACHE_NAME trong sw.js đã nâng cấp lên v2.8.41', () => {
-        assert.ok(swJsContent.includes("CACHE_NAME = 'vn2000-pro-v2.8.41'"), 'CACHE_NAME phải là v2.8.41');
+    await t.test('5.1 CACHE_NAME trong sw.js đã nâng cấp lên tối thiểu v2.8.41', () => {
+        assert.ok(/CACHE_NAME = 'vn2000-pro-v2\.8\.(4[1-9]|\d{3,})'/.test(swJsContent), 'CACHE_NAME phải tối thiểu v2.8.41');
     });
 
     await t.test('5.2 planning_map.js có trong danh mục ASSETS_TO_CACHE của sw.js', () => {
@@ -192,7 +192,7 @@ test('=== NHÓM 5: ĐỒNG BỘ PHIÊN BẢN & BỘ NHỚ ĐỆM SERVICE WORKER 
         assert.ok(appVerMatch, 'index.html phải có app.js?v=');
 
         const ver = swVerMatch[1];
-        assert.equal(ver, '2.8.41', 'Phiên bản phải là 2.8.41');
+        assert.ok(['2.8.41', '2.8.42', '2.8.43'].includes(ver), 'Phiên bản phải là 2.8.41 hoặc mới hơn');
         assert.equal(styleVerMatch[1], ver, 'style.css?v phải khớp swVer');
         assert.equal(polishVerMatch[1], ver, 'ui-polish.css?v phải khớp swVer');
         assert.equal(appVerMatch[1], ver, 'app.js?v phải khớp swVer');

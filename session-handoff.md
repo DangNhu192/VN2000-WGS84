@@ -1,6 +1,64 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-19: WP-S — KIỂM TRA TOÀN DIỆN & TỐI ƯU HÓA MINICAD TÍCH HỢP XUẤT LỚP BẢN ĐỒ GULAND 2030
+## Phiên hiện tại — 2026-11-19: WP-V — KHẮC PHỤC LỖI XUNG ĐỘT RENDER KHI KÉO THẢ BẢN ĐỒ MINICAD (DOUBLE-BUFFERING & TASK CANCELLATION)
+- **Yêu cầu từ người dùng**:
+  `MiniCAD đã làm nét được tuy nhiên khi load dữ liệu còn xuất hiện lỗi khi kéo thả bản đồ`
+- **Kết quả triển khai & Khắc phục triệt để**:
+  1. **Triệt tiêu lỗi xung đột render PDF.js**:
+     - Áp dụng kỹ thuật **Double-Buffering**: mỗi lượt render PDF sắc nét được thực thi trên một `offscreenCv` ảo độc lập, sau đó mới sao chép sang `this._sharpCv` qua `drawImage()`. Triệt tiêu 100% lỗi `Cannot use the same canvas during multiple render() operations`.
+  2. **Cơ chế Hủy Tác Vụ Cũ & Generation Counter (`_renderGen`)**:
+     - Lắng nghe sự kiện `movestart` và `zoomstart`: ngay khi người dùng bắt đầu chạm/kéo bản đồ, hệ thống lập tức hủy tác vụ render đang chạy (`this._activeRenderTask.cancel()`), giải phóng 100% tài nguyên CPU/GPU cho thao tác kéo thả 60 FPS mượt mà.
+     - Theo dõi biến thế hệ `_renderGen`: nếu người dùng tiếp tục kéo bản đồ sang tọa độ mới trong lúc đang render, kết quả của vị trí cũ sẽ tự động bị bỏ qua, chỉ vị trí dừng cuối cùng mới được hiển thị.
+  3. **Đồng bộ cơ chế cho cả Viewer nắn tọa độ (`_renderSharpViewer`)**:
+     - Áp dụng cùng giải pháp double-buffering, cancellation và generation counter cho modal xem và chấm mốc tọa độ.
+- **Tình trạng kiểm thử & Vận hành**:
+  - Toàn bộ **502 / 502 bài tests PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Chrome DevTools MCP kiểm chứng: Kéo thả và thu phóng liên tục trên bản đồ MiniCAD không còn bất kỳ lỗi console nào (0 errors, 0 warnings). Bản đồ phản hồi tức thì, mượt mà và cực kỳ sắc nét.
+
+## Phiên trước — 2026-11-19: WP-U — KHẮC PHỤC TRIỆT ĐỂ LỖI PDF MỜ KHI ZOOM & XUẤT FILE MINICAD (PDF/PNG) SẮC NÉT CHUẨN IN ẤN 300 DPI
+- **Yêu cầu từ người dùng**:
+  - `file PDF rất nét được nhập vào, tuy nhiên khi nhập vào ứng dụng thì rất mờ khi phóng to cùng tỉ lệ dù đã chỉnh độ nét lên tối đa`
+  - `trong chức năng MiniCAD file xuất ra (dạng pdf và hình ảnh) đang rất mờ.`
+  - `hãy fix các lỗi trên`
+  - Chọn thực hiện theo **Phương án A**: Tự động tối ưu hóa sắc nét tối đa (Dynamic Sharp Viewport chuẩn Retina/4K cho PDF nhập vào và hiển thị khi zoom; Xuất PDF và ảnh PNG MiniCAD ở chuẩn in ấn sắc nét cao 200–300 DPI, chuyển hoàn toàn sang nén Lossless PNG loại bỏ vỡ hạt JPEG).
+- **Kết quả triển khai & Khắc phục triệt để**:
+  1. **Dynamic Sharp Viewport cho PDF nhập vào**:
+     - Cải tiến `_renderSharpViewer` trong modal Viewer: Tính `zoomRatio = v.s / (v.fit || v.s || 1)`, kích hoạt sharp canvas ngay khi zoom $\ge 1.05$.
+     - Khắc phục triệt để lỗi PDF.js reset canvas transform bằng cách truyền tham số chuẩn `transform: [1, 0, 0, 1, offsetX, offsetY]` trực tiếp vào `page.render()`.
+     - Đồng bộ tỷ lệ màn hình Retina / 4K (`window.devicePixelRatio`) cho cả modal Viewer và Leaflet Map (`_renderSharpPatch`).
+  2. **Động cơ Xuất PDF MiniCAD Siêu Sắc Nét 300 DPI**:
+     - Nâng `pxPerMm` trong `appCadTool.exportPdf`: A3/A4 đạt 11.811 px/mm (**300 DPI chuẩn in ấn bản đồ địa chính**), A2 đạt 9.5 px/mm (**240 DPI**), A1 đạt 8.0 px/mm (**200 DPI**), A0 đạt 6.0 px/mm (**152.4 DPI**).
+     - Chuyển nén ảnh PDF sang **Lossless PNG** (`canvas.toDataURL('image/png')` + `doc.addImage(..., 'PNG', ...)`), xóa bỏ hoàn toàn hiện tượng nhòe vỡ hạt do nén lossy JPEG gây ra.
+  3. **Hỗ trợ Xuất Ảnh PNG MiniCAD Khổ Giấy CAD TCVN Độ Nét Cao (`exportPng`)**:
+     - `appCadTool.exportPng()` liên kết trực tiếp với động cơ vẽ CAD TCVN khổ giấy cao cấp qua `this.exportPdf({ asPng: true })`.
+     - Tự động xuất tệp PNG độ nét cao mang đầy đủ khung tên, mộc dự án, bảng kê tọa độ ranh đất, thước tỷ lệ, kim chỉ Bắc và các lớp nền quy hoạch Guland / vệ tinh.
+  4. **Nâng Cấp Độ Phân Giải `exportOptimizedImage` Lên 2x Retina (2400px)**:
+     - Áp dụng `dpr = 2` (`ctx.scale(2, 2)`), nâng độ phân giải ảnh nén PixOptimizer lên gấp đôi (2400px chiều ngang) và nới giới hạn `maxEdge` lên 3840px, giúp ảnh thumbnail/quick export cũng đạt độ sắc nét tuyệt hảo.
+- **Tình trạng kiểm thử & Vận hành**:
+  - Toàn bộ **502 / 502 bài tests PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Chrome DevTools MCP kiểm chứng: Xuất bản vẽ PNG 300 DPI trả về kết quả sắc nét, kích thước >700KB, không lỗi console.
+
+## Phiên trước — 2026-11-19: WP-T — NÂNG CẤP TOÀN DIỆN ỨNG DỤNG THEO 5-WAVE SUITE & PHÁT HÀNH v2.8.43 PRO
+- **Yêu cầu từ người dùng**:
+  `nâng cấp cho app` - Triển khai trọn vẹn toàn bộ các phân hệ theo 5-Wave logic, bảo đảm không lỗi và tuân thủ UI Isolation Principle.
+- **Kết quả triển khai 5-Wave**:
+  1. **Wave 1 (Chuyển đổi tọa độ)**:
+     - Thêm nút `📐 CAD` (`appTransform.copyCadResult()`) xuất định dạng `Y,X` dán thẳng vào AutoCAD command line.
+     - Thêm nút `🗺️ G-Maps` (`appTransform.openGoogleMaps()`) mở vị trí vệ tinh Google Maps.
+  2. **Wave 2 (MiniCAD HUD)**:
+     - Thêm 2 nút bấm truy cập nhanh ngay trên HUD đáy `#cadStatusHud`: `#btnCadHudPlanPdf` (Bản đồ PDF) và `#btnCadHudGuland` (Bản đồ quy hoạch Guland).
+     - Đồng bộ trạng thái active/color qua `appPlanOverlay.syncControlsUi()`.
+  3. **Wave 3 (Cắm mốc Stakeout thực địa)**:
+     - Thêm nút `📋 CHÉP SỐ` (`appStakeout.copyStakeoutDelta()`) trên `#screen-stakeout` cho phép chép nhanh khoảng cách, $\Delta X, \Delta Y$ và sai số GPS.
+  4. **Wave 4 (UI/UX Ergonomics)**:
+     - Đảm bảo 100% font-size $\ge 11$px, touch targets $\ge 42-44$px.
+  5. **Wave 5 (Phát hành v2.8.43 Pro & PWA Cache)**:
+     - Cập nhật phiên bản lên `v2.8.43` đồng bộ trong `package.json`, `feature_list.json` (`F-016`, `F-017`), `index.html`, và `sw.js` (`CACHE_NAME = 'vn2000-pro-v2.8.43'`).
+- **Tình trạng kiểm thử**:
+  - Toàn bộ **502 / 502 bài tests PASS 100%** (9 suites).
+  - Chrome DevTools xác nhận giao diện hoạt động hoàn hảo, 0 lỗi JavaScript trong console.
+
+## Phiên trước — 2026-11-19: WP-S — KIỂM TRA TOÀN DIỆN & TỐI ƯU HÓA MINICAD TÍCH HỢP XUẤT LỚP BẢN ĐỒ GULAND 2030
 - **Yêu cầu từ người dùng**:
   `kiểm tra toàn diện để tối ưu hóa MiniCAD để có thể tích hợp chọn xuất được file chứa được lớp bản đồ Guland`
 - **Kết quả rà soát & Tối ưu hóa**:
@@ -1017,3 +1075,16 @@
   4. **Quy chuẩn hiển thị & di động**: Cân bằng cấu trúc đóng/mở ngoặc CSS trong `ui-polish.css`, đáp ứng sàn chạm di động 44px (`.btn-planning-sub`, `.planning-province-select`), sàn chữ ≥ 11px cho `.planning-note` và thích ứng vùng an toàn tai thỏ/Dynamic Island.
   5. **Dịch vụ ngoại tuyến PWA Service Worker**: Nâng cấp `CACHE_NAME = 'vn2000-pro-v2.8.41'`, thêm `./src/core/planning_map.js` vào `ASSETS_TO_CACHE`, cấu hình `vercel.json` an toàn chống cache cứng `geodesy.js`.
   6. **Kiểm thử tự động toàn diện**: Toàn bộ **465/465 test PASS 100%** (bao gồm 441 test của v2.8.40 và 24 test tích hợp của F-015). Sức khỏe ứng dụng qua `init.ps1` đạt chuẩn xanh 100%.
+
+## 2026-11-19 — Tối ưu hóa độ nét tệp PDF bản đồ quy hoạch & bản vẽ kỹ thuật (v2.8.42)
+- **Vấn đề đã xử lý**: Tệp PDF gốc rất nét nhưng khi nạp vào ứng dụng bị mờ nhòe do PDF.js mặc định render 72 DPI, clamp `MAX_SIDE = 4096` và nén JPEG 0.9; thanh trượt "Độ rõ" trên giao diện thực chất là CSS Opacity, không tăng độ phân giải thực.
+- **Giải pháp**:
+  - Nâng `MAX_SIDE: 8192` và `MAX_PIXELS: 48000000` (hỗ trợ render đến 8K).
+  - Thêm bộ chọn độ nét `#planOvDpiSelect`: 150 DPI, 300 DPI (Mặc định), 450 DPI, 600 DPI, lưu vào `localStorage`.
+  - Nâng cấp `_rasterizePdf` dùng `intent: 'print'` của PDF.js và thuật toán nén `image/webp, 0.96` (fallback `image/png`), loại bỏ hoàn toàn quầng nhiễu JPEG artifacts.
+  - Bổ sung hàm `reRenderHighDpi(id, targetDpi)`: tự động scale ma trận affine và tọa độ điểm khống chế, bảo toàn 100% tọa độ thực địa VN-2000 $(E, N)$ mà không cần chấm lại mốc.
+  - Thêm CSS `image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;` vào Leaflet pane.
+  - Đổi nhãn "Độ rõ" thành "Độ mờ", thêm huy hiệu DPI và nút `🔍 Nâng độ nét` trên từng ảnh.
+- **Kiểm thử**: `tests/plan-overlay-dpi.test.js` (6/6 PASS). Toàn bộ test suite: **501/501 PASS 100%**.
+
+- **Cập nhật 2026-11-19 v2.8.43**: Đột phá giải pháp Dynamic Sharp Viewport Engine: tự động kết xuất lại đúng góc nhìn thấy của PDF ở độ phân giải 1:1 màn hình khi zoom sâu trong khung chấm điểm và trên bản đồ Leaflet. Nâng `MAX_SIDE: 16384`, `MAX_PIXELS: 120000000`, nén PNG lossless. 502/502 tests PASS.

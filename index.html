@@ -28,10 +28,10 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.41">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.41">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.41">
-  <link rel="stylesheet" href="ui-unified.css?v=2.8.41">
+  <link rel="stylesheet" href="style.css?v=2.8.43">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.43">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.43">
+  <link rel="stylesheet" href="ui-unified.css?v=2.8.43">
 </head>
 
 <body>
@@ -1069,14 +1069,23 @@
               <div id="boxConvertedResult" class="converted-result-box" style="display: none;">
                 <div class="converted-result-header">
                   <span>✨ KẾT QUẢ CHUYỂN ĐỔI THÀNH CÔNG</span>
-                  <div style="display: flex; gap: 4px;">
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                     <button class="btn-copy-chip" onclick="appTransform.copyVn2kResult()"
                       title="Sao chép chỉ tọa độ VN2000">
-                      📋 Chép VN2K
+                      📋 VN2K
+                    </button>
+                    <button class="btn-copy-chip" onclick="appTransform.copyCadResult()"
+                      title="Sao chép định dạng dán vào AutoCAD / MicroStation (Y,X)">
+                      📐 CAD
                     </button>
                     <button class="btn-copy-chip" onclick="appTransform.copyWgsResult()"
                       title="Sao chép chỉ tọa độ WGS84">
-                      📋 Chép WGS
+                      🌐 WGS
+                    </button>
+                    <button class="btn-copy-chip"
+                      style="background: rgba(34, 197, 94, 0.2); border-color: #22c55e; color: #4ade80;"
+                      onclick="appTransform.openGoogleMaps()" title="Mở vị trí trên Google Maps vệ tinh">
+                      🗺️ G-Maps
                     </button>
                     <button class="btn-copy-chip"
                       style="background: rgba(2, 132, 199, 0.25); border-color: #0284c7; color: #38bdf8;"
@@ -2819,6 +2828,10 @@
               title="Bật/Tắt Bắt điểm Osnap [F3/S]">🧲 SNAP</button>
             <button type="button" id="btnCadHudSnapLine" class="cad-hud-btn active"
               onclick="appCadTool.toggleSnapLine()" title="Bắt line liền kề [B]">🔗 LINE</button>
+            <button type="button" id="btnCadHudPlanPdf" class="cad-hud-btn" onclick="appPlanOverlay.toggleAll()"
+              title="Bật/Tắt Nhanh Lớp Bản đồ PDF Quy hoạch [PLAN / PDF]">🗺️ PDF</button>
+            <button type="button" id="btnCadHudGuland" class="cad-hud-btn" onclick="appPlanning.toggleCadPlanning()"
+              title="Bật/Tắt Nhanh Bản đồ Quy hoạch Guland 2030">📐 GULAND</button>
             <button type="button" id="btnCadHudZoomExtents" class="cad-hud-btn" onclick="appCadTool.zoomExtents()"
               title="Zoom toàn cảnh [Z / Chuột giữa x2]">🔍 EXTENTS</button>
             <button type="button" id="btnCadHudSunlight" class="cad-hud-btn cad-hud-btn-sunlight"
@@ -3020,15 +3033,21 @@
             </div>
 
             <!-- Action buttons -->
-            <div class="btn-group-row" style="width: 100%;">
-              <button class="btn-convert btn-wgs-to-vn2k" style="flex: 1.2; height: 42px; font-size: 12.5px; margin: 0;"
+            <div class="btn-group-row" style="width: 100%; gap: 6px;">
+              <button class="btn-convert btn-wgs-to-vn2k" style="flex: 1.1; height: 42px; font-size: 12px; margin: 0; padding: 0 4px;"
                 onclick="appStakeout.viewOnMap()">
-                🗺️ XEM TRÊN BẢN ĐỒ
+                🗺️ BẢN ĐỒ
               </button>
               <button class="btn-convert"
-                style="flex: 1.2; height: 42px; font-size: 12.5px; margin: 0; background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border: 1px solid #f472b6;"
+                style="flex: 1.1; height: 42px; font-size: 12px; margin: 0; padding: 0 4px; background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border: 1px solid #f472b6;"
                 onclick="appStakeout.openCameraForThisPoint()">
-                📸 CHỤP ẢNH MỐC
+                📸 CHỤP ẢNH
+              </button>
+              <button class="btn-convert"
+                style="flex: 1.1; height: 42px; font-size: 12px; margin: 0; padding: 0 4px; background: rgba(30, 41, 59, 0.9); border: 1px solid #475569; color: #f8fafc;"
+                title="Sao chép khoảng cách, ΔX, ΔY và sai số GPS để ghi chép hoặc gửi Zalo"
+                onclick="appStakeout.copyStakeoutDelta()">
+                📋 CHÉP SỐ
               </button>
             </div>
           </div>
@@ -3465,7 +3484,7 @@
             style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">
             VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.41 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.43 Pro</div>
           <div
             style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
@@ -3497,7 +3516,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.41
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.43
                 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
@@ -4654,7 +4673,7 @@
           <div class="settings-welcome-hero">
             <div class="settings-welcome-logo-wrap">
               <img src="icon.png" alt="VN2000 Pro" class="settings-welcome-logo">
-              <span class="settings-welcome-badge">PRO v2.8.41</span>
+              <span class="settings-welcome-badge">PRO v2.8.43</span>
             </div>
             <div class="settings-welcome-title" data-i18n="settings.welcome.title">HỆ THỐNG CÀI ĐẶT VN-2000 PRO</div>
             <div class="settings-welcome-sub" data-i18n="settings.welcome.sub">Bấm chọn một danh mục cài đặt bên dưới để thiết lập nghiệp vụ:</div>
@@ -5665,6 +5684,18 @@
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
           <button class="btn-sm" style="height: 40px; padding: 0 14px; font-weight: 800; background: linear-gradient(135deg, #d97706 0%, #92400e 100%); color: #fff; border: 1.5px solid #f59e0b;"
             onclick="appPlanOverlay.pickFiles()">📂 Nạp ảnh / PDF bản đồ</button>
+          
+          <!-- Bộ chọn độ nét kết xuất PDF / Ảnh -->
+          <div style="display: flex; align-items: center; gap: 6px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 8px; border-radius: 6px; height: 38px;">
+            <label for="planOvDpiSelect" style="font-size: 11.5px; color: #fbbf24; font-weight: 700; white-space: nowrap;">Độ nét PDF:</label>
+            <select id="planOvDpiSelect" class="app-input" style="height: 30px; font-size: 11.5px; padding: 0 6px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.3); color: #fef08a; border-radius: 4px; font-weight: 700;" onchange="localStorage.setItem('vn2k_plan_overlay_dpi', this.value)">
+              <option value="150">⚡ Tiêu chuẩn (150 DPI)</option>
+              <option value="300" selected>🎯 Rõ nét (300 DPI - Khuyên dùng)</option>
+              <option value="450">🔬 Siêu nét HD (450 DPI)</option>
+              <option value="600">💎 Cực nét Ultra-HD (600 DPI)</option>
+            </select>
+          </div>
+
           <button type="button" class="btn-sm" style="height: 40px; padding: 0 12px; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700;" onclick="appPlanOverlay.setAllItemsVisible(true)" title="Bật hiển thị tất cả ảnh/PDF trên bản đồ">👁️ Bật tất cả</button>
           <button type="button" class="btn-sm" style="height: 40px; padding: 0 12px; background: rgba(148, 163, 184, 0.15); border: 1px solid #64748b; color: #cbd5e1;" onclick="appPlanOverlay.setAllItemsVisible(false)" title="Tắt hiển thị tất cả ảnh/PDF trên bản đồ">🙈 Tắt tất cả</button>
           <input type="file" id="planOvFile" multiple style="display: none;"
@@ -8088,18 +8119,18 @@
        được nạp khi cần (loadLib trong mã nguồn chính); service worker đã lưu sẵn nên vẫn chạy ngoại tuyến. -->
   <script src="leaflet.js"></script>
   <script src="offline_regions.js"></script>
-  <script src="geodesy.js?v=2.8.41"></script>
+  <script src="geodesy.js?v=2.8.43"></script>
   <script src="pixoptimizer.js"></script>
-  <script src="src/core/cad_geometry.js?v=2.8.41"></script>
-  <script src="src/core/gis_io.js?v=2.8.41"></script>
-  <script src="src/core/georef.js?v=2.8.41"></script>
-    <script src="src/core/planning_map.js?v=2.8.41"></script>
-<script src="app.js?v=2.8.41"></script>
-  <script src="field-workspace.js?v=2.8.41"></script>
-  <script src="vn2000-rezone.js?v=2.8.41"></script>
-  <script src="vn-admin-2025.js?v=2.8.41"></script>
-  <script src="import-preview.js?v=2.8.41"></script>
-  <script src="app-shell.js?v=2.8.41"></script>
+  <script src="src/core/cad_geometry.js?v=2.8.43"></script>
+  <script src="src/core/gis_io.js?v=2.8.43"></script>
+  <script src="src/core/georef.js?v=2.8.43"></script>
+    <script src="src/core/planning_map.js?v=2.8.43"></script>
+<script src="app.js?v=2.8.43"></script>
+  <script src="field-workspace.js?v=2.8.43"></script>
+  <script src="vn2000-rezone.js?v=2.8.43"></script>
+  <script src="vn-admin-2025.js?v=2.8.43"></script>
+  <script src="import-preview.js?v=2.8.43"></script>
+  <script src="app-shell.js?v=2.8.43"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <!-- Có bản mới: hiện thanh "Cập nhật" — chỉ tải lại khi người dùng bấm (không cắt ngang lúc đang đo, vẽ, nhập liệu). -->

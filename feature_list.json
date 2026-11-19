@@ -1,7 +1,7 @@
 {
   "project": "VN2000-PWA",
-  "version": "2.8.41",
-  "active_feature": "F-014",
+  "version": "2.8.43",
+  "active_feature": "F-017",
   "features": [
     {
       "id": "F-001",
@@ -144,6 +144,22 @@
       "name": "Bản đồ Quy hoạch Guland 2030 (63 tỉnh thành)",
       "description": "Tích hợp lớp bản đồ quy hoạch sử dụng đất 2030 phủ khắp 63 tỉnh thành Việt Nam từ CDN Guland với thanh điều khiển mờ (opacity), bật tắt độc lập trên Live Map, Bản đồ Chuyển đổi và Bản đồ Dự án.",
       "category": "GIS & Bản đồ",
+      "status": "done",
+      "phase": "PHASE_4"
+    },
+    {
+      "id": "F-016",
+      "name": "Tích hợp Lớp Bản đồ Quy hoạch Guland & Lớp PDF / Ảnh vào Xuất Bản vẽ & In ấn MiniCAD",
+      "description": "Cho phép người dùng lựa chọn xuất bản vẽ PDF / PNG / SVG có kèm lớp bản đồ quy hoạch Guland hoặc tệp bản đồ nền PDF/ảnh georeferenced, hỗ trợ khổ giấy lớn A0-A4 và nhập tỷ lệ bản đồ tùy ý.",
+      "category": "MiniCAD & Xuất Bản Vẽ",
+      "status": "done",
+      "phase": "PHASE_4"
+    },
+    {
+      "id": "F-017",
+      "name": "Động cơ Phân giải Cao Đa Tầng Hiển thị PDF (Dynamic Sharp Viewport PDF Engine)",
+      "description": "Giải quyết triệt để vấn đề mờ ảnh bản đồ quy hoạch PDF khi zoom sâu, render lại đúng viewport ở tỷ lệ 1:1 pixel vật lý màn hình, hỗ trợ kích thước siêu nét lên tới 16384px lossless.",
+      "category": "Hiển thị & PDF Engine",
       "status": "done",
       "phase": "PHASE_4"
     }
