@@ -9,6 +9,15 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-11-19] BẢO MẬT: Loại Bỏ Tệp Mã Khôi Phục Vercel & Cập Nhật .gitignore
+- **Tình trạng phát hiện**: Tồn tại tệp mã khôi phục tài khoản `vercel-recovery-codes-dnpn.ttqt@gmail.com.txt` trong kho lưu trữ.
+- **Hành động xử lý đã thực hiện**:
+  1. Xóa hoàn toàn tệp `vercel-recovery-codes-dnpn.ttqt@gmail.com.txt` khỏi đĩa và khỏi Git index.
+  2. Cập nhật `.gitignore` để chặn vĩnh viễn các tệp mã khôi phục và tệp khóa bí mật (`vercel-recovery-codes*`, `*recovery-codes*`, `*.pem`, `*.key`, `.env*`).
+  3. Hướng dẫn người dùng các bước tái tạo mã khôi phục mới trên trang quản trị Vercel để vô hiệu hóa 100% các mã cũ trong lịch sử commit.
+
+---
+
 ### [2026-11-19] WP-Z Tùy Biến Toàn Diện Ký Hiệu Icon Đỉnh / Mốc MiniCAD (10 Kiểu Dáng, 4 Kích Thước, Palette Màu & Realtime HUD)
 - **Yêu cầu từ người dùng**:
   `cho phép điều chỉnh Icon điểm lưu, các đỉnh của tuyến, đa giác, thửa đã lưu hoặc đang vẽ`
