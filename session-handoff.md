@@ -1,6 +1,33 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-18: WP-R — TÍCH HỢP XUẤT KÈM LỚP BẢN ĐỒ GULAND 2030 & TỆP PDF/ẢNH NẮN TỌA ĐỘ VÀO BẢN VẼ KỸ THUẬT (F-004/F-015/F-016)
+## Phiên hiện tại — 2026-11-19: WP-S — KIỂM TRA TOÀN DIỆN & TỐI ƯU HÓA MINICAD TÍCH HỢP XUẤT LỚP BẢN ĐỒ GULAND 2030
+- **Yêu cầu từ người dùng**:
+  `kiểm tra toàn diện để tối ưu hóa MiniCAD để có thể tích hợp chọn xuất được file chứa được lớp bản đồ Guland`
+- **Kết quả rà soát & Tối ưu hóa**:
+  1. Tự động nhận diện tỉnh theo `AppState.provinceName` và kế thừa trạng thái quy hoạch từ bản đồ MiniCAD.
+  2. Bổ sung lưu trữ cấu hình Guland vào `saveTitleBlockInfo` trong `localStorage`.
+  3. Khung xem trước SVG hiển thị huy hiệu sinh động `🗺️ IN KÈM QUY HOẠCH GULAND: [TỈNH] ([OPACITY]%)`.
+  4. Nâng `maxTiles` cho khổ lớn A0/A1/A2 để tăng độ phân giải chữ số quy hoạch và ranh đất.
+  5. Kiểm thử thực tế trên Chrome DevTools: Canvas hoàn toàn không bị tainted, xuất dữ liệu pixel thành công 100%. Toàn bộ 495 tests PASS.
+
+## Phiên trước — 2026-11-18: WP-R2 — SỬA TRIỆT ĐỂ LỖI XUẤT LỚP BẢN ĐỒ GULAND 2030 (CORS TILE PROXY STREAM & UN-TAINTED CANVAS)
+- **Yêu cầu từ người dùng**:
+  `chưa xuất được file chứa được lớp bản đồ Guland.`
+- **Nguyên nhân cốt lõi**:
+  - CDN ngói Guland (`vcdn.cloud`, `cmctelecom.vn`, `fptcloud.com`, `digitaloceanspaces.com`) không có CORS header (`Access-Control-Allow-Origin: *`).
+  - Khi Canvas tải ảnh với `img.crossOrigin = 'anonymous'`, trình duyệt chặn tải $\to$ 100% ngói bị lỗi không vào được canvas xuất file.
+- **Giải pháp & Kiến trúc triển khai**:
+  1. **Tạo Endpoint Proxy Ngói**:
+     - `server.js`: `/api/tile-proxy?url=...` kèm CORS `*` và whitelist chống SSRF.
+     - `api/tile-proxy.js`: Serverless Function cho Vercel / serverless runtime.
+  2. **Tự động bọc Proxy URL trong `app.js`**:
+     - Hàm `wrapTileProxyUrl(url)` tự động bọc các link ngói Guland qua proxy nội bộ khi chạy trên Web.
+     - Tích hợp cả trong `planExportGuland` lẫn `loadExportBasemap`.
+  3. **Kiểm thử thực nghiệm**:
+     - Chrome DevTools MCP: 8/8 ngói tải thành công (`loadedTiles: 8, failedTiles: 0`), Canvas không bị tainted (`taintedError: null, dataUrlLength: 47718`).
+     - 495/495 tests PASS 100%.
+
+## Phiên trước — 2026-11-18: WP-R — TÍCH HỢP XUẤT KÈM LỚP BẢN ĐỒ GULAND 2030 & TỆP PDF/ẢNH NẮN TỌA ĐỘ VÀO BẢN VẼ KỸ THUẬT (F-004/F-015/F-016)
 - **Yêu cầu từ người dùng**:
   `bổ sung cho phép chọn lớp bản đồ Guland hoặc PDF hoặc các file được bổ sung lớp bản đồ để chọn xuất file PDF hoặc các định dạng file khác`
 - **Giải pháp & Kiến trúc triển khai**:

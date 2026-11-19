@@ -18,7 +18,7 @@ const Georef = require('../src/core/georef.js');
 global.Georef = Georef;
 require('../src/core/planning_map.js');
 if (global.window && global.window.appPlanning) global.appPlanning = global.window.appPlanning;
-const { planExportBasemap, planExportGuland, loadExportBasemap, appPlanOverlay, EXPORT_BASEMAPS, AppState } = require('../app.js');
+const { planExportBasemap, planExportGuland, loadExportBasemap, wrapTileProxyUrl, appPlanOverlay, EXPORT_BASEMAPS, AppState } = require('../app.js');
 
 test('1. index.html contains all necessary UI elements for Guland and PDF layers in both export modals', () => {
     // MiniCAD modal elements
@@ -225,4 +225,48 @@ test('7. loadExportBasemap retries with fallbackUrl when primary tile fails', as
     assert.strictEqual(res.failed, 0, 'No tile failure');
     assert.ok(attempts.includes('https://primary.cloud/10/20.png'), 'Should attempt primary URL first');
     assert.ok(attempts.includes('https://fallback.cloud/10/20.png'), 'Should attempt fallback URL second');
+});
+
+test('10. wrapTileProxyUrl and api/tile-proxy prevent tainted canvas and enforce CORS whitelist', async () => {
+    assert.strictEqual(typeof wrapTileProxyUrl, 'function', 'wrapTileProxyUrl must be exported');
+    
+    const rawGulandUrl = 'https://r4gmiynxmeobj.vcdn.cloud/dong-thap-2030/13/6499/3855.png';
+    const osmUrl = 'https://tile.openstreetmap.org/13/6499/3855.png';
+    
+    // Giả lập window.location cho browser
+    global.window.location = { protocol: 'http:', host: 'localhost:8080' };
+    
+    const wrappedGuland = wrapTileProxyUrl(rawGulandUrl);
+    assert.ok(wrappedGuland.startsWith('/api/tile-proxy?url='), 'Guland CDN URL should be wrapped via proxy');
+    assert.ok(wrappedGuland.includes(encodeURIComponent(rawGulandUrl)), 'Proxy query should contain encoded URL');
+
+    // Không bọc lại nếu đã bọc rồi
+    assert.strictEqual(wrapTileProxyUrl(wrappedGuland), wrappedGuland, 'Should not re-wrap already proxied URL');
+
+    // Không bọc OSM (đã có CORS)
+    assert.strictEqual(wrapTileProxyUrl(osmUrl), osmUrl, 'OpenStreetMap URL should not be proxied');
+
+    // Kiểm tra Vercel Serverless Function api/tile-proxy.js
+    const proxyHandler = require('../api/tile-proxy.js');
+    assert.strictEqual(typeof proxyHandler, 'function', 'api/tile-proxy.js must export a handler');
+
+    // Test 400 khi thiếu URL
+    let statusCode = 200, resHeaders = {}, ended = false;
+    const mockRes400 = {
+        setHeader(k, v) { resHeaders[k] = v; },
+        set statusCode(val) { statusCode = val; },
+        end(data) { ended = true; }
+    };
+    await proxyHandler({ method: 'GET', url: '/api/tile-proxy', query: {}, headers: { host: 'localhost' } }, mockRes400);
+    assert.strictEqual(statusCode, 400, 'Missing url query should return 400');
+
+    // Test 403 khi domain không nằm trong whitelist
+    statusCode = 200;
+    const mockRes403 = {
+        setHeader(k, v) { resHeaders[k] = v; },
+        set statusCode(val) { statusCode = val; },
+        end(data) { ended = true; }
+    };
+    await proxyHandler({ method: 'GET', url: '/api/tile-proxy?url=https://evil-attacker.com/malicious.png', query: { url: 'https://evil-attacker.com/malicious.png' }, headers: { host: 'localhost' } }, mockRes403);
+    assert.strictEqual(statusCode, 403, 'Non-whitelisted domain should return 403 Forbidden');
 });

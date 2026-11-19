@@ -3,11 +3,52 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 324/324 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 495/495 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-19] WP-S Kiểm Tra Toàn Diện & Tối Ưu Hóa MiniCAD Tích Hợp Xuất File Chứa Bản Đồ Guland 2030
+- **Yêu cầu từ người dùng**:
+  `kiểm tra toàn diện để tối ưu hóa MiniCAD để có thể tích hợp chọn xuất được file chứa được lớp bản đồ Guland`
+- **Các giải pháp tối ưu hóa & hoàn thiện toàn diện**:
+  1. **Tự Động Nhận Diện Tỉnh Thành Thông Minh (`cadExportGulandProvince`)**:
+     - Bổ sung logic chuẩn hóa tên tỉnh và đối sánh từ `AppState.provinceName` / `AppState.kttVal` $\to$ tự động chọn đúng tỉnh đang làm việc khi mở modal xuất, tránh phải chọn lại thủ công.
+     - Kế thừa thông minh trạng thái bật/tắt quy hoạch từ màn hình vẽ MiniCAD: nếu đang bật lớp quy hoạch trên bản đồ CAD (`appPlanning.targets.cadMap.active`), modal xuất tự động tích chọn sẵn "In kèm lớp quy hoạch Guland 2030".
+  2. **Lưu Trữ Bền Vững Cấu Hình Xuất Guland Vào `localStorage`**:
+     - Bổ sung các trường `basemap`, `showGuland`, `gulandProvince`, `gulandOpacity`, `gulandLand`, `printPlanOverlay` vào `saveTitleBlockInfo()` và `resetTitleBlockInfo()` của `appCadTool`. Cấu hình được lưu vĩnh viễn theo dự án và toàn cục.
+  3. **Huy Hiệu Trực Quan Sinh Động Trên Khung Xem Trước SVG (`renderExportPreview`)**:
+     - Khung SVG xem trước tỷ lệ thực (`#cadExportPreviewSvg`) hiển thị ngay huy hiệu trạng thái: `🗺️ IN KÈM QUY HOẠCH GULAND: [TÊN TỈNH] ([OPACITY]%) [• CẢ RANH ĐẤT]` và `📄 IN KÈM X LỚP BẢN ĐỒ NẮN TỌA ĐỘ`.
+     - Người dùng nhìn vào khung xem trước là biết chắc chắn 100% bản vẽ xuất ra sẽ có đầy đủ lớp Guland.
+  4. **Thích Ứng Số Lượng Ngói Cho Khổ Giấy Lớn (A0: 260 ô, A1: 220 ô, A2: 180 ô)**:
+     - Trong `_prepareExportBasemap`, tự động nâng giới hạn `maxTiles` theo kích thước khổ giấy để bản in PDF/PNG khổ lớn đạt độ sắc nét tối đa, đọc rõ từng số thửa đất.
+  5. **Kiểm Chứng Thực Nghiệm Trực Tiếp (Chrome DevTools MCP)**:
+     - Đã nạp thành công 2/2 ô ngói quy hoạch Đồng Tháp, vẽ lên Canvas đạt `drawnCount: 2`, `isTainted: false`, kích thước data URL PNG đạt 269.026 bytes.
+     - 495 / 495 tests PASS 100%.
+
+### [2026-11-18] WP-R Sửa Triệt Để Lỗi Không Xuất Được File Chứa Lớp Bản Đồ Guland (CORS Tile Proxy Stream & Zero Tainted Canvas)
+- **Yêu cầu từ người dùng**:
+  `chưa xuất được file chứa được lớp bản đồ Guland.`
+- **Phân tích Nguyên nhân Gốc rễ (Root Cause)**:
+  - Khi xem trên bản đồ Leaflet bằng DOM thông thường, ảnh ngói Guland (`<img>`) hiển thị bình thường vì thẻ `<img>` không yêu cầu CORS.
+  - Tuy nhiên khi xuất bản vẽ PDF / PNG qua HTML5 Canvas trong `loadExportBasemap()`, trình duyệt yêu cầu `img.crossOrigin = 'anonymous'` để đọc dữ liệu pixel xuất ra file.
+  - Các CDN ngói của Guland (`vcdn.cloud`, `cmctelecom.vn`, `fptcloud.com`, `digitaloceanspaces.com`) **hoàn toàn không đính kèm header CORS** (`Access-Control-Allow-Origin: *`).
+  - Do đó trình duyệt kích hoạt sự kiện `img.onerror` ngay lập tức $\to$ 100% ngói Guland bị đánh dấu `failed: true` $\to$ bản vẽ PDF/PNG kết xuất không có ảnh ngói Guland.
+- **Các giải pháp kỹ thuật đã hoàn thành**:
+  1. **Tạo Endpoint Proxy Ngói Cục Bộ (`server.js`) & Vercel Serverless Function (`api/tile-proxy.js`)**:
+     - Route `/api/tile-proxy?url=...` (và `/api/proxy-tile?url=...`) stream nhị phân ảnh ngói PNG trực tiếp.
+     - Đính kèm header `Access-Control-Allow-Origin: *` và bộ đệm dài hạn `Cache-Control: public, max-age=604800, s-maxage=604800`.
+     - Whitelist các domain bản đồ an toàn (`vcdn.cloud`, `cmctelecom.vn`, `fptcloud.com`, `digitaloceanspaces.com`, `openstreetmap.org`, `arcgisonline.com`, `terrascope.be`, `eox.at`) để phòng chống triệt để tấn công SSRF.
+  2. **Bọc URL Ngói Tự Động (`wrapTileProxyUrl`) trong `app.js`**:
+     - Tự động nhận diện các URL ngói từ CDN Guland và chuyển hướng qua proxy khi chạy trên môi trường Web/PWA.
+     - Tích hợp cả trong `planExportGuland` lẫn lớp phòng vệ dự phòng trong `loadExportBasemap` (cho cả URL chính lẫn fallback URL).
+  3. **Kiểm Chứng Thực Nghiệm Trực Quan Trên Trình Duyệt Thực Tế (Chrome DevTools MCP)**:
+     - Tải thành công 100% ngói quy hoạch Đồng Tháp (`totalTiles: 8, loadedTiles: 8, failedTiles: 0`).
+     - Vẽ lên Canvas và gọi `toDataURL('image/png')` đạt `"taintedError": null, "dataUrlLength": 47718`, xác nhận Canvas hoàn toàn trong sạch, không bị tainted.
+  4. **Kiểm Thử Tự Động & Hồi Quy**:
+     - Mở rộng bộ test `tests/export_guland_and_pdf_layers.test.js` kiểm tra proxy URL wrapper, xử lý mã lỗi 400 (thiếu url) và 403 (domain không được phép).
+     - Toàn bộ 495 bài test PASS 100%.
 
 ### [2026-11-18] WP-Q Bổ Sung Khổ Giấy Lớn (A0, A1, A2) & Nhập Tay Tỉ Lệ Bản Đồ Đánh Giá Vùng Lớn (MiniCAD & Sổ Đo Dự Án)
 - **Yêu cầu từ người dùng**:

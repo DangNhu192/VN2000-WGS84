@@ -378,6 +378,18 @@ function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_
     return { kind, z, tiles, credit: src.credit, alpha: src.alpha, label: src.label };
 }
 
+// Bọc URL ngói bản đồ qua proxy nội bộ nếu domain ngói không cấp header CORS (Access-Control-Allow-Origin: *)
+function wrapTileProxyUrl(url) {
+    if (!url || typeof url !== 'string') return url;
+    if (url.startsWith('/api/tile-proxy?') || url.startsWith('/api/proxy-tile?')) return url;
+    if (/vcdn\.cloud|cmctelecom\.vn|fptcloud\.com|digitaloceanspaces\.com/i.test(url)) {
+        if (typeof window !== 'undefined' && window.location && /^https?:/i.test(window.location.protocol)) {
+            return `/api/tile-proxy?url=${encodeURIComponent(url)}`;
+        }
+    }
+    return url;
+}
+
 // Lập kế hoạch tải ngói bản đồ quy hoạch Guland 2030 (kèm ngói thửa đất nếu chọn)
 function planExportGuland(provinceSlug, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_BASEMAP_MAX_TILES, showLand = false, opacity = 0.7) {
     const planning = (typeof appPlanning !== 'undefined' && appPlanning) ? appPlanning : ((typeof window !== 'undefined' && window.appPlanning) ? window.appPlanning : (typeof global !== 'undefined' ? global.appPlanning : null));
@@ -415,15 +427,15 @@ function planExportGuland(provinceSlug, frame, pxPerMeter, toLatLng, maxTiles = 
             tiles.push({
                 x: tx,
                 y: ty,
-                url: prov.url.replace('{z}', z).replace('{x}', wx).replace('{y}', ty),
-                fallbackUrl: prov.fallback ? prov.fallback.replace('{z}', z).replace('{x}', wx).replace('{y}', ty) : null
+                url: wrapTileProxyUrl(prov.url.replace('{z}', z).replace('{x}', wx).replace('{y}', ty)),
+                fallbackUrl: prov.fallback ? wrapTileProxyUrl(prov.fallback.replace('{z}', z).replace('{x}', wx).replace('{y}', ty)) : null
             });
             if (showLand && prov.landUrl) {
                 tiles.push({
                     x: tx,
                     y: ty,
                     isLand: true,
-                    url: prov.landUrl.replace('{z}', z).replace('{x}', wx).replace('{y}', ty),
+                    url: wrapTileProxyUrl(prov.landUrl.replace('{z}', z).replace('{x}', wx).replace('{y}', ty)),
                     fallbackUrl: null
                 });
             }
@@ -464,14 +476,17 @@ function loadExportBasemap(plan, opts = {}) {
         img.crossOrigin = 'anonymous';
         img.onload = () => finish(true);
         img.onerror = () => {
-            if (!triedFallback && t.fallbackUrl && img.src !== t.fallbackUrl) {
+            if (!triedFallback && t.fallbackUrl) {
                 triedFallback = true;
-                img.src = t.fallbackUrl;
-            } else {
-                finish(false);
+                const nextUrl = wrapTileProxyUrl(t.fallbackUrl);
+                if (img.src !== nextUrl) {
+                    img.src = nextUrl;
+                    return;
+                }
             }
+            finish(false);
         };
-        img.src = t.url;
+        img.src = wrapTileProxyUrl(t.url);
     });
     const worker = async () => { while (queue.length) await loadOne(queue.shift()); };
     return Promise.all(Array.from({ length: Math.min(concurrency, queue.length || 1) }, worker)).then(() => {
@@ -27288,15 +27303,22 @@ const appCadTool = {
                 if (provSel.options.length <= 1) {
                     provSel.innerHTML = appPlanning.provinces.map(p => `<option value="${p.slug}">${p.name} (KTT ${p.ktt}°)</option>`).join('');
                 }
-                const activeProv = (typeof appPlanning.targets !== 'undefined' && appPlanning.targets.cadMap?.provinceSlug) || (appPlanning.getProvinceByKtt && appPlanning.getProvinceByKtt(AppState.kttVal)?.slug) || 'dong-thap';
+                let matchedSlug = null;
+                if (AppState.provinceName && appPlanning.provinces) {
+                    const cleanName = AppState.provinceName.toLowerCase().replace(/^(tỉnh|thành phố|tp\.?)\s+/i, '').trim();
+                    const found = appPlanning.provinces.find(p => p.name.toLowerCase().includes(cleanName) || cleanName.includes(p.name.toLowerCase()));
+                    if (found) matchedSlug = found.slug;
+                }
+                const activeProv = matchedSlug || (typeof appPlanning.targets !== 'undefined' && appPlanning.targets.cadMap?.provinceSlug) || (appPlanning.getProvinceByKtt && appPlanning.getProvinceByKtt(AppState.kttVal)?.slug) || 'dong-thap';
                 provSel.value = savedMeta?.gulandProvince || activeProv;
             }
 
-            // Khôi phục trạng thái Guland và PDF
+            // Khôi phục trạng thái Guland và PDF (kế thừa thông minh từ bản đồ CAD nếu chưa lưu cấu hình)
+            const isCadPlanningActive = (typeof appPlanning !== 'undefined' && appPlanning.targets && appPlanning.targets.cadMap && appPlanning.targets.cadMap.active === true);
             const chkGuland = document.getElementById('cadExportCheckGuland');
             const wrapGuland = document.getElementById('cadExportGulandConfigWrap');
             if (chkGuland) {
-                chkGuland.checked = typeof savedMeta?.showGuland === 'boolean' ? savedMeta.showGuland : false;
+                chkGuland.checked = typeof savedMeta?.showGuland === 'boolean' ? savedMeta.showGuland : isCadPlanningActive;
                 if (wrapGuland) wrapGuland.style.display = chkGuland.checked ? 'block' : 'none';
             }
             if (savedMeta?.gulandOpacity) setVal('cadExportGulandOpacity', savedMeta.gulandOpacity);
@@ -27546,6 +27568,34 @@ const appCadTool = {
             <text x="${pad + 6}" y="${pad + 14}" fill="#38bdf8" font-size="9" font-weight="bold" font-family="sans-serif">KHỔ GIẤY ${L.paperLabel || (L.W_paper >= 420 ? 'A3' : 'A4')} • TỶ LỆ 1:${L.scaleVal}</text>
         `;
 
+        // Huy hiệu trực quan các lớp bản đồ được tích chọn xuất
+        if (meta.showGuland) {
+            const planningObj = (typeof appPlanning !== 'undefined' && appPlanning) ? appPlanning : null;
+            const gulandProvObj = (planningObj && planningObj.getProvince) ? planningObj.getProvince(meta.gulandProvince) : null;
+            const provName = gulandProvObj ? gulandProvObj.name : (meta.gulandProvince || 'Quy hoạch 2030');
+            const opPct = Math.round((meta.gulandOpacity || 0.6) * 100);
+            const landTxt = meta.gulandLand ? ' • CẢ RANH ĐẤT' : '';
+            svgContent += `
+            <!-- Huy hiệu chỉ báo quy hoạch Guland -->
+            <g transform="translate(${pad + 6}, ${pad + 20})">
+                <rect width="${Math.min(340, drawW - 12)}" height="18" rx="3" fill="rgba(234, 179, 8, 0.18)" stroke="#eab308" stroke-width="0.8"/>
+                <text x="7" y="12.5" fill="#facc15" font-size="8.5" font-weight="bold" font-family="sans-serif">
+                    🗺️ IN KÈM QUY HOẠCH GULAND: ${provName.toUpperCase()} (${opPct}%)${landTxt}
+                </text>
+            </g>`;
+        }
+        if (meta.printPlanOverlay && meta.selectedPlanOverlayIds && meta.selectedPlanOverlayIds.length > 0) {
+            const yOffset = meta.showGuland ? 42 : 20;
+            svgContent += `
+            <!-- Huy hiệu chỉ báo bản đồ PDF nắn tọa độ -->
+            <g transform="translate(${pad + 6}, ${pad + yOffset})">
+                <rect width="210" height="18" rx="3" fill="rgba(14, 165, 233, 0.18)" stroke="#0ea5e9" stroke-width="0.8"/>
+                <text x="7" y="12.5" fill="#38bdf8" font-size="8.5" font-weight="bold" font-family="sans-serif">
+                    📄 IN KÈM ${meta.selectedPlanOverlayIds.length} LỚP BẢN ĐỒ NẮN TỌA ĐỘ
+                </text>
+            </g>`;
+        }
+
         // Render từng khối/thửa
         selectedShapes.forEach((s, idx) => {
             const pts = (s.vertices || []).map(v => `${toSvgX(v.x).toFixed(1)},${toSvgY(v.y).toFixed(1)}`).join(' ');
@@ -27597,6 +27647,12 @@ const appCadTool = {
                 scaleVal: document.getElementById('cadExportScale')?.value || '500',
                 customScale: parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000,
                 paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
+                basemap: document.getElementById('cadExportBasemap')?.value || 'none',
+                showGuland: document.getElementById('cadExportCheckGuland')?.checked || false,
+                gulandProvince: document.getElementById('cadExportGulandProvince')?.value || 'dong-thap',
+                gulandOpacity: parseFloat(document.getElementById('cadExportGulandOpacity')?.value || '0.6'),
+                gulandLand: document.getElementById('cadExportGulandLand')?.checked || false,
+                printPlanOverlay: document.getElementById('cadExportPlanOverlay')?.checked || false,
                 savedAt: Date.now()
             };
 
@@ -27636,6 +27692,11 @@ const appCadTool = {
         setVal('cadExportSurveyor', '');
         setVal('cadExportChecker', '');
         setVal('cadExportDrawingCode', 'SĐ-01/01');
+        if (document.getElementById('cadExportBasemap')) document.getElementById('cadExportBasemap').value = 'none';
+        if (document.getElementById('cadExportCheckGuland')) document.getElementById('cadExportCheckGuland').checked = false;
+        if (document.getElementById('cadExportGulandConfigWrap')) document.getElementById('cadExportGulandConfigWrap').style.display = 'none';
+        if (document.getElementById('cadExportGulandOpacity')) document.getElementById('cadExportGulandOpacity').value = '0.6';
+        if (document.getElementById('cadExportGulandLand')) document.getElementById('cadExportGulandLand').checked = false;
 
         if (AppState.currentProject) {
             const projKey = 'vn2k_cad_meta_proj_' + AppState.currentProject.replace(/\.[^/.]+$/, "");
@@ -33380,12 +33441,21 @@ const appCadTool = {
         let bmPlan = null;
         let guPlan = null;
 
+        // Tự động nâng giới hạn số ô ảnh cho các khổ giấy lớn (A0: 260 ô, A1: 220 ô, A2: 180 ô) để độ nét tối đa
+        let maxTiles = EXPORT_BASEMAP_MAX_TILES;
+        if (meta && meta.paperW && meta.paperH) {
+            const maxPaperMm = Math.max(meta.paperW, meta.paperH);
+            if (maxPaperMm >= 1100) maxTiles = 260;
+            else if (maxPaperMm >= 800) maxTiles = 220;
+            else if (maxPaperMm >= 550) maxTiles = 180;
+        }
+
         if (needBasemap) {
-            try { bmPlan = planExportBasemap(meta.basemap, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n)); } catch (e) { bmPlan = null; }
+            try { bmPlan = planExportBasemap(meta.basemap, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), maxTiles); } catch (e) { bmPlan = null; }
         }
         if (needGuland) {
             try {
-                guPlan = planExportGuland(meta.gulandProvince, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), EXPORT_BASEMAP_MAX_TILES, meta.gulandLand, meta.gulandOpacity);
+                guPlan = planExportGuland(meta.gulandProvince, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), maxTiles, meta.gulandLand, meta.gulandOpacity);
             } catch (e) { guPlan = null; }
         }
 
@@ -43715,6 +43785,7 @@ if (typeof module !== 'undefined' && module.exports) {
         appMapLayers,
         MAP_BASES,
         EXPORT_BASEMAPS,
+        wrapTileProxyUrl,
         planExportBasemap,
         planExportGuland,
         loadExportBasemap,
