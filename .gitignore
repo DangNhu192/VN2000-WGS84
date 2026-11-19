@@ -29,3 +29,11 @@ scratch/
 node_modules/
 modern-react/node_modules/
 modern-react/dist/
+
+# Mã khôi phục & Thông tin bảo mật tài khoản
+vercel-recovery-codes*
+*recovery-codes*
+*.pem
+*.key
+.env*
+!.env.example
