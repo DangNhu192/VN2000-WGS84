@@ -5998,11 +5998,29 @@
         <button class="btn-modal-close" onclick="appCadTool.closeGisImportModal()">✕</button>
       </div>
 
+      <!-- Thư viện ranh giới hành chính & sáp nhập -->
+      <div style="margin-bottom: 12px; padding: 10px 12px; background: rgba(30,41,59,0.7); border: 1px solid rgba(56,189,248,0.35); border-radius: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: #38bdf8;">🏛️ Nạp Ranh giới Tỉnh / Xã sau sáp nhập có sẵn</span>
+          <span style="font-size: 11px; color: #94a3b8;">Dữ liệu vector VN-2000 chuẩn</span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <select id="cadSelectBoundaryCategory" class="app-input" onchange="appCadTool.onBoundaryCategoryChange(this.value)"
+            style="height: 32px; font-size: 11.5px; min-width: 180px; flex: 1; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"></select>
+          <select id="cadSelectBoundaryName" class="app-input"
+            style="height: 32px; font-size: 11.5px; min-width: 190px; flex: 1.5; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"></select>
+          <button type="button" class="btn-sm" onclick="appCadTool.applyAdminBoundaryImport()"
+            style="height: 32px; padding: 0 14px; font-weight: 800; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 4px; white-space: nowrap;">
+            ⬇ Nạp vào CAD
+          </button>
+        </div>
+      </div>
+
       <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
         <button class="btn-sm"
           style="height: 36px; padding: 0 14px; font-weight: 800; background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%); color: #fff; border: 1.5px solid #8b5cf6;"
           onclick="document.getElementById('cadFileInputGis').click()">
-          📂 Chọn tệp GIS
+          📂 Chọn tệp GIS từ máy
         </button>
         <span style="font-size: 11px; color: #94a3b8;">GeoJSON · KML · GPX · WKT (mở QGIS/Google Earth rồi lưu ra các định dạng này)</span>
       </div>

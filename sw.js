@@ -24,6 +24,7 @@ const ASSETS_TO_CACHE = [
   './leaflet.css',
   './vietnam_34_tinh.js',
   './dong_thap_communes.js',
+  './data/vn_south_provinces.js',
   './offline_regions.js',
   './pixoptimizer.js',
   './icon.png',

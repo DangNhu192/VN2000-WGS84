@@ -3,11 +3,40 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 513/513 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 516/516 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-19] WP-MAP-SOUTH: Xây Dựng Kho Dữ Liệu Lớp Bản Đồ & Quy Hoạch Miền Nam Chạy Offline 100%
+- **Yêu cầu từ người dùng**:
+  - `tôi cần dữ liệu lớp bản đồ của các tỉnh ở Việt Nam, bạn có thể tìm trên Internet để xây dựng dữ liệu.`
+  - Thống nhất qua Socratic Gate:
+    1. Lớp dữ liệu: Bản đồ Quy hoạch sử dụng đất / Xây dựng & Ranh giới hành chính.
+    2. Định dạng: Tệp dữ liệu cục bộ (GeoJSON / JS lưu trong `data/`) để chạy Offline 100% không cần mạng.
+    3. Phạm vi thử nghiệm: Các tỉnh thành miền Nam Việt Nam (Bắt buộc có Đồng Tháp mới sau sáp nhập, Đồng Tháp cũ và Tiền Giang cũ).
+- **Phân tích & Triển khai Kỹ thuật**:
+  1. **Thu thập dữ liệu GIS từ nguồn Internet mở & hợp pháp**:
+     - Nguồn: Cổng địa giới hành chính Tổng cục Thống kê / `daohoangson/dvhcvn` (MIT) & `sapnhap.bando.com.vn`.
+     - Viết công cụ tự động hóa `tools/build_vn_south_layers.js` để thu thập và tối ưu hóa 19 tỉnh thành miền Nam.
+  2. **Đóng gói kho dữ liệu `data/vn_south_provinces.js` (1.29 MB)**:
+     - `dong_thap_moi`: Tỉnh Đồng Tháp mới sau sáp nhập (hợp nhất Tiền Giang + Đồng Tháp theo đề án 34 tỉnh, diện tích 5.939 km², 102 xã/phường).
+     - `dong_thap_cu`: 12 quận/huyện/TP tỉnh Đồng Tháp cũ (TP Cao Lãnh, Sa Đéc, Hồng Ngự, Tân Hồng, v.v., KTT 105°00').
+     - `tien_giang_cu`: 11 quận/huyện/thị/TP tỉnh Tiền Giang cũ (TP Mỹ Tho, TX Gò Công, Cai Lậy, Cái Bè, v.v., KTT 105°45').
+     - `south_provinces`: Ranh giới 19 tỉnh thành miền Nam (TP.HCM, Cần Thơ, An Giang, Long An, Bến Tre, Vĩnh Long, v.v.) kèm KTT VN-2000.
+     - `planning_zones`: Lớp phân vùng quy hoạch sử dụng đất theo chuẩn **Thông tư 27/2018/TT-BTNMT** (mã màu và thuộc tính ODT, ONT, TMD, SKC, DGT, CX, MN).
+  3. **Tích hợp hệ thống Web/PWA**:
+     - Đăng ký `vn_south` vào `LAZY_LIBS` trong `app.js` (tải khi cần, không làm nặng app).
+     - Đăng ký `./data/vn_south_provinces.js` vào `ASSETS_TO_CACHE` trong `sw.js` (Offline cache 100%).
+     - Bổ sung 8 phương thức quản lý trong `appMap` (`initDongThapCuLayer`, `toggleDongThapCu`, `initTienGiangCuLayer`, `toggleTienGiangCu`, `initSouthProvincesLayer`, `toggleSouthProvinces`, `initPlanningZonesLayer`, `togglePlanningZones`).
+     - Tích hợp 4 switch bật/tắt vào bảng điều khiển lớp bản đồ `appMapLayers.renderPanel()`.
+  4. **Kiểm thử & Nghiệm thu**:
+     - Tạo mới test suite `tests/vn_south_map_layers.test.js` kiểm tra toàn diện cấu trúc dữ liệu, lazy load, SW cache và tương tác UI.
+     - Toàn bộ **516 / 516 bài kiểm thử đạt PASS 100%**.
+     - Đồng bộ toàn diện sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
 
 ### [2026-11-19] BẢO MẬT: Loại Bỏ Tệp Mã Khôi Phục Vercel & Cập Nhật .gitignore
 - **Tình trạng phát hiện**: Tồn tại tệp mã khôi phục tài khoản `vercel-recovery-codes-dnpn.ttqt@gmail.com.txt` trong kho lưu trữ.
@@ -1753,3 +1782,18 @@
      - Nâng trần Canvas: `MAX_SIDE: 16384` và `MAX_PIXELS: 120000000`.
      - Chuyển sang định dạng nén PNG Lossless 100% và gỡ bỏ `crisp-edges` (dùng `image-rendering: auto` mượt mà).
   3. **Kiểm thử**: Toàn bộ **502/502 tests PASS 100% (0 fail, 0 skipped)**.
+
+- **2026-11-19**: Nâng cấp Hệ thống Lọc Bật/Tắt Từng Tỉnh / Từng Xã Sau Sáp Nhập & Tích Hợp Nạp Ranh Giới Vào MiniCAD:
+  1. **Bản đồ chính (`appMap` & `appMapLayers`)**:
+     - Bổ sung cơ chế lọc linh hoạt cho từng đơn vị hành chính:
+       * `filterDongThapCommune(communeVal)`: Chọn riêng từng xã/phường sau sáp nhập (trong 102 xã/phường của Đồng Tháp mới) hoặc "Hiện tất cả". Tự động phóng to (FitBounds) tới đúng ranh giới của xã được chọn và mở popup thông tin.
+       * `filterSouthProvince(provVal)`: Chọn riêng từng tỉnh trong 19 tỉnh miền Nam hoặc "Hiện tất cả 19 tỉnh".
+       * `filter34Province(provVal)`: Chọn riêng từng tỉnh trong 34 tỉnh sau sáp nhập.
+       * `filterDongThapCu(districtVal)` & `filterTienGiangCu(districtVal)`: Chọn riêng từng huyện/TP cũ.
+     - Tích hợp các bộ chọn dropdown trong modal Lớp Bản đồ (`appMapLayers.renderPanel`), tuân thủ chuẩn cỡ chữ `>= 11.5px` của `DESIGN.md`.
+  2. **Phân hệ MiniCAD (`appCadTool`)**:
+     - Bổ sung Thư viện Ranh giới Địa chính trong `modalCadGisImport`: Kỹ sư có thể chọn bất kỳ xã hoặc tỉnh sáp nhập nào và nhấn **"Nạp vào CAD"**.
+     - Hệ thống tự động chuyển đổi polygon của xã/tỉnh sang tọa độ phẳng VN-2000 theo kinh tuyến trục KTT của dự án, tạo thành đối tượng hình khối (`mode: polygon`) trên layer riêng `RANH_GIOI_HANH_CHINH`, phục vụ đo đạc, bắt điểm (osnap) và trích xuất mặt bằng.
+     - Bổ sung lệnh CLI `RANH` / `RANHGIOI <tên>` trên CADCraft CLI để nạp ranh giới trực tiếp bằng phím tắt.
+  3. **Kiểm thử**: Toàn bộ **518/518 tests PASS 100% (9 test suites, 0 fail, 0 skipped)**.
+

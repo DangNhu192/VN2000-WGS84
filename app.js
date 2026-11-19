@@ -49,6 +49,19 @@ const AppState = {
     is34ProvVisible: false,
     layerDtCommunes: null,
     isDtCommunesVisible: false,
+    layerDtCu: null,
+    isDtCuVisible: false,
+    layerTgCu: null,
+    isTgCuVisible: false,
+    layerSouthProv: null,
+    isSouthProvVisible: false,
+    layerPlanningZones: null,
+    isPlanningZonesVisible: false,
+    filterDtCommune: 'ALL',
+    filterSouthProv: 'ALL',
+    filter34Prov: 'ALL',
+    filterDtCu: 'ALL',
+    filterTgCu: 'ALL',
     projectMarkersGroup: null,
     projectPolyline: null,
     projectDistanceLabelsGroup: null,
@@ -288,6 +301,26 @@ const appSettings = {
             document.getElementById('btnMapDtCommunes')?.classList.add('active');
         } else {
             AppState.isDtCommunesVisible = false;
+        }
+        if (AppState.isDtCuVisible && AppState.layerDtCu) {
+            AppState.layerDtCu.addTo(map);
+        } else {
+            AppState.isDtCuVisible = false;
+        }
+        if (AppState.isTgCuVisible && AppState.layerTgCu) {
+            AppState.layerTgCu.addTo(map);
+        } else {
+            AppState.isTgCuVisible = false;
+        }
+        if (AppState.isSouthProvVisible && AppState.layerSouthProv) {
+            AppState.layerSouthProv.addTo(map);
+        } else {
+            AppState.isSouthProvVisible = false;
+        }
+        if (AppState.isPlanningZonesVisible && AppState.layerPlanningZones) {
+            AppState.layerPlanningZones.addTo(map);
+        } else {
+            AppState.isPlanningZonesVisible = false;
         }
 
         map.on('moveend zoomend', () => this.save());
@@ -709,6 +742,7 @@ const LAZY_LIBS = {
     jspdf: { src: 'jspdf.umd.min.js', ready: () => typeof window !== 'undefined' && !!(window.jspdf && window.jspdf.jsPDF) },
     prov34: { src: 'vietnam_34_tinh.js', ready: () => typeof window !== 'undefined' && !!window.VIETNAM_34_PROVINCES },
     dongthap: { src: 'dong_thap_communes.js', ready: () => typeof window !== 'undefined' && !!window.DONG_THAP_COMMUNES },
+    vn_south: { src: 'data/vn_south_provinces.js', ready: () => typeof window !== 'undefined' && !!window.VN_SOUTH_MAP_DATA },
     // pdf.js 3.11 (Apache-2.0) — đọc PDF bản đồ quy hoạch thành ảnh nền
     pdfjs: { src: 'vendor/pdfjs/pdf.min.js', ready: () => typeof window !== 'undefined' && !!window.pdfjsLib }
 };
@@ -7960,19 +7994,30 @@ const appMap = {
         showToast(`🗺️ Nền: ${def ? def.name : next}`);
     },
 
+    _get34ProvStyle(feature) {
+        const p = feature.properties || {};
+        const name = p.ten_tinh || p.Ten_Tinh || p.NAME_1 || p.name || "";
+        const isFiltered = AppState.filter34Prov && AppState.filter34Prov !== 'ALL';
+        const isMatch = !isFiltered || name === AppState.filter34Prov || p.ma_tinh === AppState.filter34Prov;
+        if (!isMatch) {
+            return { opacity: 0, fillOpacity: 0, weight: 0 };
+        }
+        return {
+            color: isFiltered ? "#be123c" : "#f43f5e",
+            weight: isFiltered ? 3 : 2,
+            opacity: 0.85,
+            fillColor: isFiltered ? "#fb7185" : "#fb7185",
+            fillOpacity: isFiltered ? 0.25 : 0.08
+        };
+    },
+
     init34ProvincesLayer() {
         if (AppState.layer34Prov) return;
         if (!window.VIETNAM_34_PROVINCES) return;
         try {
             AppState.layer34Prov = L.geoJSON(window.VIETNAM_34_PROVINCES, {
                 interactive: AppState.mapMode !== 'cad',
-                style: {
-                    color: "#f43f5e",
-                    weight: 2,
-                    opacity: 0.85,
-                    fillColor: "#fb7185",
-                    fillOpacity: 0.08
-                },
+                style: (feature) => appMap._get34ProvStyle(feature),
                 onEachFeature: (feature, layer) => {
                     const p = feature.properties || {};
                     const name = p.ten_tinh || p.Ten_Tinh || p.NAME_1 || p.name || "Tỉnh";
@@ -8021,19 +8066,61 @@ const appMap = {
         }
     },
 
+    filter34Province(provVal) {
+        AppState.filter34Prov = provVal || 'ALL';
+        if (!AppState.layer34Prov && window.VIETNAM_34_PROVINCES) {
+            appMap.init34ProvincesLayer();
+        }
+        if (!AppState.is34ProvVisible) {
+            appMap.toggle34Provinces();
+        } else if (AppState.layer34Prov) {
+            AppState.layer34Prov.setStyle((f) => appMap._get34ProvStyle(f));
+        }
+
+        if (AppState.layer34Prov && AppState.leafletMap) {
+            if (AppState.filter34Prov && AppState.filter34Prov !== 'ALL') {
+                let matched = null;
+                AppState.layer34Prov.eachLayer(l => {
+                    const p = l.feature && l.feature.properties || {};
+                    const name = p.ten_tinh || p.name || '';
+                    if (name === AppState.filter34Prov || p.ma_tinh === AppState.filter34Prov) matched = l;
+                });
+                if (matched && matched.getBounds) {
+                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 12 });
+                    if (matched.openPopup) matched.openPopup();
+                }
+                showToast(`✓ Đã lọc hiển thị tỉnh: ${AppState.filter34Prov}`);
+            } else {
+                AppState.leafletMap.fitBounds(AppState.layer34Prov.getBounds(), { padding: [20, 20] });
+                showToast('✓ Đã hiển thị tất cả 34 tỉnh sau sáp nhập');
+            }
+        }
+    },
+
+    _getDtCommuneStyle(feature) {
+        const p = feature.properties || {};
+        const name = p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name || "";
+        const isFiltered = AppState.filterDtCommune && AppState.filterDtCommune !== 'ALL';
+        const isMatch = !isFiltered || name === AppState.filterDtCommune || p.ma_xa === AppState.filterDtCommune;
+        if (!isMatch) {
+            return { opacity: 0, fillOpacity: 0, weight: 0 };
+        }
+        return {
+            color: isFiltered ? "#047857" : "#10b981",
+            weight: isFiltered ? 2.5 : 1.5,
+            opacity: 0.9,
+            fillColor: isFiltered ? "#10b981" : "#34d399",
+            fillOpacity: isFiltered ? 0.3 : 0.12
+        };
+    },
+
     initDongThapCommunesLayer() {
         if (AppState.layerDtCommunes) return;
         if (!window.DONG_THAP_COMMUNES) return;
         try {
             AppState.layerDtCommunes = L.geoJSON(window.DONG_THAP_COMMUNES, {
                 interactive: AppState.mapMode !== 'cad',
-                style: {
-                    color: "#10b981",
-                    weight: 1.5,
-                    opacity: 0.9,
-                    fillColor: "#34d399",
-                    fillOpacity: 0.12
-                },
+                style: (feature) => appMap._getDtCommuneStyle(feature),
                 onEachFeature: (feature, layer) => {
                     const p = feature.properties || {};
                     const name = p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name || "Xã/Phường";
@@ -8080,6 +8167,389 @@ const appMap = {
             appSettings.save();
             if (btn) btn.classList.add('active');
             showToast("✓ Đã hiển thị ranh giới xã Đồng Tháp");
+        }
+    },
+
+    filterDongThapCommune(communeVal) {
+        AppState.filterDtCommune = communeVal || 'ALL';
+        if (!AppState.layerDtCommunes && window.DONG_THAP_COMMUNES) {
+            appMap.initDongThapCommunesLayer();
+        }
+        if (!AppState.isDtCommunesVisible) {
+            appMap.toggleDongThapCommunes();
+        } else if (AppState.layerDtCommunes) {
+            AppState.layerDtCommunes.setStyle((f) => appMap._getDtCommuneStyle(f));
+        }
+
+        if (AppState.layerDtCommunes && AppState.leafletMap) {
+            if (AppState.filterDtCommune && AppState.filterDtCommune !== 'ALL') {
+                let matched = null;
+                AppState.layerDtCommunes.eachLayer(l => {
+                    const p = l.feature && l.feature.properties || {};
+                    const name = p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name || '';
+                    if (name === AppState.filterDtCommune || p.ma_xa === AppState.filterDtCommune) matched = l;
+                });
+                if (matched && matched.getBounds) {
+                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 15 });
+                    if (matched.openPopup) matched.openPopup();
+                }
+                showToast(`✓ Đã lọc hiển thị xã/phường: ${AppState.filterDtCommune}`);
+            } else {
+                AppState.leafletMap.fitBounds(AppState.layerDtCommunes.getBounds(), { padding: [20, 20] });
+                showToast('✓ Đã hiển thị tất cả xã/phường Đồng Tháp');
+            }
+        }
+    },
+
+    _getDtCuStyle(feature) {
+        const p = feature.properties || {};
+        const name = p.name || "";
+        const isFiltered = AppState.filterDtCu && AppState.filterDtCu !== 'ALL';
+        const isMatch = !isFiltered || name === AppState.filterDtCu;
+        if (!isMatch) {
+            return { opacity: 0, fillOpacity: 0, weight: 0 };
+        }
+        return {
+            color: isFiltered ? "#0369a1" : "#0284c7",
+            weight: isFiltered ? 2.5 : 1.5,
+            opacity: 0.9,
+            fillColor: isFiltered ? "#0284c7" : "#38bdf8",
+            fillOpacity: isFiltered ? 0.28 : 0.12
+        };
+    },
+
+    initDongThapCuLayer() {
+        if (AppState.layerDtCu) return;
+        if (!window.VN_SOUTH_MAP_DATA || !window.VN_SOUTH_MAP_DATA.dong_thap_cu) return;
+        try {
+            AppState.layerDtCu = L.geoJSON(window.VN_SOUTH_MAP_DATA.dong_thap_cu, {
+                interactive: AppState.mapMode !== 'cad',
+                style: (feature) => appMap._getDtCuStyle(feature),
+                onEachFeature: (feature, layer) => {
+                    const p = feature.properties || {};
+                    const name = p.name || "Huyện/TP";
+                    layer.bindPopup(`
+                        <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; min-width:200px; padding:2px; line-height:1.5;">
+                            <b style="color:#0284c7; font-size:14px;">🌾 ${name}</b>
+                            <div style="color:#64748b; font-size:11.5px; margin-top:2px;">• <b>Tỉnh:</b> Đồng Tháp (Cũ - 12 huyện/TP)</div>
+                            <div style="color:#0369a1; font-size:11.5px;">• <b>Kinh tuyến trục VN-2000:</b> 105°00' (Múi 3°)</div>
+                        </div>
+                    `);
+                }
+            });
+        } catch (e) {
+            console.error("Lỗi nạp ranh giới Đồng Tháp cũ:", e);
+        }
+    },
+
+    toggleDongThapCu() {
+        if (!AppState.layerDtCu && window.VN_SOUTH_MAP_DATA) {
+            appMap.initDongThapCuLayer();
+        }
+        if (!AppState.layerDtCu) {
+            loadLib('vn_south').then(() => {
+                appMap.initDongThapCuLayer();
+                if (AppState.layerDtCu) appMap.toggleDongThapCu();
+            }).catch(() => showToast("⚠️ Chưa tải được dữ liệu Đồng Tháp cũ — kiểm tra kết nối mạng rồi thử lại.", true));
+            return;
+        }
+        if (AppState.isDtCuVisible) {
+            AppState.leafletMap.removeLayer(AppState.layerDtCu);
+            AppState.isDtCuVisible = false;
+            appSettings.save();
+            showToast("Đã ẩn ranh giới Đồng Tháp (Cũ)");
+        } else {
+            AppState.layerDtCu.addTo(AppState.leafletMap);
+            AppState.isDtCuVisible = true;
+            appSettings.save();
+            showToast("✓ Đã hiển thị ranh giới Đồng Tháp (Cũ - 12 huyện/TP)");
+        }
+    },
+
+    filterDongThapCu(districtVal) {
+        AppState.filterDtCu = districtVal || 'ALL';
+        if (!AppState.layerDtCu && window.VN_SOUTH_MAP_DATA) {
+            appMap.initDongThapCuLayer();
+        }
+        if (!AppState.isDtCuVisible) {
+            appMap.toggleDongThapCu();
+        } else if (AppState.layerDtCu) {
+            AppState.layerDtCu.setStyle((f) => appMap._getDtCuStyle(f));
+        }
+
+        if (AppState.layerDtCu && AppState.leafletMap) {
+            if (AppState.filterDtCu && AppState.filterDtCu !== 'ALL') {
+                let matched = null;
+                AppState.layerDtCu.eachLayer(l => {
+                    const p = l.feature && l.feature.properties || {};
+                    if (p.name === AppState.filterDtCu) matched = l;
+                });
+                if (matched && matched.getBounds) {
+                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 13 });
+                    if (matched.openPopup) matched.openPopup();
+                }
+                showToast(`✓ Đã lọc huyện/TP: ${AppState.filterDtCu}`);
+            } else {
+                AppState.leafletMap.fitBounds(AppState.layerDtCu.getBounds(), { padding: [20, 20] });
+                showToast('✓ Đã hiển thị tất cả 12 huyện/TP Đồng Tháp (Cũ)');
+            }
+        }
+    },
+
+    _getTgCuStyle(feature) {
+        const p = feature.properties || {};
+        const name = p.name || "";
+        const isFiltered = AppState.filterTgCu && AppState.filterTgCu !== 'ALL';
+        const isMatch = !isFiltered || name === AppState.filterTgCu;
+        if (!isMatch) {
+            return { opacity: 0, fillOpacity: 0, weight: 0 };
+        }
+        return {
+            color: isFiltered ? "#b45309" : "#d97706",
+            weight: isFiltered ? 2.5 : 1.5,
+            opacity: 0.9,
+            fillColor: isFiltered ? "#d97706" : "#fbbf24",
+            fillOpacity: isFiltered ? 0.28 : 0.12
+        };
+    },
+
+    initTienGiangCuLayer() {
+        if (AppState.layerTgCu) return;
+        if (!window.VN_SOUTH_MAP_DATA || !window.VN_SOUTH_MAP_DATA.tien_giang_cu) return;
+        try {
+            AppState.layerTgCu = L.geoJSON(window.VN_SOUTH_MAP_DATA.tien_giang_cu, {
+                interactive: AppState.mapMode !== 'cad',
+                style: (feature) => appMap._getTgCuStyle(feature),
+                onEachFeature: (feature, layer) => {
+                    const p = feature.properties || {};
+                    const name = p.name || "Huyện/Thị/TP";
+                    layer.bindPopup(`
+                        <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; min-width:200px; padding:2px; line-height:1.5;">
+                            <b style="color:#d97706; font-size:14px;">🥭 ${name}</b>
+                            <div style="color:#64748b; font-size:11.5px; margin-top:2px;">• <b>Tỉnh:</b> Tiền Giang (Cũ - 11 huyện/thị/TP)</div>
+                            <div style="color:#b45309; font-size:11.5px;">• <b>Kinh tuyến trục VN-2000:</b> 105°45' (Múi 3°)</div>
+                        </div>
+                    `);
+                }
+            });
+        } catch (e) {
+            console.error("Lỗi nạp ranh giới Tiền Giang cũ:", e);
+        }
+    },
+
+    toggleTienGiangCu() {
+        if (!AppState.layerTgCu && window.VN_SOUTH_MAP_DATA) {
+            appMap.initTienGiangCuLayer();
+        }
+        if (!AppState.layerTgCu) {
+            loadLib('vn_south').then(() => {
+                appMap.initTienGiangCuLayer();
+                if (AppState.layerTgCu) appMap.toggleTienGiangCu();
+            }).catch(() => showToast("⚠️ Chưa tải được dữ liệu Tiền Giang cũ — kiểm tra kết nối mạng rồi thử lại.", true));
+            return;
+        }
+        if (AppState.isTgCuVisible) {
+            AppState.leafletMap.removeLayer(AppState.layerTgCu);
+            AppState.isTgCuVisible = false;
+            appSettings.save();
+            showToast("Đã ẩn ranh giới Tiền Giang (Cũ)");
+        } else {
+            AppState.layerTgCu.addTo(AppState.leafletMap);
+            AppState.isTgCuVisible = true;
+            appSettings.save();
+            showToast("✓ Đã hiển thị ranh giới Tiền Giang (Cũ - 11 huyện/thị/TP)");
+        }
+    },
+
+    filterTienGiangCu(districtVal) {
+        AppState.filterTgCu = districtVal || 'ALL';
+        if (!AppState.layerTgCu && window.VN_SOUTH_MAP_DATA) {
+            appMap.initTienGiangCuLayer();
+        }
+        if (!AppState.isTgCuVisible) {
+            appMap.toggleTienGiangCu();
+        } else if (AppState.layerTgCu) {
+            AppState.layerTgCu.setStyle((f) => appMap._getTgCuStyle(f));
+        }
+
+        if (AppState.layerTgCu && AppState.leafletMap) {
+            if (AppState.filterTgCu && AppState.filterTgCu !== 'ALL') {
+                let matched = null;
+                AppState.layerTgCu.eachLayer(l => {
+                    const p = l.feature && l.feature.properties || {};
+                    if (p.name === AppState.filterTgCu) matched = l;
+                });
+                if (matched && matched.getBounds) {
+                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 13 });
+                    if (matched.openPopup) matched.openPopup();
+                }
+                showToast(`✓ Đã lọc huyện/thị/TP: ${AppState.filterTgCu}`);
+            } else {
+                AppState.leafletMap.fitBounds(AppState.layerTgCu.getBounds(), { padding: [20, 20] });
+                showToast('✓ Đã hiển thị tất cả 11 huyện/thị/TP Tiền Giang (Cũ)');
+            }
+        }
+    },
+
+    _getSouthProvStyle(feature) {
+        const p = feature.properties || {};
+        const name = p.name || p.shortName || "";
+        const isFiltered = AppState.filterSouthProv && AppState.filterSouthProv !== 'ALL';
+        const isMatch = !isFiltered || name === AppState.filterSouthProv || p.id === AppState.filterSouthProv;
+        if (!isMatch) {
+            return { opacity: 0, fillOpacity: 0, weight: 0 };
+        }
+        return {
+            color: isFiltered ? "#3730a3" : "#4f46e5",
+            weight: isFiltered ? 3 : 2,
+            opacity: 0.85,
+            fillColor: isFiltered ? "#6366f1" : "#818cf8",
+            fillOpacity: isFiltered ? 0.22 : 0.08
+        };
+    },
+
+    initSouthProvincesLayer() {
+        if (AppState.layerSouthProv) return;
+        if (!window.VN_SOUTH_MAP_DATA || !window.VN_SOUTH_MAP_DATA.south_provinces) return;
+        try {
+            AppState.layerSouthProv = L.geoJSON(window.VN_SOUTH_MAP_DATA.south_provinces, {
+                interactive: AppState.mapMode !== 'cad',
+                style: (feature) => appMap._getSouthProvStyle(feature),
+                onEachFeature: (feature, layer) => {
+                    const p = feature.properties || {};
+                    const name = p.name || p.shortName || "Tỉnh/TP";
+                    layer.bindPopup(`
+                        <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; min-width:210px; padding:2px; line-height:1.5;">
+                            <b style="color:#4f46e5; font-size:14px;">🏙️ ${name}</b>
+                            <div style="color:#64748b; font-size:11.5px; margin-top:2px;">• <b>Khu vực:</b> Nam Bộ (19 tỉnh thành)</div>
+                            <div style="color:#4338ca; font-size:11.5px;">• <b>KTT chuẩn VN-2000:</b> ${p.ktt}°</div>
+                            <div style="color:#64748b; font-size:11px;">• <b>Số quận/huyện trực thuộc:</b> ${p.districtCount} đơn vị</div>
+                        </div>
+                    `);
+                }
+            });
+        } catch (e) {
+            console.error("Lỗi nạp ranh giới 19 tỉnh miền Nam:", e);
+        }
+    },
+
+    toggleSouthProvinces() {
+        if (!AppState.layerSouthProv && window.VN_SOUTH_MAP_DATA) {
+            appMap.initSouthProvincesLayer();
+        }
+        if (!AppState.layerSouthProv) {
+            loadLib('vn_south').then(() => {
+                appMap.initSouthProvincesLayer();
+                if (AppState.layerSouthProv) appMap.toggleSouthProvinces();
+            }).catch(() => showToast("⚠️ Chưa tải được dữ liệu 19 tỉnh miền Nam — kiểm tra kết nối mạng rồi thử lại.", true));
+            return;
+        }
+        if (AppState.isSouthProvVisible) {
+            AppState.leafletMap.removeLayer(AppState.layerSouthProv);
+            AppState.isSouthProvVisible = false;
+            appSettings.save();
+            showToast("Đã ẩn ranh giới 19 Tỉnh miền Nam");
+        } else {
+            AppState.layerSouthProv.addTo(AppState.leafletMap);
+            AppState.isSouthProvVisible = true;
+            appSettings.save();
+            showToast("✓ Đã hiển thị ranh giới 19 Tỉnh miền Nam");
+        }
+    },
+
+    filterSouthProvince(provVal) {
+        AppState.filterSouthProv = provVal || 'ALL';
+        if (!AppState.layerSouthProv && window.VN_SOUTH_MAP_DATA) {
+            appMap.initSouthProvincesLayer();
+        }
+        if (!AppState.isSouthProvVisible) {
+            appMap.toggleSouthProvinces();
+        } else if (AppState.layerSouthProv) {
+            AppState.layerSouthProv.setStyle((f) => appMap._getSouthProvStyle(f));
+        }
+
+        if (AppState.layerSouthProv && AppState.leafletMap) {
+            if (AppState.filterSouthProv && AppState.filterSouthProv !== 'ALL') {
+                let matched = null;
+                AppState.layerSouthProv.eachLayer(l => {
+                    const p = l.feature && l.feature.properties || {};
+                    const name = p.name || p.shortName || '';
+                    if (name === AppState.filterSouthProv || p.id === AppState.filterSouthProv) matched = l;
+                });
+                if (matched && matched.getBounds) {
+                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 13 });
+                    if (matched.openPopup) matched.openPopup();
+                }
+                showToast(`✓ Đã lọc hiển thị tỉnh: ${AppState.filterSouthProv}`);
+            } else {
+                AppState.leafletMap.fitBounds(AppState.layerSouthProv.getBounds(), { padding: [20, 20] });
+                showToast('✓ Đã hiển thị tất cả 19 tỉnh miền Nam');
+            }
+        }
+    },
+
+    initPlanningZonesLayer() {
+        if (AppState.layerPlanningZones) return;
+        if (!window.VN_SOUTH_MAP_DATA || !window.VN_SOUTH_MAP_DATA.planning_zones) return;
+        try {
+            AppState.layerPlanningZones = L.geoJSON(window.VN_SOUTH_MAP_DATA.planning_zones, {
+                interactive: AppState.mapMode !== 'cad',
+                style: (feature) => {
+                    const p = feature.properties || {};
+                    const col = p.color || "#f43f5e";
+                    return {
+                        color: col,
+                        weight: 2,
+                        opacity: 0.95,
+                        fillColor: col,
+                        fillOpacity: 0.38
+                    };
+                },
+                onEachFeature: (feature, layer) => {
+                    const p = feature.properties || {};
+                    const col = p.color || "#f43f5e";
+                    layer.bindPopup(`
+                        <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; min-width:230px; padding:2px; line-height:1.5;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:${col};"></span>
+                                <b style="color:${col}; font-size:13.5px;">${p.name}</b>
+                            </div>
+                            <div style="margin-top:4px; font-size:12px;">• <b>Mã loại đất:</b> <span style="background:${col}22; color:${col}; font-weight:700; padding:1px 5px; border-radius:3px;">${p.land_type}</span> (${p.land_label})</div>
+                            <div style="color:#64748b; font-size:11.5px;">• <b>Địa bàn:</b> ${p.province}</div>
+                            <div style="color:#0284c7; font-size:11.5px;">• <b>Diện tích quy hoạch:</b> ${p.area_ha} ha</div>
+                            <div style="color:#64748b; font-size:11px;">• <b>Mật độ XD / Tầng cao:</b> ${p.density} | ${p.max_height}</div>
+                            <div style="color:#059669; font-size:11px; margin-top:2px;">• <b>Tình trạng:</b> ${p.status}</div>
+                            <div style="color:#94a3b8; font-size:11px; margin-top:3px; border-top:1px dashed #cbd5e1; padding-top:2px;">Quy chuẩn: Thông tư 27/2018/TT-BTNMT</div>
+                        </div>
+                    `);
+                }
+            });
+        } catch (e) {
+            console.error("Lỗi nạp phân vùng quy hoạch TT27:", e);
+        }
+    },
+
+    togglePlanningZones() {
+        if (!AppState.layerPlanningZones && window.VN_SOUTH_MAP_DATA) {
+            appMap.initPlanningZonesLayer();
+        }
+        if (!AppState.layerPlanningZones) {
+            loadLib('vn_south').then(() => {
+                appMap.initPlanningZonesLayer();
+                if (AppState.layerPlanningZones) appMap.togglePlanningZones();
+            }).catch(() => showToast("⚠️ Chưa tải được dữ liệu quy hoạch TT27 — kiểm tra kết nối mạng rồi thử lại.", true));
+            return;
+        }
+        if (AppState.isPlanningZonesVisible) {
+            AppState.leafletMap.removeLayer(AppState.layerPlanningZones);
+            AppState.isPlanningZonesVisible = false;
+            appSettings.save();
+            showToast("Đã ẩn phân vùng Quy hoạch sử dụng đất (TT27)");
+        } else {
+            AppState.layerPlanningZones.addTo(AppState.leafletMap);
+            AppState.isPlanningZonesVisible = true;
+            appSettings.save();
+            showToast("✓ Đã hiển thị phân vùng Quy hoạch sử dụng đất (TT27)");
         }
     },
 
@@ -8706,7 +9176,7 @@ const appMap = {
      *  xuống công cụ vẽ. Bản đồ dùng canvas (preferCanvas) nên đổi options.interactive có hiệu lực ngay. */
     setReferenceLayersInteractive(on) {
         const interactive = on !== false;
-        [AppState.layer34Prov, AppState.layerDtCommunes].forEach(group => {
+        [AppState.layer34Prov, AppState.layerDtCommunes, AppState.layerDtCu, AppState.layerTgCu, AppState.layerSouthProv, AppState.layerPlanningZones].forEach(group => {
             if (!group || typeof group.eachLayer !== 'function') return;
             group.eachLayer(l => {
                 l.options.interactive = interactive;
@@ -32347,6 +32817,45 @@ const appCadTool = {
                     }
                 }
                 break;
+            case 'RANH':
+            case 'RANHGIOI':
+                if (arg) {
+                    const searchArg = parts.slice(1).join(' ').toLowerCase();
+                    loadLib('dongthap').then(() => {
+                        let found = null;
+                        if (window.DONG_THAP_COMMUNES) {
+                            found = (window.DONG_THAP_COMMUNES.features || []).find(f => {
+                                const p = f.properties || {};
+                                const n = (p.ten_xa || p.Ten_Xa || p.name || '').toLowerCase();
+                                return n.includes(searchArg);
+                            });
+                        }
+                        if (found) {
+                            const p = found.properties || {};
+                            const n = p.ten_xa || p.Ten_Xa || p.name;
+                            appCadTool.importAdminBoundaryToCad({ category: 'dt_commune', name: n });
+                            return;
+                        }
+                        loadLib('vn_south').then(() => {
+                            if (window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.south_provinces) {
+                                found = (window.VN_SOUTH_MAP_DATA.south_provinces.features || []).find(f => {
+                                    const p = f.properties || {};
+                                    return (p.name || '').toLowerCase().includes(searchArg) || (p.shortName || '').toLowerCase().includes(searchArg);
+                                });
+                            }
+                            if (found) {
+                                appCadTool.importAdminBoundaryToCad({ category: 'south_prov', name: found.properties.name });
+                                return;
+                            }
+                            showToast(`⚠️ Chưa tìm thấy ranh giới "${searchArg}". Mở bảng chọn ranh giới...`);
+                            appCadTool.openGisImportModal();
+                        });
+                    });
+                } else {
+                    this.openGisImportModal();
+                    showToast('🏛️ Đã mở Bảng Nạp GIS & Ranh giới địa chính');
+                }
+                break;
             case 'DIST':
             case 'KHOANGCACH':
             case 'DO':
@@ -33202,6 +33711,9 @@ const appCadTool = {
         }
         this._gisResult = null;
         appGis.fillKttSelect(document.getElementById('cadGisKtt'));
+        if (typeof this.populateAdminBoundaryDropdowns === 'function') {
+            this.populateAdminBoundaryDropdowns();
+        }
         const summary = document.getElementById('cadGisSummary');
         if (summary) summary.textContent = 'Chưa chọn tệp — hỗ trợ .geojson · .kml · .gpx · .wkt · .dgn (MicroStation V7)';
         const fileInput = document.getElementById('cadFileInputGis');
@@ -33216,6 +33728,202 @@ const appCadTool = {
     closeGisImportModal() {
         const modal = document.getElementById('modalCadGisImport');
         if (modal) modal.style.display = 'none';
+    },
+
+    // ================= NẠP RANH GIỚI TỈNH / XÃ VÀO MINICAD =================
+    populateAdminBoundaryDropdowns() {
+        const catSel = document.getElementById('cadSelectBoundaryCategory');
+        if (!catSel) return;
+        catSel.innerHTML = `
+            <option value="dt_commune">🌾 Xã/Phường Đồng Tháp (Mới - Sau sáp nhập)</option>
+            <option value="south_prov">🏙️ 19 Tỉnh Nam Bộ (Kèm KTT chuẩn)</option>
+            <option value="prov_34">🏛️ 34 Tỉnh thành sau sáp nhập 2025</option>
+            <option value="dt_cu">📍 Đồng Tháp (Cũ - 12 huyện/TP)</option>
+            <option value="tg_cu">📍 Tiền Giang (Cũ - 11 huyện/thị/TP)</option>
+        `;
+        this.onBoundaryCategoryChange(catSel.value);
+    },
+
+    onBoundaryCategoryChange(category) {
+        const nameSel = document.getElementById('cadSelectBoundaryName');
+        if (!nameSel) return;
+        nameSel.innerHTML = '<option value="">⏳ Đang nạp danh sách...</option>';
+
+        const ensureAndFill = () => {
+            let items = [];
+            if (category === 'dt_commune') {
+                if (window.DONG_THAP_COMMUNES && window.DONG_THAP_COMMUNES.features) {
+                    items = window.DONG_THAP_COMMUNES.features.map(f => {
+                        const p = f.properties || {};
+                        const name = p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name || '';
+                        const loai = p.loai || 'Xã';
+                        return { id: name, label: `${loai} ${name}` };
+                    });
+                }
+            } else if (category === 'south_prov') {
+                if (window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.south_provinces) {
+                    items = window.VN_SOUTH_MAP_DATA.south_provinces.features.map(f => {
+                        const p = f.properties || {};
+                        return { id: p.name, label: `${p.name} (KTT ${p.ktt}°)` };
+                    });
+                }
+            } else if (category === 'prov_34') {
+                if (window.VIETNAM_34_PROVINCES && window.VIETNAM_34_PROVINCES.features) {
+                    items = window.VIETNAM_34_PROVINCES.features.map(f => {
+                        const p = f.properties || {};
+                        const name = p.ten_tinh || p.name || '';
+                        return { id: name, label: `Tỉnh ${name}` };
+                    });
+                }
+            } else if (category === 'dt_cu') {
+                if (window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.dong_thap_cu) {
+                    items = window.VN_SOUTH_MAP_DATA.dong_thap_cu.features.map(f => {
+                        const p = f.properties || {};
+                        return { id: p.name, label: p.name };
+                    });
+                }
+            } else if (category === 'tg_cu') {
+                if (window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.tien_giang_cu) {
+                    items = window.VN_SOUTH_MAP_DATA.tien_giang_cu.features.map(f => {
+                        const p = f.properties || {};
+                        return { id: p.name, label: p.name };
+                    });
+                }
+            }
+
+            items.sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+            if (items.length) {
+                nameSel.innerHTML = items.map(it => `<option value="${escapeHtml(it.id)}">${escapeHtml(it.label)}</option>`).join('');
+            } else {
+                nameSel.innerHTML = '<option value="">⚠️ Không có dữ liệu</option>';
+            }
+        };
+
+        if (category === 'dt_commune' && !window.DONG_THAP_COMMUNES) {
+            loadLib('dongthap').then(ensureAndFill).catch(ensureAndFill);
+        } else if ((category === 'south_prov' || category === 'dt_cu' || category === 'tg_cu') && !window.VN_SOUTH_MAP_DATA) {
+            loadLib('vn_south').then(ensureAndFill).catch(ensureAndFill);
+        } else if (category === 'prov_34' && !window.VIETNAM_34_PROVINCES) {
+            loadLib('prov34').then(ensureAndFill).catch(ensureAndFill);
+        } else {
+            ensureAndFill();
+        }
+    },
+
+    applyAdminBoundaryImport() {
+        const cat = (document.getElementById('cadSelectBoundaryCategory') || {}).value || 'dt_commune';
+        const name = (document.getElementById('cadSelectBoundaryName') || {}).value;
+        if (!name) {
+            showToast('⚠️ Vui lòng chọn một đơn vị hành chính để nạp vào CAD.', true);
+            return;
+        }
+        this.importAdminBoundaryToCad({ category: cat, name: name });
+    },
+
+    importAdminBoundaryToCad({ category, name }) {
+        if (!name) return;
+        let feature = null;
+        let featCollection = null;
+
+        const findFeature = () => {
+            if (category === 'dt_commune' && window.DONG_THAP_COMMUNES) {
+                featCollection = window.DONG_THAP_COMMUNES;
+                feature = (featCollection.features || []).find(f => {
+                    const p = f.properties || {};
+                    return (p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name) === name || p.ma_xa === name;
+                });
+            } else if (category === 'south_prov' && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.south_provinces) {
+                featCollection = window.VN_SOUTH_MAP_DATA.south_provinces;
+                feature = (featCollection.features || []).find(f => {
+                    const p = f.properties || {};
+                    return p.name === name || p.shortName === name || p.id === name;
+                });
+            } else if (category === 'prov_34' && window.VIETNAM_34_PROVINCES) {
+                featCollection = window.VIETNAM_34_PROVINCES;
+                feature = (featCollection.features || []).find(f => {
+                    const p = f.properties || {};
+                    return (p.ten_tinh || p.name) === name || p.ma_tinh === name;
+                });
+            } else if (category === 'dt_cu' && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.dong_thap_cu) {
+                featCollection = window.VN_SOUTH_MAP_DATA.dong_thap_cu;
+                feature = (featCollection.features || []).find(f => (f.properties || {}).name === name);
+            } else if (category === 'tg_cu' && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.tien_giang_cu) {
+                featCollection = window.VN_SOUTH_MAP_DATA.tien_giang_cu;
+                feature = (featCollection.features || []).find(f => (f.properties || {}).name === name);
+            }
+        };
+
+        findFeature();
+
+        if (!feature) {
+            showToast(`⚠️ Không tìm thấy đối tượng ranh giới "${name}".`, true);
+            return;
+        }
+
+        const singleFc = { type: 'FeatureCollection', features: [feature] };
+        if (typeof GisIO === 'undefined') {
+            showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
+            return;
+        }
+        const parsed = GisIO.read(JSON.stringify(singleFc), `${name}.geojson`);
+        if (!parsed || !parsed.ok || !parsed.features.length) {
+            showToast('❌ Không đọc được dữ liệu hình học của ranh giới.', true);
+            return;
+        }
+
+        const k = appGis.resolveKtt(AppState.provinceIndex, AppState.muiVal);
+        const converted = appGis.featuresToCadShapes(parsed, {
+            ktt: k,
+            crs: 'wgs84',
+            axis: 'EN',
+            layerName: 'RANH_GIOI_HANH_CHINH'
+        });
+
+        if (!converted.shapes || !converted.shapes.length) {
+            showToast('⚠️ Không thể chuyển đổi ranh giới sang tọa độ VN-2000.', true);
+            return;
+        }
+
+        if (!this.cadLayers.some(l => l.id === 'RANH_GIOI_HANH_CHINH')) {
+            this.cadLayers.push({
+                id: 'RANH_GIOI_HANH_CHINH',
+                name: 'Ranh giới hành chính',
+                color: (category === 'dt_commune' || category === 'dt_cu') ? '#10b981' : '#38bdf8',
+                visible: true,
+                locked: false
+            });
+        }
+
+        if (!this.savedShapes) this.savedShapes = [];
+        const addedShapes = [];
+        converted.shapes.forEach((s, idx) => {
+            const shapeObj = {
+                id: 'admin_boundary_' + Date.now() + '_' + idx,
+                name: `Ranh ${name}${converted.shapes.length > 1 ? ' (' + (idx + 1) + ')' : ''}`,
+                shortName: `Ranh ${name}`,
+                mode: 'polygon',
+                vertices: s.vertices,
+                color: (category === 'dt_commune' || category === 'dt_cu') ? '#10b981' : '#38bdf8',
+                layer: 'RANH_GIOI_HANH_CHINH',
+                selected: true,
+                stats: this.calculateAreaAndPerimeter(s.vertices, 'polygon')
+            };
+            this.savedShapes.push(shapeObj);
+            addedShapes.push(shapeObj);
+        });
+
+        this.pushHistoryState(`Nạp ranh giới ${name}`);
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        if (typeof this.bringCadToFront === 'function') this.bringCadToFront();
+        this.updateUi();
+        this.renderBlocksPanel();
+        this.closeGisImportModal();
+        this.zoomExtents();
+
+        const totalVerts = addedShapes.reduce((sum, s) => sum + (s.vertices ? s.vertices.length : 0), 0);
+        showToast(`✅ Đã nạp ranh giới ${name} (${totalVerts} đỉnh) vào MiniCAD`);
     },
 
     _gisRadioValue(group, fallback) {
@@ -45333,6 +46041,103 @@ const appMapLayers = {
               <label>Loại ảnh <select onchange="appMapLayers.setGibs('product', this.value)">${GIBS_PRODUCTS.map(p => `<option value="${p.id}" ${p.id === g.product ? 'selected' : ''}>${p.name}</option>`).join('')}</select></label>
               ${this._slider('gibs', g.opacity)}
               <small>Độ phân giải ~250 m: xem vùng ngập, mùa nước nổi; ngày bị mây có thể trống.</small></div>` : '';
+        let prov34Extra = '';
+        if (AppState.is34ProvVisible && window.VIETNAM_34_PROVINCES) {
+            const list = (window.VIETNAM_34_PROVINCES.features || [])
+                .map(f => {
+                    const p = f.properties || {};
+                    const name = p.ten_tinh || p.name || '';
+                    return { id: name, label: `Tỉnh ${name}` };
+                })
+                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+            const opts = [`<option value="ALL">-- Tất cả 34 tỉnh sau sáp nhập --</option>`]
+                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filter34Prov === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
+            prov34Extra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#f43f5e;font-weight:600;">
+                    <span>Lọc riêng từng tỉnh sáp nhập:</span>
+                    <select onchange="appMap.filter34Province(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #f43f5e;border-radius:4px;padding:2px 6px;font-size:11.5px;">
+                        ${opts.join('')}
+                    </select>
+                </label>
+            </div>`;
+        }
+
+        let dtCommuneExtra = '';
+        if (AppState.isDtCommunesVisible && window.DONG_THAP_COMMUNES) {
+            const list = (window.DONG_THAP_COMMUNES.features || [])
+                .map(f => {
+                    const p = f.properties || {};
+                    const name = p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name || '';
+                    const loai = p.loai || 'Xã';
+                    return { id: name, label: `${loai} ${name}` };
+                })
+                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+            const opts = [`<option value="ALL">-- Tất cả ${list.length} xã/phường sau sáp nhập --</option>`]
+                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filterDtCommune === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
+            dtCommuneExtra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#10b981;font-weight:600;">
+                    <span>Lọc riêng từng xã/phường:</span>
+                    <select onchange="appMap.filterDongThapCommune(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #10b981;border-radius:4px;padding:2px 6px;font-size:11.5px;">
+                        ${opts.join('')}
+                    </select>
+                </label>
+            </div>`;
+        }
+
+        let dtCuExtra = '';
+        if (AppState.isDtCuVisible && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.dong_thap_cu) {
+            const list = (window.VN_SOUTH_MAP_DATA.dong_thap_cu.features || [])
+                .map(f => ({ id: f.properties.name, label: f.properties.name }))
+                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+            const opts = [`<option value="ALL">-- Tất cả 12 huyện/TP (Cũ) --</option>`]
+                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filterDtCu === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
+            dtCuExtra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#0284c7;font-weight:600;">
+                    <span>Lọc riêng từng huyện/TP:</span>
+                    <select onchange="appMap.filterDongThapCu(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #0284c7;border-radius:4px;padding:2px 6px;font-size:11.5px;">
+                        ${opts.join('')}
+                    </select>
+                </label>
+            </div>`;
+        }
+
+        let tgCuExtra = '';
+        if (AppState.isTgCuVisible && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.tien_giang_cu) {
+            const list = (window.VN_SOUTH_MAP_DATA.tien_giang_cu.features || [])
+                .map(f => ({ id: f.properties.name, label: f.properties.name }))
+                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+            const opts = [`<option value="ALL">-- Tất cả 11 huyện/thị/TP (Cũ) --</option>`]
+                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filterTgCu === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
+            tgCuExtra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#d97706;font-weight:600;">
+                    <span>Lọc riêng từng huyện/thị/TP:</span>
+                    <select onchange="appMap.filterTienGiangCu(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #d97706;border-radius:4px;padding:2px 6px;font-size:11.5px;">
+                        ${opts.join('')}
+                    </select>
+                </label>
+            </div>`;
+        }
+
+        let southProvExtra = '';
+        if (AppState.isSouthProvVisible && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.south_provinces) {
+            const list = (window.VN_SOUTH_MAP_DATA.south_provinces.features || [])
+                .map(f => {
+                    const p = f.properties || {};
+                    return { id: p.name, label: `${p.name} (KTT ${p.ktt}°)` };
+                })
+                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+            const opts = [`<option value="ALL">-- Tất cả 19 tỉnh miền Nam --</option>`]
+                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filterSouthProv === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
+            southProvExtra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
+                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#4f46e5;font-weight:600;">
+                    <span>Lọc riêng từng tỉnh:</span>
+                    <select onchange="appMap.filterSouthProvince(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #6366f1;border-radius:4px;padding:2px 6px;font-size:11.5px;">
+                        ${opts.join('')}
+                    </select>
+                </label>
+            </div>`;
+        }
+
         const overlays = [
             row({ swatch: '<span class="ml-swatch" style="background:#f096ff"></span>', input: this._switch('mlWc', wc.on, "appMapLayers.setOverlay('worldcover', this.checked)", 'Lớp phủ mặt đất ESA WorldCover') },
                 'Lớp phủ mặt đất ESA WorldCover', '10 m · 2021 · lúa, cây, nhà, mặt nước',
@@ -45340,9 +46145,17 @@ const appMapLayers = {
             row({ swatch: '<span class="ml-swatch" style="background:#0064c8"></span>', input: this._switch('mlGibs', g.on, "appMapLayers.setOverlay('gibs', this.checked)", 'Ảnh vệ tinh theo ngày NASA') },
                 'Ảnh vệ tinh theo ngày (NASA)', 'Cập nhật hằng ngày · theo dõi lũ', gibsExtra),
             row({ swatch: '<span class="ml-swatch" style="background:#f43f5e"></span>', input: this._switch('mlProv', !!AppState.is34ProvVisible, 'appMap.toggle34Provinces(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới 34 tỉnh') },
-                'Ranh giới 34 tỉnh', 'Địa giới hành chính 2025'),
+                'Ranh giới 34 tỉnh', 'Địa giới hành chính 2025 (Gồm Đồng Tháp mới)', prov34Extra),
             row({ swatch: '<span class="ml-swatch" style="background:#10b981"></span>', input: this._switch('mlXa', !!AppState.isDtCommunesVisible, 'appMap.toggleDongThapCommunes(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới xã Đồng Tháp') },
-                'Ranh giới xã Đồng Tháp', '102 xã, phường')
+                'Ranh giới xã Đồng Tháp (Mới)', '34 xã, phường sau sáp nhập', dtCommuneExtra),
+            row({ swatch: '<span class="ml-swatch" style="background:#0284c7"></span>', input: this._switch('mlDtCu', !!AppState.isDtCuVisible, 'appMap.toggleDongThapCu(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Đồng Tháp cũ') },
+                'Đồng Tháp (Cũ)', '12 quận/huyện/TP · KTT 105°00\'', dtCuExtra),
+            row({ swatch: '<span class="ml-swatch" style="background:#d97706"></span>', input: this._switch('mlTgCu', !!AppState.isTgCuVisible, 'appMap.toggleTienGiangCu(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Tiền Giang cũ') },
+                'Tiền Giang (Cũ)', '11 quận/huyện/thị/TP · KTT 105°45\'', tgCuExtra),
+            row({ swatch: '<span class="ml-swatch" style="background:#4f46e5"></span>', input: this._switch('mlSouthProv', !!AppState.isSouthProvVisible, 'appMap.toggleSouthProvinces(); setTimeout(() => appMapLayers.renderPanel(), 400)', '19 tỉnh miền Nam') },
+                '19 Tỉnh Miền Nam', 'Đông Nam Bộ & ĐBSCL · Kèm KTT VN-2000', southProvExtra),
+            row({ swatch: '<span class="ml-swatch" style="background:#ec4899"></span>', input: this._switch('mlPlanZones', !!AppState.isPlanningZonesVisible, 'appMap.togglePlanningZones(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Quy hoạch sử dụng đất TT27') },
+                'Quy hoạch sử dụng đất (TT27)', 'Phân vùng chức năng ODT, ONT, TMD, SKC...')
         ];
         if (typeof appPlanning !== 'undefined' && appPlanning.provinces) {
             const curTarget = inCad ? 'cadMap' : 'projectMap';

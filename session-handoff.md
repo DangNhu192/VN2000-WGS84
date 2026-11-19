@@ -1,6 +1,49 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-19: WP-Z — TÙY BIẾN TOÀN DIỆN KÝ HIỆU ICON ĐỈNH / MỐC MINICAD (10 KIỂU DÁNG, 4 KÍCH THƯỚC, PALETTE MÀU & REALTIME HUD)
+## Phiên hiện tại — 2026-11-19: WP-MAP-FILTER-CAD — CƠ CHẾ LỌC BẬT TẮT TỪNG TỈNH / TỪNG XÃ SAU SÁP NHẬP & NẠP VÀO MINICAD
+- **Yêu cầu từ người dùng**:
+  - `cơ chế bật tắt (trong bản đồ và miniCAD) có cho phép cho từng tỉnh hoặc từng xã sau sáp nhập chưa?` -> Đồng ý triển khai cơ chế lọc và nạp ranh giới chi tiết.
+- **Kết quả triển khai**:
+  1. **Bản đồ chính (`appMap` & `appMapLayers`)**:
+     - Bổ sung các biến lọc trạng thái trong `AppState`: `filterDtCommune`, `filterSouthProv`, `filter34Prov`, `filterDtCu`, `filterTgCu`.
+     - 5 hàm lọc động tự động `fitBounds` và mở popup: `filterDongThapCommune`, `filterSouthProvince`, `filter34Province`, `filterDongThapCu`, `filterTienGiangCu`.
+     - Tích hợp các bộ chọn dropdown trong modal Lớp Bản đồ (`appMapLayers.renderPanel`), tuân thủ chuẩn cỡ chữ `>= 11.5px` của `DESIGN.md`.
+  2. **Phân hệ MiniCAD (`appCadTool`)**:
+     - Bổ sung Thư viện Ranh giới Địa chính trong `modalCadGisImport`: Kỹ sư có thể chọn bất kỳ xã hoặc tỉnh sáp nhập nào và nhấn **"Nạp vào CAD"**.
+     - Hệ thống tự động chuyển đổi polygon của xã/tỉnh sang tọa độ phẳng VN-2000 theo kinh tuyến trục KTT của dự án, tạo thành đối tượng hình khối (`mode: polygon`) trên layer riêng `RANH_GIOI_HANH_CHINH`.
+     - Bổ sung lệnh CLI `RANH` / `RANHGIOI <tên>` trên CADCraft CLI để nạp ranh giới trực tiếp bằng phím tắt.
+  3. **Kiểm thử**: Toàn bộ **518/518 tests PASS 100% (9 test suites, 0 fail, 0 skipped)**.
+
+---
+
+## Phiên trước đó — 2026-11-19: WP-MAP-SOUTH — XÂY DỰNG KHO DỮ LIỆU LỚP BẢN ĐỒ & QUY HOẠCH MIỀN NAM CHẠY OFFLINE 100%
+- **Yêu cầu từ người dùng**:
+  - `tôi cần dữ liệu lớp bản đồ của các tỉnh ở Việt Nam, bạn có thể tìm trên Internet để xây dựng dữ liệu.`
+  - Thống nhất qua Socratic Gate:
+    1. Lớp dữ liệu: Bản đồ Quy hoạch sử dụng đất / Xây dựng & Ranh giới hành chính.
+    2. Định dạng: Tệp dữ liệu cục bộ (GeoJSON / JS trong `data/`) chạy Offline 100% không cần mạng.
+    3. Phạm vi: Các tỉnh thành miền Nam (Bắt buộc có Đồng Tháp mới sau sáp nhập, Đồng Tháp cũ và Tiền Giang cũ).
+- **Kết quả triển khai**:
+  1. **Bộ công cụ tải & chuẩn hóa dữ liệu GIS mở (`tools/build_vn_south_layers.js`)**:
+     - Thu thập từ Cổng thông tin GIS Tổng cục Thống kê / `daohoangson/dvhcvn` (MIT) & `sapnhap.bando.com.vn`.
+     - Tự động lọc, chuẩn hóa tọa độ và cấu trúc hóa toàn bộ 19 tỉnh thành miền Nam.
+  2. **Kho dữ liệu `data/vn_south_provinces.js` (1.29 MB)**:
+     - `dong_thap_moi`: Tỉnh Đồng Tháp mới sau sáp nhập (hợp nhất Tiền Giang + Đồng Tháp theo đề án 34 tỉnh, diện tích 5.939 km², 102 xã/phường).
+     - `dong_thap_cu`: 12 quận/huyện/TP tỉnh Đồng Tháp cũ (TP Cao Lãnh, Sa Đéc, Hồng Ngự, Tân Hồng, v.v., KTT 105°00').
+     - `tien_giang_cu`: 11 quận/huyện/thị/TP tỉnh Tiền Giang cũ (TP Mỹ Tho, TX Gò Công, Cai Lậy, Cái Bè, v.v., KTT 105°45').
+     - `south_provinces`: Ranh giới 19 tỉnh thành miền Nam (TP.HCM, Cần Thơ, An Giang, Long An, Bến Tre, Vĩnh Long, Bà Rịa - Vũng Tàu, Tây Ninh...) kèm KTT VN-2000.
+     - `planning_zones`: Lớp phân vùng quy hoạch sử dụng đất theo chuẩn **Thông tư 27/2018/TT-BTNMT** (ODT, ONT, TMD, SKC, DGT, CX, MN).
+  3. **Tích hợp PWA & Giao diện Bản đồ**:
+     - Thêm `vn_south` vào `LAZY_LIBS` trong `app.js` (nạp bất đồng bộ theo nhu cầu).
+     - Đăng ký `./data/vn_south_provinces.js` vào `ASSETS_TO_CACHE` trong `sw.js` (chạy Offline 100%).
+     - Bổ sung 8 phương thức `init` và `toggle` trong `appMap` với styling và popup thông tin trắc địa/quy hoạch chuẩn xác.
+     - Tích hợp 4 switch điều khiển chuyên biệt trong bảng nổi lớp bản đồ `appMapLayers.renderPanel()`.
+  4. **Kiểm thử & Nghiệm thu**:
+     - Tạo mới test suite `tests/vn_south_map_layers.test.js`.
+     - Toàn bộ **516 / 516 bài test PASS 100%** (9 suites, 0 fail).
+     - Đồng bộ toàn diện sang `D:\Nhu\APP\VN2000-PWA`.
+
+## Phiên trước — 2026-11-19: WP-Z — TÙY BIẾN TOÀN DIỆN KÝ HIỆU ICON ĐỈNH / MỐC MINICAD (10 KIỂU DÁNG, 4 KÍCH THƯỚC, PALETTE MÀU & REALTIME HUD)
 - **Yêu cầu từ người dùng**:
   `cho phép điều chỉnh Icon điểm lưu, các đỉnh của tuyến, đa giác, thửa đã lưu hoặc đang vẽ`
 - **Kết quả triển khai**:
