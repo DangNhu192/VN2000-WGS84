@@ -79,10 +79,88 @@ test('giao diện: tab nằm trong màn Chuyển đổi, không gọi bản đ�
     const tf = html.slice(html.indexOf('id="screen-transform"'), html.indexOf('id="screen-transform-map"'));
     assert.ok(tf.includes('id="tabTransRezone"') && tf.includes('id="panelTransRezone"'));
     assert.ok(tf.includes('id="rzViewMap"'), 'Có nút Xem Bản Đồ trong bảng kết quả Đổi KTT/múi');
+    assert.ok(tf.includes('id="rzSave"'), 'Có nút Lưu Điểm #rzSave trong thẻ kết quả');
+    assert.ok(html.includes('id="modalRzSavePoints"'), 'Có hộp thoại #modalRzSavePoints');
+    assert.ok(html.includes('id="rzSaveProject"'), 'Có chọn dự án lưu #rzSaveProject');
+    assert.ok(html.includes('id="rzSaveNamingStrategy"'), 'Có chọn quy tắc đặt tên #rzSaveNamingStrategy');
+    assert.ok(html.includes('id="rzSaveTableBody"'), 'Có bảng xem trước các điểm sẽ lưu #rzSaveTableBody');
+    assert.ok(html.includes('id="rzConfirmSave"'), 'Có nút xác nhận lưu #rzConfirmSave');
     assert.ok(html.includes('src="vn2000-rezone.js'));
     assert.ok(sw.includes("'./vn2000-rezone.js'"));
     assert.ok(!/openProjectMap|mapProjectBar|appCadTool/.test(src), 'Không gọi chéo phân hệ khác');
     assert.ok(app.includes('rezonePoints') && app.includes('rezone-converted-pin'), 'appTransformMap hỗ trợ render các điểm kết quả đổi KTT');
+});
+
+test('logic: hàm đặt tên và lưu điểm kết quả chuyển đổi lưu đủ tọa độ, múi, KTT vào dự án', () => {
+    assert.equal(typeof rz.saveResultsToProject, 'function', 'rz có hàm saveResultsToProject');
+    assert.equal(typeof rz.openSaveModal, 'function', 'rz có hàm openSaveModal');
+    assert.equal(typeof rz.closeSaveModal, 'function', 'rz có hàm closeSaveModal');
+
+    // 1. Khi chưa có kết quả đổi tọa độ
+    rz.setLast(null);
+    const resNoLast = rz.saveResultsToProject('DuAnMau.csv');
+    assert.equal(resNoLast.success, false);
+
+    // 2. Thiết lập mock môi trường dự án
+    const mockStorage = {};
+    global.localStorage = {
+        getItem: (k) => mockStorage[k] || null,
+        setItem: (k, v) => { mockStorage[k] = String(v); },
+        removeItem: (k) => { delete mockStorage[k]; }
+    };
+    global.AppState = { projectsList: ['DuAnMau.csv'], currentProject: 'DuAnMau.csv' };
+    global.appData = {
+        getPoints: (p) => {
+            const raw = mockStorage[`vn2k_pts_${p}`];
+            return raw ? JSON.parse(raw) : [];
+        },
+        savePoints: (p, pts) => {
+            mockStorage[`vn2k_pts_${p}`] = JSON.stringify(pts);
+        },
+        saveProjectsList: () => {}
+    };
+
+    // 3. Giả lập kết quả đổi tọa độ
+    const src = { ktt: 105.75, zone: 3 };
+    const dst = { ktt: 108.5, zone: 3 };
+    const a = g.convertWgsToVn2k(10.77, 106.70, 105.75, 0.9999);
+    const b = g.convertWgsToVn2k(10.78, 106.71, 105.75, 0.9999);
+    const converted = rz.convertAll([
+        { name: 'M1', x: a.X, y: a.Y },
+        { name: 'M2', x: b.X, y: b.Y }
+    ], src, dst, g.convertVn2kToVn2k);
+
+    rz.setLast({ results: converted, src, dst });
+
+    // 4. Lưu mốc với tên đặt mới
+    const saveRes = rz.saveResultsToProject('DuAnMau.csv', ['MocA_DoiKTT', 'MocB_DoiKTT']);
+    assert.equal(saveRes.success, true);
+    assert.equal(saveRes.count, 2);
+    assert.equal(saveRes.project, 'DuAnMau.csv');
+
+    // 5. Kiểm tra dữ liệu được lưu trong cơ sở dữ liệu
+    const savedPoints = global.appData.getPoints('DuAnMau.csv');
+    assert.equal(savedPoints.length, 2);
+
+    // Điểm 1
+    const p1 = savedPoints[0];
+    assert.equal(p1.name, 'MocA_DoiKTT', 'Tên điểm mới được đặt chính xác');
+    assert.equal(p1.x, parseFloat(converted[0].X.toFixed(3)), 'Tọa độ X mới (Bắc) chuẩn xác');
+    assert.equal(p1.y, parseFloat(converted[0].Y.toFixed(3)), 'Tọa độ Y mới (Đông) chuẩn xác');
+    assert.equal(p1.mui, 3, 'Múi chiếu đích là múi 3°');
+    assert.equal(p1.ktt, "108°30'", 'Kinh tuyến trục đích là 108°30');
+    assert.ok(Math.abs(p1.lat - converted[0].lat) < 1e-5, 'WGS-84 Lat chuẩn xác');
+    assert.ok(Math.abs(p1.lng - converted[0].lng) < 1e-5, 'WGS-84 Lng chuẩn xác');
+    assert.ok(p1.note.includes('Đổi KTT: 105°45\''), 'Ghi chú lưu vết chuyển đổi');
+
+    // Điểm 2
+    const p2 = savedPoints[1];
+    assert.equal(p2.name, 'MocB_DoiKTT');
+    assert.equal(p2.x, parseFloat(converted[1].X.toFixed(3)));
+    assert.equal(p2.y, parseFloat(converted[1].Y.toFixed(3)));
+
+    // Dọn dẹp mock
+    rz.setLast(null);
 });
 
 test('mốc KTT nhanh khớp đúng bảng 34 tỉnh hiện hành (không gắn nhầm tỉnh)', () => {

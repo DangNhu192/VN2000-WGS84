@@ -1,6 +1,66 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-19: WP-W — BỔ SUNG NÚT XEM BẢN ĐỒ KẾT QUẢ ĐỔI KTT/MÚI & TÍNH NĂNG NỐI ĐIỂM ĐÃ LƯU/CHUYỂN ĐỔI TRONG MINICAD
+## Phiên hiện tại — 2026-11-19: WP-Z — TÙY BIẾN TOÀN DIỆN KÝ HIỆU ICON ĐỈNH / MỐC MINICAD (10 KIỂU DÁNG, 4 KÍCH THƯỚC, PALETTE MÀU & REALTIME HUD)
+- **Yêu cầu từ người dùng**:
+  `cho phép điều chỉnh Icon điểm lưu, các đỉnh của tuyến, đa giác, thửa đã lưu hoặc đang vẽ`
+- **Kết quả triển khai**:
+  1. **10 Kiểu dáng Icon Đỉnh & Mốc**:
+     - Mở rộng đầy đủ 10 kiểu dáng trắc địa: `circle` (● Tròn), `square` (■ Vuông), `diamond` (◆ Thoi), `triangle` (▲ Tam giác), `pin` (📍 Ghim Pin), `cross` (✚ Chữ thập), `ring` (◎ Vành khuyên), `star` (★ Ngôi sao), `target` (🎯 Tâm ngắm), `x` (❈ Chữ X).
+     - Định nghĩa CSS đặc tả hình học với SVG clip-path & drop-shadow trong `style.css`.
+  2. **4 Cấp Kích Thước Icon**:
+     - `sm` (Nhỏ - 14px), `md` (Vừa - 20px), `lg` (Lớn - 26px), `xl` (Rất lớn - 32px).
+     - Neo Leaflet Marker (`iconAnchor`) đồng bộ chuẩn xác từng milimet theo `[px, px]` và `[px/2, px/2]`.
+  3. **Thao tác Realtime khi Đang Vẽ (Realtime Vertex HUD)**:
+     - Bổ sung thanh điều khiển nhanh `#cadVertexQuickBar` trên tab Vẽ (`#cadPanelDraw`) gồm 3 bộ chọn: Kiểu icon (`#cadDrawVertexStyle`), Màu sắc (`#cadDrawVertexColor`), Kích thước (`#cadDrawVertexSize`).
+     - Tự động áp dụng tức thì lên các đỉnh đang vẽ dở qua `updateDraftVertexConfig()` mà không cần thoát lệnh hay vẽ lại.
+  4. **Tùy biến Đối tượng Đã Lưu**:
+     - Click vào đỉnh trên bản đồ: Popup sửa nhanh (`showQuickEditPopup`) cho phép đổi Kiểu icon, Màu sắc, Cỡ đỉnh cho riêng đỉnh ("Lưu Đỉnh") hoặc áp dụng đồng loạt cho toàn bộ các đỉnh của hình ("Cả Khối").
+     - Bảng kê đỉnh thửa (`modalCadAreaTable` - Tab Vertices): Bổ sung cột "Cỡ" cho từng đỉnh, kèm thanh công cụ Đổi hàng loạt (`#cadBulkShapeSelect`, `#cadBulkStyleSelect`, `#cadBulkColorSelect`, `#cadBulkSizeSelect`, `applyBulkVertexGlyphs`).
+     - Hộp thoại Ký hiệu & Hiển thị (`modalCadSymbols`): Bổ sung cột Kích thước mặc định theo từng lớp CAD (`cadSymSize_${layerId}`, `applyLayerGlyph`).
+  5. **Kiểm soát Chất lượng & UI Polish**:
+     - Loại bỏ toàn bộ font-size < 11px theo quy chuẩn `DESIGN.md`.
+     - Đồng bộ phiên bản tài nguyên `v2.8.44` trên toàn bộ hệ thống (`package.json`, `sw.js`, `index.html`).
+- **Tình trạng kiểm thử & Vận hành**:
+  - Tạo mới test suite `tests/cad_vertex_icon_styling.test.js`.
+  - Toàn bộ **513 / 513 bài tests PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Đã kiểm chứng trực quan E2E trên Chrome DevTools MCP: Đổi kiểu icon đỉnh trong lúc vẽ dở, popup sửa nhanh trên map, và đổi hàng loạt trong bảng đỉnh đều phản hồi mượt mà, chính xác.
+
+## Phiên trước — 2026-11-19: WP-Y — ĐỒNG BỘ TOÀN DIỆN NÚT CHỨC NĂNG & HOẠT ĐỘNG TRONG PHÂN HỆ "CHUYỂN TỌA ĐỘ"
+- **Yêu cầu từ người dùng**:
+  - `điều chỉnh để các chức năng tương tự nhau trong "chuyển tọa độ" đều có nút chức năng và các hoạt động tương tự nhau`
+  - Đã thực hiện Pre-flight Intake Gate và xác nhận phương án đồng bộ toàn diện cả 3 phân hệ: Đơn điểm, Nhiều điểm, Đổi KTT/múi.
+- **Kết quả triển khai**:
+  1. **Đổi KTT / Múi (`panelTransRezone`)**:
+     - Bổ sung nút `📐 CAD` (`#rzCopyCad`): Sao chép nhanh danh sách tọa độ định dạng CAD (`Y,X` / Easting, Northing) dán thẳng vào AutoCAD/MicroStation.
+     - Bổ sung nút `📤 Xuất File` (`#rzExport`): Mở hộp thoại xuất đa định dạng (Excel, DWG, DXF, CSV, PDF, KML) qua `appData.openExportModal('transform')`.
+  2. **Nhiều điểm (`panelTransMulti`)**:
+     - Đồng bộ thanh công cụ kết quả ở header: `🗺️ Xem Bản Đồ`, `💾 Lưu Điểm`, `📋 Chép tất cả`, `📐 CAD`, `📋 VN2K`, `🌐 WGS`, `⬇️ CSV`, `📤 Xuất File`.
+     - Nút `📐 CAD` (`appTransform.copyMultiCadResult()`): Sao chép định dạng `Y,X` cho toàn bộ các điểm kết quả.
+     - Bổ sung Modal Đặt Tên & Lưu Điểm chuyên nghiệp `#modalMultiSavePoints`: Chọn/tạo file dự án đích, chọn quy tắc đặt tên (giữ nguyên, tiền tố `M_`, hậu tố `_VN2K`), sửa trực tiếp tên từng mốc trong bảng preview, checkbox chọn/bỏ chọn từng mốc, hiển thị X, Y, KTT, WGS-84.
+  3. **Đơn điểm (`panelTransSingle`)**:
+     - Thêm nút `📤 Xuất File` (`appTransform.openExportSingleModal()`): Xuất điểm kết quả ra Excel, CAD, KML.
+     - Bổ sung Modal Đặt Tên & Lưu Điểm `#modalSingleSavePoints`: Khi bấm `💾 LƯU VÀO SỔ ĐO`, mở modal cho phép sửa tên mốc, chọn/tạo file dự án đích, nhập ghi chú, xem lại thông số trắc địa $X, Y$, WGS-84, KTT/Múi trước khi lưu.
+- **Tình trạng kiểm thử & Vận hành**:
+  - Tạo mới test suite `tests/transform_features_unification.test.js` bao quát 100% các nút và modal mới.
+  - Toàn bộ **509 / 509 bài tests PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Chrome DevTools MCP kiểm chứng: Cả 3 phân hệ hoạt động đồng nhất, lưu điểm và xuất file hoàn hảo, 0 lỗi JavaScript trong console.
+
+## Phiên trước — 2026-11-19: WP-X — BỔ SUNG NÚT CHỨC NĂNG ĐẶT TÊN & LƯU ĐIỂM KẾT QUẢ CHUYỂN ĐỔI KTT/MÚI VÀO SỔ ĐO DỰ ÁN
+- **Yêu cầu từ người dùng**:
+  `- Chức năng "Đổi VN-2000 sang KTT/múi khác" cần bổ sung nút chức năng đặt tên và lưu các điểm kết quả được chuyển đổi (tọa độ, múi chiếu, kinh tuyến trục)`
+  `/goal Hãy đảm bảo các chức năng hoạt động tốt.`
+- **Kết quả triển khai**:
+  1. **Nút chức năng**: Thêm nút `💾 Lưu Điểm` (`#rzSave`) vào thanh công cụ kết quả `#rzResultCard`.
+  2. **Hộp thoại Đặt Tên & Lưu Điểm (`#modalRzSavePoints`)**:
+     - Cho phép chọn file dự án mục tiêu từ `AppState.projectsList` hoặc tạo file dự án mới.
+     - Cung cấp quy tắc đặt tên nhanh (Giữ nguyên tên, Tiền tố + STT, hoặc Hậu tố KTT đích) và cho phép sửa trực tiếp tên từng mốc trong bảng.
+     - Lưu đầy đủ thông tin: Tên mốc, Tọa độ X/Y mới, KTT đích, Múi chiếu đích, WGS-84, Ghi chú chuyển đổi nguồn ➔ đích, Tên file dự án.
+  3. **Tuân thủ 100% UI Isolation Principle**: Không gọi chéo sang giao diện Bản đồ dự án (`openProjectMap`) hay `appCadTool`.
+- **Tình trạng kiểm thử & Vận hành**:
+  - Toàn bộ **506 / 506 bài tests PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Chrome DevTools MCP kiểm chứng: Thao tác đặt tên theo tiền tố `MOC_KTT_` và lưu 2 điểm mốc vào sổ đo thành công, console 0 lỗi.
+
+## Phiên trước — 2026-11-19: WP-W — BỔ SUNG NÚT XEM BẢN ĐỒ KẾT QUẢ ĐỔI KTT/MÚI & TÍNH NĂNG NỐI ĐIỂM ĐÃ LƯU/CHUYỂN ĐỔI TRONG MINICAD
 - **Yêu cầu từ người dùng**:
   1. `Chức năng "Đổi VN-2000 sang KTT/múi khác" cần bổ sung nút chức năng cho xem bản đồ các kết quả được chuyển đổi.`
   2. `MiniCAD cho phép bổ sung chức năng nối các điểm được lưu/chuyển đổi trước đó.`

@@ -7214,20 +7214,110 @@
       clip-path: polygon(20% 0%, 50% 30%, 80% 0%, 100% 20%, 70% 50%, 100% 80%, 80% 100%, 50% 70%, 20% 100%, 0% 80%, 30% 50%, 0% 20%);
     }
 
+    .cad-vertex-badge.sty-star:not(.expanded) {
+      border-radius: 0;
+      clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    }
+
+    .cad-vertex-badge.sty-target:not(.expanded) {
+      border-radius: 50%;
+      border: 2px solid #ffffff !important;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4), 0 2px 5px rgba(0, 0, 0, 0.7) !important;
+      position: relative;
+    }
+
+    .cad-vertex-badge.sty-target:not(.expanded)::before {
+      content: '';
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #ffffff;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .cad-vertex-badge.sty-pin:not(.expanded) {
+      border-radius: 50% 50% 0 50% !important;
+      transform: translate(-50%, -50%) rotate(45deg) !important;
+      border: 1.5px solid #ffffff !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+    }
+
     /* clip-path cắt luôn viền trắng nên dùng quầng đổ bóng để giữ tương phản trên nền bản đồ */
     .cad-vertex-badge.sty-diamond:not(.expanded),
     .cad-vertex-badge.sty-triangle:not(.expanded),
     .cad-vertex-badge.sty-cross:not(.expanded),
-    .cad-vertex-badge.sty-x:not(.expanded) {
+    .cad-vertex-badge.sty-x:not(.expanded),
+    .cad-vertex-badge.sty-star:not(.expanded) {
       filter: drop-shadow(0 0 1px #ffffff) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
     }
 
-    /* Điểm rời hiển thị nguyên vẹn hình ký hiệu, không mờ như đỉnh khối */
+    /* Điểm rời & đỉnh khối: hiển thị nguyên vẹn hình ký hiệu khi không bung nhãn */
     .cad-vertex-badge[class*="sty-"].dot-visible:not(.expanded) {
-      width: 13px !important;
-      height: 13px !important;
-      min-width: 13px !important;
+      width: 14px !important;
+      height: 14px !important;
+      min-width: 14px !important;
       opacity: 1 !important;
+    }
+
+    /* ==== CÁC MỨC KÍCH THƯỚC ĐỈNH (VERTEX SIZES: sm, md, lg, xl) ==== */
+    .cad-vertex-badge.size-sm:not(.expanded) {
+      width: 11px !important;
+      height: 11px !important;
+      min-width: 11px !important;
+    }
+    .cad-vertex-badge.size-sm.expanded {
+      height: 18px !important;
+      min-width: 18px !important;
+      font-size: 11px !important;
+      line-height: 16px !important;
+      padding: 0 4px !important;
+      border-radius: 9px !important;
+    }
+
+    .cad-vertex-badge.size-md:not(.expanded) {
+      width: 14px !important;
+      height: 14px !important;
+      min-width: 14px !important;
+    }
+    .cad-vertex-badge.size-md.expanded {
+      height: 22px !important;
+      min-width: 22px !important;
+      font-size: 11.5px !important;
+      line-height: 20px !important;
+      padding: 0 6px !important;
+      border-radius: 11px !important;
+    }
+
+    .cad-vertex-badge.size-lg:not(.expanded) {
+      width: 19px !important;
+      height: 19px !important;
+      min-width: 19px !important;
+    }
+    .cad-vertex-badge.size-lg.expanded {
+      height: 26px !important;
+      min-width: 26px !important;
+      font-size: 13px !important;
+      line-height: 24px !important;
+      padding: 0 8px !important;
+      border-radius: 13px !important;
+    }
+
+    .cad-vertex-badge.size-xl:not(.expanded) {
+      width: 25px !important;
+      height: 25px !important;
+      min-width: 25px !important;
+    }
+    .cad-vertex-badge.size-xl.expanded {
+      height: 32px !important;
+      min-width: 32px !important;
+      font-size: 15px !important;
+      line-height: 28px !important;
+      padding: 0 10px !important;
+      border-radius: 16px !important;
     }
 
     /* Nhãn nhóm hiển thị trên thanh công cụ CAD */

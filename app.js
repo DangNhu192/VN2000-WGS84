@@ -4429,9 +4429,13 @@ const appTransform = {
         showToast("📊 Đã xuất file CSV kết quả!");
     },
 
-    saveMultiResultToChosenProject(showNotification = true) {
+    saveMultiResultToChosenProject(showNotification = true, direct = false) {
         if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
             showToast("⚠️ Chưa có kết quả chuyển đổi để lưu!", true);
+            return;
+        }
+        if (!direct && typeof document !== 'undefined' && document.getElementById('modalMultiSavePoints')) {
+            this.openSaveMultiModal();
             return;
         }
         const targetProj = document.getElementById('selMultiTargetProject')?.value || AppState.currentProject;
@@ -4465,13 +4469,251 @@ const appTransform = {
         }
     },
 
+    copyMultiCadResult() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả chuyển đổi để sao chép CAD!", true);
+            return;
+        }
+        const valid = this.multiConvertedResults.filter(r => r.x !== 'Lỗi' && r.y !== 'Lỗi' && !isNaN(parseFloat(r.x)) && !isNaN(parseFloat(r.y)));
+        if (valid.length === 0) {
+            showToast("⚠️ Không có tọa độ hợp lệ để sao chép CAD!", true);
+            return;
+        }
+        // Định dạng CAD chuẩn: Y,X (Easting,Northing) dán thẳng vào AutoCAD
+        const text = valid.map(r => `${parseFloat(r.y).toFixed(3)},${parseFloat(r.x).toFixed(3)}`).join('\r\n');
+        const done = () => {
+            triggerHaptic('success');
+            showToast(`📐 Đã sao chép tọa độ CAD (Y,X) của ${valid.length} điểm!`);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => copyToClipboard(text));
+        } else {
+            copyToClipboard(text);
+            done();
+        }
+    },
+
+    openSaveMultiModal() {
+        if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
+            showToast("⚠️ Chưa có kết quả chuyển đổi để lưu!", true);
+            return;
+        }
+        const valid = this.multiConvertedResults.filter(r => r.x !== 'Lỗi' && r.y !== 'Lỗi');
+        if (valid.length === 0) {
+            showToast("⚠️ Không có điểm nào hợp lệ để lưu!", true);
+            return;
+        }
+        const modal = document.getElementById('modalMultiSavePoints');
+        if (!modal) {
+            this.saveMultiResultToChosenProject();
+            return;
+        }
+
+        // Nạp danh sách dự án
+        const selProj = document.getElementById('multiSaveProject');
+        if (selProj) {
+            selProj.innerHTML = '';
+            const list = (typeof appData !== 'undefined' && appData.getProjectList) ? appData.getProjectList() : (AppState.projectsList || ['VN2000_SoLieu_DoDac.csv']);
+            const curProj = AppState.currentProject || list[0];
+            list.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.innerText = p;
+                if (p === curProj) opt.selected = true;
+                selProj.appendChild(opt);
+            });
+            const optNew = document.createElement('option');
+            optNew.value = '__new__';
+            optNew.innerText = '➕ Tạo dự án mới…';
+            selProj.appendChild(optNew);
+        }
+
+        const wrapNew = document.getElementById('multiSaveNewProjectWrap');
+        if (wrapNew) wrapNew.style.display = 'none';
+
+        const namingStrategy = document.getElementById('multiSaveNamingStrategy');
+        if (namingStrategy) namingStrategy.value = 'original';
+        const prefixWrap = document.getElementById('multiSavePrefixWrap');
+        if (prefixWrap) prefixWrap.style.display = 'none';
+
+        this.renderMultiSavePointsTable();
+        modal.classList.add('active', 'show');
+    },
+
+    closeSaveMultiModal() {
+        const modal = document.getElementById('modalMultiSavePoints');
+        if (modal) modal.classList.remove('active', 'show');
+    },
+
+    onSaveMultiProjectChange(val) {
+        const wrap = document.getElementById('multiSaveNewProjectWrap');
+        if (wrap) wrap.style.display = (val === '__new__') ? 'block' : 'none';
+    },
+
+    onSaveMultiNamingChange(val) {
+        const wrap = document.getElementById('multiSavePrefixWrap');
+        if (wrap) wrap.style.display = (val === 'prefix') ? 'flex' : 'none';
+        if (val === 'original' || val === 'suffix') {
+            this.applyMultiNaming();
+        }
+    },
+
+    applyMultiNaming() {
+        if (!this.multiConvertedResults) return;
+        const strategy = document.getElementById('multiSaveNamingStrategy')?.value || 'original';
+        const prefix = document.getElementById('multiSavePrefix')?.value?.trim() || 'M_';
+        const valid = this.multiConvertedResults.filter(r => r.x !== 'Lỗi' && r.y !== 'Lỗi');
+
+        const inputs = document.querySelectorAll('.multi-save-name');
+        inputs.forEach(inp => {
+            const idx = parseInt(inp.getAttribute('data-idx'), 10);
+            if (isNaN(idx) || !valid[idx]) return;
+            const originalName = valid[idx].name || `P${valid[idx].stt || idx + 1}`;
+            if (strategy === 'original') {
+                inp.value = originalName;
+            } else if (strategy === 'prefix') {
+                inp.value = `${prefix}${idx + 1}`;
+            } else if (strategy === 'suffix') {
+                inp.value = `${originalName}_VN2K`;
+            }
+        });
+    },
+
+    toggleSelectAllMultiSave(selectAll) {
+        const cbs = document.querySelectorAll('.multi-save-cb');
+        cbs.forEach(cb => { cb.checked = selectAll; });
+        this.updateMultiSaveSelectedCount();
+    },
+
+    updateMultiSaveSelectedCount() {
+        const cbs = document.querySelectorAll('.multi-save-cb:checked');
+        const el = document.getElementById('multiSaveSelectedCount');
+        if (el) el.innerText = cbs.length;
+    },
+
+    renderMultiSavePointsTable() {
+        const tbody = document.getElementById('multiSaveTableBody');
+        if (!tbody || !this.multiConvertedResults) return;
+        tbody.innerHTML = '';
+        const valid = this.multiConvertedResults.filter(r => r.x !== 'Lỗi' && r.y !== 'Lỗi');
+        const kttStr = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (${AppState.muiVal}°)`;
+
+        valid.forEach((r, idx) => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+            tr.innerHTML = `
+                <td style="text-align: center; padding: 6px;">
+                    <input type="checkbox" class="multi-save-cb" value="${idx}" checked
+                        onchange="appTransform.updateMultiSaveSelectedCount()"
+                        style="accent-color: #2dd4bf; width: 14px; height: 14px; cursor: pointer;">
+                </td>
+                <td style="text-align: center; color: #94a3b8; font-size: 11px;">${idx + 1}</td>
+                <td style="padding: 4px 6px;">
+                    <input type="text" class="app-input multi-save-name" data-idx="${idx}" value="${r.name || ('P' + (idx + 1))}"
+                        style="height: 26px; width: 100%; font-size: 11.5px; font-weight: 700; color: #2dd4bf; padding: 0 6px;">
+                </td>
+                <td style="text-align: right; font-family: ui-monospace, monospace; font-size: 11px; color: #f8fafc;">${parseFloat(r.x).toFixed(3)}</td>
+                <td style="text-align: right; font-family: ui-monospace, monospace; font-size: 11px; color: #f8fafc;">${parseFloat(r.y).toFixed(3)}</td>
+                <td style="text-align: center; font-size: 11px; color: #38bdf8; font-weight: 600;">${kttStr}</td>
+                <td style="font-size: 11px; color: #94a3b8; font-family: ui-monospace, monospace;">${r.lat && r.lng ? `${parseFloat(r.lat).toFixed(6)}, ${parseFloat(r.lng).toFixed(6)}` : '—'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const dstInfo = document.getElementById('multiSaveDstInfo');
+        if (dstInfo) dstInfo.innerText = `(KTT: ${kttStr})`;
+        this.updateMultiSaveSelectedCount();
+    },
+
+    confirmSaveMulti() {
+        if (!this.multiConvertedResults) return;
+        const valid = this.multiConvertedResults.filter(r => r.x !== 'Lỗi' && r.y !== 'Lỗi');
+        if (!valid.length) {
+            showToast('⚠️ Không có điểm nào hợp lệ để lưu!', true);
+            return;
+        }
+
+        const sel = document.getElementById('multiSaveProject');
+        let chosenProj = sel ? sel.value : '';
+        if (chosenProj === '__new__') {
+            const newNameInput = document.getElementById('multiSaveNewProject');
+            chosenProj = newNameInput ? newNameInput.value.trim() : '';
+            if (!chosenProj) {
+                showToast('⚠️ Vui lòng nhập tên file dự án mới!', true);
+                if (newNameInput) newNameInput.focus();
+                return;
+            }
+        }
+        if (!chosenProj.toLowerCase().endsWith('.csv')) chosenProj += '.csv';
+
+        const cbs = document.querySelectorAll('.multi-save-cb:checked');
+        if (!cbs.length) {
+            showToast('⚠️ Vui lòng tích chọn ít nhất 1 mốc để lưu!', true);
+            return;
+        }
+
+        const ptsToSave = [];
+        cbs.forEach(cb => {
+            const idx = parseInt(cb.value, 10);
+            const r = valid[idx];
+            if (!r) return;
+            const nameInput = document.querySelector(`.multi-save-name[data-idx="${idx}"]`);
+            const finalName = nameInput ? nameInput.value.trim() || r.name : r.name;
+            ptsToSave.push({
+                id: Date.now() + idx,
+                name: finalName,
+                x: parseFloat(r.x) || 0,
+                y: parseFloat(r.y) || 0,
+                lat: parseFloat(r.lat) || 0,
+                lng: parseFloat(r.lng) || 0,
+                h: 0,
+                mui: AppState.muiVal || 3,
+                ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
+                note: "Chuyển đổi đa điểm",
+                project: chosenProj,
+                time: new Date().toISOString()
+            });
+        });
+
+        if (typeof appData !== 'undefined' && appData.getPoints && appData.savePoints) {
+            const currentPts = appData.getPoints(chosenProj) || [];
+            currentPts.push(...ptsToSave);
+            appData.savePoints(chosenProj, currentPts);
+            if (appData.saveProjectsList && AppState.projectsList) {
+                if (!AppState.projectsList.includes(chosenProj)) {
+                    AppState.projectsList.push(chosenProj);
+                    appData.saveProjectsList(AppState.projectsList);
+                }
+            }
+        }
+
+        AppState.currentProject = chosenProj;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('vn2k_cur_project', chosenProj);
+        }
+        if (ptsToSave.length > 0) {
+            AppState.lastConvertedPoint = ptsToSave[0];
+        }
+        if (typeof appNav !== 'undefined' && appNav.updateBanner) appNav.updateBanner();
+        if (typeof appData !== 'undefined' && appData.populateProjectSelect) appData.populateProjectSelect();
+
+        this.closeSaveMultiModal();
+        triggerHaptic('success');
+        showToast(`✓ Đã lưu thành công ${ptsToSave.length} mốc vào dự án "${chosenProj}"!`);
+    },
+
     viewMultiConvertedOnMap() {
         if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
             showToast("⚠️ Chưa có điểm chuyển đổi nào để xem trên bản đồ!", true);
             return;
         }
 
-        appNav.openTransformMap({ mode: 'view', singlePoint: pt });
+        if (typeof appTransformMap !== 'undefined') {
+            appTransformMap.multiConvertedResults = this.multiConvertedResults;
+            appTransformMap.rezonePoints = null;
+        }
+        appNav.openTransformMap({ mode: 'view', subMode: 'multi' });
+        showToast(`🗺️ Đang hiển thị ${this.multiConvertedResults.length} điểm chuyển đổi trên bản đồ!`);
     },
 
     clearWgs() {
@@ -4664,7 +4906,211 @@ const appTransform = {
         appNav.openTransformMap({ mode: 'view' });
     },
 
-    saveConvertedToProject() {
+    openExportSingleModal() {
+        let pt = AppState.lastConvertedPoint;
+        if (!pt) {
+            const strLat = document.getElementById('txtWgsLat')?.value.trim();
+            const strLng = document.getElementById('txtWgsLng')?.value.trim();
+            const strX = document.getElementById('txtVn2kX')?.value.trim();
+            const strY = document.getElementById('txtVn2kY')?.value.trim();
+            let lat = parseCoordinateNumber(strLat);
+            let lng = parseCoordinateNumber(strLng);
+            let x = parseCoordinateNumber(strX);
+            let y = parseCoordinateNumber(strY);
+            if ((lat !== 0 && lng !== 0) || (x !== 0 && y !== 0)) {
+                if (lat === 0 || lng === 0) {
+                    const coord = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                    lat = coord.lat; lng = coord.lng;
+                } else if (x === 0 || y === 0) {
+                    const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                    x = vn.X || vn.x; y = vn.Y || vn.y;
+                }
+                pt = { lat, lng, x, y, name: 'Điểm Chuyển Đổi' };
+                AppState.lastConvertedPoint = pt;
+            }
+        }
+        if (!pt || (!pt.x && !pt.lat)) {
+            showToast("⚠️ Chưa có mốc chuyển đổi hợp lệ để xuất file!", true);
+            return;
+        }
+        const ptObj = {
+            id: 1,
+            name: pt.name || 'M_CHUYENDO',
+            x: parseFloat(pt.x) || 0,
+            y: parseFloat(pt.y) || 0,
+            lat: parseFloat(pt.lat) || 0,
+            lng: parseFloat(pt.lng) || 0,
+            h: parseFloat(pt.h) || 0,
+            ktt: AppState.kttDeg ? `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'` : '105°45\'',
+            mui: AppState.muiVal || 3,
+            note: `Chuyển đổi KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`
+        };
+        if (typeof appData !== 'undefined' && appData.openExportModal) {
+            appData._customExportPoints = [ptObj];
+            appData.openExportModal('transform');
+        } else {
+            showToast("⚠️ Phân hệ xuất file chưa sẵn sàng!", true);
+        }
+    },
+
+    openSaveSingleModal() {
+        let pt = AppState.lastConvertedPoint;
+        if (!pt) {
+            const strLat = document.getElementById('txtWgsLat')?.value.trim();
+            const strLng = document.getElementById('txtWgsLng')?.value.trim();
+            const strX = document.getElementById('txtVn2kX')?.value.trim();
+            const strY = document.getElementById('txtVn2kY')?.value.trim();
+            let lat = parseCoordinateNumber(strLat);
+            let lng = parseCoordinateNumber(strLng);
+            let x = parseCoordinateNumber(strX);
+            let y = parseCoordinateNumber(strY);
+            if ((lat !== 0 && lng !== 0) || (x !== 0 && y !== 0)) {
+                if (lat === 0 || lng === 0) {
+                    const coord = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                    lat = coord.lat; lng = coord.lng;
+                } else if (x === 0 || y === 0) {
+                    const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                    x = vn.X || vn.x; y = vn.Y || vn.y;
+                }
+                pt = { lat, lng, x, y, name: 'Điểm Chuyển Đổi' };
+                AppState.lastConvertedPoint = pt;
+            }
+        }
+        if (!pt || (!pt.x && !pt.lat)) {
+            showToast("⚠️ Chưa có mốc chuyển đổi hợp lệ để lưu!", true);
+            return;
+        }
+
+        const modal = document.getElementById('modalSingleSavePoints');
+        if (!modal) {
+            this.saveConvertedToProject();
+            return;
+        }
+
+        // Nạp danh sách dự án
+        const selProj = document.getElementById('singleSaveProject');
+        if (selProj) {
+            selProj.innerHTML = '';
+            const list = (typeof appData !== 'undefined' && appData.getProjectList) ? appData.getProjectList() : (AppState.projectsList || ['VN2000_SoLieu_DoDac.csv']);
+            const curProj = AppState.currentProject || list[0];
+            list.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.innerText = p;
+                if (p === curProj) opt.selected = true;
+                selProj.appendChild(opt);
+            });
+            const optNew = document.createElement('option');
+            optNew.value = '__new__';
+            optNew.innerText = '➕ Tạo dự án mới…';
+            selProj.appendChild(optNew);
+        }
+
+        const wrapNew = document.getElementById('singleSaveNewProjectWrap');
+        if (wrapNew) wrapNew.style.display = 'none';
+
+        const nameInput = document.getElementById('singleSavePointName');
+        if (nameInput) nameInput.value = pt.name || 'M_CHUYENDO';
+
+        const noteInput = document.getElementById('singleSavePointNote');
+        if (noteInput) noteInput.value = `Chuyển đổi KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)`;
+
+        // Bảng xem trước thông số
+        const tbody = document.getElementById('singleSavePreviewBody');
+        if (tbody) {
+            const kttStr = `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)`;
+            tbody.innerHTML = `
+                <tr><td style="color:#94a3b8;padding:5px 8px;">VN-2000 X (Bắc)</td><td style="text-align:right;font-family:monospace;font-weight:700;color:#fde047;padding:5px 8px;">${parseFloat(pt.x || 0).toFixed(3)} m</td></tr>
+                <tr><td style="color:#94a3b8;padding:5px 8px;">VN-2000 Y (Đông)</td><td style="text-align:right;font-family:monospace;font-weight:700;color:#fde047;padding:5px 8px;">${parseFloat(pt.y || 0).toFixed(3)} m</td></tr>
+                <tr><td style="color:#94a3b8;padding:5px 8px;">WGS-84 (Lat, Lng)</td><td style="text-align:right;font-family:monospace;color:#38bdf8;padding:5px 8px;">${parseFloat(pt.lat || 0).toFixed(6)}°, ${parseFloat(pt.lng || 0).toFixed(6)}°</td></tr>
+                <tr><td style="color:#94a3b8;padding:5px 8px;">Kinh tuyến trục</td><td style="text-align:right;font-weight:700;color:#a7f3d0;padding:5px 8px;">${kttStr}</td></tr>
+            `;
+        }
+
+        modal.classList.add('active', 'show');
+    },
+
+    closeSaveSingleModal() {
+        const modal = document.getElementById('modalSingleSavePoints');
+        if (modal) modal.classList.remove('active', 'show');
+    },
+
+    onSaveSingleProjectChange(val) {
+        const wrap = document.getElementById('singleSaveNewProjectWrap');
+        if (wrap) wrap.style.display = (val === '__new__') ? 'block' : 'none';
+    },
+
+    confirmSaveSingle() {
+        let pt = AppState.lastConvertedPoint;
+        if (!pt) {
+            showToast("⚠️ Chưa có mốc chuyển đổi hợp lệ để lưu!", true);
+            return;
+        }
+
+        const sel = document.getElementById('singleSaveProject');
+        let chosenProj = sel ? sel.value : '';
+        if (chosenProj === '__new__') {
+            const newNameInput = document.getElementById('singleSaveNewProject');
+            chosenProj = newNameInput ? newNameInput.value.trim() : '';
+            if (!chosenProj) {
+                showToast('⚠️ Vui lòng nhập tên file dự án mới!', true);
+                if (newNameInput) newNameInput.focus();
+                return;
+            }
+        }
+        if (!chosenProj.toLowerCase().endsWith('.csv')) chosenProj += '.csv';
+
+        const nameInput = document.getElementById('singleSavePointName');
+        const finalName = nameInput ? nameInput.value.trim() || 'M_CHUYENDO' : 'M_CHUYENDO';
+
+        const noteInput = document.getElementById('singleSavePointNote');
+        const finalNote = noteInput ? noteInput.value.trim() : '';
+
+        const newPt = {
+            id: Date.now(),
+            name: finalName,
+            x: parseFloat(pt.x) || 0,
+            y: parseFloat(pt.y) || 0,
+            lat: parseFloat(pt.lat) || 0,
+            lng: parseFloat(pt.lng) || 0,
+            h: parseFloat(pt.h) || 0,
+            mui: AppState.muiVal || 3,
+            ktt: `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
+            note: finalNote || `Chuyển đổi KTT ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`,
+            project: chosenProj,
+            time: new Date().toISOString()
+        };
+
+        if (typeof appData !== 'undefined' && appData.getPoints && appData.savePoints) {
+            const currentPts = appData.getPoints(chosenProj) || [];
+            currentPts.push(newPt);
+            appData.savePoints(chosenProj, currentPts);
+            if (appData.saveProjectsList && AppState.projectsList) {
+                if (!AppState.projectsList.includes(chosenProj)) {
+                    AppState.projectsList.push(chosenProj);
+                    appData.saveProjectsList(AppState.projectsList);
+                }
+            }
+        }
+
+        AppState.currentProject = chosenProj;
+        AppState.lastConvertedPoint = newPt;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('vn2k_cur_project', chosenProj);
+        }
+        if (typeof appNav !== 'undefined' && appNav.updateBanner) appNav.updateBanner();
+        if (typeof appData !== 'undefined' && appData.populateProjectSelect) appData.populateProjectSelect();
+
+        this.closeSaveSingleModal();
+        triggerHaptic('success');
+        showToast(`💾 Đã lưu mốc "${finalName}" vào sổ đo dự án "${chosenProj}" thành công!`);
+    },
+
+    saveConvertedToProject(direct = false) {
+        if (!direct && typeof document !== 'undefined' && document.getElementById('modalSingleSavePoints')) {
+            this.openSaveSingleModal();
+            return;
+        }
         let pt = AppState.lastConvertedPoint;
         let ptName = 'M-CHUYENDO';
         let x = 0, y = 0, h = 0, lat = 0, lng = 0;
@@ -18834,10 +19280,22 @@ const appCadTool = {
         { id: 'square', label: '■ Vuông' },
         { id: 'diamond', label: '◆ Thoi' },
         { id: 'triangle', label: '▲ Tam giác' },
+        { id: 'pin', label: '📍 Ghim pin' },
         { id: 'cross', label: '✚ Chữ thập' },
-        { id: 'x', label: '❈ Chữ X' },
-        { id: 'ring', label: '◎ Vành khuyên' }
+        { id: 'ring', label: '◎ Vành khuyên' },
+        { id: 'star', label: '★ Ngôi sao' },
+        { id: 'target', label: '🎯 Tâm ngắm' },
+        { id: 'x', label: '❈ Chữ X' }
     ],
+    pointSizes: [
+        { id: 'sm', label: 'Nhỏ (14px)', size: 14 },
+        { id: 'md', label: 'Vừa (20px)', size: 20 },
+        { id: 'lg', label: 'Lớn (26px)', size: 26 },
+        { id: 'xl', label: 'Rất lớn (32px)', size: 32 }
+    ],
+    draftVertexStyle: 'circle',
+    draftVertexColor: '#10b981',
+    draftVertexSize: 'md',
     modalTableActiveTab: 'ranh',
     panelActiveTab: 'blocks',
     newArrowType: 'single',
@@ -20974,6 +21432,7 @@ const appCadTool = {
         const bar = document.getElementById('mapCadToolbar');
         if (bar) bar.style.display = 'flex';
         this.switchToolTab(this.activeToolTab || 'draw');
+        if (this.initDraftVertexHud) this.initDraftVertexHud();
         const toggleBtn = document.getElementById('btnToggleCadTool');
         if (toggleBtn) toggleBtn.classList.add('active');
 
@@ -21635,7 +22094,7 @@ const appCadTool = {
     getPointStyleFor(shape, v) {
         const ok = (id) => this.pointStyles.some(s => s.id === id);
         const layer = this.getGlyphLayerOf(shape);
-        return [v && v.style, shape && shape.style, layer && layer.vStyle].find(ok) || 'circle';
+        return [v && v.style, shape && (shape.vertexStyle || shape.style), layer && layer.vStyle].find(ok) || 'circle';
     },
 
     getPointColorFor(shape, v) {
@@ -21644,8 +22103,175 @@ const appCadTool = {
         // rồi mới lùi về màu biên của đối tượng (shape.color của khối là màu vẽ ranh, không phải màu ký hiệu).
         const isPoints = shape && shape.mode === 'point';
         const hex = (c) => /^#[0-9a-fA-F]{6}$/.test(String(c || '').trim()) ? String(c).trim() : null;
-        const cands = [v && v.color, isPoints ? (shape && shape.color) : (layer && layer.vColor), shape && shape.color];
+        const cands = [v && v.color, shape && shape.vertexColor, isPoints ? (shape && shape.color) : (layer && layer.vColor), shape && shape.color];
         return cands.map(hex).find(Boolean) || '#10b981';
+    },
+
+    getPointSizeFor(shape, v) {
+        const ptSizes = this.pointSizes || [];
+        const ok = (id) => ptSizes.some(s => s.id === id);
+        const layer = this.getGlyphLayerOf(shape);
+        return [v && v.size, shape && (shape.vertexSize || shape.vSize), layer && layer.vSize].find(ok) || 'md';
+    },
+
+    updateDraftVertexConfig(field, value) {
+        if (field === 'style') {
+            if (this.pointStyles.some(s => s.id === value)) this.draftVertexStyle = value;
+        } else if (field === 'color') {
+            const hex = String(value || '').trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(hex)) this.draftVertexColor = hex;
+        } else if (field === 'size') {
+            if (this.pointSizes.some(s => s.id === value)) this.draftVertexSize = value;
+        }
+
+        // Cập nhật ngay lập tức các đỉnh vẽ dở trên bản đồ để thấy thay đổi thời gian thực
+        if (this.vertices && this.vertices.length > 0) {
+            this.vertices.forEach(v => {
+                if (field === 'style') v.style = this.draftVertexStyle;
+                if (field === 'color') v.color = this.draftVertexColor;
+                if (field === 'size') v.size = this.draftVertexSize;
+            });
+            this.renderGeometry();
+        }
+        this.syncDraftVertexHud();
+    },
+
+    syncDraftVertexHud() {
+        const styleSel = document.getElementById('cadDrawVertexStyle');
+        const colorInp = document.getElementById('cadDrawVertexColor');
+        const sizeSel = document.getElementById('cadDrawVertexSize');
+        if (styleSel && this.draftVertexStyle) styleSel.value = this.draftVertexStyle;
+        if (colorInp && this.draftVertexColor) colorInp.value = this.draftVertexColor;
+        if (sizeSel && this.draftVertexSize) sizeSel.value = this.draftVertexSize;
+    },
+
+    initDraftVertexHud() {
+        const styleSel = document.getElementById('cadDrawVertexStyle');
+        const colorInp = document.getElementById('cadDrawVertexColor');
+        const sizeSel = document.getElementById('cadDrawVertexSize');
+        if (styleSel && (!styleSel.options || styleSel.options.length === 0)) {
+            styleSel.innerHTML = this.pointStyles.map(st =>
+                `<option value="${st.id}">${st.label}</option>`).join('');
+            styleSel.value = this.draftVertexStyle || 'circle';
+        }
+        if (sizeSel && (!sizeSel.options || sizeSel.options.length === 0)) {
+            sizeSel.innerHTML = this.pointSizes.map(sz =>
+                `<option value="${sz.id}">${sz.label}</option>`).join('');
+            sizeSel.value = this.draftVertexSize || 'md';
+        }
+        if (colorInp && this.draftVertexColor) {
+            colorInp.value = this.draftVertexColor;
+        }
+    },
+
+    setShapeVerticesGlyph(shapeIdx, field, value) {
+        const shape = (this.savedShapes || [])[shapeIdx];
+        if (!shape || !shape.vertices) return;
+        if (this.isShapeLocked(shape)) {
+            showToast(`🔒 Lớp của đối tượng đang bị khóa, không thể đổi ký hiệu đỉnh!`, true);
+            return;
+        }
+        const sName = shape.shortName || shape.name || 'Khối';
+        this.pushHistoryState(`Đổi ${field} đỉnh cho khối [${sName}]`);
+        if (field === 'style') {
+            if (!this.pointStyles.some(s => s.id === value)) return;
+            shape.vertexStyle = value;
+            shape.style = value;
+            shape.vertices.forEach(v => { v.style = value; });
+        } else if (field === 'color') {
+            const c = String(value || '').trim();
+            if (!/^#[0-9a-fA-F]{6}$/.test(c)) return;
+            shape.vertexColor = c;
+            shape.vertices.forEach(v => { v.color = c; });
+        } else if (field === 'size') {
+            if (!this.pointSizes.some(s => s.id === value)) return;
+            shape.vertexSize = value;
+            shape.vertices.forEach(v => { v.size = value; });
+        }
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        this.refreshAreaTableIfOpen();
+        if (this.modalTableActiveTab === 'vertices') this.renderModalVerticesTable();
+        this.refreshSymbolPanelIfOpen();
+        showToast(`🎨 Đã cập nhật ${field} cho tất cả đỉnh của [${sName}].`);
+    },
+
+    applyBulkVertexGlyphs() {
+        const shSel = document.getElementById('cadBulkShapeSelect');
+        const stSel = document.getElementById('cadBulkStyleSelect');
+        const colInp = document.getElementById('cadBulkColorSelect');
+        const szSel = document.getElementById('cadBulkSizeSelect');
+        if (!shSel || !stSel) return;
+        const shapeVal = shSel.value;
+        const style = stSel.value;
+        const color = colInp ? colInp.value : '#10b981';
+        const size = szSel ? szSel.value : 'md';
+
+        if (shapeVal === '__ALL__') {
+            this.pushHistoryState('Đổi ký hiệu toàn bộ đỉnh các khối');
+            (this.savedShapes || []).forEach(sh => {
+                if (sh && sh.vertices && !this.isShapeLocked(sh)) {
+                    sh.vertexStyle = style;
+                    sh.vertexColor = color;
+                    sh.vertexSize = size;
+                    sh.vertices.forEach(v => {
+                        v.style = style;
+                        v.color = color;
+                        v.size = size;
+                    });
+                }
+            });
+            showToast('🎨 Đã cập nhật ký hiệu cho toàn bộ đỉnh trên bản vẽ.');
+        } else {
+            const sIdx = parseInt(shapeVal, 10);
+            if (isNaN(sIdx) || !this.savedShapes[sIdx]) return;
+            const sh = this.savedShapes[sIdx];
+            this.setShapeVerticesGlyph(sIdx, 'style', style);
+            this.setShapeVerticesGlyph(sIdx, 'color', color);
+            this.setShapeVerticesGlyph(sIdx, 'size', size);
+            return;
+        }
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        this.refreshAreaTableIfOpen();
+        if (this.modalTableActiveTab === 'vertices') this.renderModalVerticesTable();
+        this.refreshSymbolPanelIfOpen();
+    },
+
+    submitQuickVertexSave(sIdx, vIdx) {
+        const shape = (this.savedShapes || [])[sIdx];
+        const v = shape && (shape.vertices || [])[vIdx];
+        if (!v) return;
+        const stSel = document.getElementById('cadQuickVStyle');
+        const colInp = document.getElementById('cadQuickVColor');
+        const szSel = document.getElementById('cadQuickVSize');
+        const nameInp = document.getElementById('quickRenameInput');
+
+        if (stSel && stSel.value) this.setVertexGlyph(sIdx, vIdx, 'style', stSel.value);
+        if (colInp && colInp.value) this.setVertexGlyph(sIdx, vIdx, 'color', colInp.value);
+        if (szSel && szSel.value) this.setVertexGlyph(sIdx, vIdx, 'size', szSel.value);
+        if (nameInp && nameInp.value.trim() && nameInp.value.trim() !== v.name) {
+            this.renameVertex(sIdx, vIdx, nameInp.value.trim());
+        }
+        if (AppState.leafletMap) AppState.leafletMap.closePopup();
+        showToast(`💾 Đã lưu thay đổi cho đỉnh ${v.name}`);
+    },
+
+    submitQuickApplyToShape(sIdx) {
+        const shape = (this.savedShapes || [])[sIdx];
+        if (!shape) return;
+        const stSel = document.getElementById('cadQuickVStyle');
+        const colInp = document.getElementById('cadQuickVColor');
+        const szSel = document.getElementById('cadQuickVSize');
+
+        if (stSel && stSel.value) this.setShapeVerticesGlyph(sIdx, 'style', stSel.value);
+        if (colInp && colInp.value) this.setShapeVerticesGlyph(sIdx, 'color', colInp.value);
+        if (szSel && szSel.value) this.setShapeVerticesGlyph(sIdx, 'size', szSel.value);
+        if (AppState.leafletMap) AppState.leafletMap.closePopup();
     },
 
     // Nhóm hiển thị của một đối tượng: 'point' → nhóm Điểm rời, khác → nhóm Đỉnh khối & tuyến
@@ -21968,11 +22594,21 @@ const appCadTool = {
     renderSymbolPanel() {
         const box = document.getElementById('cadSymbolLayerRows');
         if (!box) return;
-        const styleOpts = (cur) => this.pointStyles.map(st =>
+        const ptStyles = this.pointStyles || [];
+        const ptSizes = this.pointSizes || [
+            { id: 'sm', label: 'Nhỏ (14px)', size: 14 },
+            { id: 'md', label: 'Vừa (20px)', size: 20 },
+            { id: 'lg', label: 'Lớn (26px)', size: 26 },
+            { id: 'xl', label: 'Rất lớn (32px)', size: 32 }
+        ];
+        const styleOpts = (cur) => ptStyles.map(st =>
             `<option value="${st.id}" ${st.id === cur ? 'selected' : ''}>${st.label}</option>`).join('');
+        const sizeOpts = (cur) => ptSizes.map(sz =>
+            `<option value="${sz.id}" ${sz.id === cur ? 'selected' : ''}>${sz.label}</option>`).join('');
         box.innerHTML = (this.layersTable || []).map(ly => {
-            const style = this.pointStyles.some(s => s.id === ly.vStyle) ? ly.vStyle : 'circle';
+            const style = ptStyles.some(s => s.id === ly.vStyle) ? ly.vStyle : 'circle';
             const color = /^#[0-9a-fA-F]{6}$/.test(String(ly.vColor || '').trim()) ? ly.vColor : (ly.color || '#10b981');
+            const size = ptSizes.some(s => s.id === ly.vSize) ? ly.vSize : 'md';
             return `<tr>
                 <td style="color:${escapeHtml(ly.color || '#94a3b8')};font-weight:700;white-space:nowrap;">${escapeHtml(ly.name || ly.id)}</td>
                 <td style="text-align:center;">
@@ -21983,6 +22619,11 @@ const appCadTool = {
                 <td style="text-align:center;">
                     <input type="color" id="cadSymColor_${ly.id}" value="${escapeHtml(color)}" style="width:30px;height:24px;padding:0;border:1px solid #334155;border-radius:5px;background:#0f172a;cursor:pointer;"
                         onchange="appCadTool.applyLayerGlyph('${ly.id}')" title="Màu ký hiệu mặc định của lớp này">
+                </td>
+                <td style="text-align:center;">
+                    <select class="cad-inline-select" style="height:24px;max-width:90px;font-size:11px;"
+                        id="cadSymSize_${ly.id}" onchange="appCadTool.applyLayerGlyph('${ly.id}')"
+                        title="Kích thước ký hiệu mặc định của lớp này">${sizeOpts(size)}</select>
                 </td>
                 <td style="text-align:center;color:#64748b;font-size:11px;">${escapeHtml(ly.id)}</td>
                 <td style="text-align:center;">
@@ -22001,14 +22642,19 @@ const appCadTool = {
         if (!ly) return;
         const sel = document.getElementById('cadSymStyle_' + layerId);
         const inp = document.getElementById('cadSymColor_' + layerId);
-        const style = (sel && this.pointStyles.some(s => s.id === sel.value)) ? sel.value : 'circle';
+        const szSel = document.getElementById('cadSymSize_' + layerId);
+        const ptStyles = this.pointStyles || [];
+        const ptSizes = this.pointSizes || [];
+        const style = (sel && ptStyles.some(s => s.id === sel.value)) ? sel.value : 'circle';
         const color = /^#[0-9a-fA-F]{6}$/.test(String(inp && inp.value ? inp.value : '').trim()) ? inp.value : (ly.color || '#10b981');
+        const size = (szSel && ptSizes.some(s => s.id === szSel.value)) ? szSel.value : 'md';
         ly.vStyle = style;
         ly.vColor = color;
+        ly.vSize = size;
         if (this.saveLayersTable) this.saveLayersTable();
         this.renderGeometry();
         this.renderSymbolPanel();
-        showToast(`🎨 Lớp "${ly.name}": ký hiệu ${style.toUpperCase()} màu ${color}.`);
+        showToast(`🎨 Lớp "${ly.name}": ký hiệu ${style.toUpperCase()}, cỡ ${size}, màu ${color}.`);
     },
 
     resetLayerGlyph(layerId) {
@@ -22016,6 +22662,7 @@ const appCadTool = {
         if (!ly) return;
         delete ly.vStyle;
         delete ly.vColor;
+        delete ly.vSize;
         if (this.saveLayersTable) this.saveLayersTable();
         this.renderGeometry();
         this.renderSymbolPanel();
@@ -22030,6 +22677,7 @@ const appCadTool = {
         (this.savedShapes || []).forEach(sh => (sh.vertices || []).forEach(v => {
             delete v.style;
             delete v.color;
+            delete v.size;
         }));
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
@@ -22127,6 +22775,11 @@ const appCadTool = {
             if (c === this.getPointColorFor(shape, v)) return;
             this.pushHistoryState(`Đổi màu đỉnh ${label}`);
             v.color = c;
+        } else if (field === 'size') {
+            if (!this.pointSizes.some(s => s.id === value)) return;
+            if (value === this.getPointSizeFor(shape, v)) return;
+            this.pushHistoryState(`Đổi kích thước đỉnh ${label}`);
+            v.size = value;
         } else {
             return;
         }
@@ -22143,7 +22796,7 @@ const appCadTool = {
     resetVertexGlyph(shapeIdx, vIdx) {
         const shape = (this.savedShapes || [])[shapeIdx];
         const v = shape && (shape.vertices || [])[vIdx];
-        if (!v || (!v.style && !v.color)) return;
+        if (!v || (!v.style && !v.color && !v.size)) return;
         if (this.isShapeLocked(shape)) {
             showToast(`🔒 Lớp của đối tượng đang bị khóa, không thể đặt lại ký hiệu đỉnh!`, true);
             return;
@@ -22151,6 +22804,7 @@ const appCadTool = {
         this.pushHistoryState(`Đặt lại ký hiệu đỉnh ${v.name || 'Đ' + (vIdx + 1)}`);
         delete v.style;
         delete v.color;
+        delete v.size;
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
@@ -24112,6 +24766,10 @@ const appCadTool = {
             stats: stats,
             color: (shapeLayer && shapeLayer.color) || color,
             layer: (shapeLayer && shapeLayer.id) || 'RANH_THUA',
+            style: this.draftVertexStyle || undefined,
+            vertexStyle: this.draftVertexStyle || undefined,
+            vertexColor: this.draftVertexColor || undefined,
+            vertexSize: this.draftVertexSize || undefined,
             selected: true
         });
 
@@ -26609,15 +27267,19 @@ const appCadTool = {
                     : `${shape.shortName} - ${v.name} (Kéo thả để nắn ranh, bấm để xem chi tiết / đổi tên)`;
                 const ptStyle = this.getPointStyleFor(shape, v);
                 const ptColor = this.getPointColorFor(shape, v);
-                const badgeCls = ['cad-vertex-badge', 'sty-' + ptStyle];
+                const ptSize = this.getPointSizeFor(shape, v);
+                const badgeCls = ['cad-vertex-badge', 'sty-' + ptStyle, 'size-' + ptSize];
                 if (isDotGlyph) badgeCls.push('dot-visible');
                 if (isExpanded) badgeCls.push('expanded');
                 // Vành khuyên: nền trong suốt, viền mang màu điểm + quầng trắng để nổi trên nền bản đồ
                 const badgeStyle = ptStyle === 'ring'
                     ? `background: transparent; border-color: ${ptColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
                     : `background: ${ptColor}; border-color: #ffffff;`;
+                const pxMap = { sm: 16, md: 22, lg: 28, xl: 34 };
+                const curPx = pxMap[ptSize] || 22;
+                const curHalf = Math.round(curPx / 2);
                 const iconHtml = `<div class="${badgeCls.join(' ')}" style="${badgeStyle}" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
-                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
+                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [curPx, curPx], iconAnchor: [curHalf, curHalf] });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked && this.isActive, pane: mPaneName }).addTo(this.layers.group);
                 // Đỉnh đang mang ký hiệu hình thì coi như đã ghim, để mouseout của khối không gỡ dot-visible
                 marker._pinned = isExpanded || isDotGlyph;
@@ -26940,21 +27602,28 @@ const appCadTool = {
         }
 
         // 3. Vẽ marker tại các đỉnh kèm nhãn Đ1, Đ2... (Hỗ trợ kéo thả di chuyển mượt mà kèm cập nhật cự ly tức thì)
-        // Đỉnh đang chấm mang sẵn ký hiệu & màu của lớp đang chọn để thấy ngay kết quả trước khi lưu khối
+        // Đỉnh đang chấm mang sẵn ký hiệu & màu & cỡ tùy chỉnh hoặc theo lớp đang chọn để thấy ngay kết quả thời gian thực
         const draftGlyphShape = this.mode === 'point' ? this.getActivePointLayer() : { layer: this.currentLayer };
-        const draftGlyphStyle = this.getPointStyleFor(draftGlyphShape, null);
-        const draftGlyphColor = this.getPointColorFor(draftGlyphShape, null);
+        const defaultDraftStyle = this.draftVertexStyle || this.getPointStyleFor(draftGlyphShape, null);
+        const defaultDraftColor = this.draftVertexColor || this.getPointColorFor(draftGlyphShape, null);
+        const defaultDraftSize = this.draftVertexSize || this.getPointSizeFor(draftGlyphShape, null);
         this.vertices.forEach((v, idx) => {
+            const vStyle = v.style || defaultDraftStyle;
+            const vColor = v.color || defaultDraftColor;
+            const vSize = v.size || defaultDraftSize;
             const isActExp = ((showVertices === true || this._pinned === true) && showLabels) ? 'expanded' : '';
-            const actStyle = draftGlyphStyle === 'ring'
-                ? `background: transparent; border-color: ${draftGlyphColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
-                : `background: ${draftGlyphColor}; border-color: #ffffff;`;
-            const iconHtml = `<div class="cad-vertex-badge sty-${draftGlyphStyle} dot-visible ${isActExp}" style="${actStyle} cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
+            const actStyle = vStyle === 'ring'
+                ? `background: transparent; border-color: ${vColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
+                : `background: ${vColor}; border-color: #ffffff;`;
+            const pxMap = { sm: 16, md: 22, lg: 28, xl: 34 };
+            const curPx = pxMap[vSize] || 22;
+            const curHalf = Math.round(curPx / 2);
+            const iconHtml = `<div class="cad-vertex-badge sty-${vStyle} size-${vSize} dot-visible ${isActExp}" style="${actStyle} cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
             const icon = L.divIcon({
                 className: '',
                 html: iconHtml,
-                iconSize: [22, 22],
-                iconAnchor: [11, 11]
+                iconSize: [curPx, curPx],
+                iconAnchor: [curHalf, curHalf]
             });
             const marker = L.marker([v.lat, v.lng], { 
                 icon, 
@@ -29742,6 +30411,21 @@ const appCadTool = {
         const tbody = document.getElementById('cadTableBodyAllVertices');
         if (!tbody) return;
 
+        // Điền dữ liệu cho bộ đổi hàng loạt phía trên bảng
+        const shSel = document.getElementById('cadBulkShapeSelect');
+        const stSel = document.getElementById('cadBulkStyleSelect');
+        const szSel = document.getElementById('cadBulkSizeSelect');
+        if (shSel) {
+            shSel.innerHTML = `<option value="__ALL__">Tất cả khối</option>` +
+                (this.savedShapes || []).map((s, i) => `<option value="${i}">${escapeHtml(s.shortName || s.name || 'Khối ' + (i + 1))}</option>`).join('');
+        }
+        if (stSel && (!stSel.options || stSel.options.length === 0)) {
+            stSel.innerHTML = this.pointStyles.map(st => `<option value="${st.id}">${st.label}</option>`).join('');
+        }
+        if (szSel && (!szSel.options || szSel.options.length === 0)) {
+            szSel.innerHTML = this.pointSizes.map(sz => `<option value="${sz.id}">${sz.label}</option>`).join('');
+        }
+
         let rowsHtml = '';
         let stt = 1;
         const q = (filterQuery || '').toLowerCase().trim();
@@ -29784,9 +30468,12 @@ const appCadTool = {
                 // Ký hiệu đỉnh: ưu tiên tùy chỉnh riêng → mặc định khối/lớp CAD (helper xử lý, đây chỉ là ô chọn)
                 const vStyle = this.getPointStyleFor(shape, v);
                 const vColor = this.getPointColorFor(shape, v);
+                const vSize = this.getPointSizeFor(shape, v);
                 const glyphOpts = this.pointStyles.map(st =>
                     `<option value="${st.id}" ${st.id === vStyle ? 'selected' : ''}>${st.label}</option>`).join('');
-                const hasOverride = !!(v.style || v.color);
+                const sizeOpts = this.pointSizes.map(sz =>
+                    `<option value="${sz.id}" ${sz.id === vSize ? 'selected' : ''}>${sz.label}</option>`).join('');
+                const hasOverride = !!(v.style || v.color || v.size);
 
                 rowsHtml += `
                     <tr>
@@ -29813,6 +30500,11 @@ const appCadTool = {
                                 onchange="appCadTool.setVertexGlyph(${sIdx}, ${vIdx}, 'color', this.value)">
                         </td>
                         <td style="text-align: center;">
+                            <select class="cad-inline-select" style="height: 22px; max-width: 75px; font-size: 11px; padding: 0 2px;"
+                                title="Kích thước ký hiệu đỉnh"
+                                onchange="appCadTool.setVertexGlyph(${sIdx}, ${vIdx}, 'size', this.value)">${sizeOpts}</select>
+                        </td>
+                        <td style="text-align: center;">
                             <input type="checkbox" ${isShapeVisible ? 'checked' : ''} onchange="appCadTool.toggleShapeVerticesVisibility(${sIdx}, this.checked)" title="Bật/Tắt hiển thị đỉnh cho khối này" style="accent-color: #facc15; cursor: pointer; width: 14px; height: 14px;">
                         </td>
                         <td style="text-align: center; white-space: nowrap;">
@@ -29826,7 +30518,7 @@ const appCadTool = {
         });
 
         if (!rowsHtml) {
-            rowsHtml = `<tr><td colspan="10" style="text-align:center; color:#64748b; padding:16px;">Không tìm thấy đỉnh nào phù hợp</td></tr>`;
+            rowsHtml = `<tr><td colspan="11" style="text-align:center; color:#64748b; padding:16px;">Không tìm thấy đỉnh nào phù hợp</td></tr>`;
         }
         tbody.innerHTML = rowsHtml;
     },
@@ -30440,13 +31132,31 @@ const appCadTool = {
         if (targetData.type === 'vertex') {
             const v = targetData.vertex;
             const s = targetData.shape;
+            const sIdx = targetData.shapeIndex;
+            const vIdx = targetData.vertexIndex;
             title = `📍 Đỉnh [${s.shortName || s.name || 'Khối'}]`;
             currentName = v.name || '';
-            metaInfo = `<div style="font-size:11px; color:#94a3b8; margin-top:3px;">X: <b style="color:#f8fafc;">${(v.x || 0).toFixed(3)}</b> | Y: <b style="color:#f8fafc;">${(v.y || 0).toFixed(3)}</b></div>`;
+            const vStyle = this.getPointStyleFor(s, v);
+            const vColor = this.getPointColorFor(s, v);
+            const vSize = this.getPointSizeFor(s, v);
+            const styleOpts = this.pointStyles.map(st =>
+                `<option value="${st.id}" ${st.id === vStyle ? 'selected' : ''}>${st.label}</option>`).join('');
+            const sizeOpts = this.pointSizes.map(sz =>
+                `<option value="${sz.id}" ${sz.id === vSize ? 'selected' : ''}>${sz.label}</option>`).join('');
+
+            metaInfo = `
+                <div style="font-size:11px; color:#94a3b8; margin-top:3px;">X: <b style="color:#f8fafc;">${(v.x || 0).toFixed(3)}</b> | Y: <b style="color:#f8fafc;">${(v.y || 0).toFixed(3)}</b></div>
+                <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:4px; align-items:center; margin-top:6px; padding:4px 6px; background:rgba(15,23,42,0.7); border:1px solid rgba(56,189,248,0.25); border-radius:5px;">
+                    <select id="cadQuickVStyle" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Kiểu dáng icon đỉnh">${styleOpts}</select>
+                    <input type="color" id="cadQuickVColor" value="${vColor}" style="width:24px; height:22px; padding:0; border:1px solid #334155; border-radius:3px; background:#0f172a; cursor:pointer;" title="Màu sắc đỉnh">
+                    <select id="cadQuickVSize" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Kích thước icon đỉnh">${sizeOpts}</select>
+                </div>
+            `;
             extraControls = `
-                <div style="display:flex; gap:6px; margin-top:8px;">
-                    <button type="button" onclick="appCadTool.submitQuickRename()" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;">💾 Lưu Tên</button>
-                    <button type="button" onclick="appCadTool.deleteVertex(${targetData.shapeIndex}, ${targetData.vertexIndex}); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa đỉnh này">🗑️</button>
+                <div style="display:flex; gap:4px; margin-top:8px;">
+                    <button type="button" onclick="appCadTool.submitQuickVertexSave(${sIdx}, ${vIdx})" style="flex:1; height:26px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;" title="Lưu cho đỉnh này">💾 Lưu Đỉnh</button>
+                    <button type="button" onclick="appCadTool.submitQuickApplyToShape(${sIdx})" style="flex:1; height:26px; background:linear-gradient(135deg, #10b981, #059669); color:#fff; border:none; border-radius:4px; font-weight:700; font-size:11px; cursor:pointer;" title="Áp dụng icon, màu và cỡ này cho TOÀN BỘ các đỉnh của [${s.shortName || s.name}]">🎨 Cả Khối</button>
+                    <button type="button" onclick="appCadTool.deleteVertex(${sIdx}, ${vIdx}); AppState.leafletMap.closePopup();" style="height:26px; background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); border-radius:4px; font-size:11px; padding:0 8px; cursor:pointer;" title="Xóa đỉnh này">🗑️</button>
                 </div>
             `;
         } else if (targetData.type === 'shape') {

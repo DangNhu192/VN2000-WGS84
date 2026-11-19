@@ -1,7 +1,7 @@
 {
   "project": "VN2000-PWA",
-  "version": "2.8.43",
-  "active_feature": "F-017",
+  "version": "2.8.44",
+  "active_feature": "F-002",
   "features": [
     {
       "id": "F-001",
@@ -160,6 +160,14 @@
       "name": "Động cơ Phân giải Cao Đa Tầng Hiển thị PDF (Dynamic Sharp Viewport PDF Engine)",
       "description": "Giải quyết triệt để vấn đề mờ ảnh bản đồ quy hoạch PDF khi zoom sâu, render lại đúng viewport ở tỷ lệ 1:1 pixel vật lý màn hình, hỗ trợ kích thước siêu nét lên tới 16384px lossless.",
       "category": "Hiển thị & PDF Engine",
+      "status": "done",
+      "phase": "PHASE_4"
+    },
+    {
+      "id": "F-018",
+      "name": "Tùy biến Toàn diện Ký hiệu Icon Đỉnh / Mốc MiniCAD & Đồng bộ Phân hệ Chuyển tọa độ",
+      "description": "Bổ sung 10 kiểu dáng icon đỉnh (circle, square, diamond, triangle, pin, cross, ring, star, target, x), 4 cấp kích thước (sm, md, lg, xl), bảng màu HEX, HUD realtime khi đang vẽ, popup sửa nhanh trên map, đổi hàng loạt trên bảng đỉnh và đồng bộ giao diện lưu/xem bản đồ giữa Đơn điểm, Đa điểm, Đổi KTT.",
+      "category": "MiniCAD & Chuyển đổi tọa độ",
       "status": "done",
       "phase": "PHASE_4"
     }

@@ -28,10 +28,10 @@
     rel="stylesheet">
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.43">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.43">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.43">
-  <link rel="stylesheet" href="ui-unified.css?v=2.8.43">
+  <link rel="stylesheet" href="style.css?v=2.8.44">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.44">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.44">
+  <link rel="stylesheet" href="ui-unified.css?v=2.8.44">
 </head>
 
 <body>
@@ -1126,12 +1126,69 @@
                       onclick="appTransform.viewConvertedOnMap()" title="Xem vị trí điểm này trực tiếp trên Bản đồ">
                       🗺️ XEM TRÊN BẢN ĐỒ
                     </button>
+                    <div style="display: flex; gap: 6px; grid-column: 1 / -1;">
+                      <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 32px; font-size: 11.5px;" onclick="appTransform.copyCadResult()" title="Sao chép định dạng AutoCAD (Y,X)">📐 CAD</button>
+                      <button type="button" class="btn-sm btn-cyan" style="flex: 1; height: 32px; font-size: 11.5px;" onclick="appTransform.openExportSingleModal()" title="Xuất file điểm này">📤 Xuất File</button>
+                    </div>
                     <button type="button" class="btn-convert"
                       style="grid-column: 1 / -1; height: 38px; font-size: 12.5px; background: rgba(56, 189, 248, 0.16); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700;"
                       onclick="appTransform.sendSingleToMulti()" title="Đưa điểm này vào Bảng Đa điểm (1.2)">
                       📑 ĐƯA VÀO BẢNG ĐA ĐIỂM (1.2) ➔
                     </button>
                   </div>
+              <!-- Modal Đặt Tên & Lưu Điểm Kết Quả Đơn Điểm -->
+              <div id="modalSingleSavePoints" class="modal-overlay" onclick="if(event.target === this) appTransform.closeSaveSingleModal()">
+                <div class="modal-box" style="max-width: 600px; max-height: calc(var(--ui-avail-h) * 0.92); display: flex; flex-direction: column;">
+                  <div class="modal-title">
+                    <span style="color: #4ade80;">💾 Đặt Tên & Lưu Mốc Vào Sổ Đo Dự Án</span>
+                    <button type="button" class="btn-modal-close" onclick="appTransform.closeSaveSingleModal()">✕</button>
+                  </div>
+
+                  <!-- Khung chọn dự án & Đặt tên mốc -->
+                  <div style="padding: 12px; margin-bottom: 10px; background: rgba(15,23,42,0.85); border: 1px solid rgba(74,222,128,0.3); border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
+                    <div>
+                      <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📁 Dự án / File lưu mốc:</label>
+                      <select id="singleSaveProject" class="app-input" style="height: 32px; font-size: 12px; width: 100%;" onchange="appTransform.onSaveSingleProjectChange(this.value)"></select>
+                      <div id="singleSaveNewProjectWrap" style="display: none; margin-top: 6px;">
+                        <input type="text" id="singleSaveNewProject" class="app-input" style="height: 30px; font-size: 12px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: SoDoMoc.csv)">
+                      </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                      <div>
+                        <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">🏷️ Tên mốc lưu:</label>
+                        <input type="text" id="singleSavePointName" class="app-input" style="height: 32px; font-size: 12px; width: 100%; font-weight: 700; color: #fbbf24;" placeholder="Tên mốc (VD: M1, DC01)">
+                      </div>
+                      <div>
+                        <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📝 Ghi chú:</label>
+                        <input type="text" id="singleSavePointNote" class="app-input" style="height: 32px; font-size: 12px; width: 100%;" placeholder="Ghi chú mốc">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Bảng xem trước thông số mốc -->
+                  <div class="cad-table-wrap" style="margin-bottom: 12px; border: 1px solid rgba(74,222,128,0.25); border-radius: 6px; overflow: hidden;">
+                    <table class="cad-coord-table">
+                      <thead>
+                        <tr>
+                          <th style="text-align: left; min-width: 100px;">Thông số</th>
+                          <th style="text-align: right; min-width: 140px;">Giá trị</th>
+                        </tr>
+                      </thead>
+                      <tbody id="singleSavePreviewBody">
+                        <!-- Render thông số -->
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Chân modal -->
+                  <div class="modal-actions" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn-sm btn-red" style="height: 32px; padding: 0 14px;" onclick="appTransform.closeSaveSingleModal()">✕ Hủy</button>
+                    <button type="button" id="singleConfirmSave" class="btn-sm btn-green" style="height: 32px; padding: 0 16px; font-weight: 700;" onclick="appTransform.confirmSaveSingle()">💾 Lưu vào Sổ đo dự án</button>
+                  </div>
+                </div>
+              </div>
+
                 </div>
               </div>
 
@@ -1418,17 +1475,97 @@
                     </table>
                   </div>
 
-                  <div class="btn-group-row" style="margin-top: 10px;">
-                    <button class="btn-convert btn-view-map-large" style="flex: 1; height: 42px; font-size: 13px;"
+                  <div class="btn-group-row" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <button class="btn-convert btn-view-map-large" style="height: 42px; font-size: 13px;"
                       onclick="appTransform.viewMultiConvertedOnMap()">
                       🗺️ XEM TẤT CẢ TRÊN BẢN ĐỒ
                     </button>
                     <button id="btnManualSaveMultiProject" class="btn-convert"
-                      style="flex: 1; height: 42px; font-size: 13px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #10b981;"
-                      onclick="appTransform.saveMultiResultToChosenProject()">
-                      💾 LƯU VÀO DỰ ÁN ĐÃ CHỌN
+                      style="height: 42px; font-size: 13px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #10b981;"
+                      onclick="appTransform.saveMultiResultToChosenProject(); appTransform.openSaveMultiModal();">
+                      💾 LƯU ĐIỂM VÀO DỰ ÁN
                     </button>
+                    <div style="display: flex; gap: 6px; grid-column: 1 / -1;">
+                      <button type="button" class="btn-sm btn-blue" style="flex: 1; height: 32px; font-size: 11.5px;" onclick="appTransform.copyMultiCadResult()" title="Sao chép định dạng AutoCAD (Y,X)">📐 CAD</button>
+                      <button type="button" class="btn-sm btn-green" style="flex: 1; height: 32px; font-size: 11.5px;" onclick="appTransform.exportMultiResultCsv()" title="Xuất kết quả ra CSV">⬇️ CSV</button>
+                      <button type="button" class="btn-sm btn-cyan" style="flex: 1; height: 32px; font-size: 11.5px;" onclick="appTransform.openExportModal()" title="Xuất file đa định dạng">📤 Xuất File</button>
+                    </div>
                   </div>
+                <!-- Modal Đặt Tên & Lưu Điểm Kết Quả Chuyển Đổi Đa Điểm -->
+                <div id="modalMultiSavePoints" class="modal-overlay" onclick="if(event.target === this) appTransform.closeSaveMultiModal()">
+                  <div class="modal-box" style="max-width: 840px; max-height: calc(var(--ui-avail-h) * 0.92); display: flex; flex-direction: column;">
+                    <div class="modal-title">
+                      <span style="color: #2dd4bf;">💾 Đặt Tên & Lưu Điểm Kết Quả Chuyển Đổi Đa Điểm</span>
+                      <button type="button" class="btn-modal-close" onclick="appTransform.closeSaveMultiModal()">✕</button>
+                    </div>
+
+                    <!-- Khung chọn dự án & Quy tắc đặt tên -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(45,212,191,0.3); border-radius: 8px;">
+                      <div>
+                        <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📁 Dự án / File lưu mốc:</label>
+                        <select id="multiSaveProject" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appTransform.onSaveMultiProjectChange(this.value)"></select>
+                        <div id="multiSaveNewProjectWrap" style="display: none; margin-top: 6px;">
+                          <input type="text" id="multiSaveNewProject" class="app-input" style="height: 28px; font-size: 11.5px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: DuAn_Moi.csv)">
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">🏷️ Quy tắc đặt tên nhanh:</label>
+                        <div style="display: flex; gap: 6px;">
+                          <select id="multiSaveNamingStrategy" class="app-input" style="height: 30px; font-size: 11.5px; flex: 1;" onchange="appTransform.onSaveMultiNamingChange(this.value)">
+                            <option value="original">Giữ nguyên tên gốc (M1, M2...)</option>
+                            <option value="prefix">Đổi theo Tiền tố + STT</option>
+                            <option value="suffix">Thêm hậu tố hệ tọa độ</option>
+                          </select>
+                        </div>
+                        <div id="multiSavePrefixWrap" style="display: none; margin-top: 6px; align-items: center; gap: 6px;">
+                          <input type="text" id="multiSavePrefix" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Tiền tố (VD: P_, M_)" value="M_">
+                          <button type="button" id="multiBtnApplyNaming" class="btn-sm btn-blue" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="appTransform.applyMultiNaming()">Áp dụng</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Bảng xem trước danh sách điểm sẽ lưu -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                      <span style="font-size: 11px; color: #94a3b8;">Có thể sửa trực tiếp tên từng mốc trong ô nhập ở bảng:</span>
+                      <div style="display: flex; gap: 6px;">
+                        <button type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 11px;" onclick="appTransform.toggleSelectAllMultiSave(true)">Tất cả</button>
+                        <button type="button" class="btn-sm btn-red" style="height: 24px; padding: 0 8px; font-size: 11px;" onclick="appTransform.toggleSelectAllMultiSave(false)">Bỏ chọn</button>
+                      </div>
+                    </div>
+
+                    <div class="cad-table-wrap" style="flex: 1; min-height: 180px; max-height: 320px; overflow-y: auto; margin-bottom: 10px; border: 1px solid rgba(45,212,191,0.25); border-radius: 6px;">
+                      <table class="cad-coord-table">
+                        <thead>
+                          <tr>
+                            <th style="width: 38px; text-align: center;">Lưu</th>
+                            <th style="width: 40px; text-align: center;">STT</th>
+                            <th style="text-align: left; min-width: 120px;">Tên mốc mới</th>
+                            <th style="text-align: right; min-width: 95px;">VN-2000 X (Bắc) [m]</th>
+                            <th style="text-align: right; min-width: 95px;">VN-2000 Y (Đông) [m]</th>
+                            <th style="text-align: center; min-width: 85px;">KTT / Múi</th>
+                            <th style="text-align: left; min-width: 120px;">WGS-84 (Lat, Lng)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="multiSaveTableBody"></tbody>
+                      </table>
+                    </div>
+
+                    <!-- Chân modal -->
+                    <div class="modal-actions" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 11.5px; color: #94a3b8;">Số mốc lưu:</span>
+                        <b id="multiSaveSelectedCount" style="color: #2dd4bf; font-size: 13px;">0</b>
+                        <span id="multiSaveDstInfo" style="font-size: 11px; color: #64748b;"></span>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn-sm btn-red" style="height: 32px; padding: 0 14px;" onclick="appTransform.closeSaveMultiModal()">✕ Hủy</button>
+                        <button type="button" id="multiConfirmSave" class="btn-sm btn-purple" style="height: 32px; padding: 0 16px; font-weight: 700;" onclick="appTransform.confirmSaveMulti()">💾 Lưu vào Sổ đo dự án</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 </div>
               </div>
 
@@ -1477,8 +1614,11 @@
                     <span class="card-title">📋 Kết quả</span>
                     <div class="card-tools">
                       <button type="button" id="rzViewMap" class="btn-sm btn-blue" title="Xem vị trí các điểm mốc đã đổi trên bản đồ chuyển đổi">🗺️ Xem Bản Đồ</button>
-                      <button type="button" id="rzCopy" class="btn-sm">📋 Chép</button>
-                      <button type="button" id="rzCsv" class="btn-sm btn-green">⬇️ CSV</button>
+                      <button type="button" id="rzSave" class="btn-sm btn-purple" title="Đặt tên và lưu các điểm kết quả vào sổ đo mốc dự án">💾 Lưu Điểm</button>
+                      <button type="button" id="rzCopy" class="btn-sm" title="Sao chép toàn bộ bảng kết quả">📋 Chép</button>
+                      <button type="button" id="rzCopyCad" class="btn-sm" title="Sao chép định dạng AutoCAD (Y,X)">📐 CAD</button>
+                      <button type="button" id="rzCsv" class="btn-sm btn-green" title="Xuất kết quả ra file CSV">⬇️ CSV</button>
+                      <button type="button" id="rzExport" class="btn-sm btn-blue" title="Xuất kết quả ra các định dạng Excel, AutoCAD, KML...">📤 Xuất File</button>
                     </div>
                   </div>
                   <div class="rz-table-wrap">
@@ -1486,6 +1626,82 @@
                       <thead><tr><th>Tên</th><th>X mới (Bắc)</th><th>Y mới (Đông)</th><th>Ghi chú</th></tr></thead>
                       <tbody id="rzResultBody"></tbody>
                     </table>
+                  </div>
+                </div>
+
+                <!-- Modal Đặt Tên & Lưu Điểm Kết Quả Đổi KTT / Múi -->
+                <div id="modalRzSavePoints" class="modal-overlay" onclick="if(event.target === this) Vn2kRezone.closeSaveModal()">
+                  <div class="modal-box" style="max-width: 840px; max-height: calc(var(--ui-avail-h) * 0.92); display: flex; flex-direction: column;">
+                    <div class="modal-title">
+                      <span style="color: #c084fc;">💾 Đặt Tên & Lưu Điểm Kết Quả Chuyển Đổi KTT / Múi</span>
+                      <button type="button" class="btn-modal-close" onclick="Vn2kRezone.closeSaveModal()">✕</button>
+                    </div>
+
+                    <!-- Khung chọn dự án & Quy tắc đặt tên -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(192,132,252,0.3); border-radius: 8px;">
+                      <div>
+                        <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📁 Dự án / File lưu mốc:</label>
+                        <select id="rzSaveProject" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="Vn2kRezone.onSaveProjectChange(this.value)"></select>
+                        <div id="rzSaveNewProjectWrap" style="display: none; margin-top: 6px;">
+                          <input type="text" id="rzSaveNewProject" class="app-input" style="height: 28px; font-size: 11.5px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: KTT_10545.csv)">
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">🏷️ Quy tắc đặt tên nhanh:</label>
+                        <div style="display: flex; gap: 6px;">
+                          <select id="rzSaveNamingStrategy" class="app-input" style="height: 30px; font-size: 11.5px; flex: 1;" onchange="Vn2kRezone.onNamingStrategyChange(this.value)">
+                            <option value="original">Giữ nguyên tên gốc (M1, M2...)</option>
+                            <option value="prefix">Đổi theo Tiền tố + STT</option>
+                            <option value="suffix_ktt">Thêm hậu tố KTT đích</option>
+                          </select>
+                        </div>
+                        <div id="rzSavePrefixWrap" style="display: none; margin-top: 6px; align-items: center; gap: 6px;">
+                          <input type="text" id="rzSavePrefix" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Tiền tố (VD: M_, KTT_)" value="M_">
+                          <button type="button" id="rzBtnApplyNaming" class="btn-sm btn-purple" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="Vn2kRezone.applyCurrentNaming()">Áp dụng</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Bảng xem trước danh sách điểm sẽ lưu -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                      <span style="font-size: 11px; color: #94a3b8;">Có thể sửa trực tiếp tên từng mốc trong ô nhập ở bảng:</span>
+                      <div style="display: flex; gap: 6px;">
+                        <button type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 11px;" onclick="Vn2kRezone.toggleSelectAllSave(true)">Tất cả</button>
+                        <button type="button" class="btn-sm btn-red" style="height: 24px; padding: 0 8px; font-size: 11px;" onclick="Vn2kRezone.toggleSelectAllSave(false)">Bỏ chọn</button>
+                      </div>
+                    </div>
+
+                    <div class="cad-table-wrap" style="flex: 1; min-height: 180px; max-height: 320px; overflow-y: auto; margin-bottom: 10px; border: 1px solid rgba(192,132,252,0.25); border-radius: 6px;">
+                      <table class="cad-coord-table">
+                        <thead>
+                          <tr>
+                            <th style="width: 38px; text-align: center;">Lưu</th>
+                            <th style="width: 40px; text-align: center;">STT</th>
+                            <th style="text-align: left; min-width: 120px;">Tên mốc mới</th>
+                            <th style="text-align: right; min-width: 95px;">X mới (Bắc) [m]</th>
+                            <th style="text-align: right; min-width: 95px;">Y mới (Đông) [m]</th>
+                            <th style="text-align: center; min-width: 75px;">KTT đích</th>
+                            <th style="text-align: center; min-width: 60px;">Múi</th>
+                            <th style="text-align: left; min-width: 120px;">WGS-84</th>
+                          </tr>
+                        </thead>
+                        <tbody id="rzSaveTableBody"></tbody>
+                      </table>
+                    </div>
+
+                    <!-- Chân modal -->
+                    <div class="modal-actions" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 11.5px; color: #94a3b8;">Số mốc lưu:</span>
+                        <b id="rzSaveSelectedCount" style="color: #c084fc; font-size: 13px;">0</b>
+                        <span id="rzSaveDstInfo" style="font-size: 11px; color: #64748b;"></span>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn-sm btn-red" style="height: 32px; padding: 0 14px;" onclick="Vn2kRezone.closeSaveModal()">✕ Hủy</button>
+                        <button type="button" id="rzConfirmSave" class="btn-sm btn-purple" style="height: 32px; padding: 0 16px; font-weight: 700;" onclick="Vn2kRezone.confirmSave()">💾 Lưu vào Sổ đo dự án</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2217,6 +2433,21 @@
             <input type="text" id="cadActiveShapeName" class="app-input"
               style="height: 26px; width: 110px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px; flex: none;"
               placeholder="Tên khối (Thửa 1)" title="Đặt tên khối trước khi vẽ hoặc lưu">
+                        <!-- Thanh chọn nhanh ký hiệu đỉnh khi đang vẽ (Realtime Vertex HUD) -->
+            <div id="cadVertexQuickBar" style="display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 2px 6px;">
+              <span style="font-size: 11px; color: #38bdf8; font-weight: 700; white-space: nowrap;">🎨 Đỉnh:</span>
+              <select id="cadDrawVertexStyle" class="app-input" onchange="appCadTool.updateDraftVertexConfig('style', this.value)"
+                title="Kiểu dáng icon đỉnh khi đang vẽ (Tròn, Vuông, Thoi, Sao, Pin...)"
+                style="height: 24px; max-width: 100px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
+              </select>
+              <input type="color" id="cadDrawVertexColor" value="#10b981" onchange="appCadTool.updateDraftVertexConfig('color', this.value)"
+                title="Màu sắc icon đỉnh khi đang vẽ"
+                style="width: 26px; height: 24px; padding: 0; border: 1px solid rgba(56,189,248,0.4); border-radius: 4px; background: #0f172a; cursor: pointer;">
+              <select id="cadDrawVertexSize" class="app-input" onchange="appCadTool.updateDraftVertexConfig('size', this.value)"
+                title="Kích thước icon đỉnh khi đang vẽ (Nhỏ 14px, Vừa 20px, Lớn 26px, Rất lớn 32px)"
+                style="height: 24px; max-width: 85px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
+              </select>
+            </div>
             <button id="btnCadSaveShape" class="cad-btn"
               style="background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #a7f3d0; font-weight: 700;"
               onclick="appCadTool.saveAndStartNewShape()"
@@ -3490,7 +3721,7 @@
             style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(56,189,248,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #38bdf8; letter-spacing: 0.5px;">
             VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.43 Pro</div>
+          <div style="font-size: 12px; color: #94a3b8;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.44 Pro</div>
           <div
             style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.25); border-radius: 20px; font-size: 11px; color: #7dd3fc;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
@@ -3522,7 +3753,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.43
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.44
                 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #cbd5e1;">
@@ -4679,7 +4910,7 @@
           <div class="settings-welcome-hero">
             <div class="settings-welcome-logo-wrap">
               <img src="icon.png" alt="VN2000 Pro" class="settings-welcome-logo">
-              <span class="settings-welcome-badge">PRO v2.8.43</span>
+              <span class="settings-welcome-badge">PRO v2.8.44</span>
             </div>
             <div class="settings-welcome-title" data-i18n="settings.welcome.title">HỆ THỐNG CÀI ĐẶT VN-2000 PRO</div>
             <div class="settings-welcome-sub" data-i18n="settings.welcome.sub">Bấm chọn một danh mục cài đặt bên dưới để thiết lập nghiệp vụ:</div>
@@ -5484,6 +5715,17 @@
             </label>
           </div>
         </div>
+                <!-- Bộ công cụ đổi hàng loạt ký hiệu đỉnh -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span style="font-size: 11px; font-weight: 700; color: #a7f3d0; white-space: nowrap;">⚡ Đổi hàng loạt:</span>
+            <select id="cadBulkShapeSelect" class="app-input" style="height: 25px; max-width: 130px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;"></select>
+            <select id="cadBulkStyleSelect" class="app-input" style="height: 25px; max-width: 100px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;"></select>
+            <input type="color" id="cadBulkColorSelect" value="#10b981" style="width: 28px; height: 25px; padding: 0; border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; background: #0f172a; cursor: pointer;">
+            <select id="cadBulkSizeSelect" class="app-input" style="height: 25px; max-width: 85px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;"></select>
+            <button type="button" class="btn-sm btn-cyan" onclick="appCadTool.applyBulkVertexGlyphs()" style="height: 25px; padding: 0 10px; font-size: 11px; font-weight: 700;">Áp dụng</button>
+          </div>
+        </div>
         <div class="cad-table-wrap" style="flex: 1;">
           <table class="cad-coord-table">
             <thead>
@@ -5496,6 +5738,7 @@
                 <th style="text-align: right; padding-right: 10px;">Cạnh [m]</th>
                 <th style="text-align: center; width: 92px;">Ký hiệu</th>
                 <th style="text-align: center; width: 44px;">Màu</th>
+                <th style="text-align: center; width: 60px;">Cỡ</th>
                 <th style="text-align: center; width: 75px;">Hiện đỉnh</th>
                 <th style="text-align: center; min-width: 90px;">Thao tác</th>
               </tr>
@@ -6188,7 +6431,8 @@
                 <th style="text-align: left; min-width: 130px;">Lớp</th>
                 <th style="text-align: center; width: 130px;">Hình dạng</th>
                 <th style="text-align: center; width: 60px;">Màu</th>
-                <th style="text-align: left; min-width: 110px;">Mã lớp</th>
+                <th style="text-align: center; width: 95px;">Kích thước</th>
+                <th style="text-align: left; min-width: 90px;">Mã lớp</th>
                 <th style="text-align: center; width: 46px;">↺</th>
               </tr>
             </thead>
@@ -8216,18 +8460,18 @@
        được nạp khi cần (loadLib trong mã nguồn chính); service worker đã lưu sẵn nên vẫn chạy ngoại tuyến. -->
   <script src="leaflet.js"></script>
   <script src="offline_regions.js"></script>
-  <script src="geodesy.js?v=2.8.43"></script>
+  <script src="geodesy.js?v=2.8.44"></script>
   <script src="pixoptimizer.js"></script>
-  <script src="src/core/cad_geometry.js?v=2.8.43"></script>
-  <script src="src/core/gis_io.js?v=2.8.43"></script>
-  <script src="src/core/georef.js?v=2.8.43"></script>
-    <script src="src/core/planning_map.js?v=2.8.43"></script>
-<script src="app.js?v=2.8.43"></script>
-  <script src="field-workspace.js?v=2.8.43"></script>
-  <script src="vn2000-rezone.js?v=2.8.43"></script>
-  <script src="vn-admin-2025.js?v=2.8.43"></script>
-  <script src="import-preview.js?v=2.8.43"></script>
-  <script src="app-shell.js?v=2.8.43"></script>
+  <script src="src/core/cad_geometry.js?v=2.8.44"></script>
+  <script src="src/core/gis_io.js?v=2.8.44"></script>
+  <script src="src/core/georef.js?v=2.8.44"></script>
+    <script src="src/core/planning_map.js?v=2.8.44"></script>
+<script src="app.js?v=2.8.44"></script>
+  <script src="field-workspace.js?v=2.8.44"></script>
+  <script src="vn2000-rezone.js?v=2.8.44"></script>
+  <script src="vn-admin-2025.js?v=2.8.44"></script>
+  <script src="import-preview.js?v=2.8.44"></script>
+  <script src="app-shell.js?v=2.8.44"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <!-- Có bản mới: hiện thanh "Cập nhật" — chỉ tải lại khi người dùng bấm (không cắt ngang lúc đang đo, vẽ, nhập liệu). -->

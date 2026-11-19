@@ -3,11 +3,88 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 505/505 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 513/513 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-19] WP-Z Tùy Biến Toàn Diện Ký Hiệu Icon Đỉnh / Mốc MiniCAD (10 Kiểu Dáng, 4 Kích Thước, Palette Màu & Realtime HUD)
+- **Yêu cầu từ người dùng**:
+  `cho phép điều chỉnh Icon điểm lưu, các đỉnh của tuyến, đa giác, thửa đã lưu hoặc đang vẽ`
+- **Phân tích & Thiết kế Kỹ thuật Toàn Diện**:
+  1. **10 Kiểu dáng Icon Đỉnh & Mốc**:
+     - Mở rộng đầy đủ 10 kiểu dáng trắc địa tiêu chuẩn:
+       `circle` (● Tròn), `square` (■ Vuông), `diamond` (◆ Thoi), `triangle` (▲ Tam giác), `pin` (📍 Ghim Pin),
+       `cross` (✚ Chữ thập), `ring` (◎ Vành khuyên), `star` (★ Ngôi sao), `target` (🎯 Tâm ngắm), `x` (❈ Chữ X).
+     - Bổ sung CSS đặc tả hình học chuẩn xác với SVG clip-path & drop-shadow trong `style.css`.
+  2. **4 Cấp Kích Thước Icon**:
+     - `sm` (Nhỏ - 14px), `md` (Vừa - 20px), `lg` (Lớn - 26px), `xl` (Rất lớn - 32px).
+     - Định vị neo Leaflet Marker (`iconAnchor`) đồng bộ chuẩn xác từng milimet theo công thức `[px, px]` và `[px/2, px/2]`.
+  3. **Thao tác Realtime khi Đang Vẽ (Realtime Vertex HUD)**:
+     - Bổ sung thanh điều khiển nhanh `#cadVertexQuickBar` trên tab Vẽ (`#cadPanelDraw`) gồm 3 bộ chọn: Kiểu icon (`#cadDrawVertexStyle`), Màu sắc (`#cadDrawVertexColor`), Kích thước (`#cadDrawVertexSize`).
+     - Tự động áp dụng tức thì lên các đỉnh đang vẽ dở qua `updateDraftVertexConfig()` mà không cần thoát lệnh hay vẽ lại.
+  4. **Tùy biến Đối tượng Đã Lưu**:
+     - Click vào đỉnh trên bản đồ: Popup sửa nhanh (`showQuickEditPopup`) cho phép đổi Kiểu icon, Màu sắc, Cỡ đỉnh cho riêng đỉnh ("Lưu Đỉnh") hoặc áp dụng đồng loạt cho toàn bộ các đỉnh của hình ("Cả Khối").
+     - Bảng kê đỉnh thửa (`modalCadAreaTable` - Tab Vertices): Bổ sung cột "Cỡ" cho từng đỉnh, kèm thanh công cụ Đổi hàng loạt (`#cadBulkShapeSelect`, `#cadBulkStyleSelect`, `#cadBulkColorSelect`, `#cadBulkSizeSelect`, `applyBulkVertexGlyphs`).
+     - Hộp thoại Ký hiệu & Hiển thị (`modalCadSymbols`): Bổ sung cột Kích thước mặc định theo từng lớp CAD (`cadSymSize_${layerId}`, `applyLayerGlyph`).
+  5. **Kiểm soát Chất lượng & UI Polish**:
+     - Tuyệt đối không còn font-size < 11px.
+     - Đồng bộ phiên bản tài nguyên `v2.8.44` trên toàn bộ hệ thống (`package.json`, `sw.js`, `index.html`).
+- **Kết quả Kiểm thử & Nghiệm thu**:
+  - Tạo mới test suite `tests/cad_vertex_icon_styling.test.js` kiểm thử toàn diện 10 kiểu dáng, 4 kích thước, CSS và thuật toán.
+  - Toàn bộ **513 / 513 bài kiểm thử tự động đạt PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Đã kiểm chứng trực quan E2E trên Chrome DevTools MCP: Đổi kiểu icon đỉnh trong lúc vẽ dở, popup sửa nhanh trên map, và đổi hàng loạt trong bảng đỉnh đều phản hồi mượt mà, chính xác.
+
+---
+
+### [2026-11-19] WP-Y Đồng Bộ Toàn Diện Nút Chức Năng & Hoạt Động Giữa Các Phân Hệ Trong "Chuyển Tọa Độ"
+- **Yêu cầu từ người dùng**:
+  - `điều chỉnh để các chức năng tương tự nhau trong "chuyển tọa độ" đều có nút chức năng và các hoạt động tương tự nhau`
+  - Đã qua Socratic Intake Gate & thống nhất phương án đồng bộ toàn diện cả 3 phân hệ: Đơn điểm, Nhiều điểm, Đổi KTT/múi.
+- **Phân tích & Thiết kế Kỹ thuật Đồng Bộ**:
+  1. **Đổi KTT / Múi (`panelTransRezone`)**:
+     - Bổ sung nút `📐 CAD` (`#rzCopyCad`): Sao chép nhanh danh sách tọa độ định dạng CAD (`Y,X` / Easting, Northing) dán thẳng vào AutoCAD/MicroStation.
+     - Bổ sung nút `📤 Xuất File` (`#rzExport`): Mở hộp thoại xuất đa định dạng (Excel, DWG, DXF, CSV, PDF, KML) qua `appData.openExportModal('transform')`.
+  2. **Nhiều điểm (`panelTransMulti`)**:
+     - Đồng bộ thanh công cụ kết quả ở header: `🗺️ Xem Bản Đồ`, `💾 Lưu Điểm`, `📋 Chép tất cả`, `📐 CAD`, `📋 VN2K`, `🌐 WGS`, `⬇️ CSV`, `📤 Xuất File`.
+     - Nút `📐 CAD` (`appTransform.copyMultiCadResult()`): Sao chép định dạng `Y,X` cho toàn bộ các điểm kết quả.
+     - Bổ sung Modal Đặt Tên & Lưu Điểm chuyên nghiệp `#modalMultiSavePoints`: Chọn/tạo file dự án đích, chọn quy tắc đặt tên (giữ nguyên, tiền tố `M_`, hậu tố `_VN2K`), sửa trực tiếp tên từng mốc trong bảng preview, checkbox chọn/bỏ chọn từng mốc, hiển thị X, Y, KTT, WGS-84.
+  3. **Đơn điểm (`panelTransSingle`)**:
+     - Thêm nút `📤 Xuất File` (`appTransform.openExportSingleModal()`): Xuất điểm kết quả ra Excel, CAD, KML.
+     - Bổ sung Modal Đặt Tên & Lưu Điểm `#modalSingleSavePoints`: Khi bấm `💾 LƯU VÀO SỔ ĐO`, mở modal cho phép sửa tên mốc, chọn/tạo file dự án đích, nhập ghi chú, xem lại thông số trắc địa $X, Y$, WGS-84, KTT/Múi trước khi lưu.
+- **Kết quả Kiểm thử & Nghiệm thu**:
+  - Tạo mới test suite `tests/transform_features_unification.test.js` bao quát 100% các nút và modal mới.
+  - Toàn bộ **509 / 509 bài kiểm thử tự động đạt PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Kiểm chứng E2E trực tiếp qua Chrome DevTools MCP trên trình duyệt live: Thao tác trơn tru trên cả 3 phân hệ, lưu điểm chính xác vào sổ đo, console 0 lỗi.
+
+---
+
+### [2026-11-19] WP-X Bổ Sung Nút Chức Năng Đặt Tên & Lưu Điểm Kết Quả Chuyển Đổi KTT/Múi Vào Sổ Đo Dự Án
+- **Yêu cầu từ người dùng**:
+  `- Chức năng "Đổi VN-2000 sang KTT/múi khác" cần bổ sung nút chức năng đặt tên và lưu các điểm kết quả được chuyển đổi (tọa độ, múi chiếu, kinh tuyến trục)`
+  `/goal Hãy đảm bảo các chức năng hoạt động tốt.`
+- **Phân tích & Thiết kế Kỹ thuật**:
+  - **Nút chức năng**:
+    - Thêm nút `💾 Lưu Điểm` (`#rzSave`) vào thanh công cụ kết quả `#rzResultCard` của phân hệ Đổi KTT/múi.
+  - **Hộp thoại Đặt Tên & Lưu Điểm (`#modalRzSavePoints`)**:
+    - Thiết kế giao diện hiện đại chuẩn Lovable 2026:
+      1. *Lựa chọn file Dự án lưu mốc*: Dropdown danh sách file dự án trong `AppState.projectsList`, hỗ trợ tạo file dự án mới tức thời.
+      2. *Quy tắc đặt tên nhanh*: Giữ nguyên tên gốc, đổi tên hàng loạt theo Tiền tố (ví dụ `KTT_1`, `KTT_2`...), hoặc gắn thêm hậu tố KTT đích (ví dụ `M1_10545`).
+      3. *Chỉnh sửa tên mốc trực tiếp*: Người dùng có thể gõ trực tiếp tên mốc mong muốn cho từng điểm trong bảng xem trước.
+      4. *Bảo toàn 100% dữ liệu kỹ thuật*: Mỗi mốc được lưu với đầy đủ thông số: Tọa độ mới (X, Y), Múi chiếu đích (`mui`), Kinh tuyến trục đích (`ktt`, `kttVal`), Tọa độ địa lý WGS-84 (`lat`, `lng`), và ghi chú chuyển đổi nguồn ➔ đích.
+  - **Tuân thủ nghiêm ngặt UI Isolation Principle**:
+    - Tuyệt đối không gọi chéo sang giao diện Bản đồ dự án (`openProjectMap`) hay `appCadTool`.
+    - Điểm được lưu êm ái vào cơ sở dữ liệu dự án qua `root.appData.savePoints` và tự động đồng bộ banner, dropdown mà không làm gián đoạn màn hình làm việc hiện tại của người dùng.
+- **Kết quả Kiểm thử & Nghiệm thu**:
+  - Đã cập nhật và bổ sung bài test logic trong `tests/vn2000_rezone.test.js`.
+  - Toàn bộ **506 / 506 bài kiểm thử tự động đạt PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Kiểm chứng trực quan E2E trên Chrome DevTools MCP:
+    - Bấm nút `💾 Lưu Điểm`: Modal hiển thị đầy đủ bảng mốc với tọa độ mới, KTT đích, múi đích.
+    - Đổi tiền tố mốc sang `MOC_KTT_` và bấm lưu: Cả 2 điểm mốc được lưu chính xác vào sổ đo `VN2000_SoLieu_DoDac.csv` với tên `MOC_KTT_1`, `MOC_KTT_2`, KTT `105°45'`, Múi 3°.
+    - Console hoàn toàn sạch sẽ, 0 lỗi JavaScript.
+
+---
 
 ### [2026-11-19] WP-W Bổ Sung Nút Xem Bản Đồ Kết Quả Đổi KTT/Múi & Tính Năng Nối Điểm Đã Lưu/Chuyển Đổi Trong MiniCAD
 - **Yêu cầu từ người dùng**:

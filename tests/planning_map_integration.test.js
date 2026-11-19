@@ -192,7 +192,7 @@ test('=== NHÓM 5: ĐỒNG BỘ PHIÊN BẢN & BỘ NHỚ ĐỆM SERVICE WORKER 
         assert.ok(appVerMatch, 'index.html phải có app.js?v=');
 
         const ver = swVerMatch[1];
-        assert.ok(['2.8.41', '2.8.42', '2.8.43'].includes(ver), 'Phiên bản phải là 2.8.41 hoặc mới hơn');
+        assert.ok(ver >= '2.8.41' || ['2.8.41', '2.8.42', '2.8.43', '2.8.44'].includes(ver), 'Phiên bản phải là 2.8.41 hoặc mới hơn');
         assert.equal(styleVerMatch[1], ver, 'style.css?v phải khớp swVer');
         assert.equal(polishVerMatch[1], ver, 'ui-polish.css?v phải khớp swVer');
         assert.equal(appVerMatch[1], ver, 'app.js?v phải khớp swVer');

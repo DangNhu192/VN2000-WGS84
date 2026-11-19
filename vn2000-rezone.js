@@ -89,12 +89,20 @@
         return [...map.keys()].sort((a, b) => a - b).map(k => ({ ktt: k, label: `${kttLabel(k)} — ${map.get(k).join(', ')}` }));
     }
 
-    const api = { parseNum, parseLines, convertAll, toCsv, kttOptions, kttLabel, zoneScale, FAR_DEG, viewOnMap };
+    let last = null;
+
+    const api = {
+        parseNum, parseLines, convertAll, toCsv, kttOptions, kttLabel, zoneScale, FAR_DEG,
+        viewOnMap, openSaveModal, closeSaveModal, onSaveProjectChange, onNamingStrategyChange,
+        applyCurrentNaming, toggleSelectAllSave, updateSelectedCount, confirmSave, saveResultsToProject,
+        copyCad, openExportModal,
+        getLast: () => last,
+        setLast: (val) => { last = val; }
+    };
     if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
     root.Vn2kRezone = api;
 
     // ======================= Giao diện =======================
-    let last = null;
     const byId = id => document.getElementById(id);
 
     function readSide(prefix) {
@@ -186,6 +194,62 @@
         else setStatus('Trình duyệt không cho chép tự động, hãy bôi đen bảng để chép.', true);
     }
 
+    function copyCad() {
+        if (!last || !last.results) {
+            if (root.showToast) root.showToast('⚠️ Chưa có kết quả để chép CAD!', true);
+            return;
+        }
+        const valid = last.results.filter(r => r.ok && Number.isFinite(r.X) && Number.isFinite(r.Y));
+        if (!valid.length) {
+            if (root.showToast) root.showToast('⚠️ Không có tọa độ hợp lệ để chép CAD!', true);
+            return;
+        }
+        // Định dạng CAD chuẩn: Y,X (Easting,Northing) dán thẳng vào AutoCAD
+        const text = valid.map(r => `${r.Y.toFixed(3)},${r.X.toFixed(3)}`).join('\r\n');
+        const done = () => root.showToast && root.showToast(`📐 Đã chép tọa độ CAD (Y,X) của ${valid.length} điểm!`);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, () => setStatus('Không chép được CAD, hãy bôi đen bảng.', true));
+        } else {
+            if (typeof root.copyToClipboard === 'function') {
+                root.copyToClipboard(text);
+                done();
+            } else {
+                setStatus('Trình duyệt không hỗ trợ chép tự động.', true);
+            }
+        }
+    }
+
+    function openExportModal() {
+        if (!last || !last.results) {
+            if (root.showToast) root.showToast('⚠️ Chưa có kết quả để xuất file!', true);
+            return;
+        }
+        const valid = last.results.filter(r => r.ok && Number.isFinite(r.X) && Number.isFinite(r.Y));
+        if (!valid.length) {
+            if (root.showToast) root.showToast('⚠️ Không có điểm nào hợp lệ để xuất file!', true);
+            return;
+        }
+        const dstLabel = kttLabel(last.dst.ktt);
+        const points = valid.map((r, idx) => ({
+            id: Date.now() + idx,
+            name: r.name || `M${idx + 1}`,
+            x: r.X,
+            y: r.Y,
+            lat: r.lat || 0,
+            lng: r.lng || 0,
+            h: 0,
+            ktt: dstLabel,
+            mui: last.dst.zone,
+            note: `Đổi KTT: ${kttLabel(last.src.ktt)} (${last.src.zone}°) ➔ ${dstLabel} (${last.dst.zone}°)`
+        }));
+        if (root.appData && typeof root.appData.openExportModal === 'function') {
+            root.appData._customExportPoints = points;
+            root.appData.openExportModal('transform');
+        } else {
+            download();
+        }
+    }
+
     function viewOnMap() {
         if (!last || !last.results || !last.results.length) {
             setStatus('Chưa có kết quả để xem trên bản đồ.', true);
@@ -222,6 +286,316 @@
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
 
+    // ======================= ĐẶT TÊN VÀ LƯU ĐIỂM KẾT QUẢ =======================
+    function openSaveModal() {
+        if (!last || !last.results || !last.results.some(r => r.ok)) {
+            setStatus('Chưa có kết quả điểm hợp lệ để lưu.', true);
+            if (root.showToast) root.showToast('⚠️ Chưa có kết quả điểm hợp lệ để lưu!', true);
+            return;
+        }
+
+        const modal = byId('modalRzSavePoints');
+        if (!modal) return;
+
+        // Nạp danh sách dự án hiện có
+        const selProj = byId('rzSaveProject');
+        if (selProj) {
+            selProj.innerHTML = '';
+            const state = root.AppState || {};
+            const projects = (state.projectsList && state.projectsList.length > 0)
+                ? state.projectsList
+                : ['VN2000_SoLieu_DoDac.csv'];
+            const curProj = state.currentProject || projects[0];
+
+            projects.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.innerText = name;
+                if (name === curProj) opt.selected = true;
+                selProj.appendChild(opt);
+            });
+
+            const optNew = document.createElement('option');
+            optNew.value = '__new__';
+            optNew.innerText = '➕ Tạo dự án mới…';
+            selProj.appendChild(optNew);
+        }
+
+        const newProjWrap = byId('rzSaveNewProjectWrap');
+        if (newProjWrap) newProjWrap.style.display = 'none';
+
+        const namingStrategy = byId('rzSaveNamingStrategy');
+        if (namingStrategy) namingStrategy.value = 'original';
+        const prefixWrap = byId('rzSavePrefixWrap');
+        if (prefixWrap) prefixWrap.style.display = 'none';
+
+        renderSavePointsTable();
+        modal.classList.add('active', 'show');
+    }
+
+    function closeSaveModal() {
+        const modal = byId('modalRzSavePoints');
+        if (modal) modal.classList.remove('active', 'show');
+    }
+
+    function renderSavePointsTable() {
+        const tbody = byId('rzSaveTableBody');
+        if (!tbody || !last) return;
+        tbody.innerHTML = '';
+
+        const validResults = last.results.filter(r => r.ok);
+        const kttDstStr = kttLabel(last.dst.ktt);
+        const zoneDstStr = `${last.dst.zone}°`;
+
+        validResults.forEach((r, idx) => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+            tr.innerHTML = `
+                <td style="text-align: center; padding: 6px;">
+                    <input type="checkbox" class="rz-save-cb" value="${idx}" checked
+                        onchange="Vn2kRezone.updateSelectedCount()"
+                        style="accent-color: #c084fc; width: 14px; height: 14px; cursor: pointer;">
+                </td>
+                <td style="text-align: center; color: #94a3b8; font-size: 11px;">${idx + 1}</td>
+                <td style="padding: 4px 6px;">
+                    <input type="text" class="app-input rz-save-name" data-idx="${idx}" value="${escapeHtml(r.name)}"
+                        style="height: 26px; width: 100%; font-size: 11.5px; font-weight: 700; color: #c084fc; padding: 0 6px;">
+                </td>
+                <td style="text-align: right; font-family: ui-monospace, monospace; font-size: 11px; color: #f8fafc;">${r.X.toFixed(3)}</td>
+                <td style="text-align: right; font-family: ui-monospace, monospace; font-size: 11px; color: #f8fafc;">${r.Y.toFixed(3)}</td>
+                <td style="text-align: center; font-size: 11px; color: #38bdf8; font-weight: 600;">${kttDstStr}</td>
+                <td style="text-align: center; font-size: 11px; color: #38bdf8; font-weight: 600;">${zoneDstStr}</td>
+                <td style="font-size: 11px; color: #94a3b8; font-family: ui-monospace, monospace;">${r.lat ? `${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}` : '—'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const dstInfo = byId('rzSaveDstInfo');
+        if (dstInfo) dstInfo.innerText = `(KTT đích: ${kttDstStr} • Múi ${zoneDstStr})`;
+        updateSelectedCount();
+    }
+
+    function escapeHtml(str) {
+        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function onSaveProjectChange(val) {
+        const wrap = byId('rzSaveNewProjectWrap');
+        if (wrap) wrap.style.display = (val === '__new__') ? 'block' : 'none';
+    }
+
+    function onNamingStrategyChange(strategy) {
+        const wrap = byId('rzSavePrefixWrap');
+        if (wrap) wrap.style.display = (strategy === 'prefix') ? 'flex' : 'none';
+        if (strategy === 'original' || strategy === 'suffix_ktt') {
+            applyCurrentNaming();
+        }
+    }
+
+    function applyCurrentNaming() {
+        if (!last) return;
+        const strategy = byId('rzSaveNamingStrategy')?.value || 'original';
+        const prefix = byId('rzSavePrefix')?.value?.trim() || 'M_';
+        const kttClean = kttLabel(last.dst.ktt).replace(/[°']/g, '');
+        const validResults = last.results.filter(r => r.ok);
+
+        const inputs = document.querySelectorAll('.rz-save-name');
+        inputs.forEach(inp => {
+            const idx = parseInt(inp.getAttribute('data-idx'), 10);
+            if (isNaN(idx) || !validResults[idx]) return;
+            const originalName = validResults[idx].name;
+
+            if (strategy === 'original') {
+                inp.value = originalName;
+            } else if (strategy === 'prefix') {
+                inp.value = `${prefix}${idx + 1}`;
+            } else if (strategy === 'suffix_ktt') {
+                inp.value = `${originalName}_${kttClean}`;
+            }
+        });
+    }
+
+    function toggleSelectAllSave(selectAll) {
+        const cbs = document.querySelectorAll('.rz-save-cb');
+        cbs.forEach(cb => { cb.checked = selectAll; });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const cbs = document.querySelectorAll('.rz-save-cb:checked');
+        const el = byId('rzSaveSelectedCount');
+        if (el) el.innerText = cbs.length;
+    }
+
+    /**
+     * Lưu các điểm kết quả vào sổ đo dự án.
+     */
+    function saveResultsToProject(targetProj, customNames = null) {
+        if (!last || !last.results || !last.results.length) {
+            return { success: false, error: 'Chưa có kết quả chuyển đổi để lưu.' };
+        }
+
+        const validResults = last.results.filter(r => r.ok);
+        if (!validResults.length) {
+            return { success: false, error: 'Không có điểm nào hợp lệ để lưu.' };
+        }
+
+        const state = root.AppState || {};
+        let finalProj = (typeof targetProj === 'string' && targetProj.trim())
+            ? targetProj.trim()
+            : (state.currentProject || 'VN2000_SoLieu_DoDac.csv');
+
+        if (!finalProj.toLowerCase().endsWith('.csv')) {
+            finalProj += '.csv';
+        }
+
+        // Cập nhật AppState.projectsList nếu là dự án mới
+        if (state.projectsList && !state.projectsList.includes(finalProj)) {
+            state.projectsList.push(finalProj);
+            if (root.appData && root.appData.saveProjectsList) {
+                root.appData.saveProjectsList();
+            }
+        }
+
+        const pointsToSave = validResults.map((r, idx) => {
+            let ptName = r.name;
+            if (customNames && typeof customNames[idx] === 'string' && customNames[idx].trim()) {
+                ptName = customNames[idx].trim();
+            } else if (Array.isArray(customNames) && customNames[idx]) {
+                ptName = String(customNames[idx]).trim();
+            }
+
+            const kttDstStr = kttLabel(last.dst.ktt);
+            const kttSrcStr = kttLabel(last.src.ktt);
+            const notes = [];
+            notes.push(`Đổi KTT: ${kttSrcStr} (${last.src.zone}°) ➔ ${kttDstStr} (${last.dst.zone}°)`);
+            const n = noteOf(r);
+            if (n) notes.push(n);
+
+            return {
+                id: Date.now() + idx,
+                name: ptName,
+                x: parseFloat(r.X.toFixed(3)),
+                y: parseFloat(r.Y.toFixed(3)),
+                lat: Number.isFinite(r.lat) ? parseFloat(r.lat.toFixed(7)) : 0,
+                lng: Number.isFinite(r.lng) ? parseFloat(r.lng.toFixed(7)) : 0,
+                h: 0,
+                mui: last.dst.zone,
+                ktt: kttDstStr,
+                kttVal: last.dst.ktt,
+                kttDecimal: last.dst.ktt,
+                note: notes.join('; '),
+                source: 'Đổi KTT/Múi',
+                project: finalProj,
+                time: new Date().toISOString()
+            };
+        });
+
+        // Lưu vào appData
+        if (root.appData && typeof root.appData.getPoints === 'function' && typeof root.appData.savePoints === 'function') {
+            const currentPts = root.appData.getPoints(finalProj) || [];
+            currentPts.push(...pointsToSave);
+            root.appData.savePoints(finalProj, currentPts);
+        } else if (typeof localStorage !== 'undefined') {
+            const key = `vn2k_pts_${finalProj}`;
+            let currentPts = [];
+            try { currentPts = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+            if (!Array.isArray(currentPts)) currentPts = [];
+            currentPts.push(...pointsToSave);
+            localStorage.setItem(key, JSON.stringify(currentPts));
+        }
+
+        // Cập nhật trạng thái dự án hiện hành
+        state.currentProject = finalProj;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('vn2k_cur_project', finalProj);
+        }
+
+        // Lưu điểm đầu tiên vào AppState.lastConvertedPoint để dùng chung
+        if (pointsToSave.length > 0) {
+            state.lastConvertedPoint = pointsToSave[0];
+            if (root.appTransformMap) {
+                root.appTransformMap.rezonePoints = validResults.map((r, i) => ({
+                    ...r,
+                    name: pointsToSave[i].name
+                }));
+                root.appTransformMap.rezoneSrc = last.src;
+                root.appTransformMap.rezoneDst = last.dst;
+            }
+        }
+
+        // Đồng bộ banner và dropdown nếu có
+        if (root.appNav && typeof root.appNav.updateBanner === 'function') {
+            root.appNav.updateBanner();
+        }
+        if (root.appData && typeof root.appData.populateProjectSelect === 'function') {
+            root.appData.populateProjectSelect();
+        }
+
+        return {
+            success: true,
+            count: pointsToSave.length,
+            project: finalProj,
+            points: pointsToSave
+        };
+    }
+
+    function confirmSave() {
+        if (!last || !last.results) return;
+        const validResults = last.results.filter(r => r.ok);
+        if (!validResults.length) {
+            if (root.showToast) root.showToast('⚠️ Không có điểm nào hợp lệ để lưu!', true);
+            return;
+        }
+
+        const sel = byId('rzSaveProject');
+        let chosenProj = sel ? sel.value : '';
+        if (chosenProj === '__new__') {
+            const newNameInput = byId('rzSaveNewProject');
+            chosenProj = newNameInput ? newNameInput.value.trim() : '';
+            if (!chosenProj) {
+                if (root.showToast) root.showToast('⚠️ Vui lòng nhập tên file dự án mới!', true);
+                if (newNameInput) newNameInput.focus();
+                return;
+            }
+        }
+
+        // Thu thập checkbox và tên mốc tùy biến từ bảng
+        const cbs = document.querySelectorAll('.rz-save-cb:checked');
+        if (!cbs.length) {
+            if (root.showToast) root.showToast('⚠️ Vui lòng tích chọn ít nhất 1 mốc để lưu!', true);
+            return;
+        }
+
+        const customNames = {};
+        cbs.forEach(cb => {
+            const idx = parseInt(cb.value, 10);
+            const nameInput = document.querySelector(`.rz-save-name[data-idx="${idx}"]`);
+            if (nameInput) customNames[idx] = nameInput.value.trim() || validResults[idx].name;
+            else customNames[idx] = validResults[idx].name;
+        });
+
+        const checkedIndices = Array.from(cbs).map(cb => parseInt(cb.value, 10));
+        const originalValid = last.results.filter(r => r.ok);
+        const subsetResults = checkedIndices.map(i => originalValid[i]).filter(Boolean);
+        const subsetNames = checkedIndices.map(i => customNames[i]);
+
+        const tempLast = { ...last, results: subsetResults };
+        const saved = saveResultsToProject(chosenProj, subsetNames);
+
+        closeSaveModal();
+
+        if (saved && saved.success) {
+            const dstStr = kttLabel(last.dst.ktt);
+            const msg = `✓ Đã lưu thành công ${saved.count} điểm kết quả (KTT ${dstStr}, Múi ${last.dst.zone}°) vào dự án "${saved.project}"!`;
+            if (root.showToast) root.showToast(msg, true);
+            if (root.triggerHaptic) root.triggerHaptic('success');
+            setStatus(`Đã lưu ${saved.count} mốc (KTT ${dstStr}, Múi ${last.dst.zone}°) vào dự án "${saved.project}".`, false);
+        } else {
+            if (root.showToast) root.showToast(`⚠️ Lỗi khi lưu: ${saved?.error || 'Không xác định'}`, true);
+        }
+    }
+
     function swap() {
         ['Ktt', 'KttCustom', 'Zone'].forEach(f => {
             const a = byId('rzSrc' + f), b = byId('rzDst' + f);
@@ -246,9 +620,15 @@
         byId('rzRun').addEventListener('click', run);
         byId('rzSwap').addEventListener('click', swap);
         byId('rzCopy').addEventListener('click', copy);
+        const btnCad = byId('rzCopyCad');
+        if (btnCad) btnCad.addEventListener('click', copyCad);
         byId('rzCsv').addEventListener('click', download);
+        const btnExport = byId('rzExport');
+        if (btnExport) btnExport.addEventListener('click', openExportModal);
         const btnView = byId('rzViewMap');
         if (btnView) btnView.addEventListener('click', viewOnMap);
+        const btnSave = byId('rzSave');
+        if (btnSave) btnSave.addEventListener('click', openSaveModal);
         byId('rzClear').addEventListener('click', () => { byId('rzInput').value = ''; last = null; render([]); setStatus('', false); });
         byId('rzSample').addEventListener('click', () => {
             byId('rzInput').value = 'M1\t1191900.123\t603800.456\nM2\t1192015.880\t603912.304';
