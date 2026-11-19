@@ -3,11 +3,41 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 502/502 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 505/505 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-19] WP-W Bổ Sung Nút Xem Bản Đồ Kết Quả Đổi KTT/Múi & Tính Năng Nối Điểm Đã Lưu/Chuyển Đổi Trong MiniCAD
+- **Yêu cầu từ người dùng**:
+  1. `Chức năng "Đổi VN-2000 sang KTT/múi khác" cần bổ sung nút chức năng cho xem bản đồ các kết quả được chuyển đổi.`
+  2. `MiniCAD cho phép bổ sung chức năng nối các điểm được lưu/chuyển đổi trước đó.`
+  3. `/goal Hãy đảm bảo các chức năng hoạt động tốt.`
+- **Phân tích & Thiết kế Kỹ thuật**:
+  - **Tính năng 1 (Xem bản đồ Đổi KTT/Múi)**:
+    - Bổ sung nút `🗺️ Xem Bản Đồ` (`#rzViewMap`) vào thẻ kết quả `#rzResultCard`.
+    - Viết hàm `viewOnMap()` trong `vn2000-rezone.js`, chuyển tiếp danh sách điểm kết quả (`last.results`) sang `root.appNav.openTransformMap({ mode: 'view', subMode: 'multi', rezonePoints: valid, src: last.src, dst: last.dst })`.
+    - **Tuân thủ 100% UI Isolation Principle**: Tuyệt đối không gọi chéo sang Sổ mốc dự án (`openProjectMap`) hay `appCadTool`.
+    - Cập nhật `appTransformMap`: Nhận `rezonePoints`, vẽ các pin marker màu xanh bầu trời `#0284c7`, popup hiển thị đầy đủ thông số (Tên điểm, VN-2000 mới X/Y, VN-2000 nguồn x/y, WGS-84, KTT nguồn ➔ KTT đích), tự động `fitBounds` và thu nhỏ sheet về peek để người dùng nhìn bao quát toàn bộ điểm mốc trên bản đồ vệ tinh.
+  - **Tính năng 2 (Nối điểm đã lưu/chuyển đổi trong MiniCAD)**:
+    - Bổ sung nút `🔗 Nối điểm [NOI]` (`#btnCadConnectPoints`) trên thanh công cụ MiniCAD tab Vẽ (`#cadPanelDraw`) và nút `🔗 Nối thành thửa/tuyến` trong Bảng điểm `#modalCadPointTable`.
+    - Xây dựng hộp thoại `#modalCadConnectPoints` hiện đại chuẩn Lovable 2026: Cho phép chọn nguồn điểm (`cad_points`: Lớp điểm rời MiniCAD; `project_points`: Sổ mốc dự án; `converted_points`: Điểm vừa chuyển đổi tọa độ / Đổi KTT).
+    - Hỗ trợ chọn kiểu nối: `polygon` (Đa giác ranh khép kín tính diện tích $m^2$, ha) hoặc `polyline` (Đường tim tuyến / ranh hở tính tổng chiều dài).
+    - Hỗ trợ 3 thuật toán sắp xếp thứ tự nối:
+      1. `natural`: Sắp xếp theo Tên mốc / Số thứ tự tự nhiên (Đ1, Đ2, Đ3... Đ10).
+      2. `list`: Theo thứ tự ban đầu trong danh sách.
+      3. `tsp`: Tối ưu chu vi ngắn nhất khép vòng (Greedy Nearest Neighbor Tour) chống tự cắt chéo.
+    - Tích hợp lệnh CADCraft CLI: `NOI`, `CONNECT`, `NOIDIEM`, `LINKPOINTS`.
+- **Kết quả Kiểm thử & Nghiệm thu**:
+  - Đã bổ sung bộ kiểm thử chuyên sâu mới `tests/cad_connect_points.test.js` và cập nhật `tests/vn2000_rezone.test.js`.
+  - Toàn bộ **505 / 505 bài kiểm thử tự động đạt PASS 100%** (9 suites, 0 fail, 0 skipped).
+  - Kiểm thử trực quan E2E trên Chrome DevTools MCP:
+    - Đổi KTT thành công 2 điểm mẫu và nhấn "🗺️ Xem Bản Đồ": Chuyển sang bản đồ chuyển đổi mượt mà, định vị chính xác 2 điểm mốc trên bản đồ vệ tinh kèm popup chi tiết.
+    - Mở MiniCAD, mở modal Nối điểm và thực thi nối 4 mốc thành Thửa đất: Thửa đất mới tạo thành công, tự động tính diện tích $21.790,53$ $m^2$, hiển thị rực rỡ trên canvas MiniCAD.
+    - Nhập lệnh `NOI` trên thanh lệnh CADCraft CLI: Kích hoạt modal Nối điểm tức thời. Console 0 lỗi JavaScript.
+
+---
 
 ### [2026-11-19] WP-V Khắc Phục Lỗi Xung Đột Render Khi Kéo Thả Bản Đồ MiniCAD (Double-Buffering & Task Cancellation)
 - **Yêu cầu từ người dùng**:

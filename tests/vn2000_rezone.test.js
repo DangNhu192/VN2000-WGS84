@@ -75,11 +75,14 @@ test('giao diện: tab nằm trong màn Chuyển đổi, không gọi bản đ�
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
     const src = fs.readFileSync(path.join(__dirname, '..', 'vn2000-rezone.js'), 'utf8');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
     const tf = html.slice(html.indexOf('id="screen-transform"'), html.indexOf('id="screen-transform-map"'));
     assert.ok(tf.includes('id="tabTransRezone"') && tf.includes('id="panelTransRezone"'));
+    assert.ok(tf.includes('id="rzViewMap"'), 'Có nút Xem Bản Đồ trong bảng kết quả Đổi KTT/múi');
     assert.ok(html.includes('src="vn2000-rezone.js'));
     assert.ok(sw.includes("'./vn2000-rezone.js'"));
     assert.ok(!/openProjectMap|mapProjectBar|appCadTool/.test(src), 'Không gọi chéo phân hệ khác');
+    assert.ok(app.includes('rezonePoints') && app.includes('rezone-converted-pin'), 'appTransformMap hỗ trợ render các điểm kết quả đổi KTT');
 });
 
 test('mốc KTT nhanh khớp đúng bảng 34 tỉnh hiện hành (không gắn nhầm tỉnh)', () => {

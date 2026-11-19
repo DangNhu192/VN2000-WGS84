@@ -1,6 +1,30 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-19: WP-V — KHẮC PHỤC LỖI XUNG ĐỘT RENDER KHI KÉO THẢ BẢN ĐỒ MINICAD (DOUBLE-BUFFERING & TASK CANCELLATION)
+## Phiên hiện tại — 2026-11-19: WP-W — BỔ SUNG NÚT XEM BẢN ĐỒ KẾT QUẢ ĐỔI KTT/MÚI & TÍNH NĂNG NỐI ĐIỂM ĐÃ LƯU/CHUYỂN ĐỔI TRONG MINICAD
+- **Yêu cầu từ người dùng**:
+  1. `Chức năng "Đổi VN-2000 sang KTT/múi khác" cần bổ sung nút chức năng cho xem bản đồ các kết quả được chuyển đổi.`
+  2. `MiniCAD cho phép bổ sung chức năng nối các điểm được lưu/chuyển đổi trước đó.`
+  3. `/goal Hãy đảm bảo các chức năng hoạt động tốt.`
+- **Kết quả triển khai**:
+  1. **Tính năng 1: Nút Xem Bản Đồ cho kết quả Đổi KTT/Múi**:
+     - Thêm nút `🗺️ Xem Bản Đồ` (`#rzViewMap`) trong thẻ kết quả `#rzResultCard`.
+     - Viết hàm `viewOnMap()` trong `vn2000-rezone.js`, chuyển tiếp danh sách điểm kết quả (`last.results`) sang `appNav.openTransformMap({ mode: 'view', subMode: 'multi', rezonePoints: valid, src: last.src, dst: last.dst })`.
+     - **Tuân thủ 100% UI Isolation Principle**: Tuyệt đối không gọi chéo sang Sổ mốc dự án (`openProjectMap`) hay `appCadTool`.
+     - Cập nhật `appTransformMap`: Hiển thị các pin marker màu xanh bầu trời `#0284c7`, popup chi tiết (Tên điểm, VN-2000 mới, VN-2000 cũ, WGS-84, KTT nguồn ➔ KTT đích), tự động `fitBounds` và thu nhỏ sheet về peek để người dùng nhìn toàn cảnh các điểm mốc trên bản đồ vệ tinh.
+  2. **Tính năng 2: Nối các điểm đã lưu/chuyển đổi trong MiniCAD**:
+     - Thêm nút `🔗 Nối điểm [NOI]` (`#btnCadConnectPoints`) trên thanh công cụ MiniCAD tab Vẽ (`#cadPanelDraw`) và nút `🔗 Nối thành thửa/tuyến` trong Bảng điểm `#modalCadPointTable`.
+     - Xây dựng hộp thoại `#modalCadConnectPoints` hiện đại chuẩn Lovable 2026: Cho phép chọn nguồn điểm (`cad_points`: Lớp điểm rời MiniCAD; `project_points`: Sổ mốc dự án; `converted_points`: Điểm vừa chuyển đổi tọa độ / Đổi KTT).
+     - Hỗ trợ kiểu nối: `polygon` (Đa giác ranh khép kín tính diện tích $m^2$, ha) hoặc `polyline` (Đường tim tuyến / ranh hở tính tổng chiều dài).
+     - Hỗ trợ 3 thuật toán sắp xếp thứ tự nối:
+       1. `natural`: Sắp xếp theo Tên mốc / Số thứ tự tự nhiên (Đ1, Đ2, Đ3... Đ10).
+       2. `list`: Theo thứ tự ban đầu trong danh sách.
+       3. `tsp`: Tối ưu chu vi ngắn nhất khép vòng (Greedy Nearest Neighbor Tour) chống tự cắt chéo.
+     - Tích hợp lệnh CADCraft CLI: `NOI`, `CONNECT`, `NOIDIEM`, `LINKPOINTS`.
+- **Tình trạng kiểm thử & Vận hành**:
+  - Toàn bộ **505 / 505 bài tests PASS 100%** (9 suites, 0 fail, 0 skipped), bao gồm test mới `tests/cad_connect_points.test.js`.
+  - Chrome DevTools MCP kiểm chứng: Cả 2 tính năng hoạt động mượt mà, định vị chính xác và tạo thửa đất tính diện tích chuẩn xác, 0 lỗi JavaScript trong console.
+
+## Phiên trước — 2026-11-19: WP-V — KHẮC PHỤC LỖI XUNG ĐỘT RENDER KHI KÉO THẢ BẢN ĐỒ MINICAD (DOUBLE-BUFFERING & TASK CANCELLATION)
 - **Yêu cầu từ người dùng**:
   `MiniCAD đã làm nét được tuy nhiên khi load dữ liệu còn xuất hiện lỗi khi kéo thả bản đồ`
 - **Kết quả triển khai & Khắc phục triệt để**:

@@ -89,7 +89,7 @@
         return [...map.keys()].sort((a, b) => a - b).map(k => ({ ktt: k, label: `${kttLabel(k)} — ${map.get(k).join(', ')}` }));
     }
 
-    const api = { parseNum, parseLines, convertAll, toCsv, kttOptions, kttLabel, zoneScale, FAR_DEG };
+    const api = { parseNum, parseLines, convertAll, toCsv, kttOptions, kttLabel, zoneScale, FAR_DEG, viewOnMap };
     if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
     root.Vn2kRezone = api;
 
@@ -186,6 +186,32 @@
         else setStatus('Trình duyệt không cho chép tự động, hãy bôi đen bảng để chép.', true);
     }
 
+    function viewOnMap() {
+        if (!last || !last.results || !last.results.length) {
+            setStatus('Chưa có kết quả để xem trên bản đồ.', true);
+            return;
+        }
+        const valid = last.results.filter(r => r.ok && Number.isFinite(r.lat) && Number.isFinite(r.lng));
+        if (!valid.length) {
+            setStatus('Không có điểm nào có tọa độ địa lý hợp lệ để hiển thị trên bản đồ.', true);
+            return;
+        }
+        if (root.appNav && typeof root.appNav.openTransformMap === 'function') {
+            root.appNav.openTransformMap({
+                mode: 'view',
+                subMode: 'multi',
+                rezonePoints: valid,
+                src: last.src,
+                dst: last.dst
+            });
+            if (typeof root.showToast === 'function') {
+                root.showToast(`🗺️ Đang hiển thị ${valid.length} điểm kết quả đổi KTT/múi trên bản đồ!`);
+            }
+        } else {
+            setStatus('Bản đồ chuyển đổi chưa sẵn sàng.', true);
+        }
+    }
+
     function download() {
         if (!last) return;
         const blob = new Blob([toCsv(last.results, last.src, last.dst)], { type: 'text/csv;charset=utf-8;' });
@@ -221,6 +247,8 @@
         byId('rzSwap').addEventListener('click', swap);
         byId('rzCopy').addEventListener('click', copy);
         byId('rzCsv').addEventListener('click', download);
+        const btnView = byId('rzViewMap');
+        if (btnView) btnView.addEventListener('click', viewOnMap);
         byId('rzClear').addEventListener('click', () => { byId('rzInput').value = ''; last = null; render([]); setStatus('', false); });
         byId('rzSample').addEventListener('click', () => {
             byId('rzInput').value = 'M1\t1191900.123\t603800.456\nM2\t1192015.880\t603912.304';

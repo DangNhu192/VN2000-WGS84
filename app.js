@@ -5336,6 +5336,16 @@ const appTransformMap = {
         this.onApplyPoint = mode === 'pick' && typeof options.onApplyPoint === 'function' ? options.onApplyPoint : null;
         this.viewSinglePoint = options.singlePoint || (mode === 'view' ? AppState.lastConvertedPoint : null);
 
+        if (options.rezonePoints && options.rezonePoints.length > 0) {
+            this.rezonePoints = options.rezonePoints;
+            this.rezoneSrc = options.src || null;
+            this.rezoneDst = options.dst || null;
+            this.pickSubMode = 'multi';
+            this.currentSheetTab = 'multi';
+        } else if (mode === 'pick' || !options.rezonePoints) {
+            if (!options.keepRezone) this.rezonePoints = null;
+        }
+
         this.ensureMap();
         this.initSheet();
         this.initSheetDrag();
@@ -5350,6 +5360,10 @@ const appTransformMap = {
                 this.syncSinglePointToSheet(this.viewSinglePoint);
             }
             this.renderConvertedPoints();
+            const sheet = document.getElementById('transformBottomSheet');
+            if (sheet && this.rezonePoints && this.rezonePoints.length > 0) {
+                sheet.classList.add('sheet-peek');
+            }
         }
     },
 
@@ -6213,7 +6227,41 @@ const appTransformMap = {
         } else {
             // Đa điểm
             if (this.multiConvertedLayer) this.multiConvertedLayer.clearLayers();
-            if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
+            if (this.rezonePoints && this.rezonePoints.length > 0) {
+                const srcLabel = this.rezoneSrc ? `${this.rezoneSrc.ktt ? (typeof Vn2kRezone !== 'undefined' && Vn2kRezone.kttLabel ? Vn2kRezone.kttLabel(this.rezoneSrc.ktt) : this.rezoneSrc.ktt + '°') : ''} (${this.rezoneSrc.zone}°)` : '';
+                const dstLabel = this.rezoneDst ? `${this.rezoneDst.ktt ? (typeof Vn2kRezone !== 'undefined' && Vn2kRezone.kttLabel ? Vn2kRezone.kttLabel(this.rezoneDst.ktt) : this.rezoneDst.ktt + '°') : ''} (${this.rezoneDst.zone}°)` : '';
+
+                this.rezonePoints.forEach((r, idx) => {
+                    const fLat = parseFloat(r.lat);
+                    const fLng = parseFloat(r.lng);
+                    if (!isNaN(fLat) && !isNaN(fLng) && fLat !== 0 && fLng !== 0) {
+                        bounds.push([fLat, fLng]);
+                        const icon = createSharpPinIcon({
+                            color: '#0284c7',
+                            secondaryColor: '#0369a1',
+                            text: String(idx + 1),
+                            width: 28,
+                            height: 38,
+                            pulse: idx === 0,
+                            className: 'rezone-converted-pin'
+                        });
+                        const noteStr = r.note || (typeof Vn2kRezone !== 'undefined' && Vn2kRezone.noteOf ? Vn2kRezone.noteOf(r) : '');
+                        const marker = L.marker([fLat, fLng], { icon }).addTo(this.multiConvertedLayer);
+                        marker.bindPopup(`
+                            <div style="font-size:12px;line-height:1.45;min-width:180px;color:#0f172a;">
+                                <div style="font-weight:800;color:#0284c7;font-size:13px;margin-bottom:3px;">📍 ${r.name || ('Điểm ' + (idx + 1))}</div>
+                                <div><b>X mới:</b> <span style="font-family:monospace;font-weight:700;">${Number(r.X).toFixed(3)}</span> m</div>
+                                <div><b>Y mới:</b> <span style="font-family:monospace;font-weight:700;">${Number(r.Y).toFixed(3)}</span> m</div>
+                                <div style="color:#64748b;font-size:11px;margin-top:2px;">X nguồn: ${Number(r.x).toFixed(3)} | Y nguồn: ${Number(r.y).toFixed(3)}</div>
+                                <div style="color:#64748b;font-size:11px;">WGS-84: ${fLat.toFixed(6)}°, ${fLng.toFixed(6)}°</div>
+                                ${srcLabel && dstLabel ? `<div style="margin-top:4px;padding:2px 6px;background:rgba(2,132,199,0.12);border-radius:4px;font-size:11px;color:#0369a1;font-weight:600;">🔄 ${srcLabel} ➔ ${dstLabel}</div>` : ''}
+                                ${noteStr ? `<div style="margin-top:3px;color:#d97706;font-size:11px;">⚠️ ${noteStr}</div>` : ''}
+                            </div>
+                        `);
+                        if (idx === 0) marker.openPopup();
+                    }
+                });
+            } else if (this.multiConvertedResults && this.multiConvertedResults.length > 0) {
                 this.multiConvertedResults.forEach(r => {
                     const fLat = parseFloat(r.lat);
                     const fLng = parseFloat(r.lng);
@@ -22239,6 +22287,388 @@ const appCadTool = {
         showToast(`✓ Đã xuất ${layer.vertices.length} điểm ra CSV: ${filename}`);
     },
 
+    // === CỤM CHỨC NĂNG NỐI ĐIỂM ĐÃ LƯU / CHUYỂN ĐỔI THÀNH THỬA ĐẤT HOẶC TUYẾN RANH ===
+    getConnectablePoints(sourceType = 'cad_points') {
+        const points = [];
+        const seen = new Set();
+
+        const addPoint = (p, defaultSource = '') => {
+            if (!p) return;
+            let x = parseFloat(p.x);
+            let y = parseFloat(p.y);
+            let lat = parseFloat(p.lat);
+            let lng = parseFloat(p.lng);
+            const h = parseFloat(p.h || p.z || 0);
+
+            // Tự động quy đổi bổ khuyết nếu thiếu 1 trong 2 hệ tọa độ
+            if ((isNaN(lat) || isNaN(lng) || !lat || !lng) && !isNaN(x) && !isNaN(y) && typeof convertVn2kToWgs === 'function' && typeof AppState !== 'undefined') {
+                const wgs = convertVn2kToWgs(x, y, AppState.kttVal, AppState.scaleFactor);
+                if (wgs && !isNaN(wgs.lat) && !isNaN(wgs.lng)) { lat = wgs.lat; lng = wgs.lng; }
+            } else if ((isNaN(x) || isNaN(y) || !x || !y) && !isNaN(lat) && !isNaN(lng) && typeof convertWgsToVn2k === 'function' && typeof AppState !== 'undefined') {
+                const vn = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
+                if (vn && !isNaN(vn.X) && !isNaN(vn.Y)) { x = vn.X; y = vn.Y; }
+            }
+
+            if ((!isNaN(x) && !isNaN(y)) || (!isNaN(lat) && !isNaN(lng))) {
+                const key = `${Math.round(x * 100)}_${Math.round(y * 100)}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+
+                points.push({
+                    id: p.id || ('pt_' + (points.length + 1)),
+                    name: String(p.name || p.code || ('Đ' + (points.length + 1))).trim(),
+                    x: !isNaN(x) ? parseFloat(x.toFixed(3)) : 0,
+                    y: !isNaN(y) ? parseFloat(y.toFixed(3)) : 0,
+                    lat: !isNaN(lat) ? parseFloat(lat.toFixed(7)) : 0,
+                    lng: !isNaN(lng) ? parseFloat(lng.toFixed(7)) : 0,
+                    h: !isNaN(h) ? parseFloat(h.toFixed(3)) : 0,
+                    source: p.source || defaultSource || 'Điểm lưu',
+                    raw: p
+                });
+            }
+        };
+
+        if (sourceType === 'cad_points') {
+            // Nguồn 1: Các lớp điểm rời trong MiniCAD
+            const ptLayers = (this.savedShapes || []).filter(s => s.mode === 'point');
+            ptLayers.forEach(ly => {
+                (ly.vertices || []).forEach(v => {
+                    addPoint(v, ly.name || 'MiniCAD');
+                });
+            });
+            // Nếu chưa có lớp điểm nào nhưng đang có điểm nháp dở
+            if (points.length === 0 && this.draftPoints && this.draftPoints.length > 0) {
+                this.draftPoints.forEach(v => addPoint(v, 'Điểm nháp'));
+            }
+        } else if (sourceType === 'project_points') {
+            // Nguồn 2: Điểm mốc trong Sổ đo dự án hiện hành
+            const projName = AppState.currentProject;
+            const pts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function') ? appData.getPoints(projName) : [];
+            pts.forEach(p => addPoint(p, `Dự án: ${projName || 'Mặc định'}`));
+        } else if (sourceType === 'converted_points') {
+            // Nguồn 3: Điểm vừa chuyển đổi (Đổi KTT hoặc Đổi đa điểm hoặc Chuyển đổi đơn)
+            if (typeof appTransformMap !== 'undefined' && appTransformMap.rezonePoints && appTransformMap.rezonePoints.length > 0) {
+                appTransformMap.rezonePoints.forEach(p => {
+                    addPoint({
+                        name: p.name,
+                        x: p.X !== undefined ? p.X : p.x,
+                        y: p.Y !== undefined ? p.Y : p.y,
+                        lat: p.lat,
+                        lng: p.lng
+                    }, 'Đổi KTT/Múi');
+                });
+            }
+            if (typeof appTransformMap !== 'undefined' && appTransformMap.multiConvertedResults && appTransformMap.multiConvertedResults.length > 0) {
+                appTransformMap.multiConvertedResults.forEach(p => {
+                    addPoint({
+                        name: p.name || ('P' + p.stt),
+                        x: p.x,
+                        y: p.y,
+                        lat: p.lat,
+                        lng: p.lng
+                    }, 'Chuyển đổi đa điểm');
+                });
+            }
+            if (AppState.lastConvertedPoint && AppState.lastConvertedPoint.x && AppState.lastConvertedPoint.y) {
+                addPoint(AppState.lastConvertedPoint, 'Chuyển đổi gần nhất');
+            }
+        }
+
+        return points;
+    },
+
+    openConnectPointsModal(options = {}) {
+        this._connectPointsOptions = options || {};
+        const modal = document.getElementById('modalCadConnectPoints');
+        if (!modal) return;
+        modal.classList.add('active', 'show');
+
+        // Khởi tạo danh sách lớp đích
+        if (!this.layersTable) this.initLayersTable();
+        const selLayer = document.getElementById('cadConnectLayerSelect');
+        if (selLayer) {
+            selLayer.innerHTML = '';
+            (this.layersTable || []).forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l.id;
+                opt.innerText = `${l.name} (${l.id})`;
+                if (l.id === (this.currentLayer || 'RANH_THUA')) opt.selected = true;
+                selLayer.appendChild(opt);
+            });
+        }
+
+        // Tự động nhận diện nguồn điểm tốt nhất
+        const selSource = document.getElementById('cadConnectSourceSelect');
+        let initialSource = options.source || 'cad_points';
+        if (!options.source) {
+            const cadPts = this.getConnectablePoints('cad_points');
+            const projPts = this.getConnectablePoints('project_points');
+            const convPts = this.getConnectablePoints('converted_points');
+            if (cadPts.length > 0) initialSource = 'cad_points';
+            else if (projPts.length > 0) initialSource = 'project_points';
+            else if (convPts.length > 0) initialSource = 'converted_points';
+        }
+
+        if (selSource) selSource.value = initialSource;
+        const selMode = document.getElementById('cadConnectModeSelect');
+        if (selMode && options.mode) selMode.value = options.mode;
+
+        this.onConnectSourceChange(initialSource);
+    },
+
+    closeConnectPointsModal() {
+        const modal = document.getElementById('modalCadConnectPoints');
+        if (modal) modal.classList.remove('active', 'show');
+    },
+
+    onConnectSourceChange(sourceType) {
+        const points = this.getConnectablePoints(sourceType);
+        this._currentConnectablePoints = points;
+        const filterInput = document.getElementById('cadConnectSearchInput');
+        if (filterInput) filterInput.value = '';
+        this._connectPointFilter = '';
+
+        this.renderConnectPointsList(points);
+        this.onConnectModeChange(document.getElementById('cadConnectModeSelect')?.value || 'polygon');
+    },
+
+    onConnectModeChange(mode) {
+        const targetNameInput = document.getElementById('cadConnectTargetName');
+        const hintEl = document.getElementById('cadConnectSummaryHint');
+        const layerSel = document.getElementById('cadConnectLayerSelect');
+
+        if (mode === 'polygon') {
+            if (targetNameInput && (!targetNameInput.value || targetNameInput.value.startsWith('Tuyến'))) {
+                targetNameInput.value = `Thửa nối ${(this.savedShapes || []).filter(s => s.mode === 'polygon').length + 1}`;
+            }
+            if (hintEl) hintEl.innerText = '(Cần ≥ 3 điểm để tạo đa giác ranh khép kín)';
+            if (layerSel) {
+                const optRanh = Array.from(layerSel.options).find(o => o.value === 'RANH_THUA');
+                if (optRanh) optRanh.selected = true;
+            }
+        } else {
+            if (targetNameInput && (!targetNameInput.value || targetNameInput.value.startsWith('Thửa'))) {
+                targetNameInput.value = `Tuyến nối ${(this.savedShapes || []).filter(s => s.mode === 'polyline').length + 1}`;
+            }
+            if (hintEl) hintEl.innerText = '(Cần ≥ 2 điểm để tạo đường tim tuyến)';
+            if (layerSel) {
+                const optTuyen = Array.from(layerSel.options).find(o => o.value === 'TIM_TUYEN' || o.value === 'RANH_QUY_HOACH');
+                if (optTuyen) optTuyen.selected = true;
+            }
+        }
+    },
+
+    onConnectOrderChange() {
+        if (!this._currentConnectablePoints) return;
+        const orderType = document.getElementById('cadConnectOrderSelect')?.value || 'natural';
+        const isPolygon = (document.getElementById('cadConnectModeSelect')?.value || 'polygon') === 'polygon';
+        this._currentConnectablePoints = this.sortConnectVertices(this._currentConnectablePoints, orderType, isPolygon);
+        this.renderConnectPointsList(this._currentConnectablePoints);
+    },
+
+    sortConnectVertices(verts, orderType = 'natural', isPolygon = true) {
+        if (!Array.isArray(verts) || verts.length <= 1) return verts ? [...verts] : [];
+        const arr = [...verts];
+
+        if (orderType === 'natural') {
+            return arr.sort((a, b) => {
+                const nameA = String(a.name || '');
+                const nameB = String(b.name || '');
+                return nameA.localeCompare(nameB, 'vi', { numeric: true, sensitivity: 'base' });
+            });
+        }
+
+        if (orderType === 'tsp') {
+            // Greedy Nearest Neighbor Tour
+            const result = [];
+            const remaining = [...arr];
+            let current = remaining.shift();
+            result.push(current);
+
+            while (remaining.length > 0) {
+                let bestIdx = 0;
+                let minDist = Infinity;
+                for (let i = 0; i < remaining.length; i++) {
+                    const cand = remaining[i];
+                    const dx = (cand.x || 0) - (current.x || 0);
+                    const dy = (cand.y || 0) - (current.y || 0);
+                    const d = Math.hypot(dx, dy);
+                    if (d < minDist) {
+                        minDist = d;
+                        bestIdx = i;
+                    }
+                }
+                current = remaining.splice(bestIdx, 1)[0];
+                result.push(current);
+            }
+            return result;
+        }
+
+        // list order
+        return arr;
+    },
+
+    renderConnectPointsList(points) {
+        const tbody = document.getElementById('cadConnectPointsTableBody');
+        if (!tbody) return;
+
+        if (!points || points.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 18px; line-height: 1.6;">
+                Không tìm thấy điểm mốc nào từ nguồn này.<br>
+                <span style="color: #38bdf8; font-size: 11px;">Bạn có thể chuyển sang "Sổ mốc Dự án" hoặc "Điểm vừa chuyển đổi" ở phía trên.</span>
+            </td></tr>`;
+            this._updateConnectSelectedCount();
+            return;
+        }
+
+        const filter = (this._connectPointFilter || '').toLowerCase().trim();
+        let html = '';
+        let visibleCount = 0;
+
+        points.forEach((p, idx) => {
+            const nameStr = (p.name || '').toLowerCase();
+            const srcStr = (p.source || '').toLowerCase();
+            const coordStr = `${p.x} ${p.y} ${p.lat} ${p.lng}`;
+            if (filter && !nameStr.includes(filter) && !srcStr.includes(filter) && !coordStr.includes(filter)) return;
+            visibleCount++;
+
+            html += `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer;" onclick="appCadTool._toggleConnectRow(event, ${idx})">
+                    <td style="text-align: center; padding: 6px;">
+                        <input type="checkbox" class="cad-connect-pt-cb" value="${idx}" checked
+                            onclick="event.stopPropagation(); appCadTool._updateConnectSelectedCount();"
+                            style="accent-color: #38bdf8; width: 14px; height: 14px; cursor: pointer;">
+                    </td>
+                    <td style="text-align: center; color: #94a3b8; font-size: 11px;">${idx + 1}</td>
+                    <td style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">${p.name}</td>
+                    <td style="text-align: right; font-family: ui-monospace, monospace; font-size: 11px; color: #f8fafc;">${p.x ? p.x.toFixed(3) : '—'}</td>
+                    <td style="text-align: right; font-family: ui-monospace, monospace; font-size: 11px; color: #f8fafc;">${p.y ? p.y.toFixed(3) : '—'}</td>
+                    <td style="font-size: 11px; color: #94a3b8; font-family: ui-monospace, monospace;">${p.lat ? `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}` : '—'}</td>
+                    <td style="font-size: 11px; color: #cbd5e1;"><span style="background: rgba(56,189,248,0.12); padding: 1px 5px; border-radius: 3px;">${p.source}</span></td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html || '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 12px;">Không có điểm nào khớp với bộ lọc tìm kiếm.</td></tr>';
+        this._updateConnectSelectedCount();
+    },
+
+    _toggleConnectRow(evt, idx) {
+        if (evt.target && evt.target.tagName === 'INPUT') return;
+        const cb = document.querySelector(`.cad-connect-pt-cb[value="${idx}"]`);
+        if (cb) {
+            cb.checked = !cb.checked;
+            this._updateConnectSelectedCount();
+        }
+    },
+
+    filterConnectPoints(keyword) {
+        this._connectPointFilter = keyword;
+        this.renderConnectPointsList(this._currentConnectablePoints);
+    },
+
+    toggleSelectAllConnectPoints(selectAll) {
+        const cbs = document.querySelectorAll('.cad-connect-pt-cb');
+        cbs.forEach(cb => { cb.checked = selectAll; });
+        this._updateConnectSelectedCount();
+    },
+
+    _updateConnectSelectedCount() {
+        const cbs = document.querySelectorAll('.cad-connect-pt-cb:checked');
+        const el = document.getElementById('cadConnectSelectedCount');
+        if (el) el.innerText = cbs.length;
+    },
+
+    executeConnectPoints(options = {}) {
+        const mode = options.mode || document.getElementById('cadConnectModeSelect')?.value || 'polygon';
+        const cbs = Array.from(document.querySelectorAll('.cad-connect-pt-cb:checked'));
+
+        if (!this._currentConnectablePoints || this._currentConnectablePoints.length === 0) {
+            showToast('⚠️ Không có điểm nào để nối!', true);
+            return;
+        }
+
+        if (cbs.length === 0) {
+            showToast('⚠️ Vui lòng tích chọn ít nhất 1 điểm mốc để nối!', true);
+            return;
+        }
+
+        if (mode === 'polygon' && cbs.length < 3) {
+            showToast('⚠️ Cần chọn ít nhất 3 điểm mốc để nối thành Thửa đất khép kín!', true);
+            return;
+        }
+
+        if (mode === 'polyline' && cbs.length < 2) {
+            showToast('⚠️ Cần chọn ít nhất 2 điểm mốc để nối thành Tuyến ranh!', true);
+            return;
+        }
+
+        // Lấy danh sách điểm được chọn
+        const selectedPts = cbs.map(cb => this._currentConnectablePoints[parseInt(cb.value, 10)]).filter(Boolean);
+        const orderType = document.getElementById('cadConnectOrderSelect')?.value || 'natural';
+        const sortedPts = this.sortConnectVertices(selectedPts, orderType, mode === 'polygon');
+
+        // Chuẩn hóa vertices cho MiniCAD
+        const newVertices = sortedPts.map((p, idx) => ({
+            id: p.id || (Date.now() + '_' + idx),
+            x: parseFloat(p.x),
+            y: parseFloat(p.y),
+            lat: parseFloat(p.lat),
+            lng: parseFloat(p.lng),
+            h: parseFloat(p.h || 0),
+            name: p.name || (mode === 'polygon' ? `Đ${idx + 1}` : `Cọc ${idx + 1}`),
+            isSnapped: true,
+            snapSource: p.source || 'Nối điểm'
+        })).filter(v => isFinite(v.lat) && isFinite(v.lng));
+
+        if (mode === 'polygon' && newVertices.length < 3) {
+            showToast('⚠️ Tọa độ không hợp lệ, không đủ 3 đỉnh hợp lệ để tạo đa giác!', true);
+            return;
+        }
+
+        const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
+        const shapeColor = colorPalette[(this.savedShapes || []).length % colorPalette.length];
+        const rawName = document.getElementById('cadConnectTargetName')?.value?.trim();
+        const targetName = rawName || (mode === 'polygon' ? `Thửa nối ${(this.savedShapes || []).length + 1}` : `Tuyến nối ${(this.savedShapes || []).length + 1}`);
+        const targetLayer = document.getElementById('cadConnectLayerSelect')?.value || (mode === 'polygon' ? 'RANH_THUA' : 'TIM_TUYEN');
+
+        const newShape = {
+            id: 'connected_shape_' + Date.now(),
+            name: targetName,
+            shortName: targetName,
+            mode: mode,
+            color: shapeColor,
+            layer: targetLayer,
+            vertices: newVertices,
+            selected: true,
+            stats: this.calculateAreaAndPerimeter(newVertices, mode)
+        };
+
+        // Bỏ chọn các shape cũ
+        (this.savedShapes || []).forEach(s => { s.selected = false; });
+        if (!this.savedShapes) this.savedShapes = [];
+        this.savedShapes.push(newShape);
+        this.selectedShape = newShape;
+
+        this.pushHistoryState(`Nối ${newVertices.length} điểm thành [${mode === 'polygon' ? 'Thửa đất' : 'Tuyến'}]: "${targetName}"`);
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (this.redrawAllShapes) this.redrawAllShapes();
+        this.updateUi();
+        this.zoomToShape(newShape);
+        this.closeConnectPointsModal();
+
+        const statText = mode === 'polygon'
+            ? `S = ${newShape.stats?.areaFormatted || 0} m² (${newShape.stats?.haFormatted || 0} ha) • P = ${newShape.stats?.perimeterFormatted || 0} m`
+            : `Chiều dài L = ${newShape.stats?.perimeterFormatted || 0} m`;
+
+        triggerHaptic('success');
+        showToast(`✓ Đã nối thành công ${newVertices.length} điểm thành [${mode === 'polygon' ? 'Thửa đất' : 'Tuyến'}] "${targetName}" (${statText})!`, true);
+    },
+
     setMode(mode) {
         if (mode !== 'select' && this.selectedItem) {
             this.deselectCurrent();
@@ -30973,6 +31403,8 @@ const appCadTool = {
         { cmd: 'OSNAP', desc: '🧲 Bật/Tắt tự động bắt điểm nam châm [F3/S]' },
         { cmd: 'SNAPLINE', desc: '🔗 Bật/Tắt bắt cạnh khối liền kề [B]' },
         { cmd: 'DYN', desc: '📏 Bật/Tắt thước đo cự ly & góc động [DYN]' },
+        { cmd: 'NOI', desc: '🔗 Nối các điểm đã lưu/chuyển đổi thành Thửa đất & Tuyến [Connect]' },
+        { cmd: 'CONNECT', desc: '🔗 Nối các điểm đã lưu/chuyển đổi thành Thửa đất & Tuyến [NOI]' },
         { cmd: 'PDF', desc: '🗺️ Bật/Tắt hiển thị lớp bản đồ nền/quy hoạch PDF [PLAN]' },
         { cmd: 'PLAN', desc: '🗺️ Bật/Tắt hiển thị lớp bản đồ nền/quy hoạch PDF [PDF]' },
         { cmd: 'QH', desc: '📐 Bật/Tắt lớp bản đồ quy hoạch 2030 Guland [GULAND]' },
@@ -31144,6 +31576,12 @@ const appCadTool = {
             case 'HOPTHUA':
             case 'JOIN':
                 this.startMergeTool();
+                break;
+            case 'NOI':
+            case 'NOIDIEM':
+            case 'CONNECT':
+            case 'LINKPOINTS':
+                this.openConnectPointsModal();
                 break;
             case 'TR':
             case 'TRIM':
