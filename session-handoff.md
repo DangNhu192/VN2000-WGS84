@@ -1,6 +1,61 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-19: WP-MAP-FILTER-CAD — CƠ CHẾ LỌC BẬT TẮT TỪNG TỈNH / TỪNG XÃ SAU SÁP NHẬP & NẠP VÀO MINICAD
+## Phiên hiện tại — 2026-11-20: WP-MAP-LAYERS-CLEANUP-PDF — DỌN DẸP LỚP BẢN ĐỒ RÁC & MỞ RỘNG NẠP BẢN ĐỒ QUY HOẠCH PDF TỪNG TỈNH KHÔNG WATERMARK (F-020)
+- **Yêu cầu từ người dùng**:
+  1. `tìm cách loại bỏ các hình này (từ ký hiệu Guland) từ các lớp bản đồ được tải từ Guland hoặc cho phép tải dữ liệu bản đồ tỉnh sau sáp nhập từ các file PDF đính kèm (theo từng file PDF riêng lẻ).`
+  2. `Hiện tại bạn đang tải dữ liệu lớp bản đồ trực tiếp từ guland hay đã tải offline từ các file dữ liệu được tải về kho dữ liệu?`
+  3. `- loại bỏ các lớp bản đồ 19 tỉnh miền nam, quy hoạch sử dụng đất (TT27)... chỉ để lại các lớp bản đồ nền có dữ liệu có chất lượng`
+- **Kết quả triển khai & Xác minh**:
+  1. **Bản chất kỹ thuật của Watermark GULAND**:
+     - Dữ liệu Guland hiện được stream trực tiếp online qua CDN (`vcdn.cloud`, `cmccloud.com.vn`, `fptcloud.com`).
+     - Chữ `GULAND` màu vàng là **watermark chìm do máy chủ Guland in chết vào từng ô ảnh tile PNG raster** khi render từ hệ thống của họ. Vì là ảnh raster nén, không phải thẻ HTML text hay vector layer riêng biệt, nên không thể tắt bằng CSS filter mà không làm lệch màu các vùng đất quy hoạch màu vàng khác (đất trồng trọt, đất lúa).
+     - **Giải pháp tối ưu & chuyên nghiệp nhất**: Cho phép người dùng nạp trực tiếp file bản đồ quy hoạch chính thức của tỉnh sau sáp nhập từ các file PDF đính kèm (theo từng file riêng lẻ), không phụ thuộc Guland, sạch 100% watermark.
+  2. **Mở rộng chức năng nạp & hiển thị Bản đồ Quy hoạch PDF (`appPlanOverlay`) ra toàn bộ hệ thống**:
+     - Cho phép nạp từng file PDF riêng lẻ theo từng tỉnh/huyện/xã.
+     - Đồng bộ hiển thị trực tiếp lên `AppState.leafletMap` (Bản đồ Dự án, Bản đồ chuyển đổi tọa độ) lẫn MiniCAD.
+     - Đưa mục `Bản đồ quy hoạch (PDF đính kèm)` trực tiếp vào bảng quản lý lớp `appMapLayers` với công tắc tổng, thanh trượt độ mờ và nút `[📂 Quản lý & Nạp PDF]`.
+  3. **Loại bỏ triệt để các lớp bản đồ rác**:
+     - Đã loại bỏ hoàn toàn khỏi giao diện: `19 Tỉnh Miền Nam` (`mlSouthProv`), `Quy hoạch sử dụng đất (TT27)` (`mlPlanZones`), `Đồng Tháp cũ` (`mlDtCu`), `Tiền Giang cũ` (`mlTgCu`).
+     - Giữ lại danh mục lớp chất lượng cao: 8 nền bản đồ chuẩn (Google Satellite, Esri Satellite, OSM, Google Streets thủy văn, OpenTopoMap sông ngòi kênh rạch, Google Terrain, Sentinel-2, Không nền); các lớp phủ hạ tầng chất lượng cao (Mạng lưới giao thông Esri, Nhãn đường Google, Giao thông trực tiếp Google Traffic, Luồng lạch đường thủy OpenSeaMap, Ranh giới 34 tỉnh, Ranh giới xã mới Đồng Tháp, Bản đồ quy hoạch PDF đính kèm).
+  4. **Kiểm thử & Nghiệm thu Thực tế**:
+     - Cập nhật test suite `tests/vn_south_map_layers.test.js`.
+     - Toàn bộ **524 / 524 bài kiểm thử đạt PASS 100% (9 suites, 0 fail, 0 skipped)**.
+     - Xác thực trực quan bằng Chrome DevTools MCP: Chụp ảnh modal Lớp bản đồ và modal Nạp PDF, xác nhận độ sắc nét và tính độc lập của giao diện.
+  5. **Đồng bộ mã nguồn**: Đã đồng bộ sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
+
+## Phiên trước đó — 2026-11-19: WP-MAP-LAYERS-WATER-TRAFFIC — TỐI ƯU TỐC ĐỘ TẢI BẢN ĐỒ, GIỮ LỚP QUY HOẠCH GULAND 1X-9X & TÍCH HỢP LỚP SÔNG NGÒI, KÊNH RẠCH, GIAO THÔNG TOÀN QUỐC (F-019)
+- **Yêu cầu từ người dùng**:
+  - `tốc độ load dữ liệu còn chậm`
+  - `bên cạnh đó khi thu nhỏ từ 1x đến 9x sẽ không xem được lớp bản đồ có nguồn gốc được tải từ Guland, hãy điều chỉnh phù hợp để hoạt động tốt`
+  - `Chưa có dữ liệu bản đồ về sông ngòi kênh rạch, bản đồ về giao thông của các tỉnh`
+- **Kết quả triển khai**:
+  1. **Khắc phục triệt để lỗi biến mất của Lớp Quy hoạch Guland ở Zoom 1x-9x**:
+     - `src/core/planning_map.js`: Thay `minZoom: 10` thành `minZoom: 1`, bổ sung `minNativeZoom: 8`, `keepBuffer: 8`, `updateWhenIdle: false`.
+     - Leaflet tự động downscale từ mức native zoom z=8 khi thu nhỏ dưới 9x, không gửi request 404, giữ nguyên vẹn toàn cảnh ranh giới quy hoạch tỉnh mà không bị ẩn (`display: none`).
+  2. **Tối ưu Tốc độ Tải Gạch Bản đồ (Tile Load Speed)**:
+     - `index.html`: Bổ sung 13 thẻ `dns-prefetch` và `preconnect` tới các cụm máy chủ CDN tile: `vcdn.cloud`, `cmccloud.com.vn`, `fptcloud.com`, `server.arcgisonline.com`, `mt0-mt3.google.com`, `tile.opentopomap.org`, `tiles.openseamap.org`.
+     - `sw.js`: Cập nhật bộ lọc `isMapTile` nhận diện toàn bộ các domain bản đồ vệ tinh, giao thông, thủy văn; thiết lập chiến lược Stale-While-Revalidate/Bypass I/O trực tiếp không chặn luồng mạng chính.
+     - `server.js`: Mở rộng `allowedHosts` cho proxy gạch bản đồ.
+  3. **Tích hợp 3 Nền Bản Đồ Mới (Base Maps)**:
+     - `google_streets`: Đường phố Google kèm mạng lưới sông ngòi thủy văn chuẩn xác (`lyrs=m`, maxNativeZoom: 20).
+     - `opentopomap`: Bản đồ Địa hình & Thủy văn OpenTopoMap thể hiện chi tiết sông Tiền, sông Hậu, kênh rạch miền Tây, sông Hồng và đường đồng mức cao độ toàn quốc (maxNativeZoom: 17, subdomains `['a','b','c']`).
+     - `google_terrain`: Bản đồ địa hình độ dốc, lưu vực sông ngòi đồi núi Google Terrain (`lyrs=p`, maxNativeZoom: 17).
+  4. **Tích hợp 4 Lớp Phủ Trong Suốt Đè Lên Quy Hoạch / Vệ Tinh (Overlays)**:
+     - `esri_transport`: Mạng lưới giao thông đường bộ, cao tốc, quốc lộ, tỉnh lộ, đường sắt chuẩn Esri World Transportation nằm trên `refOverlayPane` (zIndex 240, đè lên gạch quy hoạch zIndex 230).
+     - `google_roads`: Mạng lưới đường & nhãn địa danh giao thông chính hãng Google (`lyrs=h`).
+     - `google_traffic`: Mật độ lưu thông và tình trạng giao thông trực tiếp thời gian thực (`lyrs=traffic`).
+     - `openseamap`: Hệ thống luồng lạch đường thủy, phao tiêu, hải đăng, báo hiệu hàng hải OpenSeaMap (`tiles.openseamap.org/seamark`).
+     - Mỗi lớp sở hữu switch bật/tắt riêng biệt và thanh trượt điều chỉnh độ mờ (opacity slider) độc lập.
+  5. **Kiểm thử & Nghiệm thu Thực tế**:
+     - Tạo mới test suite `tests/waterways_traffic_layers.test.js`.
+     - Toàn bộ **524 / 524 bài kiểm thử đạt PASS 100% (9 suites, 0 fail, 0 skipped)**.
+     - Xác thực giao diện và hoạt động trực quan bằng Chrome DevTools MCP: Bản đồ quy hoạch Đồng Tháp hiển thị sắc nét ở zoom 7 và zoom 11; OpenTopoMap và Esri Transportation hiển thị chuẩn xác hệ thống sông ngòi và mạng lưới giao thông.
+
+---
+
+## Phiên trước đó — 2026-11-19: WP-MAP-FILTER-CAD — CƠ CHẾ LỌC BẬT TẮT TỪNG TỈNH / TỪNG XÃ SAU SÁP NHẬP & NẠP VÀO MINICAD
 - **Yêu cầu từ người dùng**:
   - `cơ chế bật tắt (trong bản đồ và miniCAD) có cho phép cho từng tỉnh hoặc từng xã sau sáp nhập chưa?` -> Đồng ý triển khai cơ chế lọc và nạp ranh giới chi tiết.
 - **Kết quả triển khai**:

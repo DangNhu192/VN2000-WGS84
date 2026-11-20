@@ -31,8 +31,9 @@ const server = http.createServer((req, res) => {
 
         // Chỉ cho phép proxy các domain bản đồ được phê duyệt để chống SSRF
         const allowedHosts = [
-            'vcdn.cloud', 'cmctelecom.vn', 'fptcloud.com', 'digitaloceanspaces.com',
-            'openstreetmap.org', 'arcgisonline.com', 'terrascope.be', 'eox.at'
+            'vcdn.cloud', 'cmctelecom.vn', 'cmccloud.com.vn', 'fptcloud.com', 'digitaloceanspaces.com', 'guland.vn',
+            'openstreetmap.org', 'arcgisonline.com', 'terrascope.be', 'eox.at',
+            'opentopomap.org', 'openseamap.org', 'google.com', 'googleapis.com'
         ];
         let targetHost = '';
         try { targetHost = new URL(targetUrl).hostname.toLowerCase(); } catch (e) { targetHost = ''; }

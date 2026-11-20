@@ -4368,6 +4368,15 @@
       image-rendering: auto !important;
     }
 
+    /* 4. Tối ưu hóa độ sắc nét cho bản đồ quy hoạch Guland & ranh thửa ở các mức zoom 10x-20x */
+    .leaflet-layer-guland-planning img.leaflet-tile,
+    .leaflet-layer-guland-land img.leaflet-tile {
+      image-rendering: -webkit-optimize-contrast;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+
     /* 4. Chế độ Nguyên bản không áp bộ lọc */
     .map-enhance-none .leaflet-tile-container img.leaflet-tile {
       filter: none !important;

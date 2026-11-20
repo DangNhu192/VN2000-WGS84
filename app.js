@@ -176,7 +176,7 @@ const appSettings = {
             AppState.scaleFactor = (s.muiVal === 3) ? 0.9999 : 0.9996;
         }
         if ([0, 1, 2].includes(s.formatType)) AppState.formatType = s.formatType;
-        if (['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'none'].includes(s.activeBaseLayerId)) AppState.activeBaseLayerId = s.activeBaseLayerId;
+        if (['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'google_streets', 'opentopomap', 'google_terrain', 'none'].includes(s.activeBaseLayerId)) AppState.activeBaseLayerId = s.activeBaseLayerId;
         if (bool(s.is34ProvVisible) !== null) AppState.is34ProvVisible = s.is34ProvVisible;
         if (bool(s.isDtCommunesVisible) !== null) AppState.isDtCommunesVisible = s.isDtCommunesVisible;
         if (bool(s.showProjectDistance) !== null) AppState.showProjectDistance = s.showProjectDistance;
@@ -7984,10 +7984,10 @@ const appMap = {
         container.addEventListener('touchstart', onStart, { passive: true });
     },
 
-    // Đổi nhanh giữa 3 nền chính (bảng chọn đầy đủ: appMapLayers.open())
+    // Đổi nhanh giữa các nền chính (bảng chọn đầy đủ: appMapLayers.open())
     toggleMapLayer() {
         if (!AppState.leafletMap) return;
-        const order = ['google_hybrid', 'esri_satellite', 'osm_streets'];
+        const order = ['google_hybrid', 'esri_satellite', 'osm_streets', 'google_streets', 'opentopomap'];
         const next = order[(order.indexOf(AppState.activeBaseLayerId) + 1) % order.length];
         appMapLayers.setBase(next);
         const def = MAP_BASES.find(b => b.id === next);
@@ -44858,10 +44858,9 @@ const appPlanOverlay = {
         return this._Layer;
     },
 
-    // Chỉ hiện trong MiniCAD (nguyên tắc tách biệt giao diện)
+    // Đồng bộ hiển thị trên bản đồ (cả MiniCAD và Bản đồ Dự án khi người dùng bật)
     onMapModeChange(mode) {
-        if (mode === 'cad') this.ensureLoaded().then(() => { this.syncToMap(); this.syncControlsUi(); });
-        else this.syncToMap(false);
+        this.ensureLoaded().then(() => { this.syncToMap(); this.syncControlsUi(); });
     },
     _masterVisible: true,
     isMasterVisible() {
@@ -44919,11 +44918,11 @@ const appPlanOverlay = {
     syncToMap(show) {
         const map = AppState.leafletMap;
         if (!map) return;
-        const inCad = show !== undefined ? show : AppState.mapMode === 'cad';
+        const wantShow = (show !== undefined) ? !!show : this.isMasterVisible();
         const Layer = this._layerClass();
         if (!Layer) return;
         this.items.forEach(it => {
-            const want = inCad && this.isMasterVisible() && it.visible !== false && it.url;
+            const want = wantShow && this.isMasterVisible() && it.visible !== false && it.url;
             if (want && !it.layer) it.layer = new Layer(it);
             if (want && !it.layer._map) it.layer.addTo(map);
             if (!want && it.layer && it.layer._map) it.layer.remove();
@@ -45769,6 +45768,21 @@ const MAP_BASES = [
     { id: 'esri_satellite', name: 'Ảnh vệ tinh Esri', sub: 'Sắc nét · in được khi xuất bản vẽ', thumb: '#4a5e3a' },
     { id: 'osm_streets', name: 'Đường phố OpenStreetMap', sub: 'In được khi xuất bản vẽ', thumb: '#f2efe9' },
     {
+        id: 'google_streets', name: 'Đường phố Google (Giao thông & Thủy văn)', sub: 'Mạng lưới đường bộ & sông ngòi sắc nét', thumb: '#3b82f6',
+        url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxNativeZoom: 20,
+        attribution: 'Bản đồ & Giao thông © Google'
+    },
+    {
+        id: 'opentopomap', name: 'Địa hình & Sông ngòi OpenTopo', sub: 'Chi tiết sông ngòi, kênh rạch, cao độ · CC BY-SA', thumb: '#0284c7',
+        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c'], maxNativeZoom: 17,
+        attribution: 'Bản đồ: © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA), © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+    },
+    {
+        id: 'google_terrain', name: 'Địa hình Google Terrain', sub: 'Độ dốc, đồi núi, lưu vực sông suối', thumb: '#84cc16',
+        url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxNativeZoom: 17,
+        attribution: 'Địa hình © Google'
+    },
+    {
         id: 's2_2016', name: 'Sentinel-2 không mây (2016)', sub: 'Ảnh 10 m toàn quốc · CC BY 4.0', thumb: '#5b6b45',
         url: 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg', maxNativeZoom: 14,
         attribution: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 &amp; 2017)'
@@ -45778,7 +45792,11 @@ const MAP_BASES = [
 const MAP_BASE_ATTRIBUTION = {
     google_hybrid: 'Ảnh © Google',
     esri_satellite: 'Ảnh vệ tinh: Esri, Maxar, Earthstar Geographics',
-    osm_streets: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    osm_streets: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    google_streets: 'Bản đồ & Giao thông © Google',
+    opentopomap: 'Bản đồ: © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA), © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+    google_terrain: 'Địa hình © Google',
+    s2_2016: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless</a> by EOX'
 };
 const WORLDCOVER_CLASSES = [
     ['#006400', 'Cây gỗ'], ['#ffbb22', 'Cây bụi'], ['#ffff4c', 'Đồng cỏ'], ['#f096ff', 'Đất trồng trọt'],
@@ -45800,6 +45818,10 @@ const appMapLayers = {
         return {
             worldcover: { on: false, opacity: 0.6 },
             gibs: { on: false, opacity: 0.8, date: this.gibsDefaultDate(), product: GIBS_PRODUCTS[0].id },
+            esri_transport: { on: false, opacity: 0.85 },
+            google_roads: { on: false, opacity: 0.85 },
+            google_traffic: { on: false, opacity: 0.85 },
+            openseamap: { on: false, opacity: 0.8 },
             custom: []
         };
     },
@@ -45813,6 +45835,10 @@ const appMapLayers = {
         this.state = {
             worldcover: Object.assign({}, d.worldcover, s.worldcover),
             gibs: Object.assign({}, d.gibs, s.gibs),
+            esri_transport: Object.assign({}, d.esri_transport, s.esri_transport),
+            google_roads: Object.assign({}, d.google_roads, s.google_roads),
+            google_traffic: Object.assign({}, d.google_traffic, s.google_traffic),
+            openseamap: Object.assign({}, d.openseamap, s.openseamap),
             custom: Array.isArray(s.custom) ? s.custom.filter(c => c && c.url && c.attribution) : []
         };
         return this.state;
@@ -45831,7 +45857,9 @@ const appMapLayers = {
             const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer)
                 ? window.PixOptimizer.getTileLayerOptions({ maxNativeZoom: def.maxNativeZoom })
                 : { maxZoom: 24, maxNativeZoom: def.maxNativeZoom, crossOrigin: true };
-            AppState.baseLayers[id] = L.tileLayer(def.url, { ...tileOpt, attribution: def.attribution, className: 'leaflet-layer-satellite' });
+            const opt = { ...tileOpt, attribution: def.attribution, className: 'leaflet-layer-satellite' };
+            if (def.subdomains) opt.subdomains = def.subdomains;
+            AppState.baseLayers[id] = L.tileLayer(def.url, opt);
         }
         const layer = AppState.baseLayers[id];
         if (MAP_BASE_ATTRIBUTION[id] && layer.options && !layer.options.attribution) layer.options.attribution = MAP_BASE_ATTRIBUTION[id];
@@ -45860,7 +45888,7 @@ const appMapLayers = {
         let pane = map.getPane('refOverlayPane');
         if (!pane) {
             pane = map.createPane('refOverlayPane');
-            pane.style.zIndex = 240;              // trên nền, dưới ảnh quy hoạch (250) và nét vẽ
+            pane.style.zIndex = 240;              // trên nền và trên gạch quy hoạch (230), dưới nét vẽ
             pane.style.pointerEvents = 'none';
         }
         return 'refOverlayPane';
@@ -45874,12 +45902,34 @@ const appMapLayers = {
         const s = this.load();
         if (id === 'worldcover') return {
             url: 'https://mapproxy.terrascope.be/mapproxy/wmts/esa-worldcover-map-10m-2021-v2_map/webmercator/{z}/{x}/{y}.png',
-            maxNativeZoom: 15, opacity: s.worldcover.opacity,
+            maxNativeZoom: 15, opacity: (s.worldcover && s.worldcover.opacity != null) ? s.worldcover.opacity : 0.6,
             attribution: '© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0)'
         };
         if (id === 'gibs') return {
-            url: this.gibsUrl(s.gibs), maxNativeZoom: 9, opacity: s.gibs.opacity,
+            url: this.gibsUrl(s.gibs), maxNativeZoom: 9, opacity: (s.gibs && s.gibs.opacity != null) ? s.gibs.opacity : 0.8,
             attribution: 'Ảnh: NASA GIBS / EOSDIS'
+        };
+        if (id === 'esri_transport') return {
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+            maxNativeZoom: 20, opacity: (s.esri_transport && s.esri_transport.opacity != null) ? s.esri_transport.opacity : 0.85,
+            attribution: 'Giao thông: © Esri, HERE, Garmin, USGS'
+        };
+        if (id === 'google_roads') return {
+            url: 'https://{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            maxNativeZoom: 20, opacity: (s.google_roads && s.google_roads.opacity != null) ? s.google_roads.opacity : 0.85,
+            attribution: 'Đường & Nhãn © Google'
+        };
+        if (id === 'google_traffic') return {
+            url: 'https://{s}.google.com/vt?lyrs=traffic&x={x}&y={y}&z={z}',
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            maxNativeZoom: 20, opacity: (s.google_traffic && s.google_traffic.opacity != null) ? s.google_traffic.opacity : 0.85,
+            attribution: 'Giao thông trực tiếp © Google'
+        };
+        if (id === 'openseamap') return {
+            url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+            maxNativeZoom: 18, opacity: (s.openseamap && s.openseamap.opacity != null) ? s.openseamap.opacity : 0.8,
+            attribution: 'Đường thủy: © <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> contributors'
         };
         const c = s.custom.find(x => x.id === id);
         if (!c) return null;
@@ -45887,7 +45937,7 @@ const appMapLayers = {
     },
     _isOn(id) {
         const s = this.load();
-        if (id === 'worldcover' || id === 'gibs') return !!s[id].on;
+        if (['worldcover', 'gibs', 'esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) return !!(s[id] && s[id].on);
         const c = s.custom.find(x => x.id === id);
         return !!(c && c.on);
     },
@@ -45896,7 +45946,7 @@ const appMapLayers = {
         if (!map) return;
         const s = this.load();
         this.ensureAttribution();
-        const ids = ['worldcover', 'gibs', ...s.custom.map(c => c.id)];
+        const ids = ['esri_transport', 'google_roads', 'google_traffic', 'openseamap', 'worldcover', 'gibs', ...s.custom.map(c => c.id)];
         Object.keys(this.layers).forEach(id => {
             if (!ids.includes(id) || !this._isOn(id)) { map.removeLayer(this.layers[id]); delete this.layers[id]; }
         });
@@ -45905,6 +45955,7 @@ const appMapLayers = {
             const def = this._overlayDef(id);
             if (!def) return;
             const opt = { pane: this._pane(map), maxZoom: 24, maxNativeZoom: def.maxNativeZoom, opacity: def.opacity, attribution: def.attribution, crossOrigin: true };
+            if (def.subdomains) opt.subdomains = def.subdomains;
             this.layers[id] = def.wms
                 ? L.tileLayer.wms(def.url, { ...opt, layers: def.layersParam || '', format: 'image/png', transparent: true })
                 : L.tileLayer(def.url, opt);
@@ -45913,8 +45964,13 @@ const appMapLayers = {
     },
     setOverlay(id, on) {
         const s = this.load();
-        if (id === 'worldcover' || id === 'gibs') s[id].on = !!on;
-        else { const c = s.custom.find(x => x.id === id); if (c) c.on = !!on; }
+        if (['worldcover', 'gibs', 'esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
+            if (!s[id]) s[id] = {};
+            s[id].on = !!on;
+        } else {
+            const c = s.custom.find(x => x.id === id);
+            if (c) c.on = !!on;
+        }
         this.save();
         this.syncOverlays();
         this.renderPanel();
@@ -45922,8 +45978,13 @@ const appMapLayers = {
     setOpacity(id, val) {
         const s = this.load();
         const o = Math.max(0.1, Math.min(1, +val || 0.6));
-        if (id === 'worldcover' || id === 'gibs') s[id].opacity = o;
-        else { const c = s.custom.find(x => x.id === id); if (c) c.opacity = o; }
+        if (['worldcover', 'gibs', 'esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
+            if (!s[id]) s[id] = {};
+            s[id].opacity = o;
+        } else {
+            const c = s.custom.find(x => x.id === id);
+            if (c) c.opacity = o;
+        }
         if (this.layers[id]) this.layers[id].setOpacity(o);
         const lbl = document.getElementById('mlOpacity_' + id);
         if (lbl) lbl.textContent = Math.round(o * 100) + '%';
@@ -46035,6 +46096,10 @@ const appMapLayers = {
 
         const row = (sw, name, sub, extra = '') => `<div class="ml-row"><div class="ml-row-head">${sw.swatch}<span class="ml-text"><b>${name}</b><small>${sub}</small></span>${sw.input}</div>${extra}</div>`;
         const wc = s.worldcover, g = s.gibs;
+        const et = s.esri_transport || { on: false, opacity: 0.85 };
+        const gr = s.google_roads || { on: false, opacity: 0.85 };
+        const gt = s.google_traffic || { on: false, opacity: 0.85 };
+        const osm = s.openseamap || { on: false, opacity: 0.8 };
         const legend = `<div class="ml-legend">${WORLDCOVER_CLASSES.map(([c, n]) => `<span><i style="background:${c}"></i>${n}</span>`).join('')}</div>`;
         const gibsExtra = g.on ? `<div class="ml-sub-controls">
               <label>Ngày ảnh <input type="date" value="${escapeHtml(g.date)}" max="${new Date().toISOString().slice(0, 10)}" onchange="appMapLayers.setGibs('date', this.value)"></label>
@@ -46084,61 +46149,19 @@ const appMapLayers = {
             </div>`;
         }
 
-        let dtCuExtra = '';
-        if (AppState.isDtCuVisible && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.dong_thap_cu) {
-            const list = (window.VN_SOUTH_MAP_DATA.dong_thap_cu.features || [])
-                .map(f => ({ id: f.properties.name, label: f.properties.name }))
-                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
-            const opts = [`<option value="ALL">-- Tất cả 12 huyện/TP (Cũ) --</option>`]
-                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filterDtCu === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
-            dtCuExtra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
-                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#0284c7;font-weight:600;">
-                    <span>Lọc riêng từng huyện/TP:</span>
-                    <select onchange="appMap.filterDongThapCu(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #0284c7;border-radius:4px;padding:2px 6px;font-size:11.5px;">
-                        ${opts.join('')}
-                    </select>
-                </label>
-            </div>`;
-        }
-
-        let tgCuExtra = '';
-        if (AppState.isTgCuVisible && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.tien_giang_cu) {
-            const list = (window.VN_SOUTH_MAP_DATA.tien_giang_cu.features || [])
-                .map(f => ({ id: f.properties.name, label: f.properties.name }))
-                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
-            const opts = [`<option value="ALL">-- Tất cả 11 huyện/thị/TP (Cũ) --</option>`]
-                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filterTgCu === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
-            tgCuExtra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
-                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#d97706;font-weight:600;">
-                    <span>Lọc riêng từng huyện/thị/TP:</span>
-                    <select onchange="appMap.filterTienGiangCu(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #d97706;border-radius:4px;padding:2px 6px;font-size:11.5px;">
-                        ${opts.join('')}
-                    </select>
-                </label>
-            </div>`;
-        }
-
-        let southProvExtra = '';
-        if (AppState.isSouthProvVisible && window.VN_SOUTH_MAP_DATA && window.VN_SOUTH_MAP_DATA.south_provinces) {
-            const list = (window.VN_SOUTH_MAP_DATA.south_provinces.features || [])
-                .map(f => {
-                    const p = f.properties || {};
-                    return { id: p.name, label: `${p.name} (KTT ${p.ktt}°)` };
-                })
-                .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
-            const opts = [`<option value="ALL">-- Tất cả 19 tỉnh miền Nam --</option>`]
-                .concat(list.map(it => `<option value="${escapeHtml(it.id)}" ${AppState.filterSouthProv === it.id ? 'selected' : ''}>${escapeHtml(it.label)}</option>`));
-            southProvExtra = `<div class="ml-sub-controls" style="margin-top:6px;padding:6px 8px;background:rgba(15,23,42,0.4);border-radius:6px;">
-                <label style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#4f46e5;font-weight:600;">
-                    <span>Lọc riêng từng tỉnh:</span>
-                    <select onchange="appMap.filterSouthProvince(this.value)" style="width:100%;height:30px;background:#1e293b;color:#f8fafc;border:1px solid #6366f1;border-radius:4px;padding:2px 6px;font-size:11.5px;">
-                        ${opts.join('')}
-                    </select>
-                </label>
-            </div>`;
-        }
-
         const overlays = [
+            row({ swatch: '<span class="ml-swatch" style="background:#f97316"></span>', input: this._switch('mlEsriTransport', et.on, "appMapLayers.setOverlay('esri_transport', this.checked)", 'Mạng lưới Giao thông Esri') },
+                'Mạng lưới Giao thông (Esri)', 'Cao tốc, quốc lộ, tỉnh lộ, đường sắt · Đè lên quy hoạch/vệ tinh',
+                et.on ? `<div class="ml-sub-controls">${this._slider('esri_transport', et.opacity)}</div>` : ''),
+            row({ swatch: '<span class="ml-swatch" style="background:#eab308"></span>', input: this._switch('mlGoogleRoads', gr.on, "appMapLayers.setOverlay('google_roads', this.checked)", 'Đường & Địa danh Google') },
+                'Mạng lưới Đường & Nhãn (Google)', 'Tên đường phố, địa danh giao thông chính hãng Google',
+                gr.on ? `<div class="ml-sub-controls">${this._slider('google_roads', gr.opacity)}</div>` : ''),
+            row({ swatch: '<span class="ml-swatch" style="background:#ef4444"></span>', input: this._switch('mlGoogleTraffic', gt.on, "appMapLayers.setOverlay('google_traffic', this.checked)", 'Giao thông trực tiếp Google') },
+                'Tình trạng Giao thông (Google Traffic)', 'Mật độ lưu thông, ùn tắc đường bộ theo thời gian thực',
+                gt.on ? `<div class="ml-sub-controls">${this._slider('google_traffic', gt.opacity)}</div>` : ''),
+            row({ swatch: '<span class="ml-swatch" style="background:#06b6d4"></span>', input: this._switch('mlOpenSeaMap', osm.on, "appMapLayers.setOverlay('openseamap', this.checked)", 'Đường thủy & Hàng hải OpenSeaMap') },
+                'Luồng lạch đường thủy (OpenSeaMap)', 'Phao tiêu, hải đăng, báo hiệu luồng kênh rạch đường thủy',
+                osm.on ? `<div class="ml-sub-controls">${this._slider('openseamap', osm.opacity)}</div>` : ''),
             row({ swatch: '<span class="ml-swatch" style="background:#f096ff"></span>', input: this._switch('mlWc', wc.on, "appMapLayers.setOverlay('worldcover', this.checked)", 'Lớp phủ mặt đất ESA WorldCover') },
                 'Lớp phủ mặt đất ESA WorldCover', '10 m · 2021 · lúa, cây, nhà, mặt nước',
                 wc.on ? `<div class="ml-sub-controls">${this._slider('worldcover', wc.opacity)}${legend}</div>` : ''),
@@ -46147,15 +46170,7 @@ const appMapLayers = {
             row({ swatch: '<span class="ml-swatch" style="background:#f43f5e"></span>', input: this._switch('mlProv', !!AppState.is34ProvVisible, 'appMap.toggle34Provinces(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới 34 tỉnh') },
                 'Ranh giới 34 tỉnh', 'Địa giới hành chính 2025 (Gồm Đồng Tháp mới)', prov34Extra),
             row({ swatch: '<span class="ml-swatch" style="background:#10b981"></span>', input: this._switch('mlXa', !!AppState.isDtCommunesVisible, 'appMap.toggleDongThapCommunes(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới xã Đồng Tháp') },
-                'Ranh giới xã Đồng Tháp (Mới)', '34 xã, phường sau sáp nhập', dtCommuneExtra),
-            row({ swatch: '<span class="ml-swatch" style="background:#0284c7"></span>', input: this._switch('mlDtCu', !!AppState.isDtCuVisible, 'appMap.toggleDongThapCu(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Đồng Tháp cũ') },
-                'Đồng Tháp (Cũ)', '12 quận/huyện/TP · KTT 105°00\'', dtCuExtra),
-            row({ swatch: '<span class="ml-swatch" style="background:#d97706"></span>', input: this._switch('mlTgCu', !!AppState.isTgCuVisible, 'appMap.toggleTienGiangCu(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Tiền Giang cũ') },
-                'Tiền Giang (Cũ)', '11 quận/huyện/thị/TP · KTT 105°45\'', tgCuExtra),
-            row({ swatch: '<span class="ml-swatch" style="background:#4f46e5"></span>', input: this._switch('mlSouthProv', !!AppState.isSouthProvVisible, 'appMap.toggleSouthProvinces(); setTimeout(() => appMapLayers.renderPanel(), 400)', '19 tỉnh miền Nam') },
-                '19 Tỉnh Miền Nam', 'Đông Nam Bộ & ĐBSCL · Kèm KTT VN-2000', southProvExtra),
-            row({ swatch: '<span class="ml-swatch" style="background:#ec4899"></span>', input: this._switch('mlPlanZones', !!AppState.isPlanningZonesVisible, 'appMap.togglePlanningZones(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Quy hoạch sử dụng đất TT27') },
-                'Quy hoạch sử dụng đất (TT27)', 'Phân vùng chức năng ODT, ONT, TMD, SKC...')
+                'Ranh giới xã Đồng Tháp (Mới)', '34 xã, phường sau sáp nhập', dtCommuneExtra)
         ];
         if (typeof appPlanning !== 'undefined' && appPlanning.provinces) {
             const curTarget = inCad ? 'cadMap' : 'projectMap';
@@ -46206,7 +46221,7 @@ const appMapLayers = {
                 gulandExtra
             ));
         }
-        if (inCad && typeof appPlanOverlay !== 'undefined') {
+        if (typeof appPlanOverlay !== 'undefined') {
             const n = appPlanOverlay.items.length;
             const isMaster = appPlanOverlay.isMasterVisible();
             const masterSw = this._switch('mlPlanOverlayMaster', isMaster, 'appPlanOverlay.toggleAll(this.checked); appMapLayers.renderPanel()', 'Bật / tắt tất cả ảnh nền PDF');
@@ -46230,10 +46245,10 @@ const appMapLayers = {
                     }).join('') +
                     `</div>`;
             }
-            overlays.push(`<div class="ml-row"><div class="ml-row-head"><span class="ml-swatch" style="background:#fde047"></span><span class="ml-text"><b>Ảnh nền quy hoạch (PDF)</b><small>${n ? n + ' tệp đã gắn tọa độ' : 'Chưa có tệp'} · chỉ trong MiniCAD</small></span>
+            overlays.push(`<div class="ml-row"><div class="ml-row-head"><span class="ml-swatch" style="background:#fde047"></span><span class="ml-text"><b>Bản đồ quy hoạch (PDF đính kèm)</b><small>${n ? n + ' tệp đã gắn tọa độ' : 'Chưa có tệp'} · Từng file riêng lẻ, sạch 100% logo</small></span>
                 <div style="display:flex;align-items:center;gap:6px;">
                     ${masterSw}
-                    <button type="button" class="btn-sm" style="min-height:36px" onclick="appMapLayers.close(); appPlanOverlay.open()">Chi tiết</button>
+                    <button type="button" class="btn-sm" style="min-height:36px;font-weight:700" onclick="appMapLayers.close(); appPlanOverlay.open()">📂 Quản lý &amp; Nạp PDF</button>
                 </div></div>${itemRows}</div>`);
         }
         const customs = s.custom.map(c => row(

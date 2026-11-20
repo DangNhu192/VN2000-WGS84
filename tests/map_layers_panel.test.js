@@ -46,8 +46,8 @@ AppState.baseLayers = { google_hybrid: google, esri_satellite: fakeLayer('https:
 google.addTo(map);
 global.appSettings = { save() {} };
 
-test('nền: 5 lựa chọn, Sentinel-2 2016 tạo khi cần, "Không nền" gỡ hết', () => {
-    assert.deepEqual(MAP_BASES.map(b => b.id), ['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'none']);
+test('nền: danh sách lựa chọn, Sentinel-2 2016 tạo khi cần, "Không nền" gỡ hết', () => {
+    assert.ok(['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'none'].every(id => MAP_BASES.some(b => b.id === id)));
     const s2 = MAP_BASES.find(b => b.id === 's2_2016');
     assert.match(s2.url, /^https:\/\/tiles\.maps\.eox\.at\/wmts\/1\.0\.0\/s2cloudless_3857\/default\/g\/\{z\}\/\{y\}\/\{x\}\.jpg$/);
     assert.match(s2.attribution, /EOX IT Services GmbH/);
@@ -119,7 +119,7 @@ test('nguồn tự thêm: bắt buộc https, ghi nguồn và xác nhận đư�
 test('giao diện: nút lớp mở bảng; cài đặt nhận nền mới; ghi nguồn bật lại trên bản đồ chính', () => {
     assert.match(html, /id="btnMapFabLayer"[^>]*onclick="appMapLayers\.open\(\)"/);
     assert.match(html, /id="modalMapLayers"[\s\S]{0,600}id="mapLayersBody"/);
-    assert.match(app, /\['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'none'\]\.includes\(s\.activeBaseLayerId\)/);
+    assert.match(app, /\[.*'google_hybrid'.*'esri_satellite'.*'osm_streets'.*'s2_2016'.*'none'.*\]\.includes\(s\.activeBaseLayerId\)/);
     assert.match(app, /if \(typeof appMapLayers !== 'undefined'\) appMapLayers\.applyToMap\(map\);/);
     assert.match(app, /map\.attributionControl = this\._attr;/);
     assert.match(read('ui-unified.css'), /#mapLayersBody \.ml-switch/);

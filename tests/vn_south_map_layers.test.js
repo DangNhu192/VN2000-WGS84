@@ -98,11 +98,11 @@ test('=== 3. KIỂM THỬ LOGIC APPMAP VÀ QUẢN LÝ LỚP TRÊN GIAO DIỆN ==
     assert.ok(appJs.includes('layerSouthProv: null'), 'AppState có layerSouthProv');
     assert.ok(appJs.includes('layerPlanningZones: null'), 'AppState có layerPlanningZones');
 
-    // Modal Map Layers Panel hiển thị các switch điều khiển
-    assert.ok(appJs.includes("this._switch('mlDtCu'"), 'Panel có công tắc Đồng Tháp cũ');
-    assert.ok(appJs.includes("this._switch('mlTgCu'"), 'Panel có công tắc Tiền Giang cũ');
-    assert.ok(appJs.includes("this._switch('mlSouthProv'"), 'Panel có công tắc 19 tỉnh miền Nam');
-    assert.ok(appJs.includes("this._switch('mlPlanZones'"), 'Panel có công tắc Quy hoạch sử dụng đất TT27');
+    // Modal Map Layers Panel hiển thị các lớp chất lượng cao
+    assert.ok(appJs.includes("this._switch('mlProv'"), 'Panel có công tắc Ranh giới 34 tỉnh sáp nhập');
+    assert.ok(appJs.includes("this._switch('mlXa'"), 'Panel có công tắc Ranh giới xã Đồng Tháp mới');
+    assert.ok(appJs.includes("this._switch('mlEsriTransport'"), 'Panel có công tắc Giao thông Esri');
+    assert.ok(appJs.includes("this._switch('mlPlanOverlayMaster'"), 'Panel có công tắc Bản đồ quy hoạch PDF');
 });
 
 test('=== 4. KIỂM THỬ BỘ LỌC BẬT TẮT TỪNG TỈNH / TỪNG XÃ SAU SÁP NHẬP TRÊN BẢN ĐỒ ===', () => {
@@ -110,29 +110,19 @@ test('=== 4. KIỂM THỬ BỘ LỌC BẬT TẮT TỪNG TỈNH / TỪNG XÃ SAU 
 
     // 1. Kiểm tra các biến trạng thái bộ lọc trong AppState
     assert.ok(appJs.includes("filterDtCommune: 'ALL'"), 'AppState có filterDtCommune');
-    assert.ok(appJs.includes("filterSouthProv: 'ALL'"), 'AppState có filterSouthProv');
     assert.ok(appJs.includes("filter34Prov: 'ALL'"), 'AppState có filter34Prov');
-    assert.ok(appJs.includes("filterDtCu: 'ALL'"), 'AppState có filterDtCu');
-    assert.ok(appJs.includes("filterTgCu: 'ALL'"), 'AppState có filterTgCu');
 
     // 2. Kiểm tra các hàm lọc & phong cách động trong appMap
     assert.ok(appJs.includes('filterDongThapCommune(communeVal)'), 'appMap có hàm filterDongThapCommune');
-    assert.ok(appJs.includes('filterSouthProvince(provVal)'), 'appMap có hàm filterSouthProvince');
     assert.ok(appJs.includes('filter34Province(provVal)'), 'appMap có hàm filter34Province');
-    assert.ok(appJs.includes('filterDongThapCu(districtVal)'), 'appMap có hàm filterDongThapCu');
-    assert.ok(appJs.includes('filterTienGiangCu(districtVal)'), 'appMap có hàm filterTienGiangCu');
 
     // 3. Kiểm tra hàm tạo style động ẩn/hiện đối tượng lọc
     assert.ok(appJs.includes('_getDtCommuneStyle(feature)'), 'appMap có hàm _getDtCommuneStyle');
-    assert.ok(appJs.includes('_getSouthProvStyle(feature)'), 'appMap có hàm _getSouthProvStyle');
     assert.ok(appJs.includes('_get34ProvStyle(feature)'), 'appMap có hàm _get34ProvStyle');
 
     // 4. Kiểm tra panel appMapLayers sinh sub-controls dropdown lọc
     assert.ok(appJs.includes('appMap.filterDongThapCommune(this.value)'), 'Panel có select lọc xã Đồng Tháp');
-    assert.ok(appJs.includes('appMap.filterSouthProvince(this.value)'), 'Panel có select lọc 19 tỉnh miền Nam');
     assert.ok(appJs.includes('appMap.filter34Province(this.value)'), 'Panel có select lọc 34 tỉnh sáp nhập');
-    assert.ok(appJs.includes('appMap.filterDongThapCu(this.value)'), 'Panel có select lọc huyện ĐT cũ');
-    assert.ok(appJs.includes('appMap.filterTienGiangCu(this.value)'), 'Panel có select lọc huyện TG cũ');
 });
 
 test('=== 5. KIỂM THỬ TÍCH HỢP NẠP RANH GIỚI TỈNH / XÃ VÀO MINICAD ===', () => {

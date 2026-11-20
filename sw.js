@@ -156,8 +156,16 @@ self.addEventListener('fetch', (event) => {
 
   // C. TÀI NGUYÊN NGOẠI VI (Google Tile, OSM Tile, Phông chữ, CDN)
   const isMapTile = url.hostname.includes('tile.') || 
-                    (url.hostname.includes('google.com') && url.pathname.includes('/vt')) ||
-                    url.hostname.includes('arcgisonline.com');
+                    (url.hostname.includes('google.com') && (url.pathname.includes('/vt') || url.pathname.includes('/maps'))) ||
+                    url.hostname.includes('arcgisonline.com') ||
+                    url.hostname.includes('vcdn.cloud') ||
+                    url.hostname.includes('fptcloud.com') ||
+                    url.hostname.includes('cmccloud.com.vn') ||
+                    url.hostname.includes('cmctelecom.vn') ||
+                    url.hostname.includes('digitaloceanspaces.com') ||
+                    url.hostname.includes('guland.vn') ||
+                    url.hostname.includes('opentopomap.org') ||
+                    url.hostname.includes('openseamap.org');
 
   if (isMapTile) {
     // Với tile bản đồ: Ưu tiên cache đã tải, nếu chưa có thì fetch trực tiếp từ mạng mà không spam ghi đĩa CacheStorage

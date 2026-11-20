@@ -1,7 +1,7 @@
 {
   "project": "VN2000-PWA",
   "version": "2.8.44",
-  "active_feature": "F-002",
+  "active_feature": "F-019",
   "features": [
     {
       "id": "F-001",
@@ -168,6 +168,14 @@
       "name": "Tùy biến Toàn diện Ký hiệu Icon Đỉnh / Mốc MiniCAD & Đồng bộ Phân hệ Chuyển tọa độ",
       "description": "Bổ sung 10 kiểu dáng icon đỉnh (circle, square, diamond, triangle, pin, cross, ring, star, target, x), 4 cấp kích thước (sm, md, lg, xl), bảng màu HEX, HUD realtime khi đang vẽ, popup sửa nhanh trên map, đổi hàng loạt trên bảng đỉnh và đồng bộ giao diện lưu/xem bản đồ giữa Đơn điểm, Đa điểm, Đổi KTT.",
       "category": "MiniCAD & Chuyển đổi tọa độ",
+      "status": "done",
+      "phase": "PHASE_4"
+    },
+    {
+      "id": "F-019",
+      "name": "Tối ưu Tốc độ Tải Bản đồ, Giữ Lớp Quy hoạch Guland 1x-9x & Tích hợp Lớp Bản đồ Sông ngòi, Kênh rạch, Giao thông Toàn quốc",
+      "description": "Khắc phục triệt để lỗi biến mất của lớp bản đồ quy hoạch Guland khi zoom 1x-9x bằng cơ chế native downscale zoom 8, tối ưu hóa tốc độ tải gạch với 13 DNS preconnect/prefetch + bypass cache I/O trong Service Worker, tích hợp 3 nền bản đồ mới (Google Streets kèm sông ngòi thủy văn, OpenTopoMap địa hình sông ngòi kênh rạch, Google Terrain) và 4 lớp phủ trong suốt (Mạng lưới giao thông Esri, Đường & Nhãn Google, Giao thông trực tiếp Google Live Traffic, Luồng lạch đường thủy OpenSeaMap) với thanh trượt độ mờ độc lập.",
+      "category": "GIS & Bản đồ",
       "status": "done",
       "phase": "PHASE_4"
     }

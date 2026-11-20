@@ -207,13 +207,17 @@
     function createLeafletLayer(provinceObj, opacity, map) {
         if (typeof L === 'undefined') return null;
         const op = (typeof opacity === 'number') ? opacity : 0.65;
+        const minNative = provinceObj.minNativeZoom || 8;
         const maxNative = provinceObj.maxNativeZoom || 18;
         const paneName = map ? getOrCreatePlanningPane(map) : undefined;
         
         const opts = {
-            minZoom: 10,
+            minZoom: 1,
+            minNativeZoom: minNative,
             maxZoom: 24,
             maxNativeZoom: maxNative,
+            keepBuffer: 8,
+            updateWhenIdle: false,
             opacity: op,
             transparent: true,
             zIndex: 230,
@@ -248,9 +252,12 @@
         if (typeof L === 'undefined' || !provinceObj.landUrl) return null;
         const paneName = map ? getOrCreateLandPane(map) : undefined;
         const opts = {
-            minZoom: 16,
+            minZoom: 1,
+            minNativeZoom: 16,
             maxZoom: 24,
             maxNativeZoom: 18,
+            keepBuffer: 8,
+            updateWhenIdle: false,
             opacity: 0.85,
             transparent: true,
             zIndex: 235,
