@@ -1996,3 +1996,20 @@
      - Bá»• sung lá»‡nh CLI `RANH` / `RANHGIOI <tÃªn>` trÃªn CADCraft CLI Ä‘á»ƒ náº¡p ranh giá»›i trá»±c tiáº¿p báº±ng phÃ­m táº¯t.
   3. **Kiá»ƒm thá»­**: ToÃ n bá»™ **518/518 tests PASS 100% (9 test suites, 0 fail, 0 skipped)**.
 
+
+- **2026-11-20 (Kh?c Ph?c Hi?n Tu?ng L?ch & Bóng Ma Khi Chèn Nhi?u T?p PDF N?n + B? Công C? Tinh Ch?nh Kh?p Mép & Sao Chép T?a Ð?)**:
+  1. **Ði?u tra & Tri?t tiêu nguyên nhân bóng ma / 2 l?p PDF dè l?ch (Ghosting / Double Vision Elimination)**:
+     - Phát hi?n nguyên nhân g?c r?: _renderSharpPatch và _renderSharpViewer k?t xu?t m?t l?p th? canvas d?ng dè lên ?nh g?c img. Do làm tròn s? nguyên d?c l?p và k?p tr?n kích thu?c 4096px, l?p canvas b? co giãn l?ch t?i >200px so v?i ?nh g?c, c?ng v?i góc xoay c?a trang PDF làm sai l?ch ma tr?n, khi?n ngu?i dùng nhìn th?y nhu '2 file PDF chèn lên nhau nhung n?m l?ch'.
+     - X? lý: Cho ?n _sharpCv (display: none) trong Leaflet layer và vô hi?u hóa canvas dè trong viewer, t?p trung 100% tài nguyên hi?n th? s?c nét qua ?nh g?c raster (300 - 600 DPI s?c l?m qua GPU Hardware Acceleration). Tri?t tiêu 100% hi?n tu?ng bóng ma l?ch l?p.
+  2. **Kh?c ph?c l?i Nâng d? nét (reRenderHighDpi)**:
+     - B? sung l?nh h?y layer cu item.layer.remove() tru?c khi kh?i t?o layer m?i, ngan ch?n vi?c tái s? d?ng ph?n t? DOM cu v?i ma tr?n bi?n d?i m?i.
+  3. **H? tr? n?p hàng lo?t da t?p PDF (_pendingFiles)**:
+     - Khi ngu?i dùng ch?n nhi?u file PDF cùng lúc, h? th?ng dua vào hàng d?i _pendingFiles và t? d?ng m? ti?p t?ng t?p d? g?n t?a d? tu?n t? mà không làm th?t l?c t?p nào.
+  4. **B? công c? Tinh Ch?nh Kh?p Mép B?n Ð? Th?i Gian Th?c (openFineTune)**:
+     - B? sung giao di?n di?u khi?n n?i #modalPlanOvFineTune cho phép t?nh ti?n d?i B?c/Nam, Ðông/Tây (+/- 1m, +/- 0.2m), xoay quanh tâm ?nh (+/- 0.2°, +/- 0.05°) và co giãn t? l? (+/- 0.2%, +/- 0.05%) v?i sai s? b?o toàn tâm x?p x? 0 mét.
+     - K? su có th? nhìn th?y l?p b?n d? d?ch chuy?n tr?c quan ngay trên n?n Leaflet d? can ch?nh mép n?i gi?a các t? PDF li?n k? hoàn h?o 100%.
+  5. **Tính nang Sao Chép Nhanh T?a Ð? Kh?ng Ch? (copyPointsFrom)**:
+     - Cho phép sao chép nhanh toàn b? di?m kh?ng ch? và kinh tuy?n tr?c t? m?t t? b?n d? khác dã có trong d? án v?i kh? nang t? d?ng tính toán t? l? co giãn kích thu?c ?nh (rx, ry).
+  6. **Ki?m th?**:
+     - B? sung b? ki?m th? tests/plan_overlay_multidoc.test.js (8/8 test PASS).
+     - Toàn b? test suite tests/*.test.js: 538/538 test PASS 100% (10 test suites, 0 fail, 0 skipped).
