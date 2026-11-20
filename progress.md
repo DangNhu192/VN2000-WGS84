@@ -9,6 +9,31 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-11-20] WP-MAP-LAYERS-VIETNAM-FOCUS: Ưu Tiên Lớp Nền Chi Tiết Cao Tại Việt Nam & Loại Bỏ Lớp Không Khả Dụng / Dữ Liệu Thô Sơ (F-022)
+- **Yêu cầu từ người dùng**:
+  - `ưu tiên giữ lại các lớp bản đồ nền có dữ liệu chi tiết tại Việt Nam, xóa các lớp bản đồ không khả dụng hoặc dữ liệu không chi tiết`
+- **Phân tích & Triển khai Kỹ thuật**:
+  1. **Lớp bản đồ nền (Base Maps)**:
+     - Sắp xếp và ưu tiên các lớp nền có độ nét cao, dữ liệu chi tiết tại Việt Nam:
+       + `google_hybrid`: Vệ tinh Google (Siêu nét) — Chi tiết từng nóc nhà, ranh đất tại Việt Nam (Zoom 22).
+       + `esri_satellite`: Ảnh vệ tinh Esri — Sắc nét toàn quốc, in được khi xuất bản vẽ.
+       + `google_streets`: Đường phố Google (Giao thông & Thủy văn) — Mạng lưới đường bộ, ngõ hẻm & hệ thống sông ngòi chi tiết nhất Việt Nam (Zoom 20).
+       + `opentopomap`: Địa hình & Sông ngòi OpenTopo — Chi tiết hệ thống kênh rạch, sông ngòi miền Tây và đường bình độ cao độ địa hình (Zoom 17).
+       + `google_terrain`: Địa hình Google — Độ dốc, đồi núi, lưu vực sông suối toàn quốc (Zoom 17).
+       + `osm_streets`: Đường phố OpenStreetMap — Bản đồ đường sá mở toàn cầu, in được khi xuất bản vẽ.
+       + `none`: Không nền — Giấy trắng nhẹ nhất khi vẽ kỹ thuật MiniCAD.
+     - **Gỡ bỏ lớp Sentinel-2 2016 (`s2_2016`)**: Độ phân giải thấp (10m/pixel), zoom max chỉ 14 (vỡ hạt ở mức khảo sát đất đai), máy chủ EOX tải chập chờn.
+     - **Cơ chế fallback an toàn**: Trong `setBase(id)`, nếu dữ liệu lưu trữ cũ của người dùng có `s2_2016` thì tự động chuyển về `google_hybrid`.
+  2. **Dọn dẹp Lớp phủ (Overlays)**:
+     - Loại bỏ khỏi UI các lớp viễn thám thô sơ không có giá trị chi tiết cho địa chính/quy hoạch Việt Nam: `worldcover` (ESA WorldCover 10m) và `gibs` (NASA GIBS MODIS 250m - 1km).
+     - Giữ lại các lớp phủ thiết thực: Mạng lưới Giao thông Esri, Nhãn đường Google, Giao thông trực tiếp Google Traffic, Luồng lạch đường thủy OpenSeaMap, Ranh giới 34 tỉnh, Ranh giới xã Đồng Tháp mới, Bản đồ quy hoạch 2030 (Guland), và Bản đồ quy hoạch PDF đính kèm.
+  3. **Kiểm thử tự động & Xác minh trực quan**:
+     - Cập nhật `tests/map_layers_panel.test.js`.
+     - 100% các bộ kiểm thử tự động đạt **524 / 524 tests PASS 100% (9 suites, 0 fail, 0 skipped)**.
+     - Kiểm chứng trực quan bằng Chrome DevTools MCP.
+
+---
+
 ### [2026-11-20] WP-SYSTEM-OPTIMIZE-ALL: Tối Ưu Hóa Toàn Diện Ứng Dụng (Mobile PWA & Desktop) — Offline Tile Cache, 60fps GPU, MiniCAD BBox Indexing & Network Pruning (F-021)
 - **Yêu cầu từ người dùng**:
   - `tối ưu lại ứng dụng`

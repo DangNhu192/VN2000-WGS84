@@ -46,16 +46,20 @@ AppState.baseLayers = { google_hybrid: google, esri_satellite: fakeLayer('https:
 google.addTo(map);
 global.appSettings = { save() {} };
 
-test('nền: danh sách lựa chọn, Sentinel-2 2016 tạo khi cần, "Không nền" gỡ hết', () => {
-    assert.ok(['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'none'].every(id => MAP_BASES.some(b => b.id === id)));
-    const s2 = MAP_BASES.find(b => b.id === 's2_2016');
-    assert.match(s2.url, /^https:\/\/tiles\.maps\.eox\.at\/wmts\/1\.0\.0\/s2cloudless_3857\/default\/g\/\{z\}\/\{y\}\/\{x\}\.jpg$/);
-    assert.match(s2.attribution, /EOX IT Services GmbH/);
+test('nền: danh sách lựa chọn chất lượng cao tại VN, Google Streets / OpenTopoMap tạo khi cần, "Không nền" gỡ hết', () => {
+    assert.ok(['google_hybrid', 'esri_satellite', 'google_streets', 'opentopomap', 'google_terrain', 'osm_streets', 'none'].every(id => MAP_BASES.some(b => b.id === id)));
+    assert.ok(!MAP_BASES.some(b => b.id === 's2_2016'), 'Sentinel-2 2016 độ phân giải thấp đã được gỡ khỏi danh sách nền');
+    const gs = MAP_BASES.find(b => b.id === 'google_streets');
+    assert.match(gs.url, /lyrs=m/);
+    assert.match(gs.attribution, /Google/);
+    assert.equal(gs.maxNativeZoom, 20);
+    appMapLayers.setBase('google_streets', true);
+    assert.equal(AppState.activeBaseLayerId, 'google_streets');
+    assert.ok(!map.hasLayer(google), 'nền Google Hybrid cũ được gỡ');
+    assert.ok(map.hasLayer(AppState.baseLayers.google_streets));
+    assert.equal(AppState.baseLayers.google_streets.options.maxNativeZoom, 20);
     appMapLayers.setBase('s2_2016', true);
-    assert.equal(AppState.activeBaseLayerId, 's2_2016');
-    assert.ok(!map.hasLayer(google), 'nền Google được gỡ');
-    assert.ok(map.hasLayer(AppState.baseLayers.s2_2016));
-    assert.equal(AppState.baseLayers.s2_2016.options.maxNativeZoom, 14);
+    assert.equal(AppState.activeBaseLayerId, 'google_hybrid', 's2_2016 cũ tự động fallback về google_hybrid');
     appMapLayers.setBase('none', true);
     assert.equal([...map._layers].length, 0);
     assert.ok(classes.has('map-base-none'));

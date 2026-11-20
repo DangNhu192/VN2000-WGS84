@@ -45791,30 +45791,25 @@ const appPlanOverlay = {
 // Ô ảnh mở (đã kiểm tra cho đọc chéo CORS): Sentinel-2 cloudless 2016 (EOX, CC BY 4.0),
 // ESA WorldCover 2021 (CC BY 4.0, Terrascope), NASA GIBS (dữ liệu NASA, CC0).
 const MAP_BASES = [
-    { id: 'google_hybrid', name: 'Vệ tinh Google', sub: 'Chỉ xem trên màn hình, không in khi xuất', thumb: '#3b4a2f' },
-    { id: 'esri_satellite', name: 'Ảnh vệ tinh Esri', sub: 'Sắc nét · in được khi xuất bản vẽ', thumb: '#4a5e3a' },
-    { id: 'osm_streets', name: 'Đường phố OpenStreetMap', sub: 'In được khi xuất bản vẽ', thumb: '#f2efe9' },
+    { id: 'google_hybrid', name: 'Vệ tinh Google (Siêu nét)', sub: 'Chi tiết từng nóc nhà, ranh đất tại Việt Nam · Zoom 22', thumb: '#3b4a2f' },
+    { id: 'esri_satellite', name: 'Ảnh vệ tinh Esri', sub: 'Sắc nét toàn quốc · In được khi xuất bản vẽ', thumb: '#4a5e3a' },
     {
-        id: 'google_streets', name: 'Đường phố Google (Giao thông & Thủy văn)', sub: 'Mạng lưới đường bộ & sông ngòi sắc nét', thumb: '#3b82f6',
+        id: 'google_streets', name: 'Đường phố Google (Giao thông & Thủy văn)', sub: 'Mạng lưới đường bộ, ngõ hẻm & sông ngòi chi tiết nhất Việt Nam', thumb: '#3b82f6',
         url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxNativeZoom: 20,
         attribution: 'Bản đồ & Giao thông © Google'
     },
     {
-        id: 'opentopomap', name: 'Địa hình & Sông ngòi OpenTopo', sub: 'Chi tiết sông ngòi, kênh rạch, cao độ · CC BY-SA', thumb: '#0284c7',
+        id: 'opentopomap', name: 'Địa hình & Sông ngòi OpenTopo', sub: 'Chi tiết sông ngòi, kênh rạch miền Tây, cao độ địa hình', thumb: '#0284c7',
         url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c'], maxNativeZoom: 17,
         attribution: 'Bản đồ: © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA), © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
     },
     {
-        id: 'google_terrain', name: 'Địa hình Google Terrain', sub: 'Độ dốc, đồi núi, lưu vực sông suối', thumb: '#84cc16',
+        id: 'google_terrain', name: 'Địa hình Google Terrain', sub: 'Độ dốc, đồi núi, lưu vực sông suối toàn quốc', thumb: '#84cc16',
         url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxNativeZoom: 17,
         attribution: 'Địa hình © Google'
     },
-    {
-        id: 's2_2016', name: 'Sentinel-2 không mây (2016)', sub: 'Ảnh 10 m toàn quốc · CC BY 4.0', thumb: '#5b6b45',
-        url: 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg', maxNativeZoom: 14,
-        attribution: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 &amp; 2017)'
-    },
-    { id: 'none', name: 'Không nền', sub: 'Giấy trắng, nhẹ nhất khi vẽ', thumb: '#ffffff' }
+    { id: 'osm_streets', name: 'Đường phố OpenStreetMap', sub: 'Bản đồ đường sá mở toàn cầu · In được khi xuất', thumb: '#f2efe9' },
+    { id: 'none', name: 'Không nền', sub: 'Giấy trắng, nhẹ nhất khi vẽ MiniCAD', thumb: '#ffffff' }
 ];
 const MAP_BASE_ATTRIBUTION = {
     google_hybrid: 'Ảnh © Google',
@@ -45822,8 +45817,7 @@ const MAP_BASE_ATTRIBUTION = {
     osm_streets: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
     google_streets: 'Bản đồ & Giao thông © Google',
     opentopomap: 'Bản đồ: © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA), © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
-    google_terrain: 'Địa hình © Google',
-    s2_2016: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless</a> by EOX'
+    google_terrain: 'Địa hình © Google'
 };
 const WORLDCOVER_CLASSES = [
     ['#006400', 'Cây gỗ'], ['#ffbb22', 'Cây bụi'], ['#ffff4c', 'Đồng cỏ'], ['#f096ff', 'Đất trồng trọt'],
@@ -46199,11 +46193,6 @@ const appMapLayers = {
             row({ swatch: '<span class="ml-swatch" style="background:#06b6d4"></span>', input: this._switch('mlOpenSeaMap', osm.on, "appMapLayers.setOverlay('openseamap', this.checked)", 'Đường thủy & Hàng hải OpenSeaMap') },
                 'Luồng lạch đường thủy (OpenSeaMap)', 'Phao tiêu, hải đăng, báo hiệu luồng kênh rạch đường thủy',
                 osm.on ? `<div class="ml-sub-controls">${this._slider('openseamap', osm.opacity)}</div>` : ''),
-            row({ swatch: '<span class="ml-swatch" style="background:#f096ff"></span>', input: this._switch('mlWc', wc.on, "appMapLayers.setOverlay('worldcover', this.checked)", 'Lớp phủ mặt đất ESA WorldCover') },
-                'Lớp phủ mặt đất ESA WorldCover', '10 m · 2021 · lúa, cây, nhà, mặt nước',
-                wc.on ? `<div class="ml-sub-controls">${this._slider('worldcover', wc.opacity)}${legend}</div>` : ''),
-            row({ swatch: '<span class="ml-swatch" style="background:#0064c8"></span>', input: this._switch('mlGibs', g.on, "appMapLayers.setOverlay('gibs', this.checked)", 'Ảnh vệ tinh theo ngày NASA') },
-                'Ảnh vệ tinh theo ngày (NASA)', 'Cập nhật hằng ngày · theo dõi lũ', gibsExtra),
             row({ swatch: '<span class="ml-swatch" style="background:#f43f5e"></span>', input: this._switch('mlProv', !!AppState.is34ProvVisible, 'appMap.toggle34Provinces(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới 34 tỉnh') },
                 'Ranh giới 34 tỉnh', 'Địa giới hành chính 2025 (Gồm Đồng Tháp mới)', prov34Extra),
             row({ swatch: '<span class="ml-swatch" style="background:#10b981"></span>', input: this._switch('mlXa', !!AppState.isDtCommunesVisible, 'appMap.toggleDongThapCommunes(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới xã Đồng Tháp') },

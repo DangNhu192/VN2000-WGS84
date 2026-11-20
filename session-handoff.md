@@ -1,6 +1,33 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-20: WP-SYSTEM-OPTIMIZE-ALL — TỐI ƯU HÓA TOÀN DIỆN ỨNG DỤNG (MOBILE PWA & DESKTOP) — OFFLINE TILE CACHE, 60FPS GPU, MINICAD BBOX INDEXING & NETWORK PRUNING (F-021)
+## Phiên hiện tại — 2026-11-20: WP-MAP-LAYERS-VIETNAM-FOCUS — ƯU TIÊN LỚP NỀN CHI TIẾT CAO TẠI VIỆT NAM & LOẠI BỎ LỚP KHÔNG KHẢ DỤNG / DỮ LIỆU THÔ SƠ (F-022)
+- **Yêu cầu từ người dùng**:
+  - `ưu tiên giữ lại các lớp bản đồ nền có dữ liệu chi tiết tại Việt Nam, xóa các lớp bản đồ không khả dụng hoặc dữ liệu không chi tiết`
+- **Kết quả triển khai & Xác minh**:
+  1. **Tối ưu danh mục Lớp nền Bản đồ (Base Maps) chuẩn Việt Nam**:
+     - Sắp xếp và ưu tiên các lớp nền có độ phân giải cao nhất, dữ liệu chi tiết sâu tại Việt Nam:
+       + `google_hybrid`: Vệ tinh Google (Siêu nét) — Chi tiết từng nóc nhà, bờ thửa ranh đất tại Việt Nam, native zoom lên tới 22.
+       + `esri_satellite`: Ảnh vệ tinh Esri — Sắc nét toàn quốc, cho phép xuất bản vẽ in ấn bản đồ.
+       + `google_streets`: Đường phố Google (Giao thông & Thủy văn) — Mạng lưới đường bộ, ngõ hẻm, tên đường & hệ thống sông ngòi chi tiết nhất Việt Nam (native zoom 20).
+       + `opentopomap`: Địa hình & Sông ngòi OpenTopo — Thể hiện chi tiết hệ thống sông ngòi, kênh rạch chằng chịt miền Tây Nam Bộ và đường bình độ cao độ địa hình (zoom 17).
+       + `google_terrain`: Địa hình Google — Độ dốc, đồi núi, lưu vực sông suối toàn quốc (zoom 17).
+       + `osm_streets`: Đường phố OpenStreetMap — Bản đồ đường sá mở toàn cầu, cho phép in ấn khi xuất bản vẽ.
+       + `none`: Không nền — Giấy trắng nhẹ nhất phục vụ vẽ kỹ thuật MiniCAD.
+     - **Loại bỏ lớp nền không khả dụng / độ phân giải thấp**: Gỡ bỏ hoàn toàn `s2_2016` (Sentinel-2 2016) vì độ phân giải chỉ 10m/pixel (mờ ở mức khảo sát đất đai, native zoom chỉ 14, dữ liệu cũ từ 2016).
+     - **Cơ chế Fallback An toàn**: Trong `setBase(id)`, nếu người dùng có dữ liệu lưu trữ cũ chứa `s2_2016`, hệ thống tự động fallback mượt mà về `google_hybrid` mà không gây lỗi giao diện.
+  2. **Dọn dẹp Lớp phủ (Overlays) không chi tiết**:
+     - Loại bỏ khỏi giao diện bảng lớp:
+       + `worldcover` (ESA WorldCover 10m 2021): Phân loại che phủ thực bì thô sơ toàn cầu.
+       + `gibs` (NASA GIBS MODIS 250m - 1km): Ảnh viễn thám thô vĩ mô, không chi tiết thửa đất hay quy hoạch.
+     - Giữ nguyên và bảo toàn các lớp phủ chất lượng cao: Mạng lưới Giao thông Esri, Nhãn đường Google, Giao thông trực tiếp Google Traffic, Luồng lạch đường thủy OpenSeaMap, Ranh giới 34 tỉnh 2025, Ranh giới xã Đồng Tháp mới, Bản đồ quy hoạch Guland 2030 và Bản đồ quy hoạch PDF đính kèm (sạch 100% watermark).
+  3. **Kiểm thử tự động & Xác minh trực quan**:
+     - Cập nhật `tests/map_layers_panel.test.js`.
+     - 100% bộ kiểm thử tự động đạt **524 / 524 tests PASS 100% (9 suites)**.
+     - Kiểm chứng thực tế qua Chrome DevTools MCP: Chụp ảnh modal Lớp bản đồ sạch đẹp, danh mục trực quan, không còn bất kỳ lớp rác nào.
+
+---
+
+## Phiên trước đó — 2026-11-20: WP-SYSTEM-OPTIMIZE-ALL — TỐI ƯU HÓA TOÀN DIỆN ỨNG DỤNG (MOBILE PWA & DESKTOP) — OFFLINE TILE CACHE, 60FPS GPU, MINICAD BBOX INDEXING & NETWORK PRUNING (F-021)
 - **Yêu cầu từ người dùng**:
   - `tối ưu lại ứng dụng`
   - Chọn phương án: **E - Toàn diện (Tổng hợp A + B + C + D theo từng giai đoạn an toàn)**.
