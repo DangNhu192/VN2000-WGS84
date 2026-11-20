@@ -473,7 +473,7 @@ function planExportGuland(provinceSlug, frame, pxPerMeter, toLatLng, maxTiles = 
         province: prov,
         z,
         tiles,
-        credit: `Quy hoạch sử dụng đất 2030 - ${prov.name} (Guland)`,
+        credit: `Nguồn dữ liệu tham khảo: Quy hoạch sử dụng đất 2030 - ${prov.name} (Guland)`,
         alpha: Math.max(0.2, Math.min(1, opacity || 0.7)),
         label: `Quy hoạch ${prov.name}`
     };
@@ -20868,7 +20868,7 @@ const appCadTool = {
             showAnnotations: '🏹 Ghi chú kỹ thuật',
             showBoundaries: '📐 Nét ranh khối',
             showPlanOverlay: '🗺️ Bản đồ nền PDF / Quy hoạch',
-            showGulandPlanning: '📐 Bản đồ Quy hoạch 2030 (Guland)'
+            showGulandPlanning: '📐 Bản đồ Quy hoạch sử dụng đất 2030'
         };
         const name = labels[key] || key;
         showToast((checked ? '👁️ Đã BẬT: ' : '🙈 Đã TẮT: ') + name);
@@ -32609,8 +32609,8 @@ const appCadTool = {
         { cmd: 'CONNECT', desc: '🔗 Nối các điểm đã lưu/chuyển đổi thành Thửa đất & Tuyến [NOI]' },
         { cmd: 'PDF', desc: '🗺️ Bật/Tắt hiển thị lớp bản đồ nền/quy hoạch PDF [PLAN]' },
         { cmd: 'PLAN', desc: '🗺️ Bật/Tắt hiển thị lớp bản đồ nền/quy hoạch PDF [PDF]' },
-        { cmd: 'QH', desc: '📐 Bật/Tắt lớp bản đồ quy hoạch 2030 Guland [GULAND]' },
-        { cmd: 'GULAND', desc: '📐 Bật/Tắt lớp bản đồ quy hoạch 2030 Guland [QH]' },
+        { cmd: 'QH', desc: '📐 Bật/Tắt lớp bản đồ quy hoạch sử dụng đất 2030 [QUYHOACH]' },
+        { cmd: 'QUYHOACH', desc: '📐 Bật/Tắt lớp bản đồ quy hoạch sử dụng đất 2030 [QH]' },
         { cmd: 'ESC', desc: '✖ Thoát công cụ hiện tại / Bỏ chọn [Escape]' }
     ],
 
@@ -35468,7 +35468,7 @@ const appCadTool = {
                 showToast(`⚠️ ${loadedBm.failed}/${loadedBm.tiles.length} ô ảnh nền cơ sở không tải được.`, true);
             }
             if (loadedGu && loadedGu.failed) {
-                showToast(`⚠️ ${loadedGu.failed}/${loadedGu.tiles.length} ô quy hoạch Guland không tải được.`, true);
+                showToast(`⚠️ ${loadedGu.failed}/${loadedGu.tiles.length} ô bản đồ quy hoạch không tải được.`, true);
             }
             const merged = Object.assign({}, loadedBm || { none: true }, {
                 basemap: loadedBm,
@@ -45006,6 +45006,7 @@ const appPlanOverlay = {
                 <button class="btn-sm" style="height:32px;" onclick="appPlanOverlay.zoomTo('${id}')" title="Phóng bản đồ tới ảnh">🎯 Xem</button>
                 <button class="btn-sm" style="height:32px;" onclick="appPlanOverlay.editPoints('${id}')" title="Chấm lại điểm khống chế">✏️ Điểm</button>
                 ${reRenderBtn}
+                <button class="btn-sm" style="height:32px;background:rgba(16,185,129,0.18);border:1px solid #10b981;color:#6ee7b7;font-weight:700;padding:0 8px;" onclick="appPlanOverlay.openWatermarkCleaner('${id}')" title="Mở bộ công cụ làm sạch, che hoặc xóa chữ watermark trên bản đồ">🧹 Xóa chữ</button>
                 <button class="btn-sm" style="height:32px;" onclick="appPlanOverlay.downloadWorldFile('${id}')" title="Lưu tệp tọa độ để lần sau nạp kèm ảnh">💾 .jgw</button>
                 <button class="btn-sm" style="height:32px;color:#fca5a5;" onclick="appPlanOverlay.remove('${id}')" title="Xóa ảnh nền">🗑</button>
             </div>`;
@@ -45778,6 +45779,389 @@ const appPlanOverlay = {
         });
         ctx.restore();
         return list.length;
+    },
+
+    // ================= BỘ CÔNG CỤ LÀM SẠCH & CHE WATERMARK GULAND =================
+    _cleanItem: null,
+    _wkMode: 'auto',
+    _wkHistory: [],
+    _wkIsDrawing: false,
+    _wkStartPos: null,
+
+    openWatermarkCleaner(id) {
+        const it = this.items.find(x => x.id === id);
+        if (!it) {
+            showToast('⚠️ Không tìm thấy ảnh nền quy hoạch.', true);
+            return;
+        }
+        this._cleanItem = it;
+        this._wkHistory = [];
+        const modal = document.getElementById('modalPlanWatermarkClean');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        this.setWkMode('auto');
+
+        const canvas = document.getElementById('wkCanvasClean');
+        const overlay = document.getElementById('wkCanvasOverlay');
+        const statusText = document.getElementById('wkStatusText');
+        if (statusText) statusText.textContent = `Đang nạp ảnh: ${it.name} (${it.w}×${it.h}px)...`;
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            canvas.width = img.naturalWidth || it.w;
+            canvas.height = img.naturalHeight || it.h;
+            overlay.width = canvas.width;
+            overlay.height = canvas.height;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(img, 0, 0);
+            this._saveWkSnapshot();
+            this._initWkCanvasEvents();
+            if (statusText) statusText.textContent = `✓ Đã sẵn sàng làm sạch ảnh ${canvas.width}×${canvas.height}px`;
+        };
+        img.onerror = () => {
+            if (statusText) statusText.textContent = '❌ Không thể đọc dữ liệu ảnh để xử lý.';
+        };
+        img.src = it.url;
+    },
+
+    closeWatermarkCleaner() {
+        const modal = document.getElementById('modalPlanWatermarkClean');
+        if (modal) modal.style.display = 'none';
+        this._cleanItem = null;
+        this._wkHistory = [];
+    },
+
+    setWkMode(mode) {
+        this._wkMode = mode || 'auto';
+        const btns = {
+            auto: document.getElementById('btnWkModeAuto'),
+            box: document.getElementById('btnWkModeBox'),
+            grid: document.getElementById('btnWkModeGrid')
+        };
+        Object.keys(btns).forEach(k => {
+            if (btns[k]) {
+                if (k === this._wkMode) btns[k].classList.add('btn-blue');
+                else btns[k].classList.remove('btn-blue');
+            }
+        });
+        const ctrlAuto = document.getElementById('wkWarpControlsAuto');
+        const ctrlBox = document.getElementById('wkWarpControlsBox');
+        const ctrlGrid = document.getElementById('wkWarpControlsGrid');
+        if (ctrlAuto) ctrlAuto.style.display = this._wkMode === 'auto' ? 'flex' : 'none';
+        if (ctrlBox) ctrlBox.style.display = this._wkMode === 'box' ? 'flex' : 'none';
+        if (ctrlGrid) ctrlGrid.style.display = this._wkMode === 'grid' ? 'flex' : 'none';
+    },
+
+    _saveWkSnapshot() {
+        const canvas = document.getElementById('wkCanvasClean');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (this._wkHistory.length >= 6) this._wkHistory.shift();
+        this._wkHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    },
+
+    undoWkClean() {
+        if (this._wkHistory.length <= 1) {
+            showToast('ℹ Không còn bước nào để hoàn tác.');
+            return;
+        }
+        this._wkHistory.pop();
+        const prev = this._wkHistory[this._wkHistory.length - 1];
+        const canvas = document.getElementById('wkCanvasClean');
+        if (canvas && prev) {
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.putImageData(prev, 0, 0);
+            const status = document.getElementById('wkStatusText');
+            if (status) status.textContent = '↺ Đã hoàn tác bước trước';
+            showToast('↺ Đã hoàn tác');
+        }
+    },
+
+    restoreWkOriginal() {
+        if (!this._cleanItem) return;
+        if (!confirm('Khôi phục lại toàn bộ ảnh gốc ban đầu?')) return;
+        const canvas = document.getElementById('wkCanvasClean');
+        const overlay = document.getElementById('wkCanvasOverlay');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0);
+            this._wkHistory = [];
+            this._saveWkSnapshot();
+            const ovCtx = overlay ? overlay.getContext('2d') : null;
+            if (ovCtx) ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+            const status = document.getElementById('wkStatusText');
+            if (status) status.textContent = '✓ Đã khôi phục ảnh gốc ban đầu';
+            showToast('✓ Đã khôi phục ảnh gốc');
+        };
+        const origBlob = this._cleanItem.originalBlob || this._cleanItem.blob;
+        img.src = origBlob ? URL.createObjectURL(origBlob) : this._cleanItem.url;
+    },
+
+    inpaintBox(x0, y0, x1, y1) {
+        const canvas = document.getElementById('wkCanvasClean');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const w = canvas.width, h = canvas.height;
+
+        const minX = Math.max(0, Math.min(x0, x1));
+        const maxX = Math.min(w - 1, Math.max(x0, x1));
+        const minY = Math.max(0, Math.min(y0, y1));
+        const maxY = Math.min(h - 1, Math.max(y0, y1));
+
+        const boxW = maxX - minX + 1;
+        const boxH = maxY - minY + 1;
+        if (boxW < 2 || boxH < 2) return;
+
+        this._saveWkSnapshot();
+
+        const pad = 4;
+        const sX = Math.max(0, minX - pad);
+        const sY = Math.max(0, minY - pad);
+        const eX = Math.min(w - 1, maxX + pad);
+        const eY = Math.min(h - 1, maxY + pad);
+        const fullImg = ctx.getImageData(sX, sY, eX - sX + 1, eY - sY + 1);
+        const fData = fullImg.data;
+        const fW = eX - sX + 1;
+
+        let rSum = 0, gSum = 0, bSum = 0, count = 0;
+        const addPixel = (px, py) => {
+            const idx = (py * fW + px) * 4;
+            rSum += fData[idx];
+            gSum += fData[idx + 1];
+            bSum += fData[idx + 2];
+            count++;
+        };
+
+        for (let x = sX; x <= eX; x++) {
+            if (minY - 1 >= sY) addPixel(x - sX, minY - 1 - sY);
+            if (maxY + 1 <= eY) addPixel(x - sX, maxY + 1 - sY);
+        }
+        for (let y = minY; y <= maxY; y++) {
+            if (minX - 1 >= sX) addPixel(minX - 1 - sX, y - sY);
+            if (maxX + 1 <= eX) addPixel(maxX + 1 - sX, y - sY);
+        }
+
+        const avgR = count ? Math.round(rSum / count) : 255;
+        const avgG = count ? Math.round(gSum / count) : 255;
+        const avgB = count ? Math.round(bSum / count) : 255;
+
+        const targetImg = ctx.getImageData(minX, minY, boxW, boxH);
+        const tData = targetImg.data;
+        for (let i = 0; i < boxW * boxH; i++) {
+            tData[i * 4] = avgR;
+            tData[i * 4 + 1] = avgG;
+            tData[i * 4 + 2] = avgB;
+        }
+        ctx.putImageData(targetImg, minX, minY);
+
+        const status = document.getElementById('wkStatusText');
+        if (status) status.textContent = `✓ Đã làm sạch vùng ${boxW}×${boxH}px`;
+    },
+
+    applyAutoWatermarkSuppression() {
+        const canvas = document.getElementById('wkCanvasClean');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const w = canvas.width, h = canvas.height;
+
+        const thresholdInput = document.getElementById('wkThresholdSlider');
+        const radiusInput = document.getElementById('wkRadiusSlider');
+        const threshold = thresholdInput ? parseInt(thresholdInput.value, 10) : 28;
+        const radius = radiusInput ? parseInt(radiusInput.value, 10) : 5;
+
+        this._saveWkSnapshot();
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+
+        const lum = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+        let cleanedCount = 0;
+
+        const samples = [
+            [-radius, 0], [radius, 0], [0, -radius], [0, radius],
+            [-radius, -radius], [radius, radius], [-radius, radius], [radius, -radius]
+        ];
+
+        for (let y = radius; y < h - radius; y++) {
+            for (let x = radius; x < w - radius; x++) {
+                const idx = (y * w + x) * 4;
+                const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+                const pLum = lum(r, g, b);
+
+                if (pLum < 70) continue;
+
+                let rBg = 0, gBg = 0, bBg = 0, bgCount = 0;
+                for (let k = 0; k < samples.length; k++) {
+                    const sIdx = ((y + samples[k][1]) * w + (x + samples[k][0])) * 4;
+                    const sLum = lum(data[sIdx], data[sIdx + 1], data[sIdx + 2]);
+                    if (sLum >= 70) {
+                        rBg += data[sIdx];
+                        gBg += data[sIdx + 1];
+                        bBg += data[sIdx + 2];
+                        bgCount++;
+                    }
+                }
+
+                if (bgCount >= 4) {
+                    rBg = Math.round(rBg / bgCount);
+                    gBg = Math.round(gBg / bgCount);
+                    bBg = Math.round(bBg / bgCount);
+                    const bgLum = lum(rBg, gBg, bBg);
+
+                    if (pLum - bgLum > threshold) {
+                        data[idx] = rBg;
+                        data[idx + 1] = gBg;
+                        data[idx + 2] = bBg;
+                        cleanedCount++;
+                    }
+                }
+            }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        const status = document.getElementById('wkStatusText');
+        if (status) status.textContent = `⚡ Đã tự động triệt tiêu ${cleanedCount.toLocaleString('vi-VN')} điểm ảnh chữ chìm bản đồ`;
+        showToast(`⚡ Đã làm sạch ${cleanedCount.toLocaleString('vi-VN')} điểm ảnh watermark`);
+    },
+
+    applyGridMaskInpaint() {
+        const canvas = document.getElementById('wkCanvasClean');
+        if (!canvas) return;
+        const stepSelect = document.getElementById('wkGridStepSelect');
+        const step = stepSelect ? parseInt(stepSelect.value, 10) : 256;
+        const w = canvas.width, h = canvas.height;
+
+        this._saveWkSnapshot();
+        let totalMasks = 0;
+        const boxSize = 54;
+        for (let y = 0; y < h; y += step) {
+            for (let x = 0; x < w; x += step) {
+                const cx = x + Math.round(step / 2);
+                const cy = y + Math.round(step / 2);
+                this.inpaintBox(cx - boxSize, cy - 14, cx + boxSize, cy + 14);
+                totalMasks++;
+            }
+        }
+        const status = document.getElementById('wkStatusText');
+        if (status) status.textContent = `✓ Đã phủ ${totalMasks} mặt nạ chu kỳ (bước ${step}px) trên toàn bộ ảnh`;
+        showToast(`✓ Đã phủ ${totalMasks} mặt nạ chu kỳ`);
+    },
+
+    _hasWkEvents: false,
+    _initWkCanvasEvents() {
+        if (this._hasWkEvents) return;
+        this._hasWkEvents = true;
+        const canvas = document.getElementById('wkCanvasClean');
+        const overlay = document.getElementById('wkCanvasOverlay');
+        if (!canvas || !overlay) return;
+
+        const getCoords = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: Math.round((clientX - rect.left) * scaleX),
+                y: Math.round((clientY - rect.top) * scaleY)
+            };
+        };
+
+        const onStart = (e) => {
+            if (this._wkMode !== 'box') return;
+            this._wkIsDrawing = true;
+            this._wkStartPos = getCoords(e);
+        };
+
+        const onMove = (e) => {
+            if (!this._wkIsDrawing || !this._wkStartPos) return;
+            const cur = getCoords(e);
+            const ovCtx = overlay.getContext('2d');
+            ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+            ovCtx.strokeStyle = '#38bdf8';
+            ovCtx.lineWidth = 2;
+            ovCtx.setLineDash([4, 4]);
+            const x = Math.min(this._wkStartPos.x, cur.x);
+            const y = Math.min(this._wkStartPos.y, cur.y);
+            const w = Math.abs(cur.x - this._wkStartPos.x);
+            const h = Math.abs(cur.y - this._wkStartPos.y);
+            ovCtx.strokeRect(x, y, w, h);
+            ovCtx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+            ovCtx.fillRect(x, y, w, h);
+        };
+
+        const onEnd = (e) => {
+            if (!this._wkIsDrawing || !this._wkStartPos) return;
+            this._wkIsDrawing = false;
+            const endPos = (e.changedTouches && e.changedTouches.length)
+                ? getCoords(e.changedTouches[0])
+                : (e.clientX ? getCoords(e) : this._wkStartPos);
+            const ovCtx = overlay.getContext('2d');
+            ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+            const x0 = this._wkStartPos.x, y0 = this._wkStartPos.y;
+            const x1 = endPos.x, y1 = endPos.y;
+            if (Math.abs(x1 - x0) > 4 && Math.abs(y1 - y0) > 4) {
+                this.inpaintBox(x0, y0, x1, y1);
+            }
+            this._wkStartPos = null;
+        };
+
+        canvas.addEventListener('mousedown', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
+
+        canvas.addEventListener('touchstart', onStart, { passive: true });
+        window.addEventListener('touchmove', onMove, { passive: true });
+        window.addEventListener('touchend', onEnd);
+    },
+
+    saveCleanedImage() {
+        if (!this._cleanItem) return;
+        const canvas = document.getElementById('wkCanvasClean');
+        if (!canvas) return;
+
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                showToast('❌ Không xuất được ảnh đã làm sạch.', true);
+                return;
+            }
+            const it = this._cleanItem;
+            if (!it.originalBlob) it.originalBlob = it.blob;
+            it.blob = blob;
+            if (it.url && it.url.startsWith('blob:')) {
+                try { URL.revokeObjectURL(it.url); } catch (_) {}
+            }
+            it.url = URL.createObjectURL(blob);
+
+            if (it.layer && it.layer._el) {
+                it.layer._el.src = it.url;
+            }
+
+            this.save(it);
+            this.renderList();
+            this.closeWatermarkCleaner();
+            showToast('✅ Đã lưu ảnh bản đồ sạch vào dự án!');
+        }, 'image/png');
+    },
+
+    toggleDeWatermark(id, active) {
+        const it = this.items.find(x => x.id === id);
+        if (!it) return;
+        it.deWatermark = !!active;
+        if (it.layer && it.layer._el) {
+            if (it.deWatermark) {
+                it.layer._el.style.filter = 'contrast(1.15) brightness(0.96)';
+                it.layer._el.style.mixBlendMode = 'multiply';
+            } else {
+                it.layer._el.style.filter = 'none';
+                it.layer._el.style.mixBlendMode = 'normal';
+            }
+        }
+        this._saveSoon(it);
+        showToast(it.deWatermark ? '✓ Đã kích hoạt lớp phủ khử chữ chìm' : 'Đã tắt khử chữ chìm');
     }
 };
 
@@ -46194,8 +46578,8 @@ const appMapLayers = {
             </div>`;
 
             overlays.push(row(
-                { swatch: '<span class="ml-swatch" style="background:#f59e0b"></span>', input: this._switch('mlGulandSwitch', isGulandOn, `appPlanning.toggle('${curTarget}', this.checked); appMapLayers.renderPanel();`, 'Bản đồ Quy hoạch 2030 (Guland)') },
-                'Bản đồ Quy hoạch 2030 (Guland)', 'QH 2030 toàn quốc · 63 tỉnh/thành',
+                { swatch: '<span class="ml-swatch" style="background:#f59e0b"></span>', input: this._switch('mlGulandSwitch', isGulandOn, `appPlanning.toggle('${curTarget}', this.checked); appMapLayers.renderPanel();`, 'Bản đồ Quy hoạch sử dụng đất 2030') },
+                'Bản đồ Quy hoạch sử dụng đất 2030', 'QH 2030 toàn quốc · 63 tỉnh/thành',
                 gulandExtra
             ));
         }
@@ -46240,7 +46624,7 @@ const appMapLayers = {
             <label>Đường dẫn <input id="mlNewUrl" type="url" placeholder="https://…/{z}/{x}/{y}.png hoặc https://…/wms"></label>
             <label id="mlNewLayersRow" style="display:none">Tên lớp WMS <input id="mlNewLayers" type="text" placeholder="layers"></label>
             <label>Ghi nguồn (bắt buộc) <input id="mlNewAttr" type="text" placeholder="© Cơ quan / đơn vị cung cấp"></label>
-            <label class="ml-check"><input id="mlNewLicensed" type="checkbox"> Nguồn công khai có giấy phép mở, hoặc tôi đã được nhà cung cấp cho phép dùng trong ứng dụng (nguồn thương mại như Guland cần khóa API / văn bản cho phép).</label>
+            <label class="ml-check"><input id="mlNewLicensed" type="checkbox"> Nguồn công khai có giấy phép mở, hoặc tôi đã được nhà cung cấp dịch vụ bản đồ cho phép dùng trong ứng dụng.</label>
             <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
               <button type="button" class="btn-sm" style="min-height:40px" onclick="appMapLayers.toggleAddForm(false)">Hủy</button>
               <button type="button" class="btn-sm btn-blue" style="min-height:40px;font-weight:800" onclick="appMapLayers.addCustomFromForm()">Thêm nguồn</button>

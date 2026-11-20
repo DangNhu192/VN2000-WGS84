@@ -673,7 +673,7 @@
                         </button>
                     </div>
                     <div class="planning-note">
-                        ℹ️ Dữ liệu số hóa tham khảo Guland 2030 • Nền quy hoạch nằm bên dưới, cho phép thao tác xem các điểm, tuyến, đa giác ở trên cùng.
+                        ℹ️ Dữ liệu số hóa tham khảo Quy hoạch 2030 • Nền quy hoạch nằm bên dưới, cho phép thao tác xem các điểm, tuyến, đa giác ở trên cùng.
                     </div>
                 </div>
             `;
@@ -723,7 +723,7 @@
                     btn.setAttribute('title', `📐 Đang bật Quy hoạch: ${provObj.name} (${Math.round(t.opacity * 100)}%)`);
                 } else {
                     btn.classList.remove('active');
-                    btn.setAttribute('title', '📐 Bản đồ Quy hoạch 2030 (Guland)');
+                    btn.setAttribute('title', '📐 Bản đồ Quy hoạch sử dụng đất 2030');
                 }
             }
 

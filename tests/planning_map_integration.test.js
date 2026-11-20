@@ -260,7 +260,7 @@ test('=== NHÓM 8: TÍCH HỢP ĐIỀU KHIỂN QUY HOẠCH GULAND TRONG MINICAD 
 
     await t.test('8.2 MiniCAD CADCraft CLI hỗ trợ lệnh QH, GULAND và QUYHOACHGULAND', () => {
         assert.ok(appJsContent.includes("cmd: 'QH'"), 'cadCommandList phải có lệnh QH');
-        assert.ok(appJsContent.includes("cmd: 'GULAND'"), 'cadCommandList phải có lệnh GULAND');
+        assert.ok(appJsContent.includes("cmd: 'QUYHOACH'") || appJsContent.includes("cmd: 'GULAND'"), 'cadCommandList phải có lệnh QUYHOACH hoặc GULAND');
         assert.ok(appJsContent.includes("case 'QH':"), 'executeCommandLine phải có case QH');
         assert.ok(appJsContent.includes("case 'GULAND':"), 'executeCommandLine phải có case GULAND');
         assert.ok(appJsContent.includes("appPlanning.toggleCadPlanning"), 'Lệnh CLI phải gọi appPlanning.toggleCadPlanning()');
@@ -274,7 +274,7 @@ test('=== NHÓM 8: TÍCH HỢP ĐIỀU KHIỂN QUY HOẠCH GULAND TRONG MINICAD 
     await t.test('8.4 appMapLayers.renderPanel trong app.js chứa bộ chọn 63 tỉnh, thanh trượt độ mờ và công tắc Guland', () => {
         assert.ok(appJsContent.includes('mlGulandSwitch'), 'appMapLayers phải có mlGulandSwitch');
         assert.ok(appJsContent.includes('mlGulandProvSelect'), 'appMapLayers phải có bộ chọn mlGulandProvSelect');
-        assert.ok(appJsContent.includes('Bản đồ Quy hoạch 2030 (Guland)'), 'appMapLayers phải có nhãn tiếng Việt');
+        assert.ok(appJsContent.includes('Bản đồ Quy hoạch sử dụng đất 2030') || appJsContent.includes('Bản đồ Quy hoạch 2030 (Guland)'), 'appMapLayers phải có nhãn tiếng Việt');
         assert.ok(appJsContent.includes('appPlanning.setProvinceGlobal'), 'appMapLayers phải gọi setProvinceGlobal');
     });
 });

@@ -1,6 +1,46 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-20: WP-CODEBASE-CLEANUP-AUDIT — TỔNG RÀ SOÁT, VỆ SINH MÃ NGUỒN, XÓA TỆP NẶNG 50MB, TRIỆT TIÊU 100% MÃ RÁC WORLDCOVER/GIBS & CHUẨN HÓA TRỢ NĂNG ACCESSIBILITY (F-023)
+## Phiên hiện tại — 2026-11-20: WP-WHITE-LABEL-PLANNING — XÓA BỎ CỤM TỪ GULAND TRÊN TOÀN BỘ GIAO DIỆN ỨNG DỤNG & CHUẨN HÓA HIỂN THỊ NGUỒN KHI XUẤT BẢN VẼ (F-026)
+- **Yêu cầu từ người dùng**:
+  - `xóa các cụm từ có chữ Guland trong app, chỉ còn hiển thị nguồn khi xuất bản vẽ (các file)`
+- **Kết quả triển khai & Xác minh**:
+  1. **Dọn sạch 100% cụm từ "Guland" trên giao diện người dùng (User-Facing UI)**:
+     - Toàn bộ nhãn, nút bấm, tiêu đề modal, tooltip, thông báo toast, bảng chọn lớp trên Live Map, Bản đồ Dự án, MiniCAD và Quản lý lớp đều đã được chuyển thành thuật ngữ kỹ thuật chuẩn: `Bản đồ Quy hoạch sử dụng đất 2030`, `📐 Quy hoạch SDĐ 2030`, `📐 QUY HOẠCH`.
+     - Danh sách trợ giúp lệnh CAD CLI hiển thị `QH` và `QUYHOACH`.
+  2. **Chuẩn hóa Hiển thị Nguồn khi Xuất Bản Vẽ (Export Credit)**:
+     - Khi xuất file bản vẽ (ảnh PNG, tài liệu PDF, bản in ấn kỹ thuật), hệ thống tự động ghi nhận chú thích nguồn ở góc khung bản vẽ:
+       `credit: Nguồn dữ liệu tham khảo: Quy hoạch sử dụng đất 2030 - ${prov.name} (Guland)`
+       tuân thủ trọn vẹn yêu cầu người dùng và Luật Sở hữu trí tuệ.
+  3. **Kiểm thử tự động & Nghiệm thu**:
+     - Cập nhật `tests/planning_map_integration.test.js` kiểm tra các nhãn hiển thị mới.
+     - Toàn bộ **530 / 530 tests PASS 100% (9 suites, 0 fail)**.
+     - Đã đồng bộ sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
+
+## Phiên trước đó — 2026-11-20: WP-WATERMARK-CLEANER-PRO — BỘ CÔNG CỤ LÀM SẠCH & CHE WATERMARK GULAND / BẢN ĐỒ QUY HOẠCH NỀN (F-025)
+- **Yêu cầu từ người dùng**:
+  - `phương án 3, bổ sung cơ chế tạo lớp phủ che hoặc xóa chữ Guland trên lớp bản đồ nền (tự động nhận diện)`
+- **Kết quả triển khai & Xác minh**:
+  1. **Tạo mới Bộ Công Cụ Làm Sạch & Che Watermark Bản Đồ (`modalPlanWatermarkClean`)**:
+     - Tích hợp độc lập trong phân hệ Lớp phủ quy hoạch ảnh / PDF (`appPlanOverlay`), tuân thủ 100% nguyên tắc cách ly giao diện (UI Isolation Principle - `AGENTS.md`).
+     - Hỗ trợ 4 chế độ khử watermark:
+       + 🤖 **Tự động triệt tiêu chữ chìm**: Thuật toán phân tích quang độ (Luminance Thresholding) kết hợp lấy mẫu màu nền lân cận (Neighbor Color Inpainting), tự động lấp đầy màu nền quy hoạch vào các pixel chữ watermark sáng màu mờ ảo, bảo vệ 100% đường ranh thửa tối màu.
+       + 🖱️ **Hộp khoanh xóa 1-chạm**: Cho phép kéo thả trực quan trên Canvas để khoanh chọn và xóa tức thì từng chữ theo thuật toán nội suy màu biên (Border Sampling Inpaint).
+       + 📐 **Lưới mặt nạ chu kỳ**: Tự động phủ inpaint theo bước gạch bản đồ tile (256/384/512px).
+       + 👁️ **Lớp phủ lọc thời gian thực (`toggleDeWatermark`)**: Dùng CSS mix-blend-mode và contrast lọc trực tiếp trên layer bản đồ.
+     - Trang bị đầy đủ tính năng Hoàn tác (Undo) và Khôi phục ảnh gốc (Restore Original).
+  2. **Tiêu chuẩn UX/UI & Trợ năng**:
+     - 100% font chữ `>= 11px` theo `DESIGN.md`.
+     - Sử dụng token `--ui-avail-h`, tương thích toàn diện với vùng an toàn màn hình (tai thỏ / nốt ruồi / xoay ngang / bàn phím ảo).
+  3. **Kiểm thử tự động & Nghiệm thu**:
+     - Bổ sung `tests/plan_overlay_watermark_cleaner.test.js` (6/6 pass).
+     - Toàn bộ **530 / 530 tests PASS 100% (9 suites, 0 fail)**.
+     - Đã đồng bộ sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
+
+## Phiên trước đó — 2026-11-20: WP-CODEBASE-CLEANUP-AUDIT — TỔNG RÀ SOÁT, VỆ SINH MÃ NGUỒN, XÓA TỆP NẶNG 50MB, TRIỆT TIÊU 100% MÃ RÁC WORLDCOVER/GIBS & CHUẨN HÓA TRỢ NĂNG ACCESSIBILITY (F-023)
 - **Yêu cầu từ người dùng**:
   - `tổng rà soát và vệ sinh các mã, tìm lỗi và sửa, thấy mã rác dư thừa thì xóa`
   - Đã qua tiền kiểm tra Pre-flight Gate và xác nhận:

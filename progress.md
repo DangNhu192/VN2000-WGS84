@@ -3,11 +3,56 @@
 ## Thông tin dự án
 - **Dự án**: VN2000-PWA (WGS84 - VN2000 Pro Geodetic Survey App)
 - **Kiến trúc Harness**: Harness-Kit + Antigravity-Harness (L3 Architecture Factory)
-- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 524/524 bài test đạt 100%.
+- **Cơ chế xác thực**: `init.ps1` (`node --test tests/*.test.js`) - Hiện tại: 530/530 bài test đạt 100%.
 
 ---
 
 ## Nhật ký tiến độ gần nhất
+
+### [2026-11-20] WP-WHITE-LABEL-PLANNING: Xóa Bỏ Cụm Từ Guland Trên Toàn Bộ Giao Diện Ứng Dụng & Chuẩn Hóa Hiển Thị Nguồn Khi Xuất Bản Vẽ (F-026)
+- **Yêu cầu từ người dùng**:
+  - `xóa các cụm từ có chữ Guland trong app, chỉ còn hiển thị nguồn khi xuất bản vẽ (các file)`
+- **Kiến trúc & Triển khai Kỹ thuật**:
+  - **Dọn sạch 100% cụm từ "Guland" trên giao diện người dùng (User-Facing UI)**:
+    + Live Map / Bản đồ chuyển đổi: Sửa tooltip `title` thành `Bản đồ Quy hoạch sử dụng đất 2030`.
+    + Bản đồ dự án: Sửa nhãn thanh công cụ thành `Bản đồ Quy hoạch sử dụng đất 2030`.
+    + MiniCAD: Sửa nhãn nút thành `📐 Bản đồ Quy hoạch`, checkbox thành `📐 Quy hoạch SDĐ 2030`, nút thanh HUD thành `📐 QUY HOẠCH`.
+    + Hướng dẫn lệnh CAD Craft CLI: Đổi hiển thị `QH` và `QUYHOACH`, loại bỏ chữ `GULAND` khỏi danh sách trợ giúp lệnh công khai nhưng vẫn giữ alias nội bộ để đảm bảo tương thích ngược.
+    + Modal xuất bản vẽ MiniCAD & Bản đồ dự án: Đổi tiêu đề thành `CHỌN LỚP BẢN ĐỒ NỀN, QUY HOẠCH & FILE PDF XUẤT KÈM`, nhãn checkbox thành `🏛️ In kèm lớp quy hoạch sử dụng đất 2030`, `Kèm ranh thửa đất quy hoạch`.
+    + Bảng quản lý lớp (Layers Panel): Đổi thành `Bản đồ Quy hoạch sử dụng đất 2030`, nhãn bản quyền thành `nhà cung cấp dịch vụ bản đồ`.
+    + Modal làm sạch watermark: Đổi thông báo và dropdown thành `Tile chuẩn 256px`, `chữ chìm bản đồ`.
+  - **Chuẩn hóa Hiển thị Nguồn khi Xuất Bản Vẽ (Export Credit)**:
+    + Trong `planExportGuland`: Giữ và chuẩn hóa dòng chú thích nguồn xuất ra góc bản vẽ (file PNG / PDF / in ấn) theo đúng Luật Sở hữu trí tuệ:
+      `credit: Nguồn dữ liệu tham khảo: Quy hoạch sử dụng đất 2030 - ${prov.name} (Guland)`
+  - **Bảo toàn Hạ tầng Kỹ thuật & Tương thích**:
+    + Giữ nguyên các ID DOM (`cadExportCheckGuland`, `chkExportGulandPlanning`), các class CSS Leaflet và tên module nội bộ để không phá vỡ logic tính toán và các bộ test tự động.
+- **Kiểm thử tự động & Nghiệm thu**:
+  - Cập nhật bộ test `tests/planning_map_integration.test.js` kiểm tra nhãn hiển thị mới.
+  - Toàn bộ test suite đạt **530 / 530 tests PASS 100% (9 suites, 0 fail)**.
+  - Đã đồng bộ sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
+
+### [2026-11-20] WP-WATERMARK-CLEANER-PRO: Bộ Công Cụ Làm Sạch & Che Watermark Guland / Bản Đồ Quy Hoạch Nền (F-025)
+- **Yêu cầu từ người dùng**:
+  - `phương án 3, bổ sung cơ chế tạo lớp phủ che hoặc xóa chữ Guland trên lớp bản đồ nền (tự động nhận diện)`
+- **Kiến trúc & Giải pháp Triển khai**:
+  - Xây dựng modal độc lập `modalPlanWatermarkClean` tích hợp trực tiếp trong phân hệ Lớp phủ quy hoạch ảnh / PDF (`appPlanOverlay`), tuân thủ 100% nguyên tắc cách ly giao diện (UI Isolation Principle - `AGENTS.md`).
+  - Hỗ trợ 4 chế độ làm sạch và khử watermark chuyên sâu:
+    1. 🤖 **Tự động triệt tiêu chữ chìm (Luminance & Neighbor Inpaint)**: Thuật toán quét ma trận điểm ảnh, phát hiện độ chênh lệch ánh sáng cục bộ (`pLum - bgLum > threshold`) của ký tự watermark bán trong suốt in trên nền đất quy hoạch, tự động lấy mẫu vòng tròn xung quanh (`radius 3-8px`) để lấp đầy màu nền tự nhiên, bảo toàn tuyệt đối các đường ranh ranh thửa và số hiệu tối màu (`pLum < 70`).
+    2. 🖱️ **Hộp khoanh xóa 1-chạm (Interactive Box Inpaint)**: Kéo thả chuột hoặc chạm màn hình để chọn vùng chữ cần xóa. Thuật toán tự động trích xuất màu biên (Border Sampling) và nội suy màu nền trong 1ms.
+    3. 📐 **Lưới mặt nạ chu kỳ (Periodic Grid Mask Inpaint)**: Tự động tính toán các bước lặp gạch bản đồ tile (256/384/512px) để phủ mặt nạ inpaint đồng loạt lên toàn bộ ảnh.
+    4. 👁️ **Lớp phủ lọc thời gian thực (`toggleDeWatermark`)**: Sử dụng CSS `mix-blend-mode: multiply` kết hợp bộ lọc `contrast(1.15) brightness(0.96)` trên thẻ canvas Leaflet layer, làm mờ chữ watermark ngay khi xem trực tiếp trên bản đồ.
+  - Hỗ trợ đầy đủ chức năng **Hoàn tác (Undo)** nhiều bước và **Khôi phục gốc (Restore Original)**.
+- **Tuân thủ Tiêu chuẩn UX/UI**:
+  - Toàn bộ font-size đạt chuẩn `>= 11px` theo `DESIGN.md`, vượt qua 100% bài kiểm thử `tests/ui_readability_and_touch.test.js`.
+  - Sử dụng biến token vùng an toàn `--ui-avail-h`, vượt qua 100% bài kiểm thử `tests/safe_area_cutout_fit.test.js`.
+- **Kiểm thử tự động & Nghiệm thu**:
+  - Tạo mới bộ kiểm thử tự động `tests/plan_overlay_watermark_cleaner.test.js` (6/6 pass).
+  - Toàn bộ test suite đạt **530 / 530 tests PASS 100% (9 suites, 0 fail)**.
+  - Đồng bộ sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
 
 ### [2026-11-20] WP-CODEBASE-CLEANUP-AUDIT: Tổng Rà Soát, Vệ Sinh Mã Nguồn, Xóa Tệp Nặng 50MB, Triệt Tiêu 100% Mã Rác WorldCover/GIBS & Chuẩn Hóa Trợ Năng Accessibility (F-023)
 - **Yêu cầu từ người dùng**:

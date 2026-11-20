@@ -1803,7 +1803,7 @@
                   </button>
                 <button type="button" id="btnLiveMapTogglePlanning" class="btn-sm btn-planning-toggle"
                   style="height: 26px; padding: 0 8px; font-size: 11px; background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4);"
-                  onclick="appPlanning.toggleLiveMapPlanning()" title="Bật/Tắt & Điều chỉnh Lớp bản đồ Quy hoạch 2030 (Guland)">📐 Quy hoạch</button>
+                  onclick="appPlanning.toggleLiveMapPlanning()" title="Bật/Tắt & Điều chỉnh Lớp bản đồ Quy hoạch sử dụng đất 2030">📐 Quy hoạch</button>
                   <button type="button" class="btn-sm" style="height: 38px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: #fff; border: 1px solid #2dd4bf; border-radius: 8px;"
                     onclick="appTransform.openFullConvertedMap()">
                     🗺️ Mở Bản Đồ Lớn
@@ -1892,7 +1892,7 @@
 
           <!-- Nút đổi nền vệ tinh / đường phố & Thoát -->
           <div style="display: flex; gap: 6px; align-items: center;">
-            <button id="btnTfMapPlanning" class="btn-sm btn-planning-toggle" onclick="appPlanning.toggleTransformMapPlanning()" title="Bản đồ quy hoạch 2030 (Guland)" style="background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4); display: inline-flex; align-items: center; gap: 4px;">
+            <button id="btnTfMapPlanning" class="btn-sm btn-planning-toggle" onclick="appPlanning.toggleTransformMapPlanning()" title="Bản đồ Quy hoạch sử dụng đất 2030" style="background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.4); display: inline-flex; align-items: center; gap: 4px;">
               📐 Quy hoạch
             </button>
             <button class="btn-sm btn-icon" onclick="appTransformMap.toggleTileLayer()" title="Đổi bản đồ Vệ tinh / Đường phố" style="background: rgba(255,255,255,0.08);">
@@ -2281,7 +2281,7 @@
           <button class="btn-map-action" title="Thu phóng bao quát mốc dự án" onclick="appMap.fitProjectBounds()">
             <span class="map-action-icon">🔍</span><span class="btn-text"> Bao quát</span>
           </button>
-          <button id="btnMapProjectPlanning" class="btn-map-action btn-planning-action" title="Bật/Tắt & Điều chỉnh Lớp bản đồ Quy hoạch 2030 (Guland)"
+          <button id="btnMapProjectPlanning" class="btn-map-action btn-planning-action" title="Bật/Tắt & Điều chỉnh Lớp bản đồ Quy hoạch sử dụng đất 2030"
             onclick="appPlanning.toggleProjectMapPlanning()">
             <span class="map-action-icon">📐</span><span class="btn-text"> Quy hoạch</span>
           </button>
@@ -2689,8 +2689,8 @@
             <button id="btnCadPlanning" class="cad-btn"
               style="background: rgba(14, 165, 233, 0.22); border-color: #0ea5e9; color: #38bdf8; font-weight: 700;"
               onclick="appPlanning.toggleCadPlanning()"
-              title="Bật/Tắt & Chọn Tỉnh Bản đồ Quy hoạch 2030 (Guland) làm nền dưới nét vẽ MiniCAD">
-              📐 Quy hoạch Guland
+              title="Bật/Tắt & Chọn Tỉnh Bản đồ Quy hoạch sử dụng đất 2030 làm nền dưới nét vẽ MiniCAD">
+              📐 Bản đồ Quy hoạch
             </button>
           </div>
 
@@ -2782,10 +2782,10 @@
                 onchange="appCadTool.toggleDisplayOption('showPlanOverlay', this.checked)" aria-label="Cad check show plan overlay">
               <span>🗺️ Bản đồ PDF</span>
             </label>
-            <label class="cad-check-label" title="Hiện hoặc ẩn lớp bản đồ quy hoạch 2030 Guland làm nền bên dưới nét vẽ (Lệnh CAD: QH / GULAND)">
+            <label class="cad-check-label" title="Hiện hoặc ẩn lớp bản đồ quy hoạch sử dụng đất 2030 làm nền bên dưới nét vẽ (Lệnh CAD: QH / QUYHOACH)">
               <input type="checkbox" id="cadCheckShowGulandPlanning"
                 onchange="appPlanning.toggleCadPlanning(this.checked)" aria-label="Cad check show guland planning">
-              <span>📐 Quy hoạch Guland</span>
+              <span>📐 Quy hoạch SDĐ 2030</span>
             </label>
           </div>
         </div>
@@ -3083,7 +3083,7 @@
             <button type="button" id="btnCadHudPlanPdf" class="cad-hud-btn" onclick="appPlanOverlay.toggleAll()"
               title="Bật/Tắt Nhanh Lớp Bản đồ PDF Quy hoạch [PLAN / PDF]">🗺️ PDF</button>
             <button type="button" id="btnCadHudGuland" class="cad-hud-btn" onclick="appPlanning.toggleCadPlanning()"
-              title="Bật/Tắt Nhanh Bản đồ Quy hoạch Guland 2030">📐 GULAND</button>
+              title="Bật/Tắt Nhanh Bản đồ Quy hoạch sử dụng đất 2030">📐 QUY HOẠCH</button>
             <button type="button" id="btnCadHudZoomExtents" class="cad-hud-btn" onclick="appCadTool.zoomExtents()"
               title="Zoom toàn cảnh [Z / Chuột giữa x2]">🔍 EXTENTS</button>
             <button type="button" id="btnCadHudSunlight" class="cad-hud-btn cad-hud-btn-sunlight"
@@ -6006,6 +6006,97 @@
     </div>
   </div>
 
+  <!-- ================= MODAL LÀM SẠCH & CHE WATERMARK BẢN ĐỒ ================= -->
+  <div id="modalPlanWatermarkClean" class="modal-overlay" style="display: none;" onclick="if(event.target === this) appPlanOverlay.closeWatermarkCleaner()">
+    <div class="modal-box" style="max-width: 980px; max-height: calc(var(--ui-avail-h) * 0.95); display: flex; flex-direction: column;">
+      <div class="modal-title">
+        <span style="color: #34d399;">🧹 Bộ Công Cụ Làm Sạch &amp; Che Watermark Bản Đồ</span>
+        <button class="btn-modal-close" onclick="appPlanOverlay.closeWatermarkCleaner()" aria-label="Đóng">✕</button>
+      </div>
+
+      <!-- Toolbar điều khiển chế độ xử lý -->
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; padding: 8px 10px; background: rgba(30,41,59,0.7); border-radius: 8px; border: 1px solid rgba(56,189,248,0.25);">
+        <span style="font-size: 11.5px; font-weight: 700; color: #94a3b8;">Chế độ:</span>
+        
+        <button type="button" id="btnWkModeAuto" class="btn-sm btn-blue" style="height: 32px; font-size: 11.5px;" onclick="appPlanOverlay.setWkMode('auto')">
+          🤖 Tự động triệt tiêu chữ chìm
+        </button>
+        
+        <button type="button" id="btnWkModeBox" class="btn-sm" style="height: 32px; font-size: 11.5px;" onclick="appPlanOverlay.setWkMode('box')">
+          🖱️ Hộp khoanh xóa 1-chạm
+        </button>
+
+        <button type="button" id="btnWkModeGrid" class="btn-sm" style="height: 32px; font-size: 11.5px;" onclick="appPlanOverlay.setWkMode('grid')">
+          📐 Lưới che lặp lại
+        </button>
+
+        <span style="flex: 1;"></span>
+
+        <button type="button" class="btn-sm" style="height: 32px; font-size: 11.5px;" onclick="appPlanOverlay.undoWkClean()" title="Hoàn tác bước vừa làm">
+          ↩ Hoàn tác
+        </button>
+        <button type="button" class="btn-sm btn-red" style="height: 32px; font-size: 11.5px;" onclick="appPlanOverlay.restoreWkOriginal()" title="Khôi phục lại ảnh ban đầu">
+          ↺ Khôi phục gốc
+        </button>
+      </div>
+
+      <!-- Thanh tùy chỉnh cho từng chế độ -->
+      <div id="wkWarpControlsAuto" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 11.5px; padding: 6px 10px; background: rgba(15,23,42,0.85); border-radius: 6px;">
+        <label style="display: flex; align-items: center; gap: 6px; color: #cbd5e1;">
+          Độ nhạy sáng:
+          <input type="range" id="wkThresholdSlider" min="15" max="60" value="28" style="width: 100px;" oninput="document.getElementById('wkThresholdVal').textContent = this.value">
+          <b id="wkThresholdVal" style="color: #38bdf8;">28</b>
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; color: #cbd5e1;">
+          Bán kính nền:
+          <input type="range" id="wkRadiusSlider" min="3" max="8" value="5" style="width: 80px;" oninput="document.getElementById('wkRadiusVal').textContent = this.value + 'px'">
+          <b id="wkRadiusVal" style="color: #38bdf8;">5px</b>
+        </label>
+        <button type="button" class="btn-sm" style="height: 30px; font-size: 11.5px; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: 1px solid #34d399;" onclick="appPlanOverlay.applyAutoWatermarkSuppression()">
+          ⚡ Quét &amp; Triệt tiêu chữ chìm
+        </button>
+        <span style="color: #94a3b8; font-size: 11px;">(Tự động phân tích và làm chìm pixel watermark vào màu đất xung quanh)</span>
+      </div>
+
+      <div id="wkWarpControlsBox" style="display: none; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 11.5px; padding: 6px 10px; background: rgba(15,23,42,0.85); border-radius: 6px; color: #38bdf8;">
+        <span>ℹ️ <b>Hướng dẫn:</b> Kéo chuột hoặc chạm quét một hình chữ nhật nhỏ trùm lên chữ cần xóa, thuật toán Inpainting sẽ tự động lấp đầy màu nền.</span>
+      </div>
+
+      <div id="wkWarpControlsGrid" style="display: none; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 11.5px; padding: 6px 10px; background: rgba(15,23,42,0.85); border-radius: 6px;">
+        <label style="display: flex; align-items: center; gap: 6px; color: #cbd5e1;">
+          Bước lưới tile:
+          <select id="wkGridStepSelect" class="app-input" style="height: 28px; font-size: 11.5px; padding: 0 4px;">
+            <option value="256">256 px (Tile chuẩn 256px)</option>
+            <option value="384">384 px (Tile phóng to)</option>
+            <option value="512">512 px (Tile Retina)</option>
+          </select>
+        </label>
+        <button type="button" class="btn-sm" style="height: 30px; font-size: 11.5px; font-weight: 700; background: #6366f1; color: #fff; border: 1px solid #818cf8;" onclick="appPlanOverlay.applyGridMaskInpaint()">
+          ⚡ Phủ mặt nạ chu kỳ toàn ảnh
+        </button>
+      </div>
+
+      <!-- Khung Canvas tương tác xem trước & vẽ hộp xóa -->
+      <div id="wkCanvasContainer" style="position: relative; flex: 1; min-height: 350px; max-height: 520px; overflow: auto; background: #0b1220; border: 1px solid rgba(56,189,248,0.4); border-radius: 8px; cursor: crosshair;">
+        <canvas id="wkCanvasClean" style="display: block; transform-origin: 0 0;"></canvas>
+        <canvas id="wkCanvasOverlay" style="position: absolute; left: 0; top: 0; pointer-events: none;"></canvas>
+      </div>
+
+      <!-- Footer xác nhận lưu -->
+      <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+        <div id="wkStatusText" style="font-size: 11.5px; color: #34d399; font-weight: 600;">
+          Sẵn sàng làm sạch ảnh
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-sm" style="height: 36px; padding: 0 14px;" onclick="appPlanOverlay.closeWatermarkCleaner()">Đóng</button>
+          <button type="button" class="btn-sm btn-blue" style="height: 36px; padding: 0 16px; font-weight: 800;" onclick="appPlanOverlay.saveCleanedImage()">
+            ✔ Lưu ảnh đã làm sạch vào dự án
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modalCadGisImport" class="modal-overlay" onclick="if(event.target === this) appCadTool.closeGisImportModal()">
     <div class="modal-box" style="max-width: 720px;">
       <div class="modal-title">
@@ -6591,7 +6682,7 @@
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
             <div style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
               <span style="display: flex; align-items: center; gap: 6px;">
-                <span>🗺️</span> CHỌN LỚP BẢN ĐỒ NỀN, GULAND &amp; FILE PDF XUẤT KÈM
+                <span>🗺️</span> CHỌN LỚP BẢN ĐỒ NỀN, QUY HOẠCH &amp; FILE PDF XUẤT KÈM
               </span>
             </div>
 
@@ -6610,8 +6701,8 @@
             <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
               <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
                 <span style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #facc15; font-size: 11.5px;">
-                  <input type="checkbox" id="cadExportCheckGuland" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 16px; height: 16px;" aria-label="In kèm lớp quy hoạch Guland 2030">
-                  <span>🏛️ In kèm lớp quy hoạch Guland 2030</span>
+                  <input type="checkbox" id="cadExportCheckGuland" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 16px; height: 16px;" aria-label="In kèm lớp quy hoạch sử dụng đất 2030">
+                  <span>🏛️ In kèm lớp quy hoạch sử dụng đất 2030</span>
                 </span>
                 <span id="cadExportGulandBadge" style="font-size: 11px; color: #facc15; background: rgba(250, 204, 21, 0.15); padding: 1px 6px; border-radius: 4px;">63 tỉnh</span>
               </label>
@@ -8921,7 +9012,7 @@
         <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
             <span style="display: flex; align-items: center; gap: 6px;">
-              <span>🗺️</span> CHỌN NỀN BẢN ĐỒ, GULAND &amp; TỆP PDF XUẤT KÈM
+              <span>🗺️</span> CHỌN NỀN BẢN ĐỒ, QUY HOẠCH &amp; TỆP PDF XUẤT KÈM
             </span>
           </div>
 
@@ -8936,7 +9027,7 @@
               </select>
             </div>
             <div>
-              <label style="font-size: 11px; color: #facc15; font-weight: 700; display: block; margin-bottom: 2px;">Tỉnh thành quy hoạch Guland:</label>
+              <label style="font-size: 11px; color: #facc15; font-weight: 700; display: block; margin-bottom: 2px;">Tỉnh thành quy hoạch sử dụng đất:</label>
               <select id="selExportGulandProvince" class="app-select" style="height: 34px; font-size: 11.5px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()" aria-label="Export guland province">
                 <!-- Nạp động 63 tỉnh -->
               </select>
@@ -8946,11 +9037,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11.5px; margin-top: 2px;">
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-weight: 700;">
               <input type="checkbox" id="chkExportGulandPlanning" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 15px; height: 15px;" aria-label="Export guland planning">
-              <span>🏛️ In kèm lớp quy hoạch Guland</span>
+              <span>🏛️ In kèm lớp quy hoạch sử dụng đất</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #cbd5e1;">
               <input type="checkbox" id="chkExportGulandLand" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 14px; height: 14px;" aria-label="Export guland land">
-              <span>Kèm ranh thửa đất Guland</span>
+              <span>Kèm ranh thửa đất quy hoạch</span>
             </label>
           </div>
 
