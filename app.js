@@ -21322,6 +21322,24 @@ const appCadTool = {
         }
     },
 
+    // Chỉ mục không gian Bounding Box O(1) tăng tốc lọc thửa hiển thị trong tầm nhìn MiniCAD
+    getShapeBBox(shape) {
+        if (!shape || !shape.vertices || !shape.vertices.length) return null;
+        if (shape._bbox && shape._bboxVersion === shape.vertices.length) return shape._bbox;
+        let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+        const verts = shape.vertices;
+        for (let i = 0; i < verts.length; i++) {
+            const v = verts[i];
+            if (v.lat < minLat) minLat = v.lat;
+            if (v.lat > maxLat) maxLat = v.lat;
+            if (v.lng < minLng) minLng = v.lng;
+            if (v.lng > maxLng) maxLng = v.lng;
+        }
+        shape._bbox = [minLat, minLng, maxLat, maxLng];
+        shape._bboxVersion = verts.length;
+        return shape._bbox;
+    },
+
     // Tính toán tâm hiển thị tối ưu (Visual Interior Center / Pole of Inaccessibility):
     // 1. Chuẩn hóa gốc tọa độ tương đối (Local Origin Normalization) triệt tiêu hoàn toàn sai số dấu phẩy động
     // 2. Xác định tâm hình học Green, kiểm tra nếu điểm nằm an toàn trong lòng đa giác (clearance >= 12% max span)
@@ -27479,10 +27497,19 @@ const appCadTool = {
             const view = map && typeof map.getBounds === 'function' ? map.getBounds().pad(0.15) : null;
             const inView = [];
             let vertsInView = 0;
-            if (view) this.savedShapes.forEach((s, i) => {
-                if (s.selected === false || !(s.vertices || []).length) return;
-                if (s.vertices.some(v => view.contains([v.lat, v.lng]))) { inView.push(i); vertsInView += s.vertices.length; }
-            });
+            if (view) {
+                const viewS = view.getSouth(), viewN = view.getNorth();
+                const viewW = view.getWest(), viewE = view.getEast();
+                this.savedShapes.forEach((s, i) => {
+                    if (s.selected === false || !(s.vertices || []).length) return;
+                    // Bounding Box Spatial Indexing: O(1) kiểm tra hộp bao trước khi duyệt mảng đỉnh
+                    const b = this.getShapeBBox(s);
+                    if (b && (b[2] < viewS || b[0] > viewN || b[3] < viewW || b[1] > viewE)) {
+                        return;
+                    }
+                    if (s.vertices.some(v => view.contains([v.lat, v.lng]))) { inView.push(i); vertsInView += s.vertices.length; }
+                });
+            }
             if (vertsInView <= this.DETAIL_VERTEX_LIMIT) inView.forEach(i => detailSet.add(i));
             if (inView.length <= this.LARGE_LABEL_LIMIT) inView.forEach(i => labelSet.add(i));
             if (this.selectedItem && this.selectedItem.type === 'shape') detailSet.add(this.selectedItem.index);
@@ -45859,7 +45886,13 @@ const appMapLayers = {
                 : { maxZoom: 24, maxNativeZoom: def.maxNativeZoom, crossOrigin: true };
             const opt = { ...tileOpt, attribution: def.attribution, className: 'leaflet-layer-satellite' };
             if (def.subdomains) opt.subdomains = def.subdomains;
-            AppState.baseLayers[id] = L.tileLayer(def.url, opt);
+            const tl = L.tileLayer(def.url, opt);
+            if (typeof tl.on === 'function') {
+                tl.on('tileunload', function (e) {
+                    if (e && e.tile && !e.tile.complete) e.tile.src = '';
+                });
+            }
+            AppState.baseLayers[id] = tl;
         }
         const layer = AppState.baseLayers[id];
         if (MAP_BASE_ATTRIBUTION[id] && layer.options && !layer.options.attribution) layer.options.attribution = MAP_BASE_ATTRIBUTION[id];
@@ -45873,7 +45906,11 @@ const appMapLayers = {
             this.ensureAttribution();
             Object.keys(AppState.baseLayers).forEach(k => {
                 const l = AppState.baseLayers[k];
-                if (l && map.hasLayer(l) && k !== id) map.removeLayer(l);
+                if (l && map.hasLayer(l) && k !== id) {
+                    map.removeLayer(l);
+                    // Giải phóng bộ nhớ DOM gạch bản đồ cũ trên mobile
+                    if (typeof l._pruneTiles === 'function') l._pruneTiles();
+                }
             });
             const layer = this._baseLayer(id);
             if (layer && !map.hasLayer(layer)) { layer.addTo(map); if (layer.bringToBack) layer.bringToBack(); }

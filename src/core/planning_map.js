@@ -228,6 +228,13 @@
 
         const layer = L.tileLayer(provinceObj.url, opts);
 
+        // Hủy ngay request ảnh gạch bản đồ dồn ứ khi người dùng lướt hoặc zoom nhanh qua mức khác
+        layer.on('tileunload', function (e) {
+            if (e && e.tile && !e.tile.complete) {
+                e.tile.src = '';
+            }
+        });
+
         // Tự động chuyển URL dự phòng nếu CDN trả về lỗi
         layer.on('tileerror', function (e) {
             const tile = e.tile;
@@ -266,7 +273,13 @@
         };
         if (paneName) opts.pane = paneName;
 
-        return L.tileLayer(provinceObj.landUrl, opts);
+        const landLayer = L.tileLayer(provinceObj.landUrl, opts);
+        landLayer.on('tileunload', function (e) {
+            if (e && e.tile && !e.tile.complete) {
+                e.tile.src = '';
+            }
+        });
+        return landLayer;
     }
 
     /**

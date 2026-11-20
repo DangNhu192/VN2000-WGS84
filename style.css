@@ -4437,6 +4437,21 @@
     .leaflet-container,
     #leaflet-transform-map {
       background: #1e293b url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h48v48H0V0zm1 1h46v46H1V1z' fill='%23334155' fill-opacity='0.18' fill-rule='evenodd'/%3E%3Ccircle cx='24' cy='24' r='1.5' fill='%2338bdf8' fill-opacity='0.25'/%3E%3C/svg%3E") !important;
+      touch-action: pan-x pan-y pinch-zoom;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Tăng tốc phần cứng GPU cho Pan/Zoom bản đồ 60fps & cảm ứng mượt mà trên Mobile PWA */
+    .leaflet-tile-pane,
+    .leaflet-marker-pane,
+    .leaflet-overlay-pane {
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .leaflet-tile {
+      will-change: transform, opacity;
     }
 
     .map-top-bar {
