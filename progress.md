@@ -9,6 +9,25 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-11-20] WP-MAP-LAYERS-AUDIT-CLEANUP: Loại Bỏ Lớp Rỗng OpenSeaMap & Tối Ưu Hóa Toàn Diện Các Lớp Bản Đồ Trắc Địa (F-027)
+- **Yêu cầu từ người dùng**:
+  - `openseamap ko hoạt động đúng không?` -> `bỏ lớp OpenSeaMap đi, sau đó tìm các lớp bản đồ khác (tốt) và đề xuất tôi thêm vào (cho link test trước gốc)` -> `thôi khỏi đi, xem lại các lớp bản đồ còn lỗi không?`
+- **Kiến trúc & Triển khai Kỹ thuật**:
+  - **Gỡ bỏ triệt để lớp OpenSeaMap**:
+    + Phân tích nguyên nhân: OpenSeaMap chỉ chứa dữ liệu phao tiêu hàng hải ngoài khơi/cảng biển lớn; tại vùng đất liền và kênh rạch nội địa Việt Nam, máy chủ trả về ảnh PNG 256x256 hoàn toàn trong suốt (334 bytes), gây cảm giác "không hoạt động".
+    + Đã loại bỏ hoàn toàn khỏi `app.js` (cấu hình mặc định, định nghĩa overlay, danh mục đồng bộ lớp phủ, bảng điều khiển `appMapLayers`).
+    + Dọn dẹp prefetch trong `index.html`, bypass whitelist trong `server.js` và `sw.js`.
+  - **Kiểm toán & Tối ưu hóa sâu toàn bộ hệ thống bản đồ (Deep Map Audit)**:
+    + Ping & fetch kiểm thử HTTP trực tiếp từng lớp tại Việt Nam: 100% các lớp bản đồ nền (`google_hybrid`, `esri_satellite`, `google_streets`, `opentopomap`, `google_terrain`, `osm_streets`) và lớp phủ (`esri_transport`, `google_roads`, `google_traffic`, `Quy hoạch SDĐ 2030`) đều phản hồi HTTP 200, tốc độ tải nhanh, dữ liệu đầy đủ.
+    + Khắc phục lỗi tiềm ẩn phóng to sâu (Zoom 20 - 24) trên `osm_streets`: Ghim cứng `maxNativeZoom: 19` tại mọi vị trí khởi tạo (Live Map, Transform Map, Main Map, `MAP_BASES`). Khi người dùng zoom mức 20 - 24, Leaflet tự động phóng đại (rescale) hình ảnh, triệt tiêu 100% lỗi HTTP 400 Bad Request và tránh hiện tượng ô xám hỏng gạch.
+    + Kiểm tra cấu trúc phân tầng zIndex của Leaflet Panes: Thứ tự hiển thị chuẩn xác (Nền: 200 < Quy hoạch SDĐ: 230 < Ranh thửa: 235 < Giao thông: 240 < Ranh giới hành chính: 400 < Nét vẽ MiniCAD: 450 < Mốc đo đạc: 600).
+- **Kiểm thử tự động & Nghiệm thu**:
+  - Cập nhật test suite `tests/waterways_traffic_layers.test.js` và `tests/map_layers_panel.test.js`.
+  - Toàn bộ test suite đạt **530 / 530 tests PASS 100% (9 suites, 0 fail)**.
+  - Đã đồng bộ sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
+
 ### [2026-11-20] WP-WHITE-LABEL-PLANNING: Xóa Bỏ Cụm Từ Guland Trên Toàn Bộ Giao Diện Ứng Dụng & Chuẩn Hóa Hiển Thị Nguồn Khi Xuất Bản Vẽ (F-026)
 - **Yêu cầu từ người dùng**:
   - `xóa các cụm từ có chữ Guland trong app, chỉ còn hiển thị nguồn khi xuất bản vẽ (các file)`

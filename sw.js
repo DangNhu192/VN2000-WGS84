@@ -166,8 +166,7 @@ self.addEventListener('fetch', (event) => {
                     url.hostname.includes('cmctelecom.vn') ||
                     url.hostname.includes('digitaloceanspaces.com') ||
                     url.hostname.includes('guland.vn') ||
-                    url.hostname.includes('opentopomap.org') ||
-                    url.hostname.includes('openseamap.org');
+                    url.hostname.includes('opentopomap.org') ||;
 
   if (isMapTile) {
     // Với tile bản đồ: Ưu tiên cache đã lưu (offline field support), nếu chưa có thì tải từ mạng và tự động lưu vào TILE_CACHE

@@ -77,15 +77,15 @@ test('lớp phủ giao thông & thủy văn: bật/tắt, độ rõ, lưu lại'
     appMapLayers.setOpacity('esri_transport', 0.85);
     assert.equal(et.opacity, 0.85);
 
-    appMapLayers.setOverlay('openseamap', true);
-    const osm = appMapLayers.layers.openseamap;
-    assert.match(osm._url, /tiles\.openseamap\.org/);
-    assert.equal(osm.options.maxNativeZoom, 18);
+    appMapLayers.setOverlay('google_roads', true);
+    const gr = appMapLayers.layers.google_roads;
+    assert.match(gr._url, /lyrs=h/);
+    assert.equal(gr.options.maxNativeZoom, 20);
 
     const saved = JSON.parse(store.vn2k_map_overlays_v1);
     assert.equal(saved.esri_transport.on, true);
     assert.equal(saved.esri_transport.opacity, 0.85);
-    assert.equal(saved.openseamap.on, true);
+    assert.equal(saved.google_roads.on, true);
     appMapLayers.setOverlay('esri_transport', false);
     assert.ok(!appMapLayers.layers.esri_transport && !map.hasLayer(et));
 });

@@ -32,13 +32,11 @@ test('Base Maps & Waterways/Traffic layers in app.js', (t) => {
     assert.ok(appJs.includes('esri_transport: { on: false, opacity: 0.85 }'), 'appMapLayers defaults must include esri_transport');
     assert.ok(appJs.includes('google_roads: { on: false, opacity: 0.85 }'), 'appMapLayers defaults must include google_roads');
     assert.ok(appJs.includes('google_traffic: { on: false, opacity: 0.85 }'), 'appMapLayers defaults must include google_traffic');
-    assert.ok(appJs.includes('openseamap: { on: false, opacity: 0.8 }'), 'appMapLayers defaults must include openseamap');
 
     // Overlay definitions check
     assert.ok(appJs.includes("id === 'esri_transport'"), '_overlayDef must define esri_transport');
     assert.ok(appJs.includes("id === 'google_roads'"), '_overlayDef must define google_roads');
     assert.ok(appJs.includes("id === 'google_traffic'"), '_overlayDef must define google_traffic');
-    assert.ok(appJs.includes("id === 'openseamap'"), '_overlayDef must define openseamap');
 
     // Settings persistence check
     assert.ok(appJs.includes("'google_streets', 'opentopomap', 'google_terrain'"), 'appSettings must accept new base layer IDs');
@@ -47,7 +45,6 @@ test('Base Maps & Waterways/Traffic layers in app.js', (t) => {
 test('Service Worker map tile bypass caching for smooth loading', (t) => {
     const swJs = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf-8');
     assert.ok(swJs.includes('opentopomap.org'), 'SW must recognize opentopomap.org');
-    assert.ok(swJs.includes('openseamap.org'), 'SW must recognize openseamap.org');
     assert.ok(swJs.includes('arcgisonline.com'), 'SW must recognize arcgisonline.com');
     assert.ok(swJs.includes('guland.vn'), 'SW must recognize guland.vn');
     assert.ok(swJs.includes('vcdn.cloud'), 'SW must recognize vcdn.cloud');
@@ -57,13 +54,11 @@ test('index.html CDN preconnect and DNS prefetch', (t) => {
     const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf-8');
     assert.ok(indexHtml.includes('https://server.arcgisonline.com'), 'index.html must preconnect arcgisonline.com');
     assert.ok(indexHtml.includes('https://tile.opentopomap.org'), 'index.html must preconnect opentopomap.org');
-    assert.ok(indexHtml.includes('https://tiles.openseamap.org'), 'index.html must preconnect openseamap.org');
     assert.ok(indexHtml.includes('https://mt1.google.com'), 'index.html must preconnect mt1.google.com');
 });
 
 test('server.js tile proxy allowed hosts', (t) => {
     const serverJs = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf-8');
     assert.ok(serverJs.includes('opentopomap.org'), 'server.js must allow opentopomap.org');
-    assert.ok(serverJs.includes('openseamap.org'), 'server.js must allow openseamap.org');
     assert.ok(serverJs.includes('google.com'), 'server.js must allow google.com');
 });

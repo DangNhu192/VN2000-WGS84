@@ -5255,7 +5255,8 @@ const appTransform = {
             });
 
             const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                ...tileOpt
+                ...tileOpt,
+                maxNativeZoom: 19
             });
 
             this._liveMapTileLayers['google_hybrid'] = googleHybrid;
@@ -5980,7 +5981,8 @@ const appTransformMap = {
             className: 'leaflet-layer-satellite'
         });
         const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            ...tileOpt
+            ...tileOpt,
+            maxNativeZoom: 19
         });
         googleHybrid.addTo(this.map);
 
@@ -7855,9 +7857,10 @@ const appMap = {
             className: 'leaflet-layer-satellite'
         });
 
-        // Lớp OpenStreetMap đường phố (nội suy lên mức 24)
+        // Lớp OpenStreetMap đường phố (nội suy lên mức 24, native zoom 19 chống lỗi 400)
         const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            ...tileOpt
+            ...tileOpt,
+            maxNativeZoom: 19
         });
 
         googleHybrid.addTo(map);
@@ -46186,7 +46189,11 @@ const MAP_BASES = [
         url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxNativeZoom: 17,
         attribution: 'Địa hình © Google'
     },
-    { id: 'osm_streets', name: 'Đường phố OpenStreetMap', sub: 'Bản đồ đường sá mở toàn cầu · In được khi xuất', thumb: '#f2efe9' },
+    {
+        id: 'osm_streets', name: 'Đường phố OpenStreetMap', sub: 'Bản đồ đường sá mở toàn cầu · In được khi xuất', thumb: '#f2efe9',
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c'], maxNativeZoom: 19,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    },
     { id: 'none', name: 'Không nền', sub: 'Giấy trắng, nhẹ nhất khi vẽ MiniCAD', thumb: '#ffffff' }
 ];
 const MAP_BASE_ATTRIBUTION = {
@@ -46209,7 +46216,6 @@ const appMapLayers = {
             esri_transport: { on: false, opacity: 0.85 },
             google_roads: { on: false, opacity: 0.85 },
             google_traffic: { on: false, opacity: 0.85 },
-            openseamap: { on: false, opacity: 0.8 },
             custom: []
         };
     },
@@ -46223,7 +46229,6 @@ const appMapLayers = {
             esri_transport: Object.assign({}, d.esri_transport, s.esri_transport),
             google_roads: Object.assign({}, d.google_roads, s.google_roads),
             google_traffic: Object.assign({}, d.google_traffic, s.google_traffic),
-            openseamap: Object.assign({}, d.openseamap, s.openseamap),
             custom: Array.isArray(s.custom) ? s.custom.filter(c => c && c.url && c.attribution) : []
         };
         return this.state;
@@ -46307,18 +46312,13 @@ const appMapLayers = {
             maxNativeZoom: 20, opacity: (s.google_traffic && s.google_traffic.opacity != null) ? s.google_traffic.opacity : 0.85,
             attribution: 'Giao thông trực tiếp © Google'
         };
-        if (id === 'openseamap') return {
-            url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
-            maxNativeZoom: 18, opacity: (s.openseamap && s.openseamap.opacity != null) ? s.openseamap.opacity : 0.8,
-            attribution: 'Đường thủy: © <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> contributors'
-        };
         const c = s.custom.find(x => x.id === id);
         if (!c) return null;
         return { url: c.url, wms: c.type === 'wms', layersParam: c.layers, maxNativeZoom: c.maxZoom || 19, opacity: c.opacity || 0.8, attribution: escapeHtml(c.attribution) };
     },
     _isOn(id) {
         const s = this.load();
-        if (['esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) return !!(s[id] && s[id].on);
+        if (['esri_transport', 'google_roads', 'google_traffic'].includes(id)) return !!(s[id] && s[id].on);
         const c = s.custom.find(x => x.id === id);
         return !!(c && c.on);
     },
@@ -46327,7 +46327,7 @@ const appMapLayers = {
         if (!map) return;
         const s = this.load();
         this.ensureAttribution();
-        const ids = ['esri_transport', 'google_roads', 'google_traffic', 'openseamap', ...s.custom.map(c => c.id)];
+        const ids = ['esri_transport', 'google_roads', 'google_traffic', ...s.custom.map(c => c.id)];
         Object.keys(this.layers).forEach(id => {
             if (!ids.includes(id) || !this._isOn(id)) { map.removeLayer(this.layers[id]); delete this.layers[id]; }
         });
@@ -46345,7 +46345,7 @@ const appMapLayers = {
     },
     setOverlay(id, on) {
         const s = this.load();
-        if (['esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
+        if (['esri_transport', 'google_roads', 'google_traffic'].includes(id)) {
             if (!s[id]) s[id] = {};
             s[id].on = !!on;
         } else {
@@ -46359,7 +46359,7 @@ const appMapLayers = {
     setOpacity(id, val) {
         const s = this.load();
         const o = Math.max(0.1, Math.min(1, +val || 0.6));
-        if (['esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
+        if (['esri_transport', 'google_roads', 'google_traffic'].includes(id)) {
             if (!s[id]) s[id] = {};
             s[id].opacity = o;
         } else {
@@ -46472,7 +46472,6 @@ const appMapLayers = {
         const et = s.esri_transport || { on: false, opacity: 0.85 };
         const gr = s.google_roads || { on: false, opacity: 0.85 };
         const gt = s.google_traffic || { on: false, opacity: 0.85 };
-        const osm = s.openseamap || { on: false, opacity: 0.8 };
         let prov34Extra = '';
         if (AppState.is34ProvVisible && window.VIETNAM_34_PROVINCES) {
             const list = (window.VIETNAM_34_PROVINCES.features || [])
@@ -46526,9 +46525,6 @@ const appMapLayers = {
             row({ swatch: '<span class="ml-swatch" style="background:#ef4444"></span>', input: this._switch('mlGoogleTraffic', gt.on, "appMapLayers.setOverlay('google_traffic', this.checked)", 'Giao thông trực tiếp Google') },
                 'Tình trạng Giao thông (Google Traffic)', 'Mật độ lưu thông, ùn tắc đường bộ theo thời gian thực',
                 gt.on ? `<div class="ml-sub-controls">${this._slider('google_traffic', gt.opacity)}</div>` : ''),
-            row({ swatch: '<span class="ml-swatch" style="background:#06b6d4"></span>', input: this._switch('mlOpenSeaMap', osm.on, "appMapLayers.setOverlay('openseamap', this.checked)", 'Đường thủy & Hàng hải OpenSeaMap') },
-                'Luồng lạch đường thủy (OpenSeaMap)', 'Phao tiêu, hải đăng, báo hiệu luồng kênh rạch đường thủy',
-                osm.on ? `<div class="ml-sub-controls">${this._slider('openseamap', osm.opacity)}</div>` : ''),
             row({ swatch: '<span class="ml-swatch" style="background:#f43f5e"></span>', input: this._switch('mlProv', !!AppState.is34ProvVisible, 'appMap.toggle34Provinces(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới 34 tỉnh') },
                 'Ranh giới 34 tỉnh', 'Địa giới hành chính 2025 (Gồm Đồng Tháp mới)', prov34Extra),
             row({ swatch: '<span class="ml-swatch" style="background:#10b981"></span>', input: this._switch('mlXa', !!AppState.isDtCommunesVisible, 'appMap.toggleDongThapCommunes(); setTimeout(() => appMapLayers.renderPanel(), 400)', 'Ranh giới xã Đồng Tháp') },

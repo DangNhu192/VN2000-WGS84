@@ -33,7 +33,7 @@ const server = http.createServer((req, res) => {
         const allowedHosts = [
             'vcdn.cloud', 'cmctelecom.vn', 'cmccloud.com.vn', 'fptcloud.com', 'digitaloceanspaces.com', 'guland.vn',
             'openstreetmap.org', 'arcgisonline.com', 'terrascope.be', 'eox.at',
-            'opentopomap.org', 'openseamap.org', 'google.com', 'googleapis.com'
+            'opentopomap.org', 'google.com', 'googleapis.com'
         ];
         let targetHost = '';
         try { targetHost = new URL(targetUrl).hostname.toLowerCase(); } catch (e) { targetHost = ''; }

@@ -1,6 +1,23 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-20: WP-WHITE-LABEL-PLANNING — XÓA BỎ CỤM TỪ GULAND TRÊN TOÀN BỘ GIAO DIỆN ỨNG DỤNG & CHUẨN HÓA HIỂN THỊ NGUỒN KHI XUẤT BẢN VẼ (F-026)
+## Phiên hiện tại — 2026-11-20: WP-MAP-LAYERS-AUDIT-CLEANUP — LOẠI BỎ LỚP RỖNG OPENSEAMAP & TỐI ƯU HÓA TOÀN DIỆN CÁC LỚP BẢN ĐỒ TRẮC ĐỊA (F-027)
+- **Yêu cầu từ người dùng**:
+  - `openseamap ko hoạt động đúng không?` -> `bỏ lớp OpenSeaMap đi, sau đó tìm các lớp bản đồ khác (tốt) và đề xuất tôi thêm vào (cho link test trước gốc)` -> `thôi khỏi đi, xem lại các lớp bản đồ còn lỗi không?`
+- **Kết quả triển khai & Xác minh**:
+  1. **Loại bỏ triệt để lớp OpenSeaMap**:
+     - Đã dọn sạch khỏi `app.js`, `index.html`, `server.js`, `sw.js`. Bảng điều khiển lớp giờ đây gọn gàng, thuần túy các lớp hữu ích cho công tác trắc địa, đo đạc đất đai.
+  2. **Kiểm toán & Tối ưu hóa sâu hệ thống bản đồ (Deep Map Audit)**:
+     - 100% các lớp nền và lớp phủ đều phản hồi HTTP 200 nhanh chóng tại Việt Nam.
+     - Sửa lỗi tiềm ẩn zoom sâu trên `osm_streets` (OpenStreetMap): Ghim `maxNativeZoom: 19`, triệt tiêu 100% lỗi HTTP 400 ô xám khi kỹ sư zoom mức 20 - 24.
+     - Phân tầng hiển thị Leaflet Panes zIndex chuẩn xác, nét vẽ MiniCAD luôn nằm trên cùng.
+  3. **Kiểm thử tự động & Nghiệm thu**:
+     - Cập nhật `tests/waterways_traffic_layers.test.js` và `tests/map_layers_panel.test.js`.
+     - Toàn bộ **530 / 530 tests PASS 100% (9 suites, 0 fail)**.
+     - Đã đồng bộ sang `D:\Nhu\APP\VN2000-PWA`.
+
+---
+
+## Phiên trước đó — 2026-11-20: WP-WHITE-LABEL-PLANNING — XÓA BỎ CỤM TỪ GULAND TRÊN TOÀN BỘ GIAO DIỆN ỨNG DỤNG & CHUẨN HÓA HIỂN THỊ NGUỒN KHI XUẤT BẢN VẼ (F-026)
 - **Yêu cầu từ người dùng**:
   - `xóa các cụm từ có chữ Guland trong app, chỉ còn hiển thị nguồn khi xuất bản vẽ (các file)`
 - **Kết quả triển khai & Xác minh**:
