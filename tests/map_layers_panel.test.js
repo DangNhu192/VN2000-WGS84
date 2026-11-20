@@ -1,5 +1,4 @@
-// Lớp bản đồ (v2.8.40): chọn nền (Google, Esri, OSM, Sentinel-2 2016, không nền), bật/tắt lớp phủ mở
-// (ESA WorldCover, NASA GIBS, ranh giới), nguồn tự thêm WMS/XYZ có ghi nguồn + xác nhận được phép.
+// Lớp bản đồ: chọn nền (Google, Esri, OSM, không nền), bật/tắt lớp phủ hạ tầng (Giao thông, Đường & Nhãn, Luồng thủy), nguồn tự thêm WMS/XYZ có ghi nguồn + xác nhận được phép.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -68,33 +67,27 @@ test('nền: danh sách lựa chọn chất lượng cao tại VN, Google Street
     assert.ok(google.options.attribution, 'nền có ghi nguồn');
 });
 
-test('lớp phủ WorldCover + NASA GIBS: bật/tắt, độ rõ, ngày ảnh, lưu lại', () => {
-    appMapLayers.setOverlay('worldcover', true);
-    const wc = appMapLayers.layers.worldcover;
-    assert.match(wc._url, /mapproxy\.terrascope\.be\/mapproxy\/wmts\/esa-worldcover-map-10m-2021-v2_map\/webmercator\/\{z\}\/\{x\}\/\{y\}\.png$/);
-    assert.equal(wc.options.pane, 'refOverlayPane');
+test('lớp phủ giao thông & thủy văn: bật/tắt, độ rõ, lưu lại', () => {
+    appMapLayers.setOverlay('esri_transport', true);
+    const et = appMapLayers.layers.esri_transport;
+    assert.match(et._url, /World_Transportation/);
+    assert.equal(et.options.pane, 'refOverlayPane');
     assert.equal(map.panes.refOverlayPane.style.zIndex, 240);
-    assert.match(wc.options.attribution, /ESA WorldCover/);
-    appMapLayers.setOpacity('worldcover', 0.35);
-    assert.equal(wc.opacity, 0.35);
+    assert.match(et.options.attribution, /Esri/);
+    appMapLayers.setOpacity('esri_transport', 0.85);
+    assert.equal(et.opacity, 0.85);
 
-    appMapLayers.setOverlay('gibs', true);
-    const g = appMapLayers.layers.gibs;
-    assert.match(g._url, /^https:\/\/gibs\.earthdata\.nasa\.gov\/wmts\/epsg3857\/best\/MODIS_Terra_CorrectedReflectance_Bands721\/default\/\d{4}-\d{2}-\d{2}\/GoogleMapsCompatible_Level9\/\{z\}\/\{y\}\/\{x\}\.jpg$/);
-    assert.equal(g.options.maxNativeZoom, 9);
-    appMapLayers.setGibs('date', '2025-10-05');
-    appMapLayers.setGibs('product', 'MODIS_Terra_CorrectedReflectance_TrueColor');
-    assert.match(g._url, /MODIS_Terra_CorrectedReflectance_TrueColor\/default\/2025-10-05\//);
-    appMapLayers.setGibs('date', 'hôm qua');
-    appMapLayers.setGibs('product', '../../etc');
-    assert.match(g._url, /TrueColor\/default\/2025-10-05\//, 'giá trị lạ bị bỏ qua');
+    appMapLayers.setOverlay('openseamap', true);
+    const osm = appMapLayers.layers.openseamap;
+    assert.match(osm._url, /tiles\.openseamap\.org/);
+    assert.equal(osm.options.maxNativeZoom, 18);
 
     const saved = JSON.parse(store.vn2k_map_overlays_v1);
-    assert.equal(saved.worldcover.on, true);
-    assert.equal(saved.worldcover.opacity, 0.35);
-    assert.equal(saved.gibs.date, '2025-10-05');
-    appMapLayers.setOverlay('worldcover', false);
-    assert.ok(!appMapLayers.layers.worldcover && !map.hasLayer(wc));
+    assert.equal(saved.esri_transport.on, true);
+    assert.equal(saved.esri_transport.opacity, 0.85);
+    assert.equal(saved.openseamap.on, true);
+    appMapLayers.setOverlay('esri_transport', false);
+    assert.ok(!appMapLayers.layers.esri_transport && !map.hasLayer(et));
 });
 
 test('nguồn tự thêm: bắt buộc https, ghi nguồn và xác nhận được phép', () => {
@@ -123,18 +116,16 @@ test('nguồn tự thêm: bắt buộc https, ghi nguồn và xác nhận đư�
 test('giao diện: nút lớp mở bảng; cài đặt nhận nền mới; ghi nguồn bật lại trên bản đồ chính', () => {
     assert.match(html, /id="btnMapFabLayer"[^>]*onclick="appMapLayers\.open\(\)"/);
     assert.match(html, /id="modalMapLayers"[\s\S]{0,600}id="mapLayersBody"/);
-    assert.match(app, /\[.*'google_hybrid'.*'esri_satellite'.*'osm_streets'.*'s2_2016'.*'none'.*\]\.includes\(s\.activeBaseLayerId\)/);
+    assert.match(app, /\[.*'google_hybrid'.*'esri_satellite'.*'google_streets'.*'none'.*\]\.includes\(s\.activeBaseLayerId\)/);
     assert.match(app, /if \(typeof appMapLayers !== 'undefined'\) appMapLayers\.applyToMap\(map\);/);
     assert.match(app, /map\.attributionControl = this\._attr;/);
     assert.match(read('ui-unified.css'), /#mapLayersBody \.ml-switch/);
 });
 
-test('xuất bản vẽ: thêm nền Sentinel-2 2016 và ESA WorldCover', () => {
+test('xuất bản vẽ: nền bản đồ kỹ thuật và Sentinel-2', () => {
     assert.match(EXPORT_BASEMAPS.sentinel2.url, /s2cloudless_3857/);
     assert.equal(EXPORT_BASEMAPS.sentinel2.maxZoom, 14);
-    assert.match(EXPORT_BASEMAPS.worldcover.url, /webmercator\/\{z\}\/\{x\}\/\{y\}\.png$/);
     const sel = html.match(/<select id="cadExportBasemap"[\s\S]*?<\/select>/)[0];
     assert.match(sel, /value="sentinel2"/);
-    assert.match(sel, /value="worldcover"/);
-    assert.match(app, /\['street', 'satellite', 'sentinel2', 'worldcover'\]\.includes\(basemapVal\)/);
+    assert.match(app, /\['street', 'satellite', 'sentinel2'\]\.includes\(basemapVal\)/);
 });

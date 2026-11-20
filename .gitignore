@@ -30,6 +30,10 @@ node_modules/
 modern-react/node_modules/
 modern-react/dist/
 
+# Tài liệu thuyết trình & File nặng
+*.pptx
+*.ppt
+
 # Mã khôi phục & Thông tin bảo mật tài khoản
 vercel-recovery-codes*
 *recovery-codes*

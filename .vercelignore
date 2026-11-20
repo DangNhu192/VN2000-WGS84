@@ -27,5 +27,9 @@ src/core/geodesy_engine.js
 src/core/volume_calc.js
 src/core/seed_dgn_base64.json
 
+# Tài liệu thuyết trình & File nặng
+*.pptx
+*.ppt
+
 # Ảnh hướng dẫn: chỉ triển khai bản WebP đang dùng (PNG gốc giữ trong kho để chỉnh sửa)
 assets/tutorial_screens/*.png

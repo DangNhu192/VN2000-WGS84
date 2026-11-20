@@ -220,7 +220,7 @@
               <form id="fwForm" novalidate>
                 <div>
                   <label for="fwDirection" data-fw-text="direction">Chiều chuyển đổi</label>
-                  <select id="fwDirection">
+                  <select id="fwDirection" aria-label="Fw direction">
                     <option value="wgs2vn">WGS-84 → VN-2000</option>
                     <option value="vn2wgs">VN-2000 → WGS-84</option>
                   </select>
@@ -228,11 +228,11 @@
                 <div id="fwInputs">
                   <div>
                     <label for="fwInput1" id="fwLabel1">Vĩ độ (°)</label>
-                    <input id="fwInput1" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="fwError">
+                    <input id="fwInput1" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="fwError" aria-label="Fw input1">
                   </div>
                   <div>
                     <label for="fwInput2" id="fwLabel2">Kinh độ (°)</label>
-                    <input id="fwInput2" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="fwError">
+                    <input id="fwInput2" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="fwError" aria-label="Fw input2">
                   </div>
                 </div>
                 <p id="fwError" role="alert" hidden></p>
@@ -391,7 +391,7 @@
                 <input type="text" id="txtDashToolFilter" class="acc-search-input"
                   placeholder="Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)"
                   data-i18n-placeholder="dash.search_placeholder"
-                  oninput="appDashboard.filterTools(this.value)">
+                  oninput="appDashboard.filterTools(this.value)" aria-label="Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)">
                 <button type="button" class="acc-search-clear" id="btnDashToolFilterClear"
                   onclick="appDashboard.clearToolFilter()" title="Xóa tìm kiếm" style="display: none;">✕</button>
               </div>
@@ -408,7 +408,7 @@
             <span class="search-icon">🔍</span>
             <input type="text" id="txtMainTreeFilter"
               placeholder="Tìm nhanh chức năng (cắm mốc, camera, dwg, kml, bản đồ...)"
-              oninput="appNav.filterTreeNav(this.value)">
+              oninput="appNav.filterTreeNav(this.value)" aria-label="Tìm nhanh chức năng (cắm mốc, camera, dwg, kml, bản đồ...)">
             <button class="btn-clear-search"
               onclick="document.getElementById('txtMainTreeFilter').value=''; appNav.filterTreeNav('');">✕</button>
           </div>
@@ -1017,7 +1017,7 @@
                   </button>
                 </div>
                 <div class="form-group" style="margin-bottom: 6px;">
-                  <select id="tfSelectProvince" class="app-select" onchange="appTransform.onProvinceChange()">
+                  <select id="tfSelectProvince" class="app-select" onchange="appTransform.onProvinceChange()" aria-label="Chọn tỉnh thành chuyển đổi tọa độ">
                     <!-- Options nạp tự động từ geodesy.js -->
                   </select>
                 </div>
@@ -1043,7 +1043,7 @@
                   <span class="card-title">🌐 Tọa độ WGS-84</span>
                   <div class="card-tools">
                     <select id="selFormatWgs" class="app-select" style="height: 30px; font-size: 11px; padding: 0 6px;"
-                      onchange="appTransform.onFormatChange()">
+                      onchange="appTransform.onFormatChange()" aria-label="Định dạng tọa độ WGS84">
                       <option value="0">dd.dddddd°</option>
                       <option value="1">dd° mm.mmmm'</option>
                       <option value="2">dd° mm' ss.ss"</option>
@@ -1053,12 +1053,12 @@
                 <div class="form-group">
                   <label class="form-label">Vĩ độ (Lat / B):</label>
                   <input type="text" id="txtWgsLat" class="app-input" inputmode="decimal" autocomplete="off"
-                    placeholder="VD: 10.345211 hoặc 10° 20.7127'">
+                    placeholder="VD: 10.345211 hoặc 10° 20.7127'" aria-label="Ví dụ: 10.345211 hoặc 10° 20.7127">
                 </div>
                 <div class="form-group">
                   <label class="form-label">Kinh độ (Long / L):</label>
                   <input type="text" id="txtWgsLng" class="app-input" inputmode="decimal" autocomplete="off"
-                    placeholder="VD: 106.113617 hoặc 106° 06.8170'">
+                    placeholder="VD: 106.113617 hoặc 106° 06.8170'" aria-label="Ví dụ: 106.113617 hoặc 106° 06.8170">
                 </div>
                 <div class="btn-group-row">
                   <button class="btn-sm btn-green" onclick="appTransform.getLiveGps()">📍 GPS</button>
@@ -1163,20 +1163,20 @@
                   <div style="padding: 12px; margin-bottom: 10px; background: rgba(15,23,42,0.85); border: 1px solid rgba(74,222,128,0.3); border-radius: 8px; display: flex; flex-direction: column; gap: 8px;">
                     <div>
                       <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📁 Dự án / File lưu mốc:</label>
-                      <select id="singleSaveProject" class="app-input" style="height: 32px; font-size: 12px; width: 100%;" onchange="appTransform.onSaveSingleProjectChange(this.value)"></select>
+                      <select id="singleSaveProject" class="app-input" style="height: 32px; font-size: 12px; width: 100%;" onchange="appTransform.onSaveSingleProjectChange(this.value)" aria-label="Chọn dự án lưu điểm"></select>
                       <div id="singleSaveNewProjectWrap" style="display: none; margin-top: 6px;">
-                        <input type="text" id="singleSaveNewProject" class="app-input" style="height: 30px; font-size: 12px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: SoDoMoc.csv)">
+                        <input type="text" id="singleSaveNewProject" class="app-input" style="height: 30px; font-size: 12px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: SoDoMoc.csv)" aria-label="Nhập tên file dự án mới (VD: SoDoMoc.csv)">
                       </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                       <div>
                         <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">🏷️ Tên mốc lưu:</label>
-                        <input type="text" id="singleSavePointName" class="app-input" style="height: 32px; font-size: 12px; width: 100%; font-weight: 700; color: #fbbf24;" placeholder="Tên mốc (VD: M1, DC01)">
+                        <input type="text" id="singleSavePointName" class="app-input" style="height: 32px; font-size: 12px; width: 100%; font-weight: 700; color: #fbbf24;" placeholder="Tên mốc (VD: M1, DC01)" aria-label="Tên mốc (VD: M1, DC01)">
                       </div>
                       <div>
                         <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📝 Ghi chú:</label>
-                        <input type="text" id="singleSavePointNote" class="app-input" style="height: 32px; font-size: 12px; width: 100%;" placeholder="Ghi chú mốc">
+                        <input type="text" id="singleSavePointNote" class="app-input" style="height: 32px; font-size: 12px; width: 100%;" placeholder="Ghi chú mốc" aria-label="Ghi chú mốc">
                       </div>
                     </div>
                   </div>
@@ -1221,12 +1221,12 @@
                   <div class="form-group">
                     <label class="form-label">Tọa độ ngang X (Trục Bắc ~ 7 chữ số):</label>
                     <input type="text" id="txtVn2kX" class="app-input" inputmode="decimal" autocomplete="off"
-                      placeholder="VD: 1144058.623">
+                      placeholder="VD: 1144058.623" aria-label="Ví dụ: 1144058.623">
                   </div>
                   <div class="form-group">
                     <label class="form-label">Tọa độ đứng Y (Trục Đông ~ 6 chữ số):</label>
                     <input type="text" id="txtVn2kY" class="app-input" inputmode="decimal" autocomplete="off"
-                      placeholder="VD: 539624.574">
+                      placeholder="VD: 539624.574" aria-label="Ví dụ: 539624.574">
                   </div>
                   <div class="btn-group-row" style="margin-top: 6px;">
                     <button class="btn-sm btn-blue" onclick="appTransform.copyVn2k()">📋 Sao chép</button>
@@ -1246,12 +1246,12 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label">Tên mốc đo:</label>
-                    <input type="text" id="txtSavePointName" class="app-input" placeholder="VD: Mốc 1, Ranh thửa 02...">
+                    <input type="text" id="txtSavePointName" class="app-input" placeholder="VD: Mốc 1, Ranh thửa 02..." aria-label="Ví dụ: Mốc 1, Ranh thửa 02...">
                   </div>
                   <div class="form-group">
                     <label class="form-label">Ghi chú hiện trường:</label>
                     <input type="text" id="txtSavePointNote" class="app-input"
-                      placeholder="VD: Cọc bê tông, góc hàng rào...">
+                      placeholder="VD: Cọc bê tông, góc hàng rào..." aria-label="Ví dụ: Cọc bê tông, góc hàng rào...">
                   </div>
                   <button class="btn-convert btn-wgs-to-vn2k" style="margin-top: 6px;"
                     onclick="appTransform.savePointToCsv()">
@@ -1264,7 +1264,7 @@
               <div id="panelTransMulti" style="display: none;">
                 <!-- Input file ẩn cho chức năng Nhập file -->
                 <input type="file" id="fileMultiBatchInput" accept=".csv,.txt,.xlsx,.xls" style="display: none;"
-                  onchange="appTransform.handleFileInput(this)">
+                  onchange="appTransform.handleFileInput(this)" aria-label="Tải tệp danh sách tọa độ">
 
                 <!-- Card 1: Công Cụ Nạp & Điều Chỉnh Dữ Liệu Đa Điểm -->
                 <div class="app-card">
@@ -1292,7 +1292,7 @@
                       title="Quét ảnh chụp màn hình / Sổ đỏ / Bản vẽ tọa độ (OCR)">
                       📸 Quét Ảnh (OCR)
                     </button>
-                    <input type="file" id="fileOcrImageInput" accept="image/*" style="display: none;" onchange="appOcr.onFileSelected(this.files[0])">
+                    <input type="file" id="fileOcrImageInput" accept="image/*" style="display: none;" onchange="appOcr.onFileSelected(this.files[0])" aria-label="Tải ảnh quét OCR tọa độ">
                     <button type="button" class="btn-sm" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #6ee7b7;"
                       onclick="document.getElementById('fileMultiBatchInput').click()"
                       title="Nhập danh sách mốc từ file CSV hoặc Excel">
@@ -1323,7 +1323,7 @@
                       X/Lat [Tab/Phẩy] Y/Lng):</label>
                     <textarea id="txtMultiPasteArea" class="app-input" rows="4"
                       style="height: auto; font-family: monospace; font-size: 11.5px;"
-                      placeholder="Ví dụ:&#10;M1  1144058.62  539624.57&#10;M2  1144080.15  539650.22"></textarea>
+                      placeholder="Ví dụ:&#10;M1  1144058.62  539624.57&#10;M2  1144080.15  539650.22" aria-label="Ví dụ:&#10;M1  1144058.62  539624.57&#10;M2  1144080.15  539650.22"></textarea>
                     <div style="display: flex; gap: 6px; margin-top: 6px;">
                       <button class="btn-sm btn-blue" onclick="appTransform.parsePasteMultiText()">✓ Nạp vào danh
                         sách</button>
@@ -1337,7 +1337,7 @@
                   <div class="card-header">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <input type="checkbox" id="chkMultiSelectAll" style="width: 16px; height: 16px; cursor: pointer;"
-                        onchange="appTransform.toggleSelectAllMulti(this.checked)" checked>
+                        onchange="appTransform.toggleSelectAllMulti(this.checked)" checked aria-label="Chọn tất cả điểm chuyển đổi">
                       <span class="card-title">📋 Bảng tọa độ</span>
                     </div>
                     <span id="lblMultiSelectedCount" style="font-size: 11.5px; color: #38bdf8; font-weight: 700;">Đã
@@ -1390,7 +1390,7 @@
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
                       <input type="checkbox" id="chkSaveMultiToProject"
                         style="width: 17px; height: 17px; cursor: pointer;"
-                        onchange="appTransform.onToggleSaveMultiToProject()">
+                        onchange="appTransform.onToggleSaveMultiToProject()" aria-label="Save multi to project">
                       <b style="color: #fbbf24;">💾 Lưu các điểm đã chuyển đổi vào Dự án</b>
                     </label>
 
@@ -1399,7 +1399,7 @@
                       style="display: none; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #334155;">
                       <label class="form-label">Chọn dự án đích để lưu kết quả:</label>
                       <div style="display: flex; gap: 6px;">
-                        <select id="selMultiTargetProject" class="app-select" style="flex: 1;">
+                        <select id="selMultiTargetProject" class="app-select" style="flex: 1;" aria-label="Chọn dự án đích lưu điểm">
                           <!-- Nạp danh sách dự án -->
                         </select>
                         <button class="btn-sm btn-blue" onclick="appTransform.quickCreateProjectForMulti()"
@@ -1518,23 +1518,23 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(45,212,191,0.3); border-radius: 8px;">
                       <div>
                         <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📁 Dự án / File lưu mốc:</label>
-                        <select id="multiSaveProject" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appTransform.onSaveMultiProjectChange(this.value)"></select>
+                        <select id="multiSaveProject" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appTransform.onSaveMultiProjectChange(this.value)" aria-label="Chọn dự án lưu hàng loạt"></select>
                         <div id="multiSaveNewProjectWrap" style="display: none; margin-top: 6px;">
-                          <input type="text" id="multiSaveNewProject" class="app-input" style="height: 28px; font-size: 11.5px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: DuAn_Moi.csv)">
+                          <input type="text" id="multiSaveNewProject" class="app-input" style="height: 28px; font-size: 11.5px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: DuAn_Moi.csv)" aria-label="Nhập tên file dự án mới (VD: DuAn_Moi.csv)">
                         </div>
                       </div>
 
                       <div>
                         <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">🏷️ Quy tắc đặt tên nhanh:</label>
                         <div style="display: flex; gap: 6px;">
-                          <select id="multiSaveNamingStrategy" class="app-input" style="height: 30px; font-size: 11.5px; flex: 1;" onchange="appTransform.onSaveMultiNamingChange(this.value)">
+                          <select id="multiSaveNamingStrategy" class="app-input" style="height: 30px; font-size: 11.5px; flex: 1;" onchange="appTransform.onSaveMultiNamingChange(this.value)" aria-label="Quy tắc đặt tên mốc">
                             <option value="original">Giữ nguyên tên gốc (M1, M2...)</option>
                             <option value="prefix">Đổi theo Tiền tố + STT</option>
                             <option value="suffix">Thêm hậu tố hệ tọa độ</option>
                           </select>
                         </div>
                         <div id="multiSavePrefixWrap" style="display: none; margin-top: 6px; align-items: center; gap: 6px;">
-                          <input type="text" id="multiSavePrefix" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Tiền tố (VD: P_, M_)" value="M_">
+                          <input type="text" id="multiSavePrefix" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Tiền tố (VD: P_, M_)" value="M_" aria-label="Tiền tố (VD: P_, M_)">
                           <button type="button" id="multiBtnApplyNaming" class="btn-sm btn-blue" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="appTransform.applyMultiNaming()">Áp dụng</button>
                         </div>
                       </div>
@@ -1616,7 +1616,7 @@
                   </div>
                   <label for="rzInput" class="form-label">Tọa độ nguồn — mỗi dòng một điểm: <b>Tên X Y</b> hoặc <b>X Y</b> (dán từ Excel/Zalo được)</label>
                   <textarea id="rzInput" class="app-input rz-input" rows="5" spellcheck="false" autocomplete="off"
-                    placeholder="M1    1191900.123    603800.456&#10;M2    1192015.880    603912.304"></textarea>
+                    placeholder="M1    1191900.123    603800.456&#10;M2    1192015.880    603912.304" aria-label="M1    1191900.123    603800.456&#10;M2    1192015.880    603912.304"></textarea>
                   <div class="btn-group-row" style="margin-top: 8px;">
                     <button type="button" id="rzRun" class="btn-sm btn-blue">🔁 Đổi tọa độ</button>
                     <button type="button" id="rzSample" class="btn-sm">Ví dụ</button>
@@ -1656,23 +1656,23 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; padding: 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(192,132,252,0.3); border-radius: 8px;">
                       <div>
                         <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">📁 Dự án / File lưu mốc:</label>
-                        <select id="rzSaveProject" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="Vn2kRezone.onSaveProjectChange(this.value)"></select>
+                        <select id="rzSaveProject" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="Vn2kRezone.onSaveProjectChange(this.value)" aria-label="Chọn dự án lưu điểm đổi KTT"></select>
                         <div id="rzSaveNewProjectWrap" style="display: none; margin-top: 6px;">
-                          <input type="text" id="rzSaveNewProject" class="app-input" style="height: 28px; font-size: 11.5px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: KTT_10545.csv)">
+                          <input type="text" id="rzSaveNewProject" class="app-input" style="height: 28px; font-size: 11.5px; width: 100%;" placeholder="Nhập tên file dự án mới (VD: KTT_10545.csv)" aria-label="Nhập tên file dự án mới (VD: KTT_10545.csv)">
                         </div>
                       </div>
 
                       <div>
                         <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #cbd5e1;">🏷️ Quy tắc đặt tên nhanh:</label>
                         <div style="display: flex; gap: 6px;">
-                          <select id="rzSaveNamingStrategy" class="app-input" style="height: 30px; font-size: 11.5px; flex: 1;" onchange="Vn2kRezone.onNamingStrategyChange(this.value)">
+                          <select id="rzSaveNamingStrategy" class="app-input" style="height: 30px; font-size: 11.5px; flex: 1;" onchange="Vn2kRezone.onNamingStrategyChange(this.value)" aria-label="Quy tắc đặt tên mốc đổi KTT">
                             <option value="original">Giữ nguyên tên gốc (M1, M2...)</option>
                             <option value="prefix">Đổi theo Tiền tố + STT</option>
                             <option value="suffix_ktt">Thêm hậu tố KTT đích</option>
                           </select>
                         </div>
                         <div id="rzSavePrefixWrap" style="display: none; margin-top: 6px; align-items: center; gap: 6px;">
-                          <input type="text" id="rzSavePrefix" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Tiền tố (VD: M_, KTT_)" value="M_">
+                          <input type="text" id="rzSavePrefix" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Tiền tố (VD: M_, KTT_)" value="M_" aria-label="Tiền tố (VD: M_, KTT_)">
                           <button type="button" id="rzBtnApplyNaming" class="btn-sm btn-purple" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="Vn2kRezone.applyCurrentNaming()">Áp dụng</button>
                         </div>
                       </div>
@@ -1962,7 +1962,7 @@
               <div class="sheet-config-row">
                 <div class="sheet-config-select-group">
                   <label class="sheet-field-label">📍 Tỉnh / Thành phố & KTT:</label>
-                  <select id="sheetTfSelectProvince" class="sheet-select" onchange="appTransformMap.onProvinceChange()">
+                  <select id="sheetTfSelectProvince" class="sheet-select" onchange="appTransformMap.onProvinceChange()" aria-label="Sheet tf select province">
                     <!-- Options nạp tự động -->
                   </select>
                 </div>
@@ -1983,11 +1983,11 @@
                   <div class="coord-inputs-row">
                     <div class="input-col">
                       <label>Vĩ độ (Lat B):</label>
-                      <input type="text" id="txtSheetWgsLat" class="sheet-input" placeholder="10.776889" oninput="appTransformMap.onInputChanged('wgs')">
+                      <input type="text" id="txtSheetWgsLat" class="sheet-input" placeholder="10.776889" oninput="appTransformMap.onInputChanged('wgs')" aria-label="10.776889">
                     </div>
                     <div class="input-col">
                       <label>Kinh độ (Lng L):</label>
-                      <input type="text" id="txtSheetWgsLng" class="sheet-input" placeholder="106.700806" oninput="appTransformMap.onInputChanged('wgs')">
+                      <input type="text" id="txtSheetWgsLng" class="sheet-input" placeholder="106.700806" oninput="appTransformMap.onInputChanged('wgs')" aria-label="106.700806">
                     </div>
                   </div>
                 </div>
@@ -2001,11 +2001,11 @@
                   <div class="coord-inputs-row">
                     <div class="input-col">
                       <label>Tọa độ X (Bắc - m):</label>
-                      <input type="text" id="txtSheetVn2kX" class="sheet-input" placeholder="1192534.120" oninput="appTransformMap.onInputChanged('vn2k')">
+                      <input type="text" id="txtSheetVn2kX" class="sheet-input" placeholder="1192534.120" oninput="appTransformMap.onInputChanged('vn2k')" aria-label="1192534.120">
                     </div>
                     <div class="input-col">
                       <label>Tọa độ Y (Đông - m):</label>
-                      <input type="text" id="txtSheetVn2kY" class="sheet-input" placeholder="602345.670" oninput="appTransformMap.onInputChanged('vn2k')">
+                      <input type="text" id="txtSheetVn2kY" class="sheet-input" placeholder="602345.670" oninput="appTransformMap.onInputChanged('vn2k')" aria-label="602345.670">
                     </div>
                   </div>
                 </div>
@@ -2102,10 +2102,10 @@
 
               <div class="sheet-multi-proj-row">
                 <label class="sheet-check-label">
-                  <input type="checkbox" id="chkSheetSaveMultiToProject" checked>
+                  <input type="checkbox" id="chkSheetSaveMultiToProject" checked aria-label="Sheet save multi to project">
                   <span>Lưu kết quả vào dự án:</span>
                 </label>
-                <select id="selSheetMultiTargetProject" class="sheet-select" style="max-width: 180px;">
+                <select id="selSheetMultiTargetProject" class="sheet-select" style="max-width: 180px;" aria-label="Sheet multi target project">
                   <!-- Nạp danh sách dự án -->
                 </select>
               </div>
@@ -2114,7 +2114,7 @@
                 <table class="sheet-multi-table">
                   <thead>
                     <tr>
-                      <th style="width: 30px;"><input type="checkbox" id="chkSheetSelectAll" onchange="appTransformMap.toggleSelectAllMulti(this.checked)" checked></th>
+                      <th style="width: 30px;"><input type="checkbox" id="chkSheetSelectAll" onchange="appTransformMap.toggleSelectAllMulti(this.checked)" checked aria-label="Sheet select all"></th>
                       <th style="width: 35px;">STT</th>
                       <th>Tên mốc</th>
                       <th>Tọa độ 1 (X/Lat)</th>
@@ -2262,7 +2262,7 @@
         <div id="mapProjectBar" class="map-project-bar">
           <div class="map-proj-select-box" title="Chọn dự án đang lưu để hiển thị mốc">
             <span class="map-proj-icon">📁</span>
-            <select id="selMapProjectFiles" class="map-proj-select" onchange="appMap.onMapProjectChange(this.value)">
+            <select id="selMapProjectFiles" class="map-proj-select" onchange="appMap.onMapProjectChange(this.value)" aria-label="Map project files">
               <!-- Nạp danh sách dự án kèm số mốc -->
             </select>
           </div>
@@ -2421,7 +2421,7 @@
               <select id="cadPointLayerSelect" class="app-input"
                 onchange="appCadTool.selectPointLayer(this.value)"
                 title="Lớp điểm đang nhận các điểm mới chấm"
-                style="height: 26px; max-width: 150px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px;"></select>
+                style="height: 26px; max-width: 150px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px;" aria-label="Lớp điểm đang nhận các điểm mới chấm"></select>
               <button type="button" class="cad-btn" onclick="appCadTool.createPointLayer()"
                 title="Tạo thêm lớp điểm mới (Mốc GPS, Cọc ranh, ...)">➕ Lớp mới</button>
             </div>
@@ -2447,20 +2447,20 @@
             </button>
             <input type="text" id="cadActiveShapeName" class="app-input"
               style="height: 26px; width: 110px; font-size: 11px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 5px; flex: none;"
-              placeholder="Tên khối (Thửa 1)" title="Đặt tên khối trước khi vẽ hoặc lưu">
+              placeholder="Tên khối (Thửa 1)" title="Đặt tên khối trước khi vẽ hoặc lưu" aria-label="Tên khối (Thửa 1)">
                         <!-- Thanh chọn nhanh ký hiệu đỉnh khi đang vẽ (Realtime Vertex HUD) -->
             <div id="cadVertexQuickBar" style="display: flex; align-items: center; gap: 4px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 2px 6px;">
               <span style="font-size: 11px; color: #38bdf8; font-weight: 700; white-space: nowrap;">🎨 Đỉnh:</span>
               <select id="cadDrawVertexStyle" class="app-input" onchange="appCadTool.updateDraftVertexConfig('style', this.value)"
                 title="Kiểu dáng icon đỉnh khi đang vẽ (Tròn, Vuông, Thoi, Sao, Pin...)"
-                style="height: 24px; max-width: 100px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
+                style="height: 24px; max-width: 100px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;" aria-label="Kiểu dáng icon đỉnh khi đang vẽ (Tròn, Vuông, Thoi, Sao, Pin...)">
               </select>
               <input type="color" id="cadDrawVertexColor" value="#10b981" onchange="appCadTool.updateDraftVertexConfig('color', this.value)"
                 title="Màu sắc icon đỉnh khi đang vẽ"
-                style="width: 26px; height: 24px; padding: 0; border: 1px solid rgba(56,189,248,0.4); border-radius: 4px; background: #0f172a; cursor: pointer;">
+                style="width: 26px; height: 24px; padding: 0; border: 1px solid rgba(56,189,248,0.4); border-radius: 4px; background: #0f172a; cursor: pointer;" aria-label="Màu sắc icon đỉnh khi đang vẽ">
               <select id="cadDrawVertexSize" class="app-input" onchange="appCadTool.updateDraftVertexConfig('size', this.value)"
                 title="Kích thước icon đỉnh khi đang vẽ (Nhỏ 14px, Vừa 20px, Lớn 26px, Rất lớn 32px)"
-                style="height: 24px; max-width: 85px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
+                style="height: 24px; max-width: 85px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;" aria-label="Kích thước icon đỉnh khi đang vẽ (Nhỏ 14px, Vừa 20px, Lớn 26px, Rất lớn 32px)">
               </select>
             </div>
             <button id="btnCadSaveShape" class="cad-btn"
@@ -2665,7 +2665,7 @@
               📥 Nhập Excel / CSV
             </button>
             <input type="file" id="cadFileInputExcel" accept=".xls,.xlsx,.csv,.txt" style="display: none;"
-              onchange="appCadTool.importExcel(event)">
+              onchange="appCadTool.importExcel(event)" aria-label="Cad file input excel">
             <button class="cad-btn"
               style="background: rgba(139, 92, 246, 0.25); border-color: #8b5cf6; color: #c4b5fd; font-weight: 700;"
               onclick="appCadTool.openGisImportModal()"
@@ -2673,7 +2673,7 @@
               🌐 Nạp GIS / DGN
             </button>
             <input type="file" id="cadFileInputGis" accept=".geojson,.json,.kml,.kmz,.gpx,.wkt,.dgn,.txt"
-              style="display: none;" onchange="appCadTool.onGisFilePicked(event)">
+              style="display: none;" onchange="appCadTool.onGisFilePicked(event)" aria-label="Cad file input gis">
             <button class="cad-btn"
               style="background: rgba(245, 158, 11, 0.22); border-color: #f59e0b; color: #fcd34d; font-weight: 700;"
               onclick="appPlanOverlay.open()"
@@ -2719,7 +2719,7 @@
             <label class="cad-mini-select-label" for="cadPolarStepSelect" title="Bước góc của các tia dóng góc">
               Bước góc
               <select id="cadPolarStepSelect" class="app-select cad-inline-select" disabled
-                onchange="appCadTool.setPolarStep(this.value)">
+                onchange="appCadTool.setPolarStep(this.value)" aria-label="Cad polar step select">
                 <option value="90">90°</option>
                 <option value="60">60°</option>
                 <option value="45">45°</option>
@@ -2743,48 +2743,48 @@
             <span class="cad-display-group-tag">HIỂN THỊ</span>
             <label class="cad-check-label" title="Hiện hoặc ẩn hoàn toàn các điểm rời của lớp điểm (P1, P2...) trên bản đồ">
               <input type="checkbox" id="cadCheckShowPoints" checked
-                onchange="appCadTool.toggleDisplayOption('showPoints', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showPoints', this.checked)" aria-label="Cad check show points">
               <span>📍 Điểm rời</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh của khối và tuyến (Đ1, Đ2, Đ3...)">
               <input type="checkbox" id="cadCheckShowVertices"
-                onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)" aria-label="Cad check show vertices">
               <span>📐 Đỉnh khối &amp; tuyến</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn chữ nhãn tên đi kèm ký hiệu điểm/đỉnh (tắt đi thì chỉ còn hình ký hiệu)">
               <input type="checkbox" id="cadCheckShowLabels" checked
-                onchange="appCadTool.toggleDisplayOption('showLabels', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showLabels', this.checked)" aria-label="Cad check show labels">
               <span>🏷️ Nhãn tên</span>
             </label>
             <span class="cad-display-group-sep"></span>
             <label class="cad-check-label" title="Hiện hoặc ẩn khoảng cách giữa các đỉnh (cự ly cạnh theo mét)">
               <input type="checkbox" id="cadCheckShowDistances"
-                onchange="appCadTool.toggleDisplayOption('showDistances', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showDistances', this.checked)" aria-label="Cad check show distances">
               <span>📏 Khoảng cách đỉnh (m)</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn ký hiệu tên và diện tích tại tâm các khối">
               <input type="checkbox" id="cadCheckShowCenterLabels" checked
-                onchange="appCadTool.toggleDisplayOption('showCenterLabels', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showCenterLabels', this.checked)" aria-label="Cad check show center labels">
               <span>🏷️ Ký hiệu & Tâm khối</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn các nét ghi chú: mũi tên, khối nhà, tem nhãn, văn bản">
               <input type="checkbox" id="cadCheckShowAnnotations" checked
-                onchange="appCadTool.toggleDisplayOption('showAnnotations', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showAnnotations', this.checked)" aria-label="Cad check show annotations">
               <span>🏹 Ghi chú kỹ thuật</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn đường viền ranh giới các khối">
               <input type="checkbox" id="cadCheckShowBoundaries" checked
-                onchange="appCadTool.toggleDisplayOption('showBoundaries', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showBoundaries', this.checked)" aria-label="Cad check show boundaries">
               <span>📐 Ranh giới khối</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn lớp bản đồ nền/quy hoạch chèn từ file PDF hoặc ảnh (Lệnh: PDF / PLAN)">
               <input type="checkbox" id="cadCheckShowPlanOverlay" checked
-                onchange="appCadTool.toggleDisplayOption('showPlanOverlay', this.checked)">
+                onchange="appCadTool.toggleDisplayOption('showPlanOverlay', this.checked)" aria-label="Cad check show plan overlay">
               <span>🗺️ Bản đồ PDF</span>
             </label>
             <label class="cad-check-label" title="Hiện hoặc ẩn lớp bản đồ quy hoạch 2030 Guland làm nền bên dưới nét vẽ (Lệnh CAD: QH / GULAND)">
               <input type="checkbox" id="cadCheckShowGulandPlanning"
-                onchange="appPlanning.toggleCadPlanning(this.checked)">
+                onchange="appPlanning.toggleCadPlanning(this.checked)" aria-label="Cad check show guland planning">
               <span>📐 Quy hoạch Guland</span>
             </label>
           </div>
@@ -2812,7 +2812,7 @@
 
           <div class="cad-cmd-input-wrap" id="cadCmdInputWrap">
             <span class="cad-cmd-prompt-label">Command:</span>
-            <input type="text" id="txtCadCommandLine" class="cad-cmd-input" placeholder="Gõ lệnh (L, P, REC, C, DIM, RO, O, E, EXP...)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="appCadTool.handleCmdKeyDown(event)" oninput="appCadTool.onCmdInputChange(this.value)">
+            <input type="text" id="txtCadCommandLine" class="cad-cmd-input" placeholder="Gõ lệnh (L, P, REC, C, DIM, RO, O, E, EXP...)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="appCadTool.handleCmdKeyDown(event)" oninput="appCadTool.onCmdInputChange(this.value)" aria-label="Gõ lệnh (L, P, REC, C, DIM, RO, O, E, EXP...)">
             <button type="button" class="cad-cmd-submit-btn" onclick="appCadTool.executeCommandLine()" title="Thực thi lệnh [Enter]">↵</button>
             <div id="cadCmdAutocomplete" class="cad-cmd-autocomplete" style="display: none;"></div>
           </div>
@@ -3181,7 +3181,7 @@
 
           <div class="form-group">
             <label class="form-label">Chọn mốc từ sổ đo dự án:</label>
-            <select id="selStakeoutPoint" class="app-select" onchange="appStakeout.onPointSelected()">
+            <select id="selStakeoutPoint" class="app-select" onchange="appStakeout.onPointSelected()" aria-label="Stakeout point">
               <!-- Nạp danh sách mốc dự án -->
             </select>
           </div>
@@ -3336,7 +3336,7 @@
 
           <div class="form-group" style="margin-bottom: 8px;">
             <label class="form-label">Chọn mốc đo gắn vào ảnh:</label>
-            <select id="selCameraPoint" class="app-select" onchange="appCamera.onPointSelected()">
+            <select id="selCameraPoint" class="app-select" onchange="appCamera.onPointSelected()" aria-label="Camera point">
               <!-- Nạp danh sách mốc dự án -->
             </select>
           </div>
@@ -3411,9 +3411,9 @@
         <div id="cameraTabPaneUpload" class="camera-tab-pane" style="display: none;">
           <div class="app-card">
             <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display: none;"
-              onchange="appCamera.onFileSelected(event)">
+              onchange="appCamera.onFileSelected(event)" aria-label="Camera file input">
             <input type="file" id="galleryFileInput" accept="image/*" style="display: none;"
-              onchange="appCamera.onFileSelected(event)">
+              onchange="appCamera.onFileSelected(event)" aria-label="Gallery file input">
 
             <div class="btn-group-row" style="margin-top: 4px;">
               <button class="btn-convert"
@@ -3510,7 +3510,7 @@
           </div>
           <div class="form-group">
             <div class="input-row">
-              <select id="selProjectFiles" class="app-select" onchange="appData.onProjectSelectChange()">
+              <select id="selProjectFiles" class="app-select" onchange="appData.onProjectSelectChange()" aria-label="Project files">
                 <!-- Projects nạp tự động -->
               </select>
               <button class="btn-sm btn-blue" style="flex:none; height: 42px; padding: 0 12px;"
@@ -3630,7 +3630,7 @@
               <thead>
                 <tr>
                   <th style="width: 36px; text-align: center;">
-                    <input type="checkbox" id="chkSelectAllPoints" onchange="appData.toggleSelectAllPoints(this.checked)" title="Chọn tất cả mốc" style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;">
+                    <input type="checkbox" id="chkSelectAllPoints" onchange="appData.toggleSelectAllPoints(this.checked)" title="Chọn tất cả mốc" style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;" aria-label="Chọn tất cả mốc">
                   </th>
                   <th style="width: 40px; text-align: center;">STT</th>
                   <th style="text-align: left;">Tên Mốc</th>
@@ -3667,23 +3667,23 @@
           </div>
           <div class="form-group">
             <label class="form-label">Chọn Mốc A (hoặc nhập X, Y):</label>
-            <select id="selGeoPointA" class="app-select" onchange="appGeodesy.onSelectPointA()">
+            <select id="selGeoPointA" class="app-select" onchange="appGeodesy.onSelectPointA()" aria-label="Geo point a">
               <option value="">-- Chọn mốc từ sổ đo --</option>
             </select>
             <div class="input-row" style="margin-top: 4px;">
-              <input type="text" id="txtGeoXa" class="app-input" placeholder="X A (Bắc)">
-              <input type="text" id="txtGeoYa" class="app-input" placeholder="Y A (Đông)">
+              <input type="text" id="txtGeoXa" class="app-input" placeholder="X A (Bắc)" aria-label="X A (Bắc)">
+              <input type="text" id="txtGeoYa" class="app-input" placeholder="Y A (Đông)" aria-label="Y A (Đông)">
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label">Chọn Mốc B (hoặc nhập X, Y):</label>
-            <select id="selGeoPointB" class="app-select" onchange="appGeodesy.onSelectPointB()">
+            <select id="selGeoPointB" class="app-select" onchange="appGeodesy.onSelectPointB()" aria-label="Geo point b">
               <option value="">-- Chọn mốc từ sổ đo --</option>
             </select>
             <div class="input-row" style="margin-top: 4px;">
-              <input type="text" id="txtGeoXb" class="app-input" placeholder="X B (Bắc)">
-              <input type="text" id="txtGeoYb" class="app-input" placeholder="Y B (Đông)">
+              <input type="text" id="txtGeoXb" class="app-input" placeholder="X B (Bắc)" aria-label="X B (Bắc)">
+              <input type="text" id="txtGeoYb" class="app-input" placeholder="Y B (Đông)" aria-label="Y B (Đông)">
             </div>
           </div>
 
@@ -4276,7 +4276,7 @@
                     <label class="form-label" style="color: #38bdf8; font-weight: 700; font-size: 11px;">
                       Dán danh sách cọc (Tên [Tab/Cách] X [Tab] Y [Tab] Z_TN hoặc Tên [Tab] Cự_ly [Tab] Z_TN):
                     </label>
-                    <textarea id="txtPasteAlignArea" class="app-input" rows="3" style="height: auto; font-family: monospace; font-size: 11.5px;" placeholder="Ví dụ:&#10;C1  1144000.0  585000.0  12.00&#10;C2  1144004.4  585000.0  12.00&#10;&#10;Hoặc theo cự ly:&#10;C1  0.0  12.00&#10;C2  4.4  12.00"></textarea>
+                    <textarea id="txtPasteAlignArea" class="app-input" rows="3" style="height: auto; font-family: monospace; font-size: 11.5px;" placeholder="Ví dụ:&#10;C1  1144000.0  585000.0  12.00&#10;C2  1144004.4  585000.0  12.00&#10;&#10;Hoặc theo cự ly:&#10;C1  0.0  12.00&#10;C2  4.4  12.00" aria-label="Ví dụ:&#10;C1  1144000.0  585000.0  12.00&#10;C2  1144004.4  585000.0  12.00&#10;&#10;Hoặc theo cự ly:&#10;C1  0.0  12.00&#10;C2  4.4  12.00"></textarea>
                     <div style="display: flex; gap: 6px; margin-top: 6px;">
                       <button class="btn-sm btn-blue" onclick="appElevationProfile.parsePasteAlignText()">✓ Nạp Cọc</button>
                       <button class="btn-sm" onclick="appElevationProfile.togglePasteAlignModal(false)">Đóng</button>
@@ -4293,22 +4293,22 @@
                     <div>
                       <label class="form-label" style="font-size: 11px;">Cao độ TK cọc đầu Z₀ (m):</label>
                       <input type="number" id="txtProfileDesignZ0" class="app-input" inputmode="decimal" value="12.00"
-                        step="0.01" style="height: 34px; font-size: 12px;">
+                        step="0.01" style="height: 34px; font-size: 12px;" aria-label="Profile design z0">
                     </div>
                     <div>
                       <label class="form-label" style="font-size: 11px;">Độ dốc dọc tuyến i (%):</label>
                       <input type="number" id="txtProfileSlope" class="app-input" inputmode="decimal" value="0.00"
-                        step="0.1" style="height: 34px; font-size: 12px;">
+                        step="0.1" style="height: 34px; font-size: 12px;" aria-label="Profile slope">
                     </div>
                     <div>
                       <label class="form-label" style="font-size: 11px;">Bề rộng nền đường B (m):</label>
                       <input type="number" id="txtProfileWidthB" class="app-input" inputmode="decimal" value="6.00"
-                        step="0.5" style="height: 34px; font-size: 12px;">
+                        step="0.5" style="height: 34px; font-size: 12px;" aria-label="Profile width b">
                     </div>
                     <div>
                       <label class="form-label" style="font-size: 11px;">Mái dốc Taluy m (1:m):</label>
                       <input type="number" id="txtProfileTaluyM" class="app-input" inputmode="decimal" value="1.00"
-                        step="0.1" style="height: 34px; font-size: 12px;">
+                        step="0.1" style="height: 34px; font-size: 12px;" aria-label="Profile taluy m">
                     </div>
                   </div>
                   <button class="btn-sm btn-purple"
@@ -4501,25 +4501,25 @@
                       <label class="form-label" style="font-size: 11px;">Cao độ TK đáy H_đáy (m):</label>
                       <input type="number" id="txtPitDesignH" class="app-input" inputmode="decimal" value="8.50"
                         step="0.01" style="height: 34px; font-size: 12px;"
-                        oninput="appElevationProfile.onPitDesignHChange()">
+                        oninput="appElevationProfile.onPitDesignHChange()" aria-label="Pit design h">
                     </div>
                     <div>
                       <label class="form-label" style="font-size: 11px;">Chiều sâu đào trung bình h (m):</label>
                       <input type="number" id="txtPitAvgDepthInput" class="app-input" inputmode="decimal" value="2.50"
                         step="0.01" style="height: 34px; font-size: 12px;"
-                        oninput="appElevationProfile.onPitAvgDepthChange()">
+                        oninput="appElevationProfile.onPitAvgDepthChange()" aria-label="Pit avg depth input">
                     </div>
                     <div>
                       <label class="form-label" style="font-size: 11px;">Góc nghiêng mái taluy α (°):</label>
                       <input type="number" id="txtPitSlopeAngleAlpha" class="app-input" inputmode="decimal" value="60.0"
                         step="0.5" min="15" max="85" style="height: 34px; font-size: 12px;"
-                        oninput="appElevationProfile.onPitSlopeAngleChange()">
+                        oninput="appElevationProfile.onPitSlopeAngleChange()" aria-label="Pit slope angle alpha">
                     </div>
                     <div>
                       <label class="form-label" style="font-size: 11px;">Hệ số mái dốc taluy m (1:m):</label>
                       <input type="number" id="txtPitTalusM" class="app-input" inputmode="decimal" value="0.58"
                         step="0.05" min="0.1" style="height: 34px; font-size: 12px;"
-                        oninput="appElevationProfile.onPitTalusChange()">
+                        oninput="appElevationProfile.onPitTalusChange()" aria-label="Pit talus m">
                     </div>
                   </div>
 
@@ -4544,12 +4544,12 @@
                     <div>
                       <label class="form-label" style="font-size: 11px;">Hệ số nở rời đất k_tx:</label>
                       <input type="number" id="txtPitBulkingK" class="app-input" inputmode="decimal" value="1.25"
-                        step="0.05" min="1.0" style="height: 34px; font-size: 12px;">
+                        step="0.05" min="1.0" style="height: 34px; font-size: 12px;" aria-label="Pit bulking k">
                     </div>
                     <div>
                       <label class="form-label" style="font-size: 11px;">Dung tích xe ben vận chuyển (m³):</label>
                       <input type="number" id="txtPitTruckV" class="app-input" inputmode="decimal" value="10" step="1"
-                        min="1" style="height: 34px; font-size: 12px;">
+                        min="1" style="height: 34px; font-size: 12px;" aria-label="Pit truck v">
                     </div>
                   </div>
 
@@ -4693,7 +4693,7 @@
           <!-- Tác vụ chính -->
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
             <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: #cbd5e1; cursor: pointer; user-select: none;" title="Quay lại điểm xuất phát ban đầu sau khi đi hết các mốc">
-              <input type="checkbox" id="chkRoutingRoundTrip" onchange="appRouting.toggleRoundTrip(this.checked)" checked style="width: 16px; height: 16px; accent-color: #10b981; cursor: pointer;">
+              <input type="checkbox" id="chkRoutingRoundTrip" onchange="appRouting.toggleRoundTrip(this.checked)" checked style="width: 16px; height: 16px; accent-color: #10b981; cursor: pointer;" aria-label="Routing round trip">
               <span>Khứ hồi (Khép kín)</span>
             </label>
             <button type="button" class="btn-sm btn-blue" onclick="appRouting.openAddPointsModal()" style="height: 34px; padding: 0 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" title="Thêm điểm từ tọa độ hoặc Sổ đo">
@@ -5081,7 +5081,7 @@
             <div style="display: flex; align-items: center; justify-content: space-between;">
               <span style="font-weight: 700; font-size: 12px; color: #f8fafc;" data-i18n="settings.general.haptic_title">📳 Rung phản hồi (Haptic)</span>
               <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
-                <input type="checkbox" id="chkHapticFeedback" checked onchange="appModal.toggleHaptic(this.checked)" style="opacity: 0; width: 0; height: 0;">
+                <input type="checkbox" id="chkHapticFeedback" checked onchange="appModal.toggleHaptic(this.checked)" style="opacity: 0; width: 0; height: 0;" aria-label="Haptic feedback">
                 <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0284c7; transition: .3s; border-radius: 24px;" id="sliderHaptic"></span>
               </label>
             </div>
@@ -5089,7 +5089,7 @@
             <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px dashed rgba(51,65,85,0.7);">
               <span style="font-weight: 700; font-size: 12px; color: #f8fafc;" data-i18n="settings.general.tips_title">💡 Hướng dẫn tính năng mới</span>
               <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
-                <input type="checkbox" id="chkFirstTimeTips" checked onchange="appModal.toggleFirstTimeTips(this.checked)" style="opacity: 0; width: 0; height: 0;">
+                <input type="checkbox" id="chkFirstTimeTips" checked onchange="appModal.toggleFirstTimeTips(this.checked)" style="opacity: 0; width: 0; height: 0;" aria-label="First time tips">
                 <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0284c7; transition: .3s; border-radius: 24px;" id="sliderFirstTimeTips"></span>
               </label>
             </div>
@@ -5123,7 +5123,7 @@
             <label class="form-label" style="margin-bottom: 6px;" data-i18n="settings.storage.mode_label">Chọn chế độ lưu trữ:</label>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <div class="storage-option-card active" id="cardModeOffline" onclick="appData.selectStorageMode('offline')">
-                <input type="radio" name="radioStorageMode" id="radioModeOffline" value="offline" checked style="margin-top: 3px; cursor: pointer;">
+                <input type="radio" name="radioStorageMode" id="radioModeOffline" value="offline" checked style="margin-top: 3px; cursor: pointer;" aria-label="Io mode offline">
                 <div>
                   <div style="font-weight: 700; color: #4ade80; font-size: 13px;" data-i18n="settings.storage.offline_title">📱 Lưu Ngoại Tuyến (Offline)</div>
                   <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;" data-i18n="settings.storage.offline_sub">Tốc độ cao, không phụ thuộc mạng thực địa</div>
@@ -5131,7 +5131,7 @@
               </div>
 
               <div class="storage-option-card" id="cardModeAutoGoogle" onclick="appData.selectStorageMode('auto_google')">
-                <input type="radio" name="radioStorageMode" id="radioModeAutoGoogle" value="auto_google" style="margin-top: 3px; cursor: pointer;">
+                <input type="radio" name="radioStorageMode" id="radioModeAutoGoogle" value="auto_google" style="margin-top: 3px; cursor: pointer;" aria-label="Io mode auto google">
                 <div>
                   <div style="font-weight: 700; color: #38bdf8; font-size: 13px;" data-i18n="settings.storage.cloud_title">☁️ Tự Động Đồng Bộ Google Sheets</div>
                   <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;" data-i18n="settings.storage.cloud_sub">Tự động gửi mốc lên Google Drive khi có mạng</div>
@@ -5143,20 +5143,20 @@
           <!-- Cấu hình Google Apps Script Web App URL -->
           <div class="form-group" style="margin-bottom: 10px;">
             <label class="form-label" style="margin-bottom: 4px;" data-i18n="settings.storage.script_url">Google Apps Script Web App URL:</label>
-            <input type="url" id="txtGoogleScriptUrl" class="app-input" placeholder="https://script.google.com/macros/s/.../exec">
+            <input type="url" id="txtGoogleScriptUrl" class="app-input" placeholder="https://script.google.com/macros/s/.../exec" aria-label="https://script.google.com/macros/s/.../exec">
           </div>
 
           <!-- Mã bí mật (tùy chọn): script chỉ nhận dữ liệu có mã đúng -->
           <div class="form-group" style="margin-bottom: 10px;">
             <label class="form-label" for="txtGoogleScriptSecret" style="margin-bottom: 4px;" data-i18n="settings.storage.secret">Mã bí mật (tùy chọn):</label>
-            <input type="text" id="txtGoogleScriptSecret" class="app-input" autocomplete="off" spellcheck="false" placeholder="Đặt giống dòng SECRET trong Apps Script">
+            <input type="text" id="txtGoogleScriptSecret" class="app-input" autocomplete="off" spellcheck="false" placeholder="Đặt giống dòng SECRET trong Apps Script" aria-label="Đặt giống dòng SECRET trong Apps Script">
             <p class="home-layout-summary" data-i18n="settings.storage.secret_hint" style="margin-top: 4px;">Ai có địa chỉ Web App đều gửi được dữ liệu vào Sheet. Đặt cùng một mã ở đây và ở dòng SECRET của script để chặn việc đó.</p>
           </div>
 
           <!-- Link xem file Google Sheet -->
           <div class="form-group" style="margin-bottom: 12px;">
             <label class="form-label" style="margin-bottom: 4px;" data-i18n="settings.storage.sheet_url">Link xem file Google Sheet (tùy chọn):</label>
-            <input type="url" id="txtGoogleSheetViewUrl" class="app-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+            <input type="url" id="txtGoogleSheetViewUrl" class="app-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit" aria-label="https://docs.google.com/spreadsheets/d/.../edit">
           </div>
 
           <!-- Hộp kết nối nhanh Google Sheet -->
@@ -5199,7 +5199,7 @@
 
           <div class="form-group" style="margin-bottom: 10px;">
             <label class="form-label" style="margin-bottom: 4px;" data-i18n="settings.ktt.province_label">Chọn tỉnh thành:</label>
-            <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()">
+            <select id="modalProvinceSelect" class="app-select" onchange="appModal.onProvinceChange()" aria-label="Modal province select">
               <!-- 34 tỉnh mới + 63 tỉnh cũ -->
             </select>
             <button type="button" id="btnKttFromGps" class="btn-sm" style="margin-top: 6px; width: 100%; min-height: 40px;"
@@ -5227,14 +5227,14 @@
               <span data-i18n="settings.ktt.quick_label">⚡ Nhập nhanh KTT:</span>
               <button type="button" class="btn-help-circle-sm" onclick="appGuide.openGuide('settings_ktt')" title="Xem quy tắc KTT chuẩn Việt Nam">?</button>
             </label>
-            <input type="text" id="txtModalKttQuick" class="app-input" placeholder="VD: 105°45' hoặc 105.75" oninput="appModal.onQuickKttInput(this.value)">
+            <input type="text" id="txtModalKttQuick" class="app-input" placeholder="VD: 105°45' hoặc 105.75" oninput="appModal.onQuickKttInput(this.value)" aria-label="Ví dụ: 105°45">
           </div>
 
           <div class="form-group" style="margin-bottom: 14px;">
             <label class="form-label" style="margin-bottom: 4px;" data-i18n="settings.ktt.split_label">Tự nhập tách rời (Độ - Phút):</label>
             <div class="input-row">
-              <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)" oninput="appModal.updateKttPreview(true)">
-              <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)" oninput="appModal.updateKttPreview(true)">
+              <input type="number" id="txtModalDeg" class="app-input" inputmode="decimal" placeholder="Độ (VD: 105)" oninput="appModal.updateKttPreview(true)" aria-label="Độ (VD: 105)">
+              <input type="number" id="txtModalMin" class="app-input" inputmode="decimal" placeholder="Phút (VD: 45)" oninput="appModal.updateKttPreview(true)" aria-label="Phút (VD: 45)">
             </div>
           </div>
 
@@ -5292,11 +5292,11 @@
           <div id="boxManualDatetimeControls" style="display: none; background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 10px; margin-bottom: 12px;">
             <div class="form-group" style="margin-bottom: 8px;">
               <label class="form-label" style="font-size: 11px;">Thiết lập ngày và giờ:</label>
-              <input type="datetime-local" id="inputManualDatetimeLocal" class="app-input" style="font-size: 12px; color: #f8fafc;" onchange="appDateTime.onManualInputChange()">
+              <input type="datetime-local" id="inputManualDatetimeLocal" class="app-input" style="font-size: 12px; color: #f8fafc;" onchange="appDateTime.onManualInputChange()" aria-label="Input manual datetime local">
             </div>
             <div class="form-group" style="margin-bottom: 6px;">
               <label class="form-label" style="font-size: 11px;">Múi giờ (Timezone):</label>
-              <select id="selManualTimezoneOffset" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appDateTime.onTimezoneChange()">
+              <select id="selManualTimezoneOffset" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appDateTime.onTimezoneChange()" aria-label="Manual timezone offset">
                 <option value="7" selected>GMT+07:00 (Việt Nam, Bangkok, Jakarta)</option>
                 <option value="8">GMT+08:00 (Singapore, Bắc Kinh)</option>
                 <option value="9">GMT+09:00 (Tokyo, Seoul)</option>
@@ -5365,7 +5365,7 @@
               <div style="font-size: 11.5px; color: #94a3b8; margin-top: 1px;" data-i18n="settings.rtk.prefer_sub">Độ chính xác cm cho Bản đồ, Cắm mốc & Camera</div>
             </div>
             <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
-              <input type="checkbox" id="chkUseExternalRtk" onchange="appBluetoothRtk.toggleUseRtk(this.checked)" style="opacity: 0; width: 0; height: 0;">
+              <input type="checkbox" id="chkUseExternalRtk" onchange="appBluetoothRtk.toggleUseRtk(this.checked)" style="opacity: 0; width: 0; height: 0;" aria-label="Use external rtk">
               <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px;" id="sliderUseRtk"></span>
             </label>
           </div>
@@ -5401,16 +5401,16 @@
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
             <div style="font-weight: 700; color: #38bdf8; font-size: 12px; margin-bottom: 6px;" data-i18n="settings.resection.pt_a">📍 MỐC KHỐNG CHẾ A:</div>
             <div class="form-group" style="margin-bottom: 6px;">
-              <select id="selResectionPtA" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appResection.onSelectPtA(this.value)">
+              <select id="selResectionPtA" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appResection.onSelectPtA(this.value)" aria-label="Resection pt a">
                 <option value="">-- Chọn mốc có sẵn --</option>
               </select>
             </div>
             <div class="input-row" style="margin-bottom: 6px;">
-              <input type="number" id="txtResectionXA" class="app-input" inputmode="decimal" placeholder="X (m) mốc A" step="0.001">
-              <input type="number" id="txtResectionYA" class="app-input" inputmode="decimal" placeholder="Y (m) mốc A" step="0.001">
+              <input type="number" id="txtResectionXA" class="app-input" inputmode="decimal" placeholder="X (m) mốc A" step="0.001" aria-label="X (m) mốc A">
+              <input type="number" id="txtResectionYA" class="app-input" inputmode="decimal" placeholder="Y (m) mốc A" step="0.001" aria-label="Y (m) mốc A">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <input type="number" id="txtResectionDistA" class="app-input" inputmode="decimal" placeholder="Khoảng cách dA (m)" step="0.001">
+              <input type="number" id="txtResectionDistA" class="app-input" inputmode="decimal" placeholder="Khoảng cách dA (m)" step="0.001" aria-label="Khoảng cách dA (m)">
             </div>
           </div>
 
@@ -5418,16 +5418,16 @@
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
             <div style="font-weight: 700; color: #fbbf24; font-size: 12px; margin-bottom: 6px;" data-i18n="settings.resection.pt_b">📍 MỐC KHỐNG CHẾ B:</div>
             <div class="form-group" style="margin-bottom: 6px;">
-              <select id="selResectionPtB" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appResection.onSelectPtB(this.value)">
+              <select id="selResectionPtB" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appResection.onSelectPtB(this.value)" aria-label="Resection pt b">
                 <option value="">-- Chọn mốc có sẵn --</option>
               </select>
             </div>
             <div class="input-row" style="margin-bottom: 6px;">
-              <input type="number" id="txtResectionXB" class="app-input" inputmode="decimal" placeholder="X (m) mốc B" step="0.001">
-              <input type="number" id="txtResectionYB" class="app-input" inputmode="decimal" placeholder="Y (m) mốc B" step="0.001">
+              <input type="number" id="txtResectionXB" class="app-input" inputmode="decimal" placeholder="X (m) mốc B" step="0.001" aria-label="X (m) mốc B">
+              <input type="number" id="txtResectionYB" class="app-input" inputmode="decimal" placeholder="Y (m) mốc B" step="0.001" aria-label="Y (m) mốc B">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <input type="number" id="txtResectionDistB" class="app-input" inputmode="decimal" placeholder="Khoảng cách dB (m)" step="0.001">
+              <input type="number" id="txtResectionDistB" class="app-input" inputmode="decimal" placeholder="Khoảng cách dB (m)" step="0.001" aria-label="Khoảng cách dB (m)">
             </div>
           </div>
 
@@ -5490,7 +5490,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 6px;">
               <label class="form-label" style="font-size: 11px;" data-i18n="settings.opt.fmt_label">Định dạng nén ảnh:</label>
-              <select id="selOptimizerFormat" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()">
+              <select id="selOptimizerFormat" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()" aria-label="Optimizer format">
                 <option value="webp" selected>WebP (Khuyên dùng - Nén tối ưu)</option>
                 <option value="jpeg">MozJPEG (Tương thích AutoCAD cũ)</option>
                 <option value="png">PNG (Không nén lossless)</option>
@@ -5498,7 +5498,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 6px;">
               <label class="form-label" style="font-size: 11px;" data-i18n="settings.opt.qual_label">Chất lượng nén:</label>
-              <select id="selOptimizerQuality" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()">
+              <select id="selOptimizerQuality" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()" aria-label="Optimizer quality">
                 <option value="high" selected>Cao (85% - Sắc nét nét vẽ)</option>
                 <option value="medium">Vừa (75% - Cân bằng dung lượng)</option>
                 <option value="max">Tối đa (95% - Xuất in ấn A0)</option>
@@ -5506,7 +5506,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" style="font-size: 11px;" data-i18n="settings.opt.edge_label">Kích thước cạnh tối đa:</label>
-              <select id="selOptimizerMaxEdge" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()">
+              <select id="selOptimizerMaxEdge" class="app-select" style="height: 32px; font-size: 11.5px;" onchange="appModal.onOptimizerSettingChange()" aria-label="Optimizer max edge">
                 <option value="2560" selected>2560 px (2K QHD)</option>
                 <option value="3840">3840 px (4K UHD)</option>
                 <option value="1920">1920 px (Full HD)</option>
@@ -5522,7 +5522,7 @@
             
             <div class="form-group" style="margin-bottom: 8px;">
               <label class="form-label" style="font-size: 11px; color: #cbd5e1;" data-i18n="settings.opt.enhance_mode_label">Chế độ xử lý ảnh khi phóng to sâu (Zoom 19-24):</label>
-              <select id="selOptimizerMapEnhance" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" onchange="appModal.onOptimizerSettingChange()">
+              <select id="selOptimizerMapEnhance" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" onchange="appModal.onOptimizerSettingChange()" aria-label="Optimizer map enhance">
                 <option value="gaussian_hd" selected>✨ Khử vỡ hạt Gaussian & Làm nét viền (Chuẩn)</option>
                 <option value="contrast">🔍 Sắc nét viền & Tương phản cao</option>
                 <option value="natural">🌊 Mượt mà tự nhiên (GPU Bicubic)</option>
@@ -5533,7 +5533,7 @@
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
               <span style="font-size: 11.5px; color: #f8fafc;" data-i18n="settings.opt.hidpi_label">Nạp ô bản đồ siêu nét 2x (Retina HD Scale)</span>
               <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
-                <input type="checkbox" id="chkOptimizerHiDpi" onchange="appModal.onOptimizerSettingChange()" style="opacity: 0; width: 0; height: 0;">
+                <input type="checkbox" id="chkOptimizerHiDpi" onchange="appModal.onOptimizerSettingChange()" style="opacity: 0; width: 0; height: 0;" aria-label="Optimizer hi dpi">
                 <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .3s; border-radius: 24px;" id="sliderOptimizerHiDpi"></span>
               </label>
             </div>
@@ -5541,7 +5541,7 @@
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
               <span style="font-size: 11.5px; color: #f8fafc;" data-i18n="settings.opt.smooth_label">Tải bản đồ mượt mà (Smooth Update)</span>
               <label style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; margin: 0;">
-                <input type="checkbox" id="chkOptimizerSmoothMap" checked onchange="appModal.onOptimizerSettingChange()" style="opacity: 0; width: 0; height: 0;">
+                <input type="checkbox" id="chkOptimizerSmoothMap" checked onchange="appModal.onOptimizerSettingChange()" style="opacity: 0; width: 0; height: 0;" aria-label="Optimizer smooth map">
                 <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0284c7; transition: .3s; border-radius: 24px;" id="sliderOptimizerSmooth"></span>
               </label>
             </div>
@@ -5646,7 +5646,7 @@
               </div>
               <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 11px; color: #facc15; font-weight: 700;">
-                  <input type="checkbox" id="cadShowPercentRatio" checked onchange="appCadTool.togglePercentRatio(this.checked)" style="accent-color: #facc15; width: 14px; height: 14px;">
+                  <input type="checkbox" id="cadShowPercentRatio" checked onchange="appCadTool.togglePercentRatio(this.checked)" style="accent-color: #facc15; width: 14px; height: 14px;" aria-label="Cad show percent ratio">
                   <span>Hiện cột % Tỉ lệ diện tích</span>
                 </label>
               </div>
@@ -5658,7 +5658,7 @@
               <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: rgba(15,23,42,0.6); border-bottom: 1px solid rgba(56,189,248,0.15); font-size: 11px; flex-wrap: wrap; gap: 6px;">
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span style="color: #94a3b8;">Tổng diện tích dự án tính %:</span>
-                  <input type="number" step="0.01" id="cadCustomProjectArea" style="width: 110px; height: 24px; font-size: 11px; font-weight: 700; color: #facc15; background: rgba(15,23,42,0.9); border: 1px solid rgba(250,204,21,0.4); border-radius: 4px; padding: 0 6px; text-align: right;" placeholder="Đo thực tế" oninput="appCadTool.updateCustomProjectArea(this.value)">
+                  <input type="number" step="0.01" id="cadCustomProjectArea" style="width: 110px; height: 24px; font-size: 11px; font-weight: 700; color: #facc15; background: rgba(15,23,42,0.9); border: 1px solid rgba(250,204,21,0.4); border-radius: 4px; padding: 0 6px; text-align: right;" placeholder="Đo thực tế" oninput="appCadTool.updateCustomProjectArea(this.value)" aria-label="Đo thực tế">
                   <span style="color: #facc15; font-weight: 700;">m²</span>
                   <button type="button" class="btn-sm" style="height: 22px; padding: 0 6px; font-size: 11.5px; background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);" onclick="appCadTool.resetCustomProjectArea()" title="Đặt lại theo tổng diện tích đo thực tế">🔄 Tự động đo</button>
                 </div>
@@ -5721,11 +5721,11 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(30,41,59,0.7); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">📍 Danh sách tất cả đỉnh trên bản vẽ:</span>
-            <input type="text" id="txtSearchCadVertices" class="app-input" placeholder="Tìm đỉnh / khối..." style="height: 26px; width: 160px; font-size: 11px; padding: 0 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;" oninput="appCadTool.filterVerticesTable(this.value)">
+            <input type="text" id="txtSearchCadVertices" class="app-input" placeholder="Tìm đỉnh / khối..." style="height: 26px; width: 160px; font-size: 11px; padding: 0 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;" oninput="appCadTool.filterVerticesTable(this.value)" aria-label="Tìm đỉnh / khối...">
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #facc15; font-weight: 700; cursor: pointer;">
-              <input type="checkbox" id="cadCheckAllVerticesVisible" checked onchange="appCadTool.toggleAllVerticesVisible(this.checked)" style="accent-color: #facc15; width: 14px; height: 14px;">
+              <input type="checkbox" id="cadCheckAllVerticesVisible" checked onchange="appCadTool.toggleAllVerticesVisible(this.checked)" style="accent-color: #facc15; width: 14px; height: 14px;" aria-label="Cad check all vertices visible">
               <span>Hiện tất cả đỉnh trên map</span>
             </label>
           </div>
@@ -5734,10 +5734,10 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
             <span style="font-size: 11px; font-weight: 700; color: #a7f3d0; white-space: nowrap;">⚡ Đổi hàng loạt:</span>
-            <select id="cadBulkShapeSelect" class="app-input" style="height: 25px; max-width: 130px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;"></select>
-            <select id="cadBulkStyleSelect" class="app-input" style="height: 25px; max-width: 100px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;"></select>
-            <input type="color" id="cadBulkColorSelect" value="#10b981" style="width: 28px; height: 25px; padding: 0; border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; background: #0f172a; cursor: pointer;">
-            <select id="cadBulkSizeSelect" class="app-input" style="height: 25px; max-width: 85px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;"></select>
+            <select id="cadBulkShapeSelect" class="app-input" style="height: 25px; max-width: 130px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;" aria-label="Cad bulk shape select"></select>
+            <select id="cadBulkStyleSelect" class="app-input" style="height: 25px; max-width: 100px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;" aria-label="Cad bulk style select"></select>
+            <input type="color" id="cadBulkColorSelect" value="#10b981" style="width: 28px; height: 25px; padding: 0; border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; background: #0f172a; cursor: pointer;" aria-label="Cad bulk color select">
+            <select id="cadBulkSizeSelect" class="app-input" style="height: 25px; max-width: 85px; font-size: 11px; padding: 0 4px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px;" aria-label="Cad bulk size select"></select>
             <button type="button" class="btn-sm btn-cyan" onclick="appCadTool.applyBulkVertexGlyphs()" style="height: 25px; padding: 0 10px; font-size: 11px; font-weight: 700;">Áp dụng</button>
           </div>
         </div>
@@ -5942,7 +5942,7 @@
 
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
           <label for="planOvKtt" style="font-size: 11.5px; color: #94a3b8;">Kinh tuyến trục của bản đồ</label>
-          <select id="planOvKtt" class="app-input" style="height: 32px; min-width: 250px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"></select>
+          <select id="planOvKtt" class="app-input" style="height: 32px; min-width: 250px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;" aria-label="Plan ov ktt"></select>
         </div>
       <div id="planOvListView">
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
@@ -5952,7 +5952,7 @@
           <!-- Bộ chọn độ nét kết xuất PDF / Ảnh -->
           <div style="display: flex; align-items: center; gap: 6px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 8px; border-radius: 6px; height: 38px;">
             <label for="planOvDpiSelect" style="font-size: 11.5px; color: #fbbf24; font-weight: 700; white-space: nowrap;">Độ nét PDF:</label>
-            <select id="planOvDpiSelect" class="app-input" style="height: 30px; font-size: 11.5px; padding: 0 6px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.3); color: #fef08a; border-radius: 4px; font-weight: 700;" onchange="localStorage.setItem('vn2k_plan_overlay_dpi', this.value)">
+            <select id="planOvDpiSelect" class="app-input" style="height: 30px; font-size: 11.5px; padding: 0 6px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(245, 158, 11, 0.3); color: #fef08a; border-radius: 4px; font-weight: 700;" onchange="localStorage.setItem('vn2k_plan_overlay_dpi', this.value)" aria-label="Plan ov dpi select">
               <option value="150">⚡ Tiêu chuẩn (150 DPI)</option>
               <option value="300" selected>🎯 Rõ nét (300 DPI - Khuyên dùng)</option>
               <option value="450">🔬 Siêu nét HD (450 DPI)</option>
@@ -5964,7 +5964,7 @@
           <button type="button" class="btn-sm" style="height: 40px; padding: 0 12px; background: rgba(148, 163, 184, 0.15); border: 1px solid #64748b; color: #cbd5e1;" onclick="appPlanOverlay.setAllItemsVisible(false)" title="Tắt hiển thị tất cả ảnh/PDF trên bản đồ">🙈 Tắt tất cả</button>
           <input type="file" id="planOvFile" multiple style="display: none;"
             accept=".jpg,.jpeg,.png,.webp,.pdf,.jgw,.jpgw,.jpw,.pgw,.pngw,.tfw,.tifw,.wld,.j2w,image/jpeg,image/png,image/webp,application/pdf"
-            onchange="appPlanOverlay.onFilesPicked(event)">
+            onchange="appPlanOverlay.onFilesPicked(event)" aria-label="Plan ov file">
           <span style="font-size: 11.5px; color: #94a3b8; flex: 1 1 200px;">JPG · PNG · WebP · PDF. Chọn kèm tệp tọa độ cùng tên (.jgw, .pgw, .tfw, .wld) để tự gắn tọa độ; không có thì chấm 2–4 điểm khống chế.</span>
         </div>
         <div id="planOvList"></div>
@@ -5978,7 +5978,7 @@
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
           <div id="planOvPageRow" style="display: none; align-items: center; gap: 6px;">
             <label for="planOvPage" style="font-size: 11.5px; color: #94a3b8;">Trang PDF</label>
-            <select id="planOvPage" class="app-input" style="height: 32px; font-size: 12px;" onchange="appPlanOverlay.changePdfPage(this.value)"></select>
+            <select id="planOvPage" class="app-input" style="height: 32px; font-size: 12px;" onchange="appPlanOverlay.changePdfPage(this.value)" aria-label="Plan ov page"></select>
           </div>
           <span style="flex: 1;"></span>
           <button class="btn-sm" style="height: 36px; min-width: 40px;" onclick="appPlanOverlay.zoomBy(0.8)" aria-label="Thu nhỏ ảnh">－</button>
@@ -6021,9 +6021,9 @@
         </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
           <select id="cadSelectBoundaryCategory" class="app-input" onchange="appCadTool.onBoundaryCategoryChange(this.value)"
-            style="height: 32px; font-size: 11.5px; min-width: 180px; flex: 1; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"></select>
+            style="height: 32px; font-size: 11.5px; min-width: 180px; flex: 1; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;" aria-label="Cad select boundary category"></select>
           <select id="cadSelectBoundaryName" class="app-input"
-            style="height: 32px; font-size: 11.5px; min-width: 190px; flex: 1.5; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"></select>
+            style="height: 32px; font-size: 11.5px; min-width: 190px; flex: 1.5; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;" aria-label="Cad select boundary name"></select>
           <button type="button" class="btn-sm" onclick="appCadTool.applyAdminBoundaryImport()"
             style="height: 32px; padding: 0 14px; font-weight: 800; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; border: 1px solid #38bdf8; border-radius: 4px; white-space: nowrap;">
             ⬇ Nạp vào CAD
@@ -6048,26 +6048,26 @@
       <!-- Hệ quy chiếu của tệp -->
       <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
         <span style="font-size: 11.5px; color: #94a3b8; min-width: 130px;">Tọa độ trong tệp</span>
-        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="auto" checked><span>Tự nhận diện</span></label>
-        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="wgs84"><span>WGS84 (kinh độ/vĩ độ)</span></label>
-        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="vn2000"><span>VN2000 (X/Y mét)</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="auto" checked aria-label="Trường nhập liệu"><span>Tự nhận diện</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="wgs84" aria-label="Trường nhập liệu"><span>WGS84 (kinh độ/vĩ độ)</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisCrs" value="vn2000" aria-label="Trường nhập liệu"><span>VN2000 (X/Y mét)</span></label>
       </div>
 
       <!-- Trục + KTT: chỉ cần thiết khi tệp đã chiếu -->
       <div id="cadGisTargetProjected"
         style="display: none; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; padding: 7px 10px; background: rgba(30,41,59,0.55); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px;">
         <span style="font-size: 11.5px; color: #94a3b8;">Thứ tự trục</span>
-        <label class="cad-check-label"><input type="radio" name="cadGisAxis" value="EN" checked><span>(Y Đông, X Bắc)</span></label>
-        <label class="cad-check-label"><input type="radio" name="cadGisAxis" value="NE"><span>(X Bắc, Y Đông)</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisAxis" value="EN" checked aria-label="Trường nhập liệu"><span>(Y Đông, X Bắc)</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisAxis" value="NE" aria-label="Trường nhập liệu"><span>(X Bắc, Y Đông)</span></label>
       </div>
 
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
         <span style="font-size: 11.5px; color: #94a3b8;">Kinh tuyến trục</span>
         <select id="cadGisKtt" class="app-input"
-          style="height: 30px; min-width: 250px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"></select>
+          style="height: 30px; min-width: 250px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;" aria-label="Cad gis ktt"></select>
         <span style="font-size: 11.5px; color: #94a3b8;">Lưới chiếu</span>
         <select id="cadGisMui" class="app-input"
-          style="height: 30px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
+          style="height: 30px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;" aria-label="Cad gis mui">
           <option value="3">3° (k0 = 0.9999)</option>
           <option value="6">6° (k0 = 0.9996)</option>
         </select>
@@ -6076,14 +6076,14 @@
       <!-- Đối tượng sẽ nạp -->
       <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
         <span style="font-size: 11.5px; color: #94a3b8; min-width: 130px;">Nạp vào bản vẽ</span>
-        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="both" checked><span>Khối/tuyến + điểm rời</span></label>
-        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="shapes"><span>Chỉ khối &amp; tuyến</span></label>
-        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="points"><span>Chỉ lớp điểm rời</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="both" checked aria-label="Trường nhập liệu"><span>Khối/tuyến + điểm rời</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="shapes" aria-label="Trường nhập liệu"><span>Chỉ khối &amp; tuyến</span></label>
+        <label class="cad-check-label"><input type="radio" name="cadGisTarget" value="points" aria-label="Trường nhập liệu"><span>Chỉ lớp điểm rời</span></label>
       </div>
 
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
         <span style="font-size: 11.5px; color: #94a3b8;">Tên lớp điểm</span>
-        <input type="text" id="cadGisLayerName" class="app-input" placeholder='Mặc định: "Điểm <tên tệp>"'
+        <input type="text" id="cadGisLayerName" class="app-input" placeholder="Mặc định: Điểm &lt;tên tệp&gt;" aria-label="Tên lớp điểm GIS CAD"
           style="height: 30px; flex: 1; min-width: 200px; font-size: 12px; padding: 0 8px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;">
       </div>
 
@@ -6114,7 +6114,7 @@
           <span style="font-size: 11px; color: #94a3b8;">Lớp điểm:</span>
           <select id="cadPtTableLayerSelect" class="app-input"
             style="height: 28px; max-width: 200px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"
-            onchange="appCadTool.selectPointTableLayer(this.value)" title="Chọn lớp điểm cần xem/sửa"></select>
+            onchange="appCadTool.selectPointTableLayer(this.value)" title="Chọn lớp điểm cần xem/sửa" aria-label="Chọn lớp điểm cần xem/sửa"></select>
           <button type="button" class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;"
             onclick="appCadTool.createPointLayerFromTable()" title="Tạo lớp điểm mới">➕ Lớp mới</button>
           <button type="button" class="btn-sm btn-blue" style="height: 28px; padding: 0 8px; font-size: 11px;"
@@ -6130,10 +6130,10 @@
         <b id="cadPtBulkLayerName" style="font-size: 11px; color: #fde047;">—</b>
         <select id="cadPtBulkStyle" class="app-input"
           style="height: 28px; max-width: 130px; font-size: 12px; padding: 0 6px; background: rgba(30,41,59,0.9); border: 1px solid rgba(56,189,248,0.4); color: #f8fafc; border-radius: 4px;"
-          title="Hình dạng ký hiệu dùng cho toàn bộ điểm của lớp"></select>
+          title="Hình dạng ký hiệu dùng cho toàn bộ điểm của lớp" aria-label="Hình dạng ký hiệu dùng cho toàn bộ điểm của lớp"></select>
         <input type="color" id="cadPtBulkColor"
           style="width: 34px; height: 28px; padding: 0; border: 1px solid rgba(56,189,248,0.4); border-radius: 4px; background: rgba(30,41,59,0.9);"
-          title="Màu ký hiệu dùng cho toàn bộ điểm của lớp">
+          title="Màu ký hiệu dùng cho toàn bộ điểm của lớp" aria-label="Màu ký hiệu dùng cho toàn bộ điểm của lớp">
         <button type="button" class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;"
           onclick="appCadTool.applyPointLayerStyle()" title="Áp kiểu + màu cho tất cả điểm của lớp đang chọn">⬇ Áp dụng cả lớp</button>
         <button type="button" class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;"
@@ -6169,15 +6169,15 @@
           VN-2000</div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px;">
           <input type="text" id="cadPtNewName" class="app-input" placeholder="Tên (P1)"
-            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;" aria-label="Tên (P1)">
           <input type="number" step="0.001" id="cadPtNewX" class="app-input" placeholder="X (Bắc) *"
-            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;" aria-label="X (Bắc) *">
           <input type="number" step="0.001" id="cadPtNewY" class="app-input" placeholder="Y (Đông) *"
-            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;" aria-label="Y (Đông) *">
           <input type="number" step="0.01" id="cadPtNewH" class="app-input" placeholder="H (m)"
-            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;">
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px;" aria-label="H (m)">
           <input type="text" id="cadPtNewNote" class="app-input" placeholder="Ghi chú"
-            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px; grid-column: span 2;">
+            style="height: 30px; font-size: 12px; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); color: #f8fafc; border-radius: 4px; padding: 0 6px; grid-column: span 2;" aria-label="Ghi chú">
         </div>
         <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
           <button type="button" class="btn-sm btn-blue" style="height: 32px; padding: 0 12px;"
@@ -6213,7 +6213,7 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; padding: 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.3); border-radius: 8px;">
         <div>
           <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #94a3b8;">Nguồn điểm:</label>
-          <select id="cadConnectSourceSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.onConnectSourceChange(this.value)">
+          <select id="cadConnectSourceSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.onConnectSourceChange(this.value)" aria-label="Cad connect source select">
             <option value="cad_points">📍 Điểm trong MiniCAD (Lớp điểm rời)</option>
             <option value="project_points">📁 Điểm từ Sổ mốc Dự án hiện hành</option>
             <option value="converted_points">🔄 Điểm vừa Chuyển đổi tọa độ</option>
@@ -6221,14 +6221,14 @@
         </div>
         <div>
           <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #94a3b8;">Kiểu đối tượng nối:</label>
-          <select id="cadConnectModeSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.onConnectModeChange(this.value)">
+          <select id="cadConnectModeSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.onConnectModeChange(this.value)" aria-label="Cad connect mode select">
             <option value="polygon">📐 Đa giác ranh khép kín (Polygon) — Tính diện tích m² & ha</option>
             <option value="polyline">📏 Đường tim tuyến / Ranh hở (Polyline) — Tính tổng chiều dài</option>
           </select>
         </div>
         <div>
           <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #94a3b8;">Thứ tự nối điểm:</label>
-          <select id="cadConnectOrderSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.onConnectOrderChange()">
+          <select id="cadConnectOrderSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" onchange="appCadTool.onConnectOrderChange()" aria-label="Cad connect order select">
             <option value="natural">🔤 Theo Tên / STT tự nhiên (Đ1, Đ2...)</option>
             <option value="list">📋 Theo thứ tự danh sách điểm ban đầu</option>
             <option value="tsp">🔄 Tối ưu chu vi ngắn nhất (Vòng khép góc)</option>
@@ -6236,7 +6236,7 @@
         </div>
         <div>
           <label class="form-label" style="font-size: 11px; margin-bottom: 3px; color: #94a3b8;">Lớp đối tượng đích:</label>
-          <select id="cadConnectLayerSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;"></select>
+          <select id="cadConnectLayerSelect" class="app-input" style="height: 30px; font-size: 11.5px; width: 100%;" aria-label="Cad connect layer select"></select>
         </div>
       </div>
 
@@ -6244,10 +6244,10 @@
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 220px;">
           <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">Tên đối tượng:</span>
-          <input type="text" id="cadConnectTargetName" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Ví dụ: Thửa nối 1" value="Thửa nối 1">
+          <input type="text" id="cadConnectTargetName" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="Ví dụ: Thửa nối 1" value="Thửa nối 1" aria-label="Ví dụ: Thửa nối 1">
         </div>
         <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 200px;">
-          <input type="text" id="cadConnectSearchInput" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="🔍 Lọc theo tên mốc hoặc tọa độ..." oninput="appCadTool.filterConnectPoints(this.value)">
+          <input type="text" id="cadConnectSearchInput" class="app-input" style="height: 28px; font-size: 11.5px; flex: 1;" placeholder="🔍 Lọc theo tên mốc hoặc tọa độ..." oninput="appCadTool.filterConnectPoints(this.value)" aria-label="🔍 Lọc theo tên mốc hoặc tọa độ...">
           <button type="button" class="btn-sm" style="height: 28px; padding: 0 8px; font-size: 11px;" onclick="appCadTool.toggleSelectAllConnectPoints(true)">Tất cả</button>
           <button type="button" class="btn-sm btn-red" style="height: 28px; padding: 0 8px; font-size: 11px;" onclick="appCadTool.toggleSelectAllConnectPoints(false)">Bỏ chọn</button>
         </div>
@@ -6302,7 +6302,7 @@
         style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.3); border-radius: 8px;">
         <span style="font-size: 11px; color: #94a3b8;">Phép đo:</span>
         <select id="cadInquiryMode" class="app-input cad-inline-select" onchange="appCadTool.setInquiryMode(this.value)"
-          title="Chọn phép trac lường — DIST đo 2 điểm, AREA chấm chuỗi đỉnh, ID tra tọa độ, LIST xem đối tượng">
+          title="Chọn phép trac lường — DIST đo 2 điểm, AREA chấm chuỗi đỉnh, ID tra tọa độ, LIST xem đối tượng" aria-label="Chọn phép trac lường — DIST đo 2 điểm, AREA chấm chuỗi đỉnh, ID tra tọa độ, LIST xem đối tượng">
           <option value="dist">📏 DIST — Khoảng cách 2 điểm</option>
           <option value="area">⬢ AREA — Diện tích chuỗi đỉnh</option>
           <option value="point">🎯 ID — Tọa độ điểm chạm</option>
@@ -6356,7 +6356,7 @@
         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; padding: 10px; margin-bottom: 8px; background: rgba(15,23,42,0.85); border: 1px solid rgba(56,189,248,0.3); border-radius: 8px;">
         <div>
           <label class="cad-mini-select-label" for="cadQSelKind">Loại đối tượng</label>
-          <select id="cadQSelKind" class="app-input cad-inline-select">
+          <select id="cadQSelKind" class="app-input cad-inline-select" aria-label="Cad q sel kind">
             <option value="all">— Mọi loại —</option>
             <option value="poly">Khối đa giác / chữ nhật</option>
             <option value="line">Tuyến hở</option>
@@ -6365,32 +6365,32 @@
         </div>
         <div>
           <label class="cad-mini-select-label" for="cadQSelLayer">Lớp CAD</label>
-          <select id="cadQSelLayer" class="app-input cad-inline-select"></select>
+          <select id="cadQSelLayer" class="app-input cad-inline-select" aria-label="Cad q sel layer"></select>
         </div>
         <div style="grid-column: 1 / -1;">
           <label class="cad-mini-select-label" for="cadQSelName">Tên chứa (không phân biệt hoa thường)</label>
           <input type="text" id="cadQSelName" class="app-input cad-inline-select" placeholder="VD: thửa, nhà, BTN..."
-            spellcheck="false">
+            spellcheck="false" aria-label="Ví dụ: thửa, nhà, BTN...">
         </div>
         <div>
           <label class="cad-mini-select-label" for="cadQSelAreaMin">S tối thiểu (m²)</label>
-          <input type="number" step="0.01" id="cadQSelAreaMin" class="app-input cad-inline-select" placeholder="0">
+          <input type="number" step="0.01" id="cadQSelAreaMin" class="app-input cad-inline-select" placeholder="0" aria-label="0">
         </div>
         <div>
           <label class="cad-mini-select-label" for="cadQSelAreaMax">S tối đa (m²)</label>
-          <input type="number" step="0.01" id="cadQSelAreaMax" class="app-input cad-inline-select" placeholder="∞">
+          <input type="number" step="0.01" id="cadQSelAreaMax" class="app-input cad-inline-select" placeholder="∞" aria-label="∞">
         </div>
         <div>
           <label class="cad-mini-select-label" for="cadQSelVMin">Số đỉnh ≥</label>
-          <input type="number" step="1" id="cadQSelVMin" class="app-input cad-inline-select" placeholder="1">
+          <input type="number" step="1" id="cadQSelVMin" class="app-input cad-inline-select" placeholder="1" aria-label="1">
         </div>
         <div>
           <label class="cad-mini-select-label" for="cadQSelVMax">Số đỉnh ≤</label>
-          <input type="number" step="1" id="cadQSelVMax" class="app-input cad-inline-select" placeholder="∞">
+          <input type="number" step="1" id="cadQSelVMax" class="app-input cad-inline-select" placeholder="∞" aria-label="∞">
         </div>
         <label
           style="grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #cbd5e1;">
-          <input type="checkbox" id="cadQSelOnlySelected"> Chỉ tìm trong nhóm đang chọn (chọn lồng dần)
+          <input type="checkbox" id="cadQSelOnlySelected" aria-label="Cad q sel only selected"> Chỉ tìm trong nhóm đang chọn (chọn lồng dần)
         </label>
       </div>
 
@@ -6438,17 +6438,17 @@
         <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
           <label class="cad-check-label" title="Ẩn hiện toàn bộ điểm rời của các lớp điểm">
             <input type="checkbox" id="cadSymShowPoints" checked
-              onchange="appCadTool.toggleDisplayOption('showPoints', this.checked)">
+              onchange="appCadTool.toggleDisplayOption('showPoints', this.checked)" aria-label="Cad sym show points">
             <span>📍 Điểm rời</span>
           </label>
           <label class="cad-check-label" title="Ẩn hiện ký hiệu đỉnh của khối đa giác và tuyến">
             <input type="checkbox" id="cadSymShowVertices"
-              onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)">
+              onchange="appCadTool.toggleDisplayOption('showVertices', this.checked)" aria-label="Cad sym show vertices">
             <span>📐 Đỉnh khối &amp; tuyến</span>
           </label>
           <label class="cad-check-label" title="Tắt nhãn tên thì điểm/đỉnh xuống dạng ký hiệu hình, bật thì thành viên thuốc có chữ">
             <input type="checkbox" id="cadSymShowLabels" checked
-              onchange="appCadTool.toggleDisplayOption('showLabels', this.checked)">
+              onchange="appCadTool.toggleDisplayOption('showLabels', this.checked)" aria-label="Cad sym show labels">
             <span>🏷️ Nhãn tên</span>
           </label>
         </div>
@@ -6519,7 +6519,7 @@
             <span style="font-size: 11px; color: #94a3b8; font-weight: 500; text-transform: none;">Định dạng đuôi file</span>
           </label>
           <div style="position: relative;">
-            <select id="cadExportFormatSelect" class="export-format-select" onchange="appCadTool.selectExportFormat(this.value)" style="width: 100%; height: 46px; background: #0f172a; color: #f8fafc; border: 1.5px solid #0284c7; border-radius: 8px; padding: 0 38px 0 14px; font-size: 15px; font-weight: 700; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
+            <select id="cadExportFormatSelect" class="export-format-select" onchange="appCadTool.selectExportFormat(this.value)" style="width: 100%; height: 46px; background: #0f172a; color: #f8fafc; border: 1.5px solid #0284c7; border-radius: 8px; padding: 0 38px 0 14px; font-size: 15px; font-weight: 700; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);" aria-label="Cad export format select">
               <option value="dwg" data-format="dwg" title="Bản vẽ AutoCAD (.dwg)">.dwg</option>
               <option value="excel" data-format="excel" title="Bảng tính Excel (.xlsx)">.xlsx</option>
               <option value="pdf" data-format="pdf" title="Báo cáo PDF (.pdf)">.pdf</option>
@@ -6547,7 +6547,7 @@
           <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 8px;">
             <div>
               <label style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">Tỉ lệ xuất bản đồ:</label>
-              <select id="cadExportScale" class="app-select" style="height: 36px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 6px; color: #38bdf8;" onchange="appCadTool.onExportSettingChange()">
+              <select id="cadExportScale" class="app-select" style="height: 36px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 6px; color: #38bdf8;" onchange="appCadTool.onExportSettingChange()" aria-label="Cad export scale">
                 <option value="auto" selected>⚡ Tự động tối ưu (To, rõ &amp; đẹp nhất)</option>
                 <option value="50">1:50 (Thửa rất nhỏ, chi tiết)</option>
                 <option value="100">1:100 (Thửa nhỏ, chi tiết cao)</option>
@@ -6567,13 +6567,13 @@
                 <span style="font-size: 12px; font-weight: 700; color: #38bdf8; white-space: nowrap;">Tỉ lệ 1 :</span>
                 <input type="number" id="cadExportCustomScaleInput" min="1" max="10000000" step="1" placeholder="VD: 1500, 25000..." 
                        style="height: 30px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 4px; padding: 0 8px; background: #0f172a; color: #38bdf8; border: 1px solid #0284c7;" 
-                       oninput="appCadTool.onExportSettingChange()">
+                       oninput="appCadTool.onExportSettingChange()" aria-label="Ví dụ: 1500, 25000...">
                 <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">(Nhập tay)</span>
               </div>
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">Khổ giấy xuất:</label>
-              <select id="cadExportPaperSize" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.onExportSettingChange()">
+              <select id="cadExportPaperSize" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.onExportSettingChange()" aria-label="Cad export paper size">
                 <option value="A0">Khổ A0 (1189 × 841 mm) Ngang - Bản đồ lớn</option>
                 <option value="A0-P">Khổ A0 (841 × 1189 mm) Đứng</option>
                 <option value="A1">Khổ A1 (841 × 594 mm) Ngang - Bản đồ phân khu</option>
@@ -6598,12 +6598,11 @@
             <!-- Nền bản đồ cơ sở -->
             <div>
               <label for="cadExportBasemap" style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">1. Bản đồ nền cơ sở (xuất PDF / PNG):</label>
-              <select id="cadExportBasemap" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.onExportSettingChange()">
+              <select id="cadExportBasemap" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.onExportSettingChange()" aria-label="Chọn nền bản đồ cơ sở khi xuất CAD">
                 <option value="none" selected>Không nền (Giấy trắng chuẩn kỹ thuật)</option>
                 <option value="street">🗺️ Bản đồ đường phố (OpenStreetMap)</option>
                 <option value="satellite">🛰️ Ảnh vệ tinh độ nét cao (Esri World Imagery)</option>
                 <option value="sentinel2">🛰️ Ảnh Sentinel-2 không mây 2016 (10m)</option>
-                <option value="worldcover">🌾 Lớp phủ mặt đất ESA WorldCover (10m)</option>
               </select>
             </div>
 
@@ -6611,7 +6610,7 @@
             <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
               <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
                 <span style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #facc15; font-size: 11.5px;">
-                  <input type="checkbox" id="cadExportCheckGuland" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 16px; height: 16px;">
+                  <input type="checkbox" id="cadExportCheckGuland" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 16px; height: 16px;" aria-label="In kèm lớp quy hoạch Guland 2030">
                   <span>🏛️ In kèm lớp quy hoạch Guland 2030</span>
                 </span>
                 <span id="cadExportGulandBadge" style="font-size: 11px; color: #facc15; background: rgba(250, 204, 21, 0.15); padding: 1px 6px; border-radius: 4px;">63 tỉnh</span>
@@ -6622,13 +6621,13 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                   <div>
                     <label style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 2px;">Tỉnh thành quy hoạch:</label>
-                    <select id="cadExportGulandProvince" class="app-select" style="height: 32px; font-size: 11.5px; font-weight: 600; width: 100%; border-radius: 5px;" onchange="appCadTool.onExportSettingChange()">
+                    <select id="cadExportGulandProvince" class="app-select" style="height: 32px; font-size: 11.5px; font-weight: 600; width: 100%; border-radius: 5px;" onchange="appCadTool.onExportSettingChange()" aria-label="Chọn tỉnh quy hoạch khi xuất">
                       <!-- Nạp động 63 tỉnh -->
                     </select>
                   </div>
                   <div>
                     <label style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 2px;">Độ mờ lớp quy hoạch:</label>
-                    <select id="cadExportGulandOpacity" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%; border-radius: 5px;" onchange="appCadTool.onExportSettingChange()">
+                    <select id="cadExportGulandOpacity" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%; border-radius: 5px;" onchange="appCadTool.onExportSettingChange()" aria-label="Độ mờ lớp quy hoạch khi xuất">
                       <option value="0.9">Đậm rõ (90%)</option>
                       <option value="0.75">Chuẩn in (75%)</option>
                       <option value="0.6" selected>Hài hòa (60%)</option>
@@ -6638,7 +6637,7 @@
                   </div>
                 </div>
                 <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #cbd5e1; font-size: 11px;">
-                  <input type="checkbox" id="cadExportGulandLand" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 14px; height: 14px;">
+                  <input type="checkbox" id="cadExportGulandLand" onchange="appCadTool.onExportSettingChange()" style="accent-color: #eab308; width: 14px; height: 14px;" aria-label="In kèm ranh thửa đất quy hoạch">
                   <span>In kèm ranh thửa đất quy hoạch (nếu có dữ liệu)</span>
                 </label>
               </div>
@@ -6648,7 +6647,7 @@
             <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
-                  <input type="checkbox" id="cadExportPlanOverlay" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px;">
+                  <input type="checkbox" id="cadExportPlanOverlay" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px;" aria-label="In kèm bản đồ quy hoạch PDF">
                   <span style="font-weight: 700; color: #38bdf8; font-size: 11.5px;">📄 In kèm lớp bản đồ từ tệp PDF / Ảnh nắn tọa độ</span>
                 </label>
                 <span id="cadExportPlanOverlayCountBadge" style="font-size: 11px; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 1px 6px; border-radius: 4px;"><span id="cadExportPlanOverlayCount">0</span> tệp</span>
@@ -6680,59 +6679,59 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px; color: #38bdf8; font-weight: 700;">Tên bản vẽ (Tiêu đề in):</label>
-              <input type="text" id="cadExportDrawingName" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px; font-weight: 700;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
+              <input type="text" id="cadExportDrawingName" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px; font-weight: 700;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" aria-label="Ví dụ: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
             </div>
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px; color: #fbbf24; font-weight: 700;">Tên dự án / Công trình:</label>
-              <input type="text" id="cadExportProjectName" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Khu dân cư Đô thị mới">
+              <input type="text" id="cadExportProjectName" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Khu dân cư Đô thị mới" aria-label="Ví dụ: Khu dân cư Đô thị mới">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Đơn vị khảo sát / đo đạc:</label>
-              <input type="text" id="cadExportOrganization" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC ĐỊA CHÍNH">
+              <input type="text" id="cadExportOrganization" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC ĐỊA CHÍNH" aria-label="Ví dụ: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC ĐỊA CHÍNH">
             </div>
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Chủ sở hữu / người sử dụng đất:</label>
-              <input type="text" id="cadExportOwner" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A">
+              <input type="text" id="cadExportOwner" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A" aria-label="Ví dụ: Ông/Bà Nguyễn Văn A">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Số hiệu / Ký hiệu bản vẽ:</label>
-              <input type="text" id="cadExportParcelNo" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 12, Tờ 34 / BV-01">
+              <input type="text" id="cadExportParcelNo" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 12, Tờ 34 / BV-01" aria-label="Ví dụ: Thửa 12, Tờ 34 / BV-01">
             </div>
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Địa chỉ thửa đất:</label>
-              <input type="text" id="cadExportAddress" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TP. Cao Lãnh, Đồng Tháp">
+              <input type="text" id="cadExportAddress" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TP. Cao Lãnh, Đồng Tháp" aria-label="Ví dụ: TP. Cao Lãnh, Đồng Tháp">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Người đo vẽ:</label>
-              <input type="text" id="cadExportSurveyor" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B">
+              <input type="text" id="cadExportSurveyor" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B" aria-label="Ví dụ: KS. Trần Văn B">
             </div>
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Người kiểm tra:</label>
-              <input type="text" id="cadExportChecker" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C">
+              <input type="text" id="cadExportChecker" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C" aria-label="Ví dụ: KS. Lê Văn C">
             </div>
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Ngày lập:</label>
-              <input type="text" id="cadExportDate" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="DD/MM/YYYY">
+              <input type="text" id="cadExportDate" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="DD/MM/YYYY" aria-label="DD/MM/YYYY">
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 6px;">
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Mã bản vẽ:</label>
-              <input type="text" id="cadExportDrawingCode" class="app-input" style="height: 30px; font-size: 11.5px;" value="SĐ-01/01" oninput="appCadTool.saveTitleBlockInfo(false)">
+              <input type="text" id="cadExportDrawingCode" class="app-input" style="height: 30px; font-size: 11.5px;" value="SĐ-01/01" oninput="appCadTool.saveTitleBlockInfo(false)" aria-label="Cad export drawing code">
             </div>
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Ghi chú kỹ thuật:</label>
-              <input type="text" id="cadExportNotes" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="Ghi chú kỹ thuật mặt bằng..." oninput="appCadTool.saveTitleBlockInfo(false)">
+              <input type="text" id="cadExportNotes" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="Ghi chú kỹ thuật mặt bằng..." oninput="appCadTool.saveTitleBlockInfo(false)" aria-label="Ghi chú kỹ thuật mặt bằng...">
             </div>
           </div>
         </div>
@@ -6784,7 +6783,7 @@
                 </div>
               </div>
               <div style="margin-bottom: 6px;">
-                <input type="text" id="txtFilterExportBlocks" class="app-input" style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;" placeholder="🔍 Lọc nhanh theo tên khối / loại cấu trúc..." oninput="appCadTool.filterExportBlocks(this.value)">
+                <input type="text" id="txtFilterExportBlocks" class="app-input" style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;" placeholder="🔍 Lọc nhanh theo tên khối / loại cấu trúc..." oninput="appCadTool.filterExportBlocks(this.value)" aria-label="🔍 Lọc nhanh theo tên khối / loại cấu trúc...">
               </div>
               <div id="cadExportBlockPickerList" style="max-height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px;">
                 <!-- Render danh sách khối chọn xuất bằng JS -->
@@ -6806,84 +6805,84 @@
               </div>
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px;">
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckPoints" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckPoints" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check points">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📍 Điểm rời (lớp điểm)</div>
                     <div style="font-size: 11px; color: #94a3b8;">Mốc ký hiệu của các lớp điểm P1, P2...</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckVertices" onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckVertices" onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check vertices">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📐 Đỉnh khối &amp; tuyến</div>
                     <div style="font-size: 11px; color: #94a3b8;">Mốc ký hiệu tại các góc ranh Đ1, Đ2...</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckLabels" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckLabels" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check labels">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🏷️ Nhãn tên điểm / đỉnh</div>
                     <div style="font-size: 11px; color: #94a3b8;">Chữ tên đi kèm mốc (tắt = chỉ còn ký hiệu)</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckDistances" onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckDistances" onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check distances">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📏 Khoảng cách các cạnh</div>
                     <div style="font-size: 11px; color: #94a3b8;">Hiện cự ly chiều dài các cạnh (m)</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckCenterLabels" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckCenterLabels" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check center labels">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🏷️ Ký hiệu &amp; Nhãn tâm khối</div>
                     <div style="font-size: 11px; color: #94a3b8;">Hiện tên khối / STT tại tâm thửa</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckFullDetails" onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckFullDetails" onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check full details">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #cbd5e1;">📋 Chi tiết S, P tại tâm</div>
                     <div style="font-size: 11px; color: #94a3b8;">In diện tích (S) &amp; chu vi (P) tại tâm</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckAnnotations" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckAnnotations" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check annotations">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🏹 Ghi chú &amp; Hình khối</div>
                     <div style="font-size: 11px; color: #94a3b8;">Mũi tên, tem thửa, khối nhà, chữ</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckBoundaries" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckBoundaries" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check boundaries">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📐 Nét ranh giới khối</div>
                     <div style="font-size: 11px; color: #94a3b8;">Đường viền bao các khối / thửa đất</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckGrid" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckGrid" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check grid">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🌐 Lưới tọa độ Km</div>
                     <div style="font-size: 11px; color: #94a3b8;">Lưới ô vuông chữ thập trắc địa</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckNorth" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckNorth" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check north">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">🧭 Kim hướng Bắc &amp; Thước tỷ lệ</div>
                     <div style="font-size: 11px; color: #94a3b8;">La bàn hướng Bắc và Graphic Scale Bar</div>
                   </div>
                 </label>
                 <label class="cad-export-check-item">
-                  <input type="checkbox" id="cadExportCheckTitleBlock" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;">
+                  <input type="checkbox" id="cadExportCheckTitleBlock" checked onchange="appCadTool.onExportSettingChange()" style="accent-color: #38bdf8; width: 16px; height: 16px; margin-top: 2px;" aria-label="Cad export check title block">
                   <div>
                     <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">📋 Khung tên bản vẽ TCVN</div>
                     <div style="font-size: 11px; color: #94a3b8;">Khung tên kỹ thuật góc dưới bản vẽ</div>
                   </div>
                 </label>
               </div>
-              <input type="checkbox" id="cadShowBlockInfo" style="display: none;">
+              <input type="checkbox" id="cadShowBlockInfo" style="display: none;" aria-label="Cad show block info">
             </div>
 
 
@@ -6894,12 +6893,12 @@
                 <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8;">Tùy chọn nén ảnh bản vẽ (PixOptimizer):</span>
               </div>
               <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <select id="cadExportImgFormat" class="app-select" style="height: 30px; font-size: 11px; padding: 0 8px;" onchange="appCadTool.onExportImgSettingChange()">
+                <select id="cadExportImgFormat" class="app-select" style="height: 30px; font-size: 11px; padding: 0 8px;" onchange="appCadTool.onExportImgSettingChange()" aria-label="Cad export img format">
                   <option value="webp" selected>WebP (Nén ~300KB, giảm 85%)</option>
                   <option value="jpeg">JPEG (Tương thích Zalo / Word)</option>
                   <option value="png">PNG (Gốc không nén ~4MB)</option>
                 </select>
-                <select id="cadExportImgQuality" class="app-select" style="height: 30px; font-size: 11px; padding: 0 8px;" onchange="appCadTool.onExportImgSettingChange()">
+                <select id="cadExportImgQuality" class="app-select" style="height: 30px; font-size: 11px; padding: 0 8px;" onchange="appCadTool.onExportImgSettingChange()" aria-label="Cad export img quality">
                   <option value="balanced" selected>Cân bằng (80% - Khuyến nghị)</option>
                   <option value="high">Cao (90% - Sắc nét in ấn)</option>
                   <option value="light">Tiết kiệm (65% - Gửi Zalo/3G)</option>
@@ -6966,7 +6965,7 @@
             </div>
           </div>
           <select id="cadLoadProjectSelect" class="app-select" style="height: 34px; font-size: 12px; width: 100%;"
-            onchange="appCadTool.onLoadProjectSelectChange(this.value)">
+            onchange="appCadTool.onLoadProjectSelectChange(this.value)" aria-label="Cad load project select">
             <!-- Render danh sách dự án -->
           </select>
         </div>
@@ -7003,7 +7002,7 @@
             <div style="margin-bottom: 6px;">
               <input type="text" id="txtFilterLoadBlocks" class="app-input"
                 style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;"
-                placeholder="🔍 Lọc khối theo tên, loại..." oninput="appCadTool.filterLoadBlocks(this.value)">
+                placeholder="🔍 Lọc khối theo tên, loại..." oninput="appCadTool.filterLoadBlocks(this.value)" aria-label="🔍 Lọc khối theo tên, loại...">
             </div>
             <div id="cadLoadBlocksList"
               style="max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
@@ -7032,7 +7031,7 @@
             <div style="margin-bottom: 6px;">
               <input type="text" id="txtFilterLoadPoints" class="app-input"
                 style="height: 28px; font-size: 11px; padding: 0 8px; width: 100%; background: rgba(15,23,42,0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 5px;"
-                placeholder="🔍 Lọc mốc theo tên hoặc ghi chú..." oninput="appCadTool.filterLoadPoints(this.value)">
+                placeholder="🔍 Lọc mốc theo tên hoặc ghi chú..." oninput="appCadTool.filterLoadPoints(this.value)" aria-label="🔍 Lọc mốc theo tên hoặc ghi chú...">
             </div>
             <div id="cadLoadPointsList"
               style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
@@ -7047,7 +7046,7 @@
           <div>
             <label class="form-label" style="font-size: 11px; margin-bottom: 3px;">Tên khối CAD khi nạp:</label>
             <input type="text" id="cadLoadTargetShapeName" class="app-input" style="height: 32px; font-size: 11.5px;"
-              placeholder="VD: Thửa đất ranh dự án">
+              placeholder="VD: Thửa đất ranh dự án" aria-label="Ví dụ: Thửa đất ranh dự án">
           </div>
         </div>
       </div>
@@ -7131,13 +7130,13 @@
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Khoảng
             cách lẻ S (mét):</label>
           <input type="number" step="0.001" id="txtCadPolarDist" class="form-control" placeholder="Ví dụ: 25.50"
-            style="width: 100%; height: 36px;">
+            style="width: 100%; height: 36px;" aria-label="Ví dụ: 25.50">
         </div>
         <div>
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Góc
             phương vị α (độ thập phân 0 - 360°):</label>
           <input type="number" step="0.0001" id="txtCadPolarAzimuth" class="form-control"
-            placeholder="Ví dụ: 90.0 (hướng Đông) hoặc 45.25" style="width: 100%; height: 36px;">
+            placeholder="Ví dụ: 90.0 (hướng Đông) hoặc 45.25" style="width: 100%; height: 36px;" aria-label="Ví dụ: 90.0 (hướng Đông) hoặc 45.25">
         </div>
       </div>
       <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -7160,19 +7159,19 @@
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tên
             đỉnh (tùy chọn):</label>
           <input type="text" id="txtCadCoordName" class="form-control" placeholder="Ví dụ: Đ1, Ranh 1..."
-            style="width: 100%; height: 36px;">
+            style="width: 100%; height: 36px;" aria-label="Ví dụ: Đ1, Ranh 1...">
         </div>
         <div>
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tọa độ
             X (Bắc - mét):</label>
           <input type="number" step="0.001" id="txtCadCoordX" class="form-control" placeholder="Ví dụ: 1144050.250"
-            style="width: 100%; height: 36px;">
+            style="width: 100%; height: 36px;" aria-label="Ví dụ: 1144050.250">
         </div>
         <div>
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tọa độ
             Y (Đông - mét):</label>
           <input type="number" step="0.001" id="txtCadCoordY" class="form-control" placeholder="Ví dụ: 539620.150"
-            style="width: 100%; height: 36px;">
+            style="width: 100%; height: 36px;" aria-label="Ví dụ: 539620.150">
         </div>
       </div>
       <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -7250,14 +7249,14 @@
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Nội
             dung hiển thị:</label>
           <input type="text" id="txtCadEditAnnText" class="form-control" placeholder="Nhập ghi chú..."
-            style="width: 100%; height: 36px;">
+            style="width: 100%; height: 36px;" aria-label="Nhập ghi chú...">
         </div>
 
         <!-- Trường dành cho Tem / Nhãn bản vẽ kỹ thuật (Stamp) - Chuẩn LibreCAD linh hoạt -->
         <div id="grpCadEditAnnStamp" style="display: none; flex-direction: column; gap: 8px;">
           <div>
             <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 3px;">Tiêu đề Tem / Nhãn bản vẽ:</label>
-            <input type="text" id="txtCadEditAnnStampTitle" class="form-control" placeholder="VD: THÔNG TIN BẢN VẼ / KHUNG TÊN KỸ THUẬT" style="width: 100%; height: 34px; font-weight: 700;">
+            <input type="text" id="txtCadEditAnnStampTitle" class="form-control" placeholder="VD: THÔNG TIN BẢN VẼ / KHUNG TÊN KỸ THUẬT" style="width: 100%; height: 34px; font-weight: 700;" aria-label="Ví dụ: THÔNG TIN BẢN VẼ / KHUNG TÊN KỸ THUẬT">
           </div>
 
           <!-- Danh sách các dòng thông tin động (Key - Value) -->
@@ -7287,7 +7286,7 @@
 
           <!-- Các input ẩn tương thích ngược -->
           <div style="display: none;">
-            <select id="selCadEditAnnStampType"><option value="custom" selected>Custom</option></select>
+            <select id="selCadEditAnnStampType" aria-label="Cad edit ann stamp type"><option value="custom" selected>Custom</option></select>
             <input type="hidden" id="txtCadEditAnnSheet">
             <input type="hidden" id="txtCadEditAnnParcel">
             <input type="hidden" id="txtCadEditAnnArea">
@@ -7306,13 +7305,13 @@
               <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên
                 công trình / Khối nhà:</label>
               <input type="text" id="txtCadEditAnnRectName" class="form-control" placeholder="Nhà cấp 4, Nhà kho..."
-                style="width: 100%; height: 34px;">
+                style="width: 100%; height: 34px;" aria-label="Nhà cấp 4, Nhà kho...">
             </div>
             <div>
               <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Kiểu
                 hình khối:</label>
               <select id="selCadEditAnnRectShape" class="app-select"
-                style="height: 34px; font-size: 11px; width: 100%;">
+                style="height: 34px; font-size: 11px; width: 100%;" aria-label="Cad edit ann rect shape">
                 <option value="rect">Hình chữ nhật</option>
                 <option value="l_shape">Khối nhà chữ L</option>
                 <option value="shed">Mái che / Sân nền</option>
@@ -7324,20 +7323,20 @@
               <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Bề
                 rộng (m):</label>
               <input type="number" step="0.1" id="txtCadEditAnnWidth" class="form-control" placeholder="5.0"
-                style="width: 100%; height: 34px;">
+                style="width: 100%; height: 34px;" aria-label="5.0">
             </div>
             <div>
               <label
                 style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Chiều dài
                 (m):</label>
               <input type="number" step="0.1" id="txtCadEditAnnLength" class="form-control" placeholder="10.0"
-                style="width: 100%; height: 34px;">
+                style="width: 100%; height: 34px;" aria-label="10.0">
             </div>
             <div>
               <label style="font-size: 11px; font-weight: 700; color: #f59e0b; display: block; margin-bottom: 3px;">Góc
                 xoay (°):</label>
               <input type="number" step="1" id="txtCadEditAnnRotation" class="form-control" placeholder="0" min="0"
-                max="360" style="width: 100%; height: 34px;">
+                max="360" style="width: 100%; height: 34px;" aria-label="0">
             </div>
           </div>
           <div style="display: flex; gap: 6px; align-items: center;">
@@ -7360,13 +7359,13 @@
             <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Tên
               đối tượng / Hành lang:</label>
             <input type="text" id="txtCadEditAnnCircleName" class="form-control"
-              placeholder="Ví dụ: Giếng khoan, Hành lang điện..." style="width: 100%; height: 34px;">
+              placeholder="Ví dụ: Giếng khoan, Hành lang điện..." style="width: 100%; height: 34px;" aria-label="Ví dụ: Giếng khoan, Hành lang điện...">
           </div>
           <div>
             <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Bán
               kính bảo vệ (mét):</label>
             <input type="number" step="0.5" id="txtCadEditAnnRadius" class="form-control" placeholder="10.0"
-              style="width: 100%; height: 34px;">
+              style="width: 100%; height: 34px;" aria-label="10.0">
           </div>
         </div>
 
@@ -7378,14 +7377,14 @@
           <div>
             <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Chế độ
               hiển thị nhãn:</label>
-            <select id="selCadEditAnnDimMode" class="app-select" style="height: 34px; font-size: 11px; width: 100%;"></select>
+            <select id="selCadEditAnnDimMode" class="app-select" style="height: 34px; font-size: 11px; width: 100%;" aria-label="Cad edit ann dim mode"></select>
           </div>
           <div id="rowCadEditDimOffset" style="display: none;">
             <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Khoảng
               cách đường kích đến cạnh (m, âm = phía bên kia):</label>
             <div style="display: flex; gap: 6px; align-items: center;">
               <input type="number" step="0.25" id="txtCadEditAnnDimOffset" class="form-control" placeholder="1.5"
-                style="width: 100%; height: 34px;">
+                style="width: 100%; height: 34px;" aria-label="1.5">
               <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 11px; white-space: nowrap;"
                 onclick="document.getElementById('txtCadEditAnnDimOffset').value=1.5">1.5m</button>
               <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 11px; white-space: nowrap;"
@@ -7399,7 +7398,7 @@
               cung góc (m):</label>
             <div style="display: flex; gap: 6px; align-items: center;">
               <input type="number" step="0.25" min="0.3" id="txtCadEditAnnDimArc" class="form-control" placeholder="2.0"
-                style="width: 100%; height: 34px;">
+                style="width: 100%; height: 34px;" aria-label="2.0">
               <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 11px; white-space: nowrap;"
                 onclick="document.getElementById('txtCadEditAnnDimArc').value=1.5">1.5m</button>
               <button type="button" class="btn-sm" style="height: 34px; padding: 0 8px; font-size: 11px; white-space: nowrap;"
@@ -7410,7 +7409,7 @@
             <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Nhãn tự
               nhập (chỉ dùng khi chọn "Nhãn tự nhập"):</label>
             <input type="text" id="txtCadEditAnnDimText" class="form-control" placeholder="Ví dụ: 25.40m (bổ đo)"
-              style="width: 100%; height: 34px;">
+              style="width: 100%; height: 34px;" aria-label="Ví dụ: 25.40m (bổ đo)">
           </div>
         </div>
 
@@ -7423,7 +7422,7 @@
             <div style="display: flex; gap: 6px; align-items: center;">
               <input type="color" id="txtCadEditAnnColor"
                 oninput="document.getElementById('lblCadEditAnnColorHex').innerText = this.value"
-                style="width: 36px; height: 34px; padding: 1px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; background: transparent;">
+                style="width: 36px; height: 34px; padding: 1px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; background: transparent;" aria-label="Cad edit ann color">
               <span id="lblCadEditAnnColorHex"
                 style="font-size: 11px; font-family: monospace; color: #94a3b8;">#f59e0b</span>
             </div>
@@ -7432,7 +7431,7 @@
             <label style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 3px;">Cỡ chữ
               (px):</label>
             <input type="number" id="txtCadEditAnnFontSize" class="form-control" value="12" min="8" max="40"
-              style="width: 100%; height: 34px;">
+              style="width: 100%; height: 34px;" aria-label="Cad edit ann font size">
           </div>
         </div>
       </div>
@@ -7474,7 +7473,7 @@
         </div>
         <div>
           <label style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 4px;">Tên / Ghi chú mũi tên:</label>
-          <input type="text" id="txtNewArrowText" class="form-control" placeholder="Mốc M1, Ranh thửa, L=15.5m..." style="width: 100%; height: 36px; font-size: 12px;">
+          <input type="text" id="txtNewArrowText" class="form-control" placeholder="Mốc M1, Ranh thửa, L=15.5m..." style="width: 100%; height: 36px; font-size: 12px;" aria-label="Mốc M1, Ranh thửa, L=15.5m...">
           <div id="lblNewArrowDistHint" style="font-size: 11px; color: #38bdf8; margin-top: 5px; font-weight: 700;">Cự ly đo thực tế: -- m</div>
         </div>
       </div>
@@ -7650,7 +7649,7 @@
         </div>
 
         <input type="file" id="fileInputProject" accept=".xls,.xlsx,.csv,.txt,.dat,.xyz" style="display: none;"
-          onchange="appData.handleFileImport(event)">
+          onchange="appData.handleFileImport(event)" aria-label="Input project">
         <button class="btn-sm btn-blue" style="width: 100%; height: 40px; font-weight: 700; font-size: 12.5px;"
           onclick="document.getElementById('fileInputProject').click()">
           📁 CHỌN FILE TỪ THIẾT BỊ...
@@ -7662,19 +7661,19 @@
             <label
               style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #f8fafc; cursor: pointer;">
               <input type="radio" name="importTargetMode" value="new" checked
-                onchange="appData.toggleImportTargetName(this.value)">
+                onchange="appData.toggleImportTargetName(this.value)" aria-label="Trường nhập liệu">
               Tạo dự án mới
             </label>
             <label
               style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #f8fafc; cursor: pointer;">
               <input type="radio" name="importTargetMode" value="append"
-                onchange="appData.toggleImportTargetName(this.value)">
+                onchange="appData.toggleImportTargetName(this.value)" aria-label="Trường nhập liệu">
               Thêm vào dự án hiện tại
             </label>
           </div>
           <div id="importNewNameContainer" style="margin-top: 8px;">
             <input type="text" id="txtImportNewProjectName" class="app-input"
-              placeholder="Tên file dự án mới (ví dụ: DoDac_KhuA.csv)" style="height: 36px; font-size: 12px;">
+              placeholder="Tên file dự án mới (ví dụ: DoDac_KhuA.csv)" style="height: 36px; font-size: 12px;" aria-label="Tên file dự án mới (ví dụ: DoDac_KhuA.csv)">
           </div>
         </div>
       </div>
@@ -7688,7 +7687,7 @@
         <div id="impPreviewTable" class="imp-table-wrap"></div>
         <div class="imp-row">
           <label class="imp-map-item"><span>Loại tọa độ trong file</span>
-            <select id="impType" class="app-select">
+            <select id="impType" class="app-select" aria-label="Imp type">
               <option value="vn2000">📐 VN-2000 (X, Y mét)</option>
               <option value="wgs84">🌐 WGS-84 (vĩ độ, kinh độ)</option>
             </select>
@@ -7696,15 +7695,15 @@
         </div>
         <div id="impMapping" class="imp-mapping"></div>
         <div class="imp-row imp-ktt">
-          <label class="imp-map-item"><span>KTT của file</span><select id="impSrcKtt" class="app-select"></select></label>
+          <label class="imp-map-item"><span>KTT của file</span><select id="impSrcKtt" class="app-select" aria-label="Imp src ktt"></select></label>
           <label class="imp-map-item"><span>Múi chiếu của file</span>
-            <select id="impSrcMui" class="app-select">
+            <select id="impSrcMui" class="app-select" aria-label="Imp src mui">
               <option value="3">3° (k0 = 0.9999)</option>
               <option value="6">6° (k0 = 0.9996)</option>
             </select>
           </label>
         </div>
-        <label id="impConvertRow" class="imp-check"><input type="checkbox" id="impConvert" checked>
+        <label id="impConvertRow" class="imp-check"><input type="checkbox" id="impConvert" checked aria-label="Imp convert">
           Đổi X/Y sang KTT/múi hiện hành của ứng dụng (khi file thuộc KTT khác, vd. số liệu tỉnh cũ)</label>
         <p id="impSummary" class="imp-summary" role="status" aria-live="polite"></p>
         <div class="imp-actions">
@@ -7725,7 +7724,7 @@
 
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
           <input type="file" id="fileInputProjectGis" accept=".geojson,.json,.kml,.kmz,.gpx,.wkt,.dgn,.txt"
-            style="display: none;" onchange="appData.onGisProjectFilePicked(event)">
+            style="display: none;" onchange="appData.onGisProjectFilePicked(event)" aria-label="Input project gis">
           <button class="btn-sm" style="height: 36px; padding: 0 14px; font-weight: 700; color: #c4b5fd; border: 1px solid #8b5cf6;"
             onclick="document.getElementById('fileInputProjectGis').click()">
             📁 Chọn tệp GIS...
@@ -7737,7 +7736,7 @@
           <div>
             <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Hệ tọa độ
               trong tệp:</label>
-            <select id="projGisCrs" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+            <select id="projGisCrs" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" aria-label="Proj gis crs">
               <option value="auto">⚡ Tự nhận diện</option>
               <option value="wgs84">🌐 WGS-84 (kinh/vĩ độ)</option>
               <option value="vn2000">📐 VN-2000 (X/Y mét)</option>
@@ -7746,20 +7745,20 @@
           <div>
             <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Kinh
               tuyến trục (KTT):</label>
-            <select id="projGisKtt" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+            <select id="projGisKtt" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" aria-label="Proj gis ktt">
               <option value="current">Giữ KTT hiện tại</option>
             </select>
           </div>
           <div>
             <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Múi chiếu:</label>
-            <select id="projGisMui" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+            <select id="projGisMui" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" aria-label="Proj gis mui">
               <option value="3">3° (k0 = 0.9999)</option>
               <option value="6">6° (k0 = 0.9996)</option>
             </select>
           </div>
           <div>
             <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Nguồn mốc:</label>
-            <select id="projGisSource" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+            <select id="projGisSource" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" aria-label="Proj gis source">
               <option value="all">Mọi đối tượng (điểm + đỉnh khối/tuyến)</option>
               <option value="points">Chỉ điểm rời (Point)</option>
             </select>
@@ -7767,7 +7766,7 @@
           <div>
             <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Thứ tự trục
               (tệp VN2000):</label>
-            <select id="projGisAxis" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;">
+            <select id="projGisAxis" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;" aria-label="Proj gis axis">
               <option value="EN">Trục 1 = Y Đông, trục 2 = X Bắc</option>
               <option value="NE">Trục 1 = X Bắc, trục 2 = Y Đông</option>
             </select>
@@ -7799,7 +7798,7 @@
               <label style="font-size: 11px; color: #cbd5e1; font-weight: 700; display: block; margin-bottom: 2px;">Định
                 dạng & Thứ tự tọa độ nguồn:</label>
               <select id="selManualCoordFormat" class="app-select" style="height: 32px; font-size: 11.5px; width: 100%;"
-                onchange="appData.onManualInputFormatChange()">
+                onchange="appData.onManualInputFormatChange()" aria-label="Manual coord format">
                 <option value="auto">⚡ Tự động nhận diện (VN2000 hoặc WGS84)</option>
                 <option value="vn2k_xy">📐 VN-2000 chuẩn: X (Bắc) - Y (Đông)</option>
                 <option value="vn2k_yx">📐 VN-2000 đảo: Y (Đông) - X (Bắc)</option>
@@ -7812,12 +7811,12 @@
                 tuyến trục (KTT) & Múi chiếu:</label>
               <div style="display: flex; gap: 4px;">
                 <select id="selManualKttProvince" class="app-select" style="height: 32px; font-size: 11.5px; flex: 1;"
-                  onchange="appData.onManualInputFormatChange()">
+                  onchange="appData.onManualInputFormatChange()" aria-label="Manual ktt province">
                   <option value="current">🎯 Theo cài đặt App hiện tại</option>
                   <!-- Render động các tỉnh phổ biến hoặc toàn bộ -->
                 </select>
                 <select id="selManualMui" class="app-select" style="height: 32px; font-size: 11.5px; width: 85px;"
-                  onchange="appData.onManualInputFormatChange()">
+                  onchange="appData.onManualInputFormatChange()" aria-label="Manual mui">
                   <option value="3">Múi 3°</option>
                   <option value="6">Múi 6°</option>
                 </select>
@@ -7839,7 +7838,7 @@
         <textarea id="txtManualPointsInput" class="app-input"
           style="height: 105px; font-family: monospace; font-size: 11.5px; line-height: 1.4; resize: vertical;"
           placeholder="Ví dụ dán tọa độ VN-2000:&#10;M1, 1144058.623, 539624.574, Ranh phía Tây&#10;M2, 1144120.350, 539680.120, Góc phía Bắc&#10;&#10;Hoặc dán không có tên (chỉ 2 cột số):&#10;1144058.623  539624.574&#10;1144120.350  539680.120&#10;&#10;Hoặc dán tọa độ GPS / WGS-84 (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200"
-          oninput="appData.debounceManualPreview()"></textarea>
+          oninput="appData.debounceManualPreview()" aria-label="Ví dụ dán tọa độ VN-2000:&#10;M1, 1144058.623, 539624.574, Ranh phía Tây&#10;M2, 1144120.350, 539680.120, Góc phía Bắc&#10;&#10;Hoặc dán không có tên (chỉ 2 cột số):&#10;1144058.623  539624.574&#10;1144120.350  539680.120&#10;&#10;Hoặc dán tọa độ GPS / WGS-84 (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200"></textarea>
 
         <!-- Khung xem trước thông minh -->
         <div id="manualPastePreviewBox"
@@ -7986,7 +7985,7 @@
     <div class="fi-search">
       <label for="txtDrawerSearch" class="fi-sr">Tìm chức năng</label>
       <svg class="fi-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3"></path></svg>
-      <input type="search" id="txtDrawerSearch" autocomplete="off" spellcheck="false" placeholder="Tìm: cắm mốc, DWG, KML, GPS…">
+      <input type="search" id="txtDrawerSearch" autocomplete="off" spellcheck="false" placeholder="Tìm: cắm mốc, DWG, KML, GPS…" aria-label="Tìm: cắm mốc, DWG, KML, GPS…">
     </div>
 
     <!-- Mục lục chức năng (phương án A) — app-shell.js dựng từ menu cũ bên dưới -->
@@ -8380,7 +8379,7 @@
             <span style="font-weight: 700; color: #38bdf8; font-size: 12px;">📋 Dán đoạn văn bản tọa độ (từ Zalo, Google Lens, PDF, Excel):</span>
             <button type="button" class="btn-micro" onclick="appOcr.toggleQuickPasteBox(false)">Đóng ✕</button>
           </div>
-          <textarea id="txtOcrQuickPaste" class="app-input" rows="4" style="height: auto; font-family: monospace; font-size: 11.5px; width: 100%; box-sizing: border-box;" placeholder="Dán văn bản tọa độ vào đây, ví dụ:&#10;1  M1  1144058.62  539624.57&#10;2  M2  1144080.15  539650.22&#10;hoặc WGS-84: 10°32'15.4&quot;N  105°45'20.1&quot;E"></textarea>
+          <textarea id="txtOcrQuickPaste" class="app-input" rows="4" style="height: auto; font-family: monospace; font-size: 11.5px; width: 100%; box-sizing: border-box;" placeholder="Dán văn bản tọa độ vào đây, ví dụ:&#10;1  M1  1144058.62  539624.57&#10;2  M2  1144080.15  539650.22&#10;hoặc WGS-84: 10°32'15.4&quot;N  105°45'20.1&quot;E" aria-label="Dán văn bản tọa độ vào đây, ví dụ:&#10;1  M1  1144058.62  539624.57&#10;2  M2  1144080.15  539650.22&#10;hoặc WGS-84: 10°32"></textarea>
           <div style="display: flex; gap: 8px; margin-top: 6px; justify-content: flex-end;">
             <button type="button" class="btn-sm btn-blue" onclick="appOcr.parseAndLoadFromText()" style="font-weight: 700;">
               ⚡ Bóc tách tọa độ ngay
@@ -8688,7 +8687,7 @@
       <!-- Footer Modal -->
       <div class="modal-help-guide-footer" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
         <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; cursor: pointer; user-select: none;">
-          <input type="checkbox" id="chkGuideDontShowAgain" onchange="appGuide.onDontShowAgainToggle(this.checked)" style="cursor: pointer;">
+          <input type="checkbox" id="chkGuideDontShowAgain" onchange="appGuide.onDontShowAgainToggle(this.checked)" style="cursor: pointer;" aria-label="Guide dont show again">
           <span id="lblGuideDontShowText">Không tự động hiện lại chức năng này</span>
         </label>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -8799,7 +8798,7 @@
           <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 10px;">
             <div>
               <label style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">Tỉ lệ xuất bản đồ:</label>
-              <select id="selExportMapScale" class="app-select" style="height: 36px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 6px; color: #38bdf8;" onchange="appData.onExportSettingChange()">
+              <select id="selExportMapScale" class="app-select" style="height: 36px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 6px; color: #38bdf8;" onchange="appData.onExportSettingChange()" aria-label="Chọn tỷ lệ bản đồ xuất">
                 <option value="500">1:500 (1mm = 0.5m - Hoàn công, Đô thị)</option>
                 <option value="1000" selected>1:1.000 (1mm = 1.0m - Địa chính chuẩn)</option>
                 <option value="2000">1:2.000 (1mm = 2.0m - Tuyến, Quy hoạch)</option>
@@ -8815,13 +8814,13 @@
                 <span style="font-size: 12px; font-weight: 700; color: #38bdf8; white-space: nowrap;">Tỉ lệ 1 :</span>
                 <input type="number" id="selExportCustomScaleInput" min="1" max="10000000" step="1" placeholder="VD: 1500, 25000..." 
                        style="height: 30px; font-size: 12.5px; font-weight: 700; width: 100%; border-radius: 4px; padding: 0 8px; background: #0f172a; color: #38bdf8; border: 1px solid #0284c7;" 
-                       oninput="appData.onExportSettingChange()">
+                       oninput="appData.onExportSettingChange()" aria-label="Ví dụ: 1500, 25000...">
                 <span style="font-size: 11px; color: #94a3b8; white-space: nowrap;">(Nhập tay)</span>
               </div>
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 3px;">Khổ giấy xuất:</label>
-              <select id="selExportPaperSize" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()">
+              <select id="selExportPaperSize" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()" aria-label="Chọn khổ giấy xuất bản vẽ">
                 <option value="A0-L">A0 Ngang (1189×841 mm) - Bản đồ lớn</option>
                 <option value="A0-P">A0 Đứng (841×1189 mm)</option>
                 <option value="A1-L">A1 Ngang (841×594 mm) - Bản đồ phân khu</option>
@@ -8857,11 +8856,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
               <label style="font-size: 11px; color: #38bdf8; font-weight: 700; display: block; margin-bottom: 2px;">Tên bản vẽ (Tiêu đề in):</label>
-              <input type="text" id="txtExportDrawingTitle" class="app-input" style="height: 32px; font-size: 11.5px; font-weight: 700; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();">
+              <input type="text" id="txtExportDrawingTitle" class="app-input" style="height: 32px; font-size: 11.5px; font-weight: 700; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" value="BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT" oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();" aria-label="Ví dụ: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT">
             </div>
             <div>
               <label style="font-size: 11px; color: #fbbf24; font-weight: 700; display: block; margin-bottom: 2px;">Tên công trình / Dự án:</label>
-              <input type="text" id="txtExportProjectName" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên công trình / dự án..." oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();">
+              <input type="text" id="txtExportProjectName" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên công trình / dự án..." oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();" aria-label="Tên công trình / dự án...">
             </div>
           </div>
 
@@ -8869,11 +8868,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Chủ sở hữu / Người sử dụng đất:</label>
-              <input type="text" id="txtExportOwner" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Ông/Bà Nguyễn Văn A" oninput="appData.saveTitleBlockInfo(false)">
+              <input type="text" id="txtExportOwner" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Ông/Bà Nguyễn Văn A" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Ông/Bà Nguyễn Văn A">
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Đơn vị khảo sát / Đo đạc:</label>
-              <input type="text" id="txtExportOrg" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC" oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();">
+              <input type="text" id="txtExportOrg" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC" oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();" aria-label="Ví dụ: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC">
             </div>
           </div>
 
@@ -8881,11 +8880,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Số hiệu thửa / Số tờ bản đồ:</label>
-              <input type="text" id="txtExportParcelNo" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Thửa 12, Tờ 34 / BV-01" oninput="appData.saveTitleBlockInfo(false)">
+              <input type="text" id="txtExportParcelNo" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Thửa 12, Tờ 34 / BV-01" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Thửa 12, Tờ 34 / BV-01">
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Địa chỉ thửa đất / Vị trí:</label>
-              <input type="text" id="txtExportAddress" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Xã/Phường, Huyện/Quận, Tỉnh/TP" oninput="appData.saveTitleBlockInfo(false)">
+              <input type="text" id="txtExportAddress" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Xã/Phường, Huyện/Quận, Tỉnh/TP" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Xã/Phường, Huyện/Quận, Tỉnh/TP">
             </div>
           </div>
 
@@ -8893,15 +8892,15 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Kỹ sư / Người đo vẽ:</label>
-              <input type="text" id="txtExportSurveyor" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên kỹ sư..." oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();">
+              <input type="text" id="txtExportSurveyor" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên kỹ sư..." oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();" aria-label="Tên kỹ sư...">
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Người kiểm tra / Phê duyệt:</label>
-              <input type="text" id="txtExportChecker" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên người kiểm tra..." oninput="appData.saveTitleBlockInfo(false)">
+              <input type="text" id="txtExportChecker" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên người kiểm tra..." oninput="appData.saveTitleBlockInfo(false)" aria-label="Tên người kiểm tra...">
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Ngày lập hồ sơ:</label>
-              <input type="date" id="txtExportDate" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" onchange="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();">
+              <input type="date" id="txtExportDate" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" onchange="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();" aria-label="Ngày lập bản vẽ">
             </div>
           </div>
 
@@ -8909,11 +8908,11 @@
           <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px;">
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Ký hiệu bản vẽ / Mã hồ sơ:</label>
-              <input type="text" id="txtExportDrawingCode" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01" oninput="appData.saveTitleBlockInfo(false)">
+              <input type="text" id="txtExportDrawingCode" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: SĐ-01/01">
             </div>
             <div>
               <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 2px;">Ghi chú kỹ thuật bản vẽ:</label>
-              <input type="text" id="txtExportNotes" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Đo vẽ bằng máy toàn đạc điện tử / GPS RTK..." oninput="appData.saveTitleBlockInfo(false)">
+              <input type="text" id="txtExportNotes" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Đo vẽ bằng máy toàn đạc điện tử / GPS RTK..." oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Đo vẽ bằng máy toàn đạc điện tử / GPS RTK...">
             </div>
           </div>
         </div>
@@ -8929,7 +8928,7 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div>
               <label for="selExportBasemap" style="font-size: 11px; color: #94a3b8; font-weight: 600; display: block; margin-bottom: 2px;">Nền bản đồ cơ sở:</label>
-              <select id="selExportBasemap" class="app-select" style="height: 34px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()">
+              <select id="selExportBasemap" class="app-select" style="height: 34px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()" aria-label="Export basemap">
                 <option value="none" selected>Không nền (Giấy trắng chuẩn kỹ thuật)</option>
                 <option value="street">🗺️ Bản đồ đường phố (OpenStreetMap)</option>
                 <option value="satellite">🛰️ Ảnh vệ tinh (Esri World Imagery)</option>
@@ -8938,7 +8937,7 @@
             </div>
             <div>
               <label style="font-size: 11px; color: #facc15; font-weight: 700; display: block; margin-bottom: 2px;">Tỉnh thành quy hoạch Guland:</label>
-              <select id="selExportGulandProvince" class="app-select" style="height: 34px; font-size: 11.5px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()">
+              <select id="selExportGulandProvince" class="app-select" style="height: 34px; font-size: 11.5px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()" aria-label="Export guland province">
                 <!-- Nạp động 63 tỉnh -->
               </select>
             </div>
@@ -8946,11 +8945,11 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11.5px; margin-top: 2px;">
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-weight: 700;">
-              <input type="checkbox" id="chkExportGulandPlanning" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportGulandPlanning" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 15px; height: 15px;" aria-label="Export guland planning">
               <span>🏛️ In kèm lớp quy hoạch Guland</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #cbd5e1;">
-              <input type="checkbox" id="chkExportGulandLand" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 14px; height: 14px;">
+              <input type="checkbox" id="chkExportGulandLand" onchange="appData.onExportSettingChange()" style="accent-color: #eab308; width: 14px; height: 14px;" aria-label="Export guland land">
               <span>Kèm ranh thửa đất Guland</span>
             </label>
           </div>
@@ -8959,7 +8958,7 @@
           <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
               <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #38bdf8; font-weight: 700; font-size: 11.5px;">
-                <input type="checkbox" id="chkExportPlanOverlay" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+                <input type="checkbox" id="chkExportPlanOverlay" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Export plan overlay">
                 <span>📄 In kèm lớp bản đồ từ tệp PDF / Ảnh nắn tọa độ</span>
               </label>
               <span id="selExportPlanOverlayCountBadge" style="font-size: 11px; color: #38bdf8;">0 tệp</span>
@@ -8978,35 +8977,35 @@
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; font-size: 11.5px;">
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportPoints" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportPoints" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất các điểm mốc">
               <span>🔴 Tâm mốc &amp; Ký hiệu</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportNames" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportNames" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất nhãn tên mốc">
               <span>🏷️ Tên mốc / Số hiệu đỉnh</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportCoords" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportCoords" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất bảng tọa độ mốc">
               <span>🔢 Tọa độ chú dẫn X, Y</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportLines" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportLines" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất các đoạn tim tuyến ranh">
               <span>📐 Đường ranh thửa đất</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportLengths" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportLengths" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất chiều dài cạnh ranh">
               <span>📏 Kích thước chiều dài cạnh</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportGrid" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportGrid" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất lưới tọa độ trắc địa">
               <span>➕ Lưới Km chữ thập</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportFrame" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportFrame" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất khung bản vẽ kỹ thuật">
               <span>🖼️ Khung bản vẽ &amp; Khung tên</span>
             </label>
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #f8fafc;">
-              <input type="checkbox" id="chkExportNorth" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;">
+              <input type="checkbox" id="chkExportNorth" checked onchange="appData.onExportSettingChange()" style="accent-color: #0284c7; width: 15px; height: 15px;" aria-label="Xuất mũi tên chỉ hướng Bắc">
               <span>🧭 Kim chỉ hướng Bắc</span>
             </label>
           </div>
@@ -9019,7 +9018,7 @@
             <span style="font-size: 11px; color: #94a3b8; font-weight: 500; text-transform: none;">Định dạng đuôi file</span>
           </label>
           <div style="position: relative;">
-            <select id="selExportFormat" class="export-format-select" onchange="appData.selectExportFormat(this.value)" style="width: 100%; height: 46px; background: #0f172a; color: #f8fafc; border: 1.5px solid #0284c7; border-radius: 8px; padding: 0 38px 0 14px; font-size: 15px; font-weight: 700; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);">
+            <select id="selExportFormat" class="export-format-select" onchange="appData.selectExportFormat(this.value)" style="width: 100%; height: 46px; background: #0f172a; color: #f8fafc; border: 1.5px solid #0284c7; border-radius: 8px; padding: 0 38px 0 14px; font-size: 15px; font-weight: 700; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);" aria-label="Export format">
               <option value="dwg" data-format="dwg" title="Bản vẽ AutoCAD (.dwg)" data-handler="appData.selectExportFormat('dwg')">.dwg</option>
               <option value="excel" data-format="excel" title="Bảng tính Excel (.xlsx)" data-handler="appData.selectExportFormat('excel')">.xlsx</option>
               <option value="pdf" data-format="pdf" title="Báo cáo PDF (.pdf)" data-handler="appData.selectExportFormat('pdf')">.pdf</option>
@@ -9153,15 +9152,15 @@
           </div>
           <div style="display: flex; gap: 10px; align-items: center;">
             <label style="font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-              <input type="radio" name="radRoutingCoordType" value="vn2000" checked style="accent-color: #0284c7;">
+              <input type="radio" name="radRoutingCoordType" value="vn2000" checked style="accent-color: #0284c7;" aria-label="Trường nhập liệu">
               <span>VN-2000 (X, Y mét)</span>
             </label>
             <label style="font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-              <input type="radio" name="radRoutingCoordType" value="wgs84" style="accent-color: #0284c7;">
+              <input type="radio" name="radRoutingCoordType" value="wgs84" style="accent-color: #0284c7;" aria-label="Trường nhập liệu">
               <span>WGS-84 (Vĩ độ, Kinh độ)</span>
             </label>
           </div>
-          <textarea id="txtRoutingPastedCoords" rows="6" class="app-input" style="width: 100%; font-family: ui-monospace, monospace; font-size: 12px; padding: 8px; border-radius: 8px; background: #0b1329; color: #f8fafc; border: 1px solid rgba(56, 189, 248, 0.3); resize: vertical;" placeholder="Ví dụ VN2000:&#10;M01 1162450.123 589420.456&#10;M02 1162800.789 589800.123&#10;&#10;Hoặc WGS84:&#10;P1 10.512345 106.123456&#10;P2 10.523456 106.134567"></textarea>
+          <textarea id="txtRoutingPastedCoords" rows="6" class="app-input" style="width: 100%; font-family: ui-monospace, monospace; font-size: 12px; padding: 8px; border-radius: 8px; background: #0b1329; color: #f8fafc; border: 1px solid rgba(56, 189, 248, 0.3); resize: vertical;" placeholder="Ví dụ VN2000:&#10;M01 1162450.123 589420.456&#10;M02 1162800.789 589800.123&#10;&#10;Hoặc WGS84:&#10;P1 10.512345 106.123456&#10;P2 10.523456 106.134567" aria-label="Ví dụ VN2000:&#10;M01 1162450.123 589420.456&#10;M02 1162800.789 589800.123&#10;&#10;Hoặc WGS84:&#10;P1 10.512345 106.123456&#10;P2 10.523456 106.134567"></textarea>
         </div>
       </div>
 

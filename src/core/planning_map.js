@@ -648,14 +648,14 @@
                 <div class="planning-ctrl-body">
                     <div class="planning-row">
                         <label class="planning-label">Tỉnh / Thành (63 tỉnh):</label>
-                        <select class="planning-province-select" onchange="appPlanning.setProvince('${k}', this.value, true)" title="Chọn tỉnh thành quy hoạch">
+                        <select class="planning-province-select" onchange="appPlanning.setProvince('${k}', this.value, true)" title="Chọn tỉnh thành quy hoạch" aria-label="Chọn tỉnh thành quy hoạch">
                             ${this.renderProvinceOptionsHtml(t.provinceSlug)}
                         </select>
                     </div>
                     <div class="planning-row">
                         <label class="planning-label">Độ mờ: <b class="planning-opacity-text">${percent}%</b></label>
                         <input type="range" class="planning-opacity-slider" min="10" max="100" value="${percent}" 
-                               oninput="appPlanning.onSliderChange('${k}', this.value)" title="Kéo để nhìn xuyên thấu xuống ảnh vệ tinh">
+                               oninput="appPlanning.onSliderChange('${k}', this.value)" title="Kéo để nhìn xuyên thấu xuống ảnh vệ tinh" aria-label="Độ mờ lớp quy hoạch">
                     </div>
                     <div class="planning-row" style="margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
                         <label class="planning-label" style="margin: 0; cursor: pointer; display: flex; align-items: center; gap: 6px;">

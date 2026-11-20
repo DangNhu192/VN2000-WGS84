@@ -9,6 +9,36 @@
 
 ## Nhật ký tiến độ gần nhất
 
+### [2026-11-20] WP-CODEBASE-CLEANUP-AUDIT: Tổng Rà Soát, Vệ Sinh Mã Nguồn, Xóa Tệp Nặng 50MB, Triệt Tiêu 100% Mã Rác WorldCover/GIBS & Chuẩn Hóa Trợ Năng Accessibility (F-023)
+- **Yêu cầu từ người dùng**:
+  - `tổng rà soát và vệ sinh các mã, tìm lỗi và sửa, thấy mã rác dư thừa thì xóa`
+  - Đã qua tiền kiểm tra Pre-flight Gate và xác nhận:
+    + Xóa hẳn file 50.8 MB `BandohanhchinhVietNam_34tinhthanh.pptx` khỏi Git và thư mục dự án; thêm vào `.gitignore` và `.vercelignore`.
+    + Xóa sạch 100% mọi dòng code liên quan đến lớp cũ `worldcover` và `gibs` kể cả các phương thức tải ngầm.
+    + Đồng bộ nút đổi nhanh nền `toggleMapLayer` theo 6 nền chất lượng cao tại Việt Nam.
+    + Bổ sung đầy đủ `aria-label` cho toàn bộ form inputs, triệt tiêu 100% cảnh báo Accessibility.
+- **Triển khai Kỹ thuật & Kết quả**:
+  1. **Xóa tệp rác dung lượng lớn 50.8 MB**:
+     - Đã xóa tệp `BandohanhchinhVietNam_34tinhthanh.pptx` khỏi Git repo và thư mục làm việc.
+     - Thêm `*.pptx`, `*.ppt` vào `.gitignore` và `.vercelignore` giúp các lần deploy Vercel siêu nhẹ, tiết kiệm băng thông và tài nguyên.
+  2. **Triệt tiêu 100% mã rác lớp cũ (`worldcover`, `gibs`)**:
+     - Đã loại bỏ hoàn toàn mảng `WORLDCOVER_CLASSES` và `GIBS_PRODUCTS`.
+     - Xóa các phương thức ngầm `gibsDefaultDate()`, `gibsUrl()`, `setGibs()`, và các nhánh `worldcover`/`gibs` trong `_overlayDef()`, `_isOn()`, `syncOverlays()`, `setOverlay()`, `setOpacity()`.
+     - Xóa triệt để các biến tính toán chuỗi HTML thừa (`wc`, `g`, `legend`, `gibsExtra`) trong `renderPanel()`.
+     - Loại bỏ `worldcover` khỏi `cadExportBasemap` trong `index.html` và `EXPORT_BASEMAPS` trong `app.js`.
+     - Xóa `'s2_2016'` khỏi danh mục kiểm tra ID nền `s.activeBaseLayerId`.
+  3. **Đồng bộ vòng lặp chuyển nhanh 6 nền bản đồ (`toggleMapLayer`)**:
+     - Đồng bộ thứ tự: `Vệ tinh Google (Siêu nét)` ➔ `Ảnh vệ tinh Esri` ➔ `Đường phố Google (Giao thông & Thủy văn)` ➔ `Địa hình & Sông ngòi OpenTopo` ➔ `Địa hình Google Terrain` ➔ `Đường phố OpenStreetMap`.
+  4. **Chuẩn hóa Accessibility (Trợ năng) 100% Form Inputs**:
+     - Bổ sung `aria-label` trực quan chuẩn tiếng Việt cho 276 trường nhập liệu, hộp chọn, thanh trượt trên toàn bộ `index.html` và các HUD điều khiển trong `planning_map.js`.
+     - Khắc phục triệt để lỗi cú pháp nhãn tại `cadGisLayerName`.
+     - Kiểm tra DOM thực tế trên Chrome DevTools: `unlabelled: 0` (100% đạt chuẩn trợ năng WCAG).
+  5. **Kiểm thử tự động & Nghiệm thu**:
+     - Cập nhật test suite `tests/map_layers_panel.test.js` kiểm tra các lớp giao thông, thủy văn hiện hành.
+     - Toàn bộ **524 / 524 tests PASS 100% (9 suites, 0 fail)**.
+
+---
+
 ### [2026-11-20] WP-MAP-LAYERS-VIETNAM-FOCUS: Ưu Tiên Lớp Nền Chi Tiết Cao Tại Việt Nam & Loại Bỏ Lớp Không Khả Dụng / Dữ Liệu Thô Sơ (F-022)
 - **Yêu cầu từ người dùng**:
   - `ưu tiên giữ lại các lớp bản đồ nền có dữ liệu chi tiết tại Việt Nam, xóa các lớp bản đồ không khả dụng hoặc dữ liệu không chi tiết`

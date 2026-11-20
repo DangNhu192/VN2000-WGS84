@@ -176,7 +176,7 @@ const appSettings = {
             AppState.scaleFactor = (s.muiVal === 3) ? 0.9999 : 0.9996;
         }
         if ([0, 1, 2].includes(s.formatType)) AppState.formatType = s.formatType;
-        if (['google_hybrid', 'esri_satellite', 'osm_streets', 's2_2016', 'google_streets', 'opentopomap', 'google_terrain', 'none'].includes(s.activeBaseLayerId)) AppState.activeBaseLayerId = s.activeBaseLayerId;
+        if (['google_hybrid', 'esri_satellite', 'google_streets', 'opentopomap', 'google_terrain', 'osm_streets', 'none'].includes(s.activeBaseLayerId)) AppState.activeBaseLayerId = s.activeBaseLayerId;
         if (bool(s.is34ProvVisible) !== null) AppState.is34ProvVisible = s.is34ProvVisible;
         if (bool(s.isDtCommunesVisible) !== null) AppState.isDtCommunesVisible = s.isDtCommunesVisible;
         if (bool(s.showProjectDistance) !== null) AppState.showProjectDistance = s.showProjectDistance;
@@ -287,7 +287,7 @@ const appSettings = {
         const v = AppState.savedMapView;
         if (v) map.setView([v.lat, v.lng], v.zoom);
 
-        // Nền + lớp phủ đã chọn (Sentinel-2, WorldCover, NASA, nguồn tự thêm) — xem appMapLayers
+        // Nền + lớp phủ đã chọn (Giao thông, Thủy văn, Ranh giới, nguồn tự thêm) — xem appMapLayers
         if (typeof appMapLayers !== 'undefined') appMapLayers.applyToMap(map);
 
         if (AppState.is34ProvVisible && AppState.layer34Prov) {
@@ -352,12 +352,6 @@ const EXPORT_BASEMAPS = {
         url: 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg',
         maxZoom: 14, alpha: 0.85,
         credit: 'Sentinel-2 cloudless - s2maps.eu by EOX IT Services GmbH (Copernicus Sentinel data 2016 & 2017)'
-    },
-    worldcover: {
-        label: 'Lớp phủ mặt đất ESA WorldCover',
-        url: 'https://mapproxy.terrascope.be/mapproxy/wmts/esa-worldcover-map-10m-2021-v2_map/webmercator/{z}/{x}/{y}.png',
-        maxZoom: 15, alpha: 0.6,
-        credit: '© ESA WorldCover project 2021 / Copernicus Sentinel data (2021), CC BY 4.0'
     }
 };
 const EXPORT_BASEMAP_MAX_TILES = 160;
@@ -7984,11 +7978,12 @@ const appMap = {
         container.addEventListener('touchstart', onStart, { passive: true });
     },
 
-    // Đổi nhanh giữa các nền chính (bảng chọn đầy đủ: appMapLayers.open())
+    // Đổi nhanh giữa 6 nền chính chất lượng cao tại Việt Nam (bảng chọn đầy đủ: appMapLayers.open())
     toggleMapLayer() {
         if (!AppState.leafletMap) return;
-        const order = ['google_hybrid', 'esri_satellite', 'osm_streets', 'google_streets', 'opentopomap'];
-        const next = order[(order.indexOf(AppState.activeBaseLayerId) + 1) % order.length];
+        const order = ['google_hybrid', 'esri_satellite', 'google_streets', 'opentopomap', 'google_terrain', 'osm_streets'];
+        const curIdx = order.indexOf(AppState.activeBaseLayerId);
+        const next = order[(curIdx + 1) % order.length];
         appMapLayers.setBase(next);
         const def = MAP_BASES.find(b => b.id === next);
         showToast(`🗺️ Nền: ${def ? def.name : next}`);
@@ -35549,7 +35544,7 @@ const appCadTool = {
             ? appPlanOverlay.getSelectedExportIds('cadExportPlanOverlayList')
             : [];
         const basemapVal = document.getElementById('cadExportBasemap')?.value;
-        const basemap = ['street', 'satellite', 'sentinel2', 'worldcover'].includes(basemapVal) ? basemapVal : 'none';
+        const basemap = ['street', 'satellite', 'sentinel2'].includes(basemapVal) ? basemapVal : 'none';
 
         const showGuland = document.getElementById('cadExportCheckGuland')?.checked || false;
         const gulandProvince = document.getElementById('cadExportGulandProvince')?.value || (AppState.provinceName || 'dong-thap');
@@ -45788,8 +45783,7 @@ const appPlanOverlay = {
 
 // ================= LỚP BẢN ĐỒ: CHỌN NỀN, BẬT/TẮT LỚP PHỦ (Bản đồ dự án & MiniCAD) =================
 // Chỉ dùng nguồn có giấy phép mở hoặc của chính người dùng; nguồn thương mại phải có xác nhận được phép.
-// Ô ảnh mở (đã kiểm tra cho đọc chéo CORS): Sentinel-2 cloudless 2016 (EOX, CC BY 4.0),
-// ESA WorldCover 2021 (CC BY 4.0, Terrascope), NASA GIBS (dữ liệu NASA, CC0).
+// Danh mục các lớp bản đồ nền & lớp phủ tối ưu cho trắc địa, địa chính và quy hoạch Việt Nam.
 const MAP_BASES = [
     { id: 'google_hybrid', name: 'Vệ tinh Google (Siêu nét)', sub: 'Chi tiết từng nóc nhà, ranh đất tại Việt Nam · Zoom 22', thumb: '#3b4a2f' },
     { id: 'esri_satellite', name: 'Ảnh vệ tinh Esri', sub: 'Sắc nét toàn quốc · In được khi xuất bản vẽ', thumb: '#4a5e3a' },
@@ -45819,15 +45813,6 @@ const MAP_BASE_ATTRIBUTION = {
     opentopomap: 'Bản đồ: © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA), © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
     google_terrain: 'Địa hình © Google'
 };
-const WORLDCOVER_CLASSES = [
-    ['#006400', 'Cây gỗ'], ['#ffbb22', 'Cây bụi'], ['#ffff4c', 'Đồng cỏ'], ['#f096ff', 'Đất trồng trọt'],
-    ['#fa0000', 'Xây dựng'], ['#b4b4b4', 'Đất trống'], ['#0064c8', 'Mặt nước'], ['#0096a0', 'Đất ngập nước'], ['#00cf75', 'Rừng ngập mặn']
-];
-const GIBS_PRODUCTS = [
-    { id: 'MODIS_Terra_CorrectedReflectance_Bands721', name: 'MODIS 7-2-1 (nổi bật mặt nước, lũ)' },
-    { id: 'MODIS_Terra_CorrectedReflectance_TrueColor', name: 'MODIS Terra màu thật' },
-    { id: 'VIIRS_NOAA20_CorrectedReflectance_TrueColor', name: 'VIIRS NOAA-20 màu thật' }
-];
 
 const appMapLayers = {
     STORE_KEY: 'vn2k_map_overlays_v1',
@@ -45837,8 +45822,6 @@ const appMapLayers = {
 
     defaults() {
         return {
-            worldcover: { on: false, opacity: 0.6 },
-            gibs: { on: false, opacity: 0.8, date: this.gibsDefaultDate(), product: GIBS_PRODUCTS[0].id },
             esri_transport: { on: false, opacity: 0.85 },
             google_roads: { on: false, opacity: 0.85 },
             google_traffic: { on: false, opacity: 0.85 },
@@ -45846,7 +45829,6 @@ const appMapLayers = {
             custom: []
         };
     },
-    gibsDefaultDate() { return new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10); },
     load() {
         if (this.state) return this.state;
         let s = null;
@@ -45854,8 +45836,6 @@ const appMapLayers = {
         const d = this.defaults();
         s = s && typeof s === 'object' ? s : {};
         this.state = {
-            worldcover: Object.assign({}, d.worldcover, s.worldcover),
-            gibs: Object.assign({}, d.gibs, s.gibs),
             esri_transport: Object.assign({}, d.esri_transport, s.esri_transport),
             google_roads: Object.assign({}, d.google_roads, s.google_roads),
             google_traffic: Object.assign({}, d.google_traffic, s.google_traffic),
@@ -45924,22 +45904,8 @@ const appMapLayers = {
         }
         return 'refOverlayPane';
     },
-    gibsUrl(g) {
-        const date = /^\d{4}-\d{2}-\d{2}$/.test(g.date || '') ? g.date : this.gibsDefaultDate();
-        const product = GIBS_PRODUCTS.some(p => p.id === g.product) ? g.product : GIBS_PRODUCTS[0].id;
-        return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${product}/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
-    },
     _overlayDef(id) {
         const s = this.load();
-        if (id === 'worldcover') return {
-            url: 'https://mapproxy.terrascope.be/mapproxy/wmts/esa-worldcover-map-10m-2021-v2_map/webmercator/{z}/{x}/{y}.png',
-            maxNativeZoom: 15, opacity: (s.worldcover && s.worldcover.opacity != null) ? s.worldcover.opacity : 0.6,
-            attribution: '© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium (CC BY 4.0)'
-        };
-        if (id === 'gibs') return {
-            url: this.gibsUrl(s.gibs), maxNativeZoom: 9, opacity: (s.gibs && s.gibs.opacity != null) ? s.gibs.opacity : 0.8,
-            attribution: 'Ảnh: NASA GIBS / EOSDIS'
-        };
         if (id === 'esri_transport') return {
             url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
             maxNativeZoom: 20, opacity: (s.esri_transport && s.esri_transport.opacity != null) ? s.esri_transport.opacity : 0.85,
@@ -45968,7 +45934,7 @@ const appMapLayers = {
     },
     _isOn(id) {
         const s = this.load();
-        if (['worldcover', 'gibs', 'esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) return !!(s[id] && s[id].on);
+        if (['esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) return !!(s[id] && s[id].on);
         const c = s.custom.find(x => x.id === id);
         return !!(c && c.on);
     },
@@ -45977,7 +45943,7 @@ const appMapLayers = {
         if (!map) return;
         const s = this.load();
         this.ensureAttribution();
-        const ids = ['esri_transport', 'google_roads', 'google_traffic', 'openseamap', 'worldcover', 'gibs', ...s.custom.map(c => c.id)];
+        const ids = ['esri_transport', 'google_roads', 'google_traffic', 'openseamap', ...s.custom.map(c => c.id)];
         Object.keys(this.layers).forEach(id => {
             if (!ids.includes(id) || !this._isOn(id)) { map.removeLayer(this.layers[id]); delete this.layers[id]; }
         });
@@ -45995,7 +45961,7 @@ const appMapLayers = {
     },
     setOverlay(id, on) {
         const s = this.load();
-        if (['worldcover', 'gibs', 'esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
+        if (['esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
             if (!s[id]) s[id] = {};
             s[id].on = !!on;
         } else {
@@ -46009,7 +45975,7 @@ const appMapLayers = {
     setOpacity(id, val) {
         const s = this.load();
         const o = Math.max(0.1, Math.min(1, +val || 0.6));
-        if (['worldcover', 'gibs', 'esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
+        if (['esri_transport', 'google_roads', 'google_traffic', 'openseamap'].includes(id)) {
             if (!s[id]) s[id] = {};
             s[id].opacity = o;
         } else {
@@ -46020,13 +45986,6 @@ const appMapLayers = {
         const lbl = document.getElementById('mlOpacity_' + id);
         if (lbl) lbl.textContent = Math.round(o * 100) + '%';
         this.save();
-    },
-    setGibs(field, val) {
-        const s = this.load();
-        if (field === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(val)) s.gibs.date = val;
-        if (field === 'product' && GIBS_PRODUCTS.some(p => p.id === val)) s.gibs.product = val;
-        this.save();
-        if (this.layers.gibs) this.layers.gibs.setUrl(this.gibsUrl(s.gibs));
     },
 
     // Bản đồ chính tắt sẵn ô ghi nguồn → bật lại vì OSM, Esri, EOX, ESA đều yêu cầu ghi nguồn
@@ -46126,17 +46085,10 @@ const appMapLayers = {
             <span class="ml-text"><b>${b.name}</b><small>${b.sub}</small></span></label>`).join('');
 
         const row = (sw, name, sub, extra = '') => `<div class="ml-row"><div class="ml-row-head">${sw.swatch}<span class="ml-text"><b>${name}</b><small>${sub}</small></span>${sw.input}</div>${extra}</div>`;
-        const wc = s.worldcover, g = s.gibs;
         const et = s.esri_transport || { on: false, opacity: 0.85 };
         const gr = s.google_roads || { on: false, opacity: 0.85 };
         const gt = s.google_traffic || { on: false, opacity: 0.85 };
         const osm = s.openseamap || { on: false, opacity: 0.8 };
-        const legend = `<div class="ml-legend">${WORLDCOVER_CLASSES.map(([c, n]) => `<span><i style="background:${c}"></i>${n}</span>`).join('')}</div>`;
-        const gibsExtra = g.on ? `<div class="ml-sub-controls">
-              <label>Ngày ảnh <input type="date" value="${escapeHtml(g.date)}" max="${new Date().toISOString().slice(0, 10)}" onchange="appMapLayers.setGibs('date', this.value)"></label>
-              <label>Loại ảnh <select onchange="appMapLayers.setGibs('product', this.value)">${GIBS_PRODUCTS.map(p => `<option value="${p.id}" ${p.id === g.product ? 'selected' : ''}>${p.name}</option>`).join('')}</select></label>
-              ${this._slider('gibs', g.opacity)}
-              <small>Độ phân giải ~250 m: xem vùng ngập, mùa nước nổi; ngày bị mây có thể trống.</small></div>` : '';
         let prov34Extra = '';
         if (AppState.is34ProvVisible && window.VIETNAM_34_PROVINCES) {
             const list = (window.VIETNAM_34_PROVINCES.features || [])
