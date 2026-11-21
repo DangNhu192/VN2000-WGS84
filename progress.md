@@ -2013,3 +2013,10 @@
   6. **Ki?m th?**:
      - B? sung b? ki?m th? tests/plan_overlay_multidoc.test.js (8/8 test PASS).
      - To�n b? test suite tests/*.test.js: 538/538 test PASS 100% (10 test suites, 0 fail, 0 skipped).
+
+- **2026-11-21 (Giao diện kính mờ theo mẫu "Sylva" — v2.8.45)**:
+  1. Bảng màu: sky → xanh rừng/sage, slate → xám ấm stone, nền tối `#171615`; đổi trực tiếp trong `style.css`, `ui-polish.css`, `ui-unified.css`, `field-workspace.css` và style inline của `index.html` (giữ độ sáng tương ứng; `app.js` không đổi).
+  2. `ui-sylva.css` (nạp cuối): kính mờ cho header, thẻ, ô nhập, modal, menu ☰, dock; bản tối + sáng; loại trừ `body.field-mode`.
+  3. Máy tính ≥1024px: thanh bên kính bên trái, nút ◂ gập thành dock biểu tượng ở đáy; HUD bản đồ/MiniCAD né dock; Leaflet đo lại sau khi gập/mở.
+  4. `theme-color`/manifest `#171615`, SW cache `ui-sylva.css`, phiên bản 2.8.45.
+  5. Kiểm thử: thêm `tests/ui_sylva_theme.test.js`; cập nhật 2 test ghim màu cũ. **542/542 PASS**.

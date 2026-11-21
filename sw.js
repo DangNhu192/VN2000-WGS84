@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.44';
+const CACHE_NAME = 'vn2000-pro-v2.8.45';
 // Dữ liệu địa giới lớn (~4 MB): cache riêng, KHÔNG xóa khi nâng phiên bản ứng dụng; đổi tên khi dữ liệu đổi.
 const DATA_CACHE = 'vn2000-data-admin-2025-07-01';
 // Bộ nhớ đệm gạch bản đồ thực địa: Lưu trữ bền vững phục vụ khảo sát ngoại tuyến không sóng mạng
@@ -20,6 +20,7 @@ const ASSETS_TO_CACHE = [
   './import-preview.js',
   './app-shell.js',
   './ui-unified.css',
+  './ui-sylva.css',
   './ui-polish.css',
   './geodesy.js',
   './leaflet.js',

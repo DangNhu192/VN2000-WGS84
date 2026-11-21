@@ -1278,6 +1278,10 @@ const appNav = window.appNav = {
         if (typeof document !== 'undefined' && document.body) {
             document.body.classList.toggle('dock-collapsed', this.isTaskbarCollapsed);
         }
+        // Máy tính: gập/mở thanh bên làm đổi bề rộng vùng bản đồ → báo Leaflet đo lại sau khi chuyển động xong.
+        if (typeof window !== 'undefined' && typeof Event === 'function') {
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 340);
+        }
     },
 
     collapseTaskbar() {

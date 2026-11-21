@@ -1,20 +1,20 @@
 ---
-version: 2.1.0
-name: Precision Geodetic & Planning Design System
+version: 3.0.0
+name: Sylva Glass — Precision Geodetic Design System
 description: Studio-grade UI/UX Design System for VN2000-PWA with Guland 2030 Planning Map Integration
 colors:
-  primary: "#0284c7"
-  secondary: "#38bdf8"
-  tertiary: "#0ea5e9"
-  neutral-bg: "#0b1120"
-  neutral-surface: "#111d35"
-  neutral-elevated: "#182747"
-  text-primary: "#f8fafc"
-  text-secondary: "#94a3b8"
-  text-accent: "#38bdf8"
-  border-subtle: "rgba(255, 255, 255, 0.10)"
-  border-strong: "rgba(56, 189, 248, 0.35)"
-  border-focus: "#38bdf8"
+  primary: "#3f8a5a"
+  secondary: "#93cc9c"
+  tertiary: "#4fa46b"
+  neutral-bg: "#171615"
+  neutral-surface: "rgba(40, 37, 34, 0.52)"
+  neutral-elevated: "rgba(30, 28, 26, 0.86)"
+  text-primary: "#f2eee7"
+  text-secondary: "#a8a29e"
+  text-accent: "#93cc9c"
+  border-subtle: "rgba(255, 244, 228, 0.09)"
+  border-strong: "rgba(147, 204, 156, 0.45)"
+  border-focus: "#93cc9c"
   planning-brand: "#38bdf8"
   planning-bg: "rgba(15, 23, 42, 0.94)"
   planning-surface: "rgba(30, 41, 59, 0.85)"

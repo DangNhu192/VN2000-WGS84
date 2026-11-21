@@ -11,8 +11,8 @@ test('=== 1. KIỂM THỬ CẤU TRÚC VÀ ĐẶC TẢ MANIFEST.JSON CHO PWA HI�
 
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     assert.equal(manifest.id, 'vn2000-pro-pwa', 'Phải có id định danh ứng dụng PWA');
-    assert.equal(manifest.theme_color, '#0f172a', 'Màu theme_color phải đồng bộ Dark Titanium #0f172a');
-    assert.equal(manifest.background_color, '#0f172a', 'Màu background_color phải là #0f172a');
+    assert.equal(manifest.theme_color, '#171615', 'Màu theme_color phải đồng bộ nền Sylva #171615');
+    assert.equal(manifest.background_color, '#171615', 'Màu background_color phải là #171615');
     assert.equal(manifest.display, 'standalone', 'Chế độ hiển thị phải là standalone');
     assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 3, 'Phải có danh sách biểu tượng đầy đủ kích thước');
 
@@ -89,7 +89,7 @@ test('=== 4. KIỂM THỬ ĐỒNG BỘ PHIÊN BẢN VÀ META TAGS TRONG INDEX.HT
     const htmlPath = path.join(ROOT_DIR, 'index.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    assert.ok(html.includes('<meta name="theme-color" content="#0f172a">'), 'Theme-color trong index.html phải là #0f172a');
+    assert.ok(html.includes('<meta name="theme-color" content="#171615">'), 'Theme-color trong index.html phải là #171615');
     assert.ok(/style\.css\?v=2\.8\.\d+/.test(html) || html.includes('style.css?v=2.8.0'), 'index.html phải nạp stylesheet style.css?v=2.8.x');
     assert.ok(/app\.js\?v=2\.8\.\d+/.test(html) || html.includes('app.js?v=2.8.0'), 'index.html phải nạp script app.js?v=2.8.x');
     assert.ok(fs.existsSync(path.join(ROOT_DIR, 'style.css')), 'Tệp style.css phải tồn tại trong thư mục gốc');
