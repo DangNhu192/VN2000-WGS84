@@ -10,7 +10,7 @@ const appJs = fs.readFileSync('app.js', 'utf8');
 
 test('ui-sylva.css nạp sau cùng và có trong bộ nhớ đệm ngoại tuyến', () => {
   const links = [...html.matchAll(/<link rel="stylesheet" href="([^"?]+)/g)].map(m => m[1]);
-  assert.strictEqual(links[links.length - 1], 'ui-sylva.css', 'ui-sylva.css phải là stylesheet cuối cùng');
+  assert.strictEqual(links.indexOf('ui-sylva.css'), links.length - 2, 'ui-sylva.css nạp ngay trước ui-mapfirst.css');
   assert.ok(sw.includes("'./ui-sylva.css'"), 'Service worker phải cache ui-sylva.css');
   assert.ok(html.includes('<meta name="theme-color" content="#171615">'), 'Thanh trạng thái theo nền #171615');
 });
@@ -22,7 +22,7 @@ test('Có bộ token kính cho cả bản tối và bản sáng', () => {
 });
 
 test('Máy tính: thanh bên trái, gập thành dock đáy; chế độ Thực địa không bị ảnh hưởng', () => {
-  assert.ok(css.includes('@media (min-width: 1024px) and (min-height: 621px)'), 'Thanh bên chỉ áp dụng cho màn hình lớn');
+  assert.ok(css.includes('@media (min-width: 1280px) and (min-height: 621px)'), 'Thanh bên chỉ áp dụng cho màn hình lớn');
   assert.ok(css.includes('nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed'), 'Có trạng thái gập thành dock');
   assert.ok(css.includes('body.dock-collapsed:not(.field-mode) main.app-viewport'), 'Vùng nội dung giãn ra khi gập');
   const rules = css.replace(/\/\*[\s\S]*?\*\//g, '').match(/[^{}]+(?={)/g).map(s => s.trim()).filter(s => s && !s.startsWith('@') && !s.startsWith(':root') && !s.startsWith('[data-theme') && !/^(html|::selection)/.test(s));

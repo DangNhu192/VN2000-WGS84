@@ -260,6 +260,83 @@
     let lastDetail = { menu: true };
     document.addEventListener('vn2000:screenchange', e => { lastDetail = e.detail || lastDetail; });
 
+    // ---------- 3) Ưu tiên bản đồ (ui-mapfirst.css) ----------
+    // <body data-screen data-map-mode> cho CSS biết màn hình đang mở; đo các lớp phủ thật để bản đồ
+    // dùng đúng phần còn trống thay vì đoán bằng số cố định:
+    //   --mf-dock-clear  : khoảng phải chừa ở đáy cho dock nổi (0 khi dock là thanh bên trên máy tính)
+    //   --mf-rc-top/-bottom (trên #map-view-container): dải trống dọc cho cột nút phải, né CLI/thanh MiniCAD/dock
+    const px = n => Math.max(0, Math.round(n)) + 'px';
+    // offsetParent luôn null với phần tử position: fixed (dock) → kiểm tra bằng hộp hiển thị.
+    const visible = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+
+    function markScreen() {
+        if (typeof AppState === 'undefined' || !document.body) return;
+        const scr = String(AppState.currentScreen || 'menu');
+        document.body.dataset.screen = scr;
+        document.body.dataset.mapMode = scr === 'map' ? String(AppState.mapMode || 'project') : '';
+    }
+
+    function measureDock() {
+        const nav = byId('mobileBottomNav');
+        let clear = 0;
+        if (visible(nav)) {
+            const r = nav.getBoundingClientRect();
+            // Chỉ khi dock nằm ngang ở nửa dưới màn hình (điện thoại, dock đã gập trên máy tính).
+            if (r.width > r.height && r.top > window.innerHeight / 2) clear = window.innerHeight - r.top + 6;
+        }
+        document.documentElement.style.setProperty('--mf-dock-clear', px(clear));
+    }
+
+    function measureMapBand() {
+        const box = byId('map-view-container'), rc = byId('mapRightControls');
+        if (!box || !visible(box) || !rc) return;
+        const b = box.getBoundingClientRect(), x0 = rc.getBoundingClientRect().left, x1 = rc.getBoundingClientRect().right;
+        const overlapsX = r => r.right > x0 && r.left < x1;
+        let top = 0, bottom = 0;
+        // Lớp phủ nằm nửa trên (thanh MiniCAD khi máy ngang, CLI, thanh dự án) đẩy mép trên xuống;
+        // nằm nửa dưới (thanh MiniCAD khi máy dọc, thanh trạng thái, bảng mốc, dock) đẩy mép dưới lên.
+        ['cadFloatingCmdBar', 'mapProjectBar', 'mapCadToolbar', 'cadStatusHud', 'mapBottomSheet', 'mobileBottomNav'].forEach(id => {
+            const el = byId(id);
+            if (!visible(el) || el.classList.contains('is-dragged')) return;
+            const r = el.getBoundingClientRect();
+            if (!r.height || !overlapsX(r)) return;
+            if ((r.top + r.bottom) / 2 < b.top + b.height / 2) top = Math.max(top, r.bottom - b.top);
+            else bottom = Math.max(bottom, b.bottom - r.top);
+        });
+        box.style.setProperty('--mf-rc-top', px(top + 8));
+        box.style.setProperty('--mf-rc-bottom', px(bottom + 8));
+    }
+
+    let mfRaf = 0;
+    function relayout() {
+        if (mfRaf) return;
+        mfRaf = requestAnimationFrame(() => {
+            mfRaf = 0;
+            markScreen();
+            measureDock();
+            measureMapBand();
+        });
+    }
+
+    function initMapFirst() {
+        relayout();
+        document.addEventListener('vn2000:screenchange', () => {
+            relayout();
+            // Đổi màn hình có thể đổi chiều cao vùng bản đồ (ẩn thanh tên màn hình…) → Leaflet đo lại.
+            setTimeout(() => { relayout(); window.dispatchEvent(new Event('resize')); }, 120);
+        });
+        window.addEventListener('resize', relayout);
+        if (typeof ResizeObserver === 'function') {
+            const ro = new ResizeObserver(relayout);
+            ['mobileBottomNav', 'mapCadToolbar', 'cadFloatingCmdBar', 'cadStatusHud', 'mapProjectBar', 'mapBottomSheet', 'map-view-container']
+                .forEach(id => { const el = byId(id); if (el) ro.observe(el); });
+        }
+        const nav = byId('mobileBottomNav');
+        if (nav) nav.addEventListener('transitionend', relayout);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMapFirst);
+    else initMapFirst();
+
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 })(typeof window !== 'undefined' ? window : globalThis);

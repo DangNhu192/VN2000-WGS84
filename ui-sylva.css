@@ -212,8 +212,8 @@ body:not(.field-mode) nav#mobileBottomNav :is(.dock-collapse-btn, .dock-expand-h
   box-shadow: none !important;
 }
 
-/* ---------- 4. Máy tính: thanh bên kính bên trái, bấm « để gập thành dock dưới đáy ---------- */
-@media (min-width: 1024px) and (min-height: 621px) {
+/* ---------- 4. Máy tính (≥1280px; dưới mức này dock nằm ngang để bản đồ được rộng): thanh bên kính bên trái, bấm « để gập thành dock dưới đáy ---------- */
+@media (min-width: 1280px) and (min-height: 621px) {
   body:not(.field-mode) main.app-viewport {
     margin-left: calc(var(--sy-side-w) + 24px) !important;
     width: calc(100% - var(--sy-side-w) - 24px) !important;
