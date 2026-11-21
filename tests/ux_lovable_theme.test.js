@@ -27,7 +27,7 @@ test('=== 2. KIỂM THỬ BỘ BIẾN CSS LOVABLE TOÀN DIỆN (DARK & LIGHT MOD
   const indexHtml = getMergedMarkupAndStyles();
 
   // Kiểm tra bộ token Lovable
-  assert.ok(indexHtml.includes('--lv-bg-base: #090d16;'), 'Có token nền tối kỹ thuật sâu');
+  assert.ok(indexHtml.includes('--lv-bg-base: #12110f;'), 'Có token nền tối kỹ thuật sâu');
   assert.ok(indexHtml.includes('--lv-accent: #6366f1;'), 'Có accent Indigo chuẩn Lovable');
   assert.ok(indexHtml.includes('[data-theme="light"]'), 'Hỗ trợ chế độ Clean Light Mode');
   assert.ok(indexHtml.includes('nav#mobileBottomNav.mobile-bottom-nav'), 'Thanh điều hướng nổi Floating Island');
@@ -106,8 +106,8 @@ test('=== 4. KIỂM THỬ TƯƠNG PHẢN CAO & CHỐNG CHỮ TRẮNG TRÊN NỀN
   assert.ok(indexHtml.includes('[data-theme="light"] .menu-card-title'), 'Phải có override cho .menu-card-title ở Light mode');
   assert.ok(indexHtml.includes('[data-theme="light"] .compact-tool-title'), 'Phải có override cho .compact-tool-title ở Light mode');
   assert.ok(indexHtml.includes('[data-theme="light"] .table-selectable th'), 'Phải có override cho header bảng biểu ở Light mode');
-  assert.ok(indexHtml.includes('color: #090d16 !important;'), 'Phải dùng màu chữ tối tương phản cao #090d16');
-  assert.ok(indexHtml.includes('--bg-dark: #f1f5f9;'), 'Nền tổng thể Light mode phải là xám sáng #f1f5f9 chống chói');
+  assert.ok(indexHtml.includes('color: #12110f !important;'), 'Phải dùng màu chữ tối tương phản cao #090d16');
+  assert.ok(indexHtml.includes('--bg-dark: #f3f1ed;'), 'Nền tổng thể Light mode phải là xám sáng #f1f5f9 chống chói');
 });
 
 test('=== 5. KIỂM THỬ KHỬ RÁC CHỮ (DE-CLUTTERED BENTO TILES LOVABLE 2026) ===', () => {
@@ -125,7 +125,7 @@ test('=== 6. KIỂM THỬ CINEMATIC INDUSTRIAL BAUHAUS (IMOL2o 2026 FIELD SPEC) 
 
   // Kiểm tra bộ token Industrial Bauhaus
   assert.ok(indexHtml.includes('--bauhaus-amber: #f59e0b;'), 'Có token Laser Amber đặc trưng máy đo đạc');
-  assert.ok(indexHtml.includes('--bauhaus-titan-card: #131c2e;'), 'Có token nền titan sâu cho thẻ khí tài dã chiến');
+  assert.ok(indexHtml.includes('--bauhaus-titan-card: #23201e;'), 'Có token nền titan sâu cho thẻ khí tài dã chiến');
   assert.ok(indexHtml.includes('--bauhaus-ease-spring:'), 'Có gia tốc chuyển động đàn hồi vật lý 60fps');
 
   // Kiểm tra hiệu ứng Signature Moment: Radar Beam Sweep

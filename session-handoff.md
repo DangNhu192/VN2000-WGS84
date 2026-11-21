@@ -1,6 +1,18 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-20: WP-MAP-LAYERS-AUDIT-CLEANUP — LOẠI BỎ LỚP RỖNG OPENSEAMAP & TỐI ƯU HÓA TOÀN DIỆN CÁC LỚP BẢN ĐỒ TRẮC ĐỊA (F-027)
+## Phiên hiện tại — 2026-11-21: WP-UI-SYLVA — GIAO DIỆN KÍNH MỜ THEO MẪU "SYLVA" (Code and Chill), v2.8.45
+- **Yêu cầu từ người dùng**: `Cập nhật giao diện app theo sản phẩm trong link này https://codeandchill.store/templates/sylva`
+- **Lưu ý**: trang mẫu và bản demo không mở được trong phiên (trang dựng bằng JS, demo cần duyệt quyền). Chỉ dựa trên mô tả công khai của Sylva: CRM kính mờ (frosted glass), nền đen ấm `#171615`, có bản tối + sáng, thanh bên gập thành dock. Màu nhấn xanh rừng/sage là lựa chọn diễn giải (Sylva = rừng) — cần người dùng xác nhận khi so với bản demo thật.
+- **Đã làm**:
+  1. Đổi bảng màu toàn bộ CSS + style inline trong `index.html` (không đụng `app.js` — màu marker/canvas giữ nguyên): sky → sage/forest (`#38bdf8→#93cc9c`, `#0284c7→#3f8a5a`, `#0369a1→#2f6e47`…), slate → stone ấm (`#0f172a→#1c1a18`, `#94a3b8→#a8a29e`…), navy rất tối → tối ấm cùng độ sáng. Giữ nguyên độ sáng nên tương phản không đổi.
+  2. Thêm `ui-sylva.css` (nạp cuối): token kính `--sy-*` cho 2 chế độ, nền ánh sáng dịu, header/thẻ/ô nhập/modal/menu ☰/dock bằng kính, nút chính xanh rừng phẳng. Mọi quy tắc loại trừ `body.field-mode`.
+  3. Máy tính (≥1024px, cao ≥621px): thanh điều hướng thành **thanh bên kính bên trái**; nút ◂ gập thành **dock biểu tượng giữa đáy** (dùng lại `appNav.toggleTaskbarDock` / `body.dock-collapsed`). HUD đáy bản đồ/MiniCAD tự né dock. `toggleTaskbarDock` phát `resize` để Leaflet đo lại.
+  4. `theme-color` + manifest → `#171615`; nâng phiên bản 2.8.45 (cache SW mới), SW cache `ui-sylva.css`.
+  5. Test: cập nhật giá trị màu cũ trong `tests/ux_lovable_theme.test.js`, `tests/pwa_production_optimization.test.js`; thêm `tests/ui_sylva_theme.test.js` (4 test). **542/542 PASS**.
+
+---
+
+## Phiên trước đó — 2026-11-20: WP-MAP-LAYERS-AUDIT-CLEANUP — LOẠI BỎ LỚP RỖNG OPENSEAMAP & TỐI ƯU HÓA TOÀN DIỆN CÁC LỚP BẢN ĐỒ TRẮC ĐỊA (F-027)
 - **Yêu cầu từ người dùng**:
   - `openseamap ko hoạt động đúng không?` -> `bỏ lớp OpenSeaMap đi, sau đó tìm các lớp bản đồ khác (tốt) và đề xuất tôi thêm vào (cho link test trước gốc)` -> `thôi khỏi đi, xem lại các lớp bản đồ còn lỗi không?`
 - **Kết quả triển khai & Xác minh**:

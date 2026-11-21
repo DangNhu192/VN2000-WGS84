@@ -1,13 +1,13 @@
 /* Home workspace, scoped to keep the conversion, project and CAD screens isolated. */
 #fieldWorkspace {
-  --fw-surface: #111c30; --fw-input: #0b1424; --fw-ink: #f8fafc; --fw-muted: #a9b8cc;
-  --fw-line: #3b4c63; --fw-accent: #75d3f4; --fw-on-accent: #082132; --fw-error: #ffb4ab;
+  --fw-surface: #23201e; --fw-input: #181614; --fw-ink: #faf9f6; --fw-muted: #b0aaa2;
+  --fw-line: #4a4540; --fw-accent: #93cc9c; --fw-on-accent: #1f1d1b; --fw-error: #ffb4ab;
   width: 100%; max-width: 880px; margin: 0 auto; padding: 20px 16px 28px;
   color: var(--fw-ink);
 }
 body[data-theme="light"] #fieldWorkspace {
-  --fw-surface: #fff; --fw-input: #f7f9fc; --fw-ink: #102137; --fw-muted: #465871;
-  --fw-line: #8393a7; --fw-accent: #075985; --fw-on-accent: #fff; --fw-error: #a92020;
+  --fw-surface: #fff; --fw-input: #f8f6f2; --fw-ink: #262421; --fw-muted: #57534e;
+  --fw-line: #8f8984; --fw-accent: #285c3c; --fw-on-accent: #fff; --fw-error: #a92020;
 }
 #fwToolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-bottom: 28px; }
 #fwModes { display: inline-flex; gap: 4px; padding: 4px; background: var(--fw-input); border-radius: 10px; }
@@ -107,16 +107,16 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
 }
 
 /* Tab Đổi KTT / Múi trong màn Chuyển đổi tọa độ. */
-#panelTransRezone .rz-hint { font-size: 12.5px; line-height: 1.5; color: var(--text-secondary, #94a3b8); margin: 0 0 10px; }
+#panelTransRezone .rz-hint { font-size: 12.5px; line-height: 1.5; color: var(--text-secondary, #a8a29e); margin: 0 0 10px; }
 #panelTransRezone .rz-sides { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 12px; }
-#panelTransRezone .rz-side { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 8px 10px 10px; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; }
-#panelTransRezone .rz-side legend { padding: 0 4px; font-size: 12px; font-weight: 700; color: #38bdf8; }
+#panelTransRezone .rz-side { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 8px 10px 10px; border: 1px solid rgba(147, 204, 156, 0.25); border-radius: 10px; }
+#panelTransRezone .rz-side legend { padding: 0 4px; font-size: 12px; font-weight: 700; color: #93cc9c; }
 #panelTransRezone .rz-swap { min-width: 40px; min-height: 40px; font-size: 18px; }
 #panelTransRezone .rz-input { width: 100%; min-height: 110px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; line-height: 1.5; resize: vertical; white-space: pre; }
 #panelTransRezone .rz-status { font-size: 12.5px; line-height: 1.5; margin: 8px 0 0; min-height: 1em; }
 #panelTransRezone .rz-table-wrap { overflow-x: auto; }
 #panelTransRezone .rz-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-#panelTransRezone .rz-table :is(th, td) { padding: 6px 8px; text-align: left; border-bottom: 1px solid rgba(148, 163, 184, 0.18); white-space: nowrap; }
+#panelTransRezone .rz-table :is(th, td) { padding: 6px 8px; text-align: left; border-bottom: 1px solid rgba(168, 162, 158, 0.18); white-space: nowrap; }
 #panelTransRezone .rz-table td.font-mono { font-variant-numeric: tabular-nums; user-select: text; -webkit-user-select: text; }
 #panelTransRezone [hidden] { display: none !important; }
 @media (max-width: 480px) {
@@ -125,20 +125,20 @@ body.field-mode :is(button, input, select):focus-visible { outline: 3px solid #f
 }
 
 /* Xem trước khi nhập file tọa độ (Sổ đo). */
-.imp-preview { margin: 10px 0 12px; padding: 12px; border-radius: 12px; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.06); }
+.imp-preview { margin: 10px 0 12px; padding: 12px; border-radius: 12px; border: 1.5px solid #93cc9c; background: rgba(147, 204, 156, 0.06); }
 .imp-preview[hidden] { display: none !important; }
-.imp-preview-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #38bdf8; margin-bottom: 8px; }
-.imp-file { color: var(--text-secondary, #94a3b8); font-size: 12px; overflow-wrap: anywhere; }
-.imp-table-wrap { overflow-x: auto; max-height: 220px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.25); }
+.imp-preview-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #93cc9c; margin-bottom: 8px; }
+.imp-file { color: var(--text-secondary, #a8a29e); font-size: 12px; overflow-wrap: anywhere; }
+.imp-table-wrap { overflow-x: auto; max-height: 220px; border-radius: 8px; border: 1px solid rgba(168, 162, 158, 0.25); }
 .imp-table { border-collapse: collapse; font-size: 12px; width: max-content; min-width: 100%; }
-.imp-table :is(th, td) { padding: 5px 8px; border-bottom: 1px solid rgba(148, 163, 184, 0.15); white-space: nowrap; text-align: left; font-variant-numeric: tabular-nums; }
-.imp-table th { position: sticky; top: 0; background: #0f1b31; color: #94a3b8; font-weight: 700; }
+.imp-table :is(th, td) { padding: 5px 8px; border-bottom: 1px solid rgba(168, 162, 158, 0.15); white-space: nowrap; text-align: left; font-variant-numeric: tabular-nums; }
+.imp-table th { position: sticky; top: 0; background: #23201d; color: #a8a29e; font-weight: 700; }
 .imp-table tr.imp-head td { color: #fbbf24; font-weight: 700; }
 .imp-mapping, .imp-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
-.imp-map-item { display: grid; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--text-secondary, #cbd5e1); }
+.imp-map-item { display: grid; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--text-secondary, #d6d3d1); }
 .imp-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: 12px; line-height: 1.45; }
 .imp-check[hidden] { display: none !important; }
 .imp-summary { margin: 10px 0 0; font-size: 12.5px; color: #34d399; }
 .imp-actions { display: flex; gap: 8px; margin-top: 10px; }
 .imp-actions .btn-sm { flex: 1; min-height: 40px; font-weight: 700; }
-body[data-theme="light"] .imp-table th { background: #e2e8f0; color: #334155; }
+body[data-theme="light"] .imp-table th { background: #e7e5e4; color: #44403c; }

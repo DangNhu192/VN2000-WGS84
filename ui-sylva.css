@@ -1,0 +1,360 @@
+/* ==========================================================================
+   SYLVA — lớp giao diện kính mờ (frosted glass), nạp SAU CÙNG.
+   Lấy cảm hứng từ mẫu "Sylva" (Code and Chill): nền đen ấm #171615, bề mặt kính mờ
+   trên nền ánh sáng dịu, có bản tối và bản sáng; trên máy tính, thanh bên gập lại thành dock.
+   Bảng màu nền (xám ấm stone + xanh rừng sage) đã được đổi trực tiếp trong các file CSS;
+   lớp này chỉ thêm: token kính, nền ánh sáng, thẻ/header/dock/modal bằng kính, thanh bên ⇄ dock.
+   Chỉ đổi hình thức. Chế độ Thực địa (body.field-mode) giữ nguyên bộ tương phản cao.
+   ========================================================================== */
+:root {
+  --sy-bg: #171615;
+  --sy-glass: rgba(40, 37, 34, 0.52);
+  --sy-glass-strong: rgba(30, 28, 26, 0.86);
+  --sy-glass-input: rgba(255, 248, 238, 0.045);
+  --sy-line: rgba(255, 244, 228, 0.09);
+  --sy-line-2: rgba(255, 244, 228, 0.16);
+  --sy-hover: rgba(255, 244, 228, 0.06);
+  --sy-ink: #f2eee7;
+  --sy-muted: #a8a29e;
+  --sy-accent: #93cc9c;
+  --sy-accent-rgb: 147, 204, 156;
+  --sy-primary: #3f8a5a;
+  --sy-primary-hover: #4a9866;
+  --sy-blur: blur(22px) saturate(150%);
+  --sy-shadow: inset 0 1px 0 rgba(255, 250, 240, 0.05), 0 20px 44px -22px rgba(0, 0, 0, 0.7);
+  --sy-radius: 18px;
+  --sy-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sy-side-w: 228px;
+  --sy-header-h: 54px;
+  /* nền ánh sáng dịu phía sau lớp kính */
+  --sy-aura:
+    radial-gradient(42vmax 36vmax at 8% 4%, rgba(86, 140, 98, 0.30), transparent 70%),
+    radial-gradient(38vmax 32vmax at 96% 18%, rgba(176, 124, 78, 0.20), transparent 70%),
+    radial-gradient(46vmax 38vmax at 62% 104%, rgba(70, 104, 92, 0.24), transparent 70%);
+
+  /* nối vào token cũ để mọi lớp CSS trước đó đi theo */
+  --bg-dark: var(--sy-bg);
+  --border-color: var(--sy-line-2);
+  --text-main: var(--sy-ink);
+  --text-muted: var(--sy-muted);
+  --u-surface: var(--sy-glass);
+  --u-input: var(--sy-glass-input);
+  --u-line: var(--sy-line-2);
+  --u-line-strong: rgba(var(--sy-accent-rgb), 0.5);
+  --u-primary: var(--sy-primary);
+  --u-radius: 14px;
+  --lv-glass-bg: var(--sy-glass-strong);
+  --lv-glass-blur: var(--sy-blur);
+}
+
+[data-theme="light"] {
+  --sy-bg: #eeebe5;
+  --sy-glass: rgba(255, 255, 255, 0.56);
+  --sy-glass-strong: rgba(255, 255, 255, 0.82);
+  --sy-glass-input: rgba(255, 255, 255, 0.72);
+  --sy-line: rgba(28, 26, 24, 0.08);
+  --sy-line-2: rgba(28, 26, 24, 0.14);
+  --sy-hover: rgba(28, 26, 24, 0.05);
+  --sy-ink: #1c1a18;
+  --sy-muted: #57534e;
+  --sy-accent: #2f6e47;
+  --sy-accent-rgb: 47, 110, 71;
+  --sy-primary: #2f6e47;
+  --sy-primary-hover: #3a7d54;
+  --sy-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 18px 40px -24px rgba(60, 48, 36, 0.35);
+  --sy-aura:
+    radial-gradient(42vmax 36vmax at 8% 4%, rgba(132, 186, 140, 0.42), transparent 70%),
+    radial-gradient(38vmax 32vmax at 96% 18%, rgba(232, 186, 140, 0.38), transparent 70%),
+    radial-gradient(46vmax 38vmax at 62% 104%, rgba(150, 196, 178, 0.38), transparent 70%);
+  --bg-dark: var(--sy-bg);
+  --border-color: var(--sy-line-2);
+  --text-main: var(--sy-ink);
+  --text-muted: var(--sy-muted);
+  --u-surface: var(--sy-glass);
+  --u-input: var(--sy-glass-input);
+  --u-line: var(--sy-line-2);
+  --u-line-strong: rgba(var(--sy-accent-rgb), 0.5);
+  --u-primary: var(--sy-primary);
+  --lv-glass-bg: var(--sy-glass-strong);
+}
+
+/* ---------- 1. Nền: đen ấm + ánh sáng dịu, mọi lớp khung trong suốt để kính "ăn" nền ---------- */
+html, body { background-color: var(--sy-bg) !important; }
+body:not(.field-mode) { background-image: var(--sy-aura) !important; background-attachment: fixed !important; }
+body:not(.field-mode) :is(#app-container, main.app-viewport, .screen-view) { background: transparent !important; }
+body:not(.field-mode) { color: var(--sy-ink); }
+::selection { background: rgba(var(--sy-accent-rgb), 0.35); }
+
+/* ---------- 2. Kính dùng chung: header, thẻ, ô điều hướng, menu, modal ---------- */
+body:not(.field-mode) header.app-header {
+  background: var(--sy-glass-strong) !important;
+  backdrop-filter: var(--sy-blur) !important;
+  -webkit-backdrop-filter: var(--sy-blur) !important;
+  border-bottom: 1px solid var(--sy-line) !important;
+  box-shadow: none !important;
+}
+body:not(.field-mode) header.app-header::after { display: none !important; }
+body:not(.field-mode) .mac-control-center-capsule {
+  background: var(--sy-hover) !important;
+  border: 1px solid var(--sy-line) !important;
+  box-shadow: none !important;
+}
+body:not(.field-mode) :is(.mac-pill-btn, .mac-ctrl-btn, .header-ktt-chip, .header-geodetic-pill) {
+  background: transparent !important;
+  border-color: var(--sy-line-2) !important;
+  box-shadow: none !important;
+  color: var(--sy-ink) !important;
+}
+body:not(.field-mode) :is(.mac-pill-btn, .mac-ctrl-btn):hover { background: var(--sy-hover) !important; }
+body:not(.field-mode) .app-context-bar {
+  background: var(--sy-glass) !important;
+  backdrop-filter: var(--sy-blur);
+  -webkit-backdrop-filter: var(--sy-blur);
+  border-bottom-color: var(--sy-line) !important;
+}
+
+body:not(.field-mode) :is(.app-card, .dash-info-card, .compact-tool-card, .calc-card, .feature-card,
+  .manual-task-card, .hub-toggle, .home-feature-hub .fi-list, .big-action-tile, .fw-card) {
+  background: var(--sy-glass) !important;
+  backdrop-filter: var(--sy-blur) !important;
+  -webkit-backdrop-filter: var(--sy-blur) !important;
+  border: 1px solid var(--sy-line) !important;
+  border-radius: var(--sy-radius) !important;
+  box-shadow: var(--sy-shadow) !important;
+}
+body:not(.field-mode) .big-action-tile { border-radius: 16px !important; }
+body:not(.field-mode) .big-action-tile:hover { background: var(--sy-glass-strong) !important; border-color: var(--sy-line-2) !important; }
+body:not(.field-mode) .big-action-tile:active { transform: scale(0.98) !important; box-shadow: var(--sy-shadow) !important; }
+body:not(.field-mode) :is(.card-header, .card-title) { border-color: var(--sy-line) !important; }
+body:not(.field-mode) :is(.card-title, .hub-title, .fi-title) { letter-spacing: -0.015em; }
+
+/* Trang chủ (field-workspace): cùng bộ kính */
+body:not(.field-mode) #fieldWorkspace { --fw-surface: var(--sy-glass); --fw-input: var(--sy-glass-input); --fw-ink: var(--sy-ink); --fw-muted: var(--sy-muted); --fw-line: var(--sy-line-2); }
+body:not(.field-mode) #fieldWorkspace :is(#fwQuick, #fwWelcome) {
+  backdrop-filter: var(--sy-blur);
+  -webkit-backdrop-filter: var(--sy-blur);
+  border: 1px solid var(--sy-line) !important;
+  border-radius: var(--sy-radius) !important;
+  box-shadow: var(--sy-shadow) !important;
+}
+body:not(.field-mode) #fieldWorkspace #fwWelcome { border-color: rgba(var(--sy-accent-rgb), 0.35) !important; }
+body:not(.field-mode) :is(#fwModes button[aria-pressed="true"]) { background: var(--sy-glass-strong); box-shadow: none; }
+
+/* Ô nhập */
+body:not(.field-mode) :is(.app-input, .app-select, .form-control, .hub-search, .fi-search input) {
+  background-color: var(--sy-glass-input) !important;
+  border: 1px solid var(--sy-line-2) !important;
+  border-radius: 12px !important;
+  color: var(--sy-ink) !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+body:not(.field-mode) :is(.app-input, .app-select, .form-control, .hub-search, .fi-search input):focus {
+  border-color: rgba(var(--sy-accent-rgb), 0.7) !important;
+  box-shadow: 0 0 0 3px rgba(var(--sy-accent-rgb), 0.18) !important;
+  outline: none !important;
+}
+body:not(.field-mode) :is(.app-input, .form-control)::placeholder { color: var(--sy-muted); opacity: 0.75; }
+
+/* Nút chính: một màu xanh rừng phẳng, không gradient/glow */
+body:not(.field-mode) :is(.btn-convert, #fwSubmit, .btn-blue) {
+  background: var(--sy-primary) !important;
+  border: 1px solid transparent !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+body:not(.field-mode) :is(.btn-convert, #fwSubmit, .btn-blue):hover { background: var(--sy-primary-hover) !important; }
+
+/* Menu ☰ và modal: kính đậm */
+body:not(.field-mode) #navTreeDrawer {
+  background: var(--sy-glass-strong) !important;
+  backdrop-filter: var(--sy-blur) !important;
+  -webkit-backdrop-filter: var(--sy-blur) !important;
+  border-right: 1px solid var(--sy-line) !important;
+}
+body:not(.field-mode) .fi-row[aria-current="page"] { background: rgba(var(--sy-accent-rgb), 0.14); }
+body:not(.field-mode) .fi-chip[aria-pressed="true"] { background: var(--sy-ink); border-color: var(--sy-ink); color: var(--sy-bg); }
+body:not(.field-mode) .modal-overlay { background: rgba(14, 13, 12, 0.46) !important; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+[data-theme="light"] body:not(.field-mode) .modal-overlay,
+body[data-theme="light"]:not(.field-mode) .modal-overlay { background: rgba(60, 52, 44, 0.22) !important; }
+body:not(.field-mode) :is(.modal-box, .mac-window-box) {
+  background: var(--sy-glass-strong) !important;
+  backdrop-filter: var(--sy-blur) !important;
+  -webkit-backdrop-filter: var(--sy-blur) !important;
+  border: 1px solid var(--sy-line-2) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 32px 80px -24px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Bản sáng: hai chi tiết ở Trang chủ trước đây chữ quá nhạt trên nền sáng */
+body[data-theme="light"]:not(.field-mode) .btn-customize-pins { color: #92400e !important; border-color: rgba(146, 64, 14, 0.35) !important; }
+body[data-theme="light"]:not(.field-mode) .bar-badge { color: var(--sy-accent) !important; }
+
+/* ---------- 3. Thanh điều hướng: dock nổi bằng kính (điện thoại) ---------- */
+body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav {
+  background: var(--sy-glass-strong) !important;
+  backdrop-filter: var(--sy-blur) !important;
+  -webkit-backdrop-filter: var(--sy-blur) !important;
+  border: 1px solid var(--sy-line-2) !important;
+  box-shadow: var(--sy-shadow) !important;
+}
+body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.active {
+  color: var(--sy-ink) !important;
+  background: rgba(var(--sy-accent-rgb), 0.16) !important;
+}
+body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item:not(.active) { color: var(--sy-muted) !important; }
+body:not(.field-mode) nav#mobileBottomNav .dock-active-dot { background: var(--sy-accent) !important; box-shadow: none !important; }
+body:not(.field-mode) nav#mobileBottomNav :is(.dock-collapse-btn, .dock-expand-handle) {
+  background: var(--sy-glass-strong) !important;
+  border-color: var(--sy-line-2) !important;
+  color: var(--sy-muted) !important;
+  box-shadow: none !important;
+}
+
+/* ---------- 4. Máy tính: thanh bên kính bên trái, bấm « để gập thành dock dưới đáy ---------- */
+@media (min-width: 1024px) and (min-height: 621px) {
+  body:not(.field-mode) main.app-viewport {
+    margin-left: calc(var(--sy-side-w) + 24px) !important;
+    width: calc(100% - var(--sy-side-w) - 24px) !important;
+    transition: margin-left 0.32s var(--sy-ease), width 0.32s var(--sy-ease);
+  }
+  body.dock-collapsed:not(.field-mode) main.app-viewport { margin-left: 0 !important; width: 100% !important; }
+
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 2px !important;
+    position: fixed !important;
+    top: calc(var(--sy-header-h) + 12px) !important;
+    bottom: 12px !important;
+    left: 12px !important;
+    right: auto !important;
+    width: var(--sy-side-w) !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 12px 10px !important;
+    border-radius: 22px !important;
+    transform: none !important;
+    transition: width 0.32s var(--sy-ease), height 0.32s var(--sy-ease), border-radius 0.32s var(--sy-ease) !important;
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav::before {
+    content: 'VN2000 Pro';
+    display: block;
+    padding: 4px 12px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sy-muted);
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item {
+    flex: 0 0 auto !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 44px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item:hover:not(.active) { background: var(--sy-hover) !important; color: var(--sy-ink) !important; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-icon { font-size: 18px !important; width: 22px; text-align: center; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-text {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    -webkit-line-clamp: 1 !important;
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav :is(.dock-active-dot, .nav-indicator, .dock-expand-handle) { display: none !important; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .dock-collapse-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    position: static !important;
+    margin: auto 0 0 auto !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    transform: rotate(90deg) !important;
+    transition: transform 0.32s var(--sy-ease) !important;
+  }
+
+  /* Gập: thanh bên thu thành dock biểu tượng giữa đáy màn hình */
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed {
+    flex-direction: row !important;
+    align-items: center !important;
+    top: auto !important;
+    bottom: 14px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: max-content !important;
+    max-width: calc(100vw - 32px) !important;
+    height: 64px !important;
+    max-height: 64px !important;
+    margin: 0 auto !important;
+    padding: 8px !important;
+    gap: 6px !important;
+    border-radius: 24px !important;
+    cursor: default !important;
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed::before { display: none; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed :is(.bottom-nav-item, .dock-collapse-btn) { display: flex !important; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .bottom-nav-item {
+    width: 48px !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    transition: transform 0.18s var(--sy-ease), background-color 0.15s ease !important;
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .bottom-nav-item:hover { transform: translateY(-3px) scale(1.08) !important; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .bottom-nav-text { display: none !important; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .bottom-nav-icon { font-size: 22px !important; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .dock-active-dot {
+    display: block !important;
+    position: absolute;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    opacity: 0;
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .bottom-nav-item.active .dock-active-dot { opacity: 1; transform: none; }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed .dock-collapse-btn {
+    margin: 0 0 0 4px !important;
+    transform: rotate(-90deg) !important;
+  }
+  body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed:hover { transform: none !important; box-shadow: var(--sy-shadow) !important; }
+
+  /* Thanh trạng thái/HUD đáy bản đồ: khi là thanh bên thì đáy trống → hạ sát đáy;
+     khi đã gập thành dock đáy (64px + 14px) → nâng lên trên dock (ngược với điện thoại). */
+  body:not(.field-mode):not(.dock-collapsed) :is(.cad-status-hud, #map-view-container.cad-active-map #cadStatusHud, #transformMapCoordHud, .transform-map-coord-hud, .live-map-coord-hud, .transform-bottom-sheet, .map-bottom-sheet) { bottom: 12px !important; }
+  body:not(.field-mode):not(.dock-collapsed) #map-view-container .leaflet-bottom { bottom: 10px !important; }
+  body:not(.field-mode):not(.dock-collapsed) .cad-floating-cmd-bar:not(.is-dragged) { bottom: 52px !important; }
+  body:not(.field-mode):not(.dock-collapsed) :is(.cad-thumb-action-bar, #map-view-container.cad-active-map #cadThumbActionBar) { bottom: 16px !important; }
+  body.dock-collapsed:not(.field-mode) :is(.cad-status-hud, #map-view-container.cad-active-map #cadStatusHud, #transformMapCoordHud, .transform-map-coord-hud, .live-map-coord-hud, .transform-bottom-sheet, .map-bottom-sheet) { bottom: 90px !important; }
+  body.dock-collapsed:not(.field-mode) #map-view-container .leaflet-bottom { bottom: 88px !important; }
+  body.dock-collapsed:not(.field-mode) .cad-floating-cmd-bar:not(.is-dragged) { bottom: 130px !important; }
+  body.dock-collapsed:not(.field-mode) :is(.cad-thumb-action-bar, #map-view-container.cad-active-map #cadThumbActionBar) { bottom: 94px !important; }
+
+  /* Màn hình cuộn: chừa chỗ cho dock khi đã gập, không cần khi là thanh bên */
+  body:not(.field-mode):not(.dock-collapsed) :is(#screen-menu, #screen-transform:not(.fullscreen-mode), #screen-datamgmt, #screen-about, #screen-gps, #screen-geodesy, #screen-camera, #screen-stakeout, #screen-profile) {
+    padding-bottom: 32px !important;
+  }
+  body.dock-collapsed:not(.field-mode) :is(#screen-menu, #screen-transform:not(.fullscreen-mode), #screen-datamgmt, #screen-about, #screen-gps, #screen-geodesy, #screen-camera, #screen-stakeout, #screen-profile) {
+    padding-bottom: 104px !important;
+  }
+}
+
+/* Giảm chuyển động khi người dùng yêu cầu */
+@media (prefers-reduced-motion: reduce) {
+  body:not(.field-mode) :is(main.app-viewport, nav#mobileBottomNav.mobile-bottom-nav, nav#mobileBottomNav .bottom-nav-item, nav#mobileBottomNav .dock-collapse-btn) { transition: none !important; }
+}
