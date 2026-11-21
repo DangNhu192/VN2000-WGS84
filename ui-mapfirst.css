@@ -1,0 +1,297 @@
+/* ==========================================================================
+   ƯU TIÊN BẢN ĐỒ — nạp SAU CÙNG (sau ui-sylva.css).
+   Mọi chức năng có bản đồ: bản đồ chiếm phần lớn màn hình, khung chức năng thu gọn.
+   Dựa vào app-shell.js:
+     <body data-screen="transform|transform_map|map|routing|stakeout" data-map-mode="project|cad|…">
+     --mf-dock-clear  : chiều cao thật phải chừa cho dock nổi ở đáy (đo bằng JS, 0 khi không có)
+     --mf-rc-top/-bottom (trên #map-view-container): dải trống cho cột nút bên phải
+   Cỡ màn hình:
+     ĐIỆN THOẠI DỌC  ≤767px · MÁY NGANG (landscape, cao ≤620px) · MÁY TÍNH BẢNG ≤1023px · MÁY TÍNH
+   Chế độ Thực địa (body.field-mode) giữ nguyên.
+   ========================================================================== */
+
+/* ---------- 0. Thanh tên màn hình: ẩn trên các màn hình bản đồ để nhường chiều cao ---------- */
+@media (max-width: 1023px) {
+  body:not(.field-mode):is([data-screen="transform"], [data-screen="transform_map"], [data-screen="map"], [data-screen="routing"]) .app-context-bar {
+    display: none !important;
+  }
+}
+
+/* Máy ngang: tên màn hình trên thanh tiêu đề chỉ một dòng (thanh cao 44px) */
+@media (orientation: landscape) and (max-height: 620px) {
+  body:not(.field-mode) header.app-header .header-left { flex: 1 1 auto !important; min-width: 0 !important; }
+  body:not(.field-mode) .app-title-group { flex: 1 1 auto !important; min-width: 0 !important; overflow: hidden !important; }
+  body:not(.field-mode) #btnHeaderBack { white-space: nowrap !important; flex: none !important; }
+  body:not(.field-mode) #headerTitle, body:not(.field-mode) #headerTitle > span {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block;
+  }
+}
+
+/* ==========================================================================
+   1. CHUYỂN ĐỔI TỌA ĐỘ (khung nhập + bản đồ trực quan)
+   ========================================================================== */
+
+/* 1a. Xếp dọc (điện thoại dọc, máy tính bảng dọc): khung nhập 40% trên, bản đồ 60% dưới, vừa khít trên dock */
+@media (max-width: 1023px) and (min-height: 621px), (max-width: 1023px) and (orientation: portrait) {
+  body:not(.field-mode)[data-screen="transform"] #screen-transform.active:not(.fullscreen-mode) {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 6px calc(var(--sat-safe-right, 0px) + 8px) var(--mf-dock-clear, 80px) calc(var(--sat-safe-left, 0px) + 8px) !important;
+  }
+  body:not(.field-mode)[data-screen="transform"] #transformSplitLayout {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
+  body:not(.field-mode)[data-screen="transform"] #transformSplitLayout #transformContentColumn {
+    height: var(--tf-content-height, 40%) !important;
+    min-height: 96px !important;
+    max-height: calc(100% - 170px) !important;
+  }
+  body:not(.field-mode)[data-screen="transform"] #transformSplitLayout:is(.rezone-mode, .mode-form-only) #transformContentColumn {
+    height: 100% !important;
+    max-height: none !important;
+  }
+  body:not(.field-mode)[data-screen="transform"] #transformLayoutResizer {
+    height: 14px !important;
+    margin: 2px 0 !important;
+  }
+  body:not(.field-mode)[data-screen="transform"] #boxTransformLiveMapWrap {
+    min-height: 150px !important;
+    margin-top: 0 !important;
+  }
+}
+
+/* 1b. Đầu khung bản đồ trực quan: một hàng nút gọn, cuộn ngang (mọi cỡ màn hình) */
+@media all {
+  body:not(.field-mode) #boxTransformLiveMapWrap .transform-live-map-header {
+    padding: 4px 6px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+  body:not(.field-mode) #boxTransformLiveMapWrap .transform-live-map-header::-webkit-scrollbar { display: none; }
+  body:not(.field-mode) #boxTransformLiveMapWrap .transform-live-map-header > div:first-child { display: none !important; }
+  body:not(.field-mode) #boxTransformLiveMapWrap .transform-live-map-header > div { flex-wrap: nowrap !important; flex: none !important; }
+  body:not(.field-mode) #boxTransformLiveMapWrap .transform-live-map-header button {
+    flex: none !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+  }
+  body:not(.field-mode) #boxTransformLiveMapWrap .transform-live-map-body { min-height: 0 !important; }
+}
+
+/* ==========================================================================
+   2. BẢN ĐỒ CHẤM / XEM TỌA ĐỘ (screen-transform-map)
+   ========================================================================== */
+@media (max-width: 1023px) {
+  /* Thanh nút trên đỉnh: đúng một hàng, cuộn ngang thay vì 3 hàng chồng nhau */
+  body:not(.field-mode) #transformMapToolbar.transform-map-toolbar {
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    padding: 6px 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+  body:not(.field-mode) #transformMapToolbar::-webkit-scrollbar { display: none; }
+  body:not(.field-mode) #transformMapToolbar > div { flex: none !important; flex-wrap: nowrap !important; }
+  body:not(.field-mode) #transformMapToolbar button {
+    flex: none !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 12.5px !important;
+    white-space: nowrap !important;
+  }
+  body:not(.field-mode) #screen-transform-map #leaflet-transform-map { min-height: 0 !important; }
+}
+
+/* Điện thoại dọc: bảng chuyển đổi trượt từ đáy, tối đa ~45% màn hình; mở vào chế độ chấm là thanh mỏng */
+@media (max-width: 767px) and (orientation: portrait) {
+  body:not(.field-mode) #screen-transform-map .transform-bottom-sheet {
+    left: calc(var(--sat-safe-left, 0px) + 8px) !important;
+    right: calc(var(--sat-safe-right, 0px) + 8px) !important;
+    bottom: var(--mf-dock-clear, 80px) !important;
+  }
+  body:not(.field-mode) #screen-transform-map .transform-bottom-sheet:not(.sheet-peek) {
+    max-height: min(calc(var(--app-vh, 100vh) * 0.45), calc(var(--app-vh, 100vh) - var(--mf-dock-clear, 80px) - 230px)) !important;
+    min-height: 0 !important;
+  }
+  body:not(.field-mode) #screen-transform-map .transform-sheet-header { padding-top: 0 !important; padding-bottom: 6px !important; }
+  body:not(.field-mode) #screen-transform-map .transform-sheet-header .sheet-sub-title { display: none !important; }
+  body:not(.field-mode) #screen-transform-map .transform-map-coord-hud {
+    bottom: calc(var(--mf-dock-clear, 80px) + 60px) !important;
+  }
+}
+
+/* Máy ngang: bảng chuyển đổi thành cột bên trái, bản đồ chiếm phần còn lại */
+@media (orientation: landscape) and (max-height: 620px) {
+  body:not(.field-mode) #screen-transform-map .transform-bottom-sheet {
+    top: 52px !important;
+    left: calc(var(--sat-safe-left, 0px) + 8px) !important;
+    right: auto !important;
+    bottom: var(--mf-dock-clear, 56px) !important;
+    width: min(44vw, 380px) !important;
+    max-height: none !important;
+    border-radius: 16px !important;
+  }
+  body:not(.field-mode) #screen-transform-map .transform-bottom-sheet.sheet-peek {
+    bottom: auto !important;
+    height: 52px !important;
+    max-height: 52px !important;
+  }
+  body:not(.field-mode) #screen-transform-map .transform-map-coord-hud {
+    left: calc(min(44vw, 380px) + 20px) !important;
+    bottom: calc(var(--mf-dock-clear, 56px) + 6px) !important;
+  }
+}
+
+/* ==========================================================================
+   3. BẢN ĐỒ DỰ ÁN & MINICAD (#map-view-container)
+   ========================================================================== */
+@media (max-width: 767px), (orientation: landscape) and (max-height: 620px) {
+  /* Cột nút bên phải nằm gọn trong dải trống giữa CLI/thanh dự án ở trên và thanh MiniCAD/dock ở dưới */
+  body:not(.field-mode)[data-screen="map"] #map-view-container .map-right-controls {
+    top: var(--mf-rc-top, 64px) !important;
+    bottom: auto !important;
+    max-height: calc(100% - var(--mf-rc-top, 64px) - var(--mf-rc-bottom, 80px)) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-width: none !important;
+  }
+  body:not(.field-mode)[data-screen="map"] #map-view-container .map-right-controls::-webkit-scrollbar { display: none; }
+  body:not(.field-mode)[data-screen="map"] #dragHandleRightControls { display: none !important; }
+}
+
+@media (max-width: 767px) and (orientation: portrait) {
+  /* Thanh MiniCAD: gộp 3 hàng đầu thành 2 (dự án + hoàn tác/thu gọn/đóng; nhóm thẻ công cụ) */
+  body:not(.field-mode) #mapCadToolbarHeader {
+    flex-wrap: wrap !important;
+    row-gap: 4px !important;
+    column-gap: 4px !important;
+    padding: 2px 4px !important;
+  }
+  body:not(.field-mode) #mapCadToolbarHeader > .cad-toolbar-title,
+  body:not(.field-mode) #mapCadToolbarHeader #cadStatsPill,
+  body:not(.field-mode) #mapCadToolbarHeader #btnCadHelpGuide { display: none !important; }
+  body:not(.field-mode) #mapCadToolbarHeader > #cadCurrentProjectBadge { order: 1; flex: 1 1 0% !important; min-width: 0 !important; }
+  body:not(.field-mode) #mapCadToolbarHeader > :last-child { order: 2; margin-left: 0 !important; }
+  body:not(.field-mode) #mapCadToolbarHeader > #cadTabGroup { order: 3; flex: 1 1 100% !important; }
+  body:not(.field-mode) #mapCadToolbarHeader > :last-child :is(button, .cad-btn-icon) {
+    min-width: 36px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+
+  /* Dock đã gập trong MiniCAD: nút mở dock thu về góc phải, thanh trạng thái chừa chỗ cho nó */
+  body.dock-collapsed:not(.field-mode)[data-map-mode="cad"] nav#mobileBottomNav.mobile-bottom-nav.dock-collapsed {
+    left: auto !important;
+    right: calc(var(--sat-safe-right, 0px) + 8px) !important;
+    width: 48px !important;
+    max-width: 48px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    justify-content: center !important;
+  }
+  body.dock-collapsed:not(.field-mode)[data-map-mode="cad"] nav#mobileBottomNav .dock-expand-text { display: none !important; }
+  body.dock-collapsed:not(.field-mode)[data-map-mode="cad"] :is(#cadStatusHud, .cad-status-hud) {
+    right: calc(var(--sat-safe-right, 0px) + 62px) !important;
+  }
+}
+
+/* ==========================================================================
+   4. CẮM MỐC: bản đồ lớn, ngay sau ô chọn mốc
+   ========================================================================== */
+#stakeoutLiveMap { transition: height 0.25s ease; }
+body:not(.field-mode) #screen-stakeout.active {
+  display: flex !important;
+  flex-direction: column !important;
+}
+body:not(.field-mode) #screen-stakeout.active > .app-card:has(#stakeoutLiveMap) { order: -1; }
+body:not(.field-mode) #screen-stakeout.active > .surveyor-gps-disclaimer { order: 9; margin: 12px 0 0 !important; font-size: 12px; }
+body:not(.field-mode) #screen-stakeout.active > .app-card { margin-bottom: 12px !important; }
+body:not(.field-mode) #screen-stakeout #stakeoutLiveMap { height: clamp(240px, calc(var(--app-vh, 100vh) * 0.46), 560px) !important; }
+body:not(.field-mode) #screen-stakeout #stakeoutLiveMap.is-expanded {
+  height: max(300px, calc(var(--app-vh, 100vh) - var(--sat-safe-top, 0px) - 54px - var(--mf-dock-clear, 0px) - 120px)) !important;
+}
+/* Thẻ bản đồ: một hàng nút gọn */
+body:not(.field-mode) #screen-stakeout #stakeoutLiveMap { border-radius: 12px !important; }
+body:not(.field-mode) #screen-stakeout .app-card:has(#stakeoutLiveMap) .card-tools { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; justify-content: flex-start !important; }
+body:not(.field-mode) #screen-stakeout .app-card:has(#stakeoutLiveMap) .card-tools button { flex: none !important; white-space: nowrap; }
+
+/* Màn hình rộng (máy ngang, máy tính bảng ngang, máy tính): bản đồ cột trái cao trọn màn hình, thông tin cột phải */
+@media (min-width: 600px) and (orientation: landscape) {
+  body:not(.field-mode) #screen-stakeout.active {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+    grid-auto-rows: min-content;
+    column-gap: 12px;
+    align-items: start;
+  }
+  body:not(.field-mode) #screen-stakeout.active > * { grid-column: 2; }
+  body:not(.field-mode) #screen-stakeout.active > .app-card:has(#stakeoutLiveMap) {
+    grid-column: 1;
+    grid-row: 1 / span 8;
+    position: sticky;
+    top: 0;
+    margin-bottom: 0 !important;
+  }
+  body:not(.field-mode) #screen-stakeout #stakeoutLiveMap,
+  body:not(.field-mode) #screen-stakeout #stakeoutLiveMap.is-expanded {
+    height: max(220px, calc(var(--app-vh, 100vh) - var(--sat-safe-top, 0px) - 54px - var(--mf-dock-clear, 0px) - 130px)) !important;
+  }
+  body:not(.field-mode) #screen-stakeout #stakeoutMapToggleBtn { display: none !important; }
+}
+@media (min-width: 600px) and (orientation: landscape) and (max-height: 620px) {
+  body:not(.field-mode) #screen-stakeout #stakeoutLiveMap {
+    height: max(180px, calc(var(--app-vh, 100vh) - var(--sat-safe-top, 0px) - 44px - var(--mf-dock-clear, 0px) - 96px)) !important;
+  }
+  body:not(.field-mode) #screen-stakeout .app-card:has(#stakeoutLiveMap) .card-header .card-title { display: none !important; }
+  body:not(.field-mode) #screen-stakeout #stakeoutLiveMap + div { display: none !important; }
+}
+
+/* ==========================================================================
+   5. LỘ TRÌNH & CHỈ ĐƯỜNG
+   ========================================================================== */
+body:not(.field-mode) #screen-routing.active { padding: 0 !important; }
+body:not(.field-mode) #screen-routing #leaflet-routing-map { min-height: 0 !important; }
+body:not(.field-mode) #screen-routing #routingNavHud { bottom: calc(var(--mf-dock-clear, 0px) + 10px) !important; }
+@media (max-width: 767px) and (orientation: portrait) {
+  /* Thanh công cụ: bỏ nút Menu và tiêu đề (đã có nút Quay lại + dock), còn 2 hàng gọn */
+  body:not(.field-mode) #routingTopToolbar {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 6px 8px !important;
+  }
+  body:not(.field-mode) #routingTopToolbar > div:first-child { display: none !important; }
+  body:not(.field-mode) #routingTopToolbar > .routing-vehicle-selector { flex: 1 1 100% !important; display: flex !important; }
+  body:not(.field-mode) #routingTopToolbar > .routing-vehicle-selector > button { flex: 1 1 0% !important; height: 34px !important; }
+  body:not(.field-mode) #routingTopToolbar > div:last-child { flex: 1 1 100% !important; flex-wrap: wrap !important; }
+  body:not(.field-mode) #routingTopToolbar > div:last-child > button { flex: 1 1 auto !important; white-space: nowrap; }
+  body:not(.field-mode) #routingTopToolbar > div:last-child > label span { white-space: nowrap; }
+  body:not(.field-mode) #routingNavHud { left: 8px !important; right: 8px !important; padding: 8px 10px !important; }
+}
+@media (orientation: landscape) and (max-height: 620px) {
+  body:not(.field-mode) #routingTopToolbar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    padding: 4px 8px !important;
+    gap: 6px !important;
+  }
+  body:not(.field-mode) #routingTopToolbar > div { flex: none !important; flex-wrap: nowrap !important; }
+  body:not(.field-mode) #routingTopToolbar > div:first-child > button { display: none !important; }
+}

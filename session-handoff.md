@@ -1,6 +1,30 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-21: WP-UI-SYLVA — GIAO DIỆN KÍNH MỜ THEO MẪU "SYLVA" (Code and Chill), v2.8.45
+## Phiên hiện tại — 2026-11-21: WP-LOCAL-AI — TRỢ LÝ AI CỤC BỘ (học kiến trúc Ivy AI / esp_ai), v2.8.47
+- **Yêu cầu**: học repo iamankushpandit/esp_ai để tạo AI cục bộ chạy trên thiết bị cài app: giao tiếp, kiểm thử, điều phối hoạt động; tự triển khai nếu thuận lợi.
+- **Quyết định**: esp_ai là firmware C cho ESP32-S3, giấy phép GPL-3.0 → không chép mã (app MIT); chỉ học nguyên tắc. Chi tiết: `docs/AI_CUC_BO.md`.
+- **Đã làm**:
+  1. `assistant-core.js` (thuần, test bằng Node): bộ định tuyến lệnh tiếng Việt không AI — số kiểu VN, ~20 ý định, nối lệnh bằng "rồi", danh sách lệnh chuẩn cho AI.
+  2. `assistant.js` + `ui-assistant.css` + nút 🤖 trên thanh tiêu đề: bảng kính (không che hết bản đồ), công cụ gọi hàm thật của app, nhãn nguồn câu trả lời, tự kiểm thử 10 mục, nghe/đọc tiếng Việt (Web Speech), "rồi xem trên bản đồ" mở bản đồ Chuyển đổi (giữ tách biệt UI).
+  3. Não AI tùy chọn: `vendor/wllama` (llama.cpp WASM, MIT, 10 MB, nạp lười), mô hình GGUF chọn từ máy hoặc tải Qwen2.5-0.5B; đầu ra khóa bằng GBNF chỉ ra một lệnh chuẩn; gỡ sau 3 phút rảnh. Đã thử đường ống trong Chrome headless với GGUF tí hon tự tạo (nạp ~1,9 s, suy luận có ngữ pháp, gỡ).
+  4. Test: `tests/assistant_local_ai.test.js` (8 test); cập nhật thứ tự stylesheet trong `tests/ui_sylva_theme.test.js`. **555/555 PASS**.
+- **Chưa làm / cần đo**: tốc độ & độ chính xác Qwen trên điện thoại thật; STT ngoại tuyến (Whisper WASM); từ đánh thức.
+
+---
+
+## Phiên trước — 2026-11-21: WP-MAP-FIRST — BỐ CỤC ƯU TIÊN BẢN ĐỒ Ở MỌI CHỨC NĂNG CÓ BẢN ĐỒ, MỌI CỠ MÀN HÌNH (v2.8.46)
+- **Yêu cầu**: tỉ lệ khung chức năng / bản đồ chưa hợp lý; app dùng bản đồ là chính → ưu tiên bản đồ ở tất cả chức năng có bản đồ, tối ưu mọi khung màn hình, chú ý điện thoại nhỏ.
+- **Cách đo**: script Playwright mở 6 màn hình có bản đồ (Chuyển đổi, Chấm tọa độ, Bản đồ dự án, MiniCAD, Cắm mốc, Lộ trình) ở 9 cỡ (320×568 → 1440×900, có máy ngang) và tính % diện tích bản đồ không bị che. Ví dụ 320×568: Chuyển đổi 2%→29–33%, Chấm tọa độ 6%→63–71%, Cắm mốc 0%→40%, Lộ trình 33%→54–62%.
+- **Đã làm**:
+  1. `app-shell.js`: ghi `<body data-screen / data-map-mode>`; đo thật `--mf-dock-clear` (dock nổi) và `--mf-rc-top/-bottom` (dải trống cho cột nút phải, né CLI/thanh MiniCAD/thanh trạng thái/dock) bằng ResizeObserver; phát `resize` sau khi đổi màn hình để Leaflet đo lại.
+  2. `ui-mapfirst.css` (nạp cuối): ẩn thanh tên màn hình trên màn bản đồ; Chuyển đổi xếp dọc vừa khít trên dock (khung nhập 40%), đầu bản đồ 1 hàng; Chấm tọa độ: thanh nút 1 hàng cuộn ngang, bảng đáy tối đa 45% (dọc) / cột trái (ngang); MiniCAD dọc gộp 3 hàng đầu thành 2, nút mở dock thu về góc; Cắm mốc: bản đồ lên đầu, cao ~46% màn hình, màn ngang chia 2 cột (bản đồ trái); Lộ trình: thanh công cụ 2 hàng gọn; máy ngang: tên màn hình 1 dòng.
+  3. `app.js`: tỉ lệ mặc định `defaultSplitRatio()` 38% (ngang/máy tính) / 40% (dọc); Chấm tọa độ trên điện thoại mở bảng dạng thanh mỏng; `toggleMiniMap` cắm mốc dùng lớp `is-expanded` thay vì ghim 210/340px.
+  4. `ui-sylva.css`: thanh bên trái chỉ từ ≥1280px (1024–1279 dùng dock ngang để bản đồ rộng hơn).
+  5. Test: thêm `tests/ui_mapfirst_layout.test.js` (5 test). **547/547 PASS**.
+
+---
+
+## Phiên trước — 2026-11-21: WP-UI-SYLVA — GIAO DIỆN KÍNH MỜ THEO MẪU "SYLVA" (Code and Chill), v2.8.45
 - **Yêu cầu từ người dùng**: `Cập nhật giao diện app theo sản phẩm trong link này https://codeandchill.store/templates/sylva`
 - **Lưu ý**: trang mẫu và bản demo không mở được trong phiên (trang dựng bằng JS, demo cần duyệt quyền). Chỉ dựa trên mô tả công khai của Sylva: CRM kính mờ (frosted glass), nền đen ấm `#171615`, có bản tối + sáng, thanh bên gập thành dock. Màu nhấn xanh rừng/sage là lựa chọn diễn giải (Sylva = rừng) — cần người dùng xác nhận khi so với bản demo thật.
 - **Đã làm**:

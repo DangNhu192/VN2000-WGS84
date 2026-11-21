@@ -2020,3 +2020,15 @@
   3. Máy tính ≥1024px: thanh bên kính bên trái, nút ◂ gập thành dock biểu tượng ở đáy; HUD bản đồ/MiniCAD né dock; Leaflet đo lại sau khi gập/mở.
   4. `theme-color`/manifest `#171615`, SW cache `ui-sylva.css`, phiên bản 2.8.45.
   5. Kiểm thử: thêm `tests/ui_sylva_theme.test.js`; cập nhật 2 test ghim màu cũ. **542/542 PASS**.
+
+- **2026-11-21 (Bố cục ưu tiên bản đồ — v2.8.46)**:
+  1. Đo % diện tích bản đồ nhìn thấy ở 6 màn hình có bản đồ × 9 cỡ màn hình; điện thoại 320×568 trước đó bản đồ Chuyển đổi chỉ còn 2%, Chấm tọa độ 6%, Cắm mốc 0%.
+  2. `ui-mapfirst.css` + đo lớp phủ thật trong `app-shell.js` (`--mf-dock-clear`, `--mf-rc-top/-bottom`, `<body data-screen>`): bản đồ chiếm phần lớn màn hình ở Chuyển đổi, Chấm tọa độ, Bản đồ dự án, MiniCAD, Cắm mốc, Lộ trình; bố cục riêng cho điện thoại dọc, máy ngang, máy tính bảng, máy tính.
+  3. `app.js`: tỉ lệ mặc định 38/40%, bảng chấm điểm thu gọn trên điện thoại, bản đồ cắm mốc phóng to bằng lớp CSS.
+  4. Thanh bên Sylva chỉ từ ≥1280px. Kiểm thử: thêm `tests/ui_mapfirst_layout.test.js`; **547/547 PASS**.
+
+- **2026-11-21 (Trợ lý AI cục bộ — v2.8.47)**:
+  1. Học kiến trúc Ivy AI (esp_ai, GPL-3.0 → không chép mã): máy tự trả lời phần chắc chắn ("không dùng AI"), từ chối thay vì đoán, chạy theo pha và nhả tài nguyên, kiểm thử đi đúng đường giao diện. Phương án: `docs/AI_CUC_BO.md`.
+  2. `assistant-core.js`, `assistant.js`, `ui-assistant.css`, nút 🤖: chuyển đổi/khoảng cách/KTT/GPS/dự án/điều hướng/kiểm thử bằng tiếng Việt, nối lệnh "rồi", giọng nói Web Speech.
+  3. Não AI tùy chọn qua `vendor/wllama` (llama.cpp WASM): GGUF từ máy hoặc Qwen2.5-0.5B; khóa đầu ra bằng GBNF; tự gỡ khi rảnh.
+  4. Kiểm thử: `tests/assistant_local_ai.test.js`; **555/555 PASS**.

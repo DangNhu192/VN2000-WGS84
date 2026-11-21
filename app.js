@@ -5610,7 +5610,12 @@ const appTransform = {
         }, 150);
     },
 
-    _splitRatio: 48,
+    _splitRatio: 40,
+
+    // Tỉ lệ mặc định ưu tiên bản đồ: khung nhập chiếm 38% bề ngang (máy tính, máy ngang) hoặc 40% chiều cao (điện thoại dọc).
+    defaultSplitRatio() {
+        return isTransformSideBySide() ? 38 : 40;
+    },
 
     applySplitRatio(percent, resizeMap = true) {
         const layout = document.getElementById('transformSplitLayout');
@@ -5636,10 +5641,10 @@ const appTransform = {
 
         // Tải tỉ lệ đã lưu từ localStorage
         const savedRatio = parseFloat(localStorage.getItem('vn2k_transform_split_ratio'));
-        if (!isNaN(savedRatio) && savedRatio >= 32 && savedRatio <= 75) {
+        if (!isNaN(savedRatio) && savedRatio >= 25 && savedRatio <= 75) {
             this._splitRatio = savedRatio;
         } else {
-            this._splitRatio = 48;
+            this._splitRatio = this.defaultSplitRatio();
         }
         this.applySplitRatio(this._splitRatio, false);
 
@@ -5833,6 +5838,10 @@ const appTransformMap = {
             this.setPickSubMode(subMode);
             if (options.initialPoint && options.initialPoint.lat && options.initialPoint.lng) {
                 this.setSinglePoint(options.initialPoint.lat, options.initialPoint.lng);
+            } else if (typeof window !== 'undefined' && window.innerWidth < 769) {
+                // Điện thoại: vào chế độ chấm thì bảng chỉ còn thanh mỏng, bản đồ chiếm gần trọn màn hình.
+                const sheet = document.getElementById('transformBottomSheet');
+                if (sheet) sheet.classList.add('sheet-peek');
             }
         } else if (mode === 'view') {
             if (this.viewSinglePoint && this.viewSinglePoint.lat && this.viewSinglePoint.lng) {
@@ -15062,13 +15071,10 @@ const appStakeout = {
         const btn = document.getElementById('stakeoutMapToggleBtn');
         if (!mapEl) return;
         this.isMiniMapExpanded = !this.isMiniMapExpanded;
-        if (this.isMiniMapExpanded) {
-            mapEl.style.height = '340px';
-            if (btn) btn.innerText = '⤡ Thu nhỏ';
-        } else {
-            mapEl.style.height = '210px';
-            if (btn) btn.innerText = '⤢ Phóng to';
-        }
+        // Chiều cao do CSS quyết định theo màn hình (ui-mapfirst.css); ở đây chỉ bật/tắt trạng thái phóng to.
+        mapEl.style.height = '';
+        mapEl.classList.toggle('is-expanded', this.isMiniMapExpanded);
+        if (btn) btn.innerText = this.isMiniMapExpanded ? '⤡ Thu nhỏ' : '⤢ Phóng to';
         if (this.miniMap) {
             setTimeout(() => this.miniMap.invalidateSize(), 150);
         }
