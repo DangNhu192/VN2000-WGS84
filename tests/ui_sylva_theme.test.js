@@ -8,9 +8,9 @@ const css = fs.readFileSync('ui-sylva.css', 'utf8');
 const sw = fs.readFileSync('sw.js', 'utf8');
 const appJs = fs.readFileSync('app.js', 'utf8');
 
-test('ui-sylva.css nạp sau cùng và có trong bộ nhớ đệm ngoại tuyến', () => {
+test('ui-sylva.css nạp sau các lớp giao diện cũ và có trong bộ nhớ đệm ngoại tuyến', () => {
   const links = [...html.matchAll(/<link rel="stylesheet" href="([^"?]+)/g)].map(m => m[1]);
-  assert.strictEqual(links.indexOf('ui-sylva.css'), links.length - 2, 'ui-sylva.css nạp ngay trước ui-mapfirst.css');
+  assert.ok(links.indexOf('ui-sylva.css') > links.indexOf('ui-unified.css') && links.indexOf('ui-sylva.css') < links.indexOf('ui-mapfirst.css'), 'ui-sylva.css nạp sau các lớp cũ, trước ui-mapfirst.css');
   assert.ok(sw.includes("'./ui-sylva.css'"), 'Service worker phải cache ui-sylva.css');
   assert.ok(html.includes('<meta name="theme-color" content="#171615">'), 'Thanh trạng thái theo nền #171615');
 });

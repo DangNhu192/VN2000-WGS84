@@ -42,12 +42,13 @@
   <link rel="preconnect" href="https://mt1.google.com" crossorigin>
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.46">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.46">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.46">
-  <link rel="stylesheet" href="ui-unified.css?v=2.8.46">
-  <link rel="stylesheet" href="ui-sylva.css?v=2.8.46">
-  <link rel="stylesheet" href="ui-mapfirst.css?v=2.8.46">
+  <link rel="stylesheet" href="style.css?v=2.8.47">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.47">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.47">
+  <link rel="stylesheet" href="ui-unified.css?v=2.8.47">
+  <link rel="stylesheet" href="ui-sylva.css?v=2.8.47">
+  <link rel="stylesheet" href="ui-assistant.css?v=2.8.47">
+  <link rel="stylesheet" href="ui-mapfirst.css?v=2.8.47">
 </head>
 
 <body>
@@ -128,6 +129,10 @@
           <button class="btn-header-action mac-ctrl-btn mac-settings-btn" onclick="appModal.openUnifiedSettings()"
             title="Cài đặt hệ thống (Lưu dữ liệu & KTT)">
             <span class="header-action-icon">⚙️</span><span class="header-action-text" data-i18n="header.settings"> Cài đặt</span>
+          </button>
+          <button id="btnHeaderAssistant" type="button" class="btn-header-action mac-ctrl-btn btn-header-ai" onclick="appAssistant.toggle()"
+            title="Trợ lý cục bộ — nói hoặc gõ lệnh, chạy ngay trên máy" aria-label="Trợ lý cục bộ" aria-expanded="false" aria-controls="aiPanel">
+            <span aria-hidden="true">🤖</span>
           </button>
           <button id="btnHeaderHelpGuide" class="btn-header-action mac-ctrl-btn btn-header-help" onclick="appGuide.openCurrentScreenGuide()"
             title="Hướng dẫn sử dụng chức năng hiện tại (?)">
@@ -3737,7 +3742,7 @@
             style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(147,204,156,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #93cc9c; letter-spacing: 0.5px;">
             VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #a8a29e;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.46 Pro</div>
+          <div style="font-size: 12px; color: #a8a29e;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.47 Pro</div>
           <div
             style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(147,204,156,0.12); border: 1px solid rgba(147,204,156,0.25); border-radius: 20px; font-size: 11px; color: #b9dfb6;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
@@ -3769,7 +3774,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.46
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.47
                 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #d6d3d1;">
@@ -4926,7 +4931,7 @@
           <div class="settings-welcome-hero">
             <div class="settings-welcome-logo-wrap">
               <img src="icon.png" alt="VN2000 Pro" class="settings-welcome-logo">
-              <span class="settings-welcome-badge">PRO v2.8.46</span>
+              <span class="settings-welcome-badge">PRO v2.8.47</span>
             </div>
             <div class="settings-welcome-title" data-i18n="settings.welcome.title">HỆ THỐNG CÀI ĐẶT VN-2000 PRO</div>
             <div class="settings-welcome-sub" data-i18n="settings.welcome.sub">Bấm chọn một danh mục cài đặt bên dưới để thiết lập nghiệp vụ:</div>
@@ -8661,18 +8666,20 @@
        được nạp khi cần (loadLib trong mã nguồn chính); service worker đã lưu sẵn nên vẫn chạy ngoại tuyến. -->
   <script src="leaflet.js"></script>
   <script src="offline_regions.js"></script>
-  <script src="geodesy.js?v=2.8.46"></script>
+  <script src="geodesy.js?v=2.8.47"></script>
   <script src="pixoptimizer.js"></script>
-  <script src="src/core/cad_geometry.js?v=2.8.46"></script>
-  <script src="src/core/gis_io.js?v=2.8.46"></script>
-  <script src="src/core/georef.js?v=2.8.46"></script>
-    <script src="src/core/planning_map.js?v=2.8.46"></script>
-<script src="app.js?v=2.8.46"></script>
-  <script src="field-workspace.js?v=2.8.46"></script>
-  <script src="vn2000-rezone.js?v=2.8.46"></script>
-  <script src="vn-admin-2025.js?v=2.8.46"></script>
-  <script src="import-preview.js?v=2.8.46"></script>
-  <script src="app-shell.js?v=2.8.46"></script>
+  <script src="src/core/cad_geometry.js?v=2.8.47"></script>
+  <script src="src/core/gis_io.js?v=2.8.47"></script>
+  <script src="src/core/georef.js?v=2.8.47"></script>
+    <script src="src/core/planning_map.js?v=2.8.47"></script>
+<script src="app.js?v=2.8.47"></script>
+  <script src="field-workspace.js?v=2.8.47"></script>
+  <script src="vn2000-rezone.js?v=2.8.47"></script>
+  <script src="vn-admin-2025.js?v=2.8.47"></script>
+  <script src="import-preview.js?v=2.8.47"></script>
+  <script src="app-shell.js?v=2.8.47"></script>
+  <script src="assistant-core.js?v=2.8.47"></script>
+  <script src="assistant.js?v=2.8.47"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <!-- Có bản mới: hiện thanh "Cập nhật" — chỉ tải lại khi người dùng bấm (không cắt ngang lúc đang đo, vẽ, nhập liệu). -->
