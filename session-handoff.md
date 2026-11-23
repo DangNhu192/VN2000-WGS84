@@ -1,6 +1,19 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-21: WP-LOCAL-AI — TRỢ LÝ AI CỤC BỘ (học kiến trúc Ivy AI / esp_ai), v2.8.47
+## Phiên hiện tại — 2026-11-23: WP-CAD-GLYPH-LABELS — KÝ HIỆU & CHỮ MINICAD, ICON MỐC DỰ ÁN (v2.8.48)
+- **Yêu cầu**: cách chỉnh icon MiniCAD chưa ổn — chưa chỉnh được icon mốc tọa độ và cỡ/vị trí chữ trong hoặc ngoài icon.
+- **Lỗi tìm thấy khi đo trong trình duyệt**: (1) mọi ký hiệu đỉnh/điểm bị vẽ LỆCH nửa ô icon lên trên-trái (11 px với cỡ Vừa) so với tọa độ thật; (2) tên dài hơn ~3 ký tự (GPS-5, M105) bị cắt trong viên thuốc; (3) chữ chỉ nằm trong ký hiệu, cỡ chữ gắn cứng theo cỡ ký hiệu; (4) mốc dự án luôn là ghim đỏ có số thứ tự, không chỉnh được.
+- **Đã làm**:
+  1. `appCadTool.glyphHtml/buildGlyphIcon/glyphHover`: khung tâm 0×0 `.cad-vglyph` đặt đúng tọa độ; viên thuốc rộng theo chữ; dùng chung cho đỉnh đã lưu, điểm rời và đỉnh đang vẽ.
+  2. Chữ: `lPos` (trong / phải / trên / dưới / trái / ẩn), `lSize` (9–24 px), `lColor`; ưu tiên đỉnh → khối → lớp CAD → mặc định (`getLabelStyleFor`). Chữ ngoài giữ nguyên hình ký hiệu, có quầng tối.
+  3. Bảng 🎨 "Ký hiệu & chữ" làm lại: thẻ theo lớp có mẫu xem trước, 6 ô (hình, màu, cỡ, vị trí chữ, cỡ chữ, màu chữ); mục 3 "Icon mốc tọa độ dự án". Thẻ nhanh khi bấm vào đỉnh có thêm vị trí/cỡ/màu chữ (Lưu đỉnh / Cả khối).
+  4. `appMap.getLandmarkStyle/setLandmarkStyle/landmarkIcon` (localStorage `vn2k_landmark_style_v1`): ghim hoặc ký hiệu hình, màu, cỡ, chữ (STT / tên / STT+tên / không), vị trí, cỡ, màu chữ; áp cho Bản đồ dự án và MiniCAD. `createSharpPinIcon` thêm `extraHtml`, `fontSize`.
+  5. Test: thêm `tests/cad_glyph_labels.test.js` (6 test); cập nhật 3 test ghim mã cũ (point_styling_visibility, cadcraft_points, sharp_pinpoint_markers). **561/561 PASS**.
+- **Chưa làm**: tệp xuất (DXF/SVG/PDF/PNG) vẫn đặt chữ theo quy tắc riêng của từng bộ xuất, chưa theo vị trí chữ mới.
+
+---
+
+## Phiên trước — 2026-11-21: WP-LOCAL-AI — TRỢ LÝ AI CỤC BỘ (học kiến trúc Ivy AI / esp_ai), v2.8.47
 - **Yêu cầu**: học repo iamankushpandit/esp_ai để tạo AI cục bộ chạy trên thiết bị cài app: giao tiếp, kiểm thử, điều phối hoạt động; tự triển khai nếu thuận lợi.
 - **Quyết định**: esp_ai là firmware C cho ESP32-S3, giấy phép GPL-3.0 → không chép mã (app MIT); chỉ học nguyên tắc. Chi tiết: `docs/AI_CUC_BO.md`.
 - **Đã làm**:

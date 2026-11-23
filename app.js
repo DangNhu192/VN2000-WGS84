@@ -7469,7 +7469,9 @@ function createSharpPinIcon({
     width = 26,
     height = 35,
     pulse = false,
-    className = ''
+    className = '',
+    extraHtml = '',
+    fontSize = 0
 } = {}) {
     const cx = width / 2;
     const rHead = (width - 4) / 2;
@@ -7496,10 +7498,11 @@ function createSharpPinIcon({
         `;
     } else if (text !== undefined && text !== null && text !== '') {
         const textStr = String(text);
-        const fontSize = textStr.length > 2 ? Math.round(rHead * 0.75) : Math.round(rHead * 0.95);
+        const autoSize = textStr.length > 2 ? Math.round(rHead * 0.75) : Math.round(rHead * 0.95);
+        const fontSizePx = fontSize > 0 ? Math.min(fontSize, Math.round(rHead * 1.3)) : autoSize;
         contentHtml = `
             <circle cx="${cx}" cy="${cyHead}" r="${rHead - 2.5}" fill="rgba(15,23,42,0.88)" stroke="#ffffff" stroke-width="0.8"/>
-            <text x="${cx}" y="${cyHead + 0.5}" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-size="${fontSize}" font-weight="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${textStr}</text>
+            <text x="${cx}" y="${cyHead + 0.5}" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-size="${fontSizePx}" font-weight="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${textStr}</text>
         `;
     } else {
         contentHtml = `
@@ -7525,7 +7528,7 @@ function createSharpPinIcon({
             <path d="M ${cx},2 C ${cx - rHead * 0.55},2 2,${cyHead - rHead * 0.45} 2,${cyHead} C 2,${cyHead + rHead * 0.65} ${cx - 2.5},${tipY - 5} ${cx - 0.4},${tipY - 0.6} C ${cx - 0.2},${tipY} ${cx + 0.2},${tipY} ${cx + 0.4},${tipY - 0.6} C ${cx + 2.5},${tipY - 5} ${width - 2},${cyHead + rHead * 0.65} ${width - 2},${cyHead} C ${width - 2},${cyHead - rHead * 0.45} ${cx + rHead * 0.55},2 ${cx},2 Z" fill="url(#${id})" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/>
             <circle cx="${cx}" cy="${tipY}" r="1.2" fill="#ffffff"/>
             ${contentHtml}
-        </svg>
+        </svg>${extraHtml}
     </div>`;
 
     if (typeof L !== 'undefined' && L.divIcon) {
@@ -8757,6 +8760,74 @@ const appMap = {
         if (box) box.style.display = 'none';
     },
 
+    // === KIỂU ICON MỐC TỌA ĐỘ DỰ ÁN (dùng chung Bản đồ dự án và MiniCAD; chỉnh trong 🎨 Ký hiệu & chữ) ===
+    LANDMARK_KEY: 'vn2k_landmark_style_v1',
+    LANDMARK_DEFAULTS: { shape: 'pin', color: '#ef4444', size: 'md', text: 'index', pos: 'inside', px: 0, lColor: '' },
+
+    getLandmarkStyle() {
+        const d = this.LANDMARK_DEFAULTS;
+        let st = {};
+        try { st = JSON.parse(localStorage.getItem(this.LANDMARK_KEY) || '{}') || {}; } catch (e) { st = {}; }
+        const shapes = ['pin'].concat(((typeof appCadTool !== 'undefined' && appCadTool.pointStyles) || []).map(x => x.id));
+        const hex = c => /^#[0-9a-fA-F]{6}$/.test(String(c || '').trim()) ? String(c).trim() : null;
+        return {
+            shape: shapes.includes(st.shape) ? st.shape : d.shape,
+            color: hex(st.color) || d.color,
+            size: ['sm', 'md', 'lg', 'xl'].includes(st.size) ? st.size : d.size,
+            text: ['index', 'name', 'both', 'none'].includes(st.text) ? st.text : d.text,
+            pos: ['inside', 'right', 'top', 'bottom', 'left', 'none'].includes(st.pos) ? st.pos : d.pos,
+            px: (+st.px >= 8 && +st.px <= 40) ? Math.round(+st.px) : 0,
+            lColor: hex(st.lColor) || ''
+        };
+    },
+
+    setLandmarkStyle(patch) {
+        const next = Object.assign(this.getLandmarkStyle(), patch || {});
+        try { localStorage.setItem(this.LANDMARK_KEY, JSON.stringify(next)); } catch (e) { /* bộ nhớ đầy */ }
+        if (AppState.leafletMap && AppState.projectMarkersGroup) this.loadProjectMarkers();
+        if (typeof appCadTool !== 'undefined' && appCadTool.refreshSymbolPanelIfOpen) appCadTool.refreshSymbolPanelIfOpen();
+    },
+
+    resetLandmarkStyle() {
+        try { localStorage.removeItem(this.LANDMARK_KEY); } catch (e) { /* bỏ qua */ }
+        this.setLandmarkStyle({});
+    },
+
+    shadeHex(hex, f) {
+        const n = parseInt(String(hex).slice(1), 16);
+        const ch = sh => Math.max(0, Math.round(((n >> sh) & 255) * (1 - f)));
+        return '#' + [16, 8, 0].map(sh => ch(sh).toString(16).padStart(2, '0')).join('');
+    },
+
+    landmarkText(p, idx, st) {
+        const name = p.name || ('M' + (idx + 1));
+        if (st.text === 'none') return '';
+        if (st.text === 'name') return name;
+        if (st.text === 'both') return `${idx + 1}. ${name}`;
+        return String(idx + 1);
+    },
+
+    /** Icon một mốc dự án theo kiểu đã chọn: ghim đầu nhọn (neo ở mũi) hoặc ký hiệu hình (neo ở tâm). */
+    landmarkIcon(p, idx, st) {
+        st = st || this.getLandmarkStyle();
+        const text = this.landmarkText(p, idx, st);
+        const lvars = (st.px ? `--lbl-size:${st.px}px;` : '') + (st.lColor ? `--lbl-color:${st.lColor};` : '');
+        if (st.shape === 'pin') {
+            const [w, h] = ({ sm: [20, 27], md: [24, 33], lg: [30, 41], xl: [36, 49] })[st.size] || [24, 33];
+            const rHead = (w - 4) / 2, cyHead = rHead + 2;
+            // Đầu ghim chỉ đủ chỗ khoảng 3 ký tự: chữ dài hơn tự đặt bên phải
+            const inside = st.pos === 'inside' && !!text && text.length <= 3;
+            const pos = st.pos === 'inside' ? 'right' : st.pos;
+            const label = (!inside && text && pos !== 'none')
+                ? `<span class="cad-vlabel lmk-pin lp-${pos} is-on" style="--sym-r:${rHead}px; --hx:${w / 2}px; --hy:${cyHead}px; ${lvars}">${escapeHtml(text)}</span>`
+                : '';
+            return createSharpPinIcon({ color: st.color, secondaryColor: this.shadeHex(st.color, 0.25), text: inside ? text : '',
+                width: w, height: h, className: 'project-landmark-pin map-proj-point-dot', extraHtml: label, fontSize: st.px });
+        }
+        return appCadTool.buildGlyphIcon({ style: st.shape, color: st.color, size: st.size, name: text, title: p.name || ('M' + (idx + 1)),
+            label: { pos: text ? st.pos : 'none', px: st.px, color: st.lColor }, expanded: true, dot: true, extraCls: 'lmk-glyph' });
+    },
+
     loadProjectMarkers() {
         if (!AppState.projectMarkersGroup || !AppState.leafletMap) return;
         AppState.projectMarkersGroup.clearLayers();
@@ -8822,6 +8893,7 @@ const appMap = {
             });
         }
 
+        const lmkStyle = this.getLandmarkStyle();
         pts.forEach((p, idx) => {
             const lat = parseFloat(p.lat);
             const lng = parseFloat(p.lng);
@@ -8834,16 +8906,9 @@ const appMap = {
             const ptKey = lat.toFixed(6) + '_' + lng.toFixed(6);
             if (cadPointKeys.has(ptKey)) return;
 
-            // Ghim mốc định vị đầu nhọn chuẩn xác, hiển thị số thứ tự và chấm kim định vị
+            // Icon mốc theo kiểu người dùng chọn (mặc định: ghim đỏ đầu nhọn có số thứ tự)
             const pointName = p.name || ('M' + (idx + 1));
-            const customIcon = createSharpPinIcon({
-                color: '#ef4444',
-                secondaryColor: '#b91c1c',
-                text: idx + 1,
-                width: 24,
-                height: 33,
-                className: 'project-landmark-pin map-proj-point-dot'
-            });
+            const customIcon = this.landmarkIcon(p, idx, lmkStyle);
 
             const markerPane = (AppState.leafletMap && typeof AppState.leafletMap.getPane === 'function' && AppState.leafletMap.getPane('cadMarkerPane')) ? 'cadMarkerPane' : undefined;
             const marker = L.marker([lat, lng], { 
@@ -22610,6 +22675,95 @@ const appCadTool = {
         return [v && v.size, shape && (shape.vertexSize || shape.vSize), layer && layer.vSize].find(ok) || 'md';
     },
 
+    // === CHỮ CỦA KÝ HIỆU: vị trí (trong / phải / trên / dưới / trái / ẩn), cỡ chữ, màu chữ ===
+    // Ưu tiên: từng đỉnh → khối → lớp CAD → mặc định ("trong ký hiệu", cỡ theo cỡ ký hiệu, chữ trắng).
+    labelPositions: [
+        { id: 'inside', label: 'Trong ký hiệu' },
+        { id: 'right', label: 'Bên phải' },
+        { id: 'top', label: 'Phía trên' },
+        { id: 'bottom', label: 'Phía dưới' },
+        { id: 'left', label: 'Bên trái' },
+        { id: 'none', label: 'Ẩn chữ' }
+    ],
+    labelSizes: [9, 10, 11, 12, 13, 14, 16, 18, 20, 24],
+
+    normalizeLabelField(field, value) {
+        if (field === 'lPos') {
+            const id = String(value || '').trim();
+            if (id === '') return null;
+            return (this.labelPositions || []).some(p => p.id === id) ? id : undefined;
+        }
+        if (field === 'lSize') {
+            if (value === '' || value === null || +value === 0) return null;
+            const n = Math.round(+value);
+            return Number.isFinite(n) && n >= 8 && n <= 40 ? n : undefined;
+        }
+        if (field === 'lColor') {
+            const c = String(value || '').trim();
+            if (c === '') return null;
+            return /^#[0-9a-fA-F]{6}$/.test(c) ? c : undefined;
+        }
+        return undefined;
+    },
+
+    getLabelStyleFor(shape, v) {
+        const okPos = id => (this.labelPositions || []).some(p => p.id === id);
+        const okPx = n => Number.isFinite(+n) && +n >= 8 && +n <= 40;
+        const hex = c => /^#[0-9a-fA-F]{6}$/.test(String(c || '').trim()) ? String(c).trim() : null;
+        const layer = this.getGlyphLayerOf ? this.getGlyphLayerOf(shape) : null;
+        const pos = [v && v.lPos, shape && shape.lPos, layer && layer.lPos].find(okPos) || 'inside';
+        const px = +([v && v.lSize, shape && shape.lSize, layer && layer.lSize].find(okPx) || 0);
+        const color = [v && v.lColor, shape && shape.lColor, layer && layer.lColor].map(hex).find(Boolean) || '';
+        return { pos, px, color };
+    },
+
+    // Đường kính ký hiệu khi ở dạng hình (khớp các lớp .size-* trong style.css)
+    symbolPx(sizeId) { return ({ sm: 11, md: 14, lg: 19, xl: 25 })[sizeId] || 14; },
+
+    /** HTML một ký hiệu: khung tâm 0×0 nằm ĐÚNG tọa độ, ký hiệu căn giữa khung, chữ trong hoặc quanh ký hiệu.
+        o: { style, color, size, name, title, label:{pos,px,color}, expanded (đang hiện chữ), dot (đang hiện hình), extraCls, cursor } */
+    glyphHtml(o) {
+        const lb = o.label || { pos: 'inside', px: 0, color: '' };
+        const inside = lb.pos === 'inside';
+        const cls = ['cad-vertex-badge', 'sty-' + o.style, 'size-' + o.size];
+        if (o.extraCls) cls.push(o.extraCls);
+        const badgeStyle = o.style === 'ring'
+            ? `background: transparent; border-color: ${o.color}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
+            : `background: ${o.color}; border-color: #ffffff;`;
+        const vars = `--sym-r:${this.symbolPx(o.size) / 2}px;` + (lb.px ? `--lbl-size:${lb.px}px;` : '') + (lb.color ? `--lbl-color:${lb.color};` : '');
+        const name = escapeHtml(o.name == null ? '' : String(o.name));
+        let inner = '', after = '';
+        if (inside) {
+            if (o.dot) cls.push('dot-visible');
+            if (o.expanded) cls.push('expanded');
+            if (lb.px) cls.push('lsz');
+            inner = name;
+        } else {
+            cls.push('lbl-out');
+            if (o.dot || o.expanded) cls.push('dot-visible');
+            if (lb.pos !== 'none' && name) after = `<span class="cad-vlabel lp-${lb.pos}${o.expanded ? ' is-on' : ''}">${name}</span>`;
+        }
+        return `<div class="cad-vglyph" style="${vars}"><div class="${cls.join(' ')}" style="${badgeStyle}${o.cursor || ''}" title="${escapeHtml(o.title || '')}">${inner}</div>${after}</div>`;
+    },
+
+    buildGlyphIcon(o) {
+        const px = ({ sm: 16, md: 22, lg: 28, xl: 34 })[o.size] || 22;
+        return L.divIcon({ className: '', html: this.glyphHtml(o), iconSize: [px, px], iconAnchor: [px / 2, px / 2] });
+    },
+
+    /** Rê chuột vào ký hiệu: chữ trong → bung viên thuốc; chữ ngoài → giữ hình, hiện chữ bên cạnh. */
+    glyphHover(marker, on, pinned) {
+        const el = marker && marker.getElement ? marker.getElement() : null;
+        const b = el ? el.querySelector('.cad-vertex-badge') : null;
+        if (!b) return;
+        if (b.classList.contains('lbl-out')) {
+            b.classList.toggle('hovered', on);
+            const lbl = el.querySelector('.cad-vlabel');
+            if (lbl) lbl.classList.toggle('is-hover', on);
+        } else if (on) b.classList.add('expanded');
+        else if (!pinned) b.classList.remove('expanded');
+    },
+
     updateDraftVertexConfig(field, value) {
         if (field === 'style') {
             if (this.pointStyles.some(s => s.id === value)) this.draftVertexStyle = value;
@@ -22668,7 +22822,8 @@ const appCadTool = {
             return;
         }
         const sName = shape.shortName || shape.name || 'Khối';
-        this.pushHistoryState(`Đổi ${field} đỉnh cho khối [${sName}]`);
+        const fieldVi = ({ style: 'kiểu ký hiệu', color: 'màu ký hiệu', size: 'cỡ ký hiệu', lPos: 'vị trí chữ', lSize: 'cỡ chữ', lColor: 'màu chữ' })[field] || field;
+        this.pushHistoryState(`Đổi ${fieldVi} đỉnh cho khối [${sName}]`);
         if (field === 'style') {
             if (!this.pointStyles.some(s => s.id === value)) return;
             shape.vertexStyle = value;
@@ -22683,6 +22838,12 @@ const appCadTool = {
             if (!this.pointSizes.some(s => s.id === value)) return;
             shape.vertexSize = value;
             shape.vertices.forEach(v => { v.size = value; });
+        } else if (field === 'lPos' || field === 'lSize' || field === 'lColor') {
+            // Chữ áp cho cả khối: ghi ở khối, gỡ tùy chỉnh riêng của từng đỉnh để cả khối theo một kiểu
+            const val = this.normalizeLabelField(field, value);
+            if (val === undefined) return;
+            if (val === null) delete shape[field]; else shape[field] = val;
+            shape.vertices.forEach(v => { delete v[field]; });
         }
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
@@ -22691,7 +22852,7 @@ const appCadTool = {
         this.refreshAreaTableIfOpen();
         if (this.modalTableActiveTab === 'vertices') this.renderModalVerticesTable();
         this.refreshSymbolPanelIfOpen();
-        showToast(`🎨 Đã cập nhật ${field} cho tất cả đỉnh của [${sName}].`);
+        showToast(`🎨 Đã cập nhật ${fieldVi} cho tất cả đỉnh của [${sName}].`);
     },
 
     applyBulkVertexGlyphs() {
@@ -22750,6 +22911,12 @@ const appCadTool = {
         if (stSel && stSel.value) this.setVertexGlyph(sIdx, vIdx, 'style', stSel.value);
         if (colInp && colInp.value) this.setVertexGlyph(sIdx, vIdx, 'color', colInp.value);
         if (szSel && szSel.value) this.setVertexGlyph(sIdx, vIdx, 'size', szSel.value);
+        const lp = document.getElementById('cadQuickLPos');
+        const ls = document.getElementById('cadQuickLSize');
+        const lc = document.getElementById('cadQuickLColor');
+        if (lp) this.setVertexGlyph(sIdx, vIdx, 'lPos', lp.value);
+        if (ls) this.setVertexGlyph(sIdx, vIdx, 'lSize', ls.value);
+        if (lc && lc.dataset.touched === '1') this.setVertexGlyph(sIdx, vIdx, 'lColor', lc.value);
         if (nameInp && nameInp.value.trim() && nameInp.value.trim() !== v.name) {
             this.renameVertex(sIdx, vIdx, nameInp.value.trim());
         }
@@ -22767,7 +22934,30 @@ const appCadTool = {
         if (stSel && stSel.value) this.setShapeVerticesGlyph(sIdx, 'style', stSel.value);
         if (colInp && colInp.value) this.setShapeVerticesGlyph(sIdx, 'color', colInp.value);
         if (szSel && szSel.value) this.setShapeVerticesGlyph(sIdx, 'size', szSel.value);
+        const lp = document.getElementById('cadQuickLPos');
+        const ls = document.getElementById('cadQuickLSize');
+        const lc = document.getElementById('cadQuickLColor');
+        if (lp) this.setShapeVerticesGlyph(sIdx, 'lPos', lp.value);
+        if (ls) this.setShapeVerticesGlyph(sIdx, 'lSize', ls.value);
+        if (lc && lc.dataset.touched === '1') this.setShapeVerticesGlyph(sIdx, 'lColor', lc.value);
         if (AppState.leafletMap) AppState.leafletMap.closePopup();
+    },
+
+    /** Ba ô chọn chữ (vị trí, cỡ, màu) trong popup nhanh của một đỉnh. Ô trống = theo khối/lớp. */
+    quickLabelControlsHtml(shape, v) {
+        const own = v || {};
+        const eff = this.getLabelStyleFor(shape, v);
+        const posOpts = `<option value="">Chữ: theo lớp (${(this.labelPositions.find(p => p.id === eff.pos) || {}).label || ''})</option>` +
+            this.labelPositions.map(p => `<option value="${p.id}" ${own.lPos === p.id ? 'selected' : ''}>${p.label}</option>`).join('');
+        const sizeOpts = `<option value="">Cỡ chữ: theo lớp</option>` +
+            this.labelSizes.map(n => `<option value="${n}" ${+own.lSize === n ? 'selected' : ''}>${n} px</option>`).join('');
+        return `
+                <div style="display:grid; grid-template-columns: 1.4fr 1fr auto; gap:4px; align-items:center; margin-top:4px;">
+                    <select id="cadQuickLPos" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Vị trí chữ tên đỉnh: trong ký hiệu hoặc bên ngoài">${posOpts}</select>
+                    <select id="cadQuickLSize" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Cỡ chữ tên đỉnh">${sizeOpts}</select>
+                    <input type="color" id="cadQuickLColor" value="${escapeHtml(own.lColor || eff.color || '#ffffff')}" oninput="this.dataset.touched='1'"
+                        style="width:24px; height:22px; padding:0; border:1px solid #44403c; border-radius:3px; background:#1c1a18; cursor:pointer;" title="Màu chữ tên đỉnh">
+                </div>`;
     },
 
     // Nhóm hiển thị của một đối tượng: 'point' → nhóm Điểm rời, khác → nhóm Đỉnh khối & tuyến
@@ -23082,7 +23272,7 @@ const appCadTool = {
     countVertexGlyphOverrides() {
         let n = 0;
         (this.savedShapes || []).forEach(sh => (sh.vertices || []).forEach(v => {
-            if (v && (v.style || v.color)) n++;
+            if (v && (v.style || v.color || v.lPos || v.lSize || v.lColor)) n++;
         }));
         return n;
     },
@@ -23097,39 +23287,87 @@ const appCadTool = {
             { id: 'lg', label: 'Lớn (26px)', size: 26 },
             { id: 'xl', label: 'Rất lớn (32px)', size: 32 }
         ];
-        const styleOpts = (cur) => ptStyles.map(st =>
-            `<option value="${st.id}" ${st.id === cur ? 'selected' : ''}>${st.label}</option>`).join('');
-        const sizeOpts = (cur) => ptSizes.map(sz =>
-            `<option value="${sz.id}" ${sz.id === cur ? 'selected' : ''}>${sz.label}</option>`).join('');
+        const lPositions = this.labelPositions || [
+            { id: 'inside', label: 'Trong ký hiệu' }, { id: 'right', label: 'Bên phải' }, { id: 'top', label: 'Phía trên' },
+            { id: 'bottom', label: 'Phía dưới' }, { id: 'left', label: 'Bên trái' }, { id: 'none', label: 'Ẩn chữ' }
+        ];
+        const lSizes = this.labelSizes || [9, 10, 11, 12, 13, 14, 16, 18, 20, 24];
+        const hex = (c) => /^#[0-9a-fA-F]{6}$/.test(String(c || '').trim()) ? String(c).trim() : '';
+        const opts = (list, cur) => list.map(o => `<option value="${o.id}" ${o.id === cur ? 'selected' : ''}>${o.label}</option>`).join('');
+        const sizeTextOpts = (cur) => `<option value="" ${!cur ? 'selected' : ''}>Tự động</option>` +
+            lSizes.map(n => `<option value="${n}" ${n === cur ? 'selected' : ''}>${n} px</option>`).join('');
+        // Mẫu xem trước dùng đúng bộ dựng ký hiệu trên bản đồ
+        const preview = (o) => (typeof this.glyphHtml === 'function')
+            ? `<span class="cad-sym-preview" aria-hidden="true">${this.glyphHtml(o)}</span>` : '';
         box.innerHTML = (this.layersTable || []).map(ly => {
+            const id = ly.id;
             const style = ptStyles.some(s => s.id === ly.vStyle) ? ly.vStyle : 'circle';
-            const color = /^#[0-9a-fA-F]{6}$/.test(String(ly.vColor || '').trim()) ? ly.vColor : (ly.color || '#10b981');
+            const color = hex(ly.vColor) || (ly.color || '#10b981');
             const size = ptSizes.some(s => s.id === ly.vSize) ? ly.vSize : 'md';
-            return `<tr>
-                <td style="color:${escapeHtml(ly.color || '#94a3b8')};font-weight:700;white-space:nowrap;">${escapeHtml(ly.name || ly.id)}</td>
-                <td style="text-align:center;">
-                    <select class="cad-inline-select" style="height:24px;max-width:118px;font-size:11px;"
-                        id="cadSymStyle_${ly.id}" onchange="appCadTool.applyLayerGlyph('${ly.id}')"
-                        title="Hình dạng ký hiệu mặc định cho điểm/đỉnh của lớp này">${styleOpts(style)}</select>
-                </td>
-                <td style="text-align:center;">
-                    <input type="color" id="cadSymColor_${ly.id}" value="${escapeHtml(color)}" style="width:30px;height:24px;padding:0;border:1px solid #334155;border-radius:5px;background:#0f172a;cursor:pointer;"
-                        onchange="appCadTool.applyLayerGlyph('${ly.id}')" title="Màu ký hiệu mặc định của lớp này">
-                </td>
-                <td style="text-align:center;">
-                    <select class="cad-inline-select" style="height:24px;max-width:90px;font-size:11px;"
-                        id="cadSymSize_${ly.id}" onchange="appCadTool.applyLayerGlyph('${ly.id}')"
-                        title="Kích thước ký hiệu mặc định của lớp này">${sizeOpts(size)}</select>
-                </td>
-                <td style="text-align:center;color:#64748b;font-size:11px;">${escapeHtml(ly.id)}</td>
-                <td style="text-align:center;">
-                    <button class="btn-sm" style="height:22px;padding:0 8px;font-size:11px;"
-                        onclick="appCadTool.resetLayerGlyph('${ly.id}')" title="Xóa mặc định ký hiệu riêng của lớp này">↺</button>
-                </td>
-            </tr>`;
+            const lPos = lPositions.some(p => p.id === ly.lPos) ? ly.lPos : 'inside';
+            const lSize = +ly.lSize || 0;
+            const lColor = hex(ly.lColor);
+            const sample = preview({ style, color, size, name: 'M1', label: { pos: lPos, px: lSize, color: lColor }, expanded: true, dot: true });
+            return `<div class="cad-sym-card">
+                <div class="cad-sym-card-head">
+                    <span class="cad-sym-name" style="color:${escapeHtml(ly.color || '#a8a29e')};">${escapeHtml(ly.name || id)}</span>
+                    <code class="cad-sym-code">${escapeHtml(id)}</code>
+                    ${sample}
+                    <button type="button" class="cad-sym-reset" onclick="appCadTool.resetLayerGlyph('${id}')"
+                        title="Đưa ký hiệu và chữ của lớp này về mặc định" aria-label="Đặt lại lớp ${escapeHtml(ly.name || id)}">↺</button>
+                </div>
+                <div class="cad-sym-grid">
+                    <label><span>Hình</span><select class="cad-inline-select" id="cadSymStyle_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Hình dạng ký hiệu mặc định cho điểm/đỉnh của lớp này">${opts(ptStyles, style)}</select></label>
+                    <label><span>Màu</span><input type="color" id="cadSymColor_${id}" value="${escapeHtml(color)}"
+                        onchange="appCadTool.applyLayerGlyph('${id}')" title="Màu ký hiệu mặc định của lớp này"></label>
+                    <label><span>Cỡ ký hiệu</span><select class="cad-inline-select" id="cadSymSize_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Kích thước ký hiệu mặc định của lớp này">${opts(ptSizes, size)}</select></label>
+                    <label><span>Vị trí chữ</span><select class="cad-inline-select" id="cadSymLPos_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Tên điểm/đỉnh nằm trong ký hiệu hay bên ngoài (phải, trên, dưới, trái)">${opts(lPositions, lPos)}</select></label>
+                    <label><span>Cỡ chữ</span><select class="cad-inline-select" id="cadSymLSize_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Cỡ chữ tên điểm/đỉnh">${sizeTextOpts(lSize)}</select></label>
+                    <label><span>Màu chữ</span><input type="color" id="cadSymLColor_${id}" value="${escapeHtml(lColor || '#ffffff')}" ${lColor ? 'data-set="1"' : ''}
+                        oninput="this.dataset.set='1'" onchange="appCadTool.applyLayerGlyph('${id}')" title="Màu chữ tên điểm/đỉnh"></label>
+                </div>
+            </div>`;
         }).join('');
         const cnt = document.getElementById('cadSymOverrideCount');
         if (cnt) cnt.innerText = this.countVertexGlyphOverrides();
+        if (typeof this.renderLandmarkStylePanel === 'function') this.renderLandmarkStylePanel();
+    },
+
+    // Mốc tọa độ của dự án (chưa thành đỉnh bản vẽ): một kiểu chung, dùng cho cả Bản đồ dự án và MiniCAD
+    renderLandmarkStylePanel() {
+        const box = document.getElementById('cadLandmarkStyleBox');
+        if (!box || typeof appMap === 'undefined' || !appMap.getLandmarkStyle) return;
+        const st = appMap.getLandmarkStyle();
+        const shapes = [{ id: 'pin', label: '📍 Ghim đầu nhọn' }].concat((this.pointStyles || []).filter(x => x.id !== 'pin'));
+        const opts = (list, cur) => list.map(o => `<option value="${o.id}" ${o.id === cur ? 'selected' : ''}>${o.label}</option>`).join('');
+        const texts = [{ id: 'index', label: 'Số thứ tự' }, { id: 'name', label: 'Tên mốc' }, { id: 'both', label: 'Số + tên' }, { id: 'none', label: 'Không chữ' }];
+        const lSizes = this.labelSizes || [9, 10, 11, 12, 13, 14, 16, 18, 20, 24];
+        const sizeTextOpts = `<option value="0" ${!st.px ? 'selected' : ''}>Tự động</option>` +
+            lSizes.map(n => `<option value="${n}" ${n === st.px ? 'selected' : ''}>${n} px</option>`).join('');
+        let sample = '';
+        try { sample = appMap.landmarkIcon({ name: 'GPS-1' }, 0, st).options.html; } catch (e) { sample = ''; }
+        const set = (k, conv) => `onchange="appMap.setLandmarkStyle({ ${k}: ${conv || 'this.value'} })"`;
+        box.innerHTML = `<div class="cad-sym-card">
+            <div class="cad-sym-card-head">
+                <span class="cad-sym-name">Mốc tọa độ dự án</span>
+                <code class="cad-sym-code">Sổ đo</code>
+                <span class="cad-sym-preview is-landmark" aria-hidden="true">${sample}</span>
+                <button type="button" class="cad-sym-reset" onclick="appMap.resetLandmarkStyle()" title="Đưa icon mốc về ghim đỏ có số thứ tự" aria-label="Đặt lại icon mốc">↺</button>
+            </div>
+            <div class="cad-sym-grid">
+                <label><span>Hình</span><select class="cad-inline-select" id="cadLmkShape" ${set('shape')}>${opts(shapes, st.shape)}</select></label>
+                <label><span>Màu</span><input type="color" id="cadLmkColor" value="${escapeHtml(st.color)}" ${set('color')}></label>
+                <label><span>Cỡ ký hiệu</span><select class="cad-inline-select" id="cadLmkSize" ${set('size')}>${opts(this.pointSizes || [], st.size)}</select></label>
+                <label><span>Chữ hiển thị</span><select class="cad-inline-select" id="cadLmkText" ${set('text')}>${opts(texts, st.text)}</select></label>
+                <label><span>Vị trí chữ</span><select class="cad-inline-select" id="cadLmkPos" ${set('pos')}>${opts(this.labelPositions || [], st.pos)}</select></label>
+                <label><span>Cỡ chữ</span><select class="cad-inline-select" id="cadLmkPx" ${set('px', '+this.value')}>${sizeTextOpts}</select></label>
+                <label><span>Màu chữ</span><input type="color" id="cadLmkLColor" value="${escapeHtml(st.lColor || '#ffffff')}" ${set('lColor')}></label>
+            </div>
+        </div>`;
     },
 
     // Mặc định ký hiệu theo lớp CAD: không ghi vào lịch sử vẽ (v layers nằm ở localStorage riêng)
@@ -23147,10 +23385,23 @@ const appCadTool = {
         ly.vStyle = style;
         ly.vColor = color;
         ly.vSize = size;
+        // Chữ của ký hiệu: vị trí, cỡ, màu (màu chữ chỉ lưu khi người dùng đã chọn)
+        if (typeof this.normalizeLabelField === 'function') {
+            const setL = (field, el) => {
+                if (!el) return;
+                const v = this.normalizeLabelField(field, el.value);
+                if (v === null) delete ly[field]; else if (v !== undefined) ly[field] = v;
+            };
+            setL('lPos', document.getElementById('cadSymLPos_' + layerId));
+            setL('lSize', document.getElementById('cadSymLSize_' + layerId));
+            const lc = document.getElementById('cadSymLColor_' + layerId);
+            if (lc && lc.dataset && lc.dataset.set === '1') setL('lColor', lc);
+        }
         if (this.saveLayersTable) this.saveLayersTable();
         this.renderGeometry();
         this.renderSymbolPanel();
-        showToast(`🎨 Lớp "${ly.name}": ký hiệu ${style.toUpperCase()}, cỡ ${size}, màu ${color}.`);
+        const posLabel = ((this.labelPositions || []).find(p => p.id === ly.lPos) || {}).label;
+        showToast(`🎨 Lớp "${ly.name}": ký hiệu ${style.toUpperCase()}, cỡ ${size}, màu ${color}${posLabel ? `, chữ ${posLabel.toLowerCase()}` : ''}${ly.lSize ? ` ${ly.lSize}px` : ''}.`);
     },
 
     resetLayerGlyph(layerId) {
@@ -23159,6 +23410,9 @@ const appCadTool = {
         delete ly.vStyle;
         delete ly.vColor;
         delete ly.vSize;
+        delete ly.lPos;
+        delete ly.lSize;
+        delete ly.lColor;
         if (this.saveLayersTable) this.saveLayersTable();
         this.renderGeometry();
         this.renderSymbolPanel();
@@ -23170,11 +23424,17 @@ const appCadTool = {
         const n = this.countVertexGlyphOverrides();
         if (!n) { showToast('ℹ️ Không có điểm/đỉnh nào được tùy chỉnh riêng.'); return; }
         this.pushHistoryState(`Đặt lại ký hiệu cho ${n} điểm/đỉnh`);
-        (this.savedShapes || []).forEach(sh => (sh.vertices || []).forEach(v => {
-            delete v.style;
-            delete v.color;
-            delete v.size;
-        }));
+        (this.savedShapes || []).forEach(sh => {
+            delete sh.lPos; delete sh.lSize; delete sh.lColor;
+            (sh.vertices || []).forEach(v => {
+                delete v.style;
+                delete v.color;
+                delete v.size;
+                delete v.lPos;
+                delete v.lSize;
+                delete v.lColor;
+            });
+        });
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
@@ -23276,6 +23536,12 @@ const appCadTool = {
             if (value === this.getPointSizeFor(shape, v)) return;
             this.pushHistoryState(`Đổi kích thước đỉnh ${label}`);
             v.size = value;
+        } else if (field === 'lPos' || field === 'lSize' || field === 'lColor') {
+            const val = this.normalizeLabelField(field, value);
+            if (val === undefined) return;
+            if (val === null ? v[field] === undefined : v[field] === val) return;
+            this.pushHistoryState(`Đổi chữ của đỉnh ${label}`);
+            if (val === null) delete v[field]; else v[field] = val;
         } else {
             return;
         }
@@ -23292,7 +23558,7 @@ const appCadTool = {
     resetVertexGlyph(shapeIdx, vIdx) {
         const shape = (this.savedShapes || [])[shapeIdx];
         const v = shape && (shape.vertices || [])[vIdx];
-        if (!v || (!v.style && !v.color && !v.size)) return;
+        if (!v || (!v.style && !v.color && !v.size && !v.lPos && !v.lSize && !v.lColor)) return;
         if (this.isShapeLocked(shape)) {
             showToast(`🔒 Lớp của đối tượng đang bị khóa, không thể đặt lại ký hiệu đỉnh!`, true);
             return;
@@ -23301,6 +23567,9 @@ const appCadTool = {
         delete v.style;
         delete v.color;
         delete v.size;
+        delete v.lPos;
+        delete v.lSize;
+        delete v.lColor;
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
@@ -27773,18 +28042,9 @@ const appCadTool = {
                 const ptStyle = this.getPointStyleFor(shape, v);
                 const ptColor = this.getPointColorFor(shape, v);
                 const ptSize = this.getPointSizeFor(shape, v);
-                const badgeCls = ['cad-vertex-badge', 'sty-' + ptStyle, 'size-' + ptSize];
-                if (isDotGlyph) badgeCls.push('dot-visible');
-                if (isExpanded) badgeCls.push('expanded');
-                // Vành khuyên: nền trong suốt, viền mang màu điểm + quầng trắng để nổi trên nền bản đồ
-                const badgeStyle = ptStyle === 'ring'
-                    ? `background: transparent; border-color: ${ptColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
-                    : `background: ${ptColor}; border-color: #ffffff;`;
-                const pxMap = { sm: 16, md: 22, lg: 28, xl: 34 };
-                const curPx = pxMap[ptSize] || 22;
-                const curHalf = Math.round(curPx / 2);
-                const iconHtml = `<div class="${badgeCls.join(' ')}" style="${badgeStyle}" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
-                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [curPx, curPx], iconAnchor: [curHalf, curHalf] });
+                // Ký hiệu nằm đúng tọa độ; chữ trong hoặc quanh ký hiệu theo cài đặt đỉnh → khối → lớp CAD
+                const icon = this.buildGlyphIcon({ style: ptStyle, color: ptColor, size: ptSize, name: v.name, title: ptTitle,
+                    label: this.getLabelStyleFor(shape, v), expanded: isExpanded, dot: isDotGlyph });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked && this.isActive, pane: mPaneName }).addTo(this.layers.group);
                 // Đỉnh đang mang ký hiệu hình thì coi như đã ghim, để mouseout của khối không gỡ dot-visible
                 marker._pinned = isExpanded || isDotGlyph;
@@ -27792,16 +28052,14 @@ const appCadTool = {
 
                 // Rê chuột vào đỉnh: bung nhãn đỉnh và hiện cự ly các cạnh nối với đỉnh này
                 marker.on('mouseover', () => {
-                    marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
+                    this.glyphHover(marker, true);
                     const prevE = edgeMarkers[(vIdx - 1 + edgeMarkers.length) % edgeMarkers.length];
                     const nextE = edgeMarkers[vIdx];
                     prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
                     nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
                 });
                 marker.on('mouseout', () => {
-                    if (!marker._pinned) {
-                        marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('expanded');
-                    }
+                    this.glyphHover(marker, false, marker._pinned);
                     const prevE = edgeMarkers[(vIdx - 1 + edgeMarkers.length) % edgeMarkers.length];
                     const nextE = edgeMarkers[vIdx];
                     if (!prevE?._pinned && !shape._pinned) prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
@@ -28116,20 +28374,10 @@ const appCadTool = {
             const vStyle = v.style || defaultDraftStyle;
             const vColor = v.color || defaultDraftColor;
             const vSize = v.size || defaultDraftSize;
-            const isActExp = ((showVertices === true || this._pinned === true) && showLabels) ? 'expanded' : '';
-            const actStyle = vStyle === 'ring'
-                ? `background: transparent; border-color: ${vColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
-                : `background: ${vColor}; border-color: #ffffff;`;
-            const pxMap = { sm: 16, md: 22, lg: 28, xl: 34 };
-            const curPx = pxMap[vSize] || 22;
-            const curHalf = Math.round(curPx / 2);
-            const iconHtml = `<div class="cad-vertex-badge sty-${vStyle} size-${vSize} dot-visible ${isActExp}" style="${actStyle} cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
-            const icon = L.divIcon({
-                className: '',
-                html: iconHtml,
-                iconSize: [curPx, curPx],
-                iconAnchor: [curHalf, curHalf]
-            });
+            const isActExp = ((showVertices === true || this._pinned === true) && showLabels);
+            const icon = this.buildGlyphIcon({ style: vStyle, color: vColor, size: vSize, name: v.name,
+                title: `${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh`,
+                label: this.getLabelStyleFor(draftGlyphShape, v), expanded: isActExp, dot: true, cursor: ' cursor: grab;' });
             const marker = L.marker([v.lat, v.lng], { 
                 icon, 
                 zIndexOffset: 2500,
@@ -28139,16 +28387,14 @@ const appCadTool = {
             marker._pinned = (showVertices === true || this._pinned === true);
 
             marker.on('mouseover', () => {
-                marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
+                this.glyphHover(marker, true);
                 const prevE = activeEdgeMarkers[(idx - 1 + activeEdgeMarkers.length) % activeEdgeMarkers.length];
                 const nextE = activeEdgeMarkers[idx];
                 prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
                 nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
             });
             marker.on('mouseout', () => {
-                if (!marker._pinned) {
-                    marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('expanded');
-                }
+                this.glyphHover(marker, false, marker._pinned);
                 const prevE = activeEdgeMarkers[(idx - 1 + activeEdgeMarkers.length) % activeEdgeMarkers.length];
                 const nextE = activeEdgeMarkers[idx];
                 if (!prevE?._pinned && !this._pinned) prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
@@ -31656,6 +31902,7 @@ const appCadTool = {
                     <input type="color" id="cadQuickVColor" value="${vColor}" style="width:24px; height:22px; padding:0; border:1px solid #334155; border-radius:3px; background:#0f172a; cursor:pointer;" title="Màu sắc đỉnh">
                     <select id="cadQuickVSize" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Kích thước icon đỉnh">${sizeOpts}</select>
                 </div>
+                ${this.quickLabelControlsHtml(s, v)}
             `;
             extraControls = `
                 <div style="display:flex; gap:4px; margin-top:8px;">

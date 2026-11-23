@@ -2032,3 +2032,9 @@
   2. `assistant-core.js`, `assistant.js`, `ui-assistant.css`, nút 🤖: chuyển đổi/khoảng cách/KTT/GPS/dự án/điều hướng/kiểm thử bằng tiếng Việt, nối lệnh "rồi", giọng nói Web Speech.
   3. Não AI tùy chọn qua `vendor/wllama` (llama.cpp WASM): GGUF từ máy hoặc Qwen2.5-0.5B; khóa đầu ra bằng GBNF; tự gỡ khi rảnh.
   4. Kiểm thử: `tests/assistant_local_ai.test.js`; **555/555 PASS**.
+
+- **2026-11-23 (Ký hiệu & chữ MiniCAD, icon mốc dự án — v2.8.48)**:
+  1. Sửa ký hiệu đỉnh/điểm lệch 11 px khỏi tọa độ thật và tên dài bị cắt (khung tâm `.cad-vglyph`, bộ dựng chung `glyphHtml`).
+  2. Chữ trong/ngoài ký hiệu: vị trí, cỡ, màu theo lớp CAD, theo khối, theo từng đỉnh.
+  3. Bảng 🎨 "Ký hiệu & chữ" mới có xem trước; tùy chỉnh icon mốc tọa độ dự án (Bản đồ dự án + MiniCAD).
+  4. Kiểm thử: `tests/cad_glyph_labels.test.js`; **561/561 PASS**.

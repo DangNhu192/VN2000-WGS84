@@ -242,7 +242,7 @@ console.log('\n--- NHÓM 5: XUẤT CSV & TIÊU ĐỀ ICON ĐIỂM ---');
 
     assert(/const ptTitle = isPointLayer[\s\S]{0,260}?X=\$\{\(v\.x \|\| 0\)\.toFixed\(3\)\} Y=\$\{\(v\.y \|\| 0\)\.toFixed\(3\)\} H=\$\{\(v\.h \|\| 0\)\.toFixed\(2\)\}/.test(appJs), 'Icon điểm hiện X/Y/H khi rê chuột');
     assert(/const ptTitle = isPointLayer[\s\S]{0,420}?v\.note \? ' • ' \+ v\.note/.test(appJs), 'Icon điểm hiện ghi chú khi rê chuột');
-    assert(/title="\$\{escapeHtml\(ptTitle\)\}"/.test(appJs), 'Tiêu đề icon được escape HTML');
+    assert(/title: ptTitle/.test(appJs) && appJs.includes('title="${escapeHtml(o.title || \'\')}"'), 'Tiêu đề icon được escape HTML (qua bộ dựng ký hiệu glyphHtml)');
 }
 
 console.log('\n========================================================================');

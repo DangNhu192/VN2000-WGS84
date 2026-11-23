@@ -129,8 +129,10 @@ test('=== 2. KIỂM THỬ ÁP DỤNG GHIM ĐẦU NHỌN TRÊN TẤT CẢ CÁC PH
     await t.test('2.4 Phân hệ Bản đồ Khảo sát & Mốc Dự Án (appMap)', () => {
         assert.ok(
             appJs.includes('loadProjectMarkers()') &&
-            appJs.includes('createSharpPinIcon({\n                color: \'#ef4444\',\n                secondaryColor: \'#b91c1c\',\n                text: idx + 1,\n                width: 24,\n                height: 33'),
-            'appMap.loadProjectMarkers phải thay thế toàn bộ chấm tròn cũ bằng ghim đầu nhọn số thứ tự'
+            appJs.includes('const customIcon = this.landmarkIcon(p, idx, lmkStyle);') &&
+            appJs.includes("LANDMARK_DEFAULTS: { shape: 'pin', color: '#ef4444', size: 'md', text: 'index', pos: 'inside'") &&
+            appJs.includes('return createSharpPinIcon({ color: st.color, secondaryColor: this.shadeHex(st.color, 0.25), text: inside ? text : \'\','),
+            'appMap.loadProjectMarkers dùng icon mốc theo kiểu người dùng chọn; mặc định vẫn là ghim đỏ đầu nhọn có số thứ tự'
         );
         assert.ok(
             appJs.includes('showConvertedPoint(') &&

@@ -7119,10 +7119,10 @@
     }
 
     /* Khi rê chuột trực tiếp vào đỉnh, hoặc khi bật tùy chọn "Ký hiệu đỉnh" (.expanded) */
-    .cad-vertex-badge:hover,
+    .cad-vertex-badge:not(.lbl-out):hover,
     .cad-vertex-badge.expanded,
-    .cad-vertex-badge:active,
-    .leaflet-dragging .cad-vertex-badge {
+    .cad-vertex-badge:not(.lbl-out):active,
+    .leaflet-dragging .cad-vertex-badge:not(.lbl-out) {
       opacity: 1 !important;
       width: auto !important;
       min-width: 22px !important;
@@ -7344,6 +7344,79 @@
       border-radius: 16px !important;
     }
 
+    /* ==== KHUNG TÂM 0×0: ký hiệu luôn nằm ĐÚNG tọa độ (trước đây lệch nửa ô icon lên trên-trái) ==== */
+    .cad-vglyph {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0;
+      height: 0;
+    }
+
+    .cad-vglyph > .cad-vertex-badge {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* Viên thuốc có chữ: rộng theo chữ, không bị cắt tên dài (GPS-12, M105…) */
+    .cad-vglyph > .cad-vertex-badge.expanded,
+    .cad-vglyph > .cad-vertex-badge.selected-vertex {
+      width: max-content !important;
+      white-space: nowrap;
+    }
+
+    .cad-vglyph > .cad-vertex-badge.expanded:not(.selected-vertex):not(.snapped-adjacent):not(.snapped-edge) {
+      color: var(--lbl-color, #ffffff) !important;
+    }
+
+    /* Cỡ chữ tự chọn khi chữ nằm trong ký hiệu */
+    .cad-vglyph > .cad-vertex-badge.expanded.lsz {
+      font-size: var(--lbl-size) !important;
+      height: auto !important;
+      min-height: calc(var(--lbl-size) + 8px) !important;
+      line-height: 1.25 !important;
+      padding: 2px calc(var(--lbl-size) * 0.55) !important;
+      border-radius: 999px !important;
+    }
+
+    /* Chữ nằm ngoài ký hiệu: phải / trên / dưới / trái, có quầng tối để đọc được trên mọi nền */
+    .cad-vlabel {
+      position: absolute;
+      display: none;
+      white-space: nowrap;
+      font-size: var(--lbl-size, 12px);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--lbl-color, #ffffff);
+      text-shadow: 0 0 2px #000000, 0 0 3px #000000, 0 1px 2px rgba(0, 0, 0, 0.9);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .cad-vlabel.is-on,
+    .cad-vlabel.is-hover,
+    .leaflet-dragging .cad-vlabel {
+      display: block;
+    }
+
+    .cad-vlabel.lp-right { left: calc(var(--sym-r, 7px) + 4px); top: 0; transform: translateY(-50%); }
+    .cad-vlabel.lp-left { right: calc(var(--sym-r, 7px) + 4px); top: 0; transform: translateY(-50%); }
+    .cad-vlabel.lp-top { bottom: calc(var(--sym-r, 7px) + 3px); left: 0; transform: translateX(-50%); }
+    .cad-vlabel.lp-bottom { top: calc(var(--sym-r, 7px) + 3px); left: 0; transform: translateX(-50%); }
+
+    /* Chữ quanh đầu ghim mốc dự án (--hx, --hy: tâm đầu ghim; --sym-r: bán kính đầu ghim) */
+    .cad-vlabel.lmk-pin.lp-right { left: calc(var(--hx) + var(--sym-r) + 3px); top: var(--hy); transform: translateY(-50%); }
+    .cad-vlabel.lmk-pin.lp-left { right: calc(100% - var(--hx) + var(--sym-r) + 3px); top: var(--hy); transform: translateY(-50%); }
+    .cad-vlabel.lmk-pin.lp-top { bottom: calc(100% - var(--hy) + var(--sym-r) + 2px); left: var(--hx); transform: translateX(-50%); }
+    .cad-vlabel.lmk-pin.lp-bottom { top: calc(100% + 2px); left: var(--hx); transform: translateX(-50%); }
+
+    .cad-vertex-badge.lbl-out.hovered {
+      opacity: 1 !important;
+      transform: translate(-50%, -50%) scale(1.25);
+      z-index: 3500 !important;
+    }
+
     /* Nhãn nhóm hiển thị trên thanh công cụ CAD */
     .cad-display-group-tag {
       align-self: center;
@@ -7474,6 +7547,122 @@
       color: #b9dfb6;
       margin-bottom: 8px;
     }
+
+    /* ==== Bảng 🎨 Ký hiệu & chữ: thẻ theo lớp, có mẫu xem trước, gọn trên điện thoại ==== */
+    .cad-sym-box {
+      max-width: 760px;
+      width: 94%;
+      max-height: calc(var(--ui-avail-h) * 0.94);
+      display: flex;
+      flex-direction: column;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+
+    .cad-sym-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 12px 10px 16px;
+      border-bottom: 1px solid rgba(147, 204, 156, 0.18);
+      flex: none;
+    }
+
+    .cad-sym-head h3 { flex: 1 1 auto; margin: 0; font-size: 16px; }
+
+    .cad-sym-close {
+      flex: none;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .cad-sym-close:hover, .cad-sym-close:focus-visible { background: rgba(255, 244, 228, 0.08); outline: none; }
+
+    .cad-sym-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 14px 4px; overscroll-behavior: contain; }
+
+    .cad-sym-flags { display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: center; }
+
+    .cad-sym-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+
+    .cad-sym-card {
+      border: 1px solid rgba(255, 244, 228, 0.1);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255, 244, 228, 0.03);
+    }
+
+    .cad-sym-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; min-width: 0; }
+    .cad-sym-name { font-weight: 800; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .cad-sym-code { font-size: 11px; color: #a8a29e; background: rgba(255, 244, 228, 0.06); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+
+    /* Mẫu xem trước: nền giống bản đồ tối, ký hiệu nằm giữa */
+    .cad-sym-preview {
+      position: relative;
+      margin-left: auto;
+      flex: none;
+      width: 120px;
+      height: 52px;
+      border-radius: 10px;
+      background: #2a2724 radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.12) 1px, transparent 0) 0 0 / 12px 12px;
+      border: 1px solid rgba(255, 244, 228, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .cad-sym-preview .cad-vertex-badge { opacity: 1 !important; cursor: default; }
+    .cad-sym-preview .sharp-pin-marker-container { transform: translateY(-4px); }
+
+    .cad-sym-reset {
+      flex: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 244, 228, 0.16);
+      background: transparent;
+      color: inherit;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .cad-sym-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .cad-sym-grid label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 11px; color: #a8a29e; }
+    .cad-sym-grid select { width: 100%; height: 34px !important; font-size: 12.5px !important; max-width: none !important; }
+    .cad-sym-grid input[type="color"] { width: 100%; height: 34px; padding: 2px; border: 1px solid rgba(255, 244, 228, 0.16); border-radius: 8px; background: transparent; cursor: pointer; }
+
+    .cad-sym-hint { font-size: 11.5px; color: #a8a29e; margin-top: 8px; line-height: 1.45; }
+
+    .cad-sym-foot {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 10px 14px calc(10px + var(--sat-safe-bottom, 0px));
+      border-top: 1px solid rgba(147, 204, 156, 0.18);
+      flex: none;
+    }
+
+    .cad-sym-foot .btn-sm { height: 38px; padding: 0 14px; width: auto !important; flex: none !important; }
+    .cad-sym-count { margin-right: auto; font-size: 11.5px; color: #a8a29e; }
+    .cad-sym-count b { color: #fbbf24; }
+
+    @media (max-width: 560px) {
+      .cad-sym-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cad-sym-preview { width: 96px; height: 46px; }
+      .cad-sym-code { display: none; }
+      .cad-sym-count { flex: 1 1 100%; margin-right: 0; }
+    }
+
+    [data-theme="light"] .cad-sym-card { background: rgba(255, 255, 255, 0.5); border-color: rgba(28, 26, 24, 0.1); }
+    [data-theme="light"] .cad-sym-preview { background-color: #57534e; }
 
     /* Bảng kết quả trắc lượng (INQUIRY) */
     .cad-inq-table {
