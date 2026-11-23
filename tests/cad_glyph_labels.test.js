@@ -106,6 +106,6 @@ test('Bản vẽ xuất (DXF, PDF, SVG, PNG) đặt chữ theo cùng cài đặt
   const topUp = mk({ pos: 'top', px: 0 }).exportLabelAnchor({}, {}, 10, 20, 1, 2, true);
   const topDown = mk({ pos: 'top', px: 0 }).exportLabelAnchor({}, {}, 10, 20, 1, 2, false);
   assert.ok(topUp.y > 20 && topDown.y < 20 && topUp.align === 'center', 'Trên: theo chiều trục Y của từng bộ xuất');
-  assert.strictEqual((appJs.match(/this\.exportLabelAnchor\(shape, p, /g) || []).length, 4, 'Cả 4 bộ xuất dùng chung cài đặt chữ');
+  assert.strictEqual((appJs.match(/this\.exportLabelAnchor\(shape, p, /g) || []).length, 2, 'DXF và bộ vẽ khổ giấy dùng chung (PDF / PNG / SVG / ảnh nén) cùng cài đặt chữ');
   assert.ok(appJs.includes('72\\r\\n${hj}\\r\\n11\\r\\n') && appJs.includes('100\\r\\nAcDbText\\r\\n73\\r\\n${vj}'), 'DXF căn lề chữ bằng nhóm 72/73');
 });

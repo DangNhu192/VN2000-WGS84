@@ -125,7 +125,7 @@ describe('=== KIỂM THỬ QUY TRÌNH XUẤT DỮ LIỆU & FIX LỖI MISSING SYM
 
     test('5. Đảm bảo tính toàn vẹn của các định dạng file xuất ra (.dwg, .dat/.cmd, .kml, .geojson, .svg, .xlsx)', () => {
         // Kiểm tra xuất CAD .dwg chuẩn Autodesk AC1015
-        assert.ok(appJs.includes('filenameDwg'), 'appData.exportDwgFile phải xuất file .dwg chuẩn');
+        assert.ok(appJs.includes("exportDwgFile() { return this._exportDrawing('dwg'") && appJs.includes('a.download = `${baseFilename}.dwg`;'), 'appData.exportDwgFile xuất .dwg chuẩn qua bộ xuất DWG dùng chung của MiniCAD');
         assert.ok(appJs.includes('application/acad'), 'MIME type bản vẽ CAD phải là application/acad');
 
         // Kiểm tra xuất MicroStation & Famis (.dat & .cmd)

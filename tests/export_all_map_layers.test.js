@@ -92,10 +92,13 @@ test('hai hộp xuất có danh sách lớp phủ; PDF/PNG của "Xuất dữ li
     assert.ok(app.includes("fillExportBaseSelect('cadExportBasemap'") && app.includes("fillExportBaseSelect('selExportBasemap'"));
     assert.ok(app.includes("readExportOverlayChoice('cadExportOverlayList')") && app.includes("readExportOverlayChoice('selExportOverlayList')"));
     assert.ok(!app.includes("['street', 'satellite', 'sentinel2'].includes(basemapVal)"), 'bỏ danh sách 3 nền cố định');
-    const pdf = app.slice(app.indexOf('    exportPdfFile(loadedLayers) {'), app.indexOf('    exportPngImage(loadedLayers) {'));
-    const png = app.slice(app.indexOf('    exportPngImage(loadedLayers) {'), app.indexOf('    exportPngImage(loadedLayers) {') + 9000);
-    assert.ok(pdf.includes('appCadTool.drawExportMapLayers(') && pdf.includes('_prepareExportBasemap('));
-    assert.ok(png.includes('appCadTool.drawExportMapLayers(') && png.includes('_prepareExportBasemap('));
-    assert.ok(pdf.indexOf("window.open('', '_blank')") < pdf.indexOf('_prepareExportBasemap('), 'mở cửa sổ in trước khi chờ tải ảnh (tránh bị chặn popup)');
-    assert.equal((app.match(/this\.drawExportMapLayers\(ctx, /g) || []).length, 2, 'PDF + ảnh của MiniCAD dùng chung bộ vẽ lớp');
+    // "Xuất dữ liệu" vẽ bản vẽ bằng ĐÚNG bộ vẽ của MiniCAD → cùng lớp bản đồ, cùng bố cục
+    assert.ok(app.includes("exportPdfFile() { return this._exportDrawing('pdf'"));
+    assert.ok(app.includes("exportPngImage() { return this._exportDrawing('png'"));
+    assert.ok(app.includes("exportSvgFile() { return this._exportDrawing('svg'"));
+    assert.ok(app.includes("exportDwgFile() { return this._exportDrawing('dwg'"));
+    const payload = app.slice(app.indexOf('    _cadExportPayload(ptsIn) {'), app.indexOf('    _exportDrawing(target, label) {'));
+    assert.ok(payload.includes('basemap: o.basemap, overlays: o.overlays') && payload.includes('showGuland: !!o.showGuland'), 'lớp đã chọn đi vào meta bộ vẽ chung');
+    assert.equal((app.match(/this\.drawExportMapLayers\(ctx, /g) || []).length, 1, 'bộ vẽ khổ giấy dùng chung vẽ lớp bản đồ một chỗ');
+    assert.ok(app.includes('this.drawExportMapLayers(octx, loaded, mapRect, toCanvasRaw, meta);'), 'SVG: lớp bản đồ raster hóa rồi nhúng');
 });

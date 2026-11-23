@@ -426,9 +426,9 @@ console.log('\n— DXF / PDF / SVG / PNG: tách cờ Điểm - Đỉnh - Nhãn �
     const residual = (appJs.match(/showVertices !== false \|\| isPointLayer/g) || []).length;
     assert(residual === 0, 'Không còn điều kiện gộp "showVertices || isPointLayer" trong exporter');
     const glyphSites = (appJs.match(/this\.exportGlyphFlag\(meta, isPointLayer\)/g) || []).length;
-    assert(glyphSites === 4, `Cả 4 exporter (DXF/PDF/SVG/PNG) đều dùng exportGlyphFlag (hiện có ${glyphSites})`);
+    assert(glyphSites === 2, `DXF + bộ vẽ khổ giấy dùng chung (PDF/PNG/SVG/ảnh) đều dùng exportGlyphFlag (hiện có ${glyphSites})`);
     const labelGuards = (appJs.match(/meta\.showLabels !== false/g) || []).length;
-    assert(labelGuards >= 3, 'Nhãn tên trong bản vẽ xuất cũng chịu sự kiểm soát của nhóm Nhãn');
+    assert(labelGuards >= 2, 'Nhãn tên trong bản vẽ xuất cũng chịu sự kiểm soát của nhóm Nhãn');
     assert(/if \(meta\.showLabels !== false\) \{\s*\n\s*const cleanName/.test(appJs),
         'DXF: TEN_MOC chỉ ghi khi nhóm Nhãn bật');
 }
@@ -449,12 +449,12 @@ console.log('\n— _getExportMeta: nhận cờ mới, cô lập khỏi cài đ�
         cadExportCheckFullDetails: { checked: false }
     };
     const store = {};
-    const api = new Function('document', 'localStorage', 'AppState', 'exportMapSource', 'readExportOverlayChoice', 'appTitleRows',
+    const api = new Function('document', 'localStorage', 'AppState', 'exportMapSource', 'readExportOverlayChoice', 'appTitleRows', 'EXPORT_PAPER_DIMS',
         `return ({ ${extractMethod('_getExportMeta')} });`)(
             { getElementById: id => (boxes[id] || { value: '', checked: undefined }) },
             { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = v; } },
             { currentProject: 'DuAn.csv', provinceName: 'TP.HCM', kttDeg: 105, kttMin: 45 },
-            () => null, () => [], { forMeta: () => [] });
+            () => null, () => [], { forMeta: () => [] }, { A3: { w: 420, h: 297, label: 'A3 (Ngang)' } });
 
     const ctx = { displaySettings: { showPoints: true, showVertices: true, showLabels: true } };
     const meta = api._getExportMeta.call(ctx);
@@ -713,10 +713,10 @@ console.log('\n— Exporter / markup / CSS cho đỉnh khối —');
         'Không còn nhánh "đỉnh khối cứng circle/màu cố định" trong 4 exporter');
     assert(appJs.includes('const glyph = this.getPointStyleFor(shape, p);'),
         'DXF: hình đỉnh mốc lấy theo kiểu đã chọn cho cả khối và điểm');
-    assert(/svgContent \+= `  \$\{this\.pointGlyphSvg\(this\.getPointStyleFor\(shape, p\)/.test(appJs),
-        'SVG: mọi đỉnh xuất qua pointGlyphSvg (mang kiểu + màu thật)');
+    assert(/exportSvg\(opts = \{\}\) \{\s*return this\.exportPdf\(/.test(appJs),
+        'SVG: vẽ qua bộ vẽ khổ giấy dùng chung nên đỉnh mang kiểu + màu thật như PDF');
     const canvasGlyphCalls = (appJs.match(/this\.drawPointGlyph\(ctx, [^;]*this\.getPointStyleFor\(shape, p\)/g) || []).length;
-    assert(canvasGlyphCalls === 2, 'PDF + PNG: cả hai canvas dùng kiểu/màu thật của đỉnh');
+    assert(canvasGlyphCalls === 1, 'Bộ vẽ khổ giấy (PDF / PNG / SVG / ảnh nén) dùng kiểu/màu thật của đỉnh');
 
     ['modalCadSymbols', 'btnCadSymbols', 'cadSymShowPoints', 'cadSymShowVertices', 'cadSymShowLabels',
         'cadSymbolLayerRows', 'cadSymOverrideCount'].forEach(id => {

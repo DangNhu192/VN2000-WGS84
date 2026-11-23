@@ -11835,3 +11835,129 @@
 }
 [data-theme="light"] .tb-head, [data-theme="light"] .tb-rows-head small { color: #57534e; }
 [data-theme="light"] .tb-rows-head { color: #2f6b45; }
+
+/* ===== Hộp thoại xuất bản vẽ (MiniCAD + Xuất dữ liệu) — bố cục gọn, đọc rõ trên điện thoại ===== */
+/* Thân hộp thoại là cột flex cuộn: các khối con không được co lại (trước đây khối "Xem trước & cài đặt"
+   bị ép còn 2 px nên ô xem trước và các ô tích lớp bản vẽ không nhìn thấy). */
+.modal-export-box .modal-body > * { flex-shrink: 0; }
+.modal-export-box input.app-input:not([inputmode="decimal"]):not([type="number"]),
+.modal-export-box textarea.app-input { font-family: var(--font-sans); font-weight: 600; }
+.modal-export-box .modal-footer > button { white-space: nowrap; }
+.modal-export-box #cadExportPreviewContainer,
+.modal-export-box #exportPreviewContainer { background: #2a2826 !important; }
+@media (max-width: 560px) {
+  .modal-export-box { width: 100% !important; }
+  .modal-export-box .modal-header { padding: 10px 12px !important; }
+  .modal-export-box .modal-header > div:first-child { min-width: 0; gap: 8px !important; }
+  .modal-export-box .modal-header > div:first-child > span:first-child { font-size: 20px !important; }
+  #lblCadExportModalMainTitle, #lblExportModalMainTitle { font-size: 14px !important; line-height: 1.25; }
+  #cadExportModalSubTitle, #exportModalSubTitle { display: none; }
+  .modal-export-box .modal-body { padding: 10px !important; }
+  .modal-export-box .modal-footer { display: grid !important; grid-template-columns: 1fr auto; gap: 8px !important; padding: 8px 10px !important; }
+  .modal-export-box .modal-footer > button { height: 40px !important; padding: 0 10px !important; }
+  .modal-export-box .modal-footer > button:last-child { grid-column: 1 / -1; width: 100%; height: 46px !important; }
+  .modal-export-box #cadExportPreviewContainer, .modal-export-box #exportPreviewContainer { height: 200px !important; }
+}
+@media (max-width: 480px) {
+  .modal-export-box [style*="grid-template-columns: 1fr 1fr"],
+  .modal-export-box [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 700px) {
+  .modal-export-box #cadExportPreviewContainer, .modal-export-box #exportPreviewContainer { height: 300px !important; }
+}
+
+/* ===== Giao diện Sáng: các khối viết sẵn nền tối (style="background: rgba(28,26,24,…)" …) đổi sang nền sáng.
+   Màu chữ trên các khối này do src/ui/contrast_guard.js tự chỉnh cho đủ tương phản. ===== */
+[data-theme="light"] [style*="background: rgba(28, 26, 24"],
+[data-theme="light"] [style*="background:rgba(28, 26, 24"],
+[data-theme="light"] [style*="background-color: rgba(28, 26, 24"],
+[data-theme="light"] [style*="background-color:rgba(28, 26, 24"],
+[data-theme="light"] [style*="background: rgba(28,26,24"],
+[data-theme="light"] [style*="background:rgba(28,26,24"],
+[data-theme="light"] [style*="background-color: rgba(28,26,24"],
+[data-theme="light"] [style*="background-color:rgba(28,26,24"],
+[data-theme="light"] [style*="background: rgba(41, 37, 36"],
+[data-theme="light"] [style*="background:rgba(41, 37, 36"],
+[data-theme="light"] [style*="background-color: rgba(41, 37, 36"],
+[data-theme="light"] [style*="background-color:rgba(41, 37, 36"],
+[data-theme="light"] [style*="background: rgba(41,37,36"],
+[data-theme="light"] [style*="background:rgba(41,37,36"],
+[data-theme="light"] [style*="background-color: rgba(41,37,36"],
+[data-theme="light"] [style*="background-color:rgba(41,37,36"],
+[data-theme="light"] [style*="background: rgba(15, 23, 42"],
+[data-theme="light"] [style*="background:rgba(15, 23, 42"],
+[data-theme="light"] [style*="background-color: rgba(15, 23, 42"],
+[data-theme="light"] [style*="background-color:rgba(15, 23, 42"],
+[data-theme="light"] [style*="background: rgba(15,23,42"],
+[data-theme="light"] [style*="background:rgba(15,23,42"],
+[data-theme="light"] [style*="background-color: rgba(15,23,42"],
+[data-theme="light"] [style*="background-color:rgba(15,23,42"],
+[data-theme="light"] [style*="background: rgba(30, 41, 59"],
+[data-theme="light"] [style*="background:rgba(30, 41, 59"],
+[data-theme="light"] [style*="background-color: rgba(30, 41, 59"],
+[data-theme="light"] [style*="background-color:rgba(30, 41, 59"],
+[data-theme="light"] [style*="background: rgba(30,41,59"],
+[data-theme="light"] [style*="background:rgba(30,41,59"],
+[data-theme="light"] [style*="background-color: rgba(30,41,59"],
+[data-theme="light"] [style*="background-color:rgba(30,41,59"],
+[data-theme="light"] [style*="background: rgba(23, 22, 21"],
+[data-theme="light"] [style*="background:rgba(23, 22, 21"],
+[data-theme="light"] [style*="background-color: rgba(23, 22, 21"],
+[data-theme="light"] [style*="background-color:rgba(23, 22, 21"],
+[data-theme="light"] [style*="background: rgba(12, 10, 9"],
+[data-theme="light"] [style*="background:rgba(12, 10, 9"],
+[data-theme="light"] [style*="background-color: rgba(12, 10, 9"],
+[data-theme="light"] [style*="background-color:rgba(12, 10, 9"],
+[data-theme="light"] [style*="background: #1c1a18"],
+[data-theme="light"] [style*="background:#1c1a18"],
+[data-theme="light"] [style*="background-color: #1c1a18"],
+[data-theme="light"] [style*="background-color:#1c1a18"],
+[data-theme="light"] [style*="background: #0f0e0c"],
+[data-theme="light"] [style*="background:#0f0e0c"],
+[data-theme="light"] [style*="background-color: #0f0e0c"],
+[data-theme="light"] [style*="background-color:#0f0e0c"],
+[data-theme="light"] [style*="background: #171614"],
+[data-theme="light"] [style*="background:#171614"],
+[data-theme="light"] [style*="background-color: #171614"],
+[data-theme="light"] [style*="background-color:#171614"],
+[data-theme="light"] [style*="background: #171615"],
+[data-theme="light"] [style*="background:#171615"],
+[data-theme="light"] [style*="background-color: #171615"],
+[data-theme="light"] [style*="background-color:#171615"],
+[data-theme="light"] [style*="background: #292524"],
+[data-theme="light"] [style*="background:#292524"],
+[data-theme="light"] [style*="background-color: #292524"],
+[data-theme="light"] [style*="background-color:#292524"],
+[data-theme="light"] [style*="background: #221f1d"],
+[data-theme="light"] [style*="background:#221f1d"],
+[data-theme="light"] [style*="background-color: #221f1d"],
+[data-theme="light"] [style*="background-color:#221f1d"],
+[data-theme="light"] [style*="background: #1c1917"],
+[data-theme="light"] [style*="background:#1c1917"],
+[data-theme="light"] [style*="background-color: #1c1917"],
+[data-theme="light"] [style*="background-color:#1c1917"],
+[data-theme="light"] [style*="background: #0c0a09"],
+[data-theme="light"] [style*="background:#0c0a09"],
+[data-theme="light"] [style*="background-color: #0c0a09"],
+[data-theme="light"] [style*="background-color:#0c0a09"],
+[data-theme="light"] [style*="background: #070b14"],
+[data-theme="light"] [style*="background:#070b14"],
+[data-theme="light"] [style*="background-color: #070b14"],
+[data-theme="light"] [style*="background-color:#070b14"],
+[data-theme="light"] [style*="background: #0f172a"],
+[data-theme="light"] [style*="background:#0f172a"],
+[data-theme="light"] [style*="background-color: #0f172a"],
+[data-theme="light"] [style*="background-color:#0f172a"],
+[data-theme="light"] [style*="background: #1e293b"],
+[data-theme="light"] [style*="background:#1e293b"],
+[data-theme="light"] [style*="background-color: #1e293b"],
+[data-theme="light"] [style*="background-color:#1e293b"] {
+  background: #f6f5f2 !important;
+  border-color: rgba(28, 25, 23, 0.14) !important;
+}
+[data-theme="light"] .modal-export-box #cadExportPreviewContainer,
+[data-theme="light"] .modal-export-box #exportPreviewContainer { background: #e7e5e4 !important; }
+[data-theme="light"] .modal-export-box .modal-header,
+[data-theme="light"] .modal-export-box .modal-footer { background: #ffffff !important; border-color: rgba(28, 25, 23, 0.12) !important; }
+/* Thực địa: nút vàng hổ phách dùng chữ đen (chữ trắng trên vàng chỉ đạt 2:1) */
+body.field-mode .btn-convert, body.field-mode .btn-convert * { color: #111111 !important; }

@@ -15,13 +15,14 @@ global.localStorage = global.localStorage || { getItem: () => null, setItem() {}
 global.ParcelLinks = require('../src/core/parcel_links.js');
 const M = require('../app.js');
 
-test('ô xem trước MiniCAD: đỉnh vẽ theo (Đông = y, Bắc = x) và có lớp bản đồ đã chọn', () => {
+test('ô xem trước = đúng bản vẽ sẽ xuất (chung bộ vẽ) và có lớp bản đồ đã chọn', () => {
     const start = app.indexOf('    renderExportPreview() {');
     const body = app.slice(start, app.indexOf('    saveTitleBlockInfo(showToastMsg = false) {', start));
-    assert.ok(body.includes('toSvgX(v.y).toFixed(1)},${toSvgY(v.x).toFixed(1)}'), 'đa giác theo (Đông, Bắc)');
-    assert.ok(body.includes('const sx = toSvgX(v.y);') && body.includes('const sy = toSvgY(v.x);'), 'điểm đỉnh theo (Đông, Bắc)');
-    assert.ok(body.includes('exportPreviewLayersSvg(meta,') && body.includes('IN KÈM:'), 'nền + huy hiệu lớp in kèm');
-    assert.ok(app.includes('svgHtml += exportPreviewLayersSvg(Object.assign({ gulandOpacity: 0.6 }, opts)'), 'xem trước của Xuất dữ liệu');
+    assert.ok(body.includes("this.exportPdf({ target: 'preview', shapes: allShapes, meta })") && body.includes('paperPreviewSvg(svg, res, meta)'), 'MiniCAD: ảnh khổ giấy từ bộ vẽ chung');
+    assert.ok(app.includes("appCadTool.exportPdf(Object.assign({ target: 'preview' }, pl))"), 'Xuất dữ liệu: cùng bộ vẽ');
+    const helper = app.slice(app.indexOf('function paperPreviewSvg('), app.indexOf('function exportPointRows('));
+    assert.ok(helper.includes('exportPreviewLayersSvg(meta, frame,') && helper.includes('clipPath'), 'ô ảnh nền xếp dưới, cắt theo khung bản đồ');
+    assert.ok(app.includes("if (target === 'preview') {\n                ctx.clearRect(mapRect.x, mapRect.y, mapRect.w, mapRect.h);"), 'vùng bản đồ của ảnh xem trước để trong suốt');
 });
 
 test('bảng in kèm: chọn được diện tích / các điểm / cả hai', () => {
@@ -30,8 +31,8 @@ test('bảng in kèm: chọn được diện tích / các điểm / cả hai', (
     assert.deepEqual(M.summaryTablesMode({}), { area: true, points: false }, 'mặc định như cũ: bảng diện tích');
     assert.deepEqual(M.summaryTablesMode({ summaryTables: 'points' }), { area: false, points: true });
     assert.deepEqual(M.summaryTablesMode({ summaryTables: 'both' }), { area: true, points: true });
-    assert.ok((app.match(/const tblMode = summaryTablesMode\(meta\);/g) || []).length >= 4, 'PDF, ảnh, SVG, DXF');
-    assert.ok(app.includes('"BẢNG TỔNG HỢP CÁC ĐIỂM"') && app.includes('BẢNG TỔNG HỢP CÁC ĐIỂM (${ptRows.length} điểm)') && app.includes('"BANG TONG HOP CAC DIEM"'));
+    assert.ok((app.match(/const tblMode = summaryTablesMode\(meta\);/g) || []).length >= 2, 'bộ vẽ khổ giấy (PDF, PNG, ảnh, SVG) + DXF');
+    assert.ok(app.includes('"BẢNG TỔNG HỢP CÁC ĐIỂM"') && app.includes('"BANG TONG HOP CAC DIEM"'));
 });
 
 test('bảng tổng hợp các điểm: mỗi mốc một dòng, đỉnh chung không lặp', () => {

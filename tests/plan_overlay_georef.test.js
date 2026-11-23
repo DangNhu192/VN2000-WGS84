@@ -134,8 +134,8 @@ test('ảnh chỉ hiện trong MiniCAD, dưới nét vẽ, không bắt chạm; 
     const layersFn = app.slice(app.indexOf('    drawExportMapLayers(ctx, loaded'), app.indexOf('    _getExportMeta() {'));
     assert.ok(layersFn.includes('appPlanOverlay.drawForExport(') && layersFn.indexOf('drawExportBasemap(') < layersFn.indexOf('appPlanOverlay.drawForExport('));
     assert.ok(pdf.indexOf('this.drawExportMapLayers(') > 0 && pdf.indexOf('this.drawExportMapLayers(') < pdf.indexOf('// 2. Khung Ngoài'));
-    const png = app.slice(app.indexOf('    exportOptimizedImage(customOpts = {}) {'));
-    assert.ok(png.indexOf('this.drawExportMapLayers(') > 0 && png.indexOf('this.drawExportMapLayers(') < png.indexOf('// Grid lines'));
+    // Ảnh nén / PNG / SVG đi qua cùng bộ vẽ khổ giấy nên cũng có ảnh nền
+    assert.match(app, /exportOptimizedImage\(customOpts = \{\}\) \{\s*return this\.exportPdf\(/);
 });
 
 test('bật/tắt lớp bản đồ PDF: toggleAll, isMasterVisible, checkboxes UI và lệnh CAD Craft', () => {
