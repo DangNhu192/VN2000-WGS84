@@ -64,10 +64,7 @@ test('=== 2. KIỂM THỬ CSS CHẾ ĐỘ EXPANDED RIBBON & COMPACT ICON MODE ==
 });
 
 test('=== 3. KIỂM THỬ THỰC THI LỆNH CADCRAFT CLI VÀ ĐỒNG BỘ TAB MINICAD ===', () => {
-    // 3.1 appCadTool có các hàm toggle và quickExecCmd
-    assert.ok(js.includes('toggleCmdToolsGrid()'), 'appCadTool có hàm toggleCmdToolsGrid');
     assert.ok(js.includes('toggleCmdRibbonExpand()'), 'appCadTool có hàm toggleCmdRibbonExpand');
-    assert.ok(js.includes('quickExecCmd('), 'appCadTool có hàm quickExecCmd');
     assert.ok(js.includes('updateCmdRibbonActiveStates()'), 'appCadTool có hàm updateCmdRibbonActiveStates');
 
     // 3.2 executeCommandLine tự động kích hoạt toolbar nếu chưa mở

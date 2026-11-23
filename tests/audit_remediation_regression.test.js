@@ -26,7 +26,6 @@ test('=== 1. KIỂM THỬ VÒNG 1: PHÂN HỆ CHUYỂN ĐỔI TỌA ĐỘ F-002 
     assert.ok(htmlContent.includes('id="screen-transform-map"'), 'Phải có id="screen-transform-map"');
     assert.ok(htmlContent.includes('id="leaflet-transform-map"'), 'Phải có id="leaflet-transform-map"');
     assert.ok(htmlContent.includes('id="transformBottomSheet"'), 'Phải có id="transformBottomSheet"');
-    assert.ok(htmlContent.includes('id="barCoordPicker"'), 'Phải có id="barCoordPicker"');
 });
 
 test('=== 2. KIỂM THỬ VÒNG 2: CÔ LẬP SỰ KIỆN CLICK & BẢN ĐỒ MINICAD ===', () => {

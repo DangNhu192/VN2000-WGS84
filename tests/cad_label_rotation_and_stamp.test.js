@@ -43,11 +43,6 @@ test('=== 2. KIỂM THỬ XOAY TRÒN TÊN KHỐI & NHÃN TÂM (0 - 360 ĐỘ) CH
     assert.ok(appJsContent.includes("this.showQuickEditPopup(e.latlng, { type: 'shape', shapeIndex: sIdx, shape: shape })"),
         'Nhãn tâm khối đa giác hỗ trợ click mở popup đổi tên và xoay');
 
-    // 4. Kiểm tra các hàm xoay nhanh trên bản đồ
-    assert.ok(appJsContent.includes('onQuickShapeRotChange') && appJsContent.includes('setQuickShapeRot'),
-        'Đã có hàm onQuickShapeRotChange và setQuickShapeRot');
-    assert.ok(appJsContent.includes('onQuickRectRotChange') && appJsContent.includes('setQuickRectRot'),
-        'Đã có hàm onQuickRectRotChange và setQuickRectRot');
 
     // 5. Kiểm tra thanh trượt xoay 0-360 độ trong showQuickEditPopup
     assert.ok(appJsContent.includes('rngQuickShapeRot') && appJsContent.includes('rngQuickRectRot'),

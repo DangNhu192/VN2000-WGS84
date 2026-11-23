@@ -85,7 +85,6 @@ test('Hàm xem trên bản đồ & lưu vào dự án tồn tại', () => {
 console.log('\n--- NHÓM 3: TƯƠNG THÍCH NGƯỢC ---');
 test('Bảo toàn các hàm tương thích executeMultiTransform() & copyAllMultiResults()', () => {
     assert(appJs.includes('executeMultiTransform()'), 'app.js vẫn có executeMultiTransform()');
-    assert(appJs.includes('copyAllMultiResults()'), 'app.js vẫn có copyAllMultiResults()');
     assert(appJs.includes('switchTransformSubTab('), 'app.js vẫn có switchTransformSubTab()');
 });
 

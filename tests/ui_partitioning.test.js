@@ -56,21 +56,16 @@ console.log('--- NHÓM 1: BẢN ĐỒ DỰ ÁN CHỈ HIỆN NẠP VÀ XEM DỰ �
 // --- NHÓM 2: THANH CHẤM CHỌN TỌA ĐỘ ĐƠN / ĐA ĐIỂM (CHUYỂN ĐỔI TỌA ĐỘ) ---
 console.log('\n--- NHÓM 2: PHÂN HỆ CHUYỂN ĐỔI TỌA ĐỘ CHẤM ĐƠN / ĐA ĐIỂM ---');
 {
-    assert(indexHtml.includes('id="barCoordPicker"'), 'Thanh công cụ chấm tọa độ chuyên biệt (#barCoordPicker) tồn tại');
-    assert(indexHtml.includes('btnPickModeSingle'), 'Có nút chuyển chế độ Đơn điểm');
-    assert(indexHtml.includes('btnPickModeMulti'), 'Có nút chuyển chế độ Đa điểm');
-    assert(indexHtml.includes('btnPickerApplySingle'), 'Có nút Áp dụng tọa độ đơn điểm về form chuyển đổi');
-    assert(indexHtml.includes('btnPickerApplyMulti'), 'Có nút Nạp danh sách đa điểm vào chuyển đổi hàng loạt');
-    assert(indexHtml.includes('id="modalMultiPickList"'), 'Modal xem danh sách đa điểm đã chấm (#modalMultiPickList) tồn tại');
+    // v2.8.52: thanh #barCoordPicker cũ (appCoordPicker) đã gỡ — chấm điểm chuyển đổi do bản đồ riêng appTransformMap đảm nhận
+    assert(appJs.includes('openTransformMap(options'), 'Chấm đơn / đa điểm dùng bản đồ chuyên biệt của Chuyển đổi (openTransformMap)');
+    assert(appJs.includes('addMultiPoint(lat, lng, vn)'), 'Bản đồ chuyển đổi tự thêm điểm khi chấm đa điểm');
 }
 
 // --- NHÓM 3: LOGIC MỞ BẢN ĐỒ TÁCH BẠCH TRONG APPNAV ---
 console.log('\n--- NHÓM 3: LOGIC ĐIỀU HƯỚNG TÁCH BẠCH TRONG APPNAV ---');
 {
-    assert(appJs.includes('openCoordPickerMap(options'), 'appNav có hàm openCoordPickerMap chuyên biệt cho Chuyển đổi');
     assert(appJs.includes('openProjectMap(options'), 'appNav có hàm openProjectMap chuyên biệt cho Dự án');
     assert(appJs.includes('openCadMap()'), 'appNav có hàm openCadMap chuyên biệt cho MiniCAD');
-    assert(appJs.includes('openConvertedMap(pointData)'), 'appNav có hàm openConvertedMap hiển thị điểm chuyển đổi sạch sẽ');
 }
 
 // --- NHÓM 4: LOGIC CHẤM ĐA ĐIỂM & TẠO DANH SÁCH CHUYỂN ĐỔI HÀNG LOẠT ---

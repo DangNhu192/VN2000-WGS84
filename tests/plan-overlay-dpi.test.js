@@ -85,7 +85,6 @@ describe('Plan Overlay High DPI & PDF Resolution', () => {
 
     test('7. _getPdfPage and sharp viewer rendering exist for pin-sharp georeferencing', () => {
         const js = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
-        assert.ok(js.includes('_getPdfPage'), 'Must cache and load PDF pages quickly');
         assert.ok(js.includes('_renderSharpViewer'), 'Must dynamically render pin-sharp viewer when zoomed in');
     });
 });

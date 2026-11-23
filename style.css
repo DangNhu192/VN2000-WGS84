@@ -4642,161 +4642,8 @@
     }
 
     /* Coordinate Picker Bar (Chuyên biệt cho Chuyển đổi tọa độ - Chấm đơn / đa điểm) */
-    .bar-coord-picker {
-      position: absolute;
-      top: calc(var(--sat-safe-top) + 10px);
-      left: calc(var(--sat-safe-left) + 10px);
-      right: calc(var(--sat-safe-right) + 10px);
-      min-height: 42px;
-      background: rgba(28, 26, 24, 0.95);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-radius: 12px;
-      border: 1px solid rgba(147, 204, 156, 0.45);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 8px;
-      z-index: 1000;
-      flex-wrap: wrap;
-      transition: all 0.2s ease;
-    }
+    
 
-    .picker-mode-switch {
-      display: flex;
-      background: rgba(41, 37, 36, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 2px;
-      gap: 2px;
-      flex-shrink: 0;
-    }
-
-    .btn-picker-mode {
-      border: none;
-      background: transparent;
-      color: #a8a29e;
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.18s ease;
-      white-space: nowrap;
-    }
-
-    .btn-picker-mode.active {
-      background: #3f8a5a;
-      color: #ffffff;
-      box-shadow: 0 2px 6px rgba(63, 138, 90, 0.4);
-    }
-
-    .picker-status-box {
-      flex: 1 1 auto;
-      min-width: 140px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-family: ui-monospace, monospace;
-      font-size: 11.5px;
-      color: #e7e5e4;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .picker-coord-text {
-      color: #93cc9c;
-      font-weight: 600;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .picker-badge {
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px solid rgba(16, 185, 129, 0.5);
-      color: #4ade80;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    .picker-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    .btn-picker-apply {
-      background: #10b981;
-      color: #ffffff;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-      white-space: nowrap;
-      transition: all 0.18s ease;
-    }
-
-    .btn-picker-apply:hover {
-      background: #059669;
-    }
-
-    .btn-picker-apply.btn-picker-batch {
-      background: #f59e0b;
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-    }
-
-    .btn-picker-apply.btn-picker-batch:hover {
-      background: #d97706;
-    }
-
-    .btn-picker-sub {
-      background: rgba(147, 204, 156, 0.15);
-      border: 1px solid rgba(147, 204, 156, 0.35);
-      color: #93cc9c;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .btn-picker-sub.btn-picker-danger {
-      background: rgba(239, 68, 68, 0.15);
-      border-color: rgba(239, 68, 68, 0.35);
-      color: #f87171;
-    }
-
-    .btn-picker-close {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #a8a29e;
-      font-size: 13px;
-      font-weight: 700;
-      width: 28px;
-      height: 28px;
-      border-radius: 7px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.18s ease;
-    }
-
-    .btn-picker-close:hover {
-      background: rgba(239, 68, 68, 0.3);
-      color: #ffffff;
-      border-color: #ef4444;
-    }
 
     .multipoint-map-pin {
       display: flex;
@@ -11268,17 +11115,8 @@
   .map-project-bar .map-proj-icon {
     font-size: 18px !important;
   }
-  .bar-coord-picker .btn-picker-mode {
-    height: 36px !important;
-    font-size: 12px !important;
-    padding: 0 10px !important;
-  }
-  .bar-coord-picker .btn-picker-apply {
-    height: 36px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    padding: 0 12px !important;
-  }
+
+
 }
 
 /* 5. Hero Live HUD Card: Ít chữ, số liệu tọa độ to sáng rõ */
@@ -11666,49 +11504,6 @@
     height: 26px !important;
     font-size: 12px !important;
     flex: none !important;
-  }
-}
-
-/* 15.4 THANH CHẤM TỌA ĐỘ: macOS COMPACT CAPSULE (<= 520px) */
-@media (max-width: 520px) {
-  .bar-coord-picker {
-    padding: 3px 6px !important;
-    gap: 4px !important;
-    border-radius: 20px !important;
-    max-width: calc(100vw - 20px) !important;
-  }
-  .bar-coord-picker .btn-picker-mode {
-    padding: 0 8px !important;
-    height: 30px !important;
-    font-size: 11.5px !important;
-    border-radius: 15px !important;
-  }
-  .bar-coord-picker .btn-picker-mode .btn-text {
-    display: none !important;
-  }
-  .bar-coord-picker .btn-picker-apply {
-    height: 30px !important;
-    padding: 0 10px !important;
-    font-size: 11.5px !important;
-    border-radius: 15px !important;
-  }
-  .bar-coord-picker .btn-picker-sub .btn-text {
-    display: none !important;
-  }
-  .bar-coord-picker .btn-picker-sub {
-    width: 28px !important;
-    height: 28px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  .bar-coord-picker .btn-picker-close {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 11px !important;
-    border-radius: 50% !important;
   }
 }
 

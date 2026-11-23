@@ -1,5 +1,18 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-23: WP-CLEANUP — DỌN MÃ DƯ THỪA (v2.8.52)
+- **Yêu cầu**: cập nhật toàn bộ app, làm sạch mã dư thừa, đẩy lên GitHub.
+- **Cách tìm**: phân tích cú pháp (acorn) app.js + các tệp JS: phương thức của object cấp cao và hàm cấp cao mà tên không xuất hiện ở đâu khác (JS, HTML, CSS, chuỗi onclick); không có gọi động `obj[tên]`. Lặp đến khi không còn mã chết dây chuyền.
+- **Đã xóa**:
+  1. 34 phương thức không ai gọi (~610 dòng): openCoordPickerMap, openConvertedMap, promptOpenConvertedMap, showConvertedPoint, setTransformViewMode, copyAllMultiResults, filterDongThapCu/TienGiangCu/SouthProvince, togglePickMode, onMarkerDrag, syncToGoogleSheets, setUiIconMode, quickExecCmd, toggleCmdToolsGrid, toggleDeWatermark, _getPdfPage, các bí danh xoay nhãn cũ…
+  2. Phân hệ `appCoordPicker` cũ (~340 dòng) + thanh `#barCoordPicker`, modal `#modalMultiPickList`, popup `#modalPromptConvertedMap` (chỉ mở được từ các hàm đã chết) + CSS riêng của chúng; `AppState.pickerMarker`, `createOpticalCrosshairIcon`.
+  3. Mô-đun nháp chưa từng nạp: `src/core/geodesy_engine.js` (trùng geodesy.js), `volume_calc.js`, `data_store.js`, `seed_dgn_base64.json`; 5 ảnh chụp kiểm thử `assets/tutorial_screens/verify_tutorials_*.png`.
+- **Sửa kèm**: nút "🎯 Lấy từ Bản đồ (n)" ở Chuyển đổi đa điểm trước đây đọc kho điểm của appCoordPicker (luôn 0) → nay đọc điểm đã chấm trên bản đồ chuyển đổi (`appTransformMap.pickedMultiPoints`).
+- **Test**: cập nhật 17 tệp test chỉ ghim mã đã chết (bỏ assert tương ứng, giữ assert hành vi còn sống); **570/570 PASS**. Kiểm khói trong trình duyệt (1280 & 390 px): Chuyển đổi, chấm đa điểm + lấy từ bản đồ, Bản đồ dự án, MiniCAD, hai hộp xuất, Cài đặt, Trắc dọc, ảnh nền PDF — không lỗi JS.
+- **Giữ lại có chủ đích**: ảnh PNG gốc trong `assets/tutorial_screens/` (đã ghi trong .vercelignore: giữ để chỉnh sửa, không triển khai); thư mục `.agents/` `.github/skills` (công cụ phát triển); tệp .bat chạy máy chủ cục bộ.
+
+---
+
 ## Phiên hiện tại — 2026-11-23: WP-PARCEL-LINKS — MÃ LIÊN KẾT THỬA ↔ ĐỈNH KHI XUẤT / NHẬP ĐIỂM (v2.8.51)
 - **Yêu cầu**: xuất điểm ra tệp mất quan hệ thửa nào – đỉnh nào, đỉnh chung; nhập lại phải tự hiểu thứ tự liên kết.
 - **Quy ước** (`src/core/parcel_links.js`, `ParcelLinks`): cột "Mã liên kết" `T1.3` = đỉnh 3 của thửa 1 (T thửa kín, D tuyến, P lớp điểm); mốc chung ghi MỘT dòng `T1.3+T2.1`; cột "Thửa / khối" = tên các khối theo thứ tự trong mã, nối " | "; mốc lẻ để trống. Mốc trùng tọa độ (đến mm) là một mốc.

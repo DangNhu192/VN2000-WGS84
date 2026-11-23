@@ -22,10 +22,6 @@ package-lock.json
 init.ps1
 *.ps1
 *.bat
-src/core/data_store.js
-src/core/geodesy_engine.js
-src/core/volume_calc.js
-src/core/seed_dgn_base64.json
 
 # Tài liệu thuyết trình & File nặng
 *.pptx

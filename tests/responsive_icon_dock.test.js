@@ -61,11 +61,6 @@ test('=== 3. KIỂM THỬ THANH CÔNG CỤ BẢN ĐỒ: macOS FLOATING TOOL CAPS
         assert.ok(styleCss.includes('.map-project-bar .btn-map-action .btn-text'), 'Thiếu rule ẩn btn-text trong mapProjectBar');
         assert.ok(styleCss.includes('.map-project-bar .btn-map-action'), 'Thiếu style cho btn-map-action');
     });
-
-    await t.test('3.3 barCoordPicker có icon to và ẩn chữ phụ trên màn hình nhỏ', () => {
-        assert.ok(indexHtml.includes('picker-mode-icon'), 'Thiếu picker-mode-icon');
-        assert.ok(styleCss.includes('.bar-coord-picker .btn-picker-mode .btn-text'), 'Thiếu rule ẩn btn-text trong barCoordPicker');
-    });
 });
 
 test('=== 4. KIỂM THỬ MINICAD TOUCH BAR VÀ NÚT XUẤT FILE SỔ ĐO ===', async (t) => {

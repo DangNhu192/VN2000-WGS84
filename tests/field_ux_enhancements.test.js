@@ -91,10 +91,6 @@ function runFieldUxEnhancementsTests() {
         appJs.includes('executeMultiTransform()'),
         "appTransform có hàm thực thi chuyển đổi đa điểm độc lập"
     );
-    assert(
-        appJs.includes('copyAllMultiResults()'),
-        "appTransform có nút sao chép toàn bộ kết quả chuyển đổi đa điểm dạng bảng"
-    );
 
     // --- NHÓM 3: KHUNG BẢN ĐỒ TRỰC QUAN TRONG CẮM MỐC (STAKEOUT LIVE MAP) ---
     console.log("\n--- NHÓM 3: KHUNG BẢN ĐỒ CẮM MỐC & LA BÀN THỰC ĐỊA ---");

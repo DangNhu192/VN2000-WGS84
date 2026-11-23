@@ -25,7 +25,7 @@ global.L = {
 // Nạp createSharpPinIcon từ app.js
 const sandbox = {};
 const startIdx = appJs.indexOf('function createSharpPinIcon');
-const endIdx = appJs.indexOf('function createOpticalCrosshairIcon');
+const endIdx = appJs.indexOf("if (typeof window !== 'undefined') window.createSharpPinIcon");
 if (startIdx !== -1 && endIdx !== -1) {
     const fnCode = appJs.slice(startIdx, endIdx);
     const fn = new Function('L', 'window', 'global', fnCode + '\nreturn createSharpPinIcon;');
@@ -74,14 +74,11 @@ test('=== 1. KIỂM THỬ HÀM TẠO ICON GHIM ĐẦU NHỌN (createSharpPinIcon
 });
 
 test('=== 2. KIỂM THỬ ÁP DỤNG GHIM ĐẦU NHỌN TRÊN TẤT CẢ CÁC PHÂN HỆ CỦA APP.JS ===', async (t) => {
-    await t.test('2.1 Phân hệ Chuyển đổi tọa độ - Chấm điểm đa điểm (appCoordPicker)', () => {
+    await t.test('2.1 Phân hệ Chuyển đổi tọa độ - Chấm điểm đa điểm (appTransformMap)', () => {
+        // v2.8.52: appCoordPicker cũ đã gỡ; chấm đa điểm nay ở appTransformMap.addMultiPoint
         assert.ok(
-            appJs.includes('createSharpPinIcon({\n            color: \'#0284c7\',\n            secondaryColor: \'#0369a1\',\n            text: `P${ptIndex}`'),
-            'appCoordPicker.addMultiPoint phải sử dụng createSharpPinIcon thay cho circle marker'
-        );
-        assert.ok(
-            appJs.includes('createSharpPinIcon({\n                        color: \'#0284c7\',\n                        secondaryColor: \'#0369a1\',\n                        text: `P${i + 1}`'),
-            'appCoordPicker.deleteMultiPoint phải cập nhật lại icon bằng createSharpPinIcon'
+            appJs.includes("const icon = createSharpPinIcon({\n                color: '#f59e0b',\n                secondaryColor: '#d97706',\n                text: idx,"),
+            'appTransformMap.addMultiPoint phải sử dụng createSharpPinIcon thay cho circle marker'
         );
     });
 
@@ -134,11 +131,6 @@ test('=== 2. KIỂM THỬ ÁP DỤNG GHIM ĐẦU NHỌN TRÊN TẤT CẢ CÁC PH
             appJs.includes('return createSharpPinIcon({ color: st.color, secondaryColor: this.shadeHex(st.color, 0.25), text: inside ? text : \'\','),
             'appMap.loadProjectMarkers dùng icon mốc theo kiểu người dùng chọn; mặc định vẫn là ghim đỏ đầu nhọn có số thứ tự'
         );
-        assert.ok(
-            appJs.includes('showConvertedPoint(') &&
-            appJs.includes('createSharpPinIcon({\n            color: \'#0d9488\',\n            secondaryColor: \'#047857\',\n            symbol: \'target\',\n            width: 32,\n            height: 42,\n            pulse: true'),
-            'appMap.showConvertedPoint (AppState.convertedMarker) phải sử dụng ghim đầu nhọn quang học'
-        );
     });
 
     await t.test('2.5 Phân hệ Cắm mốc thực địa (appStakeout)', () => {
@@ -149,12 +141,6 @@ test('=== 2. KIỂM THỬ ÁP DỤNG GHIM ĐẦU NHỌN TRÊN TẤT CẢ CÁC PH
         );
     });
 
-    await t.test('2.6 Hàm createOpticalCrosshairIcon trả về ghim đầu nhọn chuẩn xác', () => {
-        assert.ok(
-            appJs.includes('function createOpticalCrosshairIcon() {\n    return createSharpPinIcon({'),
-            'createOpticalCrosshairIcon phải trả về ghim đầu nhọn chuẩn xác thay vì hình tròn đồng tâm cũ'
-        );
-    });
 });
 
 test('=== 3. KIỂM THỬ CSS VÀ HIỆU ỨNG TƯƠNG TÁC CỦA GHIM ĐẦU NHỌN (style.css) ===', async (t) => {
