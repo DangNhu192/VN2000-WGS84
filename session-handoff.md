@@ -1,5 +1,13 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-23 (chiều): XEM TRƯỚC CÓ NỀN BẢN ĐỒ + BẢNG IN KÈM TÙY CHỌN (v2.8.54)
+- **Báo lỗi lặp lại**: "còn lỗi tải ảnh bản đồ, chưa chọn được các lớp bản đồ cần xuất trong MiniCAD"; thêm yêu cầu bảng "Tổng hợp diện tích" / "Tổng hợp các điểm" / cả hai.
+- **Kiểm trên trang thật** (v2.8.53, service worker mới đã hoạt động): hộp xuất MiniCAD có đủ 7 nền + 5 lớp phủ; xuất PDF thật với Google vệ tinh + 2 lớp phủ + quy hoạch + ranh xã (324 ô) không lỗi ô nào. Phát hiện ô **xem trước** của Studio MiniCAD vẽ khối theo (x = Bắc, y = Đông) vào khung (Đông, Bắc) → khối nằm ngoài khung (tọa độ ~142000 trong khung 600), ô xem trước trống và không có nền → người dùng thấy như "không tải được ảnh bản đồ".
+- **Đã làm**: sửa trục ô xem trước MiniCAD; `exportPreviewLayersSvg` vẽ ô ảnh nền / lớp phủ / quy hoạch đã chọn vào cả hai ô xem trước (thẻ `<image>`, không cần CORS) + huy hiệu "IN KÈM: …"; tùy chọn `#cadExportSummaryTables` (area | points | both, mặc định area) lưu theo cấu hình, `summaryTablesMode`, `exportPointRows` (mỗi mốc một dòng, đỉnh chung không lặp); PDF (bảng các điểm dưới bảng diện tích, tràn chỗ thì báo "còn N điểm"), ảnh & SVG (chia 2 cột khi > 16 điểm), DXF (bảng tọa độ ranh thửa nay theo tùy chọn, tiêu đề "BANG TONG HOP CAC DIEM"). Test `tests/export_preview_and_tables.test.js`; **580/580 PASS**.
+- **Lưu ý**: DXF trước đây luôn in bảng tọa độ; nay theo tùy chọn (mặc định chỉ bảng diện tích, chọn "Cả hai" để có như cũ).
+
+---
+
 ## Phiên hiện tại — 2026-11-23: WP-TITLE-BLOCK — THÔNG TIN KHUNG TÊN TRONG TỆP XUẤT (v2.8.54)
 - **Yêu cầu**: cho phép điều chỉnh "TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH" và các thông tin khác trong tệp xuất.
 - **Tìm thấy**: khi ô Đơn vị để trống, PDF MiniCAD tự in "TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH", SVG/ảnh/CSV in "TRUNG TÂM QUẢN LÝ ĐẤT ĐAI", hộp Xuất dữ liệu tự điền "Trung tâm Trắc địa Bản đồ"; báo cáo PDF / ảnh / DXF của Xuất dữ liệu bỏ qua đơn vị, chủ sử dụng, địa chỉ, số tờ/thửa, mã hồ sơ, người kiểm tra, ghi chú; MiniCAD không in chủ sử dụng, địa chỉ, mã bản vẽ; hai hộp lưu riêng.

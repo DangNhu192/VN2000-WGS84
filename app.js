@@ -639,6 +639,63 @@ function readExportOverlayChoice(boxId) {
     if (!box || !box.querySelectorAll) return [];
     return Array.from(box.querySelectorAll('input[type="checkbox"]')).filter(i => i.checked).map(i => i.value);
 }
+// Xem trước trong hộp xuất: vẽ các ô ảnh nền / lớp phủ / quy hoạch đã chọn bằng <image> (không cần CORS),
+// để người dùng thấy ngay lớp bản đồ nào sẽ được in. toSvg(e, n) → {x, y}; frame theo VN-2000 của vùng xem trước.
+function exportPreviewLayersSvg(meta, frame, toSvg, pxPerMeter) {
+    if (!meta || typeof appCadTool === 'undefined' || !appCadTool._exportBasemapToLatLng) return '';
+    const toLL = (e, n) => appCadTool._exportBasemapToLatLng(e, n);
+    const toVn = (lat, lng) => appCadTool._exportBasemapToVn2k(lat, lng);
+    const plans = [];
+    const tryPlan = fn => { try { const pl = fn(); if (pl && pl.tiles && pl.tiles.length) plans.push(pl); } catch (e) {} };
+    if (meta.basemap && meta.basemap !== 'none' && exportMapSource(meta.basemap)) tryPlan(() => planExportBasemap(meta.basemap, frame, pxPerMeter, toLL, 40));
+    (meta.overlays || []).forEach(id => { if (!EXPORT_VECTOR_OVERLAYS[id] && exportMapSource(id)) tryPlan(() => planExportBasemap(id, frame, pxPerMeter, toLL, 30)); });
+    if (meta.showGuland) tryPlan(() => planExportGuland(meta.gulandProvince, frame, pxPerMeter, toLL, 30, meta.gulandLand, meta.gulandOpacity));
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    let out = '';
+    plans.forEach(pl => {
+        const n = Math.pow(2, pl.z);
+        const lngOf = x => x / n * 360 - 180;
+        const latOf = y => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+        pl.tiles.forEach(t => {
+            const a = toVn(latOf(t.y), lngOf(t.x)), b = toVn(latOf(t.y + 1), lngOf(t.x + 1));
+            if (!a || !b) return;
+            const p = toSvg(a.e, a.n), q = toSvg(b.e, b.n);
+            const x = Math.min(p.x, q.x), y = Math.min(p.y, q.y), w = Math.abs(q.x - p.x), h = Math.abs(q.y - p.y);
+            if (!isFinite(x + y + w + h) || w <= 0 || h <= 0) return;
+            out += `<image href="${esc(t.url)}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w + 0.6).toFixed(1)}" height="${(h + 0.6).toFixed(1)}" preserveAspectRatio="none" opacity="${pl.alpha || 1}"/>`;
+        });
+    });
+    return out;
+}
+// Bảng tổng hợp các điểm của bản vẽ: mỗi mốc một dòng (đỉnh chung của nhiều thửa không lặp), kèm thửa chứa nó.
+// Đỉnh MiniCAD: x = Bắc (X), y = Đông (Y).
+function exportPointRows(shapes) {
+    const list = (shapes || []).filter(s => s && (s.vertices || []).length);
+    const rows = (typeof ParcelLinks !== 'undefined')
+        ? ParcelLinks.buildLinkedRows(list.map(s => ({ name: s.name, mode: s.mode, vertices: s.vertices })), []).rows
+        : [].concat(...list.map(s => s.vertices.map(v => Object.assign({}, v, { lkNames: s.name }))));
+    return rows.map((r, i) => ({
+        stt: i + 1, name: r.name || `Đ${i + 1}`,
+        x: Number(r.x) || 0, y: Number(r.y) || 0,
+        shapes: String(r.lkNames || '').split('|').map(t => t.trim()).filter(Boolean).join(', ')
+    }));
+}
+function summaryTablesMode(meta) {
+    const m = meta && meta.summaryTables;
+    return { area: m !== 'points', points: m === 'points' || m === 'both' };
+}
+
+// Tên các lớp bản đồ sẽ in (cho huy hiệu xem trước)
+function exportLayerNames(meta) {
+    if (!meta) return [];
+    const cat = exportLayerCatalog();
+    const nameOf = id => (cat.bases.find(b => b.id === (EXPORT_BASEMAP_ALIASES[id] || id)) || cat.overlays.find(o => o.id === id) || {}).name || id;
+    const names = [];
+    if (meta.basemap && meta.basemap !== 'none' && exportMapSource(meta.basemap)) names.push(nameOf(meta.basemap));
+    (meta.overlays || []).forEach(id => names.push(nameOf(id)));
+    return names;
+}
+
 function _exportTileUrl(src, z, x, y) {
     if (src.wms) {
         // Ô EPSG:3857 → BBOX (mét Mercator)
@@ -11658,6 +11715,7 @@ function doGet(e) {
         };
 
         let svgHtml = `<rect width="100%" height="100%" fill="#070b14"/>`;
+        svgHtml += exportPreviewLayersSvg(Object.assign({ gulandOpacity: 0.6 }, opts), { e0: bMinX, e1: bMinX + bW, n0: bMinY, n1: bMinY + bH }, toSvg, Math.max(560 / bW, 320 / bH));
 
         // 1. Khung bản vẽ nếu bật
         if (layers.frame) {
@@ -28916,6 +28974,7 @@ const appCadTool = {
             }
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
             fillExportBaseSelect('cadExportBasemap', savedMeta?.basemap);
+            if (savedMeta?.summaryTables) setVal('cadExportSummaryTables', savedMeta.summaryTables);
             appTitleRows.render('cadTitleRowsBox');
             renderExportOverlayList('cadExportOverlayList', savedMeta?.overlays, 'appCadTool.onExportSettingChange()');
 
@@ -29184,6 +29243,7 @@ const appCadTool = {
                 </pattern>
             </defs>
             <rect width="${W_svg}" height="${H_svg}" fill="#070b14"/>
+            ${exportPreviewLayersSvg(meta, { e0: midX - W_svg / 2 / k, e1: midX + W_svg / 2 / k, n0: midY - H_svg / 2 / k, n1: midY + H_svg / 2 / k }, (e, n) => ({ x: toSvgX(e), y: toSvgY(n) }), k)}
             <rect width="${W_svg}" height="${H_svg}" fill="url(#cadGridPat)"/>
             <!-- Khung giấy tỷ lệ -->
             <rect x="${pad}" y="${pad}" width="${drawW}" height="${drawH}" fill="none" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1.2" stroke-dasharray="4,4" rx="4"/>
@@ -29191,6 +29251,14 @@ const appCadTool = {
         `;
 
         // Huy hiệu trực quan các lớp bản đồ được tích chọn xuất
+        const layerNames = exportLayerNames(meta);
+        if (layerNames.length) {
+            svgContent += `
+            <g transform="translate(${pad + 6}, ${H_svg - pad - 24})">
+                <rect width="${Math.min(drawW - 12, 30 + layerNames.join(' + ').length * 4.6)}" height="18" rx="3" fill="rgba(15, 23, 42, 0.82)" stroke="#93cc9c" stroke-width="0.8"/>
+                <text x="7" y="12.5" fill="#93cc9c" font-size="8.5" font-weight="bold" font-family="sans-serif">🗺️ IN KÈM: ${escapeHtml(layerNames.join(' + '))}</text>
+            </g>`;
+        }
         if (meta.showGuland) {
             const planningObj = (typeof appPlanning !== 'undefined' && appPlanning) ? appPlanning : null;
             const gulandProvObj = (planningObj && planningObj.getProvince) ? planningObj.getProvince(meta.gulandProvince) : null;
@@ -29218,9 +29286,10 @@ const appCadTool = {
             </g>`;
         }
 
-        // Render từng khối/thửa
+        // Render từng khối/thửa — đỉnh MiniCAD: x = Bắc (X), y = Đông (Y); khung xem trước tính theo (Đông, Bắc)
+        // (trước đây vẽ (x, y) nên khối nằm ngoài khung, ô xem trước trống)
         selectedShapes.forEach((s, idx) => {
-            const pts = (s.vertices || []).map(v => `${toSvgX(v.x).toFixed(1)},${toSvgY(v.y).toFixed(1)}`).join(' ');
+            const pts = (s.vertices || []).map(v => `${toSvgX(v.y).toFixed(1)},${toSvgY(v.x).toFixed(1)}`).join(' ');
             const color = s.color || '#38bdf8';
             if (s.mode === 'polygon' && pts) {
                 svgContent += `<polygon points="${pts}" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/>`;
@@ -29230,16 +29299,20 @@ const appCadTool = {
 
             // Điểm đỉnh và nhãn
             (s.vertices || []).forEach((v, vIdx) => {
-                const sx = toSvgX(v.x);
-                const sy = toSvgY(v.y);
+                const sx = toSvgX(v.y);
+                const sy = toSvgY(v.x);
                 svgContent += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="3" fill="#ef4444" stroke="#ffffff" stroke-width="1"/>`;
                 svgContent += `<text x="${(sx + 5).toFixed(1)}" y="${(sy - 4).toFixed(1)}" fill="#f8fafc" font-size="8.5" font-weight="600" font-family="sans-serif">${v.name || (vIdx + 1)}</text>`;
             });
 
             // Tên thửa / diện tích ở tâm
-            if (s.stats?.centroid && s.mode === 'polygon') {
-                const cx = toSvgX(s.stats.centroid.x);
-                const cy = toSvgY(s.stats.centroid.y);
+            if (s.mode === 'polygon' && (s.vertices || []).length) {
+                const vs = s.vertices;
+                const avgN = vs.reduce((a, v) => a + (+v.x || 0), 0) / vs.length, avgE = vs.reduce((a, v) => a + (+v.y || 0), 0) / vs.length;
+                const c = s.stats && s.stats.centroid;
+                const useC = c && Math.abs(c.x - avgN) < 5000 && Math.abs(c.y - avgE) < 5000;
+                const cx = toSvgX(useC ? c.y : avgE);
+                const cy = toSvgY(useC ? c.x : avgN);
                 const areaStr = s.stats.area ? `${s.stats.area.toFixed(1)} m²` : '';
                 svgContent += `
                     <g transform="translate(${cx.toFixed(1)}, ${cy.toFixed(1)})">
@@ -29263,6 +29336,7 @@ const appCadTool = {
                 scaleVal: document.getElementById('cadExportScale')?.value || '500',
                 customScale: parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000,
                 paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
+                summaryTables: document.getElementById('cadExportSummaryTables')?.value || 'area',
                 basemap: document.getElementById('cadExportBasemap')?.value || 'none',
                 overlays: readExportOverlayChoice('cadExportOverlayList'),
                 showGuland: document.getElementById('cadExportCheckGuland')?.checked || false,
@@ -35536,7 +35610,8 @@ const appCadTool = {
             showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
             basemap, overlays, printPlanOverlay,
             showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds,
-            titleRows: appTitleRows.forMeta()
+            titleRows: appTitleRows.forMeta(),
+            summaryTables: ['area', 'points', 'both'].includes(document.getElementById('cadExportSummaryTables')?.value) ? document.getElementById('cadExportSummaryTables').value : 'area'
         };
     },
 
@@ -36373,7 +36448,9 @@ const appCadTool = {
         const colWPanel = L.W_panel;
         let curTableY = L.Yin1;
 
-        // --- 1. BẢNG TỔNG HỢP DIỆN TÍCH CÁC THỬA ĐẤT ---
+        // --- 1. BẢNG TỔNG HỢP DIỆN TÍCH CÁC THỬA ĐẤT (tùy chọn "Bảng in kèm bản vẽ") ---
+        const tblMode = summaryTablesMode(meta);
+        if (tblMode.area) {
         const sumRowH = 5.0 * S;
         const colWSum = [
             colWPanel * 0.10, // STT
@@ -36462,8 +36539,9 @@ const appCadTool = {
             svLineX += w;
             addLine("BANG_BIEU", svLineX, sumTopY, svLineX, sumBottomY);
         });
+        }
 
-        // --- 2. BẢNG KÊ TỌA ĐỘ RANH THỬA (TCVN 7285) ---
+        // --- 2. BẢNG TỔNG HỢP CÁC ĐIỂM / TỌA ĐỘ RANH THỬA (TCVN 7285) ---
         curTableY -= 4.0 * S;
         const colWCoord = [
             colWPanel * 0.10, // STT
@@ -36475,9 +36553,9 @@ const appCadTool = {
         ];
         const coordRowH = 4.2 * S;
 
-        if (curTableY > L.YtitleTop + 20 * S) {
+        if (tblMode.points && curTableY > L.YtitleTop + 20 * S) {
             addLine("BANG_BIEU", L.Xpanel0, curTableY, L.Xin1, curTableY);
-            addText("TEXT_CHINH", L.Xpanel0 + colWPanel / 2 - 24 * S, curTableY - 3.8 * S, 2.2 * S, "BANG KE TOA DO RANH THUA");
+            addText("TEXT_CHINH", L.Xpanel0 + colWPanel / 2 - 24 * S, curTableY - 3.8 * S, 2.2 * S, "BANG TONG HOP CAC DIEM");
             curTableY -= 5.0 * S;
             addLine("BANG_BIEU", L.Xpanel0, curTableY, L.Xin1, curTableY);
 
@@ -37115,9 +37193,11 @@ const appCadTool = {
         const pX = toCvX(L.Xpanel0);
         const pW = toCvDist(L.W_panel);
 
-        // --- Bảng tổng hợp diện tích (ĐÃ BỎ CỘT LOẠI & CHU VI) ---
+        // --- Bảng in kèm: tổng hợp diện tích và/hoặc tổng hợp các điểm (tùy chọn "Bảng in kèm bản vẽ") ---
         let curY = toCvY(L.Yin1);
         const sumRowH_px = Math.round(5.2 * pxPerMm);
+        const tblMode = summaryTablesMode(meta);
+        if (tblMode.area) {
 
         ctx.fillStyle = '#0284c7';
         ctx.fillRect(pX, curY, pW, Math.round(6.5 * pxPerMm));
@@ -37247,6 +37327,53 @@ const appCadTool = {
             tx += colW_px[cIdx];
         });
         curY += sumRowH_px + Math.round(5.0 * pxPerMm);
+        }
+
+        // --- Bảng tổng hợp các điểm (tọa độ mốc, đỉnh chung chỉ một dòng) ---
+        if (tblMode.points) {
+            const ptRows = exportPointRows(selectedShapes);
+            const bottomLimit = toCvY(L.Yin0) - Math.round(38.0 * pxPerMm) - Math.round(3 * pxPerMm);
+            const rowH = Math.round(4.4 * pxPerMm);
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(pX, curY, pW, Math.round(6.5 * pxPerMm));
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.round(2.5 * pxPerMm)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText("BẢNG TỔNG HỢP CÁC ĐIỂM", pX + pW / 2, curY + Math.round(4.4 * pxPerMm));
+            ctx.textAlign = 'left';
+            curY += Math.round(6.5 * pxPerMm);
+            const pc = [0.11, 0.25, 0.32, 0.32].map(f => Math.round(f * pW));
+            const cell = (vals, bold, fill) => {
+                ctx.fillStyle = fill;
+                ctx.fillRect(pX, curY, pW, rowH);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = Math.round(0.2 * pxPerMm);
+                ctx.strokeRect(pX, curY, pW, rowH);
+                ctx.fillStyle = '#0f172a';
+                ctx.font = `${bold ? 'bold ' : ''}${Math.round(1.8 * pxPerMm)}px Arial`;
+                let cx = pX;
+                vals.forEach((v, i) => {
+                    fillTextFit(ctx, String(v), cx + Math.round(1.2 * pxPerMm), curY + Math.round(3.0 * pxPerMm), pc[i] - Math.round(2 * pxPerMm));
+                    cx += pc[i];
+                    if (i < vals.length - 1) { ctx.beginPath(); ctx.moveTo(cx, curY); ctx.lineTo(cx, curY + rowH); ctx.stroke(); }
+                });
+                curY += rowH;
+            };
+            cell(['STT', 'Tên điểm', 'X (m)', 'Y (m)'], true, '#f1f5f9');
+            const room = Math.max(1, Math.floor((bottomLimit - curY) / rowH));
+            const shown = ptRows.length > room ? ptRows.slice(0, room - 1) : ptRows;
+            shown.forEach((r, i) => cell([r.stt, r.name, r.x.toFixed(3), r.y.toFixed(3)], false, i % 2 ? '#f8fafc' : '#ffffff'));
+            if (shown.length < ptRows.length) {
+                ctx.fillStyle = '#fef9c3';
+                ctx.fillRect(pX, curY, pW, rowH);
+                ctx.strokeRect(pX, curY, pW, rowH);
+                ctx.fillStyle = '#854d0e';
+                ctx.font = `italic ${Math.round(1.8 * pxPerMm)}px Arial`;
+                fillTextFit(ctx, `… còn ${ptRows.length - shown.length} điểm — xem đủ trong Bảng kê chi tiết (CSV / Excel)`, pX + Math.round(1.2 * pxPerMm), curY + Math.round(3.0 * pxPerMm), pW - Math.round(2.4 * pxPerMm));
+                curY += rowH;
+            }
+            curY += Math.round(3 * pxPerMm);
+        }
 
         // --- KHUNG TÊN BẢN VẼ TCVN Ở GÓC DƯỚI BÊN PHẢI ---
         const tBoxH_px = Math.round(38.0 * pxPerMm);
@@ -37418,11 +37545,18 @@ const appCadTool = {
             return { shape: s, displayName, lines, rowH };
         });
         const summaryTableH = 26 + svgRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+        // Bảng in kèm: diện tích và/hoặc các điểm
+        const tblMode = summaryTablesMode(meta);
+        const ptRows = tblMode.points ? exportPointRows(selectedShapes) : [];
+        const ptCols = ptRows.length > 16 ? 2 : 1;
+        const ptPerCol = Math.ceil(ptRows.length / ptCols);
+        const ptsTableH = tblMode.points ? 26 + ptPerCol * 24 : 0;
+        const tablesH = (tblMode.area ? summaryTableH : 0) + ptsTableH + (tblMode.area && tblMode.points ? 44 : 0);
 
         // Kích thước SVG khổ lớn độ nét cao 1200px đồng bộ chất lượng với PNG
         const svgW = 1200;
         const mapH = Math.max(550, Math.min(1300, Math.round(1000 * spanY / spanX)));
-        const svgH = mapH + 260 + summaryTableH;
+        const svgH = mapH + 260 + tablesH;
         const pad = 80;
         const sc = Math.min((svgW - pad*2) / spanX, (mapH - pad*2) / spanY);
 
@@ -37675,6 +37809,7 @@ const appCadTool = {
         const colX_Pct = 1010;
         const tableRight = svgW - 30;
 
+        if (tblMode.area) {
         svgContent += `  <!-- BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT -->
   <text x="35" y="${tblY - 8}" font-size="13" font-weight="bold" fill="#0D47A1">BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT (TCVN)</text>
   <rect class="layer-bang-ke" x="30" y="${tblY}" width="${svgW - 60}" height="${summaryTableH}" fill="#ffffff"/>
@@ -37732,6 +37867,31 @@ const appCadTool = {
   <text class="layer-bang-ke-text" x="${colX_AreaHa + 15}" y="${curY - 8}" font-weight="bold" fill="#1B5E20">${(measuredTotalArea/10000).toFixed(4)}</text>
   ${showPercent ? `<text class="layer-bang-ke-text" x="${colX_Pct + 15}" y="${curY - 8}" font-weight="bold" fill="#E65100">${totalPctStr}</text>` : ''}
 `;
+        }
+
+        // BẢNG TỔNG HỢP CÁC ĐIỂM (mỗi mốc một dòng; nhiều điểm thì chia 2 cột)
+        if (tblMode.points) {
+            const pY = tblY + (tblMode.area ? summaryTableH + 44 : 0);
+            const groupW = (svgW - 60) / ptCols;
+            svgContent += `  <!-- BẢNG TỔNG HỢP CÁC ĐIỂM -->
+  <text x="35" y="${pY - 8}" font-size="13" font-weight="bold" fill="#0D47A1">BẢNG TỔNG HỢP CÁC ĐIỂM (${ptRows.length} điểm)</text>
+  <rect class="layer-bang-ke" x="30" y="${pY}" width="${svgW - 60}" height="${ptsTableH}" fill="#ffffff"/>
+  <rect x="30" y="${pY}" width="${svgW - 60}" height="26" fill="#E3F2FD"/>\r\n`;
+            for (let g = 0; g < ptCols; g++) {
+                const gx = 30 + g * groupW;
+                const cx = [gx, gx + groupW * 0.12, gx + groupW * 0.40, gx + groupW * 0.70];
+                if (g > 0) svgContent += `  <line class="layer-bang-ke" x1="${gx}" y1="${pY}" x2="${gx}" y2="${pY + ptsTableH}" stroke-width="1.5"/>\r\n`;
+                cx.slice(1).forEach(x => { svgContent += `  <line class="layer-bang-ke" x1="${x.toFixed(1)}" y1="${pY}" x2="${x.toFixed(1)}" y2="${pY + ptsTableH}"/>\r\n`; });
+                ['STT', 'Tên điểm', 'X (m)', 'Y (m)'].forEach((h, i) => { svgContent += `  <text class="layer-bang-ke-text" x="${(cx[i] + 10).toFixed(1)}" y="${pY + 18}" font-weight="bold" fill="#0D47A1">${h}</text>\r\n`; });
+                ptRows.slice(g * ptPerCol, (g + 1) * ptPerCol).forEach((r, i) => {
+                    const ry = pY + 26 + i * 24;
+                    svgContent += `  <line class="layer-bang-ke" x1="${gx}" y1="${ry + 24}" x2="${gx + groupW}" y2="${ry + 24}"/>\r\n`;
+                    [r.stt, escapeHtml(r.name), r.x.toFixed(3), r.y.toFixed(3)].forEach((v, i2) => {
+                        svgContent += `  <text class="layer-bang-ke-text" x="${(cx[i2] + 10).toFixed(1)}" y="${ry + 17}"${i2 === 1 ? ' font-weight="bold"' : ''}>${v}</text>\r\n`;
+                    });
+                });
+            }
+        }
 
         // Khung tên dưới cùng chuẩn TCVN 7285
         const khy = svgH - 180;
@@ -37835,7 +37995,14 @@ const appCadTool = {
             const rowH = Math.max(26, 8 + lines.length * 15);
             return { shape: s, displayName, lines, rowH };
         });
-        const summaryTableH = 26 + pngRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+        const areaTableH = 26 + pngRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+        // Bảng in kèm: diện tích và/hoặc các điểm — summaryTableH là tổng chiều cao vùng bảng
+        const tblMode = summaryTablesMode(meta);
+        const ptRows = tblMode.points ? exportPointRows(selectedShapes) : [];
+        const ptCols = ptRows.length > 16 ? 2 : 1;
+        const ptPerCol = Math.ceil(ptRows.length / ptCols);
+        const ptsTableH = tblMode.points ? 26 + ptPerCol * 24 : 0;
+        const summaryTableH = (tblMode.area ? areaTableH : 0) + ptsTableH + (tblMode.area && tblMode.points ? 44 : 0);
 
         const W = 1200;
         const mapH = Math.max(Math.round(W * spanY / spanX), 450);
@@ -37978,12 +38145,13 @@ const appCadTool = {
 
         // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT TRÊN KHUNG TÊN - ĐÃ BỎ CỘT LOẠI & CHU VI)
         const tblY = H - 240 - summaryTableH;
+        if (tblMode.area) {
         ctx.fillStyle = '#0D47A1';
         ctx.font = 'bold 13px Arial';
         ctx.fillText('BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT (TCVN)', 35, tblY - 8);
 
         ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-        ctx.strokeRect(30, tblY, W - 60, summaryTableH);
+        ctx.strokeRect(30, tblY, W - 60, areaTableH);
 
         // Header (Bỏ cột Loại và Chu vi)
         ctx.fillStyle = '#E3F2FD';
@@ -38042,6 +38210,40 @@ const appCadTool = {
             ctx.fillStyle = '#E65100';
             const totalPctStr = (baseProjectArea > 0) ? ((measuredTotalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
             ctx.fillText(totalPctStr, 1010, rowY - 8);
+        }
+        }
+
+        // BẢNG TỔNG HỢP CÁC ĐIỂM (mỗi mốc một dòng; nhiều điểm thì chia 2 cột)
+        if (tblMode.points) {
+            const pY = tblY + (tblMode.area ? areaTableH + 44 : 0);
+            const groupW = (W - 60) / ptCols;
+            ctx.fillStyle = '#0D47A1';
+            ctx.font = 'bold 13px Arial';
+            ctx.fillText(`BẢNG TỔNG HỢP CÁC ĐIỂM (${ptRows.length} điểm)`, 35, pY - 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(30, pY, W - 60, ptsTableH);
+            ctx.fillStyle = '#E3F2FD';
+            ctx.fillRect(30, pY, W - 60, 26);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            ctx.strokeRect(30, pY, W - 60, ptsTableH);
+            for (let g = 0; g < ptCols; g++) {
+                const gx = 30 + g * groupW;
+                const cx = [gx, gx + groupW * 0.12, gx + groupW * 0.40, gx + groupW * 0.70];
+                ctx.lineWidth = g > 0 ? 1.5 : 1;
+                [g > 0 ? gx : null, ...cx.slice(1)].filter(x => x != null).forEach(x => { ctx.beginPath(); ctx.moveTo(x, pY); ctx.lineTo(x, pY + ptsTableH); ctx.stroke(); });
+                ctx.lineWidth = 1;
+                ctx.fillStyle = '#0D47A1'; ctx.font = 'bold 11.5px Arial';
+                ['STT', 'Tên điểm', 'X (m)', 'Y (m)'].forEach((h, i) => ctx.fillText(h, cx[i] + 10, pY + 18));
+                ptRows.slice(g * ptPerCol, (g + 1) * ptPerCol).forEach((r, i) => {
+                    const ry = pY + 26 + i * 24;
+                    ctx.beginPath(); ctx.moveTo(gx, ry + 24); ctx.lineTo(gx + groupW, ry + 24); ctx.stroke();
+                    ctx.fillStyle = '#333';
+                    [String(r.stt), r.name, r.x.toFixed(3), r.y.toFixed(3)].forEach((v, i2) => {
+                        ctx.font = (i2 === 1 ? 'bold ' : '') + '11.5px Arial';
+                        fillTextFit(ctx, v, cx[i2] + 10, ry + 17, (i2 < 3 ? cx[i2 + 1] : gx + groupW) - cx[i2] - 16);
+                    });
+                });
+            }
         }
 
         // Khung tên dưới cùng
@@ -46557,6 +46759,8 @@ if (typeof module !== 'undefined' && module.exports) {
         shareTitleBlock,
         titleBlockLines,
         appTitleRows,
+        exportPointRows,
+        summaryTablesMode,
         exportMapSource,
         exportLayerCatalog,
         exportFrameLatLngBox,

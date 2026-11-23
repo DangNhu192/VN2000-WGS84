@@ -6707,6 +6707,15 @@
               </select>
             </div>
           </div>
+          <!-- BẢNG IN KÈM BẢN VẼ: tổng hợp diện tích, tổng hợp các điểm, hoặc cả hai -->
+          <div style="margin-top: 8px;">
+            <label for="cadExportSummaryTables" style="font-size: 11px; color: #a8a29e; font-weight: 600; display: block; margin-bottom: 3px;">Bảng in kèm bản vẽ:</label>
+            <select id="cadExportSummaryTables" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange()">
+              <option value="area" selected>Bảng tổng hợp diện tích</option>
+              <option value="points">Bảng tổng hợp các điểm (tọa độ mốc)</option>
+              <option value="both">Cả hai bảng</option>
+            </select>
+          </div>
           <!-- NỀN BẢN ĐỒ & LỚP PHỦ QUY HOẠCH GULAND / FILE PDF -->
           <div style="background: rgba(28, 26, 24, 0.7); border: 1px solid rgba(147, 204, 156, 0.25); border-radius: 8px; padding: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
             <div style="font-size: 11.5px; font-weight: 800; color: #93cc9c; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
