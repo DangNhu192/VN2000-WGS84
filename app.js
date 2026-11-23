@@ -453,17 +453,11 @@ function exportLayerCatalog() {
     return { bases, overlays };
 }
 // ---- Thông tin khung tên dùng chung (Xuất dữ liệu ↔ Studio xuất MiniCAD) ----
-// Sửa ở hộp nào thì hộp kia cũng nhận; không còn chèn sẵn tên đơn vị mặc định vào tệp xuất.
+// Tên bản vẽ, người đo, ghi chú: sửa ở hộp nào thì hộp kia cũng nhận.
 const TITLE_BLOCK_FIELDS = {
     // khóa chung: [khóa ở Xuất dữ liệu, khóa ở MiniCAD]
     drawingName: ['drawingTitle', 'drawingName'],
-    organization: ['org', 'organization'],
-    owner: ['owner', 'owner'],
-    parcelNo: ['parcelNo', 'parcelNo'],
-    address: ['address', 'address'],
     surveyor: ['surveyor', 'surveyor'],
-    checker: ['checker', 'checker'],
-    drawingCode: ['drawingCode', 'drawingCode'],
     notes: ['notes', 'notes']
 };
 function shareTitleBlock(data, from) {
@@ -477,12 +471,126 @@ function shareTitleBlock(data, from) {
     });
     try { localStorage.setItem(key, JSON.stringify(cur)); } catch (e) {}
 }
-// Dòng phụ của khung tên: dự án + chủ sử dụng + địa chỉ; số tờ/thửa + mã bản vẽ (chỉ in mục có nhập)
+
+// ---- Các dòng thông tin khung tên do người dùng tự đặt (tên mục + nội dung, thêm / bớt / đổi tên) ----
+// Một danh sách dùng chung cho mọi tệp xuất. Dòng đánh dấu "Đầu khung" in đậm ở đầu khung tên (vd. tên đơn vị).
+const appTitleRows = {
+    KEY: 'vn2k_title_rows_v1',
+    DEFAULTS: [
+        { label: 'Đơn vị đo vẽ', head: true },
+        { label: 'Chủ sử dụng' },
+        { label: 'Địa chỉ' },
+        { label: 'Số tờ/thửa' },
+        { label: 'Mã hồ sơ' },
+        { label: 'Người kiểm tra' }
+    ],
+    clean(rows) {
+        return (Array.isArray(rows) ? rows : []).filter(r => r && typeof r === 'object').slice(0, 30).map(r => ({
+            label: String(r.label == null ? '' : r.label).slice(0, 80),
+            value: String(r.value == null ? '' : r.value).slice(0, 300),
+            head: !!r.head
+        }));
+    },
+    load() {
+        if (typeof localStorage === 'undefined') return this.clean(this.DEFAULTS);
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.KEY) || 'null');
+            if (Array.isArray(saved)) return this.clean(saved);
+        } catch (e) {}
+        // Lần đầu: lấy nội dung đã nhập ở các ô cố định cũ (nếu có)
+        let a = {}, b = {};
+        try { a = JSON.parse(localStorage.getItem('vn2k_export_title_block') || '{}') || {}; } catch (e) {}
+        try { b = JSON.parse(localStorage.getItem('vn2k_cad_meta_saved') || '{}') || {}; } catch (e) {}
+        const old = [b.organization || a.org, b.owner || a.owner, b.address || a.address, b.parcelNo || a.parcelNo, a.drawingCode || '', b.checker || a.checker];
+        return this.clean(this.DEFAULTS.map((d, i) => Object.assign({}, d, { value: old[i] || '' })));
+    },
+    save(rows) {
+        try { localStorage.setItem(this.KEY, JSON.stringify(this.clean(rows))); } catch (e) {}
+    },
+    // Dòng có nội dung — đưa vào meta cho các bộ xuất
+    forMeta() {
+        return this.load().filter(r => r.value.trim()).map(r => ({ label: r.label.trim(), value: r.value.trim(), head: r.head }));
+    },
+    render(boxId) {
+        const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+        if (!box) return;
+        const esc = (typeof escapeHtml === 'function') ? escapeHtml : (t => String(t));
+        const rows = this.load();
+        box.innerHTML = `<div class="tb-rows-head"><span>Thông tin khung tên</span><small>Đổi tên mục, sửa nội dung, thêm hoặc xóa dòng — dòng trống không in</small></div>` +
+            rows.map((r, i) => `<div class="tb-row" data-i="${i}">
+                <input type="text" class="app-input tb-label" value="${esc(r.label)}" placeholder="Tên mục" aria-label="Tên mục dòng ${i + 1}" oninput="appTitleRows.onInput('${boxId}')">
+                <input type="text" class="app-input tb-value" value="${esc(r.value)}" placeholder="Nội dung" aria-label="Nội dung dòng ${i + 1}" oninput="appTitleRows.onInput('${boxId}')">
+                <label class="tb-head" title="In đậm ở đầu khung tên"><input type="checkbox" ${r.head ? 'checked' : ''} onchange="appTitleRows.onInput('${boxId}')"><span>Đầu khung</span></label>
+                <button type="button" class="tb-del" title="Xóa dòng" aria-label="Xóa dòng ${i + 1}" onclick="appTitleRows.remove('${boxId}', ${i})">✕</button>
+            </div>`).join('') +
+            `<div class="tb-rows-actions"><button type="button" class="btn-sm" onclick="appTitleRows.add('${boxId}')">＋ Thêm dòng</button>
+             <button type="button" class="btn-sm" onclick="appTitleRows.reset('${boxId}')">↺ Mục mặc định</button></div>`;
+    },
+    read(boxId) {
+        const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+        if (!box) return this.load();
+        return Array.from(box.querySelectorAll('.tb-row')).map(row => ({
+            label: row.querySelector('.tb-label').value,
+            value: row.querySelector('.tb-value').value,
+            head: row.querySelector('.tb-head input').checked
+        }));
+    },
+    onInput(boxId) {
+        this.save(this.read(boxId));
+        if (boxId === 'cadTitleRowsBox' && typeof appCadTool !== 'undefined' && appCadTool.onExportSettingChange) appCadTool.onExportSettingChange();
+    },
+    add(boxId) {
+        const rows = this.read(boxId);
+        rows.push({ label: '', value: '', head: false });
+        this.save(rows);
+        this.render(boxId);
+        const inputs = document.querySelectorAll(`#${boxId} .tb-label`);
+        if (inputs.length) inputs[inputs.length - 1].focus();
+    },
+    remove(boxId, i) {
+        const rows = this.read(boxId);
+        rows.splice(i, 1);
+        this.save(rows);
+        this.render(boxId);
+        this.onInput(boxId);
+    },
+    reset(boxId) {
+        // Giữ nội dung đã nhập của các mục trùng tên, đưa danh sách mục về mặc định
+        const cur = this.read(boxId);
+        const byLabel = new Map(cur.map(r => [r.label.trim().toLowerCase(), r.value]));
+        this.save(this.DEFAULTS.map(d => Object.assign({}, d, { value: byLabel.get(d.label.toLowerCase()) || '' })));
+        this.render(boxId);
+        this.onInput(boxId);
+    }
+};
+if (typeof window !== 'undefined') window.appTitleRows = appTitleRows;
+
+// Các dòng khung tên để in. meta.titleRows (từ appTitleRows) — hoặc các trường cũ (organization, owner…) nếu có.
+// org: dòng "Đầu khung"; info: các dòng còn lại "Tên mục: nội dung"; infoA/infoB: chia đôi cho hai cột khung tên.
 function titleBlockLines(meta) {
     const m = meta || {};
-    const proj = [`DỰ ÁN: ${String(m.projectName || '').toUpperCase()}`, m.owner && `Chủ sử dụng: ${m.owner}`, m.address && `Địa chỉ: ${m.address}`].filter(Boolean).join('  ·  ');
-    const parcel = [`Số tờ/thửa: ${m.parcelNo || '—'}`, m.drawingCode && `Mã BV: ${m.drawingCode}`].filter(Boolean).join('  ·  ');
-    return { org: String(m.organization || m.org || '').toUpperCase(), proj, parcel, notes: m.notes || '' };
+    let rows = Array.isArray(m.titleRows) ? m.titleRows : null;
+    if (!rows) {
+        rows = [
+            { label: 'Đơn vị', value: m.organization || m.org, head: true },
+            { label: 'Chủ sử dụng', value: m.owner }, { label: 'Địa chỉ', value: m.address },
+            { label: 'Số tờ/thửa', value: m.parcelNo }, { label: 'Mã hồ sơ', value: m.drawingCode }, { label: 'Kiểm tra', value: m.checker }
+        ];
+    }
+    rows = rows.filter(r => r && String(r.value || '').trim());
+    const fmt = r => (r.label ? `${String(r.label).trim()}: ` : '') + String(r.value).trim();
+    const heads = rows.filter(r => r.head).map(r => String(r.value).trim());
+    const items = rows.filter(r => !r.head).map(fmt);
+    const half = Math.ceil(items.length / 2);
+    return {
+        org: heads.join('  ·  ').toUpperCase(),
+        proj: `DỰ ÁN: ${String(m.projectName || '').toUpperCase()}`,
+        items,
+        info: items.join('  ·  '),
+        infoA: items.slice(0, half).join('  ·  '),
+        infoB: items.slice(half).join('  ·  '),
+        notes: m.notes || ''
+    };
 }
 // Vẽ chữ co cỡ cho vừa bề rộng (canvas)
 function fillTextFit(ctx, text, x, y, maxW) {
@@ -11141,13 +11249,7 @@ function doGet(e) {
             if (savedMeta) {
                 if (savedMeta.drawingTitle) setVal('txtExportDrawingTitle', savedMeta.drawingTitle);
                 if (savedMeta.projectName && this.exportContext === 'survey') setVal('txtExportProjectName', savedMeta.projectName);
-                if (savedMeta.owner) setVal('txtExportOwner', savedMeta.owner);
-                if (savedMeta.parcelNo) setVal('txtExportParcelNo', savedMeta.parcelNo);
-                if (savedMeta.address) setVal('txtExportAddress', savedMeta.address);
-                if (typeof savedMeta.org === 'string') setVal('txtExportOrg', savedMeta.org);
                 if (savedMeta.surveyor) setVal('txtExportSurveyor', savedMeta.surveyor);
-                if (savedMeta.checker) setVal('txtExportChecker', savedMeta.checker);
-                if (savedMeta.drawingCode) setVal('txtExportDrawingCode', savedMeta.drawingCode);
                 if (savedMeta.notes) setVal('txtExportNotes', savedMeta.notes);
                 if (savedMeta.scaleVal) {
                     const selEl = document.getElementById('selExportMapScale');
@@ -11173,6 +11275,7 @@ function doGet(e) {
 
             // Nền và lớp phủ: đủ danh mục của "Lớp bản đồ"
             fillExportBaseSelect('selExportBasemap', savedMeta?.basemap);
+            appTitleRows.render('exportTitleRowsBox');
             renderExportOverlayList('selExportOverlayList', savedMeta?.overlays, 'appData.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
@@ -11217,13 +11320,7 @@ function doGet(e) {
             const data = {
                 drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
                 projectName: getVal('txtExportProjectName'),
-                owner: getVal('txtExportOwner'),
-                parcelNo: getVal('txtExportParcelNo'),
-                address: getVal('txtExportAddress'),
-                org: getVal('txtExportOrg'),
                 surveyor: getVal('txtExportSurveyor'),
-                checker: getVal('txtExportChecker'),
-                drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
                 notes: getVal('txtExportNotes'),
                 scaleVal: scaleValToSave,
                 paperSize: document.getElementById('selExportPaperSize')?.value || 'A4-L',
@@ -11262,13 +11359,7 @@ function doGet(e) {
         const curProj = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "VN2000_SoLieu_DoDac";
         setVal('txtExportDrawingTitle', 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
         setVal('txtExportProjectName', curProj);
-        setVal('txtExportOwner', '');
-        setVal('txtExportParcelNo', '');
-        setVal('txtExportAddress', AppState.provinceName || '');
-        setVal('txtExportOrg', '');
         setVal('txtExportSurveyor', AppState.surveyorName || 'Kỹ sư đo đạc');
-        setVal('txtExportChecker', '');
-        setVal('txtExportDrawingCode', 'SĐ-01/01');
         setVal('txtExportNotes', '');
         localStorage.removeItem('vn2k_export_title_block');
         if (AppState.currentProject) {
@@ -11352,15 +11443,10 @@ function doGet(e) {
         const meta = {
             drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
             projectName: getVal('txtExportProjectName') || (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn"),
-            owner: getVal('txtExportOwner'),
-            parcelNo: getVal('txtExportParcelNo'),
-            address: getVal('txtExportAddress'),
             surveyor: getVal('txtExportSurveyor') || "Kỹ sư đo đạc",
-            checker: getVal('txtExportChecker'),
             drawingDate: getVal('txtExportDate') || new Date().toISOString().split('T')[0],
-            org: getVal('txtExportOrg'),
-            drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
             notes: getVal('txtExportNotes'),
+            titleRows: appTitleRows.forMeta(),
             format: chosenFormat
         };
 
@@ -11752,12 +11838,11 @@ function doGet(e) {
         const tbM = opts.meta || {};
         const esc = v => escapeHtml(String(v == null ? '' : v));
         // Dòng thông tin thêm chỉ hiện khi người dùng có nhập
-        const extraRows = [
-            [tbM.owner && ['Chủ Sử Dụng', tbM.owner], tbM.parcelNo && ['Số Tờ / Thửa', tbM.parcelNo]],
-            [tbM.checker && ['Người Kiểm Tra', tbM.checker], tbM.drawingCode && ['Mã Hồ Sơ', tbM.drawingCode]],
-            [tbM.notes && ['Ghi Chú', tbM.notes], null]
-        ].map(r => r.filter(Boolean)).filter(r => r.length)
-            .map(r => `<div class="meta-row">${r.map(([k, v]) => `<span><strong>${k}:</strong> ${esc(v)}</span>`).join('')}</div>`).join('');
+        const tbl = titleBlockLines(tbM);
+        const pairs = (tbM.titleRows || []).filter(r => !r.head).map(r => [r.label, r.value]);
+        if (tbM.notes) pairs.push(['Ghi chú', tbM.notes]);
+        const extraRows = pairs.reduce((acc, p, i) => { if (i % 2 === 0) acc.push([p]); else acc[acc.length - 1].push(p); return acc; }, [])
+            .map(r => `<div class="meta-row">${r.map(([k, v]) => `<span>${k ? `<strong>${esc(k)}:</strong> ` : ''}${esc(v)}</span>`).join('')}</div>`).join('');
 
         // Cửa sổ in phải mở ngay khi bấm (trình duyệt chặn cửa sổ mở sau khi chờ tải ảnh bản đồ)
         const printWin = (loadedLayers && loadedLayers._win) || window.open('', '_blank');
@@ -11948,7 +12033,7 @@ function doGet(e) {
 
     <div class="header-grid">
         <div class="header-col">
-            <div style="font-weight: bold; text-transform: uppercase;">${tbM.org ? esc(tbM.org) : 'DỰ ÁN ĐO ĐẠC & QUẢN LÝ MỐC'}</div>
+            <div style="font-weight: bold; text-transform: uppercase;">${tbl.org ? esc(tbl.org) : 'DỰ ÁN ĐO ĐẠC & QUẢN LÝ MỐC'}</div>
             <div style="font-size: 11pt;">SỔ ĐO ĐỊA CHÍNH VN-2000</div>
             <div class="line-dec"></div>
         </div>
@@ -12025,7 +12110,7 @@ function doGet(e) {
             <div style="font-weight: bold;">PHÒNG KỸ THUẬT / ĐƠN VỊ DUYỆT</div>
             <div style="font-style: italic; font-size: 10pt;">(Ký tên và đóng dấu)</div>
             <div style="height: 60px;"></div>
-            <div style="font-weight: bold;">${tbM.checker ? esc(tbM.checker) : 'Chủ nhiệm dự án'}</div>
+            <div style="font-weight: bold;">Chủ nhiệm dự án</div>
         </div>
     </div>
 </body>
@@ -12109,7 +12194,8 @@ function doGet(e) {
 
         ctx.fillStyle = '#94a3b8';
         ctx.font = '16px sans-serif';
-        fillTextFit(ctx, [tbM.org && String(tbM.org).toUpperCase(), `Tỷ lệ 1:${scaleVal}`, `KTT: ${kttStr} (Múi 3°)`, `Người lập: ${surveyorStr}`, tbM.checker && `Kiểm tra: ${tbM.checker}`, `Ngày: ${dateStr}`].filter(Boolean).join(' | '), 60, 110, canvas.width - 120);
+        const tbl = titleBlockLines(tbM);
+        fillTextFit(ctx, [tbl.org, `Tỷ lệ 1:${scaleVal}`, `KTT: ${kttStr} (Múi 3°)`, `Người lập: ${surveyorStr}`, `Ngày: ${dateStr}`].filter(Boolean).join(' | '), 60, 110, canvas.width - 120);
 
         const padX = spanX * 0.2;
         const padY = spanY * 0.2;
@@ -12286,7 +12372,7 @@ function doGet(e) {
         // Footer ghi chú
         ctx.fillStyle = '#64748b';
         ctx.font = '13px sans-serif';
-        fillTextFit(ctx, [tbM.owner && `Chủ sử dụng: ${tbM.owner}`, tbM.address && `Địa chỉ: ${tbM.address}`, tbM.parcelNo && `Số tờ/thửa: ${tbM.parcelNo}`, tbM.drawingCode && `Mã hồ sơ: ${tbM.drawingCode}`, tbM.notes].filter(Boolean).join(' • ') || `Tỷ lệ 1:${scaleVal} • Ngày: ${dateStr}`, 70, canvas.height - 50, canvas.width - 140);
+        fillTextFit(ctx, [tbl.info, tbM.notes].filter(Boolean).join('  ·  ') || `Tỷ lệ 1:${scaleVal} • Ngày: ${dateStr}`, 70, canvas.height - 50, canvas.width - 140);
 
         canvas.toBlob(blob => {
             if (!blob) return showToast("⚠️ Không tạo được ảnh PNG!", true);
@@ -12971,13 +13057,15 @@ function doGet(e) {
             // Khung tên theo thông tin người dùng nhập (dòng trống thì bỏ); chữ không dấu cho AutoCAD
             const tbM = opts.meta || {};
             const ascii = t => (typeof appCadTool !== 'undefined' && appCadTool.toCadAscii) ? appCadTool.toCadAscii(t) : String(t || '');
+            const tbl = titleBlockLines(tbM);
             const tbLines = [
-                tbM.org && [ascii(tbM.org).toUpperCase(), 2.4],
+                tbl.org && [ascii(tbl.org), 2.4],
                 [ascii(tbM.drawingTitle || 'SO DO TOA DO MOC').toUpperCase(), 2.8],
-                [['DU AN: ' + ascii(projName).toUpperCase(), tbM.owner && 'CHU SU DUNG: ' + ascii(tbM.owner), tbM.address && 'DIA CHI: ' + ascii(tbM.address)].filter(Boolean).join(' - '), 2.0],
+                ['DU AN: ' + ascii(projName).toUpperCase(), 2.0],
                 [`HE VN-2000 - KTT: ${ascii(kttStr)} (MUI 3) | TY LE: 1:${scaleVal} | SO MOC: ${pts.length}`, 1.8],
-                [[tbM.parcelNo && 'SO TO/THUA: ' + ascii(tbM.parcelNo), tbM.drawingCode && 'MA HS: ' + ascii(tbM.drawingCode)].filter(Boolean).join(' | '), 1.8],
-                [[`NGAY LAP: ${ascii(tbM.drawingDate)}`, `NGUOI DO: ${ascii(tbM.surveyor).toUpperCase()}`, tbM.checker && `KIEM TRA: ${ascii(tbM.checker).toUpperCase()}`].filter(Boolean).join(' | '), 1.8]
+                tbl.infoA && [ascii(tbl.infoA), 1.8],
+                tbl.infoB && [ascii(tbl.infoB), 1.8],
+                [`NGAY LAP: ${ascii(tbM.drawingDate)} | NGUOI DO: ${ascii(tbM.surveyor).toUpperCase()}`, 1.8]
             ].filter(l => l && l[0]);
             let tbY = tbY0 + tbH - 5.0 * S;
             tbLines.forEach(([txt, hMm]) => {
@@ -28818,13 +28906,7 @@ const appCadTool = {
 
             setVal('cadExportDrawingName', savedMeta?.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
             setVal('cadExportProjectName', savedMeta?.projectName || curProj);
-            setVal('cadExportOrganization', savedMeta?.organization || '');
-            setVal('cadExportOwner', savedMeta?.owner || '');
-            setVal('cadExportParcelNo', savedMeta?.parcelNo || '');
-            setVal('cadExportAddress', savedMeta?.address || AppState.provinceName || '');
             setVal('cadExportSurveyor', savedMeta?.surveyor || '');
-            setVal('cadExportChecker', savedMeta?.checker || '');
-            setVal('cadExportDrawingCode', savedMeta?.drawingCode || 'SĐ-01/01');
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
             if (savedMeta?.customScale) setVal('cadExportCustomScaleInput', savedMeta.customScale);
@@ -28834,6 +28916,7 @@ const appCadTool = {
             }
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
             fillExportBaseSelect('cadExportBasemap', savedMeta?.basemap);
+            appTitleRows.render('cadTitleRowsBox');
             renderExportOverlayList('cadExportOverlayList', savedMeta?.overlays, 'appCadTool.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
@@ -29176,13 +29259,7 @@ const appCadTool = {
             const data = {
                 drawingName: getVal('cadExportDrawingName') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
                 projectName: getVal('cadExportProjectName'),
-                organization: getVal('cadExportOrganization'),
-                owner: getVal('cadExportOwner'),
-                parcelNo: getVal('cadExportParcelNo'),
-                address: getVal('cadExportAddress'),
                 surveyor: getVal('cadExportSurveyor'),
-                checker: getVal('cadExportChecker'),
-                drawingCode: getVal('cadExportDrawingCode') || 'SĐ-01/01',
                 scaleVal: document.getElementById('cadExportScale')?.value || '500',
                 customScale: parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000,
                 paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
@@ -29226,13 +29303,7 @@ const appCadTool = {
         };
         setVal('cadExportDrawingName', 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
         setVal('cadExportProjectName', curProj);
-        setVal('cadExportOrganization', '');
-        setVal('cadExportOwner', '');
-        setVal('cadExportParcelNo', '');
-        setVal('cadExportAddress', AppState.provinceName || '');
         setVal('cadExportSurveyor', '');
-        setVal('cadExportChecker', '');
-        setVal('cadExportDrawingCode', 'SĐ-01/01');
         if (document.getElementById('cadExportBasemap')) document.getElementById('cadExportBasemap').value = 'none';
         if (document.getElementById('cadExportCheckGuland')) document.getElementById('cadExportCheckGuland').checked = false;
         if (document.getElementById('cadExportGulandConfigWrap')) document.getElementById('cadExportGulandConfigWrap').style.display = 'none';
@@ -30240,13 +30311,8 @@ const appCadTool = {
 
             setVal('cadExportDrawingName', savedMeta?.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
             setVal('cadExportProjectName', savedMeta?.projectName || curProj);
-            setVal('cadExportOrganization', savedMeta?.organization || '');
-            setVal('cadExportOwner', savedMeta?.owner || '');
-            setVal('cadExportParcelNo', savedMeta?.parcelNo || '');
-            setVal('cadExportAddress', savedMeta?.address || AppState.provinceName || '');
+            appTitleRows.render('cadTitleRowsBox');
             setVal('cadExportSurveyor', savedMeta?.surveyor || '');
-            setVal('cadExportChecker', savedMeta?.checker || '');
-            setVal('cadExportDrawingCode', savedMeta?.drawingCode || 'SĐ-01/01');
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
@@ -34678,9 +34744,10 @@ const appCadTool = {
         let csv = "\uFEFF"; // UTF-8 BOM
         csv += "BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH\r\n";
         csv += "Tiêu đề bản vẽ;" + meta.drawingName + ";Tên dự án;" + meta.projectName + "\r\n";
-        csv += "Đơn vị đo vẽ;" + (meta.organization || '') + ";Người đo;" + (meta.surveyor || '') + ";Kiểm tra;" + (meta.checker || '') + "\r\n";
+        csv += "Người đo;" + (meta.surveyor || '') + "\r\n";
+        (meta.titleRows || []).forEach(r => { csv += (r.label || '') + ";" + String(r.value).replace(/[;\r\n]+/g, ' ') + "\r\n"; });
         csv += "Hệ tọa độ;VN-2000 (" + (AppState.provinceName || 'Tỉnh') + ");KTT;" + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°);Tỷ lệ;1:" + meta.scaleVal + "\r\n";
-        csv += "Ngày hoàn thành;" + meta.drawingDate + ";Số tờ/thửa;" + (meta.parcelNo || '01') + ";Tổng số khối;" + selectedShapes.length + "\r\n\r\n";
+        csv += "Ngày hoàn thành;" + meta.drawingDate + ";Tổng số khối;" + selectedShapes.length + "\r\n\r\n";
 
         // 1. PHẦN 1: BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ
         csv += "=== BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT ===\r\n";
@@ -34763,7 +34830,7 @@ const appCadTool = {
             // 1. Sheet 1: Bảng tổng hợp diện tích
             const summaryRows = [
                 ["BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT - " + (meta.drawingName || 'MẶT BẰNG CÔNG TRÌNH')],
-                ["Dự án: " + (meta.projectName || projName) + " | Đơn vị: " + (meta.organization || '') + " | Cán bộ đo: " + (meta.surveyor || '') + " | Hệ tọa độ: VN-2000 (" + (AppState.provinceName || '') + ") | KTT: " + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°) | Tỷ lệ: 1:" + meta.scaleVal + " | Ngày: " + meta.drawingDate],
+                ["Dự án: " + (meta.projectName || projName) + " | " + titleBlockLines(meta).items.concat(titleBlockLines(meta).org ? [titleBlockLines(meta).org] : []).join(" | ") + " | Cán bộ đo: " + (meta.surveyor || '') + " | Hệ tọa độ: VN-2000 (" + (AppState.provinceName || '') + ") | KTT: " + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°) | Tỷ lệ: 1:" + meta.scaleVal + " | Ngày: " + meta.drawingDate],
                 [],
                 ['STT', 'Tên Khối / Thửa', 'Loại Hình', 'Số Đỉnh', 'Diện Tích (m²)', 'Diện Tích (ha)', 'Chu Vi / Chiều Dài (m)', 'Tỉ Lệ (%)', 'Mã Màu', 'Ghi Chú']
             ];
@@ -35013,16 +35080,16 @@ const appCadTool = {
 '  <table class="meta-table">\r\n' +
 '    <tr>\r\n' +
 '      <td><b>Dự án:</b> ' + (meta.projectName || '') + '</td>\r\n' +
-'      <td><b>Đơn vị đo:</b> ' + (meta.organization || '') + '</td>\r\n' +
+'      <td><b>Đơn vị:</b> ' + escapeHtml(titleBlockLines(meta).org) + '</td>\r\n' +
 '      <td><b>Cán bộ đo:</b> ' + (meta.surveyor || '') + '</td>\r\n' +
 '    </tr>\r\n' +
 '    <tr>\r\n' +
 '      <td><b>Hệ tọa độ:</b> VN-2000 (' + (AppState.provinceName || 'Tỉnh') + ')</td>\r\n' +
 '      <td><b>KTT:</b> ' + AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + '°)</td>\r\n' +
-'      <td><b>Kiểm tra:</b> ' + (meta.checker || '') + '</td>\r\n' +
+'      <td>' + escapeHtml(titleBlockLines(meta).infoA) + '</td>\r\n' +
 '    </tr>\r\n' +
 '    <tr>\r\n' +
-'      <td><b>Số tờ/thửa:</b> ' + (meta.parcelNo || '01') + '</td>\r\n' +
+'      <td>' + escapeHtml(titleBlockLines(meta).infoB) + '</td>\r\n' +
 '      <td><b>Tỷ lệ bản vẽ:</b> 1:' + meta.scaleVal + '</td>\r\n' +
 '      <td><b>Ngày hoàn thành:</b> ' + meta.drawingDate + '</td>\r\n' +
 '    </tr>\r\n' +
@@ -35380,13 +35447,7 @@ const appCadTool = {
         const paper = document.getElementById('cadExportPaperSize')?.value || 'A3';
         const drawingName = document.getElementById('cadExportDrawingName')?.value?.trim() || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT';
         const projectName = document.getElementById('cadExportProjectName')?.value?.trim() || AppState.currentProject.replace(/\.[^/.]+$/, "");
-        const organization = document.getElementById('cadExportOrganization')?.value?.trim() || '';
-        const owner = document.getElementById('cadExportOwner')?.value?.trim() || '';
-        const parcelNo = document.getElementById('cadExportParcelNo')?.value?.trim() || '';
-        const address = document.getElementById('cadExportAddress')?.value?.trim() || AppState.provinceName || '';
         const surveyor = document.getElementById('cadExportSurveyor')?.value?.trim() || '';
-        const checker = document.getElementById('cadExportChecker')?.value?.trim() || '';
-        const drawingCode = document.getElementById('cadExportDrawingCode')?.value?.trim() || 'SĐ-01/01';
         const drawingDate = document.getElementById('cadExportDate')?.value?.trim() || new Date().toLocaleDateString('vi-VN');
 
         const showPercent = document.getElementById('cadShowPercentRatio') ? document.getElementById('cadShowPercentRatio').checked : (this.showPercentRatio !== false);
@@ -35444,7 +35505,7 @@ const appCadTool = {
         // Lưu cấu hình vào localStorage để người dùng không phải nhập lại
         try {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
-                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode,
+                drawingName, projectName, surveyor,
                 scaleVal: rawScaleVal, customScale: customScaleVal, paper, showPercent, showBlockInfo, customTotalArea,
                 showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap, overlays,
                 showGuland, gulandProvince, gulandOpacity, gulandLand, printPlanOverlay
@@ -35470,11 +35531,12 @@ const appCadTool = {
 
         return {
             scaleVal, rawScaleVal, customScale: customScaleVal, paper, paperW, paperH, paperLabel,
-            drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
+            drawingName, projectName, surveyor, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
             showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
             basemap, overlays, printPlanOverlay,
-            showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds
+            showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds,
+            titleRows: appTitleRows.forMeta()
         };
     },
 
@@ -36491,10 +36553,10 @@ const appCadTool = {
 
         addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 3.2 * S, 1.6 * S, `He VN2k: ${this.toCadAscii(AppState.provinceName || 'Tinh')} KTT:${AppState.kttDeg}`);
         addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 6.8 * S, 1.6 * S, `Nguoi do: ${this.toCadAscii(meta.surveyor || '').toUpperCase()}`);
-        addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 10.2 * S, 1.6 * S, `Kiem tra: ${this.toCadAscii(meta.checker || '').toUpperCase()}`);
+        if (tbl.infoA) addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 10.2 * S, fitH(tbl.infoA, 1.6 * S, midColX - tX0 - 3.6 * S), this.toCadAscii(tbl.infoA));
 
         addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 3.2 * S, 1.6 * S, `Ty le: 1:${L.scaleVal}`);
-        addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 6.8 * S, fitH(tbl.parcel, 1.6 * S, tX1 - midColX - 3.6 * S), this.toCadAscii(tbl.parcel));
+        if (tbl.infoB) addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 6.8 * S, fitH(tbl.infoB, 1.6 * S, tX1 - midColX - 3.6 * S), this.toCadAscii(tbl.infoB));
         addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 10.2 * S, 1.6 * S, `Ngay lap: ${this.toCadAscii(meta.drawingDate)}`);
 
         dwg += "0\r\nENDSEC\r\n";
@@ -37230,10 +37292,10 @@ const appCadTool = {
         const startY4 = tBoxY_px + h1 + h2 + h3;
         ctx.fillText(`Hệ VN-2000 (${AppState.provinceName || 'Tỉnh'}) - KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(3.0 * pxPerMm));
         ctx.fillText(`Người đo: ${(meta.surveyor || '').toUpperCase()}`, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(6.2 * pxPerMm));
-        ctx.fillText(`Kiểm tra: ${(meta.checker || '').toUpperCase()}`, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(9.4 * pxPerMm));
+        fillTextFit(ctx, tbl.infoA, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(9.4 * pxPerMm), midW - Math.round(4 * pxPerMm));
 
         ctx.fillText(`Tỷ lệ: 1:${L.scaleVal}`, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(3.0 * pxPerMm));
-        fillTextFit(ctx, tbl.parcel, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(6.2 * pxPerMm), pW - midW - Math.round(4 * pxPerMm));
+        fillTextFit(ctx, tbl.infoB, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(6.2 * pxPerMm), pW - midW - Math.round(4 * pxPerMm));
         ctx.fillText(`Ngày lập: ${meta.drawingDate}`, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(9.4 * pxPerMm));
 
         // 9. Tạo tệp PDF bằng jsPDF
@@ -37686,10 +37748,10 @@ const appCadTool = {
   <text class="layer-khung-ten-text" x="45" y="${khy+90}" font-size="10.5">Hệ tọa độ: VN-2000 (${AppState.provinceName || 'Tỉnh'})</text>
   <text class="layer-khung-ten-text" x="45" y="${khy+106}" font-size="10.5">KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)</text>
   <text class="layer-khung-ten-text" x="45" y="${khy+122}" font-size="10.5">Người đo: ${(meta.surveyor || '').toUpperCase()}</text>
-  <text class="layer-khung-ten-text" x="45" y="${khy+138}" font-size="10.5">Kiểm tra: ${(meta.checker || '').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+138}" font-size="10.5"${svgFit(titleBlockLines(meta).infoA, 10.5, (svgW-60)*0.55 - 30)}>${escapeHtml(titleBlockLines(meta).infoA)}</text>
 
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+90}" font-size="10.5">Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}</text>
-  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+106}" font-size="10.5"${svgFit(titleBlockLines(meta).parcel, 10.5, (svgW-60)*0.45 - 30)}>${escapeHtml(titleBlockLines(meta).parcel)}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+106}" font-size="10.5"${svgFit(titleBlockLines(meta).infoB, 10.5, (svgW-60)*0.45 - 30)}>${escapeHtml(titleBlockLines(meta).infoB)}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+122}" font-size="10.5">Ngày: ${meta.drawingDate}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+138}" font-size="10.5">Số đối tượng: ${selectedShapes.length}</text>
 </svg>`;
@@ -38007,10 +38069,10 @@ const appCadTool = {
         ctx.fillText(`Hệ tọa độ: VN-2000 (${AppState.provinceName || 'Tỉnh'})`, 45, lY);
         ctx.fillText(`KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)`, 45, lY + 24);
         ctx.fillText(`Người đo: ${(meta.surveyor || '').toUpperCase()}`, 45, lY + 48);
-        ctx.fillText(`Kiểm tra: ${(meta.checker || '').toUpperCase()}`, 45, lY + 72);
+        fillTextFit(ctx, tbl.infoA, 45, lY + 72, midX - 60);
 
         ctx.fillText(`Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}`, midX + 20, lY);
-        fillTextFit(ctx, tbl.parcel, midX + 20, lY + 24, W - 30 - midX - 30);
+        fillTextFit(ctx, tbl.infoB, midX + 20, lY + 24, W - 30 - midX - 30);
         ctx.fillText(`Ngày: ${meta.drawingDate}`, midX + 20, lY + 48);
         ctx.fillText(`Số đối tượng: ${selectedShapes.length}`, midX + 20, lY + 72);
 
@@ -46494,6 +46556,7 @@ if (typeof module !== 'undefined' && module.exports) {
         drawExportVector,
         shareTitleBlock,
         titleBlockLines,
+        appTitleRows,
         exportMapSource,
         exportLayerCatalog,
         exportFrameLatLngBox,

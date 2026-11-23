@@ -40,7 +40,7 @@ describe('=== TỐI ƯU HÓA QUY TRÌNH XUẤT DỮ LIỆU & FIX LỖI CAD "MISS
         assert.ok(htmlContent.includes('id="txtExportProjectName"'), 'Thiếu input #txtExportProjectName');
         assert.ok(htmlContent.includes('id="txtExportSurveyor"'), 'Thiếu input #txtExportSurveyor');
         assert.ok(htmlContent.includes('id="txtExportDate"'), 'Thiếu input #txtExportDate');
-        assert.ok(htmlContent.includes('id="txtExportOrg"'), 'Thiếu input #txtExportOrg');
+        assert.ok(htmlContent.includes('id="exportTitleRowsBox"'), 'Thiếu khung nhập các dòng thông tin khung tên');
 
         // Chọn định dạng xuất file
         assert.ok(htmlContent.includes('value="dwg"'), 'Thiếu tùy chọn định dạng DWG');

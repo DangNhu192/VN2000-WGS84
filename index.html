@@ -6808,36 +6808,13 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Đơn vị khảo sát / đo đạc:</label>
-              <input type="text" id="cadExportOrganization" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC ĐỊA CHÍNH" aria-label="Ví dụ: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC ĐỊA CHÍNH">
-            </div>
-            <div>
-              <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Chủ sở hữu / người sử dụng đất:</label>
-              <input type="text" id="cadExportOwner" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Ông/Bà Nguyễn Văn A" aria-label="Ví dụ: Ông/Bà Nguyễn Văn A">
-            </div>
-          </div>
+          <!-- Thông tin khung tên tùy chỉnh: đổi tên mục, sửa nội dung, thêm / bớt dòng (dùng chung với hộp Xuất dữ liệu) -->
+          <div id="cadTitleRowsBox" class="tb-rows" aria-label="Các dòng thông tin khung tên"></div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Số hiệu / Ký hiệu bản vẽ:</label>
-              <input type="text" id="cadExportParcelNo" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: Thửa 12, Tờ 34 / BV-01" aria-label="Ví dụ: Thửa 12, Tờ 34 / BV-01">
-            </div>
-            <div>
-              <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Địa chỉ thửa đất:</label>
-              <input type="text" id="cadExportAddress" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: TP. Cao Lãnh, Đồng Tháp" aria-label="Ví dụ: TP. Cao Lãnh, Đồng Tháp">
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Người đo vẽ:</label>
               <input type="text" id="cadExportSurveyor" oninput="appCadTool.saveTitleBlockInfo(false); appCadTool.onExportSettingChange();" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Trần Văn B" aria-label="Ví dụ: KS. Trần Văn B">
-            </div>
-            <div>
-              <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Người kiểm tra:</label>
-              <input type="text" id="cadExportChecker" oninput="appCadTool.saveTitleBlockInfo(false)" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="VD: KS. Lê Văn C" aria-label="Ví dụ: KS. Lê Văn C">
             </div>
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Ngày lập:</label>
@@ -6845,11 +6822,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 6px;">
-            <div>
-              <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Mã bản vẽ:</label>
-              <input type="text" id="cadExportDrawingCode" class="app-input" style="height: 30px; font-size: 11.5px;" value="SĐ-01/01" oninput="appCadTool.saveTitleBlockInfo(false)" aria-label="Cad export drawing code">
-            </div>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 6px;">
             <div>
               <label class="form-label" style="font-size: 11px; margin-bottom: 2px;">Ghi chú kỹ thuật:</label>
               <input type="text" id="cadExportNotes" class="app-input" style="height: 30px; font-size: 11.5px;" placeholder="Ghi chú kỹ thuật mặt bằng..." oninput="appCadTool.saveTitleBlockInfo(false)" aria-label="Ghi chú kỹ thuật mặt bằng...">
@@ -8895,39 +8868,14 @@
             </div>
           </div>
 
-          <!-- Nhóm 2: Chủ sở hữu & Đơn vị khảo sát -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div>
-              <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Chủ sở hữu / Người sử dụng đất:</label>
-              <input type="text" id="txtExportOwner" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Ông/Bà Nguyễn Văn A" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Ông/Bà Nguyễn Văn A">
-            </div>
-            <div>
-              <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Đơn vị khảo sát / Đo đạc:</label>
-              <input type="text" id="txtExportOrg" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC" oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();" aria-label="Ví dụ: TRUNG TÂM KHẢO SÁT &amp; ĐO ĐẠC">
-            </div>
-          </div>
+          <!-- Thông tin khung tên tùy chỉnh: đổi tên mục, sửa nội dung, thêm / bớt dòng (dùng chung với Studio MiniCAD) -->
+          <div id="exportTitleRowsBox" class="tb-rows" aria-label="Các dòng thông tin khung tên"></div>
 
-          <!-- Nhóm 3: Số hiệu thửa đất & Địa chỉ -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div>
-              <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Số hiệu thửa / Số tờ bản đồ:</label>
-              <input type="text" id="txtExportParcelNo" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Thửa 12, Tờ 34 / BV-01" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Thửa 12, Tờ 34 / BV-01">
-            </div>
-            <div>
-              <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Địa chỉ thửa đất / Vị trí:</label>
-              <input type="text" id="txtExportAddress" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Xã/Phường, Huyện/Quận, Tỉnh/TP" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Xã/Phường, Huyện/Quận, Tỉnh/TP">
-            </div>
-          </div>
-
-          <!-- Nhóm 4: Người đo vẽ, Người kiểm tra & Ngày lập -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <!-- Nhóm 4: Người đo vẽ & Ngày lập -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div>
               <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Kỹ sư / Người đo vẽ:</label>
               <input type="text" id="txtExportSurveyor" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên kỹ sư..." oninput="appData.saveTitleBlockInfo(false); appData.onExportSettingChange();" aria-label="Tên kỹ sư...">
-            </div>
-            <div>
-              <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Người kiểm tra / Phê duyệt:</label>
-              <input type="text" id="txtExportChecker" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="Tên người kiểm tra..." oninput="appData.saveTitleBlockInfo(false)" aria-label="Tên người kiểm tra...">
             </div>
             <div>
               <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Ngày lập hồ sơ:</label>
@@ -8935,12 +8883,8 @@
             </div>
           </div>
 
-          <!-- Nhóm 5: Ký hiệu bản vẽ & Ghi chú -->
-          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px;">
-            <div>
-              <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Ký hiệu bản vẽ / Mã hồ sơ:</label>
-              <input type="text" id="txtExportDrawingCode" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: SĐ-01/01" value="SĐ-01/01" oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: SĐ-01/01">
-            </div>
+          <!-- Nhóm 5: Ghi chú -->
+          <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
             <div>
               <label style="font-size: 11px; color: #a8a29e; display: block; margin-bottom: 2px;">Ghi chú kỹ thuật bản vẽ:</label>
               <input type="text" id="txtExportNotes" class="app-input" style="height: 32px; font-size: 11.5px; padding: 4px 8px; width: 100%; border-radius: 5px;" placeholder="VD: Đo vẽ bằng máy toàn đạc điện tử / GPS RTK..." oninput="appData.saveTitleBlockInfo(false)" aria-label="Ví dụ: Đo vẽ bằng máy toàn đạc điện tử / GPS RTK...">

@@ -82,7 +82,8 @@ test('=== 2. KIỂM THỬ GIAO DIỆN CỬA SỔ PREVIEW XUẤT DỮ LIỆU TRON
     assert.ok(html.includes('id="txtExportProjectName"'), 'Phải có trường Tên công trình / Dự án');
     assert.ok(html.includes('id="txtExportSurveyor"'), 'Phải có trường Kỹ sư lập');
     assert.ok(html.includes('id="txtExportDate"'), 'Phải có trường Ngày đo');
-    assert.ok(html.includes('id="txtExportOrg"'), 'Phải có trường Đơn vị khảo sát');
+    // v2.8.54: đơn vị, chủ sử dụng… là các dòng khung tên tùy chỉnh
+    assert.ok(html.includes('id="exportTitleRowsBox"'), 'Phải có khung nhập các dòng thông tin khung tên');
 
     // Kiểm tra các nút định dạng xuất
     assert.ok(html.includes('value="dwg"'), 'Phải hỗ trợ xuất DWG');
