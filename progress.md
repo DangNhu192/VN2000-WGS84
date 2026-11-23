@@ -2040,3 +2040,4 @@
   4. Kiểm thử: `tests/cad_glyph_labels.test.js`; **561/561 PASS**.
   5. v2.8.49: tệp xuất DXF/PDF/SVG/PNG đặt chữ theo cùng cài đặt vị trí + cỡ chữ (`exportLabelAnchor`); **562/562 PASS**.
 - **2026-11-23 (Xuất bản đồ với đủ các lớp — v2.8.50)**: hộp xuất (Xuất dữ liệu + Studio MiniCAD) chọn được mọi nền của "Lớp bản đồ" và lớp phủ (Esri giao thông, Google đường/nhãn, Google giao thông, ranh 34 tỉnh, xã Đồng Tháp, nguồn tự thêm XYZ/WMS); PDF/PNG của Xuất dữ liệu nay vẽ nền, lớp phủ, quy hoạch, ảnh PDF; sửa "Tỷ lệ: 1:null". **568/568 PASS**.
+- **2026-11-23 (Mã liên kết thửa ↔ đỉnh — v2.8.51)**: xuất CSV/Excel/TXT (Xuất dữ liệu + TXT MiniCAD) thêm cột "Mã liên kết" (T1.3, mốc chung T1.3+T2.1) và "Thửa / khối"; nạp lại vào Sổ đo hoặc MiniCAD tự dựng thửa đúng thứ tự, đỉnh chung là một mốc (`src/core/parcel_links.js`). **576/576 PASS**.

@@ -83,7 +83,8 @@ function extractMethod(name) {
 }
 
 // Kiểm tra mã nguồn logic của reconstructShapesFromPoints
-const reconCode = extractMethod('reconstructShapesFromPoints');
+// v2.8.51: phần dựng khối tách sang shapesFromTaggedPoints (dùng chung khi nạp tệp có mã liên kết)
+const reconCode = extractMethod('reconstructShapesFromPoints') + extractMethod('shapesFromTaggedPoints');
 assert(reconCode.includes('unassignedPts'), 'reconstructShapesFromPoints có xử lý các mốc unassignedPts (mốc chưa gắn blockName/shapeName)');
 assert(reconCode.includes("sMode = 'polygon'"), 'unassignedPts >= 3 tự động chuyển thành khối đa giác ranh thửa (polygon)');
 assert(reconCode.includes("sMode = 'polyline'"), 'unassignedPts == 2 tự động chuyển thành tuyến (polyline)');

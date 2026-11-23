@@ -1,5 +1,19 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-23: WP-PARCEL-LINKS — MÃ LIÊN KẾT THỬA ↔ ĐỈNH KHI XUẤT / NHẬP ĐIỂM (v2.8.51)
+- **Yêu cầu**: xuất điểm ra tệp mất quan hệ thửa nào – đỉnh nào, đỉnh chung; nhập lại phải tự hiểu thứ tự liên kết.
+- **Quy ước** (`src/core/parcel_links.js`, `ParcelLinks`): cột "Mã liên kết" `T1.3` = đỉnh 3 của thửa 1 (T thửa kín, D tuyến, P lớp điểm); mốc chung ghi MỘT dòng `T1.3+T2.1`; cột "Thửa / khối" = tên các khối theo thứ tự trong mã, nối " | "; mốc lẻ để trống. Mốc trùng tọa độ (đến mm) là một mốc.
+- **Đã làm**:
+  1. Xuất: CSV / Excel / TXT của "Xuất dữ liệu" (`appData._linkedExportRows`, chỉ thêm cột khi Sổ đo có thửa) + TXT toàn đạc MiniCAD; Excel kèm trang `HuongDan_MaLienKet`.
+  2. Nhập vào Sổ đo: `geodesy.mapHeaderColumns` nhận cột `lk`/`shape`; `ImportPreview` có 2 ô chọn cột mới, tự nhận cột mã theo nội dung, tóm tắt "Dựng lại N thửa…"; `saveImportedPoints` → `ParcelLinks.expandToTaggedPoints` → MiniCAD dựng lại (nạp thêm vào dự án đã có bản vẽ thì thêm khối mới). Tệp có mã bỏ qua hộp hỏi "khối MiniCAD" cũ.
+  3. Nạp thẳng vào MiniCAD: `_shapesFromLinkedRows` (Chiến lược 0 của `_parseWorkbookToShapes` / `_parseHtmlOrTextToShapes`); CSV/TXT đọc UTF-8 trước SheetJS.
+  4. `reconstructShapesFromPoints` tách phần dựng sang `shapesFromTaggedPoints`: nhóm theo shapeId+tên, sắp theo shapeOrder.
+  5. `ImportPreview.textToRows`: tab/chấm phẩy chia đều cột thì dùng luôn (trước đây ô "Đỉnh ranh Thửa 12" làm chọn nhầm khoảng trắng).
+  6. Test: `tests/parcel_links.test.js` (8); cập nhật 3 test ghim mã cũ (kể cả kiểm phiên bản sw ≥ 2.8.50). **576/576 PASS**. Kiểm trong trình duyệt: 2 thửa chung cạnh + tuyến + mốc lẻ, xuất CSV/TXT/XLSX/TXT MiniCAD → nạp lại (Sổ đo & MiniCAD, mới & nạp thêm) đều dựng đúng.
+- **Chưa làm**: bảng kê MiniCAD (CSV/Excel chi tiết đỉnh) chưa thêm cột mã (vẫn nạp lại được theo cột Tên khối); KML/GeoJSON/DXF vốn đã mang hình học.
+
+---
+
 ## Phiên hiện tại — 2026-11-23: WP-EXPORT-ALL-LAYERS — XUẤT BẢN ĐỒ VỚI ĐỦ CÁC LỚP (v2.8.50)
 - **Yêu cầu**: chức năng xuất bản đồ ra tệp chỉ cho chọn vài lớp bản đồ (3 nền), chưa chọn được tất cả.
 - **Tìm thấy**: (1) hộp xuất chỉ có OSM, Esri vệ tinh, Sentinel-2, trong khi "Lớp bản đồ" có 6 nền + lớp phủ Esri giao thông, Google đường/nhãn, Google giao thông, ranh 34 tỉnh, xã Đồng Tháp, nguồn tự thêm XYZ/WMS; (2) PDF/PNG của hộp "Xuất dữ liệu" bỏ qua hoàn toàn nền, quy hoạch, ảnh PDF đã chọn; (3) ảnh/SVG MiniCAD ghi "Tỷ lệ: 1:null" khi tỉ lệ tự động.

@@ -11654,10 +11654,13 @@ function doGet(e) {
         
         if (typeof XLSX !== 'undefined') {
             const wb = XLSX.utils.book_new();
+            const { rows: list, linked } = this._linkedExportRows(pts);
             const headers = ["STT", "Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
+            if (linked) headers.push(ParcelLinks.LK_HEADER, ParcelLinks.SHAPE_HEADER);
             const rows = [headers];
 
-            pts.forEach((p, idx) => {
+            list.forEach((p, idx) => {
+                const linkCells = linked ? [p.lk || '', p.lkNames || ''] : [];
                 rows.push([
                     idx + 1,
                     p.time || '',
@@ -11669,13 +11672,29 @@ function doGet(e) {
                     parseFloat(parseFloat(p.lng || 0).toFixed(7)),
                     p.mui || AppState.muiVal || 3,
                     p.ktt || (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'"),
-                    p.note || ''
+                    p.note || '',
+                    ...linkCells
                 ]);
             });
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
-            ws['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 22 }];
+            ws['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 28 }];
             XLSX.utils.book_append_sheet(wb, ws, "DanhSach_Moc");
+            if (linked) {
+                const guide = XLSX.utils.aoa_to_sheet([
+                    ['CÁCH ĐỌC CỘT "MÃ LIÊN KẾT"'],
+                    ['T1.3', 'Đỉnh thứ 3 của thửa (vùng khép kín) số 1'],
+                    ['D2.1', 'Điểm đầu của đường / tuyến số 2'],
+                    ['P1.4', 'Điểm thứ 4 của lớp điểm rời số 1'],
+                    ['T1.3+T2.1', 'Mốc chung: đỉnh 3 của thửa 1 và đỉnh 1 của thửa 2 (chỉ ghi một dòng)'],
+                    ['(trống)', 'Mốc không thuộc thửa nào'],
+                    [],
+                    ['Cột "Thửa / khối" ghi tên các thửa theo thứ tự trong mã, nối bằng " | ".'],
+                    ['Nạp lại tệp này vào ứng dụng: các thửa được dựng lại đúng thứ tự nối đỉnh. Có thể sửa / thêm dòng theo cùng quy ước.']
+                ]);
+                guide['!cols'] = [{ wch: 14 }, { wch: 70 }];
+                XLSX.utils.book_append_sheet(wb, guide, "HuongDan_MaLienKet");
+            }
 
             // 4. Bổ sung Sheet Chú Thích & Hình Khối (nếu có)
             if (this.annotations && this.annotations.length > 0) {
@@ -11769,13 +11788,24 @@ function doGet(e) {
 
     // CSV chuẩn của ứng dụng: 10 cột, cùng thứ tự với Excel (đủ Cao độ H để nạp lại không mất số liệu),
     // UTF-8 BOM để Excel đọc đúng tiếng Việt, X/Y/H 3 số lẻ (mm), Lat/Lng 8 số lẻ (~1 mm).
+    // Điểm thuộc thửa/khối MiniCAD → mỗi mốc một dòng kèm "Mã liên kết" (T1.3+T2.1) và "Thửa / khối",
+    // để nhập lại tệp thì tự dựng lại thửa đúng thứ tự đỉnh, đỉnh chung vẫn là một mốc (src/core/parcel_links.js).
+    _linkedExportRows(pts) {
+        if (typeof ParcelLinks === 'undefined' || !ParcelLinks.hasShapeTags(pts)) return { rows: pts || [], linked: false };
+        const { shapes, loose } = ParcelLinks.shapesFromTaggedPoints(pts);
+        return { rows: ParcelLinks.buildLinkedRows(shapes, loose).rows, linked: true };
+    },
+
     _buildCsvText(pts) {
+        const { rows: list, linked } = this._linkedExportRows(pts);
         const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
+        if (linked) headers.push(ParcelLinks.LK_HEADER, ParcelLinks.SHAPE_HEADER);
         const fix = (v, d) => (typeof v === 'number' && Number.isFinite(v)) ? v.toFixed(d) : (v || '');
         const rows = [headers.map(h => csvCell(h)).join(",")];
-        (pts || []).forEach(p => {
-            rows.push([p.time, p.name, fix(p.x, 3), fix(p.y, 3), fix(p.h, 3), fix(p.lat, 8), fix(p.lng, 8), p.mui, p.ktt, p.note]
-                .map(v => csvCell(v)).join(","));
+        list.forEach(p => {
+            const cells = [p.time, p.name, fix(p.x, 3), fix(p.y, 3), fix(p.h, 3), fix(p.lat, 8), fix(p.lng, 8), p.mui, p.ktt, p.note];
+            if (linked) cells.push(p.lk || '', p.lkNames || '');
+            rows.push(cells.map(v => csvCell(v)).join(","));
         });
         return "\uFEFF" + rows.join("\r\n");
     },
@@ -13408,17 +13438,20 @@ function doGet(e) {
 
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
 
+        const { rows: list, linked } = this._linkedExportRows(pts);
+        const clean = v => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ');
         let txt = `# SO LIEU TOA DO TRAC DIA VN-2000 (LEICA / TRIMBLE / TOPCON / SOUTH)\r\n`;
         txt += `# DU AN: ${projName}\r\n`;
-        txt += `# TEN_DIEM\tX(BAC)\tY(DONG)\tCAO_DO_H\tGHI_CHU\r\n`;
+        if (linked) txt += `# MA_LK: T1.3 = dinh 3 cua thua 1; D = tuyen; P = diem roi; T1.3+T2.1 = moc chung cua 2 thua\r\n`;
+        txt += `# TEN_DIEM\tX(BAC)\tY(DONG)\tCAO_DO_H\tGHI_CHU${linked ? '\tMA_LK\tTHUA_KHOI' : ''}\r\n`;
 
-        pts.forEach((p, idx) => {
-            const name = p.name || `M${idx + 1}`;
+        list.forEach((p, idx) => {
+            const name = clean(p.name || `M${idx + 1}`);
             const x = parseFloat(p.x || 0).toFixed(3);
             const y = parseFloat(p.y || 0).toFixed(3);
             const h = parseFloat(p.h || 0).toFixed(3);
-            const note = p.note || '';
-            txt += `${name}\t${x}\t${y}\t${h}\t${note}\r\n`;
+            const note = clean(p.note || '');
+            txt += `${name}\t${x}\t${y}\t${h}\t${note}${linked ? `\t${p.lk || ''}\t${clean(p.lkNames || '')}` : ''}\r\n`;
         });
 
         const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
@@ -13824,6 +13857,9 @@ function doGet(e) {
                     const buffer = e.target.result;
                     const wb = XLSX.read(buffer, { type: 'array' });
 
+                    // Tệp có cột "Mã liên kết" (xuất từ ứng dụng): xem trước rồi dựng lại thửa theo mã
+                    if (appData._workbookHasLinks(wb) && appData.openImportPreviewFromWorkbook(wb, file.name)) return;
+
                     // Kiểm tra xem file có chứa các khối vẽ MiniCAD không
                     if (typeof appCadTool !== 'undefined' && appCadTool._parseWorkbookToShapes) {
                         try {
@@ -13860,6 +13896,12 @@ function doGet(e) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
+
+                // Tệp có cột "Mã liên kết" (xuất từ ứng dụng): xem trước rồi dựng lại thửa theo mã
+                if (typeof ImportPreview !== 'undefined' && !(text && text.includes('<table'))) {
+                    const rows = ImportPreview.textToRows(text);
+                    if (rows.length && ImportPreview.guessMapping(rows).cols.lk !== undefined) return ImportPreview.open(rows, file.name);
+                }
 
                 // Kiểm tra xem file CSV/HTML có chứa các khối bản vẽ MiniCAD không
                 if (typeof appCadTool !== 'undefined' && appCadTool._parseHtmlOrTextToShapes) {
@@ -13899,11 +13941,20 @@ function doGet(e) {
     },
 
     // Excel → xem trước: chọn trang tính đầu tiên có cột tọa độ nhận ra được (hoặc trang đầu).
+    _workbookSheets(wb) {
+        return wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true, blankrows: false })
+            .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== '')));
+    },
+    _workbookHasLinks(wb) {
+        if (typeof ImportPreview === 'undefined' || !wb || !wb.SheetNames) return false;
+        return this._workbookSheets(wb).some(rows => rows.length && ImportPreview.guessMapping(rows).cols.lk !== undefined);
+    },
+
     openImportPreviewFromWorkbook(wb, fileName) {
         if (typeof ImportPreview === 'undefined' || !wb || !wb.SheetNames || !wb.SheetNames.length) return false;
-        const sheets = wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true, blankrows: false })
-            .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== '')));
-        const pick = sheets.find(rows => {
+        const sheets = this._workbookSheets(wb);
+        // Ưu tiên trang có mã liên kết thửa ↔ đỉnh, rồi tới trang đầu tiên có cột tọa độ
+        const pick = sheets.find(rows => { const m = ImportPreview.guessMapping(rows); return m.cols.lk !== undefined && (m.cols.x !== undefined || m.cols.lat !== undefined); }) || sheets.find(rows => {
             const m = ImportPreview.guessMapping(rows);
             return (m.cols.x !== undefined && m.cols.y !== undefined) || (m.cols.lat !== undefined && m.cols.lng !== undefined);
         }) || sheets[0];
@@ -14134,6 +14185,14 @@ function doGet(e) {
             return showToast("⚠️ Không nhận dạng được mốc tọa độ hợp lệ nào! Vui lòng kiểm tra lại file.", true);
         }
 
+        // Tệp có mã liên kết thửa ↔ đỉnh: tách mỗi lần là đỉnh thành một dòng gắn thẻ khối (như MiniCAD lưu),
+        // để MiniCAD dựng lại thửa đúng thứ tự nối và đỉnh chung trùng tọa độ.
+        let linkInfo = null;
+        if (typeof ParcelLinks !== 'undefined' && ParcelLinks.hasLinks(parsedPoints)) {
+            linkInfo = ParcelLinks.expandToTaggedPoints(parsedPoints);
+            parsedPoints = linkInfo.points;
+        }
+
         const targetMode = document.querySelector('input[name="importTargetMode"]:checked')?.value || 'new';
         let targetProj = AppState.currentProject;
 
@@ -14160,9 +14219,16 @@ function doGet(e) {
 
         // Khôi phục và tái tạo các khối CAD nếu mốc có chứa thuộc tính shapeName
         if (typeof appCadTool !== 'undefined') {
+            const cadKey = appCadTool.getProjectStorageKey(targetProj);
+            const hadCad = !!(localStorage.getItem('vn2k_cad_shapes_' + cadKey) || localStorage.getItem('vn2k_cad_shapes_' + targetProj));
             appCadTool.savedShapes = [];
             if (!appCadTool.loadShapesForProject(targetProj)) {
                 appCadTool.reconstructShapesFromPoints(targetProj);
+            } else if (hadCad && linkInfo && linkInfo.shapes.length) {
+                // Dự án đã có bản vẽ: thêm các thửa vừa dựng (và mốc lẻ đi kèm) vào bản vẽ hiện có
+                const added = appCadTool.shapesFromTaggedPoints(parsedPoints, targetProj, `Mốc nhập ${String(defaultName || '').replace(/\.[^/.]+$/, '')}`.trim());
+                appCadTool.savedShapes = appCadTool.savedShapes.concat(added);
+                appCadTool.saveShapesForProject(targetProj);
             }
         }
 
@@ -14173,7 +14239,13 @@ function doGet(e) {
         }
 
         appModal.closeImportProjectModal();
-        showToast(`✓ Đã nạp thành công ${parsedPoints.length} mốc vào dự án: ${targetProj}!`, true);
+        if (linkInfo && linkInfo.shapes.length) {
+            const nPoly = linkInfo.shapes.filter(x => x.mode === 'polygon').length;
+            const nOther = linkInfo.shapes.length - nPoly;
+            showToast(`✓ Đã nạp vào dự án ${targetProj}: dựng lại ${nPoly} thửa${nOther ? ` + ${nOther} tuyến/lớp điểm` : ''} theo mã liên kết${linkInfo.warnings.length ? ` (lưu ý: ${linkInfo.warnings[0]})` : ''}.`, true);
+        } else {
+            showToast(`✓ Đã nạp thành công ${parsedPoints.length} mốc vào dự án: ${targetProj}!`, true);
+        }
 
         // Mở bản đồ và zoom bao quát các mốc vừa nạp
         appNav.openProjectMap();
@@ -27684,71 +27756,61 @@ const appCadTool = {
         }
     },
 
-    reconstructShapesFromPoints(projName) {
-        const curProj = projName || AppState.currentProject;
-        if (!curProj || typeof appData === 'undefined' || !appData.getPoints) return false;
-        const pts = appData.getPoints(curProj);
-        if (!pts || pts.length === 0) return false;
-
-        // Phân loại mốc theo Khối/Thửa Đất
+    // Mốc dự án (đã gắn thẻ shapeId/shapeName/shapeOrder) → khối MiniCAD. Nhóm theo khối, sắp theo thứ tự đỉnh;
+    // mốc chưa thuộc khối nào gom thành một lớp điểm (hoặc ranh thửa nếu dự án chưa có khối nào).
+    shapesFromTaggedPoints(pts, curProj, looseName) {
         const shapeMap = new Map();
-        let hasShapeTag = false;
-
         pts.forEach((p, idx) => {
             const sName = p.shapeName || p.blockName;
-            if (sName) {
-                hasShapeTag = true;
-                if (!shapeMap.has(sName)) {
-                    shapeMap.set(sName, {
-                        name: sName,
-                        mode: p.shapeMode || 'polygon',
-                        color: p.shapeColor || null,
-                        vertices: []
-                    });
-                }
-                shapeMap.get(sName).vertices.push(p);
+            if (!sName) return;
+            const key = (p.shapeId || '') + '|' + sName;
+            if (!shapeMap.has(key)) {
+                shapeMap.set(key, { name: sName, mode: p.shapeMode || 'polygon', color: p.shapeColor || null, items: [] });
             }
+            shapeMap.get(key).items.push({ p, idx, order: Number(p.shapeOrder) || 0 });
         });
 
         const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
         const reconstructed = [];
         let cIdx = 0;
 
-        if (hasShapeTag && shapeMap.size > 0) {
-            shapeMap.forEach((sObj, sName) => {
-                const validVerts = sObj.vertices.map((v, i) => {
-                    const norm = this._normalizeVertex(v, i);
-                    return {
-                        ...norm,
-                        isSnapped: true,
-                        snapSource: `Dự án: ${curProj}`,
-                        shapeName: sName,
-                        shapeMode: sObj.mode,
-                        // Kiểu & màu ký hiệu điểm rời được lưu ngược từ pointStyle/pointColor của mốc dự án
-                        style: v.pointStyle || undefined,
-                        color: v.pointColor || undefined,
-                        shapeOrder: i + 1
-                    };
-                }).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
+        shapeMap.forEach((sObj) => {
+            const sName = sObj.name;
+            // Thứ tự nối đỉnh: theo shapeOrder (mã liên kết), cùng thứ tự thì theo thứ tự dòng
+            sObj.items.sort((a, b) => (a.order && b.order && a.order !== b.order) ? a.order - b.order : a.idx - b.idx);
+            const validVerts = sObj.items.map((it, i) => {
+                const v = it.p;
+                const norm = this._normalizeVertex(v, i);
+                return {
+                    ...norm,
+                    isSnapped: true,
+                    snapSource: `Dự án: ${curProj}`,
+                    shapeName: sName,
+                    shapeMode: sObj.mode,
+                    // Kiểu & màu ký hiệu điểm rời được lưu ngược từ pointStyle/pointColor của mốc dự án
+                    style: v.pointStyle || undefined,
+                    color: v.pointColor || undefined,
+                    shapeOrder: i + 1
+                };
+            }).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
 
-                // Lớp điểm rời: một mốc cũng là một đối tượng hợp lệ, không yêu cầu tối thiểu 2
-                if (validVerts.length >= (sObj.mode === 'point' ? 1 : 2)) {
-                    const sColor = sObj.color || colorPalette[cIdx % colorPalette.length];
-                    cIdx++;
-                    const sMode = (validVerts.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
-                    reconstructed.push({
-                        id: 'recon_shape_' + Date.now() + '_' + cIdx,
-                        name: sName,
-                        shortName: sName,
-                        mode: sMode,
-                        color: sColor,
-                        vertices: validVerts,
-                        selected: true,
-                        stats: this.calculateAreaAndPerimeter(validVerts, sMode)
-                    });
-                }
-            });
-        }
+            // Lớp điểm rời: một mốc cũng là một đối tượng hợp lệ, không yêu cầu tối thiểu 2
+            if (validVerts.length >= (sObj.mode === 'point' ? 1 : 2)) {
+                const sColor = sObj.color || colorPalette[cIdx % colorPalette.length];
+                cIdx++;
+                const sMode = (validVerts.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
+                reconstructed.push({
+                    id: 'recon_shape_' + Date.now() + '_' + cIdx,
+                    name: sName,
+                    shortName: sName,
+                    mode: sMode,
+                    color: sColor,
+                    vertices: validVerts,
+                    selected: true,
+                    stats: this.calculateAreaAndPerimeter(validVerts, sMode)
+                });
+            }
+        });
 
         // Nhóm các mốc dự án chưa có gắn thẻ khối riêng (Mốc từ Sổ đo, Chuyển đổi tọa độ, GPS, hoặc file nạp vào)
         const unassignedPts = pts.filter(p => !p.shapeName && !p.blockName);
@@ -27770,9 +27832,9 @@ const appCadTool = {
                 const sColor = colorPalette[cIdx % colorPalette.length];
                 cIdx++;
                 let sMode = 'point';
-                const shortProj = curProj.replace(/\.[^/.]+$/, "");
-                let sName = `Mốc dự án`;
-                if (reconstructed.length === 0) {
+                const shortProj = String(curProj || '').replace(/\.[^/.]+$/, "");
+                let sName = looseName || `Điểm mốc ${shortProj}`;
+                if (reconstructed.length === 0 && !looseName) {
                     if (validVerts.length >= 3 && AppState.isPolygonClosed !== false) {
                         sMode = 'polygon';
                         sName = `Ranh thửa ${shortProj}`;
@@ -27783,9 +27845,6 @@ const appCadTool = {
                         sMode = 'point';
                         sName = `Điểm mốc ${shortProj}`;
                     }
-                } else {
-                    sMode = 'point';
-                    sName = `Điểm mốc ${shortProj}`;
                 }
 
                 reconstructed.push({
@@ -27800,7 +27859,16 @@ const appCadTool = {
                 });
             }
         }
+        return reconstructed;
+    },
 
+    reconstructShapesFromPoints(projName) {
+        const curProj = projName || AppState.currentProject;
+        if (!curProj || typeof appData === 'undefined' || !appData.getPoints) return false;
+        const pts = appData.getPoints(curProj);
+        if (!pts || pts.length === 0) return false;
+
+        const reconstructed = this.shapesFromTaggedPoints(pts, curProj);
         if (reconstructed.length > 0) {
             this.savedShapes = reconstructed;
             // Lưu lại ngay vào CAD storage
@@ -34634,7 +34702,13 @@ const appCadTool = {
                 const buffer = e.target.result;
                 let shapes = [];
 
-                if (typeof XLSX !== 'undefined') {
+                // CSV/TXT: đọc đúng UTF-8 trước (SheetJS đọc tệp văn bản không BOM theo Latin-1, làm hỏng tiêu đề tiếng Việt)
+                if (!/\.(xlsx|xls)$/i.test(file.name) && typeof ImportPreview !== 'undefined') {
+                    const linked = this._shapesFromLinkedRows(ImportPreview.textToRows(new TextDecoder('utf-8').decode(buffer)), file.name);
+                    if (linked) shapes = linked;
+                }
+
+                if (!shapes.length && typeof XLSX !== 'undefined') {
                     try {
                         const wb = XLSX.read(buffer, { type: 'array' });
                         shapes = this._parseWorkbookToShapes(wb, file.name);
@@ -34666,9 +34740,33 @@ const appCadTool = {
         event.target.value = "";
     },
 
+    // Bảng có cột "Mã liên kết" (src/core/parcel_links.js): dựng khối đúng thứ tự đỉnh, đỉnh chung cùng tọa độ.
+    // Trả về null nếu bảng không có mã. Tọa độ hiểu theo KTT hiện hành như các bộ đọc bảng kê khác.
+    _shapesFromLinkedRows(rows, fileName = '') {
+        if (typeof ImportPreview === 'undefined' || typeof ParcelLinks === 'undefined' || !rows || !rows.length) return null;
+        const m = ImportPreview.guessMapping(rows);
+        if (m.cols.lk === undefined) return null;
+        const cur = { ktt: AppState.kttVal, mui: AppState.muiVal === 6 ? 6 : 3 };
+        const res = ImportPreview.buildPoints(rows, { headerRow: m.headerRow, cols: m.cols, type: m.type, src: cur, dst: m.type === 'wgs84' ? cur : null });
+        const rb = ParcelLinks.rebuildShapes(res.points);
+        const src = 'Mã liên kết: ' + (fileName || 'tệp');
+        const vert = p => ({ name: p.name, x: p.x, y: p.y, lat: p.lat, lng: p.lng, h: p.h || 0, isSnapped: false, snapSource: src });
+        const shapes = rb.shapes.map(sh => ({ name: sh.name, mode: sh.mode, color: null, vertices: sh.vertices.map(vert) }));
+        if (rb.loose.length) shapes.push({ name: 'Mốc lẻ ' + String(fileName || '').replace(/\.[^/.]+$/, ''), mode: 'point', color: null, vertices: rb.loose.map(vert) });
+        return shapes.length ? shapes : null;
+    },
+
     _parseWorkbookToShapes(wb, fileName = '') {
         const shapes = [];
         if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) return shapes;
+
+        // --- CHIẾN LƯỢC 0: Bảng điểm có "Mã liên kết" thửa ↔ đỉnh ---
+        for (const sname of wb.SheetNames) {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[sname], { header: 1, defval: '', raw: true, blankrows: false })
+                .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== ''));
+            const linked = this._shapesFromLinkedRows(rows, fileName);
+            if (linked) return linked;
+        }
 
         // --- CHIẾN LƯỢC 1: Tìm sheet master tổng hợp chi tiết (Có cột "Tên Khối" hoặc "Tên Thửa") ---
         for (const sname of wb.SheetNames) {
@@ -34948,6 +35046,12 @@ const appCadTool = {
     _parseHtmlOrTextToShapes(text, fileName = '') {
         const shapes = [];
         if (!text) return shapes;
+
+        // 0. Bảng điểm CSV/TXT có "Mã liên kết" thửa ↔ đỉnh
+        if (!text.includes('<table') && typeof ImportPreview !== 'undefined') {
+            const linked = this._shapesFromLinkedRows(ImportPreview.textToRows(text), fileName);
+            if (linked) return linked;
+        }
 
         // 1. Phân tích nếu là file HTML .xls
         if (text.includes('<table') && typeof DOMParser !== 'undefined') {
@@ -38996,13 +39100,14 @@ const appCadTool = {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
         let txt = "# TỌA ĐỘ CÁC ĐỈNH RANH THỬA CHO MÁY TOÀN ĐẠC ĐIỆN TỬ & RTK\r\n";
         txt += `# Dự án: ${projName} | KTT: ${AppState.kttVal || 105.75}° | Múi: ${AppState.zoneVal || 3}°\r\n`;
-        txt += "# STT,X(Bắc),Y(Đông),CaoĐộ(H),TênĐỉnh,GhiChú\r\n";
+        txt += "# Mã liên kết: T1.3 = đỉnh 3 của thửa 1; D = tuyến; P = điểm rời; T1.3+T2.1 = mốc chung (một dòng)\r\n";
+        txt += "# STT,X (Bắc),Y (Đông),Cao độ H,Tên đỉnh,Mã liên kết,Thửa / khối\r\n";
 
-        let idx = 1;
-        selectedShapes.forEach((s, sIdx) => {
-            (s.vertices || []).forEach(v => {
-                txt += `${idx++},${(v.x || 0).toFixed(3)},${(v.y || 0).toFixed(3)},0.000,${v.name || ('D' + idx)},${s.name || ('Thua_' + (sIdx + 1))}\r\n`;
-            });
+        // Mỗi mốc một dòng: đỉnh chung của nhiều thửa không bị lặp; nhập lại tự dựng đúng thứ tự nối
+        const cell = v => String(v == null ? '' : v).replace(/[,\r\n]+/g, ' ').trim();
+        const { rows } = ParcelLinks.buildLinkedRows(selectedShapes, []);
+        rows.forEach((v, i) => {
+            txt += `${i + 1},${(Number(v.x) || 0).toFixed(3)},${(Number(v.y) || 0).toFixed(3)},${(Number(v.h) || 0).toFixed(3)},${cell(v.name || ('D' + (i + 1)))},${v.lk},${cell(v.lkNames)}\r\n`;
         });
 
         const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
