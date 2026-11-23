@@ -2039,3 +2039,4 @@
   3. Bảng 🎨 "Ký hiệu & chữ" mới có xem trước; tùy chỉnh icon mốc tọa độ dự án (Bản đồ dự án + MiniCAD).
   4. Kiểm thử: `tests/cad_glyph_labels.test.js`; **561/561 PASS**.
   5. v2.8.49: tệp xuất DXF/PDF/SVG/PNG đặt chữ theo cùng cài đặt vị trí + cỡ chữ (`exportLabelAnchor`); **562/562 PASS**.
+- **2026-11-23 (Xuất bản đồ với đủ các lớp — v2.8.50)**: hộp xuất (Xuất dữ liệu + Studio MiniCAD) chọn được mọi nền của "Lớp bản đồ" và lớp phủ (Esri giao thông, Google đường/nhãn, Google giao thông, ranh 34 tỉnh, xã Đồng Tháp, nguồn tự thêm XYZ/WMS); PDF/PNG của Xuất dữ liệu nay vẽ nền, lớp phủ, quy hoạch, ảnh PDF; sửa "Tỷ lệ: 1:null". **568/568 PASS**.

@@ -12008,3 +12008,15 @@
       /* Bề mặt dưới phải né dock: các rule neo đáy ở khối này đều bị lớp ui-polish.css (nạp sau,
           !important, đặc hiệu bằng/nhỏ hơn) thắng, nên phần chỉnh ngưỡng đáy đặt trong ui-polish.css. */
     }
+
+/* Hộp xuất: lớp phủ in kèm (đủ danh mục "Lớp bản đồ") */
+.exp-ov-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; margin-top: 6px; }
+.exp-ov-list:empty { display: none; }
+.exp-ov-head { grid-column: 1 / -1; font-size: 11px; font-weight: 700; color: #a8a29e; }
+.exp-ov-head small { font-weight: 500; }
+.exp-ov-item { display: flex; align-items: center; gap: 6px; min-height: 32px; font-size: 12px; color: #d6d3d1; cursor: pointer; user-select: none; }
+.exp-ov-item input { width: 16px; height: 16px; flex: none; accent-color: #3f8a5a; }
+.exp-ov-item span { min-width: 0; overflow-wrap: anywhere; }
+.exp-ov-item em { font-style: normal; font-size: 11px; color: #93cc9c; margin-left: auto; white-space: nowrap; }
+[data-theme="light"] .exp-ov-item { color: #292524; }
+[data-theme="light"] .exp-ov-head { color: #57534e; }

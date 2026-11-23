@@ -354,6 +354,145 @@ const EXPORT_BASEMAPS = {
         credit: 'Sentinel-2 cloudless - s2maps.eu by EOX IT Services GmbH (Copernicus Sentinel data 2016 & 2017)'
     }
 };
+// Mọi nền của "Lớp bản đồ" (MAP_BASES) đều in được: bản đồ chính cũng nạp các ô này kiểu CORS
+// (crossOrigin) nên ảnh xuất không bị "nhiễm bẩn". 'street' / 'satellite' là tên cũ, giữ để cấu hình đã lưu vẫn chạy.
+Object.assign(EXPORT_BASEMAPS, {
+    google_hybrid: {
+        label: 'Vệ tinh Google',
+        url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.9, credit: 'Ảnh © Google'
+    },
+    esri_satellite: Object.assign({}, EXPORT_BASEMAPS.satellite),
+    google_streets: {
+        label: 'Đường phố Google',
+        url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.8, credit: 'Bản đồ © Google'
+    },
+    opentopomap: {
+        label: 'Địa hình OpenTopo',
+        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c'],
+        maxZoom: 17, alpha: 0.8, credit: '© OpenTopoMap (CC-BY-SA), © OpenStreetMap'
+    },
+    google_terrain: {
+        label: 'Địa hình Google',
+        url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 17, alpha: 0.8, credit: 'Địa hình © Google'
+    },
+    osm_streets: Object.assign({}, EXPORT_BASEMAPS.street)
+});
+const EXPORT_BASEMAP_ALIASES = { street: 'osm_streets', satellite: 'esri_satellite' };
+// Thứ tự trong ô chọn nền khi xuất — cùng thứ tự với bảng "Lớp bản đồ".
+const EXPORT_BASE_ORDER = ['google_hybrid', 'esri_satellite', 'google_streets', 'opentopomap', 'google_terrain', 'osm_streets', 'sentinel2'];
+// Lớp phủ ô ảnh (trong suốt) in đè lên nền — như các công tắc lớp phủ của bản đồ.
+const EXPORT_TILE_OVERLAYS = {
+    esri_transport: {
+        label: 'Giao thông Esri',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 20, alpha: 0.85, credit: 'Giao thông: © Esri, HERE, Garmin, USGS'
+    },
+    google_roads: {
+        label: 'Đường & nhãn Google',
+        url: 'https://{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.85, credit: 'Đường & Nhãn © Google'
+    },
+    google_traffic: {
+        label: 'Giao thông Google (trực tiếp)',
+        url: 'https://{s}.google.com/vt?lyrs=traffic&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.85, credit: 'Giao thông © Google'
+    }
+};
+// Lớp ranh giới vẽ bằng nét (GeoJSON nạp khi cần).
+const EXPORT_VECTOR_OVERLAYS = {
+    prov34: {
+        label: 'Ranh giới 34 tỉnh', lib: 'prov34', global: 'VIETNAM_34_PROVINCES', color: '#e11d48', dash: [10, 6],
+        name: p => p.ten_tinh || p.name || ''
+    },
+    dongthap: {
+        label: 'Ranh giới xã Đồng Tháp', lib: 'dongthap', global: 'DONG_THAP_COMMUNES', color: '#059669', dash: [6, 4],
+        name: p => p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name || ''
+    }
+};
+
+function _exportOverlayState() {
+    return (typeof appMapLayers !== 'undefined' && appMapLayers && typeof appMapLayers.load === 'function') ? appMapLayers.load() : null;
+}
+// Nguồn ô ảnh theo mã: nền, lớp phủ, hoặc 'custom:<id>' (nguồn tự thêm XYZ / WMS).
+function exportMapSource(id) {
+    if (!id || id === 'none') return null;
+    const key = EXPORT_BASEMAP_ALIASES[id] || id;
+    if (EXPORT_BASEMAPS[key]) return EXPORT_BASEMAPS[key];
+    const st = _exportOverlayState();
+    if (EXPORT_TILE_OVERLAYS[key]) {
+        const o = st && st[key] && st[key].opacity;
+        return Object.assign({}, EXPORT_TILE_OVERLAYS[key], o ? { alpha: Math.max(0.1, Math.min(1, +o)) } : {});
+    }
+    if (String(key).startsWith('custom:') && st && Array.isArray(st.custom)) {
+        const c = st.custom.find(x => x && 'custom:' + x.id === key);
+        if (!c || !/^https:\/\//i.test(c.url || '')) return null;
+        return {
+            label: c.name || 'Nguồn tự thêm', url: c.url, wms: c.type === 'wms', layersParam: c.layers || '',
+            maxZoom: Math.max(1, Math.min(22, +c.maxZoom || 19)), alpha: Math.max(0.1, Math.min(1, +c.opacity || 0.8)),
+            credit: String(c.attribution || '').replace(/<[^>]*>/g, '').trim()
+        };
+    }
+    return null;
+}
+// Danh mục cho hộp xuất: nền, lớp phủ (kèm trạng thái đang bật trên bản đồ).
+function exportLayerCatalog() {
+    const bases = EXPORT_BASE_ORDER.map(id => {
+        const def = (typeof MAP_BASES !== 'undefined') ? MAP_BASES.find(b => b.id === id) : null;
+        return { id, name: def ? def.name : EXPORT_BASEMAPS[id].label };
+    });
+    const st = _exportOverlayState();
+    const overlays = Object.keys(EXPORT_TILE_OVERLAYS).map(id => ({ id, name: EXPORT_TILE_OVERLAYS[id].label, on: !!(st && st[id] && st[id].on) }));
+    const A = (typeof AppState !== 'undefined') ? AppState : {};
+    overlays.push({ id: 'prov34', name: EXPORT_VECTOR_OVERLAYS.prov34.label, on: !!A.is34ProvVisible });
+    overlays.push({ id: 'dongthap', name: EXPORT_VECTOR_OVERLAYS.dongthap.label, on: !!A.isDtCommunesVisible });
+    if (st && Array.isArray(st.custom)) {
+        st.custom.forEach(c => { if (c && c.id && c.url) overlays.push({ id: 'custom:' + c.id, name: c.name || 'Nguồn tự thêm', on: !!c.on }); });
+    }
+    return { bases, overlays };
+}
+// ---- Hộp xuất: ô chọn nền + danh sách lớp phủ (dùng chung cho Xuất dữ liệu và Studio xuất MiniCAD) ----
+function fillExportBaseSelect(selId, savedVal) {
+    const sel = typeof document !== 'undefined' ? document.getElementById(selId) : null;
+    if (!sel) return;
+    const cat = exportLayerCatalog();
+    const active = (typeof AppState !== 'undefined') ? AppState.activeBaseLayerId : null;
+    const esc = (typeof escapeHtml === 'function') ? escapeHtml : (t => String(t));
+    sel.innerHTML = `<option value="none">Không nền (Giấy trắng chuẩn kỹ thuật)</option>` + cat.bases.map(b =>
+        `<option value="${b.id}">${esc(b.name)}${b.id === active || EXPORT_BASEMAP_ALIASES[b.id] === active ? ' · đang xem' : ''}</option>`).join('');
+    const v = EXPORT_BASEMAP_ALIASES[savedVal] || savedVal;
+    sel.value = (v && (v === 'none' || exportMapSource(v))) ? v : 'none';
+}
+function renderExportOverlayList(boxId, saved, onchange) {
+    const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+    if (!box) return;
+    const cat = exportLayerCatalog();
+    const esc = (typeof escapeHtml === 'function') ? escapeHtml : (t => String(t));
+    const pick = Array.isArray(saved) ? saved : null;
+    box.innerHTML = `<div class="exp-ov-head">Lớp phủ in kèm <small>(đè lên nền)</small></div>` + cat.overlays.map(o => {
+        const on = pick ? pick.includes(o.id) : o.on;
+        return `<label class="exp-ov-item${o.on ? ' is-live' : ''}"><input type="checkbox" value="${esc(o.id)}" ${on ? 'checked' : ''} onchange="${onchange || ''}"><span>${esc(o.name)}</span>${o.on ? '<em>đang bật</em>' : ''}</label>`;
+    }).join('');
+}
+function readExportOverlayChoice(boxId) {
+    const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+    if (!box || !box.querySelectorAll) return [];
+    return Array.from(box.querySelectorAll('input[type="checkbox"]')).filter(i => i.checked).map(i => i.value);
+}
+function _exportTileUrl(src, z, x, y) {
+    if (src.wms) {
+        // Ô EPSG:3857 → BBOX (mét Mercator)
+        const R = 20037508.342789244, size = 2 * R / Math.pow(2, z);
+        const minx = -R + x * size, maxx = minx + size, maxy = R - y * size, miny = maxy - size;
+        const sep = src.url.includes('?') ? '&' : '?';
+        return `${src.url}${sep}SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=${encodeURIComponent(src.layersParam || '')}&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX=${minx},${miny},${maxx},${maxy}`;
+    }
+    const subs = src.subdomains;
+    const sub = subs && subs.length ? subs[Math.abs(x + y) % subs.length] : '';
+    return src.url.replace('{s}', sub).replace('{z}', z).replace('{x}', x).replace('{y}', y);
+}
 const EXPORT_BASEMAP_MAX_TILES = 160;
 
 function _tileFromLatLng(lat, lng, z) {
@@ -374,7 +513,7 @@ function _latLngFromTile(x, y, z) {
 // frame: { e0, e1, n0, n1 } (mét VN-2000: Đông, Bắc); pxPerMeter: độ phân giải bản vẽ;
 // toLatLng(e, n) → { lat, lng }. Trả về mức thu phóng và danh sách ô cần tải.
 function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_BASEMAP_MAX_TILES) {
-    const src = EXPORT_BASEMAPS[kind];
+    const src = exportMapSource(kind);
     if (!src || !frame || !(pxPerMeter > 0) || typeof toLatLng !== 'function') return null;
     const corners = [[frame.e0, frame.n0], [frame.e1, frame.n0], [frame.e0, frame.n1], [frame.e1, frame.n1]]
         .map(([e, n]) => toLatLng(e, n));
@@ -399,7 +538,7 @@ function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_
         for (let tx = range.x0; tx <= range.x1; tx++) {
             if (ty < 0 || ty >= n) continue;
             const wx = ((tx % n) + n) % n;
-            tiles.push({ x: tx, y: ty, url: src.url.replace('{z}', z).replace('{x}', wx).replace('{y}', ty) });
+            tiles.push({ x: tx, y: ty, url: _exportTileUrl(src, z, wx, ty) });
         }
     }
     return { kind, z, tiles, credit: src.credit, alpha: src.alpha, label: src.label };
@@ -535,7 +674,7 @@ function exportTileTransform(tile, z, toCanvas, toVn2k) {
 }
 
 // Vẽ nền vào khung rect (điểm ảnh canvas) — gọi sau nền trắng, trước lưới và nét vẽ.
-function drawExportBasemap(ctx, basemap, rect, toCanvas, toVn2k) {
+function drawExportBasemap(ctx, basemap, rect, toCanvas, toVn2k, opts = {}) {
     if (!ctx || !basemap || !basemap.tiles || !rect) return 0;
     let drawn = 0;
     ctx.save();
@@ -555,20 +694,105 @@ function drawExportBasemap(ctx, basemap, rect, toCanvas, toVn2k) {
         drawn++;
     });
     ctx.globalAlpha = 1;
-    // Ghi nguồn bản đồ ở góc dưới phải khung
-    if (drawn > 0 && basemap.credit) {
-        const fs = Math.max(10, Math.round(rect.h * 0.012));
+    ctx.restore();
+    // Ghi nguồn bản đồ ở góc dưới phải khung (bộ vẽ nhiều lớp tự ghi gộp một dòng)
+    if (drawn > 0 && basemap.credit && opts.credit !== false) drawExportCredit(ctx, rect, basemap.credit);
+    return drawn;
+}
+
+function drawExportCredit(ctx, rect, text) {
+    if (!ctx || !rect || !text) return;
+    ctx.save();
+    let fs = Math.max(10, Math.round(rect.h * 0.012));
+    ctx.font = `${fs}px Arial, sans-serif`;
+    let tw = ctx.measureText(text).width;
+    // Dòng nguồn dài (nhiều lớp) thu nhỏ cho vừa 90% bề rộng khung
+    if (tw > rect.w * 0.9 && tw > 0) {
+        fs = Math.max(8, Math.floor(fs * rect.w * 0.9 / tw));
         ctx.font = `${fs}px Arial, sans-serif`;
-        const tw = ctx.measureText(basemap.credit).width;
-        const pad = Math.round(fs * 0.4);
-        const bx = rect.x + rect.w - tw - pad * 3, by = rect.y + rect.h - fs - pad * 3;
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fillRect(bx, by, tw + pad * 2, fs + pad * 2);
-        ctx.fillStyle = '#334155';
-        ctx.textBaseline = 'top';
-        ctx.fillText(basemap.credit, bx + pad, by + pad);
-        ctx.textBaseline = 'alphabetic';
+        tw = ctx.measureText(text).width;
     }
+    const pad = Math.round(fs * 0.4);
+    const bx = rect.x + rect.w - tw - pad * 3, by = rect.y + rect.h - fs - pad * 3;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillRect(bx, by, tw + pad * 2, fs + pad * 2);
+    ctx.fillStyle = '#334155';
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, bx + pad, by + pad);
+    ctx.restore();
+}
+
+// Khung VN-2000 → hộp kinh/vĩ độ (lọc nhanh đối tượng ranh giới nằm ngoài bản vẽ).
+function exportFrameLatLngBox(frame, toLatLng) {
+    if (!frame || typeof toLatLng !== 'function') return null;
+    const c = [[frame.e0, frame.n0], [frame.e1, frame.n0], [frame.e0, frame.n1], [frame.e1, frame.n1]].map(([e, n]) => toLatLng(e, n));
+    if (c.some(p => !p || !isFinite(p.lat) || !isFinite(p.lng))) return null;
+    const lats = c.map(p => p.lat), lngs = c.map(p => p.lng);
+    const padLat = (Math.max(...lats) - Math.min(...lats)) * 0.05, padLng = (Math.max(...lngs) - Math.min(...lngs)) * 0.05;
+    return { latMin: Math.min(...lats) - padLat, latMax: Math.max(...lats) + padLat, lngMin: Math.min(...lngs) - padLng, lngMax: Math.max(...lngs) + padLng };
+}
+
+function _geoRings(geom) {
+    if (!geom) return [];
+    if (geom.type === 'Polygon') return geom.coordinates || [];
+    if (geom.type === 'MultiPolygon') return [].concat(...(geom.coordinates || []));
+    if (geom.type === 'LineString') return [geom.coordinates || []];
+    if (geom.type === 'MultiLineString') return geom.coordinates || [];
+    return [];
+}
+
+// Vẽ ranh giới GeoJSON ([lng, lat]) vào khung bản vẽ; trả về số đối tượng đã vẽ.
+function drawExportVector(ctx, geo, rect, toCanvas, toVn2k, box, style = {}) {
+    if (!ctx || !geo || !Array.isArray(geo.features) || !rect) return 0;
+    const lw = style.lineWidth || Math.max(1.5, rect.h * 0.0016);
+    let drawn = 0;
+    const labels = [];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.strokeStyle = style.color || '#e11d48';
+    ctx.lineWidth = lw;
+    ctx.lineJoin = 'round';
+    if (style.dash) ctx.setLineDash(style.dash.map(d => d * lw / 1.5));
+    geo.features.forEach(f => {
+        const rings = _geoRings(f && f.geometry);
+        if (!rings.length) return;
+        if (!f._exportBox) {
+            let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity;
+            rings.forEach(r => r.forEach(pt => { if (pt[1] < a) a = pt[1]; if (pt[1] > b) b = pt[1]; if (pt[0] < c) c = pt[0]; if (pt[0] > d) d = pt[0]; }));
+            Object.defineProperty(f, '_exportBox', { value: { latMin: a, latMax: b, lngMin: c, lngMax: d }, enumerable: false, configurable: true });
+        }
+        const fb = f._exportBox;
+        if (box && (fb.latMax < box.latMin || fb.latMin > box.latMax || fb.lngMax < box.lngMin || fb.lngMin > box.lngMax)) return;
+        ctx.beginPath();
+        rings.forEach(r => {
+            r.forEach((pt, i) => {
+                const v = toVn2k(pt[1], pt[0]);
+                const q = v && toCanvas(v.e, v.n);
+                if (!q || !isFinite(q.x) || !isFinite(q.y)) return;
+                if (i === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y);
+            });
+        });
+        ctx.stroke();
+        drawn++;
+        const name = style.name ? style.name((f && f.properties) || {}) : '';
+        if (name) {
+            const v = toVn2k((fb.latMin + fb.latMax) / 2, (fb.lngMin + fb.lngMax) / 2);
+            const q = v && toCanvas(v.e, v.n);
+            if (q && q.x > rect.x && q.x < rect.x + rect.w && q.y > rect.y && q.y < rect.y + rect.h) labels.push({ name, q });
+        }
+    });
+    ctx.setLineDash([]);
+    // Tên vùng: chữ có viền trắng để đọc được trên ảnh vệ tinh
+    const fs = Math.max(11, Math.round(rect.h * 0.016));
+    ctx.font = `bold ${fs}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = Math.max(2, fs * 0.22);
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillStyle = style.color || '#e11d48';
+    labels.forEach(l => { ctx.strokeText(l.name, l.q.x, l.q.y); ctx.fillText(l.name, l.q.x, l.q.y); });
     ctx.restore();
     return drawn;
 }
@@ -11672,7 +11896,6 @@ function doGet(e) {
                     }
                 }
                 if (savedMeta.paperSize) setVal('selExportPaperSize', savedMeta.paperSize);
-                if (savedMeta.basemap) setVal('selExportBasemap', savedMeta.basemap);
                 const chkGuland = document.getElementById('chkExportGulandPlanning');
                 if (chkGuland && typeof savedMeta.showGuland === 'boolean') chkGuland.checked = savedMeta.showGuland;
                 const chkGulandLand = document.getElementById('chkExportGulandLand');
@@ -11680,6 +11903,10 @@ function doGet(e) {
                 const chkPlanOv = document.getElementById('chkExportPlanOverlay');
                 if (chkPlanOv && typeof savedMeta.printPlanOverlay === 'boolean') chkPlanOv.checked = savedMeta.printPlanOverlay;
             }
+
+            // Nền và lớp phủ: đủ danh mục của "Lớp bản đồ"
+            fillExportBaseSelect('selExportBasemap', savedMeta?.basemap);
+            renderExportOverlayList('selExportOverlayList', savedMeta?.overlays, 'appData.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
             const provSel = document.getElementById('selExportGulandProvince');
@@ -11736,6 +11963,7 @@ function doGet(e) {
                 scaleVal: scaleValToSave,
                 paperSize: document.getElementById('selExportPaperSize')?.value || 'A4-L',
                 basemap: document.getElementById('selExportBasemap')?.value || 'none',
+                overlays: readExportOverlayChoice('selExportOverlayList'),
                 showGuland: document.getElementById('chkExportGulandPlanning')?.checked || false,
                 gulandProvince: document.getElementById('selExportGulandProvince')?.value || 'dong-thap',
                 gulandLand: document.getElementById('chkExportGulandLand')?.checked || false,
@@ -11877,7 +12105,9 @@ function doGet(e) {
             format: chosenFormat
         };
 
-        const basemap = document.getElementById('selExportBasemap')?.value || 'none';
+        const basemapRaw = document.getElementById('selExportBasemap')?.value || 'none';
+        const basemap = exportMapSource(basemapRaw) ? basemapRaw : 'none';
+        const overlays = readExportOverlayChoice('selExportOverlayList');
         const showGuland = document.getElementById('chkExportGulandPlanning')?.checked || false;
         const gulandProvince = document.getElementById('selExportGulandProvince')?.value || (AppState.provinceName || 'dong-thap');
         const gulandLand = document.getElementById('chkExportGulandLand')?.checked || false;
@@ -11888,7 +12118,7 @@ function doGet(e) {
 
         return {
             scaleVal, paperSize, layers, meta,
-            basemap, showGuland, gulandProvince, gulandLand, printPlanOverlay, selectedPlanOverlayIds
+            basemap, overlays, showGuland, gulandProvince, gulandLand, printPlanOverlay, selectedPlanOverlayIds
         };
     },
 
@@ -12230,7 +12460,20 @@ function doGet(e) {
     // ================= 10.9.2 CÁC BỘ Xuất dữ liệu BẢN ĐỒ & TRẮC ĐỊA =================
 
     // 1. Xuất Báo Cáo Kỹ Thuật PDF (.pdf) khổ A4/A3 chuẩn TCVN có sơ đồ mốc
-    exportPdfFile() {
+    // Lớp bản đồ cho PDF / PNG của "Xuất dữ liệu": cùng bộ tải & bộ vẽ với Studio xuất MiniCAD.
+    _exportLayerMeta(opts) {
+        return {
+            basemap: opts.basemap, overlays: opts.overlays || [],
+            showGuland: opts.showGuland, gulandProvince: opts.gulandProvince, gulandLand: opts.gulandLand, gulandOpacity: 0.6,
+            printPlanOverlay: opts.printPlanOverlay, selectedPlanOverlayIds: opts.selectedPlanOverlayIds
+        };
+    },
+    _hasExportLayers(m) {
+        const hasPlanOv = !!(m && m.printPlanOverlay && typeof appPlanOverlay !== 'undefined' && appPlanOverlay.items && appPlanOverlay.items.length);
+        return !!(m && ((m.basemap && m.basemap !== 'none') || (m.overlays && m.overlays.length) || m.showGuland || hasPlanOv));
+    },
+
+    exportPdfFile(loadedLayers) {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
             showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất báo cáo PDF! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
@@ -12247,7 +12490,8 @@ function doGet(e) {
         const surveyorStr = opts.meta.surveyor || "Kỹ sư đo đạc";
         const locationStr = opts.meta.location || "Việt Nam";
 
-        const printWin = window.open('', '_blank');
+        // Cửa sổ in phải mở ngay khi bấm (trình duyệt chặn cửa sổ mở sau khi chờ tải ảnh bản đồ)
+        const printWin = (loadedLayers && loadedLayers._win) || window.open('', '_blank');
         if (!printWin) {
             showToast("⚠️ Vui lòng cho phép mở popup trình duyệt để xem và in báo cáo PDF!", true);
             return;
@@ -12315,6 +12559,40 @@ function doGet(e) {
         const vMinY = minY - padY;
         const vWidth = spanX + padX * 2;
         const vHeight = spanY + padY * 2;
+
+        // Lớp bản đồ (nền, lớp phủ, quy hoạch, ranh giới, ảnh PDF) → một ảnh nền đặt đúng khung sơ đồ
+        let mapLayerSvg = '';
+        const layerMeta = this._exportLayerMeta(opts);
+        if (this._hasExportLayers(layerMeta) && typeof appCadTool !== 'undefined') {
+            const cw = 1800, ch = Math.max(200, Math.round(cw * vHeight / vWidth));
+            const frame = { e0: vMinX, e1: vMinX + vWidth, n0: vMinY, n1: vMinY + vHeight };
+            if (!loadedLayers || !loadedLayers._done) {
+                try {
+                    printWin.document.open();
+                    printWin.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Đang chuẩn bị báo cáo…</title></head><body style="font-family:Arial,sans-serif;padding:32px;color:#334155">⏳ Đang tải các lớp bản đồ để in kèm…</body></html>');
+                    printWin.document.close();
+                } catch (e) {}
+                if (appCadTool._exportBasemapBusy) {
+                    try { printWin.close(); } catch (e) {}
+                    showToast('⏳ Đang tải lớp bản đồ, vui lòng chờ...');
+                    return;
+                }
+                const rerun = bm => this.exportPdfFile(Object.assign({}, bm, { _win: printWin, _done: true }));
+                if (appCadTool._prepareExportBasemap(layerMeta, frame, cw / vWidth, rerun)) return;
+            }
+            try {
+                const cv = document.createElement('canvas');
+                cv.width = cw; cv.height = ch;
+                const cx = cv.getContext('2d');
+                if (cx) {
+                    cx.fillStyle = '#ffffff';
+                    cx.fillRect(0, 0, cw, ch);
+                    const toCv = (e, n) => ({ x: (e - vMinX) * cw / vWidth, y: (vMinY + vHeight - n) * ch / vHeight });
+                    appCadTool.drawExportMapLayers(cx, loadedLayers, { x: 0, y: 0, w: cw, h: ch }, toCv, layerMeta);
+                    mapLayerSvg = `<image href="${cv.toDataURL('image/jpeg', 0.88)}" x="${vMinX}" y="${vMinY}" width="${vWidth}" height="${vHeight}" preserveAspectRatio="none" />`;
+                }
+            } catch (e) { mapLayerSvg = ''; }
+        }
 
         let ptsPoly = '';
         pts.forEach(p => {
@@ -12458,6 +12736,7 @@ function doGet(e) {
             <div style="font-size: 10pt; color: #64748b;">Khổ giấy: ${opts.paperSize} | KTT: ${kttStr}</div>
         </div>
         <svg viewBox="${vMinX} ${vMinY} ${vWidth} ${vHeight}" style="width: 100%; max-height: 320px; background: #ffffff; border: 1px dashed #94a3b8; border-radius: 4px;">
+            ${mapLayerSvg}
             ${layers.lines && pts.length >= 2 ? `<polyline points="${ptsPoly}${pts.length >= 3 ? ptsPoly.split(' ')[0] : ''}" fill="${pts.length >= 3 ? 'rgba(56, 189, 248, 0.15)' : 'none'}" stroke="#0284c7" stroke-width="${vWidth * 0.004}" />` : ''}
             ${lengthsSvg}
             ${marksSvg}
@@ -12489,7 +12768,7 @@ function doGet(e) {
     },
 
     // 2. Xuất Ảnh Bản Đồ Sơ Đồ Mốc PNG (.png) Full HD sắc nét theo tỷ lệ
-    exportPngImage() {
+    exportPngImage(loadedLayers) {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
             showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất ảnh PNG! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
@@ -12581,6 +12860,16 @@ function doGet(e) {
             const cy = mapArea.y + mapArea.h - ((cadY - boundsMinY) / boundsH) * mapArea.h;
             return { x: cx, y: cy };
         };
+
+        // Lớp bản đồ đã chọn (nền, lớp phủ, quy hoạch, ranh giới, ảnh PDF): tải trước rồi vẽ lại
+        const layerMeta = this._exportLayerMeta(opts);
+        if (this._hasExportLayers(layerMeta) && typeof appCadTool !== 'undefined') {
+            if (!loadedLayers && appCadTool._prepareExportBasemap(layerMeta,
+                { e0: boundsMinX, e1: boundsMinX + boundsW, n0: boundsMinY, n1: boundsMinY + boundsH },
+                Math.max(mapArea.w / boundsW, mapArea.h / boundsH),
+                bm => this.exportPngImage(bm || { none: true }))) return;
+            appCadTool.drawExportMapLayers(ctx, loadedLayers, mapArea, toCanvas, layerMeta);
+        }
 
         // 1. Vẽ lưới tọa độ Grid lines nếu bật
         if (layers.grid) {
@@ -29272,7 +29561,8 @@ const appCadTool = {
                 customWrapEl.style.display = (savedMeta?.scaleVal === 'custom') ? 'block' : 'none';
             }
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
-            if (savedMeta?.basemap) setVal('cadExportBasemap', savedMeta.basemap);
+            fillExportBaseSelect('cadExportBasemap', savedMeta?.basemap);
+            renderExportOverlayList('cadExportOverlayList', savedMeta?.overlays, 'appCadTool.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
             const provSel = document.getElementById('cadExportGulandProvince');
@@ -29625,6 +29915,7 @@ const appCadTool = {
                 customScale: parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000,
                 paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
                 basemap: document.getElementById('cadExportBasemap')?.value || 'none',
+                overlays: readExportOverlayChoice('cadExportOverlayList'),
                 showGuland: document.getElementById('cadExportCheckGuland')?.checked || false,
                 gulandProvince: document.getElementById('cadExportGulandProvince')?.value || 'dong-thap',
                 gulandOpacity: parseFloat(document.getElementById('cadExportGulandOpacity')?.value || '0.6'),
@@ -35696,15 +35987,20 @@ const appCadTool = {
         const v = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         return { e: v.Y, n: v.X };
     },
-    // Trả về true nếu đã bắt đầu tải nền / quy hoạch (hàm xuất sẽ được gọi lại qua rerun khi tải xong).
+    // Trả về true nếu đã bắt đầu tải nền / lớp phủ / quy hoạch (hàm xuất sẽ được gọi lại qua rerun khi tải xong).
+    // Kết quả trao cho rerun: { basemap, overlays: [...], guland, vectors: [...] } — vẽ bằng drawExportMapLayers.
     _prepareExportBasemap(meta, frame, pxPerMeter, rerun) {
-        const needBasemap = meta && meta.basemap && EXPORT_BASEMAPS[meta.basemap];
+        const needBasemap = !!(meta && meta.basemap && exportMapSource(meta.basemap));
+        const ovIds = (meta && Array.isArray(meta.overlays)) ? meta.overlays.filter(Boolean) : [];
+        const tileOvIds = ovIds.filter(id => !EXPORT_VECTOR_OVERLAYS[id] && exportMapSource(id));
+        const vecIds = ovIds.filter(id => EXPORT_VECTOR_OVERLAYS[id]);
         const needGuland = meta && meta.showGuland && typeof appPlanning !== 'undefined';
-        if (!needBasemap && !needGuland) return false;
+        if (!needBasemap && !needGuland && !tileOvIds.length && !vecIds.length) return false;
         if (this._exportBasemapBusy) { showToast('⏳ Đang tải lớp bản đồ, vui lòng chờ...'); return true; }
 
         let bmPlan = null;
         let guPlan = null;
+        const toLL = (e, n) => this._exportBasemapToLatLng(e, n);
 
         // Tự động nâng giới hạn số ô ảnh cho các khổ giấy lớn (A0: 260 ô, A1: 220 ô, A2: 180 ô) để độ nét tối đa
         let maxTiles = EXPORT_BASEMAP_MAX_TILES;
@@ -35716,48 +36012,93 @@ const appCadTool = {
         }
 
         if (needBasemap) {
-            try { bmPlan = planExportBasemap(meta.basemap, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), maxTiles); } catch (e) { bmPlan = null; }
+            try { bmPlan = planExportBasemap(meta.basemap, frame, pxPerMeter, toLL, maxTiles); } catch (e) { bmPlan = null; }
         }
+        // Lớp phủ trong suốt: mỗi lớp chia phần ô ít hơn để tổng số ô tải vẫn vừa phải
+        const ovMax = Math.max(24, Math.round(maxTiles / Math.max(1, Math.min(3, tileOvIds.length))));
+        const ovPlans = tileOvIds.map(id => {
+            try { return planExportBasemap(id, frame, pxPerMeter, toLL, ovMax); } catch (e) { return null; }
+        }).filter(pl => pl && pl.tiles && pl.tiles.length);
         if (needGuland) {
             try {
-                guPlan = planExportGuland(meta.gulandProvince, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), maxTiles, meta.gulandLand, meta.gulandOpacity);
+                guPlan = planExportGuland(meta.gulandProvince, frame, pxPerMeter, toLL, maxTiles, meta.gulandLand, meta.gulandOpacity);
             } catch (e) { guPlan = null; }
         }
+        const box = vecIds.length ? exportFrameLatLngBox(frame, toLL) : null;
+        const vectors = vecIds.map(id => Object.assign({ id, box }, EXPORT_VECTOR_OVERLAYS[id]));
 
-        const totalTiles = (bmPlan?.tiles?.length || 0) + (guPlan?.tiles?.length || 0);
-        if (totalTiles === 0) {
-            rerun({ basemap: null, guland: null });
+        const totalTiles = (bmPlan?.tiles?.length || 0) + (guPlan?.tiles?.length || 0) + ovPlans.reduce((t, pl) => t + pl.tiles.length, 0);
+        const libs = vectors.map(v => v.lib).filter(n => typeof LAZY_LIBS !== 'undefined' && LAZY_LIBS[n] && !LAZY_LIBS[n].ready());
+        if (totalTiles === 0 && libs.length === 0) {
+            rerun({ basemap: null, overlays: [], guland: null, vectors });
             return true;
         }
 
         this._exportBasemapBusy = true;
         const labels = [];
         if (bmPlan) labels.push(bmPlan.label);
+        ovPlans.forEach(pl => labels.push(pl.label));
         if (guPlan) labels.push(guPlan.label);
-        showToast(`⏳ Đang tải lớp bản đồ ${labels.join(' + ')} (${totalTiles} ô ảnh)...`);
+        vectors.forEach(v => labels.push(v.label));
+        showToast(`⏳ Đang tải lớp bản đồ ${labels.join(' + ')}${totalTiles ? ` (${totalTiles} ô ảnh)` : ''}...`);
 
         const pBm = bmPlan ? loadExportBasemap(bmPlan) : Promise.resolve(null);
+        const pOv = Promise.all(ovPlans.map(pl => loadExportBasemap(pl)));
         const pGu = guPlan ? loadExportBasemap(guPlan) : Promise.resolve(null);
+        const pLib = Promise.all(libs.map(n => loadLib(n).catch(() => {
+            showToast(`⚠️ Chưa tải được ${(vectors.find(v => v.lib === n) || {}).label || n} — kiểm tra kết nối mạng.`, true);
+        })));
 
-        Promise.all([pBm, pGu]).then(([loadedBm, loadedGu]) => {
+        Promise.all([pBm, pOv, pGu, pLib]).then(([loadedBm, loadedOv, loadedGu]) => {
             this._exportBasemapBusy = false;
             if (loadedBm && loadedBm.failed) {
                 showToast(`⚠️ ${loadedBm.failed}/${loadedBm.tiles.length} ô ảnh nền cơ sở không tải được.`, true);
+            }
+            const ovFailed = (loadedOv || []).filter(o => o && o.failed && o.loaded === 0);
+            if (ovFailed.length) {
+                showToast(`⚠️ Lớp ${ovFailed.map(o => o.label).join(', ')} không tải được (nguồn chặn hoặc mất mạng).`, true);
             }
             if (loadedGu && loadedGu.failed) {
                 showToast(`⚠️ ${loadedGu.failed}/${loadedGu.tiles.length} ô bản đồ quy hoạch không tải được.`, true);
             }
             const merged = Object.assign({}, loadedBm || { none: true }, {
                 basemap: loadedBm,
-                guland: loadedGu
+                overlays: (loadedOv || []).filter(Boolean),
+                guland: loadedGu,
+                vectors
             });
             rerun(merged);
         }).catch(() => {
             this._exportBasemapBusy = false;
-            rerun({ none: true, basemap: null, guland: null });
+            rerun({ none: true, basemap: null, overlays: [], guland: null, vectors: [] });
         });
 
         return true;
+    },
+
+    // Vẽ mọi lớp bản đồ đã chọn vào khung bản đồ của bản vẽ xuất (dưới lưới và nét vẽ):
+    // nền → lớp phủ ô ảnh → quy hoạch → ranh giới → ảnh PDF/ảnh nắn; nguồn ghi gộp một dòng.
+    drawExportMapLayers(ctx, loaded, mapRect, toCanvasRaw, meta = {}) {
+        if (!ctx || !mapRect) return;
+        const L0 = loaded || {};
+        const toVn = (lat, lng) => this._exportBasemapToVn2k(lat, lng);
+        const bmObj = (L0.basemap && L0.basemap.tiles) ? L0.basemap : (L0.tiles ? L0 : null);
+        const credits = [];
+        const draw = (obj) => {
+            if (obj && obj.tiles && drawExportBasemap(ctx, obj, mapRect, toCanvasRaw, toVn, { credit: false }) > 0 && obj.credit) credits.push(obj.credit);
+        };
+        draw(bmObj);
+        (L0.overlays || []).forEach(draw);
+        draw(L0.guland);
+        (L0.vectors || []).forEach(v => {
+            const geo = (typeof window !== 'undefined') ? window[v.global] : null;
+            if (geo && drawExportVector(ctx, geo, mapRect, toCanvasRaw, toVn, v.box, v) > 0) credits.push(v.label);
+        });
+        if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
+            appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
+        }
+        const uniq = credits.filter((c, i) => credits.indexOf(c) === i);
+        if (uniq.length) drawExportCredit(ctx, mapRect, uniq.join(' · '));
     },
 
     _getExportMeta() {
@@ -35821,7 +36162,8 @@ const appCadTool = {
             ? appPlanOverlay.getSelectedExportIds('cadExportPlanOverlayList')
             : [];
         const basemapVal = document.getElementById('cadExportBasemap')?.value;
-        const basemap = ['street', 'satellite', 'sentinel2'].includes(basemapVal) ? basemapVal : 'none';
+        const basemap = exportMapSource(basemapVal) ? basemapVal : 'none';
+        const overlays = readExportOverlayChoice('cadExportOverlayList');
 
         const showGuland = document.getElementById('cadExportCheckGuland')?.checked || false;
         const gulandProvince = document.getElementById('cadExportGulandProvince')?.value || (AppState.provinceName || 'dong-thap');
@@ -35837,7 +36179,7 @@ const appCadTool = {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
                 drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode,
                 scaleVal: rawScaleVal, customScale: customScaleVal, paper, showPercent, showBlockInfo, customTotalArea,
-                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap,
+                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap, overlays,
                 showGuland, gulandProvince, gulandOpacity, gulandLand, printPlanOverlay
             }));
         } catch (e) {}
@@ -35864,7 +36206,7 @@ const appCadTool = {
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
             showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
-            basemap, printPlanOverlay,
+            basemap, overlays, printPlanOverlay,
             showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds
         };
     },
@@ -37003,17 +37345,7 @@ const appCadTool = {
             const bx = toCvX(L.Xin0), by = toCvY(L.Yin1);
             const mapRect = { x: bx, y: by, w: toCvX(L.Xpanel0) - bx, h: toCvDist(L.H_inner) };
             const toCanvasRaw = (e, n) => ({ x: (e - L.X0) * pxPerMeter, y: H_px - (n - L.Y0) * pxPerMeter });
-            const bmObj = (opts.basemap && opts.basemap.basemap) ? opts.basemap.basemap : opts.basemap;
-            const guObj = (opts.basemap && opts.basemap.guland) ? opts.basemap.guland : opts.guland;
-            if (bmObj && bmObj.tiles) {
-                drawExportBasemap(ctx, bmObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (guObj && guObj.tiles) {
-                drawExportBasemap(ctx, guObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
-                appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
-            }
+            this.drawExportMapLayers(ctx, opts.basemap, mapRect, toCanvasRaw, meta);
         }
 
         // 2. Khung Ngoài (Mảnh)
@@ -38094,7 +38426,7 @@ const appCadTool = {
   <text class="layer-khung-ten-text" x="45" y="${khy+122}" font-size="10.5">Người đo: ${(meta.surveyor || '').toUpperCase()}</text>
   <text class="layer-khung-ten-text" x="45" y="${khy+138}" font-size="10.5">Kiểm tra: ${(meta.checker || '').toUpperCase()}</text>
 
-  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+90}" font-size="10.5">Tỷ lệ: 1:${meta.scaleVal}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+90}" font-size="10.5">Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+106}" font-size="10.5">Số tờ/thửa: ${meta.parcelNo || '01'}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+122}" font-size="10.5">Ngày: ${meta.drawingDate}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+138}" font-size="10.5">Số đối tượng: ${selectedShapes.length}</text>
@@ -38104,12 +38436,12 @@ const appCadTool = {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${projName}_BanDo_1-${meta.scaleVal}.svg`;
+        a.download = `${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.svg`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất bản vẽ SVG Vector độ nét cao: ${projName}_BanDo_1-${meta.scaleVal}.svg`);
+        showToast(`✓ Đã xuất bản vẽ SVG Vector độ nét cao: ${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.svg`);
     },
 
     exportOptimizedImage(customOpts = {}) {
@@ -38208,17 +38540,7 @@ const appCadTool = {
         {
             const mapRect = { x: pad, y: pad, w: W - 2 * pad, h: mapBottom - pad };
             const toCanvasRaw = (e, n) => ({ x: toX(e), y: toY(n) });
-            const bmObj = (customOpts.basemap && customOpts.basemap.basemap) ? customOpts.basemap.basemap : customOpts.basemap;
-            const guObj = (customOpts.basemap && customOpts.basemap.guland) ? customOpts.basemap.guland : customOpts.guland;
-            if (bmObj && bmObj.tiles) {
-                drawExportBasemap(ctx, bmObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (guObj && guObj.tiles) {
-                drawExportBasemap(ctx, guObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
-                appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
-            }
+            this.drawExportMapLayers(ctx, customOpts.basemap, mapRect, toCanvasRaw, meta);
         }
 
         // Grid lines
@@ -38424,7 +38746,7 @@ const appCadTool = {
         ctx.fillText(`Người đo: ${(meta.surveyor || '').toUpperCase()}`, 45, lY + 48);
         ctx.fillText(`Kiểm tra: ${(meta.checker || '').toUpperCase()}`, 45, lY + 72);
 
-        ctx.fillText(`Tỷ lệ: 1:${meta.scaleVal}`, midX + 20, lY);
+        ctx.fillText(`Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}`, midX + 20, lY);
         ctx.fillText(`Số tờ/thửa: ${meta.parcelNo || '01'}`, midX + 20, lY + 24);
         ctx.fillText(`Ngày: ${meta.drawingDate}`, midX + 20, lY + 48);
         ctx.fillText(`Số đối tượng: ${selectedShapes.length}`, midX + 20, lY + 72);
@@ -38439,7 +38761,7 @@ const appCadTool = {
                 const url = URL.createObjectURL(res.blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${projName}_BanDo_1-${meta.scaleVal}.${res.ext}`;
+                a.download = `${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.${res.ext}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -38460,12 +38782,12 @@ const appCadTool = {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${projName}_BanDo_1-${meta.scaleVal}.${ext}`;
+                a.download = `${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.${ext}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showToast(`✓ Đã xuất ảnh ${ext.toUpperCase()}: ${projName}_BanDo_1-${meta.scaleVal}.${ext}`);
+                showToast(`✓ Đã xuất ảnh ${ext.toUpperCase()}: ${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.${ext}`);
             }, mime);
         }
     },
@@ -46967,6 +47289,12 @@ if (typeof module !== 'undefined' && module.exports) {
         loadExportBasemap,
         exportTileTransform,
         drawExportBasemap,
+        drawExportVector,
+        exportMapSource,
+        exportLayerCatalog,
+        exportFrameLatLngBox,
+        EXPORT_TILE_OVERLAYS,
+        EXPORT_VECTOR_OVERLAYS,
         appDashboard,
         appData,
         safeUserText,

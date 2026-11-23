@@ -449,11 +449,12 @@ console.log('\n— _getExportMeta: nhận cờ mới, cô lập khỏi cài đ�
         cadExportCheckFullDetails: { checked: false }
     };
     const store = {};
-    const api = new Function('document', 'localStorage', 'AppState',
+    const api = new Function('document', 'localStorage', 'AppState', 'exportMapSource', 'readExportOverlayChoice',
         `return ({ ${extractMethod('_getExportMeta')} });`)(
             { getElementById: id => (boxes[id] || { value: '', checked: undefined }) },
             { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = v; } },
-            { currentProject: 'DuAn.csv', provinceName: 'TP.HCM', kttDeg: 105, kttMin: 45 });
+            { currentProject: 'DuAn.csv', provinceName: 'TP.HCM', kttDeg: 105, kttMin: 45 },
+            () => null, () => []);
 
     const ctx = { displaySettings: { showPoints: true, showVertices: true, showLabels: true } };
     const meta = api._getExportMeta.call(ctx);

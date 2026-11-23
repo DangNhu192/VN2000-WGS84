@@ -1,5 +1,18 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-23: WP-EXPORT-ALL-LAYERS — XUẤT BẢN ĐỒ VỚI ĐỦ CÁC LỚP (v2.8.50)
+- **Yêu cầu**: chức năng xuất bản đồ ra tệp chỉ cho chọn vài lớp bản đồ (3 nền), chưa chọn được tất cả.
+- **Tìm thấy**: (1) hộp xuất chỉ có OSM, Esri vệ tinh, Sentinel-2, trong khi "Lớp bản đồ" có 6 nền + lớp phủ Esri giao thông, Google đường/nhãn, Google giao thông, ranh 34 tỉnh, xã Đồng Tháp, nguồn tự thêm XYZ/WMS; (2) PDF/PNG của hộp "Xuất dữ liệu" bỏ qua hoàn toàn nền, quy hoạch, ảnh PDF đã chọn; (3) ảnh/SVG MiniCAD ghi "Tỷ lệ: 1:null" khi tỉ lệ tự động.
+- **Đã làm**:
+  1. `EXPORT_BASEMAPS` thêm google_hybrid, esri_satellite, google_streets, opentopomap, google_terrain, osm_streets (tên cũ street/satellite vẫn chạy); `EXPORT_TILE_OVERLAYS`, `EXPORT_VECTOR_OVERLAYS`; `exportMapSource` (cả `custom:<id>` XYZ/WMS — WMS tính BBOX EPSG:3857 theo ô), `exportLayerCatalog`.
+  2. Hộp xuất (cả hai): ô nền dựng từ danh mục (đánh dấu "đang xem"), danh sách "Lớp phủ in kèm" chọn sẵn lớp đang bật trên bản đồ; lưu cùng cấu hình xuất.
+  3. `appCadTool._prepareExportBasemap` tải nền + lớp phủ + quy hoạch + thư viện ranh giới; `drawExportMapLayers` vẽ nền → lớp phủ → quy hoạch → ranh giới (`drawExportVector`) → ảnh PDF, ghi nguồn gộp một dòng (`drawExportCredit`).
+  4. `appData.exportPngImage/exportPdfFile` vẽ các lớp (PDF: mở cửa sổ in trước rồi chờ tải, ảnh lớp đặt vào SVG sơ đồ).
+  5. Test: `tests/export_all_map_layers.test.js` (6); cập nhật 3 test ghim mã cũ. **568/568 PASS**. Kiểm trong trình duyệt bằng ô ảnh giả lập: PNG dữ liệu, ảnh MiniCAD, PDF dữ liệu đều có nền + lớp phủ + ranh giới.
+- **Lưu ý**: nguồn Google/OpenTopo được bản đồ chính nạp kiểu CORS nên in được; nếu một nguồn chặn, ô lỗi bị bỏ qua và có thông báo. Chưa thử với mạng thật trong phiên này (máy kiểm thử chặn mạng ngoài).
+
+---
+
 ## Phiên hiện tại — 2026-11-23: WP-CAD-GLYPH-LABELS — KÝ HIỆU & CHỮ MINICAD, ICON MỐC DỰ ÁN (v2.8.48 → v2.8.49)
 - **Yêu cầu**: cách chỉnh icon MiniCAD chưa ổn — chưa chỉnh được icon mốc tọa độ và cỡ/vị trí chữ trong hoặc ngoài icon.
 - **Lỗi tìm thấy khi đo trong trình duyệt**: (1) mọi ký hiệu đỉnh/điểm bị vẽ LỆCH nửa ô icon lên trên-trái (11 px với cỡ Vừa) so với tọa độ thật; (2) tên dài hơn ~3 ký tự (GPS-5, M105) bị cắt trong viên thuốc; (3) chữ chỉ nằm trong ký hiệu, cỡ chữ gắn cứng theo cỡ ký hiệu; (4) mốc dự án luôn là ghim đỏ có số thứ tự, không chỉnh được.

@@ -127,5 +127,6 @@ test('xuất bản vẽ: nền bản đồ kỹ thuật và Sentinel-2', () => {
     assert.equal(EXPORT_BASEMAPS.sentinel2.maxZoom, 14);
     const sel = html.match(/<select id="cadExportBasemap"[\s\S]*?<\/select>/)[0];
     assert.match(sel, /value="sentinel2"/);
-    assert.match(app, /\['street', 'satellite', 'sentinel2'\]\.includes\(basemapVal\)/);
+    // v2.8.50: nhận mọi nền của danh mục (không còn danh sách 3 nền cố định)
+    assert.match(app, /const basemap = exportMapSource\(basemapVal\) \? basemapVal : 'none';/);
 });
