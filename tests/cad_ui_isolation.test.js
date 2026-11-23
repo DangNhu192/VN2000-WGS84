@@ -188,8 +188,6 @@ console.log('\n— Rời MiniCAD: đóng toolbar, cửa sổ và hình khối �
     assert(closeToolbarBody.includes('this.closeCadWindows()'), 'closeToolbar đóng mọi cửa sổ CAD còn treo');
 
     [
-        ['openCoordPickerMap', 'Bản đồ Chấm điểm tọa độ'],
-        ['openConvertedMap', 'Bản đồ xem điểm chuyển đổi'],
         ['openProjectMap', 'Bản đồ dự án & mốc']
     ].forEach(([name, label]) => {
         const body = extractMethod(name);
@@ -221,13 +219,6 @@ console.log('\n— Modal phải có class active mới hiển thị —');
     assert(stampBody.includes("classList.add('active', 'show')"),
         'Mở cài đặt tem mặc định thêm đủ active + show');
 
-    const promptBody = extractMethod('promptOpenConvertedMap');
-    assert(promptBody.includes("classList.add('active', 'show')"),
-        'Popup mở bản đồ điểm chuyển đổi thêm đủ active + show');
-
-    const closePromptBody = extractMethod('closePromptMap');
-    assert(closePromptBody.includes("classList.remove('active', 'show')"),
-        'Đóng popup điểm chuyển đổi gỡ cả active + show');
 }
 
 // =====================================================================

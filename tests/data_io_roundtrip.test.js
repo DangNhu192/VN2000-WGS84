@@ -64,7 +64,8 @@ test('app.js: nhập chấp nhận mọi kiểu xuống dòng, mọi định d�
     assert.ok(appJs.includes("split(/\\r\\n|\\r|\\n/)"));
     assert.ok(appJs.includes('normalizeSurveyPoints(raw, { ktt: AppState.kttVal, mui: AppState.muiVal })'));
     assert.ok(appJs.includes('parseHeaderedTable(text,'));
-    assert.match(appJs, /_buildCsvText\(pts\) \{\s*const headers = \["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H"/);
+    // v2.8.51: thêm dòng lấy mã liên kết thửa ↔ đỉnh trước tiêu đề
+    assert.match(appJs, /_buildCsvText\(pts\) \{\s*const \{ rows: list, linked \} = this\._linkedExportRows\(pts\);\s*const headers = \["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H"/);
     assert.equal((appJs.match(/this\._buildCsvText\(pts\)/g) || []).length, 2, 'Xuất và chia sẻ CSV dùng chung một định dạng');
     assert.ok(appJs.includes('<name>${escapeXml(projName)}</name>'));
 });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.47';
+const CACHE_NAME = 'vn2000-pro-v2.8.53';
 // Dữ liệu địa giới lớn (~4 MB): cache riêng, KHÔNG xóa khi nâng phiên bản ứng dụng; đổi tên khi dữ liệu đổi.
 const DATA_CACHE = 'vn2000-data-admin-2025-07-01';
 // Bộ nhớ đệm gạch bản đồ thực địa: Lưu trữ bền vững phục vụ khảo sát ngoại tuyến không sóng mạng
@@ -13,6 +13,7 @@ const ASSETS_TO_CACHE = [
   './src/core/gis_io.js',
   './src/core/planning_map.js',
   './src/core/georef.js',
+  './src/core/parcel_links.js',
   './field-workspace.js',
   './field-workspace.css',
   './vn2000-rezone.js',
@@ -171,14 +172,17 @@ self.addEventListener('fetch', (event) => {
                     url.hostname.includes('cmctelecom.vn') ||
                     url.hostname.includes('digitaloceanspaces.com') ||
                     url.hostname.includes('guland.vn') ||
-                    url.hostname.includes('opentopomap.org') ||;
+                    url.hostname.includes('opentopomap.org') ||
+                    url.hostname.includes('eox.at');
 
   if (isMapTile) {
     // Với tile bản đồ: Ưu tiên cache đã lưu (offline field support), nếu chưa có thì tải từ mạng và tự động lưu vào TILE_CACHE
     event.respondWith(
       caches.open(TILE_CACHE).then((tileCache) => {
         return tileCache.match(req).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
+          // Ô đã lưu dạng "opaque" (do lớp bản đồ nạp không kèm CORS) không dùng được cho yêu cầu CORS
+          // của bộ xuất ảnh/PDF (trình duyệt sẽ báo lỗi ảnh) → tải lại từ mạng và thay bản lưu.
+          if (cachedResponse && !(cachedResponse.type === 'opaque' && req.mode === 'cors')) return cachedResponse;
           return fetch(req).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const resClone = networkResponse.clone();

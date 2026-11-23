@@ -82,7 +82,6 @@ test('2. appPlanOverlay contains all necessary watermark cleaner methods', () =>
     assert.strictEqual(typeof appPlanOverlay.undoWkClean, 'function');
     assert.strictEqual(typeof appPlanOverlay.restoreWkOriginal, 'function');
     assert.strictEqual(typeof appPlanOverlay.saveCleanedImage, 'function');
-    assert.strictEqual(typeof appPlanOverlay.toggleDeWatermark, 'function');
 });
 
 test('3. setWkMode correctly switches active mode and updates UI controls', () => {
@@ -215,30 +214,3 @@ test('5. applyAutoWatermarkSuppression suppresses bright watermark pixels on pla
     assert.ok(modifiedImgData.data[centerIdx + 1] <= 180, `Watermark green suppressed, got ${modifiedImgData.data[centerIdx + 1]}`);
 });
 
-test('6. toggleDeWatermark applies CSS blend mode and contrast filter to layer element', () => {
-    const mockItem = {
-        id: 'plan_test_wk_1',
-        deWatermark: false,
-        layer: {
-            _el: {
-                style: {
-                    filter: '',
-                    mixBlendMode: ''
-                }
-            }
-        }
-    };
-    appPlanOverlay.items = [mockItem];
-
-    // Bật khử watermark thời gian thực
-    appPlanOverlay.toggleDeWatermark('plan_test_wk_1', true);
-    assert.strictEqual(mockItem.deWatermark, true);
-    assert.strictEqual(mockItem.layer._el.style.mixBlendMode, 'multiply');
-    assert.ok(mockItem.layer._el.style.filter.includes('contrast'));
-
-    // Tắt khử watermark
-    appPlanOverlay.toggleDeWatermark('plan_test_wk_1', false);
-    assert.strictEqual(mockItem.deWatermark, false);
-    assert.strictEqual(mockItem.layer._el.style.mixBlendMode, 'normal');
-    assert.strictEqual(mockItem.layer._el.style.filter, 'none');
-});

@@ -70,7 +70,6 @@ const AppState = {
     isPolygonClosed: false,
     measureStartPoint: null,
     measureActiveLine: null,
-    pickerMarker: null,
     pickedCoord: null, // { lat, lng, X, Y }
     lastConvertedPoint: null, // { lat, lng, x, y, name, ktt, k0 }
     convertedMarker: null,
@@ -354,6 +353,145 @@ const EXPORT_BASEMAPS = {
         credit: 'Sentinel-2 cloudless - s2maps.eu by EOX IT Services GmbH (Copernicus Sentinel data 2016 & 2017)'
     }
 };
+// Mọi nền của "Lớp bản đồ" (MAP_BASES) đều in được: bản đồ chính cũng nạp các ô này kiểu CORS
+// (crossOrigin) nên ảnh xuất không bị "nhiễm bẩn". 'street' / 'satellite' là tên cũ, giữ để cấu hình đã lưu vẫn chạy.
+Object.assign(EXPORT_BASEMAPS, {
+    google_hybrid: {
+        label: 'Vệ tinh Google',
+        url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.9, credit: 'Ảnh © Google'
+    },
+    esri_satellite: Object.assign({}, EXPORT_BASEMAPS.satellite),
+    google_streets: {
+        label: 'Đường phố Google',
+        url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.8, credit: 'Bản đồ © Google'
+    },
+    opentopomap: {
+        label: 'Địa hình OpenTopo',
+        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', subdomains: ['a', 'b', 'c'],
+        maxZoom: 17, alpha: 0.8, credit: '© OpenTopoMap (CC-BY-SA), © OpenStreetMap'
+    },
+    google_terrain: {
+        label: 'Địa hình Google',
+        url: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 17, alpha: 0.8, credit: 'Địa hình © Google'
+    },
+    osm_streets: Object.assign({}, EXPORT_BASEMAPS.street)
+});
+const EXPORT_BASEMAP_ALIASES = { street: 'osm_streets', satellite: 'esri_satellite' };
+// Thứ tự trong ô chọn nền khi xuất — cùng thứ tự với bảng "Lớp bản đồ".
+const EXPORT_BASE_ORDER = ['google_hybrid', 'esri_satellite', 'google_streets', 'opentopomap', 'google_terrain', 'osm_streets', 'sentinel2'];
+// Lớp phủ ô ảnh (trong suốt) in đè lên nền — như các công tắc lớp phủ của bản đồ.
+const EXPORT_TILE_OVERLAYS = {
+    esri_transport: {
+        label: 'Giao thông Esri',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 20, alpha: 0.85, credit: 'Giao thông: © Esri, HERE, Garmin, USGS'
+    },
+    google_roads: {
+        label: 'Đường & nhãn Google',
+        url: 'https://{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.85, credit: 'Đường & Nhãn © Google'
+    },
+    google_traffic: {
+        label: 'Giao thông Google (trực tiếp)',
+        url: 'https://{s}.google.com/vt?lyrs=traffic&x={x}&y={y}&z={z}', subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20, alpha: 0.85, credit: 'Giao thông © Google'
+    }
+};
+// Lớp ranh giới vẽ bằng nét (GeoJSON nạp khi cần).
+const EXPORT_VECTOR_OVERLAYS = {
+    prov34: {
+        label: 'Ranh giới 34 tỉnh', lib: 'prov34', global: 'VIETNAM_34_PROVINCES', color: '#e11d48', dash: [10, 6],
+        name: p => p.ten_tinh || p.name || ''
+    },
+    dongthap: {
+        label: 'Ranh giới xã Đồng Tháp', lib: 'dongthap', global: 'DONG_THAP_COMMUNES', color: '#059669', dash: [6, 4],
+        name: p => p.ten_xa || p.Ten_Xa || p.NAME_3 || p.name || ''
+    }
+};
+
+function _exportOverlayState() {
+    return (typeof appMapLayers !== 'undefined' && appMapLayers && typeof appMapLayers.load === 'function') ? appMapLayers.load() : null;
+}
+// Nguồn ô ảnh theo mã: nền, lớp phủ, hoặc 'custom:<id>' (nguồn tự thêm XYZ / WMS).
+function exportMapSource(id) {
+    if (!id || id === 'none') return null;
+    const key = EXPORT_BASEMAP_ALIASES[id] || id;
+    if (EXPORT_BASEMAPS[key]) return EXPORT_BASEMAPS[key];
+    const st = _exportOverlayState();
+    if (EXPORT_TILE_OVERLAYS[key]) {
+        const o = st && st[key] && st[key].opacity;
+        return Object.assign({}, EXPORT_TILE_OVERLAYS[key], o ? { alpha: Math.max(0.1, Math.min(1, +o)) } : {});
+    }
+    if (String(key).startsWith('custom:') && st && Array.isArray(st.custom)) {
+        const c = st.custom.find(x => x && 'custom:' + x.id === key);
+        if (!c || !/^https:\/\//i.test(c.url || '')) return null;
+        return {
+            label: c.name || 'Nguồn tự thêm', url: c.url, wms: c.type === 'wms', layersParam: c.layers || '',
+            maxZoom: Math.max(1, Math.min(22, +c.maxZoom || 19)), alpha: Math.max(0.1, Math.min(1, +c.opacity || 0.8)),
+            credit: String(c.attribution || '').replace(/<[^>]*>/g, '').trim()
+        };
+    }
+    return null;
+}
+// Danh mục cho hộp xuất: nền, lớp phủ (kèm trạng thái đang bật trên bản đồ).
+function exportLayerCatalog() {
+    const bases = EXPORT_BASE_ORDER.map(id => {
+        const def = (typeof MAP_BASES !== 'undefined') ? MAP_BASES.find(b => b.id === id) : null;
+        return { id, name: def ? def.name : EXPORT_BASEMAPS[id].label };
+    });
+    const st = _exportOverlayState();
+    const overlays = Object.keys(EXPORT_TILE_OVERLAYS).map(id => ({ id, name: EXPORT_TILE_OVERLAYS[id].label, on: !!(st && st[id] && st[id].on) }));
+    const A = (typeof AppState !== 'undefined') ? AppState : {};
+    overlays.push({ id: 'prov34', name: EXPORT_VECTOR_OVERLAYS.prov34.label, on: !!A.is34ProvVisible });
+    overlays.push({ id: 'dongthap', name: EXPORT_VECTOR_OVERLAYS.dongthap.label, on: !!A.isDtCommunesVisible });
+    if (st && Array.isArray(st.custom)) {
+        st.custom.forEach(c => { if (c && c.id && c.url) overlays.push({ id: 'custom:' + c.id, name: c.name || 'Nguồn tự thêm', on: !!c.on }); });
+    }
+    return { bases, overlays };
+}
+// ---- Hộp xuất: ô chọn nền + danh sách lớp phủ (dùng chung cho Xuất dữ liệu và Studio xuất MiniCAD) ----
+function fillExportBaseSelect(selId, savedVal) {
+    const sel = typeof document !== 'undefined' ? document.getElementById(selId) : null;
+    if (!sel) return;
+    const cat = exportLayerCatalog();
+    const active = (typeof AppState !== 'undefined') ? AppState.activeBaseLayerId : null;
+    const esc = (typeof escapeHtml === 'function') ? escapeHtml : (t => String(t));
+    sel.innerHTML = `<option value="none">Không nền (Giấy trắng chuẩn kỹ thuật)</option>` + cat.bases.map(b =>
+        `<option value="${b.id}">${esc(b.name)}${b.id === active || EXPORT_BASEMAP_ALIASES[b.id] === active ? ' · đang xem' : ''}</option>`).join('');
+    const v = EXPORT_BASEMAP_ALIASES[savedVal] || savedVal;
+    sel.value = (v && (v === 'none' || exportMapSource(v))) ? v : 'none';
+}
+function renderExportOverlayList(boxId, saved, onchange) {
+    const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+    if (!box) return;
+    const cat = exportLayerCatalog();
+    const esc = (typeof escapeHtml === 'function') ? escapeHtml : (t => String(t));
+    const pick = Array.isArray(saved) ? saved : null;
+    box.innerHTML = `<div class="exp-ov-head">Lớp phủ in kèm <small>(đè lên nền)</small></div>` + cat.overlays.map(o => {
+        const on = pick ? pick.includes(o.id) : o.on;
+        return `<label class="exp-ov-item${o.on ? ' is-live' : ''}"><input type="checkbox" value="${esc(o.id)}" ${on ? 'checked' : ''} onchange="${onchange || ''}"><span>${esc(o.name)}</span>${o.on ? '<em>đang bật</em>' : ''}</label>`;
+    }).join('');
+}
+function readExportOverlayChoice(boxId) {
+    const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+    if (!box || !box.querySelectorAll) return [];
+    return Array.from(box.querySelectorAll('input[type="checkbox"]')).filter(i => i.checked).map(i => i.value);
+}
+function _exportTileUrl(src, z, x, y) {
+    if (src.wms) {
+        // Ô EPSG:3857 → BBOX (mét Mercator)
+        const R = 20037508.342789244, size = 2 * R / Math.pow(2, z);
+        const minx = -R + x * size, maxx = minx + size, maxy = R - y * size, miny = maxy - size;
+        const sep = src.url.includes('?') ? '&' : '?';
+        return `${src.url}${sep}SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=${encodeURIComponent(src.layersParam || '')}&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX=${minx},${miny},${maxx},${maxy}`;
+    }
+    const subs = src.subdomains;
+    const sub = subs && subs.length ? subs[Math.abs(x + y) % subs.length] : '';
+    return src.url.replace('{s}', sub).replace('{z}', z).replace('{x}', x).replace('{y}', y);
+}
 const EXPORT_BASEMAP_MAX_TILES = 160;
 
 function _tileFromLatLng(lat, lng, z) {
@@ -374,7 +512,7 @@ function _latLngFromTile(x, y, z) {
 // frame: { e0, e1, n0, n1 } (mét VN-2000: Đông, Bắc); pxPerMeter: độ phân giải bản vẽ;
 // toLatLng(e, n) → { lat, lng }. Trả về mức thu phóng và danh sách ô cần tải.
 function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_BASEMAP_MAX_TILES) {
-    const src = EXPORT_BASEMAPS[kind];
+    const src = exportMapSource(kind);
     if (!src || !frame || !(pxPerMeter > 0) || typeof toLatLng !== 'function') return null;
     const corners = [[frame.e0, frame.n0], [frame.e1, frame.n0], [frame.e0, frame.n1], [frame.e1, frame.n1]]
         .map(([e, n]) => toLatLng(e, n));
@@ -399,7 +537,7 @@ function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_
         for (let tx = range.x0; tx <= range.x1; tx++) {
             if (ty < 0 || ty >= n) continue;
             const wx = ((tx % n) + n) % n;
-            tiles.push({ x: tx, y: ty, url: src.url.replace('{z}', z).replace('{x}', wx).replace('{y}', ty) });
+            tiles.push({ x: tx, y: ty, url: _exportTileUrl(src, z, wx, ty) });
         }
     }
     return { kind, z, tiles, credit: src.credit, alpha: src.alpha, label: src.label };
@@ -502,6 +640,7 @@ function loadExportBasemap(plan, opts = {}) {
         const timer = setTimeout(() => finish(false), timeoutMs);
         img.crossOrigin = 'anonymous';
         img.onload = () => finish(true);
+        let triedBust = false;
         img.onerror = () => {
             if (!triedFallback && t.fallbackUrl) {
                 triedFallback = true;
@@ -510,6 +649,14 @@ function loadExportBasemap(plan, opts = {}) {
                     img.src = nextUrl;
                     return;
                 }
+            }
+            // Thử lại một lần với địa chỉ khác đi một chút: né bản lưu cũ của trình duyệt / service worker
+            // (ô đã lưu khi bản đồ nạp không kèm CORS thì không vẽ được lên ảnh xuất) và lỗi mạng thoáng qua.
+            if (!triedBust) {
+                triedBust = true;
+                const base = img.src || wrapTileProxyUrl(t.url);
+                img.src = base + (base.includes('?') ? '&' : '?') + '_vn2k=export';
+                return;
             }
             finish(false);
         };
@@ -535,7 +682,7 @@ function exportTileTransform(tile, z, toCanvas, toVn2k) {
 }
 
 // Vẽ nền vào khung rect (điểm ảnh canvas) — gọi sau nền trắng, trước lưới và nét vẽ.
-function drawExportBasemap(ctx, basemap, rect, toCanvas, toVn2k) {
+function drawExportBasemap(ctx, basemap, rect, toCanvas, toVn2k, opts = {}) {
     if (!ctx || !basemap || !basemap.tiles || !rect) return 0;
     let drawn = 0;
     ctx.save();
@@ -555,20 +702,105 @@ function drawExportBasemap(ctx, basemap, rect, toCanvas, toVn2k) {
         drawn++;
     });
     ctx.globalAlpha = 1;
-    // Ghi nguồn bản đồ ở góc dưới phải khung
-    if (drawn > 0 && basemap.credit) {
-        const fs = Math.max(10, Math.round(rect.h * 0.012));
+    ctx.restore();
+    // Ghi nguồn bản đồ ở góc dưới phải khung (bộ vẽ nhiều lớp tự ghi gộp một dòng)
+    if (drawn > 0 && basemap.credit && opts.credit !== false) drawExportCredit(ctx, rect, basemap.credit);
+    return drawn;
+}
+
+function drawExportCredit(ctx, rect, text) {
+    if (!ctx || !rect || !text) return;
+    ctx.save();
+    let fs = Math.max(10, Math.round(rect.h * 0.012));
+    ctx.font = `${fs}px Arial, sans-serif`;
+    let tw = ctx.measureText(text).width;
+    // Dòng nguồn dài (nhiều lớp) thu nhỏ cho vừa 90% bề rộng khung
+    if (tw > rect.w * 0.9 && tw > 0) {
+        fs = Math.max(8, Math.floor(fs * rect.w * 0.9 / tw));
         ctx.font = `${fs}px Arial, sans-serif`;
-        const tw = ctx.measureText(basemap.credit).width;
-        const pad = Math.round(fs * 0.4);
-        const bx = rect.x + rect.w - tw - pad * 3, by = rect.y + rect.h - fs - pad * 3;
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fillRect(bx, by, tw + pad * 2, fs + pad * 2);
-        ctx.fillStyle = '#334155';
-        ctx.textBaseline = 'top';
-        ctx.fillText(basemap.credit, bx + pad, by + pad);
-        ctx.textBaseline = 'alphabetic';
+        tw = ctx.measureText(text).width;
     }
+    const pad = Math.round(fs * 0.4);
+    const bx = rect.x + rect.w - tw - pad * 3, by = rect.y + rect.h - fs - pad * 3;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillRect(bx, by, tw + pad * 2, fs + pad * 2);
+    ctx.fillStyle = '#334155';
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, bx + pad, by + pad);
+    ctx.restore();
+}
+
+// Khung VN-2000 → hộp kinh/vĩ độ (lọc nhanh đối tượng ranh giới nằm ngoài bản vẽ).
+function exportFrameLatLngBox(frame, toLatLng) {
+    if (!frame || typeof toLatLng !== 'function') return null;
+    const c = [[frame.e0, frame.n0], [frame.e1, frame.n0], [frame.e0, frame.n1], [frame.e1, frame.n1]].map(([e, n]) => toLatLng(e, n));
+    if (c.some(p => !p || !isFinite(p.lat) || !isFinite(p.lng))) return null;
+    const lats = c.map(p => p.lat), lngs = c.map(p => p.lng);
+    const padLat = (Math.max(...lats) - Math.min(...lats)) * 0.05, padLng = (Math.max(...lngs) - Math.min(...lngs)) * 0.05;
+    return { latMin: Math.min(...lats) - padLat, latMax: Math.max(...lats) + padLat, lngMin: Math.min(...lngs) - padLng, lngMax: Math.max(...lngs) + padLng };
+}
+
+function _geoRings(geom) {
+    if (!geom) return [];
+    if (geom.type === 'Polygon') return geom.coordinates || [];
+    if (geom.type === 'MultiPolygon') return [].concat(...(geom.coordinates || []));
+    if (geom.type === 'LineString') return [geom.coordinates || []];
+    if (geom.type === 'MultiLineString') return geom.coordinates || [];
+    return [];
+}
+
+// Vẽ ranh giới GeoJSON ([lng, lat]) vào khung bản vẽ; trả về số đối tượng đã vẽ.
+function drawExportVector(ctx, geo, rect, toCanvas, toVn2k, box, style = {}) {
+    if (!ctx || !geo || !Array.isArray(geo.features) || !rect) return 0;
+    const lw = style.lineWidth || Math.max(1.5, rect.h * 0.0016);
+    let drawn = 0;
+    const labels = [];
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.strokeStyle = style.color || '#e11d48';
+    ctx.lineWidth = lw;
+    ctx.lineJoin = 'round';
+    if (style.dash) ctx.setLineDash(style.dash.map(d => d * lw / 1.5));
+    geo.features.forEach(f => {
+        const rings = _geoRings(f && f.geometry);
+        if (!rings.length) return;
+        if (!f._exportBox) {
+            let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity;
+            rings.forEach(r => r.forEach(pt => { if (pt[1] < a) a = pt[1]; if (pt[1] > b) b = pt[1]; if (pt[0] < c) c = pt[0]; if (pt[0] > d) d = pt[0]; }));
+            Object.defineProperty(f, '_exportBox', { value: { latMin: a, latMax: b, lngMin: c, lngMax: d }, enumerable: false, configurable: true });
+        }
+        const fb = f._exportBox;
+        if (box && (fb.latMax < box.latMin || fb.latMin > box.latMax || fb.lngMax < box.lngMin || fb.lngMin > box.lngMax)) return;
+        ctx.beginPath();
+        rings.forEach(r => {
+            r.forEach((pt, i) => {
+                const v = toVn2k(pt[1], pt[0]);
+                const q = v && toCanvas(v.e, v.n);
+                if (!q || !isFinite(q.x) || !isFinite(q.y)) return;
+                if (i === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y);
+            });
+        });
+        ctx.stroke();
+        drawn++;
+        const name = style.name ? style.name((f && f.properties) || {}) : '';
+        if (name) {
+            const v = toVn2k((fb.latMin + fb.latMax) / 2, (fb.lngMin + fb.lngMax) / 2);
+            const q = v && toCanvas(v.e, v.n);
+            if (q && q.x > rect.x && q.x < rect.x + rect.w && q.y > rect.y && q.y < rect.y + rect.h) labels.push({ name, q });
+        }
+    });
+    ctx.setLineDash([]);
+    // Tên vùng: chữ có viền trắng để đọc được trên ảnh vệ tinh
+    const fs = Math.max(11, Math.round(rect.h * 0.016));
+    ctx.font = `bold ${fs}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = Math.max(2, fs * 0.22);
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillStyle = style.color || '#e11d48';
+    labels.forEach(l => { ctx.strokeText(l.name, l.q.x, l.q.y); ctx.fillText(l.name, l.q.x, l.q.y); });
     ctx.restore();
     return drawn;
 }
@@ -1627,7 +1859,7 @@ const appNav = window.appNav = {
     // Mỗi hàm mở bản đồ chỉ được bật lại đúng thanh công cụ thuộc phân hệ của mình.
     resetMapChrome() {
         [
-            'mapProjectBar', 'barCoordPicker', 'mapCadToolbar', 'mapDistanceHud',
+            'mapProjectBar', 'mapCadToolbar', 'mapDistanceHud',
             'cadStatusHud', 'cadFloatingCmdBar', 'cadThumbActionBar', 'cadTouchLoupe',
             'cadBlocksStatsPanel', 'cadBlocksPanel', 'projectMarksBlocksPanel',
             'mapBottomSheet', 'mapPointMeasureBox', 'mapProjectPlanningCtrl', 'cadPlanningCtrl'
@@ -1671,70 +1903,6 @@ const appNav = window.appNav = {
         }
     },
 
-    openCoordPickerMap(options = { mode: 'single' }) {
-        AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'transform';
-        AppState.currentScreen = 'map';
-        AppState.mapMode = 'pick';
-        this.resetMapChrome();
-        document.querySelectorAll('.screen-view').forEach(el => {
-            el.classList.remove('active');
-            el.style.display = 'none';
-        });
-        const mapView = document.getElementById('map-view-container');
-        if (mapView) {
-            mapView.classList.add('active');
-            mapView.classList.remove('cad-active-map');
-            mapView.style.display = 'block';
-            void mapView.offsetHeight;
-        }
-
-        // Đồng bộ Header trên cùng
-        const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
-        this.syncHeader('🎯 1. CHẤM CHỌN TỌA ĐỘ BẢN ĐỒ', '🎯 1. MAP COORDINATE PICKER');
-
-        // Phân quyền thanh công cụ trên đỉnh bản đồ: CHỈ hiện barCoordPicker
-        const barPicker = document.getElementById('barCoordPicker');
-        if (barPicker) barPicker.style.display = 'flex';
-        const barProject = document.getElementById('mapProjectBar');
-        if (barProject) barProject.style.display = 'none';
-
-        // Tắt toàn bộ MiniCAD và đo đạc
-        if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
-            appCadTool.closeToolbar();
-        }
-        // Bản đồ chấm điểm chuyển đổi phải sạch, không lẫn khối/hình vẽ của MiniCAD
-        if (typeof appCadTool !== 'undefined') {
-            if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
-            if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
-        }
-
-        appNav.setActiveMenuItem('drawerItem_transform');
-        this.syncBottomNav('transform');
-
-        appMap.initMap();
-        if (appMap.initRightControlsDrag) appMap.initRightControlsDrag();
-        if (appMap.updateFabControlsVisibility) appMap.updateFabControlsVisibility('pick');
-
-        // Mở bản đồ sạch không bị lẫn mốc dự án
-        if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
-        if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
-        if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
-            AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
-            AppState.projectPolygonLayer = null;
-        }
-
-        if (typeof appCoordPicker !== 'undefined') {
-            appCoordPicker.setMode(options.mode || 'single');
-        }
-
-        if (AppState.lastGps && AppState.lastGps.lat) {
-            AppState.leafletMap.setView([AppState.lastGps.lat, AppState.lastGps.lng], 16);
-        }
-        if (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en' && typeof document !== 'undefined') {
-            appI18n.walkAndTranslate(document.body);
-        }
-    },
 
     openProjectMap(options = {}) {
         AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'menu';
@@ -1761,8 +1929,6 @@ const appNav = window.appNav = {
         // Phân quyền thanh công cụ trên đỉnh bản đồ: CHỈ hiện mapProjectBar
         const barProject = document.getElementById('mapProjectBar');
         if (barProject) barProject.style.display = 'flex';
-        const barPicker = document.getElementById('barCoordPicker');
-        if (barPicker) barPicker.style.display = 'none';
 
         // Tắt toàn bộ MiniCAD và thanh đo đạc
         if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
@@ -1778,14 +1944,6 @@ const appNav = window.appNav = {
         const pmbPanel = document.getElementById('projectMarksBlocksPanel');
         if (pmbPanel) pmbPanel.style.display = 'none';
 
-        // Xóa marker chấm điểm nếu có
-        if (AppState.pickerMarker && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
-            AppState.leafletMap.removeLayer(AppState.pickerMarker);
-            AppState.pickerMarker = null;
-        }
-        if (typeof appCoordPicker !== 'undefined' && appCoordPicker.clearMultiPoints) {
-            appCoordPicker.clearMultiPoints(true);
-        }
 
         appNav.setActiveMenuItem('drawerItem_map');
         this.syncBottomNav('map');
@@ -1852,11 +2010,6 @@ const appNav = window.appNav = {
         if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
         this.syncHeader('📐 3.5 VẼ MẶT BẰNG & BẢNG KÊ MINICAD', '📐 3.5 MINICAD PLAN DRAWING & TABLE');
 
-        // Xóa marker chấm điểm nếu có
-        if (AppState.pickerMarker && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
-            AppState.leafletMap.removeLayer(AppState.pickerMarker);
-            AppState.pickerMarker = null;
-        }
 
         appNav.setActiveMenuItem('drawerItem_cad_tool');
         this.syncBottomNav('cad');
@@ -1890,69 +2043,6 @@ const appNav = window.appNav = {
         }
     },
 
-    openConvertedMap(pointData) {
-        AppState.prevScreen = (AppState.currentScreen && AppState.currentScreen !== 'map') ? AppState.currentScreen : 'transform';
-        AppState.currentScreen = 'map';
-        AppState.mapMode = 'view_converted';
-        this.resetMapChrome();
-        document.querySelectorAll('.screen-view').forEach(el => {
-            el.classList.remove('active');
-            el.style.display = 'none';
-        });
-        const mapView = document.getElementById('map-view-container');
-        if (mapView) {
-            mapView.classList.add('active');
-            mapView.classList.remove('cad-active-map');
-            mapView.style.display = 'block';
-            void mapView.offsetHeight;
-        }
-
-        // Đồng bộ Header trên cùng
-        const btnBack = document.getElementById('btnHeaderBack');
-        if (btnBack) { btnBack.hidden = false; btnBack.style.display = 'inline-flex'; }
-        this.syncHeader('📍 VỊ TRÍ ĐIỂM CHUYỂN ĐỔI', '📍 CONVERTED POINT LOCATION');
-
-        // Tắt toàn bộ MiniCAD
-        if (typeof appCadTool !== 'undefined' && appCadTool.isActive) {
-            appCadTool.closeToolbar();
-        }
-        // Màn hình xem vị trí điểm chuyển đổi không hiển thị hình vẽ CAD
-        if (typeof appCadTool !== 'undefined') {
-            if (appCadTool.closeCadWindows) appCadTool.closeCadWindows();
-            if (appCadTool.clearCadOverlays) appCadTool.clearCadOverlays();
-        }
-
-        appNav.setActiveMenuItem('drawerItem_transform');
-        this.syncBottomNav('transform');
-
-        appMap.initMap();
-        if (appMap.initRightControlsDrag) appMap.initRightControlsDrag();
-        if (appMap.updateFabControlsVisibility) appMap.updateFabControlsVisibility('view_converted');
-
-        // Mở bản đồ sạch tập trung vào điểm chuyển đổi
-        if (AppState.projectMarkersGroup) AppState.projectMarkersGroup.clearLayers();
-        if (AppState.projectDistanceLabelsGroup) AppState.projectDistanceLabelsGroup.clearLayers();
-        if (AppState.projectPolygonLayer && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.projectPolygonLayer)) {
-            AppState.leafletMap.removeLayer(AppState.projectPolygonLayer);
-            AppState.projectPolygonLayer = null;
-        }
-        appMap.populateMapProjectSelect(null);
-
-        if (pointData) {
-            appMap.showConvertedPoint(
-                pointData.lat,
-                pointData.lng,
-                pointData.x,
-                pointData.y,
-                pointData.name,
-                pointData.ktt,
-                pointData.k0
-            );
-        }
-        if (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en' && typeof document !== 'undefined') {
-            appI18n.walkAndTranslate(document.body);
-        }
-    },
 
     openLiveGpsMap() {
         AppState.prevScreen = AppState.currentScreen;
@@ -2837,345 +2927,6 @@ const appDashboard = {
     }
 };
 
-// ================= 3.9 PHÂN HỆ CHẤM CHỌN TỌA ĐỘ BẢN ĐỒ (COORD PICKER: ĐƠN / ĐA ĐIỂM) =================
-const appCoordPicker = {
-    currentSubMode: 'single', // 'single' | 'multi'
-    multiPoints: [],
-    multiPolyline: null,
-    multiMarkersGroup: null,
-
-    init() {
-        if (!AppState.leafletMap) return;
-        if (!this.multiMarkersGroup) {
-            this.multiMarkersGroup = L.layerGroup().addTo(AppState.leafletMap);
-        }
-    },
-
-    setMode(mode) {
-        this.currentSubMode = mode;
-        const btnSingle = document.getElementById('btnPickModeSingle');
-        const btnMulti = document.getElementById('btnPickModeMulti');
-        const boxSingle = document.getElementById('pickerSingleStatus');
-        const boxMulti = document.getElementById('pickerMultiStatus');
-        const btnApplySingle = document.getElementById('btnPickerApplySingle');
-        const btnApplyMulti = document.getElementById('btnPickerApplyMulti');
-
-        if (mode === 'single') {
-            // Tách bạch hiển thị: ẩn lớp đa điểm, hiện lớp đơn điểm
-            if (this.multiMarkersGroup && AppState.leafletMap && AppState.leafletMap.hasLayer(this.multiMarkersGroup)) {
-                AppState.leafletMap.removeLayer(this.multiMarkersGroup);
-            }
-            if (this.multiPolyline && AppState.leafletMap && AppState.leafletMap.hasLayer(this.multiPolyline)) {
-                AppState.leafletMap.removeLayer(this.multiPolyline);
-            }
-            if (AppState.pickerMarker && AppState.leafletMap && !AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
-                AppState.pickerMarker.addTo(AppState.leafletMap);
-            }
-
-            if (btnSingle) btnSingle.classList.add('active');
-            if (btnMulti) btnMulti.classList.remove('active');
-            if (boxSingle) boxSingle.style.display = 'flex';
-            if (boxMulti) boxMulti.style.display = 'none';
-            if (btnApplySingle) btnApplySingle.style.display = 'inline-flex';
-            if (btnApplyMulti) btnApplyMulti.style.display = 'none';
-            showToast("🎯 Chế độ Chấm đơn điểm: Chạm vào bản đồ để chọn tọa độ!");
-        } else {
-            // Tách bạch hiển thị: ẩn lớp đơn điểm, hiện lớp đa điểm
-            if (AppState.pickerMarker && AppState.leafletMap && AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
-                AppState.leafletMap.removeLayer(AppState.pickerMarker);
-            }
-            if (this.multiMarkersGroup && AppState.leafletMap && !AppState.leafletMap.hasLayer(this.multiMarkersGroup)) {
-                this.multiMarkersGroup.addTo(AppState.leafletMap);
-            }
-            if (this.multiPolyline && AppState.leafletMap && !AppState.leafletMap.hasLayer(this.multiPolyline)) {
-                this.multiPolyline.addTo(AppState.leafletMap);
-            }
-
-            if (btnSingle) btnSingle.classList.remove('active');
-            if (btnMulti) btnMulti.classList.add('active');
-            if (boxSingle) boxSingle.style.display = 'none';
-            if (boxMulti) boxMulti.style.display = 'flex';
-            if (btnApplySingle) btnApplySingle.style.display = 'none';
-            if (btnApplyMulti) btnApplyMulti.style.display = 'inline-flex';
-            this.updateMultiCountBadge();
-            showToast("📍 Chế độ Chấm đa điểm: Chạm liên tiếp các điểm trên bản đồ!");
-        }
-    },
-
-    handleMapClick(lat, lng) {
-        const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
-        const xStr = pt.X.toFixed(3);
-        const yStr = pt.Y.toFixed(3);
-
-        if (this.currentSubMode === 'single') {
-            AppState.pickedCoord = {
-                lat: lat,
-                lng: lng,
-                x: xStr,
-                y: yStr
-            };
-
-            // Marker tâm ngắm quang học
-            if (!AppState.pickerMarker) {
-                AppState.pickerMarker = L.marker([lat, lng], {
-                    icon: createOpticalCrosshairIcon(),
-                    draggable: true,
-                    zIndexOffset: 2000
-                }).addTo(AppState.leafletMap);
-
-                AppState.pickerMarker.on('drag', (e) => {
-                    const pos = e.target.getLatLng();
-                    appCoordPicker.handleMarkerDrag(pos.lat, pos.lng);
-                });
-            } else {
-                AppState.pickerMarker.setIcon(createOpticalCrosshairIcon());
-                AppState.pickerMarker.setLatLng([lat, lng]);
-                if (!AppState.leafletMap.hasLayer(AppState.pickerMarker)) {
-                    AppState.pickerMarker.addTo(AppState.leafletMap);
-                }
-            }
-
-            const textEl = document.getElementById('pickerSingleCoordText');
-            if (textEl) {
-                textEl.innerHTML = `VN2K: X <b>${xStr}</b> | Y <b>${yStr}</b> (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`;
-            }
-
-            // Bottom sheet
-            const sheet = document.getElementById('mapBottomSheet');
-            if (sheet) {
-                const sheetWgs = document.getElementById('mapSheetWgs');
-                const sheetVn2k = document.getElementById('mapSheetVn2k');
-                if (sheetWgs) sheetWgs.innerText = `${lat.toFixed(6)}°, ${lng.toFixed(6)}°`;
-                if (sheetVn2k) sheetVn2k.innerText = `X: ${xStr} | Y: ${yStr}`;
-                sheet.style.display = 'flex';
-            }
-
-            if (appMap.updateSurveyorLineAndDistance) {
-                appMap.updateSurveyorLineAndDistance();
-            }
-        } else {
-            // Chấm đa điểm
-            this.addMultiPoint(lat, lng, xStr, yStr);
-        }
-    },
-
-    handleMarkerDrag(lat, lng) {
-        const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
-        const xStr = pt.X.toFixed(3);
-        const yStr = pt.Y.toFixed(3);
-        AppState.pickedCoord = { lat, lng, x: xStr, y: yStr };
-        const textEl = document.getElementById('pickerSingleCoordText');
-        if (textEl) {
-            textEl.innerHTML = `VN2K: X <b>${xStr}</b> | Y <b>${yStr}</b> (${lat.toFixed(5)}°, ${lng.toFixed(5)}°)`;
-        }
-        const sheetWgs = document.getElementById('mapSheetWgs');
-        const sheetVn2k = document.getElementById('mapSheetVn2k');
-        if (sheetWgs) sheetWgs.innerText = `${lat.toFixed(6)}°, ${lng.toFixed(6)}°`;
-        if (sheetVn2k) sheetVn2k.innerText = `X: ${xStr} | Y: ${yStr}`;
-        if (appMap.updateSurveyorLineAndDistance) {
-            appMap.updateSurveyorLineAndDistance();
-        }
-    },
-
-    addMultiPoint(lat, lng, xStr, yStr) {
-        this.init();
-        const ptIndex = this.multiPoints.length + 1;
-        const ptName = `P${ptIndex}`;
-
-        const icon = createSharpPinIcon({
-            color: '#0284c7',
-            secondaryColor: '#0369a1',
-            text: `P${ptIndex}`,
-            width: 26,
-            height: 35,
-            className: 'multipoint-map-pin'
-        });
-
-        const marker = L.marker([lat, lng], { icon }).addTo(this.multiMarkersGroup);
-        marker.bindPopup(`<b>${ptName}</b><br>X: ${xStr}<br>Y: ${yStr}<br>WGS84: ${lat.toFixed(6)}°, ${lng.toFixed(6)}°`);
-
-        this.multiPoints.push({
-            id: Date.now() + Math.random(),
-            name: ptName,
-            lat: lat,
-            lng: lng,
-            x: xStr,
-            y: yStr,
-            marker: marker
-        });
-
-        this.renderMultiPolyline();
-        this.updateMultiCountBadge();
-        showToast(`📍 Đã chấm ${ptName} (X: ${xStr}, Y: ${yStr})`);
-    },
-
-    renderMultiPolyline() {
-        if (!AppState.leafletMap) return;
-        if (this.multiPolyline) {
-            AppState.leafletMap.removeLayer(this.multiPolyline);
-            this.multiPolyline = null;
-        }
-        if (this.multiPoints.length >= 2) {
-            const latlngs = this.multiPoints.map(p => [p.lat, p.lng]);
-            this.multiPolyline = L.polyline(latlngs, {
-                color: '#38bdf8',
-                weight: 2,
-                dashArray: '5, 5',
-                opacity: 0.8
-            }).addTo(AppState.leafletMap);
-        }
-    },
-
-    updateMultiCountBadge() {
-        const badge = document.getElementById('pickerMultiCountBadge');
-        if (badge) {
-            badge.innerText = `${this.multiPoints.length} điểm`;
-        }
-        const lblTransform = document.getElementById('lblCountPickedMap');
-        if (lblTransform) {
-            lblTransform.innerText = this.multiPoints.length;
-        }
-    },
-
-    clearSinglePoint() {
-        if (AppState.pickerMarker && AppState.leafletMap) {
-            AppState.leafletMap.removeLayer(AppState.pickerMarker);
-            AppState.pickerMarker = null;
-        }
-        AppState.pickedCoord = null;
-        const textEl = document.getElementById('pickerSingleCoordText');
-        if (textEl) textEl.innerHTML = 'Chạm vào bản đồ để chọn tọa độ';
-        const sheet = document.getElementById('mapBottomSheet');
-        if (sheet) sheet.style.display = 'none';
-        showToast("✓ Đã xóa điểm chọn trên bản đồ");
-    },
-
-    clearMultiPoints(silent = false) {
-        if (this.multiMarkersGroup) {
-            this.multiMarkersGroup.clearLayers();
-        }
-        if (this.multiPolyline && AppState.leafletMap) {
-            AppState.leafletMap.removeLayer(this.multiPolyline);
-            this.multiPolyline = null;
-        }
-        this.multiPoints = [];
-        this.updateMultiCountBadge();
-        // Chỉ báo khi người dùng bấm Xóa; mở màn hình (dọn tự động) thì im lặng.
-        if (!silent) showToast("✓ Đã xóa danh sách điểm đã chấm");
-    },
-
-    applySinglePoint() {
-        if (!AppState.pickedCoord || !AppState.pickedCoord.lat) {
-            showToast("⚠️ Vui lòng chạm bản đồ để chọn một điểm!");
-            return;
-        }
-        const latInput = document.getElementById('txtWgsLat');
-        const lngInput = document.getElementById('txtWgsLng');
-        const xInput = document.getElementById('txtVn2kX');
-        const yInput = document.getElementById('txtVn2kY');
-
-        if (latInput) latInput.value = AppState.pickedCoord.lat.toFixed(6);
-        if (lngInput) lngInput.value = AppState.pickedCoord.lng.toFixed(6);
-        if (xInput) xInput.value = AppState.pickedCoord.x;
-        if (yInput) yInput.value = AppState.pickedCoord.y;
-
-        appNav.showScreen('transform');
-        showToast("✓ Đã áp dụng tọa độ vào màn hình chuyển đổi");
-    },
-
-    applyMultiToBatch() {
-        if (this.multiPoints.length === 0) {
-            showToast("⚠️ Chưa có điểm nào được chấm! Chạm vào bản đồ để thêm các điểm.");
-            return;
-        }
-
-        // Đóng modal danh sách nếu đang mở
-        this.closeMultiPointsModal();
-
-        // Chuyển trực tiếp dữ liệu sang module Chuyển đổi đa điểm
-        appTransform.multiPoints = this.multiPoints.map(p => ({
-            id: p.id || (Date.now() + Math.random()),
-            name: p.name,
-            x: p.x,
-            y: p.y,
-            lat: p.lat,
-            lng: p.lng,
-            c1: p.x ? parseFloat(p.x).toFixed(3) : parseFloat(p.lat).toFixed(6),
-            c2: p.y ? parseFloat(p.y).toFixed(3) : parseFloat(p.lng).toFixed(6),
-            selected: true
-        }));
-
-        // Mở màn hình chuyển đổi tọa độ và chuyển sang Tab Đa điểm
-        appNav.showScreen('transform');
-        appTransform.switchTransformSubTab('multi');
-
-        showToast(`✓ Đã nạp ${this.multiPoints.length} điểm vào bảng Chuyển đổi hàng loạt`);
-    },
-
-    closePicker() {
-        appNav.showScreen('transform');
-    },
-
-    openMultiPointsModal() {
-        this.renderMultiPointsListTable();
-        const modal = document.getElementById('modalMultiPickList');
-        if (modal) modal.style.display = 'flex';
-    },
-
-    closeMultiPointsModal() {
-        const modal = document.getElementById('modalMultiPickList');
-        if (modal) modal.style.display = 'none';
-    },
-
-    renderMultiPointsListTable() {
-        const tbody = document.getElementById('multiPickListTbody');
-        if (!tbody) return;
-        if (this.multiPoints.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 18px;">Chưa có điểm nào được chấm.</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = this.multiPoints.map((p, idx) => `
-            <tr>
-                <td style="text-align: center; font-weight: 700;">${idx + 1}</td>
-                <td style="color: #38bdf8; font-weight: 700;">${p.name}</td>
-                <td>${p.x}</td>
-                <td>${p.y}</td>
-                <td style="font-size: 11px; color: #94a3b8;">${p.lat.toFixed(6)}°, ${p.lng.toFixed(6)}°</td>
-                <td style="text-align: center;">
-                    <button type="button" class="btn-sm btn-red" style="height: 22px; padding: 0 6px; font-size: 11px;" onclick="appCoordPicker.removePoint(${idx})">✕</button>
-                </td>
-            </tr>
-        `).join('');
-    },
-
-    removePoint(index) {
-        if (index >= 0 && index < this.multiPoints.length) {
-            const p = this.multiPoints[index];
-            if (p.marker && this.multiMarkersGroup) {
-                this.multiMarkersGroup.removeLayer(p.marker);
-            }
-            this.multiPoints.splice(index, 1);
-            this.multiPoints.forEach((pt, i) => {
-                pt.name = `P${i + 1}`;
-                if (pt.marker) {
-                    const icon = createSharpPinIcon({
-                        color: '#0284c7',
-                        secondaryColor: '#0369a1',
-                        text: `P${i + 1}`,
-                        width: 26,
-                        height: 35,
-                        className: 'multipoint-map-pin'
-                    });
-                    pt.marker.setIcon(icon);
-                }
-            });
-            this.renderMultiPolyline();
-            this.updateMultiCountBadge();
-            this.renderMultiPointsListTable();
-        }
-    }
-};
-
 // ================= 4. PHÂN HỆ CHUYỂN ĐỔI TỌA ĐỘ (TRANSFORM) =================
 const appTransform = {
     init() {
@@ -3565,22 +3316,6 @@ const appTransform = {
         showToast(`🌐 Đang mở Google Maps vệ tinh tại: ${lat}, ${lng}`);
     },
 
-    copyAllConvertedResult() {
-        const pt = AppState.lastConvertedPoint;
-        if (!pt) return showToast("⚠️ Chưa có dữ liệu mốc để sao chép!", true);
-        const x = parseFloat(pt.x).toFixed(3);
-        const y = parseFloat(pt.y).toFixed(3);
-        const lat = formatLatLong(pt.lat, AppState.formatType);
-        const lng = formatLatLong(pt.lng, AppState.formatType);
-        const ktt = `${AppState.provinceName} (KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
-        const text = `[MỐC]: ${pt.name}\r\nVN-2000: X=${x}, Y=${y}\r\nWGS-84: ${lat}, ${lng}\r\nKTT: ${ktt}`;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => showToast("📋 Đã chép toàn bộ kết quả chuyển đổi!"))
-                .catch(() => copyToClipboard(text));
-        } else {
-            copyToClipboard(text);
-        }
-    },
 
     multiConvertedResults: [],
     _multiConvertedLayer: null,
@@ -3601,7 +3336,7 @@ const appTransform = {
     updatePickedMapCountBadge() {
         const lbl = document.getElementById('lblCountPickedMap');
         if (lbl) {
-            const count = (typeof appCoordPicker !== 'undefined' && appCoordPicker.multiPoints) ? appCoordPicker.multiPoints.length : 0;
+            const count = (typeof appTransformMap !== 'undefined' && appTransformMap.pickedMultiPoints) ? appTransformMap.pickedMultiPoints.length : 0;
             lbl.innerText = count;
         }
     },
@@ -3688,10 +3423,11 @@ const appTransform = {
     },
 
     loadMultiFromPickedMap() {
-        const pickedCount = (typeof appCoordPicker !== 'undefined' && appCoordPicker.multiPoints) ? appCoordPicker.multiPoints.length : 0;
+        const picked = (typeof appTransformMap !== 'undefined' && appTransformMap.pickedMultiPoints) ? appTransformMap.pickedMultiPoints : [];
+        const pickedCount = picked.length;
         if (pickedCount > 0) {
             let added = 0;
-            appCoordPicker.multiPoints.forEach(p => {
+            picked.forEach(p => {
                 const hasX = (p.x !== undefined && p.x !== null && p.x !== '');
                 const hasLat = (p.lat !== undefined && p.lat !== null && p.lat !== '');
                 const c1 = hasX ? parseFloat(p.x).toFixed(3) : (hasLat ? parseFloat(p.lat).toFixed(6) : '');
@@ -4191,9 +3927,6 @@ const appTransform = {
         this.populateMultiProjectSelect();
     },
 
-    onSaveMultiOptionChange() {
-        this.onToggleSaveMultiToProject();
-    },
 
     quickCreateProjectForMulti() {
         const name = cleanProjectName(prompt("Nhập tên dự án mới (ví dụ: ChuyenDoi_KTT105):"));
@@ -4402,9 +4135,6 @@ const appTransform = {
         showToast(`📋 Đã sao chép toàn bộ ${this.multiConvertedResults.length} mốc kết quả!`);
     },
 
-    copyAllMultiResults() {
-        this.copyMultiResultsAll();
-    },
 
     copyMultiResultsVn2k() {
         if (!this.multiConvertedResults || this.multiConvertedResults.length === 0) {
@@ -4773,10 +4503,6 @@ const appTransform = {
             AppState.lastConvertedPoint = null;
             const resBox = document.getElementById('boxConvertedResult');
             if (resBox) resBox.style.display = 'none';
-            if (AppState.pickerMarker && AppState.leafletMap) {
-                AppState.leafletMap.removeLayer(AppState.pickerMarker);
-                AppState.pickerMarker = null;
-            }
             if (typeof appTransformMap !== 'undefined' && appTransformMap.clearSinglePoint) {
                 appTransformMap.clearSinglePoint();
             }
@@ -4859,40 +4585,6 @@ const appTransform = {
         }
     },
 
-    promptOpenConvertedMap(pt) {
-        // Nếu màn hình lớn (đang có Live Map hiển thị bên cạnh), không cần hiện pop-up phiền toái
-        if (isTransformSideBySide()) {
-            return;
-        }
-        const modal = document.getElementById('modalPromptConvertedMap');
-        if (!modal || !pt) return;
-
-        const pName = document.getElementById('promptPtName');
-        const pX = document.getElementById('promptVn2kX');
-        const pY = document.getElementById('promptVn2kY');
-        const pLat = document.getElementById('promptWgsLat');
-        const pLng = document.getElementById('promptWgsLng');
-        const pKtt = document.getElementById('promptKtt');
-
-        if (pName) pName.innerText = pt.name;
-        if (pX) pX.innerText = parseFloat(pt.x).toFixed(3);
-        if (pY) pY.innerText = parseFloat(pt.y).toFixed(3);
-        if (pLat) pLat.innerText = formatLatLong(pt.lat, AppState.formatType);
-        if (pLng) pLng.innerText = formatLatLong(pt.lng, AppState.formatType);
-        if (pKtt) pKtt.innerText = `${AppState.provinceName} (${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}', Múi ${AppState.muiVal}°)`;
-
-        modal.classList.add('active', 'show');
-    },
-
-    closePromptMap() {
-        const modal = document.getElementById('modalPromptConvertedMap');
-        if (modal) modal.classList.remove('active', 'show');
-    },
-
-    confirmOpenConvertedMap() {
-        appTransform.closePromptMap();
-        appTransform.viewConvertedOnMap();
-    },
 
     viewConvertedOnMap() {
         let pt = AppState.lastConvertedPoint;
@@ -5732,56 +5424,6 @@ const appTransform = {
         }
     },
 
-    setTransformViewMode(mode) {
-        const layout = document.getElementById('transformSplitLayout') || document.querySelector('.transform-split-layout');
-        const btnMapDom = document.getElementById('btnTfModeMapDominant');
-        const btnSplit = document.getElementById('btnTfModeSplit');
-        const btnFormOnly = document.getElementById('btnTfModeFormOnly');
-        const mapWrap = document.getElementById('boxTransformLiveMapWrap');
-
-        if (btnMapDom) btnMapDom.classList.toggle('active', mode === 'map-dominant');
-        if (btnSplit) btnSplit.classList.toggle('active', mode === 'split');
-        if (btnFormOnly) btnFormOnly.classList.toggle('active', mode === 'form-only');
-
-        if (layout) {
-            layout.classList.remove('mode-map-dominant', 'mode-split', 'mode-form-only');
-            layout.classList.add(`mode-${mode}`);
-        }
-
-        if (mapWrap) {
-            if (mode === 'form-only') {
-                mapWrap.classList.remove('mobile-active', 'large-focus');
-                mapWrap.style.display = 'none';
-                this.applySplitRatio(98, false);
-            } else if (mode === 'map-dominant') {
-                mapWrap.classList.add('mobile-active', 'large-focus');
-                mapWrap.style.display = 'flex';
-                this.applySplitRatio(34, true);
-                this.initDesktopLiveMap();
-            } else if (mode === 'split') {
-                mapWrap.classList.add('mobile-active');
-                mapWrap.classList.remove('large-focus');
-                mapWrap.style.display = 'flex';
-                this.applySplitRatio(50, true);
-                this.initDesktopLiveMap();
-            }
-        }
-
-        setTimeout(() => {
-            if (this._liveMap) {
-                this._liveMap.invalidateSize();
-                this.fitLiveMapBounds();
-            }
-        }, 150);
-
-        if (mode === 'map-dominant') {
-            showToast("🗺️ Ưu tiên Bản đồ lớn trực quan (66%)!");
-        } else if (mode === 'split') {
-            showToast("⚖️ Chia đôi cân bằng Form & Bản đồ (50/50)!");
-        } else if (mode === 'form-only') {
-            showToast("📝 Chế độ chỉ hiển thị Form nhập liệu!");
-        }
-    },
 
     openFullConvertedMap() {
         appNav.openTransformMap({ mode: 'view' });
@@ -6533,10 +6175,6 @@ const appTransformMap = {
         showToast(`🌐 Đang mở Google Maps vệ tinh tại: ${lat}, ${lng}`);
     },
 
-    copyFullFormattedResult() {
-        this.smartCopyResult();
-        this.toggleCopyMenu();
-    },
 
     copyExcelFormatResult() {
         const p = AppState.lastConvertedPoint;
@@ -7469,7 +7107,9 @@ function createSharpPinIcon({
     width = 26,
     height = 35,
     pulse = false,
-    className = ''
+    className = '',
+    extraHtml = '',
+    fontSize = 0
 } = {}) {
     const cx = width / 2;
     const rHead = (width - 4) / 2;
@@ -7496,10 +7136,11 @@ function createSharpPinIcon({
         `;
     } else if (text !== undefined && text !== null && text !== '') {
         const textStr = String(text);
-        const fontSize = textStr.length > 2 ? Math.round(rHead * 0.75) : Math.round(rHead * 0.95);
+        const autoSize = textStr.length > 2 ? Math.round(rHead * 0.75) : Math.round(rHead * 0.95);
+        const fontSizePx = fontSize > 0 ? Math.min(fontSize, Math.round(rHead * 1.3)) : autoSize;
         contentHtml = `
             <circle cx="${cx}" cy="${cyHead}" r="${rHead - 2.5}" fill="rgba(15,23,42,0.88)" stroke="#ffffff" stroke-width="0.8"/>
-            <text x="${cx}" y="${cyHead + 0.5}" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-size="${fontSize}" font-weight="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${textStr}</text>
+            <text x="${cx}" y="${cyHead + 0.5}" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-size="${fontSizePx}" font-weight="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">${textStr}</text>
         `;
     } else {
         contentHtml = `
@@ -7525,7 +7166,7 @@ function createSharpPinIcon({
             <path d="M ${cx},2 C ${cx - rHead * 0.55},2 2,${cyHead - rHead * 0.45} 2,${cyHead} C 2,${cyHead + rHead * 0.65} ${cx - 2.5},${tipY - 5} ${cx - 0.4},${tipY - 0.6} C ${cx - 0.2},${tipY} ${cx + 0.2},${tipY} ${cx + 0.4},${tipY - 0.6} C ${cx + 2.5},${tipY - 5} ${width - 2},${cyHead + rHead * 0.65} ${width - 2},${cyHead} C ${width - 2},${cyHead - rHead * 0.45} ${cx + rHead * 0.55},2 ${cx},2 Z" fill="url(#${id})" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/>
             <circle cx="${cx}" cy="${tipY}" r="1.2" fill="#ffffff"/>
             ${contentHtml}
-        </svg>
+        </svg>${extraHtml}
     </div>`;
 
     if (typeof L !== 'undefined' && L.divIcon) {
@@ -7549,17 +7190,6 @@ function createSharpPinIcon({
 if (typeof window !== 'undefined') window.createSharpPinIcon = createSharpPinIcon;
 if (typeof global !== 'undefined') global.createSharpPinIcon = createSharpPinIcon;
 
-function createOpticalCrosshairIcon() {
-    return createSharpPinIcon({
-        color: '#ef4444',
-        secondaryColor: '#b91c1c',
-        symbol: 'target',
-        width: 32,
-        height: 42,
-        pulse: true,
-        className: 'optical-crosshair-icon'
-    });
-}
 
 function createLiveGpsIcon(heading) {
     const rotStyle = (heading !== undefined && heading !== null && !isNaN(heading)) ? `transform: rotate(${heading}deg);` : '';
@@ -8277,35 +7907,6 @@ const appMap = {
         }
     },
 
-    filterDongThapCu(districtVal) {
-        AppState.filterDtCu = districtVal || 'ALL';
-        if (!AppState.layerDtCu && window.VN_SOUTH_MAP_DATA) {
-            appMap.initDongThapCuLayer();
-        }
-        if (!AppState.isDtCuVisible) {
-            appMap.toggleDongThapCu();
-        } else if (AppState.layerDtCu) {
-            AppState.layerDtCu.setStyle((f) => appMap._getDtCuStyle(f));
-        }
-
-        if (AppState.layerDtCu && AppState.leafletMap) {
-            if (AppState.filterDtCu && AppState.filterDtCu !== 'ALL') {
-                let matched = null;
-                AppState.layerDtCu.eachLayer(l => {
-                    const p = l.feature && l.feature.properties || {};
-                    if (p.name === AppState.filterDtCu) matched = l;
-                });
-                if (matched && matched.getBounds) {
-                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 13 });
-                    if (matched.openPopup) matched.openPopup();
-                }
-                showToast(`✓ Đã lọc huyện/TP: ${AppState.filterDtCu}`);
-            } else {
-                AppState.leafletMap.fitBounds(AppState.layerDtCu.getBounds(), { padding: [20, 20] });
-                showToast('✓ Đã hiển thị tất cả 12 huyện/TP Đồng Tháp (Cũ)');
-            }
-        }
-    },
 
     _getTgCuStyle(feature) {
         const p = feature.properties || {};
@@ -8372,35 +7973,6 @@ const appMap = {
         }
     },
 
-    filterTienGiangCu(districtVal) {
-        AppState.filterTgCu = districtVal || 'ALL';
-        if (!AppState.layerTgCu && window.VN_SOUTH_MAP_DATA) {
-            appMap.initTienGiangCuLayer();
-        }
-        if (!AppState.isTgCuVisible) {
-            appMap.toggleTienGiangCu();
-        } else if (AppState.layerTgCu) {
-            AppState.layerTgCu.setStyle((f) => appMap._getTgCuStyle(f));
-        }
-
-        if (AppState.layerTgCu && AppState.leafletMap) {
-            if (AppState.filterTgCu && AppState.filterTgCu !== 'ALL') {
-                let matched = null;
-                AppState.layerTgCu.eachLayer(l => {
-                    const p = l.feature && l.feature.properties || {};
-                    if (p.name === AppState.filterTgCu) matched = l;
-                });
-                if (matched && matched.getBounds) {
-                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 13 });
-                    if (matched.openPopup) matched.openPopup();
-                }
-                showToast(`✓ Đã lọc huyện/thị/TP: ${AppState.filterTgCu}`);
-            } else {
-                AppState.leafletMap.fitBounds(AppState.layerTgCu.getBounds(), { padding: [20, 20] });
-                showToast('✓ Đã hiển thị tất cả 11 huyện/thị/TP Tiền Giang (Cũ)');
-            }
-        }
-    },
 
     _getSouthProvStyle(feature) {
         const p = feature.properties || {};
@@ -8468,36 +8040,6 @@ const appMap = {
         }
     },
 
-    filterSouthProvince(provVal) {
-        AppState.filterSouthProv = provVal || 'ALL';
-        if (!AppState.layerSouthProv && window.VN_SOUTH_MAP_DATA) {
-            appMap.initSouthProvincesLayer();
-        }
-        if (!AppState.isSouthProvVisible) {
-            appMap.toggleSouthProvinces();
-        } else if (AppState.layerSouthProv) {
-            AppState.layerSouthProv.setStyle((f) => appMap._getSouthProvStyle(f));
-        }
-
-        if (AppState.layerSouthProv && AppState.leafletMap) {
-            if (AppState.filterSouthProv && AppState.filterSouthProv !== 'ALL') {
-                let matched = null;
-                AppState.layerSouthProv.eachLayer(l => {
-                    const p = l.feature && l.feature.properties || {};
-                    const name = p.name || p.shortName || '';
-                    if (name === AppState.filterSouthProv || p.id === AppState.filterSouthProv) matched = l;
-                });
-                if (matched && matched.getBounds) {
-                    AppState.leafletMap.fitBounds(matched.getBounds(), { padding: [30, 30], maxZoom: 13 });
-                    if (matched.openPopup) matched.openPopup();
-                }
-                showToast(`✓ Đã lọc hiển thị tỉnh: ${AppState.filterSouthProv}`);
-            } else {
-                AppState.leafletMap.fitBounds(AppState.layerSouthProv.getBounds(), { padding: [20, 20] });
-                showToast('✓ Đã hiển thị tất cả 19 tỉnh miền Nam');
-            }
-        }
-    },
 
     initPlanningZonesLayer() {
         if (AppState.layerPlanningZones) return;
@@ -8757,6 +8299,74 @@ const appMap = {
         if (box) box.style.display = 'none';
     },
 
+    // === KIỂU ICON MỐC TỌA ĐỘ DỰ ÁN (dùng chung Bản đồ dự án và MiniCAD; chỉnh trong 🎨 Ký hiệu & chữ) ===
+    LANDMARK_KEY: 'vn2k_landmark_style_v1',
+    LANDMARK_DEFAULTS: { shape: 'pin', color: '#ef4444', size: 'md', text: 'index', pos: 'inside', px: 0, lColor: '' },
+
+    getLandmarkStyle() {
+        const d = this.LANDMARK_DEFAULTS;
+        let st = {};
+        try { st = JSON.parse(localStorage.getItem(this.LANDMARK_KEY) || '{}') || {}; } catch (e) { st = {}; }
+        const shapes = ['pin'].concat(((typeof appCadTool !== 'undefined' && appCadTool.pointStyles) || []).map(x => x.id));
+        const hex = c => /^#[0-9a-fA-F]{6}$/.test(String(c || '').trim()) ? String(c).trim() : null;
+        return {
+            shape: shapes.includes(st.shape) ? st.shape : d.shape,
+            color: hex(st.color) || d.color,
+            size: ['sm', 'md', 'lg', 'xl'].includes(st.size) ? st.size : d.size,
+            text: ['index', 'name', 'both', 'none'].includes(st.text) ? st.text : d.text,
+            pos: ['inside', 'right', 'top', 'bottom', 'left', 'none'].includes(st.pos) ? st.pos : d.pos,
+            px: (+st.px >= 8 && +st.px <= 40) ? Math.round(+st.px) : 0,
+            lColor: hex(st.lColor) || ''
+        };
+    },
+
+    setLandmarkStyle(patch) {
+        const next = Object.assign(this.getLandmarkStyle(), patch || {});
+        try { localStorage.setItem(this.LANDMARK_KEY, JSON.stringify(next)); } catch (e) { /* bộ nhớ đầy */ }
+        if (AppState.leafletMap && AppState.projectMarkersGroup) this.loadProjectMarkers();
+        if (typeof appCadTool !== 'undefined' && appCadTool.refreshSymbolPanelIfOpen) appCadTool.refreshSymbolPanelIfOpen();
+    },
+
+    resetLandmarkStyle() {
+        try { localStorage.removeItem(this.LANDMARK_KEY); } catch (e) { /* bỏ qua */ }
+        this.setLandmarkStyle({});
+    },
+
+    shadeHex(hex, f) {
+        const n = parseInt(String(hex).slice(1), 16);
+        const ch = sh => Math.max(0, Math.round(((n >> sh) & 255) * (1 - f)));
+        return '#' + [16, 8, 0].map(sh => ch(sh).toString(16).padStart(2, '0')).join('');
+    },
+
+    landmarkText(p, idx, st) {
+        const name = p.name || ('M' + (idx + 1));
+        if (st.text === 'none') return '';
+        if (st.text === 'name') return name;
+        if (st.text === 'both') return `${idx + 1}. ${name}`;
+        return String(idx + 1);
+    },
+
+    /** Icon một mốc dự án theo kiểu đã chọn: ghim đầu nhọn (neo ở mũi) hoặc ký hiệu hình (neo ở tâm). */
+    landmarkIcon(p, idx, st) {
+        st = st || this.getLandmarkStyle();
+        const text = this.landmarkText(p, idx, st);
+        const lvars = (st.px ? `--lbl-size:${st.px}px;` : '') + (st.lColor ? `--lbl-color:${st.lColor};` : '');
+        if (st.shape === 'pin') {
+            const [w, h] = ({ sm: [20, 27], md: [24, 33], lg: [30, 41], xl: [36, 49] })[st.size] || [24, 33];
+            const rHead = (w - 4) / 2, cyHead = rHead + 2;
+            // Đầu ghim chỉ đủ chỗ khoảng 3 ký tự: chữ dài hơn tự đặt bên phải
+            const inside = st.pos === 'inside' && !!text && text.length <= 3;
+            const pos = st.pos === 'inside' ? 'right' : st.pos;
+            const label = (!inside && text && pos !== 'none')
+                ? `<span class="cad-vlabel lmk-pin lp-${pos} is-on" style="--sym-r:${rHead}px; --hx:${w / 2}px; --hy:${cyHead}px; ${lvars}">${escapeHtml(text)}</span>`
+                : '';
+            return createSharpPinIcon({ color: st.color, secondaryColor: this.shadeHex(st.color, 0.25), text: inside ? text : '',
+                width: w, height: h, className: 'project-landmark-pin map-proj-point-dot', extraHtml: label, fontSize: st.px });
+        }
+        return appCadTool.buildGlyphIcon({ style: st.shape, color: st.color, size: st.size, name: text, title: p.name || ('M' + (idx + 1)),
+            label: { pos: text ? st.pos : 'none', px: st.px, color: st.lColor }, expanded: true, dot: true, extraCls: 'lmk-glyph' });
+    },
+
     loadProjectMarkers() {
         if (!AppState.projectMarkersGroup || !AppState.leafletMap) return;
         AppState.projectMarkersGroup.clearLayers();
@@ -8822,6 +8432,7 @@ const appMap = {
             });
         }
 
+        const lmkStyle = this.getLandmarkStyle();
         pts.forEach((p, idx) => {
             const lat = parseFloat(p.lat);
             const lng = parseFloat(p.lng);
@@ -8834,16 +8445,9 @@ const appMap = {
             const ptKey = lat.toFixed(6) + '_' + lng.toFixed(6);
             if (cadPointKeys.has(ptKey)) return;
 
-            // Ghim mốc định vị đầu nhọn chuẩn xác, hiển thị số thứ tự và chấm kim định vị
+            // Icon mốc theo kiểu người dùng chọn (mặc định: ghim đỏ đầu nhọn có số thứ tự)
             const pointName = p.name || ('M' + (idx + 1));
-            const customIcon = createSharpPinIcon({
-                color: '#ef4444',
-                secondaryColor: '#b91c1c',
-                text: idx + 1,
-                width: 24,
-                height: 33,
-                className: 'project-landmark-pin map-proj-point-dot'
-            });
+            const customIcon = this.landmarkIcon(p, idx, lmkStyle);
 
             const markerPane = (AppState.leafletMap && typeof AppState.leafletMap.getPane === 'function' && AppState.leafletMap.getPane('cadMarkerPane')) ? 'cadMarkerPane' : undefined;
             const marker = L.marker([lat, lng], { 
@@ -9134,20 +8738,6 @@ const appMap = {
         }
     },
 
-    togglePickMode() {
-        AppState.mapMode = (AppState.mapMode === 'pick') ? 'view' : 'pick';
-        const txt = document.getElementById('mapModeIndicator');
-        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
-        if (txt) {
-            txt.innerText = (AppState.mapMode === 'pick') 
-                ? (isEn ? "🎯 POINT PICKING MODE" : "🎯 CHẾ ĐỘ CHẤM ĐIỂM") 
-                : (isEn ? "📍 PROJECT MAP" : "📍 BẢN ĐỒ DỰ ÁN");
-            txt.style.color = (AppState.mapMode === 'pick') ? "#38bdf8" : "#fbbf24";
-        }
-        showToast((AppState.mapMode === 'pick') 
-            ? (isEn ? "Tap on map to pick coordinates!" : "Chạm vào bản đồ để chọn tọa độ!") 
-            : (isEn ? "Switched to point view mode" : "Đã chuyển về chế độ xem mốc"));
-    },
 
     updateFabControlsVisibility(mode) {
         const btn34 = document.getElementById('btnMap34Prov');
@@ -9201,12 +8791,6 @@ const appMap = {
 
         // 1. Phân hệ MiniCAD: Đã có listener riêng độc lập trên leafletMap trong appCadTool (tránh kích hoạt kép)
         if (AppState.mapMode === 'cad') {
-            return;
-        }
-
-        // 2. Phân hệ Chuyển đổi tọa độ (Chấm điểm đơn / đa điểm)
-        if (AppState.mapMode === 'pick' && typeof appCoordPicker !== 'undefined') {
-            appCoordPicker.handleMapClick(lat, lng);
             return;
         }
 
@@ -9451,18 +9035,6 @@ const appMap = {
         showToast("✏️ Đã chuyển sang MiniCAD! Bạn có thể thêm mốc, vẽ hoặc sửa đổi các khối.", true);
     },
 
-    onMarkerDrag(lat, lng) {
-        const pt = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
-        AppState.pickedCoord = {
-            lat: lat,
-            lng: lng,
-            x: pt.X.toFixed(3),
-            y: pt.Y.toFixed(3)
-        };
-        document.getElementById('mapSheetWgs').innerText = `${lat.toFixed(6)}°, ${lng.toFixed(6)}°`;
-        document.getElementById('mapSheetVn2k').innerText = `X: ${pt.X.toFixed(3)} | Y: ${pt.Y.toFixed(3)}`;
-        appMap.updateSurveyorLineAndDistance();
-    },
 
     closeBottomSheet() {
         document.getElementById('mapBottomSheet').style.display = 'none';
@@ -9484,96 +9056,6 @@ const appMap = {
         showToast("📌 Đã nạp tọa độ vào màn hình chính! (Nhấn nút chuyển đổi nếu muốn tính lại)", true);
     },
 
-    showConvertedPoint(lat, lng, x, y, name, ktt, k0) {
-        const map = AppState.leafletMap;
-        if (!map) return;
-
-        const fLat = parseFloat(lat);
-        const fLng = parseFloat(lng);
-        const fX = parseFloat(x) || 0;
-        const fY = parseFloat(y) || 0;
-        const ptName = name || 'Điểm Chuyển Đổi';
-        const fKtt = parseFloat(ktt) || AppState.kttVal;
-        const fK0 = parseFloat(k0) || AppState.scaleFactor;
-
-        AppState.mapMode = 'converted_point';
-        const txt = document.getElementById('mapModeIndicator');
-        if (txt) {
-            const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
-            txt.innerText = (isEn ? "🎯 CONVERTED POINT: " : "🎯 ĐIỂM CHUYỂN ĐỔI: ") + ptName;
-            txt.style.color = "#2dd4bf";
-        }
-
-        // Tạo marker với hiệu ứng sóng radar đồng tâm (concentric-pulse-ring) và tâm ngắm quang học SVG
-        const pinIcon = createSharpPinIcon({
-            color: '#0d9488',
-            secondaryColor: '#047857',
-            symbol: 'target',
-            width: 32,
-            height: 42,
-            pulse: true,
-            className: 'preview-converted-pin custom-div-icon'
-        });
-
-        if (!AppState.convertedMarker) {
-            AppState.convertedMarker = L.marker([fLat, fLng], {
-                icon: pinIcon,
-                zIndexOffset: 3000
-            }).addTo(map);
-        } else {
-            AppState.convertedMarker.setLatLng([fLat, fLng]);
-            AppState.convertedMarker.setIcon(pinIcon);
-            if (!map.hasLayer(AppState.convertedMarker)) {
-                AppState.convertedMarker.addTo(map);
-            }
-        }
-
-        AppState.convertedMarker.unbindTooltip();
-        AppState.convertedMarker.bindTooltip("📍 " + ptName, {
-            permanent: true,
-            direction: 'top',
-            className: 'point-label',
-            offset: [0, -42]
-        });
-
-        const popupContent = '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; min-width:220px; padding:2px;">' +
-            '<div style="font-weight:800; color:#0f766e; font-size:14px; margin-bottom:5px; display:flex; align-items:center;">📍 ' + ptName + '</div>' +
-            '<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px; font-size:12px; line-height:1.5; color:#1e293b;">' +
-                '<b style="color:#2563eb;">📐 Tọa độ VN-2000 (Phẳng):</b><br/>' +
-                '• X (Bắc) = <b>' + fX.toFixed(3) + ' m</b><br/>' +
-                '• Y (Đông) = <b>' + fY.toFixed(3) + ' m</b><br/>' +
-                '<hr style="margin:5px 0; border:0; border-top:1px solid #cbd5e1;"/>' +
-                '<b style="color:#059669;">🛰️ Tọa độ WGS-84 (Vệ tinh):</b><br/>' +
-                '• B (Vĩ độ) = <b>' + fLat.toFixed(7) + '°</b><br/>' +
-                '• L (Kinh độ) = <b>' + fLng.toFixed(7) + '°</b><br/>' +
-                '• KTT = <b>' + fKtt.toFixed(2) + '°</b> (Múi ' + (fK0 === 0.9999 ? '3°' : '6°') + ')' +
-            '</div>' +
-            '<button onclick="appMap.loadPointDirect(\'' + fLat + '\', \'' + fLng + '\', \'' + fX.toFixed(3) + '\', \'' + fY.toFixed(3) + '\')" style="margin-top:8px; background:#0d9488; color:#fff; border:none; border-radius:6px; padding:7px 10px; font-weight:700; width:100%; cursor:pointer;">' +
-                '📌 NẠP VÀO MÀN HÌNH CHÍNH' +
-            '</button>' +
-        '</div>';
-
-        AppState.convertedMarker.unbindPopup();
-        AppState.convertedMarker.bindPopup(popupContent).openPopup();
-
-        // Cập nhật Bottom Sheet thông tin
-        const sheetWgs = document.getElementById('mapSheetWgs');
-        const sheetVn2k = document.getElementById('mapSheetVn2k');
-        if (sheetWgs) sheetWgs.innerText = `${fLat.toFixed(6)}°, ${fLng.toFixed(6)}°`;
-        if (sheetVn2k) sheetVn2k.innerText = `X: ${fX.toFixed(3)} | Y: ${fY.toFixed(3)}`;
-        const bottomSheet = document.getElementById('mapBottomSheet');
-        if (bottomSheet) bottomSheet.style.display = 'flex';
-
-        // Đảm bảo Live GPS Marker (chấm xanh radar) luôn hiển thị đồng thời nếu có GPS
-        if (AppState.lastGps && AppState.lastGps.lat) {
-            appMap.updateLiveGps(AppState.lastGps.lat, AppState.lastGps.lng, AppState.lastGps.accuracy, AppState.lastGps.heading);
-            // Thu phóng hiển thị đồng thời cả 2 điểm (vị trí đứng & điểm chuyển đổi)
-            appMap.fitBothPoints();
-        } else {
-            map.setView([fLat, fLng], 18);
-        }
-        setTimeout(() => map.invalidateSize(), 200);
-    }
 };
 
 // ================= 7. PHÂN HỆ QUẢN LÝ DỰ ÁN & SỔ ĐO (EXCEL / CSV) =================
@@ -9878,13 +9360,6 @@ const appData = {
         showToast("✓ Đã lưu cài đặt nơi lưu trữ & Google Sheets!");
     },
 
-    syncToGoogleSheets(mode = 'current') {
-        if (mode === 'all') {
-            appData.syncAllProjectsToGoogle();
-        } else {
-            appData.syncCurrentProjectToGoogle();
-        }
-    },
 
     syncCurrentProjectToGoogle() {
         if (!AppState.googleScriptUrl) {
@@ -11365,10 +10840,13 @@ function doGet(e) {
         
         if (typeof XLSX !== 'undefined') {
             const wb = XLSX.utils.book_new();
+            const { rows: list, linked } = this._linkedExportRows(pts);
             const headers = ["STT", "Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
+            if (linked) headers.push(ParcelLinks.LK_HEADER, ParcelLinks.SHAPE_HEADER);
             const rows = [headers];
 
-            pts.forEach((p, idx) => {
+            list.forEach((p, idx) => {
+                const linkCells = linked ? [p.lk || '', p.lkNames || ''] : [];
                 rows.push([
                     idx + 1,
                     p.time || '',
@@ -11380,13 +10858,29 @@ function doGet(e) {
                     parseFloat(parseFloat(p.lng || 0).toFixed(7)),
                     p.mui || AppState.muiVal || 3,
                     p.ktt || (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'"),
-                    p.note || ''
+                    p.note || '',
+                    ...linkCells
                 ]);
             });
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
-            ws['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 22 }];
+            ws['!cols'] = [{ wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 28 }];
             XLSX.utils.book_append_sheet(wb, ws, "DanhSach_Moc");
+            if (linked) {
+                const guide = XLSX.utils.aoa_to_sheet([
+                    ['CÁCH ĐỌC CỘT "MÃ LIÊN KẾT"'],
+                    ['T1.3', 'Đỉnh thứ 3 của thửa (vùng khép kín) số 1'],
+                    ['D2.1', 'Điểm đầu của đường / tuyến số 2'],
+                    ['P1.4', 'Điểm thứ 4 của lớp điểm rời số 1'],
+                    ['T1.3+T2.1', 'Mốc chung: đỉnh 3 của thửa 1 và đỉnh 1 của thửa 2 (chỉ ghi một dòng)'],
+                    ['(trống)', 'Mốc không thuộc thửa nào'],
+                    [],
+                    ['Cột "Thửa / khối" ghi tên các thửa theo thứ tự trong mã, nối bằng " | ".'],
+                    ['Nạp lại tệp này vào ứng dụng: các thửa được dựng lại đúng thứ tự nối đỉnh. Có thể sửa / thêm dòng theo cùng quy ước.']
+                ]);
+                guide['!cols'] = [{ wch: 14 }, { wch: 70 }];
+                XLSX.utils.book_append_sheet(wb, guide, "HuongDan_MaLienKet");
+            }
 
             // 4. Bổ sung Sheet Chú Thích & Hình Khối (nếu có)
             if (this.annotations && this.annotations.length > 0) {
@@ -11480,13 +10974,24 @@ function doGet(e) {
 
     // CSV chuẩn của ứng dụng: 10 cột, cùng thứ tự với Excel (đủ Cao độ H để nạp lại không mất số liệu),
     // UTF-8 BOM để Excel đọc đúng tiếng Việt, X/Y/H 3 số lẻ (mm), Lat/Lng 8 số lẻ (~1 mm).
+    // Điểm thuộc thửa/khối MiniCAD → mỗi mốc một dòng kèm "Mã liên kết" (T1.3+T2.1) và "Thửa / khối",
+    // để nhập lại tệp thì tự dựng lại thửa đúng thứ tự đỉnh, đỉnh chung vẫn là một mốc (src/core/parcel_links.js).
+    _linkedExportRows(pts) {
+        if (typeof ParcelLinks === 'undefined' || !ParcelLinks.hasShapeTags(pts)) return { rows: pts || [], linked: false };
+        const { shapes, loose } = ParcelLinks.shapesFromTaggedPoints(pts);
+        return { rows: ParcelLinks.buildLinkedRows(shapes, loose).rows, linked: true };
+    },
+
     _buildCsvText(pts) {
+        const { rows: list, linked } = this._linkedExportRows(pts);
         const headers = ["Thời Gian", "Tên Điểm", "Tọa Độ Ngang X", "Tọa Độ Đứng Y", "Cao Độ H", "Vĩ Độ (Lat)", "Kinh Độ (Long)", "Múi Chiếu", "Kinh Tuyến Trục", "Ghi Chú"];
+        if (linked) headers.push(ParcelLinks.LK_HEADER, ParcelLinks.SHAPE_HEADER);
         const fix = (v, d) => (typeof v === 'number' && Number.isFinite(v)) ? v.toFixed(d) : (v || '');
         const rows = [headers.map(h => csvCell(h)).join(",")];
-        (pts || []).forEach(p => {
-            rows.push([p.time, p.name, fix(p.x, 3), fix(p.y, 3), fix(p.h, 3), fix(p.lat, 8), fix(p.lng, 8), p.mui, p.ktt, p.note]
-                .map(v => csvCell(v)).join(","));
+        list.forEach(p => {
+            const cells = [p.time, p.name, fix(p.x, 3), fix(p.y, 3), fix(p.h, 3), fix(p.lat, 8), fix(p.lng, 8), p.mui, p.ktt, p.note];
+            if (linked) cells.push(p.lk || '', p.lkNames || '');
+            rows.push(cells.map(v => csvCell(v)).join(","));
         });
         return "\uFEFF" + rows.join("\r\n");
     },
@@ -11607,7 +11112,6 @@ function doGet(e) {
                     }
                 }
                 if (savedMeta.paperSize) setVal('selExportPaperSize', savedMeta.paperSize);
-                if (savedMeta.basemap) setVal('selExportBasemap', savedMeta.basemap);
                 const chkGuland = document.getElementById('chkExportGulandPlanning');
                 if (chkGuland && typeof savedMeta.showGuland === 'boolean') chkGuland.checked = savedMeta.showGuland;
                 const chkGulandLand = document.getElementById('chkExportGulandLand');
@@ -11615,6 +11119,10 @@ function doGet(e) {
                 const chkPlanOv = document.getElementById('chkExportPlanOverlay');
                 if (chkPlanOv && typeof savedMeta.printPlanOverlay === 'boolean') chkPlanOv.checked = savedMeta.printPlanOverlay;
             }
+
+            // Nền và lớp phủ: đủ danh mục của "Lớp bản đồ"
+            fillExportBaseSelect('selExportBasemap', savedMeta?.basemap);
+            renderExportOverlayList('selExportOverlayList', savedMeta?.overlays, 'appData.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
             const provSel = document.getElementById('selExportGulandProvince');
@@ -11671,6 +11179,7 @@ function doGet(e) {
                 scaleVal: scaleValToSave,
                 paperSize: document.getElementById('selExportPaperSize')?.value || 'A4-L',
                 basemap: document.getElementById('selExportBasemap')?.value || 'none',
+                overlays: readExportOverlayChoice('selExportOverlayList'),
                 showGuland: document.getElementById('chkExportGulandPlanning')?.checked || false,
                 gulandProvince: document.getElementById('selExportGulandProvince')?.value || 'dong-thap',
                 gulandLand: document.getElementById('chkExportGulandLand')?.checked || false,
@@ -11693,13 +11202,6 @@ function doGet(e) {
         }
     },
 
-    getTitleBlockInfo() {
-        try {
-            const raw = localStorage.getItem('vn2k_export_title_block');
-            if (raw) return JSON.parse(raw);
-        } catch(e) {}
-        return this.getExportOptions()?.meta || {};
-    },
 
     resetTitleBlockInfo() {
         if (!confirm('Bạn có muốn đặt lại cấu hình thông tin bản vẽ về mặc định không?')) return;
@@ -11812,7 +11314,9 @@ function doGet(e) {
             format: chosenFormat
         };
 
-        const basemap = document.getElementById('selExportBasemap')?.value || 'none';
+        const basemapRaw = document.getElementById('selExportBasemap')?.value || 'none';
+        const basemap = exportMapSource(basemapRaw) ? basemapRaw : 'none';
+        const overlays = readExportOverlayChoice('selExportOverlayList');
         const showGuland = document.getElementById('chkExportGulandPlanning')?.checked || false;
         const gulandProvince = document.getElementById('selExportGulandProvince')?.value || (AppState.provinceName || 'dong-thap');
         const gulandLand = document.getElementById('chkExportGulandLand')?.checked || false;
@@ -11823,7 +11327,7 @@ function doGet(e) {
 
         return {
             scaleVal, paperSize, layers, meta,
-            basemap, showGuland, gulandProvince, gulandLand, printPlanOverlay, selectedPlanOverlayIds
+            basemap, overlays, showGuland, gulandProvince, gulandLand, printPlanOverlay, selectedPlanOverlayIds
         };
     },
 
@@ -12165,7 +11669,20 @@ function doGet(e) {
     // ================= 10.9.2 CÁC BỘ Xuất dữ liệu BẢN ĐỒ & TRẮC ĐỊA =================
 
     // 1. Xuất Báo Cáo Kỹ Thuật PDF (.pdf) khổ A4/A3 chuẩn TCVN có sơ đồ mốc
-    exportPdfFile() {
+    // Lớp bản đồ cho PDF / PNG của "Xuất dữ liệu": cùng bộ tải & bộ vẽ với Studio xuất MiniCAD.
+    _exportLayerMeta(opts) {
+        return {
+            basemap: opts.basemap, overlays: opts.overlays || [],
+            showGuland: opts.showGuland, gulandProvince: opts.gulandProvince, gulandLand: opts.gulandLand, gulandOpacity: 0.6,
+            printPlanOverlay: opts.printPlanOverlay, selectedPlanOverlayIds: opts.selectedPlanOverlayIds
+        };
+    },
+    _hasExportLayers(m) {
+        const hasPlanOv = !!(m && m.printPlanOverlay && typeof appPlanOverlay !== 'undefined' && appPlanOverlay.items && appPlanOverlay.items.length);
+        return !!(m && ((m.basemap && m.basemap !== 'none') || (m.overlays && m.overlays.length) || m.showGuland || hasPlanOv));
+    },
+
+    exportPdfFile(loadedLayers) {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
             showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất báo cáo PDF! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
@@ -12182,7 +11699,8 @@ function doGet(e) {
         const surveyorStr = opts.meta.surveyor || "Kỹ sư đo đạc";
         const locationStr = opts.meta.location || "Việt Nam";
 
-        const printWin = window.open('', '_blank');
+        // Cửa sổ in phải mở ngay khi bấm (trình duyệt chặn cửa sổ mở sau khi chờ tải ảnh bản đồ)
+        const printWin = (loadedLayers && loadedLayers._win) || window.open('', '_blank');
         if (!printWin) {
             showToast("⚠️ Vui lòng cho phép mở popup trình duyệt để xem và in báo cáo PDF!", true);
             return;
@@ -12250,6 +11768,40 @@ function doGet(e) {
         const vMinY = minY - padY;
         const vWidth = spanX + padX * 2;
         const vHeight = spanY + padY * 2;
+
+        // Lớp bản đồ (nền, lớp phủ, quy hoạch, ranh giới, ảnh PDF) → một ảnh nền đặt đúng khung sơ đồ
+        let mapLayerSvg = '';
+        const layerMeta = this._exportLayerMeta(opts);
+        if (this._hasExportLayers(layerMeta) && typeof appCadTool !== 'undefined') {
+            const cw = 1800, ch = Math.max(200, Math.round(cw * vHeight / vWidth));
+            const frame = { e0: vMinX, e1: vMinX + vWidth, n0: vMinY, n1: vMinY + vHeight };
+            if (!loadedLayers || !loadedLayers._done) {
+                try {
+                    printWin.document.open();
+                    printWin.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Đang chuẩn bị báo cáo…</title></head><body style="font-family:Arial,sans-serif;padding:32px;color:#334155">⏳ Đang tải các lớp bản đồ để in kèm…</body></html>');
+                    printWin.document.close();
+                } catch (e) {}
+                if (appCadTool._exportBasemapBusy) {
+                    try { printWin.close(); } catch (e) {}
+                    showToast('⏳ Đang tải lớp bản đồ, vui lòng chờ...');
+                    return;
+                }
+                const rerun = bm => this.exportPdfFile(Object.assign({}, bm, { _win: printWin, _done: true }));
+                if (appCadTool._prepareExportBasemap(layerMeta, frame, cw / vWidth, rerun)) return;
+            }
+            try {
+                const cv = document.createElement('canvas');
+                cv.width = cw; cv.height = ch;
+                const cx = cv.getContext('2d');
+                if (cx) {
+                    cx.fillStyle = '#ffffff';
+                    cx.fillRect(0, 0, cw, ch);
+                    const toCv = (e, n) => ({ x: (e - vMinX) * cw / vWidth, y: (vMinY + vHeight - n) * ch / vHeight });
+                    appCadTool.drawExportMapLayers(cx, loadedLayers, { x: 0, y: 0, w: cw, h: ch }, toCv, layerMeta);
+                    mapLayerSvg = `<image href="${cv.toDataURL('image/jpeg', 0.88)}" x="${vMinX}" y="${vMinY}" width="${vWidth}" height="${vHeight}" preserveAspectRatio="none" />`;
+                }
+            } catch (e) { mapLayerSvg = ''; }
+        }
 
         let ptsPoly = '';
         pts.forEach(p => {
@@ -12393,6 +11945,7 @@ function doGet(e) {
             <div style="font-size: 10pt; color: #64748b;">Khổ giấy: ${opts.paperSize} | KTT: ${kttStr}</div>
         </div>
         <svg viewBox="${vMinX} ${vMinY} ${vWidth} ${vHeight}" style="width: 100%; max-height: 320px; background: #ffffff; border: 1px dashed #94a3b8; border-radius: 4px;">
+            ${mapLayerSvg}
             ${layers.lines && pts.length >= 2 ? `<polyline points="${ptsPoly}${pts.length >= 3 ? ptsPoly.split(' ')[0] : ''}" fill="${pts.length >= 3 ? 'rgba(56, 189, 248, 0.15)' : 'none'}" stroke="#0284c7" stroke-width="${vWidth * 0.004}" />` : ''}
             ${lengthsSvg}
             ${marksSvg}
@@ -12424,7 +11977,7 @@ function doGet(e) {
     },
 
     // 2. Xuất Ảnh Bản Đồ Sơ Đồ Mốc PNG (.png) Full HD sắc nét theo tỷ lệ
-    exportPngImage() {
+    exportPngImage(loadedLayers) {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
             showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất ảnh PNG! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
@@ -12516,6 +12069,16 @@ function doGet(e) {
             const cy = mapArea.y + mapArea.h - ((cadY - boundsMinY) / boundsH) * mapArea.h;
             return { x: cx, y: cy };
         };
+
+        // Lớp bản đồ đã chọn (nền, lớp phủ, quy hoạch, ranh giới, ảnh PDF): tải trước rồi vẽ lại
+        const layerMeta = this._exportLayerMeta(opts);
+        if (this._hasExportLayers(layerMeta) && typeof appCadTool !== 'undefined') {
+            if (!loadedLayers && appCadTool._prepareExportBasemap(layerMeta,
+                { e0: boundsMinX, e1: boundsMinX + boundsW, n0: boundsMinY, n1: boundsMinY + boundsH },
+                Math.max(mapArea.w / boundsW, mapArea.h / boundsH),
+                bm => this.exportPngImage(bm || { none: true }))) return;
+            appCadTool.drawExportMapLayers(ctx, loadedLayers, mapArea, toCanvas, layerMeta);
+        }
 
         // 1. Vẽ lưới tọa độ Grid lines nếu bật
         if (layers.grid) {
@@ -13054,17 +12617,20 @@ function doGet(e) {
 
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn";
 
+        const { rows: list, linked } = this._linkedExportRows(pts);
+        const clean = v => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ');
         let txt = `# SO LIEU TOA DO TRAC DIA VN-2000 (LEICA / TRIMBLE / TOPCON / SOUTH)\r\n`;
         txt += `# DU AN: ${projName}\r\n`;
-        txt += `# TEN_DIEM\tX(BAC)\tY(DONG)\tCAO_DO_H\tGHI_CHU\r\n`;
+        if (linked) txt += `# MA_LK: T1.3 = dinh 3 cua thua 1; D = tuyen; P = diem roi; T1.3+T2.1 = moc chung cua 2 thua\r\n`;
+        txt += `# TEN_DIEM\tX(BAC)\tY(DONG)\tCAO_DO_H\tGHI_CHU${linked ? '\tMA_LK\tTHUA_KHOI' : ''}\r\n`;
 
-        pts.forEach((p, idx) => {
-            const name = p.name || `M${idx + 1}`;
+        list.forEach((p, idx) => {
+            const name = clean(p.name || `M${idx + 1}`);
             const x = parseFloat(p.x || 0).toFixed(3);
             const y = parseFloat(p.y || 0).toFixed(3);
             const h = parseFloat(p.h || 0).toFixed(3);
-            const note = p.note || '';
-            txt += `${name}\t${x}\t${y}\t${h}\t${note}\r\n`;
+            const note = clean(p.note || '');
+            txt += `${name}\t${x}\t${y}\t${h}\t${note}${linked ? `\t${p.lk || ''}\t${clean(p.lkNames || '')}` : ''}\r\n`;
         });
 
         const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
@@ -13470,6 +13036,9 @@ function doGet(e) {
                     const buffer = e.target.result;
                     const wb = XLSX.read(buffer, { type: 'array' });
 
+                    // Tệp có cột "Mã liên kết" (xuất từ ứng dụng): xem trước rồi dựng lại thửa theo mã
+                    if (appData._workbookHasLinks(wb) && appData.openImportPreviewFromWorkbook(wb, file.name)) return;
+
                     // Kiểm tra xem file có chứa các khối vẽ MiniCAD không
                     if (typeof appCadTool !== 'undefined' && appCadTool._parseWorkbookToShapes) {
                         try {
@@ -13506,6 +13075,12 @@ function doGet(e) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
+
+                // Tệp có cột "Mã liên kết" (xuất từ ứng dụng): xem trước rồi dựng lại thửa theo mã
+                if (typeof ImportPreview !== 'undefined' && !(text && text.includes('<table'))) {
+                    const rows = ImportPreview.textToRows(text);
+                    if (rows.length && ImportPreview.guessMapping(rows).cols.lk !== undefined) return ImportPreview.open(rows, file.name);
+                }
 
                 // Kiểm tra xem file CSV/HTML có chứa các khối bản vẽ MiniCAD không
                 if (typeof appCadTool !== 'undefined' && appCadTool._parseHtmlOrTextToShapes) {
@@ -13545,11 +13120,20 @@ function doGet(e) {
     },
 
     // Excel → xem trước: chọn trang tính đầu tiên có cột tọa độ nhận ra được (hoặc trang đầu).
+    _workbookSheets(wb) {
+        return wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true, blankrows: false })
+            .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== '')));
+    },
+    _workbookHasLinks(wb) {
+        if (typeof ImportPreview === 'undefined' || !wb || !wb.SheetNames) return false;
+        return this._workbookSheets(wb).some(rows => rows.length && ImportPreview.guessMapping(rows).cols.lk !== undefined);
+    },
+
     openImportPreviewFromWorkbook(wb, fileName) {
         if (typeof ImportPreview === 'undefined' || !wb || !wb.SheetNames || !wb.SheetNames.length) return false;
-        const sheets = wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: true, blankrows: false })
-            .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== '')));
-        const pick = sheets.find(rows => {
+        const sheets = this._workbookSheets(wb);
+        // Ưu tiên trang có mã liên kết thửa ↔ đỉnh, rồi tới trang đầu tiên có cột tọa độ
+        const pick = sheets.find(rows => { const m = ImportPreview.guessMapping(rows); return m.cols.lk !== undefined && (m.cols.x !== undefined || m.cols.lat !== undefined); }) || sheets.find(rows => {
             const m = ImportPreview.guessMapping(rows);
             return (m.cols.x !== undefined && m.cols.y !== undefined) || (m.cols.lat !== undefined && m.cols.lng !== undefined);
         }) || sheets[0];
@@ -13780,6 +13364,14 @@ function doGet(e) {
             return showToast("⚠️ Không nhận dạng được mốc tọa độ hợp lệ nào! Vui lòng kiểm tra lại file.", true);
         }
 
+        // Tệp có mã liên kết thửa ↔ đỉnh: tách mỗi lần là đỉnh thành một dòng gắn thẻ khối (như MiniCAD lưu),
+        // để MiniCAD dựng lại thửa đúng thứ tự nối và đỉnh chung trùng tọa độ.
+        let linkInfo = null;
+        if (typeof ParcelLinks !== 'undefined' && ParcelLinks.hasLinks(parsedPoints)) {
+            linkInfo = ParcelLinks.expandToTaggedPoints(parsedPoints);
+            parsedPoints = linkInfo.points;
+        }
+
         const targetMode = document.querySelector('input[name="importTargetMode"]:checked')?.value || 'new';
         let targetProj = AppState.currentProject;
 
@@ -13806,9 +13398,16 @@ function doGet(e) {
 
         // Khôi phục và tái tạo các khối CAD nếu mốc có chứa thuộc tính shapeName
         if (typeof appCadTool !== 'undefined') {
+            const cadKey = appCadTool.getProjectStorageKey(targetProj);
+            const hadCad = !!(localStorage.getItem('vn2k_cad_shapes_' + cadKey) || localStorage.getItem('vn2k_cad_shapes_' + targetProj));
             appCadTool.savedShapes = [];
             if (!appCadTool.loadShapesForProject(targetProj)) {
                 appCadTool.reconstructShapesFromPoints(targetProj);
+            } else if (hadCad && linkInfo && linkInfo.shapes.length) {
+                // Dự án đã có bản vẽ: thêm các thửa vừa dựng (và mốc lẻ đi kèm) vào bản vẽ hiện có
+                const added = appCadTool.shapesFromTaggedPoints(parsedPoints, targetProj, `Mốc nhập ${String(defaultName || '').replace(/\.[^/.]+$/, '')}`.trim());
+                appCadTool.savedShapes = appCadTool.savedShapes.concat(added);
+                appCadTool.saveShapesForProject(targetProj);
             }
         }
 
@@ -13819,7 +13418,13 @@ function doGet(e) {
         }
 
         appModal.closeImportProjectModal();
-        showToast(`✓ Đã nạp thành công ${parsedPoints.length} mốc vào dự án: ${targetProj}!`, true);
+        if (linkInfo && linkInfo.shapes.length) {
+            const nPoly = linkInfo.shapes.filter(x => x.mode === 'polygon').length;
+            const nOther = linkInfo.shapes.length - nPoly;
+            showToast(`✓ Đã nạp vào dự án ${targetProj}: dựng lại ${nPoly} thửa${nOther ? ` + ${nOther} tuyến/lớp điểm` : ''} theo mã liên kết${linkInfo.warnings.length ? ` (lưu ý: ${linkInfo.warnings[0]})` : ''}.`, true);
+        } else {
+            showToast(`✓ Đã nạp thành công ${parsedPoints.length} mốc vào dự án: ${targetProj}!`, true);
+        }
 
         // Mở bản đồ và zoom bao quát các mốc vừa nạp
         appNav.openProjectMap();
@@ -14433,21 +14038,6 @@ const appModal = {
         this.applyUiIconMode(mode);
     },
 
-    setUiIconMode(mode) {
-        try {
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('vn2k_ui_icon_mode', mode);
-            }
-        } catch (e) {}
-        this.applyUiIconMode(mode);
-        this.updateGeneralSettingsUI();
-        if (typeof showToast === 'function') {
-            showToast(mode === 'icon_pro' 
-                ? '✨ Đã kích hoạt Chế độ Biểu tượng lớn (Icon Pro - Ít chữ, trực quan)' 
-                : '📝 Đã kích hoạt Chế độ Chi tiết (Có nhãn chữ)');
-        }
-        if (typeof triggerHaptic === 'function') triggerHaptic('light');
-    },
 
     applyUiIconMode(mode) {
         const isIconPro = mode !== 'detailed';
@@ -14969,10 +14559,6 @@ const appModal = {
         appModal.closeSettings();
     },
 
-    openGoogleGuide() {
-        const m = document.getElementById('modalGoogleGuide');
-        if (m) m.classList.add('active');
-    },
 
     closeGoogleGuide() {
         const m = document.getElementById('modalGoogleGuide');
@@ -18076,9 +17662,6 @@ const appElevationProfile = {
         showToast("Đã xóa danh sách mốc hố đào.");
     },
 
-    loadPitFromProject() {
-        this.openProjectPointPicker();
-    },
 
     loadPitFromCad() {
         triggerHaptic('light');
@@ -21516,10 +21099,6 @@ const appCadTool = {
         }
     },
 
-    // Alias tương thích ngược
-    calculatePolygonCentroid(pts) {
-        return this.calculatePolygonVisualCenter(pts);
-    },
 
     // Thao tác chèn đỉnh mới vào cạnh
     insertVertexOnEdge(shapeIdx, edgeIdx) {
@@ -22062,13 +21641,6 @@ const appCadTool = {
         }
     },
 
-    toggleToolbar() {
-        if (this.isActive) {
-            this.closeToolbar();
-        } else {
-            this.openToolbar();
-        }
-    },
 
     renderSnapEdgeGuide(v1, v2) {
         if (!AppState.leafletMap || !v1 || !v2) return;
@@ -22610,6 +22182,112 @@ const appCadTool = {
         return [v && v.size, shape && (shape.vertexSize || shape.vSize), layer && layer.vSize].find(ok) || 'md';
     },
 
+    // === CHỮ CỦA KÝ HIỆU: vị trí (trong / phải / trên / dưới / trái / ẩn), cỡ chữ, màu chữ ===
+    // Ưu tiên: từng đỉnh → khối → lớp CAD → mặc định ("trong ký hiệu", cỡ theo cỡ ký hiệu, chữ trắng).
+    labelPositions: [
+        { id: 'inside', label: 'Trong ký hiệu' },
+        { id: 'right', label: 'Bên phải' },
+        { id: 'top', label: 'Phía trên' },
+        { id: 'bottom', label: 'Phía dưới' },
+        { id: 'left', label: 'Bên trái' },
+        { id: 'none', label: 'Ẩn chữ' }
+    ],
+    labelSizes: [9, 10, 11, 12, 13, 14, 16, 18, 20, 24],
+
+    normalizeLabelField(field, value) {
+        if (field === 'lPos') {
+            const id = String(value || '').trim();
+            if (id === '') return null;
+            return (this.labelPositions || []).some(p => p.id === id) ? id : undefined;
+        }
+        if (field === 'lSize') {
+            if (value === '' || value === null || +value === 0) return null;
+            const n = Math.round(+value);
+            return Number.isFinite(n) && n >= 8 && n <= 40 ? n : undefined;
+        }
+        if (field === 'lColor') {
+            const c = String(value || '').trim();
+            if (c === '') return null;
+            return /^#[0-9a-fA-F]{6}$/.test(c) ? c : undefined;
+        }
+        return undefined;
+    },
+
+    getLabelStyleFor(shape, v) {
+        const okPos = id => (this.labelPositions || []).some(p => p.id === id);
+        const okPx = n => Number.isFinite(+n) && +n >= 8 && +n <= 40;
+        const hex = c => /^#[0-9a-fA-F]{6}$/.test(String(c || '').trim()) ? String(c).trim() : null;
+        const layer = this.getGlyphLayerOf ? this.getGlyphLayerOf(shape) : null;
+        const pos = [v && v.lPos, shape && shape.lPos, layer && layer.lPos].find(okPos) || 'inside';
+        const px = +([v && v.lSize, shape && shape.lSize, layer && layer.lSize].find(okPx) || 0);
+        const color = [v && v.lColor, shape && shape.lColor, layer && layer.lColor].map(hex).find(Boolean) || '';
+        return { pos, px, color };
+    },
+
+    // Đường kính ký hiệu khi ở dạng hình (khớp các lớp .size-* trong style.css)
+    symbolPx(sizeId) { return ({ sm: 11, md: 14, lg: 19, xl: 25 })[sizeId] || 14; },
+
+    /** HTML một ký hiệu: khung tâm 0×0 nằm ĐÚNG tọa độ, ký hiệu căn giữa khung, chữ trong hoặc quanh ký hiệu.
+        o: { style, color, size, name, title, label:{pos,px,color}, expanded (đang hiện chữ), dot (đang hiện hình), extraCls, cursor } */
+    glyphHtml(o) {
+        const lb = o.label || { pos: 'inside', px: 0, color: '' };
+        const inside = lb.pos === 'inside';
+        const cls = ['cad-vertex-badge', 'sty-' + o.style, 'size-' + o.size];
+        if (o.extraCls) cls.push(o.extraCls);
+        const badgeStyle = o.style === 'ring'
+            ? `background: transparent; border-color: ${o.color}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
+            : `background: ${o.color}; border-color: #ffffff;`;
+        const vars = `--sym-r:${this.symbolPx(o.size) / 2}px;` + (lb.px ? `--lbl-size:${lb.px}px;` : '') + (lb.color ? `--lbl-color:${lb.color};` : '');
+        const name = escapeHtml(o.name == null ? '' : String(o.name));
+        let inner = '', after = '';
+        if (inside) {
+            if (o.dot) cls.push('dot-visible');
+            if (o.expanded) cls.push('expanded');
+            if (lb.px) cls.push('lsz');
+            inner = name;
+        } else {
+            cls.push('lbl-out');
+            if (o.dot || o.expanded) cls.push('dot-visible');
+            if (lb.pos !== 'none' && name) after = `<span class="cad-vlabel lp-${lb.pos}${o.expanded ? ' is-on' : ''}">${name}</span>`;
+        }
+        return `<div class="cad-vglyph" style="${vars}"><div class="${cls.join(' ')}" style="${badgeStyle}${o.cursor || ''}" title="${escapeHtml(o.title || '')}">${inner}</div>${after}</div>`;
+    },
+
+    buildGlyphIcon(o) {
+        const px = ({ sm: 16, md: 22, lg: 28, xl: 34 })[o.size] || 22;
+        return L.divIcon({ className: '', html: this.glyphHtml(o), iconSize: [px, px], iconAnchor: [px / 2, px / 2] });
+    },
+
+    /** Rê chuột vào ký hiệu: chữ trong → bung viên thuốc; chữ ngoài → giữ hình, hiện chữ bên cạnh. */
+    glyphHover(marker, on, pinned) {
+        const el = marker && marker.getElement ? marker.getElement() : null;
+        const b = el ? el.querySelector('.cad-vertex-badge') : null;
+        if (!b) return;
+        if (b.classList.contains('lbl-out')) {
+            b.classList.toggle('hovered', on);
+            const lbl = el.querySelector('.cad-vlabel');
+            if (lbl) lbl.classList.toggle('is-hover', on);
+        } else if (on) b.classList.add('expanded');
+        else if (!pinned) b.classList.remove('expanded');
+    },
+
+    /** Chữ tên điểm/đỉnh khi XUẤT bản vẽ: cùng cài đặt vị trí + cỡ chữ với màn hình (màu chữ không dùng vì giấy nền trắng).
+        cx, cy: tâm ký hiệu; r: bán kính ký hiệu; h: cỡ chữ mặc định của bộ xuất; yUp: trục Y hướng lên (DXF) hay xuống (canvas/SVG).
+        Trả về null khi "Ẩn chữ"; { legacy: true, h } khi "Trong ký hiệu" (ký hiệu in quá nhỏ để chứa chữ → giữ vị trí trên-phải quen thuộc);
+        còn lại { x, y, h, align: left|center|right, base: middle|bottom|top } — (x, y) là điểm neo theo align/base. */
+    exportLabelAnchor(shape, p, cx, cy, r, h, yUp) {
+        const lb = this.getLabelStyleFor(shape, p);
+        if (lb.pos === 'none') return null;
+        const hh = lb.px ? h * lb.px / 12 : h;
+        if (lb.pos === 'inside') return { legacy: true, h: hh };
+        const gap = r * 0.6 + hh * 0.15;
+        const up = yUp ? 1 : -1;
+        if (lb.pos === 'right') return { x: cx + r + gap, y: cy, h: hh, align: 'left', base: 'middle' };
+        if (lb.pos === 'left') return { x: cx - r - gap, y: cy, h: hh, align: 'right', base: 'middle' };
+        if (lb.pos === 'top') return { x: cx, y: cy + up * (r + gap), h: hh, align: 'center', base: 'bottom' };
+        return { x: cx, y: cy - up * (r + gap), h: hh, align: 'center', base: 'top' };
+    },
+
     updateDraftVertexConfig(field, value) {
         if (field === 'style') {
             if (this.pointStyles.some(s => s.id === value)) this.draftVertexStyle = value;
@@ -22668,7 +22346,8 @@ const appCadTool = {
             return;
         }
         const sName = shape.shortName || shape.name || 'Khối';
-        this.pushHistoryState(`Đổi ${field} đỉnh cho khối [${sName}]`);
+        const fieldVi = ({ style: 'kiểu ký hiệu', color: 'màu ký hiệu', size: 'cỡ ký hiệu', lPos: 'vị trí chữ', lSize: 'cỡ chữ', lColor: 'màu chữ' })[field] || field;
+        this.pushHistoryState(`Đổi ${fieldVi} đỉnh cho khối [${sName}]`);
         if (field === 'style') {
             if (!this.pointStyles.some(s => s.id === value)) return;
             shape.vertexStyle = value;
@@ -22683,6 +22362,12 @@ const appCadTool = {
             if (!this.pointSizes.some(s => s.id === value)) return;
             shape.vertexSize = value;
             shape.vertices.forEach(v => { v.size = value; });
+        } else if (field === 'lPos' || field === 'lSize' || field === 'lColor') {
+            // Chữ áp cho cả khối: ghi ở khối, gỡ tùy chỉnh riêng của từng đỉnh để cả khối theo một kiểu
+            const val = this.normalizeLabelField(field, value);
+            if (val === undefined) return;
+            if (val === null) delete shape[field]; else shape[field] = val;
+            shape.vertices.forEach(v => { delete v[field]; });
         }
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
@@ -22691,7 +22376,7 @@ const appCadTool = {
         this.refreshAreaTableIfOpen();
         if (this.modalTableActiveTab === 'vertices') this.renderModalVerticesTable();
         this.refreshSymbolPanelIfOpen();
-        showToast(`🎨 Đã cập nhật ${field} cho tất cả đỉnh của [${sName}].`);
+        showToast(`🎨 Đã cập nhật ${fieldVi} cho tất cả đỉnh của [${sName}].`);
     },
 
     applyBulkVertexGlyphs() {
@@ -22750,6 +22435,12 @@ const appCadTool = {
         if (stSel && stSel.value) this.setVertexGlyph(sIdx, vIdx, 'style', stSel.value);
         if (colInp && colInp.value) this.setVertexGlyph(sIdx, vIdx, 'color', colInp.value);
         if (szSel && szSel.value) this.setVertexGlyph(sIdx, vIdx, 'size', szSel.value);
+        const lp = document.getElementById('cadQuickLPos');
+        const ls = document.getElementById('cadQuickLSize');
+        const lc = document.getElementById('cadQuickLColor');
+        if (lp) this.setVertexGlyph(sIdx, vIdx, 'lPos', lp.value);
+        if (ls) this.setVertexGlyph(sIdx, vIdx, 'lSize', ls.value);
+        if (lc && lc.dataset.touched === '1') this.setVertexGlyph(sIdx, vIdx, 'lColor', lc.value);
         if (nameInp && nameInp.value.trim() && nameInp.value.trim() !== v.name) {
             this.renameVertex(sIdx, vIdx, nameInp.value.trim());
         }
@@ -22767,7 +22458,30 @@ const appCadTool = {
         if (stSel && stSel.value) this.setShapeVerticesGlyph(sIdx, 'style', stSel.value);
         if (colInp && colInp.value) this.setShapeVerticesGlyph(sIdx, 'color', colInp.value);
         if (szSel && szSel.value) this.setShapeVerticesGlyph(sIdx, 'size', szSel.value);
+        const lp = document.getElementById('cadQuickLPos');
+        const ls = document.getElementById('cadQuickLSize');
+        const lc = document.getElementById('cadQuickLColor');
+        if (lp) this.setShapeVerticesGlyph(sIdx, 'lPos', lp.value);
+        if (ls) this.setShapeVerticesGlyph(sIdx, 'lSize', ls.value);
+        if (lc && lc.dataset.touched === '1') this.setShapeVerticesGlyph(sIdx, 'lColor', lc.value);
         if (AppState.leafletMap) AppState.leafletMap.closePopup();
+    },
+
+    /** Ba ô chọn chữ (vị trí, cỡ, màu) trong popup nhanh của một đỉnh. Ô trống = theo khối/lớp. */
+    quickLabelControlsHtml(shape, v) {
+        const own = v || {};
+        const eff = this.getLabelStyleFor(shape, v);
+        const posOpts = `<option value="">Chữ: theo lớp (${(this.labelPositions.find(p => p.id === eff.pos) || {}).label || ''})</option>` +
+            this.labelPositions.map(p => `<option value="${p.id}" ${own.lPos === p.id ? 'selected' : ''}>${p.label}</option>`).join('');
+        const sizeOpts = `<option value="">Cỡ chữ: theo lớp</option>` +
+            this.labelSizes.map(n => `<option value="${n}" ${+own.lSize === n ? 'selected' : ''}>${n} px</option>`).join('');
+        return `
+                <div style="display:grid; grid-template-columns: 1.4fr 1fr auto; gap:4px; align-items:center; margin-top:4px;">
+                    <select id="cadQuickLPos" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Vị trí chữ tên đỉnh: trong ký hiệu hoặc bên ngoài">${posOpts}</select>
+                    <select id="cadQuickLSize" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Cỡ chữ tên đỉnh">${sizeOpts}</select>
+                    <input type="color" id="cadQuickLColor" value="${escapeHtml(own.lColor || eff.color || '#ffffff')}" oninput="this.dataset.touched='1'"
+                        style="width:24px; height:22px; padding:0; border:1px solid #44403c; border-radius:3px; background:#1c1a18; cursor:pointer;" title="Màu chữ tên đỉnh">
+                </div>`;
     },
 
     // Nhóm hiển thị của một đối tượng: 'point' → nhóm Điểm rời, khác → nhóm Đỉnh khối & tuyến
@@ -23082,7 +22796,7 @@ const appCadTool = {
     countVertexGlyphOverrides() {
         let n = 0;
         (this.savedShapes || []).forEach(sh => (sh.vertices || []).forEach(v => {
-            if (v && (v.style || v.color)) n++;
+            if (v && (v.style || v.color || v.lPos || v.lSize || v.lColor)) n++;
         }));
         return n;
     },
@@ -23097,39 +22811,87 @@ const appCadTool = {
             { id: 'lg', label: 'Lớn (26px)', size: 26 },
             { id: 'xl', label: 'Rất lớn (32px)', size: 32 }
         ];
-        const styleOpts = (cur) => ptStyles.map(st =>
-            `<option value="${st.id}" ${st.id === cur ? 'selected' : ''}>${st.label}</option>`).join('');
-        const sizeOpts = (cur) => ptSizes.map(sz =>
-            `<option value="${sz.id}" ${sz.id === cur ? 'selected' : ''}>${sz.label}</option>`).join('');
+        const lPositions = this.labelPositions || [
+            { id: 'inside', label: 'Trong ký hiệu' }, { id: 'right', label: 'Bên phải' }, { id: 'top', label: 'Phía trên' },
+            { id: 'bottom', label: 'Phía dưới' }, { id: 'left', label: 'Bên trái' }, { id: 'none', label: 'Ẩn chữ' }
+        ];
+        const lSizes = this.labelSizes || [9, 10, 11, 12, 13, 14, 16, 18, 20, 24];
+        const hex = (c) => /^#[0-9a-fA-F]{6}$/.test(String(c || '').trim()) ? String(c).trim() : '';
+        const opts = (list, cur) => list.map(o => `<option value="${o.id}" ${o.id === cur ? 'selected' : ''}>${o.label}</option>`).join('');
+        const sizeTextOpts = (cur) => `<option value="" ${!cur ? 'selected' : ''}>Tự động</option>` +
+            lSizes.map(n => `<option value="${n}" ${n === cur ? 'selected' : ''}>${n} px</option>`).join('');
+        // Mẫu xem trước dùng đúng bộ dựng ký hiệu trên bản đồ
+        const preview = (o) => (typeof this.glyphHtml === 'function')
+            ? `<span class="cad-sym-preview" aria-hidden="true">${this.glyphHtml(o)}</span>` : '';
         box.innerHTML = (this.layersTable || []).map(ly => {
+            const id = ly.id;
             const style = ptStyles.some(s => s.id === ly.vStyle) ? ly.vStyle : 'circle';
-            const color = /^#[0-9a-fA-F]{6}$/.test(String(ly.vColor || '').trim()) ? ly.vColor : (ly.color || '#10b981');
+            const color = hex(ly.vColor) || (ly.color || '#10b981');
             const size = ptSizes.some(s => s.id === ly.vSize) ? ly.vSize : 'md';
-            return `<tr>
-                <td style="color:${escapeHtml(ly.color || '#94a3b8')};font-weight:700;white-space:nowrap;">${escapeHtml(ly.name || ly.id)}</td>
-                <td style="text-align:center;">
-                    <select class="cad-inline-select" style="height:24px;max-width:118px;font-size:11px;"
-                        id="cadSymStyle_${ly.id}" onchange="appCadTool.applyLayerGlyph('${ly.id}')"
-                        title="Hình dạng ký hiệu mặc định cho điểm/đỉnh của lớp này">${styleOpts(style)}</select>
-                </td>
-                <td style="text-align:center;">
-                    <input type="color" id="cadSymColor_${ly.id}" value="${escapeHtml(color)}" style="width:30px;height:24px;padding:0;border:1px solid #334155;border-radius:5px;background:#0f172a;cursor:pointer;"
-                        onchange="appCadTool.applyLayerGlyph('${ly.id}')" title="Màu ký hiệu mặc định của lớp này">
-                </td>
-                <td style="text-align:center;">
-                    <select class="cad-inline-select" style="height:24px;max-width:90px;font-size:11px;"
-                        id="cadSymSize_${ly.id}" onchange="appCadTool.applyLayerGlyph('${ly.id}')"
-                        title="Kích thước ký hiệu mặc định của lớp này">${sizeOpts(size)}</select>
-                </td>
-                <td style="text-align:center;color:#64748b;font-size:11px;">${escapeHtml(ly.id)}</td>
-                <td style="text-align:center;">
-                    <button class="btn-sm" style="height:22px;padding:0 8px;font-size:11px;"
-                        onclick="appCadTool.resetLayerGlyph('${ly.id}')" title="Xóa mặc định ký hiệu riêng của lớp này">↺</button>
-                </td>
-            </tr>`;
+            const lPos = lPositions.some(p => p.id === ly.lPos) ? ly.lPos : 'inside';
+            const lSize = +ly.lSize || 0;
+            const lColor = hex(ly.lColor);
+            const sample = preview({ style, color, size, name: 'M1', label: { pos: lPos, px: lSize, color: lColor }, expanded: true, dot: true });
+            return `<div class="cad-sym-card">
+                <div class="cad-sym-card-head">
+                    <span class="cad-sym-name" style="color:${escapeHtml(ly.color || '#a8a29e')};">${escapeHtml(ly.name || id)}</span>
+                    <code class="cad-sym-code">${escapeHtml(id)}</code>
+                    ${sample}
+                    <button type="button" class="cad-sym-reset" onclick="appCadTool.resetLayerGlyph('${id}')"
+                        title="Đưa ký hiệu và chữ của lớp này về mặc định" aria-label="Đặt lại lớp ${escapeHtml(ly.name || id)}">↺</button>
+                </div>
+                <div class="cad-sym-grid">
+                    <label><span>Hình</span><select class="cad-inline-select" id="cadSymStyle_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Hình dạng ký hiệu mặc định cho điểm/đỉnh của lớp này">${opts(ptStyles, style)}</select></label>
+                    <label><span>Màu</span><input type="color" id="cadSymColor_${id}" value="${escapeHtml(color)}"
+                        onchange="appCadTool.applyLayerGlyph('${id}')" title="Màu ký hiệu mặc định của lớp này"></label>
+                    <label><span>Cỡ ký hiệu</span><select class="cad-inline-select" id="cadSymSize_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Kích thước ký hiệu mặc định của lớp này">${opts(ptSizes, size)}</select></label>
+                    <label><span>Vị trí chữ</span><select class="cad-inline-select" id="cadSymLPos_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Tên điểm/đỉnh nằm trong ký hiệu hay bên ngoài (phải, trên, dưới, trái)">${opts(lPositions, lPos)}</select></label>
+                    <label><span>Cỡ chữ</span><select class="cad-inline-select" id="cadSymLSize_${id}" onchange="appCadTool.applyLayerGlyph('${id}')"
+                        title="Cỡ chữ tên điểm/đỉnh">${sizeTextOpts(lSize)}</select></label>
+                    <label><span>Màu chữ</span><input type="color" id="cadSymLColor_${id}" value="${escapeHtml(lColor || '#ffffff')}" ${lColor ? 'data-set="1"' : ''}
+                        oninput="this.dataset.set='1'" onchange="appCadTool.applyLayerGlyph('${id}')" title="Màu chữ tên điểm/đỉnh"></label>
+                </div>
+            </div>`;
         }).join('');
         const cnt = document.getElementById('cadSymOverrideCount');
         if (cnt) cnt.innerText = this.countVertexGlyphOverrides();
+        if (typeof this.renderLandmarkStylePanel === 'function') this.renderLandmarkStylePanel();
+    },
+
+    // Mốc tọa độ của dự án (chưa thành đỉnh bản vẽ): một kiểu chung, dùng cho cả Bản đồ dự án và MiniCAD
+    renderLandmarkStylePanel() {
+        const box = document.getElementById('cadLandmarkStyleBox');
+        if (!box || typeof appMap === 'undefined' || !appMap.getLandmarkStyle) return;
+        const st = appMap.getLandmarkStyle();
+        const shapes = [{ id: 'pin', label: '📍 Ghim đầu nhọn' }].concat((this.pointStyles || []).filter(x => x.id !== 'pin'));
+        const opts = (list, cur) => list.map(o => `<option value="${o.id}" ${o.id === cur ? 'selected' : ''}>${o.label}</option>`).join('');
+        const texts = [{ id: 'index', label: 'Số thứ tự' }, { id: 'name', label: 'Tên mốc' }, { id: 'both', label: 'Số + tên' }, { id: 'none', label: 'Không chữ' }];
+        const lSizes = this.labelSizes || [9, 10, 11, 12, 13, 14, 16, 18, 20, 24];
+        const sizeTextOpts = `<option value="0" ${!st.px ? 'selected' : ''}>Tự động</option>` +
+            lSizes.map(n => `<option value="${n}" ${n === st.px ? 'selected' : ''}>${n} px</option>`).join('');
+        let sample = '';
+        try { sample = appMap.landmarkIcon({ name: 'GPS-1' }, 0, st).options.html; } catch (e) { sample = ''; }
+        const set = (k, conv) => `onchange="appMap.setLandmarkStyle({ ${k}: ${conv || 'this.value'} })"`;
+        box.innerHTML = `<div class="cad-sym-card">
+            <div class="cad-sym-card-head">
+                <span class="cad-sym-name">Mốc tọa độ dự án</span>
+                <code class="cad-sym-code">Sổ đo</code>
+                <span class="cad-sym-preview is-landmark" aria-hidden="true">${sample}</span>
+                <button type="button" class="cad-sym-reset" onclick="appMap.resetLandmarkStyle()" title="Đưa icon mốc về ghim đỏ có số thứ tự" aria-label="Đặt lại icon mốc">↺</button>
+            </div>
+            <div class="cad-sym-grid">
+                <label><span>Hình</span><select class="cad-inline-select" id="cadLmkShape" ${set('shape')}>${opts(shapes, st.shape)}</select></label>
+                <label><span>Màu</span><input type="color" id="cadLmkColor" value="${escapeHtml(st.color)}" ${set('color')}></label>
+                <label><span>Cỡ ký hiệu</span><select class="cad-inline-select" id="cadLmkSize" ${set('size')}>${opts(this.pointSizes || [], st.size)}</select></label>
+                <label><span>Chữ hiển thị</span><select class="cad-inline-select" id="cadLmkText" ${set('text')}>${opts(texts, st.text)}</select></label>
+                <label><span>Vị trí chữ</span><select class="cad-inline-select" id="cadLmkPos" ${set('pos')}>${opts(this.labelPositions || [], st.pos)}</select></label>
+                <label><span>Cỡ chữ</span><select class="cad-inline-select" id="cadLmkPx" ${set('px', '+this.value')}>${sizeTextOpts}</select></label>
+                <label><span>Màu chữ</span><input type="color" id="cadLmkLColor" value="${escapeHtml(st.lColor || '#ffffff')}" ${set('lColor')}></label>
+            </div>
+        </div>`;
     },
 
     // Mặc định ký hiệu theo lớp CAD: không ghi vào lịch sử vẽ (v layers nằm ở localStorage riêng)
@@ -23147,10 +22909,23 @@ const appCadTool = {
         ly.vStyle = style;
         ly.vColor = color;
         ly.vSize = size;
+        // Chữ của ký hiệu: vị trí, cỡ, màu (màu chữ chỉ lưu khi người dùng đã chọn)
+        if (typeof this.normalizeLabelField === 'function') {
+            const setL = (field, el) => {
+                if (!el) return;
+                const v = this.normalizeLabelField(field, el.value);
+                if (v === null) delete ly[field]; else if (v !== undefined) ly[field] = v;
+            };
+            setL('lPos', document.getElementById('cadSymLPos_' + layerId));
+            setL('lSize', document.getElementById('cadSymLSize_' + layerId));
+            const lc = document.getElementById('cadSymLColor_' + layerId);
+            if (lc && lc.dataset && lc.dataset.set === '1') setL('lColor', lc);
+        }
         if (this.saveLayersTable) this.saveLayersTable();
         this.renderGeometry();
         this.renderSymbolPanel();
-        showToast(`🎨 Lớp "${ly.name}": ký hiệu ${style.toUpperCase()}, cỡ ${size}, màu ${color}.`);
+        const posLabel = ((this.labelPositions || []).find(p => p.id === ly.lPos) || {}).label;
+        showToast(`🎨 Lớp "${ly.name}": ký hiệu ${style.toUpperCase()}, cỡ ${size}, màu ${color}${posLabel ? `, chữ ${posLabel.toLowerCase()}` : ''}${ly.lSize ? ` ${ly.lSize}px` : ''}.`);
     },
 
     resetLayerGlyph(layerId) {
@@ -23159,6 +22934,9 @@ const appCadTool = {
         delete ly.vStyle;
         delete ly.vColor;
         delete ly.vSize;
+        delete ly.lPos;
+        delete ly.lSize;
+        delete ly.lColor;
         if (this.saveLayersTable) this.saveLayersTable();
         this.renderGeometry();
         this.renderSymbolPanel();
@@ -23170,11 +22948,17 @@ const appCadTool = {
         const n = this.countVertexGlyphOverrides();
         if (!n) { showToast('ℹ️ Không có điểm/đỉnh nào được tùy chỉnh riêng.'); return; }
         this.pushHistoryState(`Đặt lại ký hiệu cho ${n} điểm/đỉnh`);
-        (this.savedShapes || []).forEach(sh => (sh.vertices || []).forEach(v => {
-            delete v.style;
-            delete v.color;
-            delete v.size;
-        }));
+        (this.savedShapes || []).forEach(sh => {
+            delete sh.lPos; delete sh.lSize; delete sh.lColor;
+            (sh.vertices || []).forEach(v => {
+                delete v.style;
+                delete v.color;
+                delete v.size;
+                delete v.lPos;
+                delete v.lSize;
+                delete v.lColor;
+            });
+        });
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
@@ -23276,6 +23060,12 @@ const appCadTool = {
             if (value === this.getPointSizeFor(shape, v)) return;
             this.pushHistoryState(`Đổi kích thước đỉnh ${label}`);
             v.size = value;
+        } else if (field === 'lPos' || field === 'lSize' || field === 'lColor') {
+            const val = this.normalizeLabelField(field, value);
+            if (val === undefined) return;
+            if (val === null ? v[field] === undefined : v[field] === val) return;
+            this.pushHistoryState(`Đổi chữ của đỉnh ${label}`);
+            if (val === null) delete v[field]; else v[field] = val;
         } else {
             return;
         }
@@ -23292,7 +23082,7 @@ const appCadTool = {
     resetVertexGlyph(shapeIdx, vIdx) {
         const shape = (this.savedShapes || [])[shapeIdx];
         const v = shape && (shape.vertices || [])[vIdx];
-        if (!v || (!v.style && !v.color && !v.size)) return;
+        if (!v || (!v.style && !v.color && !v.size && !v.lPos && !v.lSize && !v.lColor)) return;
         if (this.isShapeLocked(shape)) {
             showToast(`🔒 Lớp của đối tượng đang bị khóa, không thể đặt lại ký hiệu đỉnh!`, true);
             return;
@@ -23301,6 +23091,9 @@ const appCadTool = {
         delete v.style;
         delete v.color;
         delete v.size;
+        delete v.lPos;
+        delete v.lSize;
+        delete v.lColor;
         this.saveShapesForProject(AppState.currentProject);
         this.persistSession();
         this.renderGeometry();
@@ -27109,71 +26902,61 @@ const appCadTool = {
         }
     },
 
-    reconstructShapesFromPoints(projName) {
-        const curProj = projName || AppState.currentProject;
-        if (!curProj || typeof appData === 'undefined' || !appData.getPoints) return false;
-        const pts = appData.getPoints(curProj);
-        if (!pts || pts.length === 0) return false;
-
-        // Phân loại mốc theo Khối/Thửa Đất
+    // Mốc dự án (đã gắn thẻ shapeId/shapeName/shapeOrder) → khối MiniCAD. Nhóm theo khối, sắp theo thứ tự đỉnh;
+    // mốc chưa thuộc khối nào gom thành một lớp điểm (hoặc ranh thửa nếu dự án chưa có khối nào).
+    shapesFromTaggedPoints(pts, curProj, looseName) {
         const shapeMap = new Map();
-        let hasShapeTag = false;
-
         pts.forEach((p, idx) => {
             const sName = p.shapeName || p.blockName;
-            if (sName) {
-                hasShapeTag = true;
-                if (!shapeMap.has(sName)) {
-                    shapeMap.set(sName, {
-                        name: sName,
-                        mode: p.shapeMode || 'polygon',
-                        color: p.shapeColor || null,
-                        vertices: []
-                    });
-                }
-                shapeMap.get(sName).vertices.push(p);
+            if (!sName) return;
+            const key = (p.shapeId || '') + '|' + sName;
+            if (!shapeMap.has(key)) {
+                shapeMap.set(key, { name: sName, mode: p.shapeMode || 'polygon', color: p.shapeColor || null, items: [] });
             }
+            shapeMap.get(key).items.push({ p, idx, order: Number(p.shapeOrder) || 0 });
         });
 
         const colorPalette = ['#10b981', '#38bdf8', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#84cc16'];
         const reconstructed = [];
         let cIdx = 0;
 
-        if (hasShapeTag && shapeMap.size > 0) {
-            shapeMap.forEach((sObj, sName) => {
-                const validVerts = sObj.vertices.map((v, i) => {
-                    const norm = this._normalizeVertex(v, i);
-                    return {
-                        ...norm,
-                        isSnapped: true,
-                        snapSource: `Dự án: ${curProj}`,
-                        shapeName: sName,
-                        shapeMode: sObj.mode,
-                        // Kiểu & màu ký hiệu điểm rời được lưu ngược từ pointStyle/pointColor của mốc dự án
-                        style: v.pointStyle || undefined,
-                        color: v.pointColor || undefined,
-                        shapeOrder: i + 1
-                    };
-                }).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
+        shapeMap.forEach((sObj) => {
+            const sName = sObj.name;
+            // Thứ tự nối đỉnh: theo shapeOrder (mã liên kết), cùng thứ tự thì theo thứ tự dòng
+            sObj.items.sort((a, b) => (a.order && b.order && a.order !== b.order) ? a.order - b.order : a.idx - b.idx);
+            const validVerts = sObj.items.map((it, i) => {
+                const v = it.p;
+                const norm = this._normalizeVertex(v, i);
+                return {
+                    ...norm,
+                    isSnapped: true,
+                    snapSource: `Dự án: ${curProj}`,
+                    shapeName: sName,
+                    shapeMode: sObj.mode,
+                    // Kiểu & màu ký hiệu điểm rời được lưu ngược từ pointStyle/pointColor của mốc dự án
+                    style: v.pointStyle || undefined,
+                    color: v.pointColor || undefined,
+                    shapeOrder: i + 1
+                };
+            }).filter(v => v && isFinite(v.lat) && isFinite(v.lng));
 
-                // Lớp điểm rời: một mốc cũng là một đối tượng hợp lệ, không yêu cầu tối thiểu 2
-                if (validVerts.length >= (sObj.mode === 'point' ? 1 : 2)) {
-                    const sColor = sObj.color || colorPalette[cIdx % colorPalette.length];
-                    cIdx++;
-                    const sMode = (validVerts.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
-                    reconstructed.push({
-                        id: 'recon_shape_' + Date.now() + '_' + cIdx,
-                        name: sName,
-                        shortName: sName,
-                        mode: sMode,
-                        color: sColor,
-                        vertices: validVerts,
-                        selected: true,
-                        stats: this.calculateAreaAndPerimeter(validVerts, sMode)
-                    });
-                }
-            });
-        }
+            // Lớp điểm rời: một mốc cũng là một đối tượng hợp lệ, không yêu cầu tối thiểu 2
+            if (validVerts.length >= (sObj.mode === 'point' ? 1 : 2)) {
+                const sColor = sObj.color || colorPalette[cIdx % colorPalette.length];
+                cIdx++;
+                const sMode = (validVerts.length < 3 && sObj.mode === 'polygon') ? 'polyline' : sObj.mode;
+                reconstructed.push({
+                    id: 'recon_shape_' + Date.now() + '_' + cIdx,
+                    name: sName,
+                    shortName: sName,
+                    mode: sMode,
+                    color: sColor,
+                    vertices: validVerts,
+                    selected: true,
+                    stats: this.calculateAreaAndPerimeter(validVerts, sMode)
+                });
+            }
+        });
 
         // Nhóm các mốc dự án chưa có gắn thẻ khối riêng (Mốc từ Sổ đo, Chuyển đổi tọa độ, GPS, hoặc file nạp vào)
         const unassignedPts = pts.filter(p => !p.shapeName && !p.blockName);
@@ -27195,9 +26978,9 @@ const appCadTool = {
                 const sColor = colorPalette[cIdx % colorPalette.length];
                 cIdx++;
                 let sMode = 'point';
-                const shortProj = curProj.replace(/\.[^/.]+$/, "");
-                let sName = `Mốc dự án`;
-                if (reconstructed.length === 0) {
+                const shortProj = String(curProj || '').replace(/\.[^/.]+$/, "");
+                let sName = looseName || `Điểm mốc ${shortProj}`;
+                if (reconstructed.length === 0 && !looseName) {
                     if (validVerts.length >= 3 && AppState.isPolygonClosed !== false) {
                         sMode = 'polygon';
                         sName = `Ranh thửa ${shortProj}`;
@@ -27208,9 +26991,6 @@ const appCadTool = {
                         sMode = 'point';
                         sName = `Điểm mốc ${shortProj}`;
                     }
-                } else {
-                    sMode = 'point';
-                    sName = `Điểm mốc ${shortProj}`;
                 }
 
                 reconstructed.push({
@@ -27225,7 +27005,16 @@ const appCadTool = {
                 });
             }
         }
+        return reconstructed;
+    },
 
+    reconstructShapesFromPoints(projName) {
+        const curProj = projName || AppState.currentProject;
+        if (!curProj || typeof appData === 'undefined' || !appData.getPoints) return false;
+        const pts = appData.getPoints(curProj);
+        if (!pts || pts.length === 0) return false;
+
+        const reconstructed = this.shapesFromTaggedPoints(pts, curProj);
         if (reconstructed.length > 0) {
             this.savedShapes = reconstructed;
             // Lưu lại ngay vào CAD storage
@@ -27344,23 +27133,6 @@ const appCadTool = {
         }
     },
 
-    // Dự án có phải là tập đỉnh của các khối CAD đã vẽ/nhập không?
-    isProjectCoveredByShapes(pts) {
-        const shapes = this.savedShapes || [];
-        if (!pts || pts.length < 3 || shapes.length === 0) return false;
-        const keys = new Set();
-        const keyXY = (x, y) => Math.round(parseFloat(x) * 100) + '_' + Math.round(parseFloat(y) * 100);
-        const keyLL = (a, b) => Math.round(parseFloat(a) * 1e6) + '_' + Math.round(parseFloat(b) * 1e6);
-        shapes.forEach(s => (s.vertices || []).forEach(v => {
-            if (isFinite(v.x) && isFinite(v.y)) keys.add('xy' + keyXY(v.x, v.y));
-            keys.add('ll' + keyLL(v.lat, v.lng));
-        }));
-        let matched = 0;
-        pts.forEach(p => {
-            if ((isFinite(parseFloat(p.x)) && keys.has('xy' + keyXY(p.x, p.y))) || keys.has('ll' + keyLL(p.lat, p.lng))) matched++;
-        });
-        return matched / pts.length >= 0.8;
-    },
 
     // === THANH CÔNG CỤ TỰ THU GỌN THÔNG MINH ===
     toolbarIdleMs: 3500,
@@ -27773,18 +27545,9 @@ const appCadTool = {
                 const ptStyle = this.getPointStyleFor(shape, v);
                 const ptColor = this.getPointColorFor(shape, v);
                 const ptSize = this.getPointSizeFor(shape, v);
-                const badgeCls = ['cad-vertex-badge', 'sty-' + ptStyle, 'size-' + ptSize];
-                if (isDotGlyph) badgeCls.push('dot-visible');
-                if (isExpanded) badgeCls.push('expanded');
-                // Vành khuyên: nền trong suốt, viền mang màu điểm + quầng trắng để nổi trên nền bản đồ
-                const badgeStyle = ptStyle === 'ring'
-                    ? `background: transparent; border-color: ${ptColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
-                    : `background: ${ptColor}; border-color: #ffffff;`;
-                const pxMap = { sm: 16, md: 22, lg: 28, xl: 34 };
-                const curPx = pxMap[ptSize] || 22;
-                const curHalf = Math.round(curPx / 2);
-                const iconHtml = `<div class="${badgeCls.join(' ')}" style="${badgeStyle}" title="${escapeHtml(ptTitle)}">${v.name}</div>`;
-                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [curPx, curPx], iconAnchor: [curHalf, curHalf] });
+                // Ký hiệu nằm đúng tọa độ; chữ trong hoặc quanh ký hiệu theo cài đặt đỉnh → khối → lớp CAD
+                const icon = this.buildGlyphIcon({ style: ptStyle, color: ptColor, size: ptSize, name: v.name, title: ptTitle,
+                    label: this.getLabelStyleFor(shape, v), expanded: isExpanded, dot: isDotGlyph });
                 const marker = L.marker([v.lat, v.lng], { icon, zIndexOffset: 2450, draggable: !isLayerLocked && this.isActive, pane: mPaneName }).addTo(this.layers.group);
                 // Đỉnh đang mang ký hiệu hình thì coi như đã ghim, để mouseout của khối không gỡ dot-visible
                 marker._pinned = isExpanded || isDotGlyph;
@@ -27792,16 +27555,14 @@ const appCadTool = {
 
                 // Rê chuột vào đỉnh: bung nhãn đỉnh và hiện cự ly các cạnh nối với đỉnh này
                 marker.on('mouseover', () => {
-                    marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
+                    this.glyphHover(marker, true);
                     const prevE = edgeMarkers[(vIdx - 1 + edgeMarkers.length) % edgeMarkers.length];
                     const nextE = edgeMarkers[vIdx];
                     prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
                     nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
                 });
                 marker.on('mouseout', () => {
-                    if (!marker._pinned) {
-                        marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('expanded');
-                    }
+                    this.glyphHover(marker, false, marker._pinned);
                     const prevE = edgeMarkers[(vIdx - 1 + edgeMarkers.length) % edgeMarkers.length];
                     const nextE = edgeMarkers[vIdx];
                     if (!prevE?._pinned && !shape._pinned) prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
@@ -28116,20 +27877,10 @@ const appCadTool = {
             const vStyle = v.style || defaultDraftStyle;
             const vColor = v.color || defaultDraftColor;
             const vSize = v.size || defaultDraftSize;
-            const isActExp = ((showVertices === true || this._pinned === true) && showLabels) ? 'expanded' : '';
-            const actStyle = vStyle === 'ring'
-                ? `background: transparent; border-color: ${vColor}; box-shadow: 0 0 0 1.5px #ffffff, 0 1px 4px rgba(0,0,0,0.5);`
-                : `background: ${vColor}; border-color: #ffffff;`;
-            const pxMap = { sm: 16, md: 22, lg: 28, xl: 34 };
-            const curPx = pxMap[vSize] || 22;
-            const curHalf = Math.round(curPx / 2);
-            const iconHtml = `<div class="cad-vertex-badge sty-${vStyle} size-${vSize} dot-visible ${isActExp}" style="${actStyle} cursor: grab;" title="${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh">${v.name}</div>`;
-            const icon = L.divIcon({
-                className: '',
-                html: iconHtml,
-                iconSize: [curPx, curPx],
-                iconAnchor: [curHalf, curHalf]
-            });
+            const isActExp = ((showVertices === true || this._pinned === true) && showLabels);
+            const icon = this.buildGlyphIcon({ style: vStyle, color: vColor, size: vSize, name: v.name,
+                title: `${v.name} (X: ${v.x.toFixed(3)}, Y: ${v.y.toFixed(3)}) - Kéo thả để di chuyển nhanh đỉnh`,
+                label: this.getLabelStyleFor(draftGlyphShape, v), expanded: isActExp, dot: true, cursor: ' cursor: grab;' });
             const marker = L.marker([v.lat, v.lng], { 
                 icon, 
                 zIndexOffset: 2500,
@@ -28139,16 +27890,14 @@ const appCadTool = {
             marker._pinned = (showVertices === true || this._pinned === true);
 
             marker.on('mouseover', () => {
-                marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.add('expanded');
+                this.glyphHover(marker, true);
                 const prevE = activeEdgeMarkers[(idx - 1 + activeEdgeMarkers.length) % activeEdgeMarkers.length];
                 const nextE = activeEdgeMarkers[idx];
                 prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
                 nextE?.getElement()?.querySelector('.cad-edge-badge')?.classList.add('visible');
             });
             marker.on('mouseout', () => {
-                if (!marker._pinned) {
-                    marker.getElement()?.querySelector('.cad-vertex-badge')?.classList.remove('expanded');
-                }
+                this.glyphHover(marker, false, marker._pinned);
                 const prevE = activeEdgeMarkers[(idx - 1 + activeEdgeMarkers.length) % activeEdgeMarkers.length];
                 const nextE = activeEdgeMarkers[idx];
                 if (!prevE?._pinned && !this._pinned) prevE?.getElement()?.querySelector('.cad-edge-badge')?.classList.remove('visible');
@@ -29009,7 +28758,8 @@ const appCadTool = {
                 customWrapEl.style.display = (savedMeta?.scaleVal === 'custom') ? 'block' : 'none';
             }
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
-            if (savedMeta?.basemap) setVal('cadExportBasemap', savedMeta.basemap);
+            fillExportBaseSelect('cadExportBasemap', savedMeta?.basemap);
+            renderExportOverlayList('cadExportOverlayList', savedMeta?.overlays, 'appCadTool.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
             const provSel = document.getElementById('cadExportGulandProvince');
@@ -29362,6 +29112,7 @@ const appCadTool = {
                 customScale: parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000,
                 paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
                 basemap: document.getElementById('cadExportBasemap')?.value || 'none',
+                overlays: readExportOverlayChoice('cadExportOverlayList'),
                 showGuland: document.getElementById('cadExportCheckGuland')?.checked || false,
                 gulandProvince: document.getElementById('cadExportGulandProvince')?.value || 'dong-thap',
                 gulandOpacity: parseFloat(document.getElementById('cadExportGulandOpacity')?.value || '0.6'),
@@ -31236,15 +30987,6 @@ const appCadTool = {
         }
     },
 
-    toggleShapeLabelsVisibility(shapeIdx, isVisible) {
-        if (this.savedShapes && this.savedShapes[shapeIdx]) {
-            this.savedShapes[shapeIdx].showLabels = isVisible;
-            this.saveShapesForProject(AppState.currentProject);
-            this.persistSession();
-            this.renderGeometry();
-            showToast(`✓ Đã ${isVisible ? 'hiển thị' : 'ẩn'} nhãn tên cho [${this.savedShapes[shapeIdx].shortName}]`);
-        }
-    },
 
     promptRenameVertex(shapeIdx, vertexIdx, curNameOrNewName) {
         let newName;
@@ -31579,11 +31321,6 @@ const appCadTool = {
         }
     },
 
-    // Hàm xoay nhãn tương thích ngược
-    onQuickShapeRotChange(val, idx) { this.setQuickLabelRotation(val, 'shape', idx); },
-    setQuickShapeRot(deg, idx) { this.setQuickLabelRotation(deg, 'shape', idx); },
-    onQuickRectRotChange(val, annId) { this.setQuickLabelRotation(val, 'rect', annId); },
-    setQuickRectRot(deg, annId) { this.setQuickLabelRotation(deg, 'rect', annId); },
 
     promptRotateSelected(presetDeg) {
         if (!this.selectedItem) {
@@ -31656,6 +31393,7 @@ const appCadTool = {
                     <input type="color" id="cadQuickVColor" value="${vColor}" style="width:24px; height:22px; padding:0; border:1px solid #334155; border-radius:3px; background:#0f172a; cursor:pointer;" title="Màu sắc đỉnh">
                     <select id="cadQuickVSize" class="cad-inline-select" style="height:22px; font-size:11px; padding:0 2px;" title="Kích thước icon đỉnh">${sizeOpts}</select>
                 </div>
+                ${this.quickLabelControlsHtml(s, v)}
             `;
             extraControls = `
                 <div style="display:flex; gap:4px; margin-top:8px;">
@@ -32954,35 +32692,7 @@ const appCadTool = {
         this.syncPolarControls();
     },
 
-    quickExecCmd(cmdStr) {
-        const input = document.getElementById('txtCadCommandLine');
-        if (input) input.value = cmdStr;
-        const grid = document.getElementById('cadCmdAllToolsGrid');
-        if (grid) grid.style.display = 'none';
-        const gridBtn = document.getElementById('btnCadCmdToolsGrid');
-        if (gridBtn) gridBtn.classList.remove('active');
-        this.executeCommandLine();
-    },
 
-    toggleCmdToolsGrid() {
-        const grid = document.getElementById('cadCmdAllToolsGrid');
-        if (!grid) return;
-        const isHidden = grid.style.display === 'none' || !grid.style.display;
-        grid.style.display = isHidden ? 'block' : 'none';
-        const btn = document.getElementById('btnCadCmdToolsGrid');
-        if (btn) btn.classList.toggle('active', isHidden);
-
-        // Nếu thân thanh lệnh đang bị thu nhỏ, tự động bung mở ra
-        const wrap = document.getElementById('cadCmdInputWrap');
-        const rib = document.getElementById('cadCmdStatusRibbon');
-        const collBtn = document.getElementById('btnCadCmdCollapseToggle');
-        if (isHidden) {
-            if (wrap) wrap.style.display = 'flex';
-            if (rib) rib.style.display = 'flex';
-            if (collBtn) collBtn.innerHTML = '_';
-            showToast('🎛️ Đã mở lưới tất cả công cụ CAD (21 phím tắt)');
-        }
-    },
 
     toggleCmdRibbonExpand() {
         const bar = document.getElementById('cadFloatingCmdBar');
@@ -34079,7 +33789,13 @@ const appCadTool = {
                 const buffer = e.target.result;
                 let shapes = [];
 
-                if (typeof XLSX !== 'undefined') {
+                // CSV/TXT: đọc đúng UTF-8 trước (SheetJS đọc tệp văn bản không BOM theo Latin-1, làm hỏng tiêu đề tiếng Việt)
+                if (!/\.(xlsx|xls)$/i.test(file.name) && typeof ImportPreview !== 'undefined') {
+                    const linked = this._shapesFromLinkedRows(ImportPreview.textToRows(new TextDecoder('utf-8').decode(buffer)), file.name);
+                    if (linked) shapes = linked;
+                }
+
+                if (!shapes.length && typeof XLSX !== 'undefined') {
                     try {
                         const wb = XLSX.read(buffer, { type: 'array' });
                         shapes = this._parseWorkbookToShapes(wb, file.name);
@@ -34111,9 +33827,33 @@ const appCadTool = {
         event.target.value = "";
     },
 
+    // Bảng có cột "Mã liên kết" (src/core/parcel_links.js): dựng khối đúng thứ tự đỉnh, đỉnh chung cùng tọa độ.
+    // Trả về null nếu bảng không có mã. Tọa độ hiểu theo KTT hiện hành như các bộ đọc bảng kê khác.
+    _shapesFromLinkedRows(rows, fileName = '') {
+        if (typeof ImportPreview === 'undefined' || typeof ParcelLinks === 'undefined' || !rows || !rows.length) return null;
+        const m = ImportPreview.guessMapping(rows);
+        if (m.cols.lk === undefined) return null;
+        const cur = { ktt: AppState.kttVal, mui: AppState.muiVal === 6 ? 6 : 3 };
+        const res = ImportPreview.buildPoints(rows, { headerRow: m.headerRow, cols: m.cols, type: m.type, src: cur, dst: m.type === 'wgs84' ? cur : null });
+        const rb = ParcelLinks.rebuildShapes(res.points);
+        const src = 'Mã liên kết: ' + (fileName || 'tệp');
+        const vert = p => ({ name: p.name, x: p.x, y: p.y, lat: p.lat, lng: p.lng, h: p.h || 0, isSnapped: false, snapSource: src });
+        const shapes = rb.shapes.map(sh => ({ name: sh.name, mode: sh.mode, color: null, vertices: sh.vertices.map(vert) }));
+        if (rb.loose.length) shapes.push({ name: 'Mốc lẻ ' + String(fileName || '').replace(/\.[^/.]+$/, ''), mode: 'point', color: null, vertices: rb.loose.map(vert) });
+        return shapes.length ? shapes : null;
+    },
+
     _parseWorkbookToShapes(wb, fileName = '') {
         const shapes = [];
         if (!wb || !wb.SheetNames || wb.SheetNames.length === 0) return shapes;
+
+        // --- CHIẾN LƯỢC 0: Bảng điểm có "Mã liên kết" thửa ↔ đỉnh ---
+        for (const sname of wb.SheetNames) {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[sname], { header: 1, defval: '', raw: true, blankrows: false })
+                .map(r => r.map(c => (c === null || c === undefined) ? '' : c)).filter(r => r.some(c => String(c).trim() !== ''));
+            const linked = this._shapesFromLinkedRows(rows, fileName);
+            if (linked) return linked;
+        }
 
         // --- CHIẾN LƯỢC 1: Tìm sheet master tổng hợp chi tiết (Có cột "Tên Khối" hoặc "Tên Thửa") ---
         for (const sname of wb.SheetNames) {
@@ -34393,6 +34133,12 @@ const appCadTool = {
     _parseHtmlOrTextToShapes(text, fileName = '') {
         const shapes = [];
         if (!text) return shapes;
+
+        // 0. Bảng điểm CSV/TXT có "Mã liên kết" thửa ↔ đỉnh
+        if (!text.includes('<table') && typeof ImportPreview !== 'undefined') {
+            const linked = this._shapesFromLinkedRows(ImportPreview.textToRows(text), fileName);
+            if (linked) return linked;
+        }
 
         // 1. Phân tích nếu là file HTML .xls
         if (text.includes('<table') && typeof DOMParser !== 'undefined') {
@@ -35432,15 +35178,20 @@ const appCadTool = {
         const v = convertWgsToVn2k(lat, lng, AppState.kttVal, AppState.scaleFactor);
         return { e: v.Y, n: v.X };
     },
-    // Trả về true nếu đã bắt đầu tải nền / quy hoạch (hàm xuất sẽ được gọi lại qua rerun khi tải xong).
+    // Trả về true nếu đã bắt đầu tải nền / lớp phủ / quy hoạch (hàm xuất sẽ được gọi lại qua rerun khi tải xong).
+    // Kết quả trao cho rerun: { basemap, overlays: [...], guland, vectors: [...] } — vẽ bằng drawExportMapLayers.
     _prepareExportBasemap(meta, frame, pxPerMeter, rerun) {
-        const needBasemap = meta && meta.basemap && EXPORT_BASEMAPS[meta.basemap];
+        const needBasemap = !!(meta && meta.basemap && exportMapSource(meta.basemap));
+        const ovIds = (meta && Array.isArray(meta.overlays)) ? meta.overlays.filter(Boolean) : [];
+        const tileOvIds = ovIds.filter(id => !EXPORT_VECTOR_OVERLAYS[id] && exportMapSource(id));
+        const vecIds = ovIds.filter(id => EXPORT_VECTOR_OVERLAYS[id]);
         const needGuland = meta && meta.showGuland && typeof appPlanning !== 'undefined';
-        if (!needBasemap && !needGuland) return false;
+        if (!needBasemap && !needGuland && !tileOvIds.length && !vecIds.length) return false;
         if (this._exportBasemapBusy) { showToast('⏳ Đang tải lớp bản đồ, vui lòng chờ...'); return true; }
 
         let bmPlan = null;
         let guPlan = null;
+        const toLL = (e, n) => this._exportBasemapToLatLng(e, n);
 
         // Tự động nâng giới hạn số ô ảnh cho các khổ giấy lớn (A0: 260 ô, A1: 220 ô, A2: 180 ô) để độ nét tối đa
         let maxTiles = EXPORT_BASEMAP_MAX_TILES;
@@ -35452,48 +35203,93 @@ const appCadTool = {
         }
 
         if (needBasemap) {
-            try { bmPlan = planExportBasemap(meta.basemap, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), maxTiles); } catch (e) { bmPlan = null; }
+            try { bmPlan = planExportBasemap(meta.basemap, frame, pxPerMeter, toLL, maxTiles); } catch (e) { bmPlan = null; }
         }
+        // Lớp phủ trong suốt: mỗi lớp chia phần ô ít hơn để tổng số ô tải vẫn vừa phải
+        const ovMax = Math.max(24, Math.round(maxTiles / Math.max(1, Math.min(3, tileOvIds.length))));
+        const ovPlans = tileOvIds.map(id => {
+            try { return planExportBasemap(id, frame, pxPerMeter, toLL, ovMax); } catch (e) { return null; }
+        }).filter(pl => pl && pl.tiles && pl.tiles.length);
         if (needGuland) {
             try {
-                guPlan = planExportGuland(meta.gulandProvince, frame, pxPerMeter, (e, n) => this._exportBasemapToLatLng(e, n), maxTiles, meta.gulandLand, meta.gulandOpacity);
+                guPlan = planExportGuland(meta.gulandProvince, frame, pxPerMeter, toLL, maxTiles, meta.gulandLand, meta.gulandOpacity);
             } catch (e) { guPlan = null; }
         }
+        const box = vecIds.length ? exportFrameLatLngBox(frame, toLL) : null;
+        const vectors = vecIds.map(id => Object.assign({ id, box }, EXPORT_VECTOR_OVERLAYS[id]));
 
-        const totalTiles = (bmPlan?.tiles?.length || 0) + (guPlan?.tiles?.length || 0);
-        if (totalTiles === 0) {
-            rerun({ basemap: null, guland: null });
+        const totalTiles = (bmPlan?.tiles?.length || 0) + (guPlan?.tiles?.length || 0) + ovPlans.reduce((t, pl) => t + pl.tiles.length, 0);
+        const libs = vectors.map(v => v.lib).filter(n => typeof LAZY_LIBS !== 'undefined' && LAZY_LIBS[n] && !LAZY_LIBS[n].ready());
+        if (totalTiles === 0 && libs.length === 0) {
+            rerun({ basemap: null, overlays: [], guland: null, vectors });
             return true;
         }
 
         this._exportBasemapBusy = true;
         const labels = [];
         if (bmPlan) labels.push(bmPlan.label);
+        ovPlans.forEach(pl => labels.push(pl.label));
         if (guPlan) labels.push(guPlan.label);
-        showToast(`⏳ Đang tải lớp bản đồ ${labels.join(' + ')} (${totalTiles} ô ảnh)...`);
+        vectors.forEach(v => labels.push(v.label));
+        showToast(`⏳ Đang tải lớp bản đồ ${labels.join(' + ')}${totalTiles ? ` (${totalTiles} ô ảnh)` : ''}...`);
 
         const pBm = bmPlan ? loadExportBasemap(bmPlan) : Promise.resolve(null);
+        const pOv = Promise.all(ovPlans.map(pl => loadExportBasemap(pl)));
         const pGu = guPlan ? loadExportBasemap(guPlan) : Promise.resolve(null);
+        const pLib = Promise.all(libs.map(n => loadLib(n).catch(() => {
+            showToast(`⚠️ Chưa tải được ${(vectors.find(v => v.lib === n) || {}).label || n} — kiểm tra kết nối mạng.`, true);
+        })));
 
-        Promise.all([pBm, pGu]).then(([loadedBm, loadedGu]) => {
+        Promise.all([pBm, pOv, pGu, pLib]).then(([loadedBm, loadedOv, loadedGu]) => {
             this._exportBasemapBusy = false;
             if (loadedBm && loadedBm.failed) {
                 showToast(`⚠️ ${loadedBm.failed}/${loadedBm.tiles.length} ô ảnh nền cơ sở không tải được.`, true);
+            }
+            const ovFailed = (loadedOv || []).filter(o => o && o.failed && o.loaded === 0);
+            if (ovFailed.length) {
+                showToast(`⚠️ Lớp ${ovFailed.map(o => o.label).join(', ')} không tải được (nguồn chặn hoặc mất mạng).`, true);
             }
             if (loadedGu && loadedGu.failed) {
                 showToast(`⚠️ ${loadedGu.failed}/${loadedGu.tiles.length} ô bản đồ quy hoạch không tải được.`, true);
             }
             const merged = Object.assign({}, loadedBm || { none: true }, {
                 basemap: loadedBm,
-                guland: loadedGu
+                overlays: (loadedOv || []).filter(Boolean),
+                guland: loadedGu,
+                vectors
             });
             rerun(merged);
         }).catch(() => {
             this._exportBasemapBusy = false;
-            rerun({ none: true, basemap: null, guland: null });
+            rerun({ none: true, basemap: null, overlays: [], guland: null, vectors: [] });
         });
 
         return true;
+    },
+
+    // Vẽ mọi lớp bản đồ đã chọn vào khung bản đồ của bản vẽ xuất (dưới lưới và nét vẽ):
+    // nền → lớp phủ ô ảnh → quy hoạch → ranh giới → ảnh PDF/ảnh nắn; nguồn ghi gộp một dòng.
+    drawExportMapLayers(ctx, loaded, mapRect, toCanvasRaw, meta = {}) {
+        if (!ctx || !mapRect) return;
+        const L0 = loaded || {};
+        const toVn = (lat, lng) => this._exportBasemapToVn2k(lat, lng);
+        const bmObj = (L0.basemap && L0.basemap.tiles) ? L0.basemap : (L0.tiles ? L0 : null);
+        const credits = [];
+        const draw = (obj) => {
+            if (obj && obj.tiles && drawExportBasemap(ctx, obj, mapRect, toCanvasRaw, toVn, { credit: false }) > 0 && obj.credit) credits.push(obj.credit);
+        };
+        draw(bmObj);
+        (L0.overlays || []).forEach(draw);
+        draw(L0.guland);
+        (L0.vectors || []).forEach(v => {
+            const geo = (typeof window !== 'undefined') ? window[v.global] : null;
+            if (geo && drawExportVector(ctx, geo, mapRect, toCanvasRaw, toVn, v.box, v) > 0) credits.push(v.label);
+        });
+        if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
+            appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
+        }
+        const uniq = credits.filter((c, i) => credits.indexOf(c) === i);
+        if (uniq.length) drawExportCredit(ctx, mapRect, uniq.join(' · '));
     },
 
     _getExportMeta() {
@@ -35557,7 +35353,8 @@ const appCadTool = {
             ? appPlanOverlay.getSelectedExportIds('cadExportPlanOverlayList')
             : [];
         const basemapVal = document.getElementById('cadExportBasemap')?.value;
-        const basemap = ['street', 'satellite', 'sentinel2'].includes(basemapVal) ? basemapVal : 'none';
+        const basemap = exportMapSource(basemapVal) ? basemapVal : 'none';
+        const overlays = readExportOverlayChoice('cadExportOverlayList');
 
         const showGuland = document.getElementById('cadExportCheckGuland')?.checked || false;
         const gulandProvince = document.getElementById('cadExportGulandProvince')?.value || (AppState.provinceName || 'dong-thap');
@@ -35573,7 +35370,7 @@ const appCadTool = {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
                 drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode,
                 scaleVal: rawScaleVal, customScale: customScaleVal, paper, showPercent, showBlockInfo, customTotalArea,
-                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap,
+                showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap, overlays,
                 showGuland, gulandProvince, gulandOpacity, gulandLand, printPlanOverlay
             }));
         } catch (e) {}
@@ -35600,7 +35397,7 @@ const appCadTool = {
             drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
             showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
-            basemap, printPlanOverlay,
+            basemap, overlays, printPlanOverlay,
             showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds
         };
     },
@@ -35662,18 +35459,6 @@ const appCadTool = {
         return `<circle class="cad-pt-glyph" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" ${solid}/>`;
     },
 
-    _getFontSizeForScale(scale) {
-        // Cỡ chữ trên bản vẽ (mm) chuyển sang đơn vị thực tế (m)
-        // Theo TCVN 7285: cỡ chữ số liệu = 2.5mm, tiêu đề = 3.5mm, khung tên = 5mm
-        const mmToM = scale / 1000.0;
-        return {
-            data: 2.5 * mmToM,       // Số liệu bảng kê
-            label: 3.0 * mmToM,      // Tên mốc, kích thước
-            title: 4.0 * mmToM,      // Tiêu đề đối tượng
-            header: 5.0 * mmToM,     // Khung tên tiêu đề
-            small: 2.0 * mmToM,      // Ghi chú nhỏ
-        };
-    },
 
 
     // Chuyển đổi chuỗi tiếng Việt có dấu sang ASCII thuần túy tương thích tuyệt đối mọi phiên bản MiniCAD/AutoCAD
@@ -36069,12 +35854,18 @@ const appCadTool = {
             dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n${layer}\r\n100\r\nAcDbLine\r\n10\r\n${x1.toFixed(3)}\r\n20\r\n${y1.toFixed(3)}\r\n30\r\n${z1.toFixed(3)}\r\n11\r\n${x2.toFixed(3)}\r\n21\r\n${y2.toFixed(3)}\r\n31\r\n${z2.toFixed(3)}\r\n`;
         };
 
-        const addText = (layer, x, y, h, str, rotDeg = 0, style = "VN_ARIAL", z = 0) => {
+        const addText = (layer, x, y, h, str, rotDeg = 0, style = "VN_ARIAL", z = 0, align = null) => {
             dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n${layer}\r\n100\r\nAcDbText\r\n10\r\n${x.toFixed(3)}\r\n20\r\n${y.toFixed(3)}\r\n30\r\n${z.toFixed(3)}\r\n40\r\n${h.toFixed(4)}\r\n1\r\n${str}\r\n`;
             if (rotDeg !== 0) {
                 dwg += `50\r\n${rotDeg.toFixed(2)}\r\n`;
             }
             dwg += `7\r\n${style}\r\n`;
+            // Căn lề chữ (nhóm 72/73 + điểm căn 11/21/31) — dùng cho chữ tên đỉnh đặt trái/trên/dưới/phải ký hiệu
+            if (align) {
+                const hj = ({ left: 0, center: 1, right: 2 })[align.align] || 0;
+                const vj = ({ bottom: 1, middle: 2, top: 3 })[align.base] || 0;
+                if (hj || vj) dwg += `72\r\n${hj}\r\n11\r\n${x.toFixed(3)}\r\n21\r\n${y.toFixed(3)}\r\n31\r\n${z.toFixed(3)}\r\n100\r\nAcDbText\r\n73\r\n${vj}\r\n`;
+            }
         };
 
         const addCircle = (layer, x, y, r, z = 0) => {
@@ -36212,7 +36003,9 @@ const appCadTool = {
 
                     if (meta.showLabels !== false) {
                         const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
-                        addText("TEN_MOC", cadX + 1.5 * S, cadY + 1.2 * S, 2.0 * S, cleanName);
+                        const la = this.exportLabelAnchor(shape, p, cadX, cadY, r, 2.0 * S, true);
+                        if (la && la.legacy) addText("TEN_MOC", cadX + 1.5 * S, cadY + 1.2 * S, la.h, cleanName);
+                        else if (la) addText("TEN_MOC", la.x, la.y, la.h, cleanName, 0, "VN_ARIAL", 0, la);
                     }
                 });
             }
@@ -36731,17 +36524,7 @@ const appCadTool = {
             const bx = toCvX(L.Xin0), by = toCvY(L.Yin1);
             const mapRect = { x: bx, y: by, w: toCvX(L.Xpanel0) - bx, h: toCvDist(L.H_inner) };
             const toCanvasRaw = (e, n) => ({ x: (e - L.X0) * pxPerMeter, y: H_px - (n - L.Y0) * pxPerMeter });
-            const bmObj = (opts.basemap && opts.basemap.basemap) ? opts.basemap.basemap : opts.basemap;
-            const guObj = (opts.basemap && opts.basemap.guland) ? opts.basemap.guland : opts.guland;
-            if (bmObj && bmObj.tiles) {
-                drawExportBasemap(ctx, bmObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (guObj && guObj.tiles) {
-                drawExportBasemap(ctx, guObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
-                appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
-            }
+            this.drawExportMapLayers(ctx, opts.basemap, mapRect, toCanvasRaw, meta);
         }
 
         // 2. Khung Ngoài (Mảnh)
@@ -36872,9 +36655,15 @@ const appCadTool = {
                         this.getPointColorFor(shape, p));
 
                     if (meta.showLabels !== false) {
-                        ctx.font = `bold ${Math.round(2.2 * pxPerMm)}px Arial`;
-                        ctx.fillStyle = '#0f172a';
-                        ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
+                        const la = this.exportLabelAnchor(shape, p, px, py, r, 2.2 * pxPerMm, false);
+                        if (la) {
+                            ctx.save();
+                            ctx.font = `bold ${Math.round(la.h)}px Arial`;
+                            ctx.fillStyle = '#0f172a';
+                            if (la.legacy) ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
+                            else { ctx.textAlign = la.align; ctx.textBaseline = la.base; ctx.fillText(p.name || `Đ${idx+1}`, la.x, la.y); }
+                            ctx.restore();
+                        }
                     }
                 });
             }
@@ -37556,7 +37345,16 @@ const appCadTool = {
                     const sy2 = toSvgY(p.x);
                     svgContent += `  ${this.pointGlyphSvg(this.getPointStyleFor(shape, p), sx2, sy2, 4, this.getPointColorFor(shape, p))}\r\n`;
                     if (meta.showLabels !== false) {
-                        svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}">${p.name || ('Đ' + (idx+1))}</text>\r\n`;
+                        const la = this.exportLabelAnchor(shape, p, sx2, sy2, 4, 11, false);
+                        const nm = escapeHtml(p.name || ('Đ' + (idx+1)));
+                        const fs = la && Math.abs(la.h - 11) > 0.01 ? ` style="font-size:${la.h.toFixed(1)}px"` : '';
+                        if (la && la.legacy) {
+                            svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}"${fs}>${nm}</text>\r\n`;
+                        } else if (la) {
+                            const anchor = ({ left: 'start', center: 'middle', right: 'end' })[la.align];
+                            const dy = ({ middle: '0.35em', top: '0.8em', bottom: '0' })[la.base];
+                            svgContent += `  <text class="layer-ky-hieu-text" x="${la.x.toFixed(1)}" y="${la.y.toFixed(1)}" dy="${dy}" text-anchor="${anchor}"${fs}>${nm}</text>\r\n`;
+                        }
                     }
                 });
             }
@@ -37807,7 +37605,7 @@ const appCadTool = {
   <text class="layer-khung-ten-text" x="45" y="${khy+122}" font-size="10.5">Người đo: ${(meta.surveyor || '').toUpperCase()}</text>
   <text class="layer-khung-ten-text" x="45" y="${khy+138}" font-size="10.5">Kiểm tra: ${(meta.checker || '').toUpperCase()}</text>
 
-  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+90}" font-size="10.5">Tỷ lệ: 1:${meta.scaleVal}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+90}" font-size="10.5">Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+106}" font-size="10.5">Số tờ/thửa: ${meta.parcelNo || '01'}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+122}" font-size="10.5">Ngày: ${meta.drawingDate}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+138}" font-size="10.5">Số đối tượng: ${selectedShapes.length}</text>
@@ -37817,12 +37615,12 @@ const appCadTool = {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${projName}_BanDo_1-${meta.scaleVal}.svg`;
+        a.download = `${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.svg`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất bản vẽ SVG Vector độ nét cao: ${projName}_BanDo_1-${meta.scaleVal}.svg`);
+        showToast(`✓ Đã xuất bản vẽ SVG Vector độ nét cao: ${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.svg`);
     },
 
     exportOptimizedImage(customOpts = {}) {
@@ -37921,17 +37719,7 @@ const appCadTool = {
         {
             const mapRect = { x: pad, y: pad, w: W - 2 * pad, h: mapBottom - pad };
             const toCanvasRaw = (e, n) => ({ x: toX(e), y: toY(n) });
-            const bmObj = (customOpts.basemap && customOpts.basemap.basemap) ? customOpts.basemap.basemap : customOpts.basemap;
-            const guObj = (customOpts.basemap && customOpts.basemap.guland) ? customOpts.basemap.guland : customOpts.guland;
-            if (bmObj && bmObj.tiles) {
-                drawExportBasemap(ctx, bmObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (guObj && guObj.tiles) {
-                drawExportBasemap(ctx, guObj, mapRect, toCanvasRaw, (lat, lng) => this._exportBasemapToVn2k(lat, lng));
-            }
-            if (meta.printPlanOverlay && typeof appPlanOverlay !== 'undefined') {
-                appPlanOverlay.drawForExport(ctx, mapRect, toCanvasRaw, meta.selectedPlanOverlayIds);
-            }
+            this.drawExportMapLayers(ctx, customOpts.basemap, mapRect, toCanvasRaw, meta);
         }
 
         // Grid lines
@@ -37988,9 +37776,15 @@ const appCadTool = {
                         this.getPointStyleFor(shape, p),
                         this.getPointColorFor(shape, p));
                     if (meta.showLabels !== false) {
-                        ctx.font = 'bold 10px Arial';
-                        ctx.fillStyle = '#0f172a';
-                        ctx.fillText(p.name || '', px + 5, py - 5);
+                        const la = this.exportLabelAnchor(shape, p, px, py, 4, 11, false);
+                        if (la) {
+                            ctx.save();
+                            ctx.font = `bold ${Math.round(la.h)}px Arial`;
+                            ctx.fillStyle = '#0f172a';
+                            if (la.legacy) ctx.fillText(p.name || '', px + 5, py - 5);
+                            else { ctx.textAlign = la.align; ctx.textBaseline = la.base; ctx.fillText(p.name || '', la.x, la.y); }
+                            ctx.restore();
+                        }
                     }
                 });
             }
@@ -38131,7 +37925,7 @@ const appCadTool = {
         ctx.fillText(`Người đo: ${(meta.surveyor || '').toUpperCase()}`, 45, lY + 48);
         ctx.fillText(`Kiểm tra: ${(meta.checker || '').toUpperCase()}`, 45, lY + 72);
 
-        ctx.fillText(`Tỷ lệ: 1:${meta.scaleVal}`, midX + 20, lY);
+        ctx.fillText(`Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}`, midX + 20, lY);
         ctx.fillText(`Số tờ/thửa: ${meta.parcelNo || '01'}`, midX + 20, lY + 24);
         ctx.fillText(`Ngày: ${meta.drawingDate}`, midX + 20, lY + 48);
         ctx.fillText(`Số đối tượng: ${selectedShapes.length}`, midX + 20, lY + 72);
@@ -38146,7 +37940,7 @@ const appCadTool = {
                 const url = URL.createObjectURL(res.blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${projName}_BanDo_1-${meta.scaleVal}.${res.ext}`;
+                a.download = `${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.${res.ext}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -38167,12 +37961,12 @@ const appCadTool = {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${projName}_BanDo_1-${meta.scaleVal}.${ext}`;
+                a.download = `${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.${ext}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showToast(`✓ Đã xuất ảnh ${ext.toUpperCase()}: ${projName}_BanDo_1-${meta.scaleVal}.${ext}`);
+                showToast(`✓ Đã xuất ảnh ${ext.toUpperCase()}: ${projName}_BanDo${meta.scaleVal ? '_1-' + meta.scaleVal : ''}.${ext}`);
             }, mime);
         }
     },
@@ -38381,13 +38175,14 @@ const appCadTool = {
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
         let txt = "# TỌA ĐỘ CÁC ĐỈNH RANH THỬA CHO MÁY TOÀN ĐẠC ĐIỆN TỬ & RTK\r\n";
         txt += `# Dự án: ${projName} | KTT: ${AppState.kttVal || 105.75}° | Múi: ${AppState.zoneVal || 3}°\r\n`;
-        txt += "# STT,X(Bắc),Y(Đông),CaoĐộ(H),TênĐỉnh,GhiChú\r\n";
+        txt += "# Mã liên kết: T1.3 = đỉnh 3 của thửa 1; D = tuyến; P = điểm rời; T1.3+T2.1 = mốc chung (một dòng)\r\n";
+        txt += "# STT,X (Bắc),Y (Đông),Cao độ H,Tên đỉnh,Mã liên kết,Thửa / khối\r\n";
 
-        let idx = 1;
-        selectedShapes.forEach((s, sIdx) => {
-            (s.vertices || []).forEach(v => {
-                txt += `${idx++},${(v.x || 0).toFixed(3)},${(v.y || 0).toFixed(3)},0.000,${v.name || ('D' + idx)},${s.name || ('Thua_' + (sIdx + 1))}\r\n`;
-            });
+        // Mỗi mốc một dòng: đỉnh chung của nhiều thửa không bị lặp; nhập lại tự dựng đúng thứ tự nối
+        const cell = v => String(v == null ? '' : v).replace(/[,\r\n]+/g, ' ').trim();
+        const { rows } = ParcelLinks.buildLinkedRows(selectedShapes, []);
+        rows.forEach((v, i) => {
+            txt += `${i + 1},${(Number(v.x) || 0).toFixed(3)},${(Number(v.y) || 0).toFixed(3)},${(Number(v.h) || 0).toFixed(3)},${cell(v.name || ('D' + (i + 1)))},${v.lk},${cell(v.lkNames)}\r\n`;
         });
 
         const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
@@ -38661,27 +38456,6 @@ const appDonate = {
         } catch(e) {}
     },
 
-    updateAuthorAccount(bankCode, bankName, accountNumber, accountName, memo) {
-        if (accountNumber) {
-            Object.keys(this.channels).forEach(k => {
-                this.channels[k].accountNumber = accountNumber;
-            });
-        }
-        if (accountName) {
-            Object.keys(this.channels).forEach(k => {
-                this.channels[k].accountName = accountName;
-            });
-        }
-        try {
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('vn2k_donate_author_config_v1', JSON.stringify({
-                    accountNumber: accountNumber || '0839656568',
-                    accountName: accountName || 'ĐẶNG NHƯ'
-                }));
-            }
-        } catch(e) {}
-        this.renderBankInfo();
-    },
 
     checkDailyTrigger() {
         try {
@@ -42711,13 +42485,6 @@ const appI18n = {
         return this.translateString(key);
     },
 
-    removeDiacritics(str) {
-        if (!str || typeof str !== 'string') return str;
-        return str
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[đĐ]/g, m => m === 'đ' ? 'd' : 'D');
-    },
 
     translateString(str) {
         if (!str || typeof str !== 'string' || this.currentLang !== 'en') return str;
@@ -44564,23 +44331,6 @@ const appPlanOverlay = {
     _view: { s: 1, tx: 0, ty: 0 },
     _pdfDocCache: new Map(),
 
-    // Tải và tái sử dụng PDF Document siêu tốc (dưới 10ms)
-    async _getPdfPage(fileOrBlob, pageNo = 1) {
-        if (!fileOrBlob) return null;
-        await loadLib('pdfjs');
-        const pdfjs = window.pdfjsLib;
-        pdfjs.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
-        let key = fileOrBlob.name || (fileOrBlob.size ? 'blob_' + fileOrBlob.size : null);
-        let doc = key ? this._pdfDocCache.get(key) : null;
-        if (!doc) {
-            const buf = await fileOrBlob.arrayBuffer();
-            doc = await pdfjs.getDocument({ data: new Uint8Array(buf) }).promise;
-            if (key) this._pdfDocCache.set(key, doc);
-        }
-        const n = Math.max(1, Math.min(doc.numPages, pageNo || 1));
-        const page = await doc.getPage(n);
-        return { doc, page, pageNo: n };
-    },
 
     // ---------- Lưu trữ IndexedDB ----------
     _db() {
@@ -46136,22 +45886,6 @@ const appPlanOverlay = {
         }, 'image/png');
     },
 
-    toggleDeWatermark(id, active) {
-        const it = this.items.find(x => x.id === id);
-        if (!it) return;
-        it.deWatermark = !!active;
-        if (it.layer && it.layer._el) {
-            if (it.deWatermark) {
-                it.layer._el.style.filter = 'contrast(1.15) brightness(0.96)';
-                it.layer._el.style.mixBlendMode = 'multiply';
-            } else {
-                it.layer._el.style.filter = 'none';
-                it.layer._el.style.mixBlendMode = 'normal';
-            }
-        }
-        this._saveSoon(it);
-        showToast(it.deWatermark ? '✓ Đã kích hoạt lớp phủ khử chữ chìm' : 'Đã tắt khử chữ chìm');
-    }
 };
 
 // ================= LỚP BẢN ĐỒ: CHỌN NỀN, BẬT/TẮT LỚP PHỦ (Bản đồ dự án & MiniCAD) =================
@@ -46644,7 +46378,6 @@ if (typeof window !== 'undefined') {
     window.appI18n = appI18n;
     window.appGuide = appGuide;
     window.appOcr = appOcr;
-    if (typeof appCoordPicker !== 'undefined') window.appCoordPicker = appCoordPicker;
     if (typeof appBluetoothRtk !== 'undefined') window.appBluetoothRtk = appBluetoothRtk;
     if (typeof appResection !== 'undefined') window.appResection = appResection;
     if (typeof appProfile !== 'undefined') window.appProfile = appProfile;
@@ -46674,6 +46407,12 @@ if (typeof module !== 'undefined' && module.exports) {
         loadExportBasemap,
         exportTileTransform,
         drawExportBasemap,
+        drawExportVector,
+        exportMapSource,
+        exportLayerCatalog,
+        exportFrameLatLngBox,
+        EXPORT_TILE_OVERLAYS,
+        EXPORT_VECTOR_OVERLAYS,
         appDashboard,
         appData,
         safeUserText,

@@ -1,6 +1,68 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-21: WP-LOCAL-AI — TRỢ LÝ AI CỤC BỘ (học kiến trúc Ivy AI / esp_ai), v2.8.47
+## Phiên hiện tại — 2026-11-23: WP-SW-FIX — SERVICE WORKER KẸT BẢN CŨ + TẢI Ô ẢNH KHI XUẤT (v2.8.53)
+- **Báo lỗi**: "còn lỗi tải ảnh bản đồ; chưa chọn được các lớp bản đồ cần xuất trong MiniCAD".
+- **Kiểm trên trang thật** (vn2000-wgs84-three.vercel.app, trình duyệt thật): trang đang chạy v2.8.47 (PR #15 chưa gộp) nên hộp xuất MiniCAD chỉ có 3 nền. Phát hiện `sw.js` lỗi cú pháp `url.hostname.includes('opentopomap.org') ||;` từ commit 42cb9e4 (20/11): `reg.update()` báo "ServiceWorker script evaluation failed" → mọi máy kẹt ở service worker cũ (bộ nhớ đệm `vn2000-pro-v2.8.40`), không bao giờ hiện "Cập nhật".
+- **Đã sửa**: (1) `sw.js` biên dịch được; thêm `eox.at` (Sentinel-2) vào nhóm ô bản đồ; ô lưu dạng opaque không trả cho yêu cầu CORS của bộ xuất. (2) `loadExportBasemap`: ô lỗi thử lại một lần với `?_vn2k=export` (né bản lưu cũ / lỗi mạng thoáng qua) trước khi bỏ. (3) Test `tests/js_syntax_all.test.js`: mọi tệp .js của ứng dụng (kể cả sw.js) phải biên dịch được. **573/573 PASS**.
+- **Cần làm**: gộp PR #15 để lên bản chính; sau đó trên điện thoại mở app 1–2 lần, bấm "Cập nhật" khi có thông báo (service worker mới chờ người dùng xác nhận).
+
+---
+
+## Phiên hiện tại — 2026-11-23: WP-CLEANUP — DỌN MÃ DƯ THỪA (v2.8.52)
+- **Yêu cầu**: cập nhật toàn bộ app, làm sạch mã dư thừa, đẩy lên GitHub.
+- **Cách tìm**: phân tích cú pháp (acorn) app.js + các tệp JS: phương thức của object cấp cao và hàm cấp cao mà tên không xuất hiện ở đâu khác (JS, HTML, CSS, chuỗi onclick); không có gọi động `obj[tên]`. Lặp đến khi không còn mã chết dây chuyền.
+- **Đã xóa**:
+  1. 34 phương thức không ai gọi (~610 dòng): openCoordPickerMap, openConvertedMap, promptOpenConvertedMap, showConvertedPoint, setTransformViewMode, copyAllMultiResults, filterDongThapCu/TienGiangCu/SouthProvince, togglePickMode, onMarkerDrag, syncToGoogleSheets, setUiIconMode, quickExecCmd, toggleCmdToolsGrid, toggleDeWatermark, _getPdfPage, các bí danh xoay nhãn cũ…
+  2. Phân hệ `appCoordPicker` cũ (~340 dòng) + thanh `#barCoordPicker`, modal `#modalMultiPickList`, popup `#modalPromptConvertedMap` (chỉ mở được từ các hàm đã chết) + CSS riêng của chúng; `AppState.pickerMarker`, `createOpticalCrosshairIcon`.
+  3. Mô-đun nháp chưa từng nạp: `src/core/geodesy_engine.js` (trùng geodesy.js), `volume_calc.js`, `data_store.js`, `seed_dgn_base64.json`; 5 ảnh chụp kiểm thử `assets/tutorial_screens/verify_tutorials_*.png`.
+- **Sửa kèm**: nút "🎯 Lấy từ Bản đồ (n)" ở Chuyển đổi đa điểm trước đây đọc kho điểm của appCoordPicker (luôn 0) → nay đọc điểm đã chấm trên bản đồ chuyển đổi (`appTransformMap.pickedMultiPoints`).
+- **Test**: cập nhật 17 tệp test chỉ ghim mã đã chết (bỏ assert tương ứng, giữ assert hành vi còn sống); **570/570 PASS**. Kiểm khói trong trình duyệt (1280 & 390 px): Chuyển đổi, chấm đa điểm + lấy từ bản đồ, Bản đồ dự án, MiniCAD, hai hộp xuất, Cài đặt, Trắc dọc, ảnh nền PDF — không lỗi JS.
+- **Giữ lại có chủ đích**: ảnh PNG gốc trong `assets/tutorial_screens/` (đã ghi trong .vercelignore: giữ để chỉnh sửa, không triển khai); thư mục `.agents/` `.github/skills` (công cụ phát triển); tệp .bat chạy máy chủ cục bộ.
+
+---
+
+## Phiên hiện tại — 2026-11-23: WP-PARCEL-LINKS — MÃ LIÊN KẾT THỬA ↔ ĐỈNH KHI XUẤT / NHẬP ĐIỂM (v2.8.51)
+- **Yêu cầu**: xuất điểm ra tệp mất quan hệ thửa nào – đỉnh nào, đỉnh chung; nhập lại phải tự hiểu thứ tự liên kết.
+- **Quy ước** (`src/core/parcel_links.js`, `ParcelLinks`): cột "Mã liên kết" `T1.3` = đỉnh 3 của thửa 1 (T thửa kín, D tuyến, P lớp điểm); mốc chung ghi MỘT dòng `T1.3+T2.1`; cột "Thửa / khối" = tên các khối theo thứ tự trong mã, nối " | "; mốc lẻ để trống. Mốc trùng tọa độ (đến mm) là một mốc.
+- **Đã làm**:
+  1. Xuất: CSV / Excel / TXT của "Xuất dữ liệu" (`appData._linkedExportRows`, chỉ thêm cột khi Sổ đo có thửa) + TXT toàn đạc MiniCAD; Excel kèm trang `HuongDan_MaLienKet`.
+  2. Nhập vào Sổ đo: `geodesy.mapHeaderColumns` nhận cột `lk`/`shape`; `ImportPreview` có 2 ô chọn cột mới, tự nhận cột mã theo nội dung, tóm tắt "Dựng lại N thửa…"; `saveImportedPoints` → `ParcelLinks.expandToTaggedPoints` → MiniCAD dựng lại (nạp thêm vào dự án đã có bản vẽ thì thêm khối mới). Tệp có mã bỏ qua hộp hỏi "khối MiniCAD" cũ.
+  3. Nạp thẳng vào MiniCAD: `_shapesFromLinkedRows` (Chiến lược 0 của `_parseWorkbookToShapes` / `_parseHtmlOrTextToShapes`); CSV/TXT đọc UTF-8 trước SheetJS.
+  4. `reconstructShapesFromPoints` tách phần dựng sang `shapesFromTaggedPoints`: nhóm theo shapeId+tên, sắp theo shapeOrder.
+  5. `ImportPreview.textToRows`: tab/chấm phẩy chia đều cột thì dùng luôn (trước đây ô "Đỉnh ranh Thửa 12" làm chọn nhầm khoảng trắng).
+  6. Test: `tests/parcel_links.test.js` (8); cập nhật 3 test ghim mã cũ (kể cả kiểm phiên bản sw ≥ 2.8.50). **576/576 PASS**. Kiểm trong trình duyệt: 2 thửa chung cạnh + tuyến + mốc lẻ, xuất CSV/TXT/XLSX/TXT MiniCAD → nạp lại (Sổ đo & MiniCAD, mới & nạp thêm) đều dựng đúng.
+- **Chưa làm**: bảng kê MiniCAD (CSV/Excel chi tiết đỉnh) chưa thêm cột mã (vẫn nạp lại được theo cột Tên khối); KML/GeoJSON/DXF vốn đã mang hình học.
+
+---
+
+## Phiên hiện tại — 2026-11-23: WP-EXPORT-ALL-LAYERS — XUẤT BẢN ĐỒ VỚI ĐỦ CÁC LỚP (v2.8.50)
+- **Yêu cầu**: chức năng xuất bản đồ ra tệp chỉ cho chọn vài lớp bản đồ (3 nền), chưa chọn được tất cả.
+- **Tìm thấy**: (1) hộp xuất chỉ có OSM, Esri vệ tinh, Sentinel-2, trong khi "Lớp bản đồ" có 6 nền + lớp phủ Esri giao thông, Google đường/nhãn, Google giao thông, ranh 34 tỉnh, xã Đồng Tháp, nguồn tự thêm XYZ/WMS; (2) PDF/PNG của hộp "Xuất dữ liệu" bỏ qua hoàn toàn nền, quy hoạch, ảnh PDF đã chọn; (3) ảnh/SVG MiniCAD ghi "Tỷ lệ: 1:null" khi tỉ lệ tự động.
+- **Đã làm**:
+  1. `EXPORT_BASEMAPS` thêm google_hybrid, esri_satellite, google_streets, opentopomap, google_terrain, osm_streets (tên cũ street/satellite vẫn chạy); `EXPORT_TILE_OVERLAYS`, `EXPORT_VECTOR_OVERLAYS`; `exportMapSource` (cả `custom:<id>` XYZ/WMS — WMS tính BBOX EPSG:3857 theo ô), `exportLayerCatalog`.
+  2. Hộp xuất (cả hai): ô nền dựng từ danh mục (đánh dấu "đang xem"), danh sách "Lớp phủ in kèm" chọn sẵn lớp đang bật trên bản đồ; lưu cùng cấu hình xuất.
+  3. `appCadTool._prepareExportBasemap` tải nền + lớp phủ + quy hoạch + thư viện ranh giới; `drawExportMapLayers` vẽ nền → lớp phủ → quy hoạch → ranh giới (`drawExportVector`) → ảnh PDF, ghi nguồn gộp một dòng (`drawExportCredit`).
+  4. `appData.exportPngImage/exportPdfFile` vẽ các lớp (PDF: mở cửa sổ in trước rồi chờ tải, ảnh lớp đặt vào SVG sơ đồ).
+  5. Test: `tests/export_all_map_layers.test.js` (6); cập nhật 3 test ghim mã cũ. **568/568 PASS**. Kiểm trong trình duyệt bằng ô ảnh giả lập: PNG dữ liệu, ảnh MiniCAD, PDF dữ liệu đều có nền + lớp phủ + ranh giới.
+- **Lưu ý**: nguồn Google/OpenTopo được bản đồ chính nạp kiểu CORS nên in được; nếu một nguồn chặn, ô lỗi bị bỏ qua và có thông báo. Chưa thử với mạng thật trong phiên này (máy kiểm thử chặn mạng ngoài).
+
+---
+
+## Phiên hiện tại — 2026-11-23: WP-CAD-GLYPH-LABELS — KÝ HIỆU & CHỮ MINICAD, ICON MỐC DỰ ÁN (v2.8.48 → v2.8.49)
+- **Yêu cầu**: cách chỉnh icon MiniCAD chưa ổn — chưa chỉnh được icon mốc tọa độ và cỡ/vị trí chữ trong hoặc ngoài icon.
+- **Lỗi tìm thấy khi đo trong trình duyệt**: (1) mọi ký hiệu đỉnh/điểm bị vẽ LỆCH nửa ô icon lên trên-trái (11 px với cỡ Vừa) so với tọa độ thật; (2) tên dài hơn ~3 ký tự (GPS-5, M105) bị cắt trong viên thuốc; (3) chữ chỉ nằm trong ký hiệu, cỡ chữ gắn cứng theo cỡ ký hiệu; (4) mốc dự án luôn là ghim đỏ có số thứ tự, không chỉnh được.
+- **Đã làm**:
+  1. `appCadTool.glyphHtml/buildGlyphIcon/glyphHover`: khung tâm 0×0 `.cad-vglyph` đặt đúng tọa độ; viên thuốc rộng theo chữ; dùng chung cho đỉnh đã lưu, điểm rời và đỉnh đang vẽ.
+  2. Chữ: `lPos` (trong / phải / trên / dưới / trái / ẩn), `lSize` (9–24 px), `lColor`; ưu tiên đỉnh → khối → lớp CAD → mặc định (`getLabelStyleFor`). Chữ ngoài giữ nguyên hình ký hiệu, có quầng tối.
+  3. Bảng 🎨 "Ký hiệu & chữ" làm lại: thẻ theo lớp có mẫu xem trước, 6 ô (hình, màu, cỡ, vị trí chữ, cỡ chữ, màu chữ); mục 3 "Icon mốc tọa độ dự án". Thẻ nhanh khi bấm vào đỉnh có thêm vị trí/cỡ/màu chữ (Lưu đỉnh / Cả khối).
+  4. `appMap.getLandmarkStyle/setLandmarkStyle/landmarkIcon` (localStorage `vn2k_landmark_style_v1`): ghim hoặc ký hiệu hình, màu, cỡ, chữ (STT / tên / STT+tên / không), vị trí, cỡ, màu chữ; áp cho Bản đồ dự án và MiniCAD. `createSharpPinIcon` thêm `extraHtml`, `fontSize`.
+  5. Test: thêm `tests/cad_glyph_labels.test.js` (6 test); cập nhật 3 test ghim mã cũ (point_styling_visibility, cadcraft_points, sharp_pinpoint_markers). **561/561 PASS**.
+- **v2.8.49 — tệp xuất theo cài đặt chữ**: `appCadTool.exportLabelAnchor` dùng chung cho DXF, PDF, SVG, PNG: vị trí phải/trái/trên/dưới đặt chữ cạnh ký hiệu và căn lề đúng (DXF nhóm 72/73, đã kiểm bằng ezdxf, audit 0 lỗi); cỡ chữ theo tỉ lệ `lSize/12`; 'ẩn' không xuất chữ; 'trong' giữ chỗ cũ. Màu chữ không xuất (giấy trắng, giữ màu lớp). Thêm 1 test; **562/562 PASS**.
+- **Còn lại**: chưa đo trên điện thoại thật.
+
+---
+
+## Phiên trước — 2026-11-21: WP-LOCAL-AI — TRỢ LÝ AI CỤC BỘ (học kiến trúc Ivy AI / esp_ai), v2.8.47
 - **Yêu cầu**: học repo iamankushpandit/esp_ai để tạo AI cục bộ chạy trên thiết bị cài app: giao tiếp, kiểm thử, điều phối hoạt động; tự triển khai nếu thuận lợi.
 - **Quyết định**: esp_ai là firmware C cho ESP32-S3, giấy phép GPL-3.0 → không chép mã (app MIT); chỉ học nguyên tắc. Chi tiết: `docs/AI_CUC_BO.md`.
 - **Đã làm**:

@@ -4,6 +4,7 @@
     'use strict';
 
     const g = (typeof module !== 'undefined' && module.exports) ? require('./geodesy.js') : root;
+    const PL = (typeof module !== 'undefined' && module.exports) ? require('./src/core/parcel_links.js') : root.ParcelLinks;
 
     function num(v) {
         if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
@@ -21,6 +22,14 @@
         // Chọn dấu phân cách cho nhiều ô SỐ nhất mỗi dòng: tránh tách nhầm "1191900,5" (phẩy thập phân) thành 2 ô.
         const body = lines.filter(l => !l.startsWith('#')).slice(0, 30);
         let delim = ' ', best = -1;
+        // Tab / chấm phẩy chia mọi dòng thành cùng số cột (≥ 3) thì dùng luôn: tránh tách theo khoảng trắng
+        // làm vỡ ô chữ có số ("Đỉnh ranh Thửa 12") thành nhiều ô số.
+        for (const d of ['\t', ';']) {
+            if (!body.length || !body.every(l => l.includes(d))) continue;
+            const counts = new Set(body.map(l => split(l, d).length));
+            const nums = body.reduce((sum, l) => sum + split(l, d).filter(c => Number.isFinite(num(c))).length, 0) / body.length;
+            if (counts.size === 1 && [...counts][0] >= 3 && nums >= 2) return lines.map(l => split(l.replace(/^#\s*/, ''), d)).filter(cells => cells.length >= 2);
+        }
         for (const d of ['\t', ';', ',', ' ']) {
             if (d !== ' ' && !body.some(l => l.includes(d))) continue;
             const score = body.reduce((sum, l) => sum + split(l, d).filter(c => !/\s/.test(c.trim()) && Number.isFinite(num(c))).length, 0) / (body.length || 1);
@@ -66,6 +75,15 @@
             const hCol = idx.find(ci => !used.has(ci) && ci !== nameCol && share(ci, v => v > -100 && v < 4000) > 0.6);
             if (hCol !== undefined && (cols.x !== undefined || cols.lat !== undefined)) cols.h = hCol;
         }
+        // Cột mã liên kết thửa ↔ đỉnh (T1.3+T2.1) nhận theo nội dung khi tệp không có tiêu đề rõ
+        if (cols.lk === undefined && PL) {
+            const lkCol = [...Array(width).keys()].find(ci => !Object.values(cols).includes(ci) &&
+                body.filter(r => PL.looksLikeLinkCell(r[ci])).length >= Math.max(2, body.length * 0.3));
+            if (lkCol !== undefined) {
+                if (cols.name === lkCol) delete cols.name;
+                cols.lk = lkCol;
+            }
+        }
         return { headerRow, cols, type, width };
     }
 
@@ -82,6 +100,9 @@
             const line = opt.headerRow + 2 + i;
             const cell = k => (c[k] === undefined || c[k] === '' ? undefined : r[c[k]]);
             const p = { name: String(cell('name') ?? '').trim() || `M${out.length + 1}`, note: String(cell('note') ?? '').trim(), h: num(cell('h')) };
+            const lk = String(cell('lk') ?? '').trim(), shp = String(cell('shape') ?? '').trim();
+            if (lk) p.lk = lk;
+            if (shp) p.lkNames = shp;
             if (opt.type === 'wgs84') {
                 p.lat = num(cell('lat')); p.lng = num(cell('lng'));
                 if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) { skipped.push(line); return; }
@@ -114,7 +135,8 @@
         let state = null;
         const byId = id => document.getElementById(id);
         const esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const FIELDS = [['name', 'Tên điểm'], ['x', 'X (Bắc) / Vĩ độ'], ['y', 'Y (Đông) / Kinh độ'], ['h', 'Cao độ H'], ['note', 'Ghi chú']];
+        const FIELDS = [['name', 'Tên điểm'], ['x', 'X (Bắc) / Vĩ độ'], ['y', 'Y (Đông) / Kinh độ'], ['h', 'Cao độ H'], ['note', 'Ghi chú'],
+            ['lk', 'Mã liên kết (T1.3)'], ['shape', 'Thửa / khối']];
 
         function colOptions(width, sel) {
             let h = '<option value="">— không có —</option>';
@@ -170,9 +192,19 @@
             byId('impConvertRow').hidden = cfg.type !== 'vn2000';
             byId('impSummary').textContent = `Sẽ nạp ${res.points.length} điểm` +
                 (res.skipped ? `, bỏ qua ${res.skipped} dòng không đọc được${res.skippedLines.length ? ' (dòng ' + res.skippedLines.join(', ') + ')' : ''}` : '') +
-                (cfg.type === 'vn2000' && !same ? ' — X/Y được đổi sang KTT hiện hành.' : '.');
+                (cfg.type === 'vn2000' && !same ? ' — X/Y được đổi sang KTT hiện hành.' : '.') + linkSummary(res.points);
             byId('btnImpConfirm').disabled = res.points.length === 0;
             return res;
+        }
+
+        // Tóm tắt thửa sẽ dựng lại từ mã liên kết / cột "Thửa / khối"
+        function linkSummary(points) {
+            if (!PL || !PL.hasLinks(points)) return '';
+            const r = PL.rebuildShapes(points);
+            const n = { polygon: 0, polyline: 0, point: 0 };
+            r.shapes.forEach(sh => { n[sh.mode] = (n[sh.mode] || 0) + 1; });
+            const parts = [n.polygon && `${n.polygon} thửa`, n.polyline && `${n.polyline} tuyến`, n.point && `${n.point} lớp điểm`].filter(Boolean);
+            return ` Dựng lại ${parts.join(', ') || '0 khối'} theo mã liên kết` + (r.warnings.length ? ` (lưu ý: ${r.warnings.slice(0, 2).join('; ')})` : '') + '.';
         }
 
         function open(rows, fileName) {

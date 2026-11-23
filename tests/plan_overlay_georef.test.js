@@ -130,9 +130,12 @@ test('ảnh chỉ hiện trong MiniCAD, dưới nét vẽ, không bắt chạm; 
     assert.match(app, /if \(wf && \/\\\.pdf\$\/i\.test\(file\.name\)\)/);
     // In: ảnh nền nằm sau nền bản đồ, trước khung/lưới
     const pdf = app.slice(app.indexOf('    exportPdf(opts = {}) {'));
-    assert.ok(pdf.indexOf('appPlanOverlay.drawForExport(') > 0 && pdf.indexOf('appPlanOverlay.drawForExport(') < pdf.indexOf('// 2. Khung Ngoài'));
+    // (v2.8.50: vẽ qua bộ vẽ lớp chung drawExportMapLayers — ảnh nền PDF/ảnh là lớp cuối của nó)
+    const layersFn = app.slice(app.indexOf('    drawExportMapLayers(ctx, loaded'), app.indexOf('    _getExportMeta() {'));
+    assert.ok(layersFn.includes('appPlanOverlay.drawForExport(') && layersFn.indexOf('drawExportBasemap(') < layersFn.indexOf('appPlanOverlay.drawForExport('));
+    assert.ok(pdf.indexOf('this.drawExportMapLayers(') > 0 && pdf.indexOf('this.drawExportMapLayers(') < pdf.indexOf('// 2. Khung Ngoài'));
     const png = app.slice(app.indexOf('    exportOptimizedImage(customOpts = {}) {'));
-    assert.ok(png.indexOf('appPlanOverlay.drawForExport(') > 0 && png.indexOf('appPlanOverlay.drawForExport(') < png.indexOf('// Grid lines'));
+    assert.ok(png.indexOf('this.drawExportMapLayers(') > 0 && png.indexOf('this.drawExportMapLayers(') < png.indexOf('// Grid lines'));
 });
 
 test('bật/tắt lớp bản đồ PDF: toggleAll, isMasterVisible, checkboxes UI và lệnh CAD Craft', () => {

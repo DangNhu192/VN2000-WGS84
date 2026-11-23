@@ -54,11 +54,6 @@ test('=== 2. KIỂM THỬ TÁCH BẠCH LỚP ĐƠN ĐIỂM VÀ ĐA ĐIỂM (KHÔ
     assert.ok(appJsContent.includes('this.map.removeLayer(this.multiMarkersLayer)'), 
         'Khi ở chế độ đơn điểm, phải gỡ bỏ multiMarkersLayer khỏi map');
 
-    // 2.3 Trong appCoordPicker trên bản đồ chính
-    assert.ok(appJsContent.includes('AppState.leafletMap.removeLayer(this.multiMarkersGroup)'), 
-        'appCoordPicker ở chế độ single phải gỡ bỏ multiMarkersGroup khỏi bản đồ chính');
-    assert.ok(appJsContent.includes('AppState.leafletMap.removeLayer(AppState.pickerMarker)'), 
-        'appCoordPicker ở chế độ multi phải gỡ bỏ pickerMarker khỏi bản đồ chính');
 });
 
 test('=== 3. KIỂM THỬ CHỨC NĂNG XÓA ĐIỂM ĐƠN ĐIỂM TRIỆT ĐỂ TRÊN BẢN ĐỒ ===', () => {
@@ -74,9 +69,6 @@ test('=== 3. KIỂM THỬ CHỨC NĂNG XÓA ĐIỂM ĐƠN ĐIỂM TRIỆT ĐỂ 
     assert.ok(appJsContent.includes('this.viewSinglePoint = null;'), 
         'clearSinglePoint phải reset viewSinglePoint về null');
 
-    // 3.2 appCoordPicker có clearSinglePoint()
-    assert.ok(appJsContent.includes('clearSinglePoint()') && appJsContent.includes('AppState.pickerMarker = null;'), 
-        'appCoordPicker phải xóa pickerMarker khỏi bản đồ khi xóa điểm');
 
     // 3.3 Form chính gọi checkAndClearSingleResult
     assert.ok(appJsContent.includes('checkAndClearSingleResult()'), 

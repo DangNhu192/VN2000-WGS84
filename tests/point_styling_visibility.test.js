@@ -342,11 +342,13 @@ console.log('\n— renderGeometry: dựng ký hiệu theo kiểu/màu và theo n
     const geomBody = appJs.slice(appJs.indexOf('    renderGeometry(opts = {}) {'), appJs.indexOf('    renderGeometry(opts = {}) {') + 26000);
     assert(geomBody.includes('if (isPointLayer && !groupVis.visible) return;'),
         'Điểm rời khi tắt nhóm: KHÔNG dựng marker (ẩn hẳn trên bản đồ, không chỉ mờ)');
-    assert(geomBody.includes("'sty-' + ptStyle"),
+    // Ký hiệu dựng qua bộ dựng chung glyphHtml (đặt đúng tọa độ, chữ trong/ngoài ký hiệu)
+    const glyphBody = appJs.slice(appJs.indexOf('    glyphHtml(o) {'), appJs.indexOf('    buildGlyphIcon(o) {'));
+    assert(geomBody.includes('this.buildGlyphIcon({ style: ptStyle, color: ptColor, size: ptSize') && glyphBody.includes("'sty-' + o.style"),
         'Ký hiệu điểm mang class kiểu (sty-square / sty-diamond / ...)');
-    assert(geomBody.includes('this.getPointColorFor(shape, v)') && geomBody.includes('background: ${ptColor}'),
+    assert(geomBody.includes('this.getPointColorFor(shape, v)') && glyphBody.includes('background: ${o.color}'),
         'Ký hiệu điểm dùng màu.resolve của riêng điểm hoặc lớp');
-    assert(geomBody.includes('ptStyle === \'ring\'') && geomBody.includes('background: transparent'),
+    assert(glyphBody.includes("o.style === 'ring'") && glyphBody.includes('background: transparent'),
         'Kiểu vành khuyên chuyển nền trong suốt, viền mang màu điểm');
     assert(/const isExpanded = isPointLayer\s*\n?\s*\? \(groupVis\.labels === true\)/.test(geomBody) ||
         geomBody.includes('? (groupVis.labels === true)'),
@@ -447,11 +449,12 @@ console.log('\n— _getExportMeta: nhận cờ mới, cô lập khỏi cài đ�
         cadExportCheckFullDetails: { checked: false }
     };
     const store = {};
-    const api = new Function('document', 'localStorage', 'AppState',
+    const api = new Function('document', 'localStorage', 'AppState', 'exportMapSource', 'readExportOverlayChoice',
         `return ({ ${extractMethod('_getExportMeta')} });`)(
             { getElementById: id => (boxes[id] || { value: '', checked: undefined }) },
             { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = v; } },
-            { currentProject: 'DuAn.csv', provinceName: 'TP.HCM', kttDeg: 105, kttMin: 45 });
+            { currentProject: 'DuAn.csv', provinceName: 'TP.HCM', kttDeg: 105, kttMin: 45 },
+            () => null, () => []);
 
     const ctx = { displaySettings: { showPoints: true, showVertices: true, showLabels: true } };
     const meta = api._getExportMeta.call(ctx);

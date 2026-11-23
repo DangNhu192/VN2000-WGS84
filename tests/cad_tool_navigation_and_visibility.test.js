@@ -38,9 +38,6 @@ test('=== 3. KIỂM THỬ ĐỘC LẬP GIỮA BẢN ĐỒ DỰ ÁN VÀ MINICAD =
     assert.match(appJs, /openProjectMap[\s\S]*?mapView\.classList\.remove\('cad-active-map'\)/,
         'openProjectMap() phải gỡ bỏ class cad-active-map');
 
-    // 2. openCoordPickerMap() phải xóa class cad-active-map
-    assert.match(appJs, /openCoordPickerMap[\s\S]*?mapView\.classList\.remove\('cad-active-map'\)/,
-        'openCoordPickerMap() phải gỡ bỏ class cad-active-map');
 
     // 3. CSS ẩn hoàn toàn MiniCAD khi không ở cad-active-map
     assert.match(indexHtml, /#map-view-container:not\(\.cad-active-map\)\s*#mapCadToolbar/,

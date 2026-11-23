@@ -2032,3 +2032,14 @@
   2. `assistant-core.js`, `assistant.js`, `ui-assistant.css`, nút 🤖: chuyển đổi/khoảng cách/KTT/GPS/dự án/điều hướng/kiểm thử bằng tiếng Việt, nối lệnh "rồi", giọng nói Web Speech.
   3. Não AI tùy chọn qua `vendor/wllama` (llama.cpp WASM): GGUF từ máy hoặc Qwen2.5-0.5B; khóa đầu ra bằng GBNF; tự gỡ khi rảnh.
   4. Kiểm thử: `tests/assistant_local_ai.test.js`; **555/555 PASS**.
+
+- **2026-11-23 (Ký hiệu & chữ MiniCAD, icon mốc dự án — v2.8.48)**:
+  1. Sửa ký hiệu đỉnh/điểm lệch 11 px khỏi tọa độ thật và tên dài bị cắt (khung tâm `.cad-vglyph`, bộ dựng chung `glyphHtml`).
+  2. Chữ trong/ngoài ký hiệu: vị trí, cỡ, màu theo lớp CAD, theo khối, theo từng đỉnh.
+  3. Bảng 🎨 "Ký hiệu & chữ" mới có xem trước; tùy chỉnh icon mốc tọa độ dự án (Bản đồ dự án + MiniCAD).
+  4. Kiểm thử: `tests/cad_glyph_labels.test.js`; **561/561 PASS**.
+  5. v2.8.49: tệp xuất DXF/PDF/SVG/PNG đặt chữ theo cùng cài đặt vị trí + cỡ chữ (`exportLabelAnchor`); **562/562 PASS**.
+- **2026-11-23 (Xuất bản đồ với đủ các lớp — v2.8.50)**: hộp xuất (Xuất dữ liệu + Studio MiniCAD) chọn được mọi nền của "Lớp bản đồ" và lớp phủ (Esri giao thông, Google đường/nhãn, Google giao thông, ranh 34 tỉnh, xã Đồng Tháp, nguồn tự thêm XYZ/WMS); PDF/PNG của Xuất dữ liệu nay vẽ nền, lớp phủ, quy hoạch, ảnh PDF; sửa "Tỷ lệ: 1:null". **568/568 PASS**.
+- **2026-11-23 (Mã liên kết thửa ↔ đỉnh — v2.8.51)**: xuất CSV/Excel/TXT (Xuất dữ liệu + TXT MiniCAD) thêm cột "Mã liên kết" (T1.3, mốc chung T1.3+T2.1) và "Thửa / khối"; nạp lại vào Sổ đo hoặc MiniCAD tự dựng thửa đúng thứ tự, đỉnh chung là một mốc (`src/core/parcel_links.js`). **576/576 PASS**.
+- **2026-11-23 (Dọn mã dư thừa — v2.8.52)**: xóa 34 phương thức không ai gọi, phân hệ appCoordPicker cũ + 3 khối giao diện chỉ nó mở được (+ CSS), 3 mô-đun nháp chưa từng nạp, 5 ảnh chụp kiểm thử; app.js bớt ~1.000 dòng. Nút "Lấy từ Bản đồ" của Chuyển đổi đa điểm nay đọc đúng điểm đã chấm. **570/570 PASS**.
+- **2026-11-23 (Sửa service worker kẹt bản cũ — v2.8.53)**: sw.js lỗi cú pháp từ 20/11 làm mọi máy không cập nhật được service worker; sửa + test biên dịch mọi tệp JS; bộ xuất thử lại ô ảnh lỗi một lần với địa chỉ né bộ nhớ đệm. **573/573 PASS**.

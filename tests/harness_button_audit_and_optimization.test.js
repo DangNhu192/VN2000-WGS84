@@ -10,9 +10,6 @@ const styleCss = fs.readFileSync(path.join(ROOT_DIR, 'style.css'), 'utf8');
 const featureList = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'feature_list.json'), 'utf8'));
 
 test('=== 1. KIỂM THỬ XUẤT MODULE TOÀN CỤC CHO WINDOW (HARNESS RUNTIME EXPORTS) ===', () => {
-    // 1.1 Kiểm tra các module mở rộng được xuất an toàn vào window
-    assert.ok(appJs.includes("if (typeof appCoordPicker !== 'undefined') window.appCoordPicker = appCoordPicker;"),
-        'appCoordPicker phải được xuất vào window');
     assert.ok(appJs.includes("if (typeof appBluetoothRtk !== 'undefined') window.appBluetoothRtk = appBluetoothRtk;"),
         'appBluetoothRtk phải được xuất vào window');
     assert.ok(appJs.includes("if (typeof appResection !== 'undefined') window.appResection = appResection;"),

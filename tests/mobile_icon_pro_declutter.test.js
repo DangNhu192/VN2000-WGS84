@@ -23,7 +23,6 @@ test('=== 1. KIỂM THỬ TÙY CHỌN CHẾ ĐỘ BIỂU TƯỢNG LỚN TRONG C�
     // 1.2 Kiểm tra logic JavaScript trong app.js
     const appPath = path.join(ROOT_DIR, 'app.js');
     const appJs = fs.readFileSync(appPath, 'utf8');
-    assert.ok(appJs.includes('setUiIconMode('), 'app.js phải có hàm setUiIconMode');
     assert.ok(appJs.includes('applyUiIconMode('), 'app.js phải có hàm applyUiIconMode');
     assert.ok(appJs.includes('ui-mode-icon-pro'), 'app.js phải gắn class ui-mode-icon-pro');
     assert.ok(appJs.includes('vn2k_ui_icon_mode'), 'app.js phải lưu cấu hình vn2k_ui_icon_mode');

@@ -173,7 +173,7 @@ test('=== NHÓM 4: KIỂM TRA ĐĂNG KÝ GIAO DIỆN & DOM TRONG INDEX.HTML ==='
 
 test('=== NHÓM 5: ĐỒNG BỘ PHIÊN BẢN & BỘ NHỚ ĐỆM SERVICE WORKER ===', async (t) => {
     await t.test('5.1 CACHE_NAME trong sw.js đã nâng cấp lên tối thiểu v2.8.41', () => {
-        assert.ok(/CACHE_NAME = 'vn2000-pro-v2\.8\.(4[1-9]|\d{3,})'/.test(swJsContent), 'CACHE_NAME phải tối thiểu v2.8.41');
+        assert.ok(/CACHE_NAME = 'vn2000-pro-v2\.8\.(4[1-9]|[5-9]\d|\d{3,})'/.test(swJsContent), 'CACHE_NAME phải tối thiểu v2.8.41');
     });
 
     await t.test('5.2 planning_map.js có trong danh mục ASSETS_TO_CACHE của sw.js', () => {

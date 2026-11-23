@@ -19,7 +19,6 @@ test('=== 1. KIỂM THỬ THANH KÉO THẢ LINH HOẠT DIỆN TÍCH FORM VÀ B�
     // 1.3 JavaScript logic điều khiển kéo thả diện tích
     assert.match(appJs, /initResizer\s*\(/, 'appTransform phải có hàm initResizer() để điều khiển kéo thả diện tích');
     assert.match(appJs, /applySplitRatio\s*\(/, 'appTransform phải có hàm applySplitRatio() áp dụng tỷ lệ');
-    assert.match(appJs, /setTransformViewMode\s*\(\s*mode\s*\)\s*\{/, 'appTransform phải giữ tương thích hàm setTransformViewMode(mode)');
 });
 
 test('=== 2. KIỂM THỬ FLOATING HUD TỌA ĐỘ TRỰC QUAN TRÊN LIVE MAP ===', () => {

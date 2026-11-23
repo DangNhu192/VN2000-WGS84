@@ -4642,161 +4642,8 @@
     }
 
     /* Coordinate Picker Bar (Chuyên biệt cho Chuyển đổi tọa độ - Chấm đơn / đa điểm) */
-    .bar-coord-picker {
-      position: absolute;
-      top: calc(var(--sat-safe-top) + 10px);
-      left: calc(var(--sat-safe-left) + 10px);
-      right: calc(var(--sat-safe-right) + 10px);
-      min-height: 42px;
-      background: rgba(28, 26, 24, 0.95);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-radius: 12px;
-      border: 1px solid rgba(147, 204, 156, 0.45);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 8px;
-      z-index: 1000;
-      flex-wrap: wrap;
-      transition: all 0.2s ease;
-    }
+    
 
-    .picker-mode-switch {
-      display: flex;
-      background: rgba(41, 37, 36, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 2px;
-      gap: 2px;
-      flex-shrink: 0;
-    }
-
-    .btn-picker-mode {
-      border: none;
-      background: transparent;
-      color: #a8a29e;
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.18s ease;
-      white-space: nowrap;
-    }
-
-    .btn-picker-mode.active {
-      background: #3f8a5a;
-      color: #ffffff;
-      box-shadow: 0 2px 6px rgba(63, 138, 90, 0.4);
-    }
-
-    .picker-status-box {
-      flex: 1 1 auto;
-      min-width: 140px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-family: ui-monospace, monospace;
-      font-size: 11.5px;
-      color: #e7e5e4;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .picker-coord-text {
-      color: #93cc9c;
-      font-weight: 600;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .picker-badge {
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px solid rgba(16, 185, 129, 0.5);
-      color: #4ade80;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    .picker-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    .btn-picker-apply {
-      background: #10b981;
-      color: #ffffff;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-      white-space: nowrap;
-      transition: all 0.18s ease;
-    }
-
-    .btn-picker-apply:hover {
-      background: #059669;
-    }
-
-    .btn-picker-apply.btn-picker-batch {
-      background: #f59e0b;
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-    }
-
-    .btn-picker-apply.btn-picker-batch:hover {
-      background: #d97706;
-    }
-
-    .btn-picker-sub {
-      background: rgba(147, 204, 156, 0.15);
-      border: 1px solid rgba(147, 204, 156, 0.35);
-      color: #93cc9c;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .btn-picker-sub.btn-picker-danger {
-      background: rgba(239, 68, 68, 0.15);
-      border-color: rgba(239, 68, 68, 0.35);
-      color: #f87171;
-    }
-
-    .btn-picker-close {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #a8a29e;
-      font-size: 13px;
-      font-weight: 700;
-      width: 28px;
-      height: 28px;
-      border-radius: 7px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.18s ease;
-    }
-
-    .btn-picker-close:hover {
-      background: rgba(239, 68, 68, 0.3);
-      color: #ffffff;
-      border-color: #ef4444;
-    }
 
     .multipoint-map-pin {
       display: flex;
@@ -7119,10 +6966,10 @@
     }
 
     /* Khi rê chuột trực tiếp vào đỉnh, hoặc khi bật tùy chọn "Ký hiệu đỉnh" (.expanded) */
-    .cad-vertex-badge:hover,
+    .cad-vertex-badge:not(.lbl-out):hover,
     .cad-vertex-badge.expanded,
-    .cad-vertex-badge:active,
-    .leaflet-dragging .cad-vertex-badge {
+    .cad-vertex-badge:not(.lbl-out):active,
+    .leaflet-dragging .cad-vertex-badge:not(.lbl-out) {
       opacity: 1 !important;
       width: auto !important;
       min-width: 22px !important;
@@ -7344,6 +7191,79 @@
       border-radius: 16px !important;
     }
 
+    /* ==== KHUNG TÂM 0×0: ký hiệu luôn nằm ĐÚNG tọa độ (trước đây lệch nửa ô icon lên trên-trái) ==== */
+    .cad-vglyph {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0;
+      height: 0;
+    }
+
+    .cad-vglyph > .cad-vertex-badge {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* Viên thuốc có chữ: rộng theo chữ, không bị cắt tên dài (GPS-12, M105…) */
+    .cad-vglyph > .cad-vertex-badge.expanded,
+    .cad-vglyph > .cad-vertex-badge.selected-vertex {
+      width: max-content !important;
+      white-space: nowrap;
+    }
+
+    .cad-vglyph > .cad-vertex-badge.expanded:not(.selected-vertex):not(.snapped-adjacent):not(.snapped-edge) {
+      color: var(--lbl-color, #ffffff) !important;
+    }
+
+    /* Cỡ chữ tự chọn khi chữ nằm trong ký hiệu */
+    .cad-vglyph > .cad-vertex-badge.expanded.lsz {
+      font-size: var(--lbl-size) !important;
+      height: auto !important;
+      min-height: calc(var(--lbl-size) + 8px) !important;
+      line-height: 1.25 !important;
+      padding: 2px calc(var(--lbl-size) * 0.55) !important;
+      border-radius: 999px !important;
+    }
+
+    /* Chữ nằm ngoài ký hiệu: phải / trên / dưới / trái, có quầng tối để đọc được trên mọi nền */
+    .cad-vlabel {
+      position: absolute;
+      display: none;
+      white-space: nowrap;
+      font-size: var(--lbl-size, 12px);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--lbl-color, #ffffff);
+      text-shadow: 0 0 2px #000000, 0 0 3px #000000, 0 1px 2px rgba(0, 0, 0, 0.9);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .cad-vlabel.is-on,
+    .cad-vlabel.is-hover,
+    .leaflet-dragging .cad-vlabel {
+      display: block;
+    }
+
+    .cad-vlabel.lp-right { left: calc(var(--sym-r, 7px) + 4px); top: 0; transform: translateY(-50%); }
+    .cad-vlabel.lp-left { right: calc(var(--sym-r, 7px) + 4px); top: 0; transform: translateY(-50%); }
+    .cad-vlabel.lp-top { bottom: calc(var(--sym-r, 7px) + 3px); left: 0; transform: translateX(-50%); }
+    .cad-vlabel.lp-bottom { top: calc(var(--sym-r, 7px) + 3px); left: 0; transform: translateX(-50%); }
+
+    /* Chữ quanh đầu ghim mốc dự án (--hx, --hy: tâm đầu ghim; --sym-r: bán kính đầu ghim) */
+    .cad-vlabel.lmk-pin.lp-right { left: calc(var(--hx) + var(--sym-r) + 3px); top: var(--hy); transform: translateY(-50%); }
+    .cad-vlabel.lmk-pin.lp-left { right: calc(100% - var(--hx) + var(--sym-r) + 3px); top: var(--hy); transform: translateY(-50%); }
+    .cad-vlabel.lmk-pin.lp-top { bottom: calc(100% - var(--hy) + var(--sym-r) + 2px); left: var(--hx); transform: translateX(-50%); }
+    .cad-vlabel.lmk-pin.lp-bottom { top: calc(100% + 2px); left: var(--hx); transform: translateX(-50%); }
+
+    .cad-vertex-badge.lbl-out.hovered {
+      opacity: 1 !important;
+      transform: translate(-50%, -50%) scale(1.25);
+      z-index: 3500 !important;
+    }
+
     /* Nhãn nhóm hiển thị trên thanh công cụ CAD */
     .cad-display-group-tag {
       align-self: center;
@@ -7474,6 +7394,122 @@
       color: #b9dfb6;
       margin-bottom: 8px;
     }
+
+    /* ==== Bảng 🎨 Ký hiệu & chữ: thẻ theo lớp, có mẫu xem trước, gọn trên điện thoại ==== */
+    .cad-sym-box {
+      max-width: 760px;
+      width: 94%;
+      max-height: calc(var(--ui-avail-h) * 0.94);
+      display: flex;
+      flex-direction: column;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+
+    .cad-sym-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 12px 10px 16px;
+      border-bottom: 1px solid rgba(147, 204, 156, 0.18);
+      flex: none;
+    }
+
+    .cad-sym-head h3 { flex: 1 1 auto; margin: 0; font-size: 16px; }
+
+    .cad-sym-close {
+      flex: none;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .cad-sym-close:hover, .cad-sym-close:focus-visible { background: rgba(255, 244, 228, 0.08); outline: none; }
+
+    .cad-sym-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 14px 4px; overscroll-behavior: contain; }
+
+    .cad-sym-flags { display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: center; }
+
+    .cad-sym-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+
+    .cad-sym-card {
+      border: 1px solid rgba(255, 244, 228, 0.1);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255, 244, 228, 0.03);
+    }
+
+    .cad-sym-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; min-width: 0; }
+    .cad-sym-name { font-weight: 800; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .cad-sym-code { font-size: 11px; color: #a8a29e; background: rgba(255, 244, 228, 0.06); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+
+    /* Mẫu xem trước: nền giống bản đồ tối, ký hiệu nằm giữa */
+    .cad-sym-preview {
+      position: relative;
+      margin-left: auto;
+      flex: none;
+      width: 120px;
+      height: 52px;
+      border-radius: 10px;
+      background: #2a2724 radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.12) 1px, transparent 0) 0 0 / 12px 12px;
+      border: 1px solid rgba(255, 244, 228, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .cad-sym-preview .cad-vertex-badge { opacity: 1 !important; cursor: default; }
+    .cad-sym-preview .sharp-pin-marker-container { transform: translateY(-4px); }
+
+    .cad-sym-reset {
+      flex: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 244, 228, 0.16);
+      background: transparent;
+      color: inherit;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .cad-sym-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .cad-sym-grid label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 11px; color: #a8a29e; }
+    .cad-sym-grid select { width: 100%; height: 34px !important; font-size: 12.5px !important; max-width: none !important; }
+    .cad-sym-grid input[type="color"] { width: 100%; height: 34px; padding: 2px; border: 1px solid rgba(255, 244, 228, 0.16); border-radius: 8px; background: transparent; cursor: pointer; }
+
+    .cad-sym-hint { font-size: 11.5px; color: #a8a29e; margin-top: 8px; line-height: 1.45; }
+
+    .cad-sym-foot {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 10px 14px calc(10px + var(--sat-safe-bottom, 0px));
+      border-top: 1px solid rgba(147, 204, 156, 0.18);
+      flex: none;
+    }
+
+    .cad-sym-foot .btn-sm { height: 38px; padding: 0 14px; width: auto !important; flex: none !important; }
+    .cad-sym-count { margin-right: auto; font-size: 11.5px; color: #a8a29e; }
+    .cad-sym-count b { color: #fbbf24; }
+
+    @media (max-width: 560px) {
+      .cad-sym-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cad-sym-preview { width: 96px; height: 46px; }
+      .cad-sym-code { display: none; }
+      .cad-sym-count { flex: 1 1 100%; margin-right: 0; }
+    }
+
+    [data-theme="light"] .cad-sym-card { background: rgba(255, 255, 255, 0.5); border-color: rgba(28, 26, 24, 0.1); }
+    [data-theme="light"] .cad-sym-preview { background-color: #57534e; }
 
     /* Bảng kết quả trắc lượng (INQUIRY) */
     .cad-inq-table {
@@ -11079,17 +11115,8 @@
   .map-project-bar .map-proj-icon {
     font-size: 18px !important;
   }
-  .bar-coord-picker .btn-picker-mode {
-    height: 36px !important;
-    font-size: 12px !important;
-    padding: 0 10px !important;
-  }
-  .bar-coord-picker .btn-picker-apply {
-    height: 36px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    padding: 0 12px !important;
-  }
+
+
 }
 
 /* 5. Hero Live HUD Card: Ít chữ, số liệu tọa độ to sáng rõ */
@@ -11480,49 +11507,6 @@
   }
 }
 
-/* 15.4 THANH CHẤM TỌA ĐỘ: macOS COMPACT CAPSULE (<= 520px) */
-@media (max-width: 520px) {
-  .bar-coord-picker {
-    padding: 3px 6px !important;
-    gap: 4px !important;
-    border-radius: 20px !important;
-    max-width: calc(100vw - 20px) !important;
-  }
-  .bar-coord-picker .btn-picker-mode {
-    padding: 0 8px !important;
-    height: 30px !important;
-    font-size: 11.5px !important;
-    border-radius: 15px !important;
-  }
-  .bar-coord-picker .btn-picker-mode .btn-text {
-    display: none !important;
-  }
-  .bar-coord-picker .btn-picker-apply {
-    height: 30px !important;
-    padding: 0 10px !important;
-    font-size: 11.5px !important;
-    border-radius: 15px !important;
-  }
-  .bar-coord-picker .btn-picker-sub .btn-text {
-    display: none !important;
-  }
-  .bar-coord-picker .btn-picker-sub {
-    width: 28px !important;
-    height: 28px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  .bar-coord-picker .btn-picker-close {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 11px !important;
-    border-radius: 50% !important;
-  }
-}
-
 /* 15.5 THANH CÔNG CỤ MINICAD 3.5: MacBook TOUCH BAR ADAPTIVE (<= 600px) */
 @media (max-width: 600px) {
   .map-cad-toolbar {
@@ -11819,3 +11803,15 @@
       /* Bề mặt dưới phải né dock: các rule neo đáy ở khối này đều bị lớp ui-polish.css (nạp sau,
           !important, đặc hiệu bằng/nhỏ hơn) thắng, nên phần chỉnh ngưỡng đáy đặt trong ui-polish.css. */
     }
+
+/* Hộp xuất: lớp phủ in kèm (đủ danh mục "Lớp bản đồ") */
+.exp-ov-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; margin-top: 6px; }
+.exp-ov-list:empty { display: none; }
+.exp-ov-head { grid-column: 1 / -1; font-size: 11px; font-weight: 700; color: #a8a29e; }
+.exp-ov-head small { font-weight: 500; }
+.exp-ov-item { display: flex; align-items: center; gap: 6px; min-height: 32px; font-size: 12px; color: #d6d3d1; cursor: pointer; user-select: none; }
+.exp-ov-item input { width: 16px; height: 16px; flex: none; accent-color: #3f8a5a; }
+.exp-ov-item span { min-width: 0; overflow-wrap: anywhere; }
+.exp-ov-item em { font-style: normal; font-size: 11px; color: #93cc9c; margin-left: auto; white-space: nowrap; }
+[data-theme="light"] .exp-ov-item { color: #292524; }
+[data-theme="light"] .exp-ov-head { color: #57534e; }

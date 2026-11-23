@@ -542,6 +542,9 @@ function mapHeaderColumns(cells) {
         ['h', /^h\b|cao do|elev|^z\b|^cao do h/],
         ['x', /^x\b|toa do ngang x|northing|^n\b|x bac|^bac\b|x vn ?2000/],
         ['y', /^y\b|toa do dung y|easting|^e\b|y dong|^dong\b|y vn ?2000/],
+        // Mã liên kết thửa ↔ đỉnh (src/core/parcel_links.js) và tên khối — trước 'name' vì "Tên khối" bắt đầu bằng "tên"
+        ['lk', /ma lien ket|^ma lk\b|^malk\b|^lk\b|^lien ket|^link\b/],
+        ['shape', /^thua|^khoi|ten khoi|ten thua|thuoc thua|thuakhoi|^parcel|^block\b/],
         ['name', /^ten|^name|^point|^diem|^ma diem|^so hieu|^id\b|^stt\b/]
     ];
     const head = (cells || []).map(strip);
@@ -552,7 +555,7 @@ function mapHeaderColumns(cells) {
     });
     // "STT" chỉ là tên khi không có cột tên thật.
     if (head[col.name] === 'stt') {
-        const realName = head.findIndex((h, idx) => idx !== col.name && /^ten|^name|^point|^ma diem|^so hieu/.test(h));
+        const realName = head.findIndex((h, idx) => idx !== col.name && idx !== col.shape && /^ten|^name|^point|^ma diem|^so hieu/.test(h));
         if (realName >= 0) col.name = realName;
     }
     return col;

@@ -54,7 +54,7 @@ function extractMethod(name, from = 0) {
 }
 
 const CHROME_IDS = [
-    'mapProjectBar', 'barCoordPicker', 'mapCadToolbar', 'mapDistanceHud',
+    'mapProjectBar', 'mapCadToolbar', 'mapDistanceHud',
     'cadStatusHud', 'cadFloatingCmdBar', 'cadThumbActionBar', 'cadTouchLoupe',
     'cadBlocksStatsPanel', 'cadBlocksPanel', 'projectMarksBlocksPanel',
     'mapBottomSheet', 'mapPointMeasureBox'
@@ -85,11 +85,6 @@ console.log('\n— resetMapChrome: dọn sạch chrome bản đồ dùng chung �
 // =====================================================================
 console.log('\n— Các hàm mở bản đồ gọi resetMapChrome trước khi bật thanh riêng —');
 {
-    const pickerBody = extractMethod('openCoordPickerMap');
-    assert(pickerBody.includes('this.resetMapChrome()'), 'openCoordPickerMap dọn chrome trước khi mở thanh chấm điểm');
-    assert(pickerBody.indexOf('this.resetMapChrome()') < pickerBody.indexOf("getElementById('barCoordPicker')"),
-        'openCoordPickerMap reset trước rồi mới bật #barCoordPicker');
-
     const projectBody = extractMethod('openProjectMap');
     assert(projectBody.includes('this.resetMapChrome()'), 'openProjectMap dọn chrome trước khi mở thanh dự án');
     assert(projectBody.indexOf('this.resetMapChrome()') < projectBody.indexOf("getElementById('mapProjectBar')"),
@@ -99,9 +94,6 @@ console.log('\n— Các hàm mở bản đồ gọi resetMapChrome trước khi 
     assert(cadBody.includes('this.resetMapChrome()'), 'openCadMap dọn chrome trước khi mở MiniCAD');
     assert(cadBody.indexOf('this.resetMapChrome()') < cadBody.indexOf('appCadTool.openToolbar()'),
         'openCadMap reset trước rồi mới gọi appCadTool.openToolbar()');
-
-    const convertedBody = extractMethod('openConvertedMap');
-    assert(convertedBody.includes('this.resetMapChrome()'), 'openConvertedMap dọn chrome của phân hệ trước');
 
     const gpsBody = extractMethod('openLiveGpsMap');
     assert(gpsBody.includes('this.resetMapChrome()'), 'openLiveGpsMap dọn chrome của phân hệ trước');

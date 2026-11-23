@@ -47,7 +47,5 @@ test('vùng chạm 44px cho tab, nút Múi, nút quay lại cài đặt, nút ? 
 });
 
 test('mở màn hình không bật thông báo; bấm Xóa vẫn báo', () => {
-    assert.ok(app.includes('appCoordPicker.clearMultiPoints(true);'));
-    assert.ok(app.includes('if (!silent) showToast("✓ Đã xóa danh sách điểm đã chấm");'));
     assert.ok(!app.includes('CADCraft sẵn sàng!'));
 });
