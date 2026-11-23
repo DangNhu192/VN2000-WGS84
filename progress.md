@@ -2038,3 +2038,4 @@
   2. Chữ trong/ngoài ký hiệu: vị trí, cỡ, màu theo lớp CAD, theo khối, theo từng đỉnh.
   3. Bảng 🎨 "Ký hiệu & chữ" mới có xem trước; tùy chỉnh icon mốc tọa độ dự án (Bản đồ dự án + MiniCAD).
   4. Kiểm thử: `tests/cad_glyph_labels.test.js`; **561/561 PASS**.
+  5. v2.8.49: tệp xuất DXF/PDF/SVG/PNG đặt chữ theo cùng cài đặt vị trí + cỡ chữ (`exportLabelAnchor`); **562/562 PASS**.

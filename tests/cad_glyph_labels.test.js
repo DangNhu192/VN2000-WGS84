@@ -95,3 +95,17 @@ test('Icon mốc tọa độ dự án: hình, màu, cỡ, nội dung chữ, vị
   assert.ok(styleCss.includes('.cad-vlabel.lmk-pin.lp-right'), 'CSS chữ quanh đầu ghim');
   assert.ok(indexHtml.includes('id="cadLandmarkStyleBox"') && appJs.includes('renderLandmarkStylePanel()'));
 });
+
+test('Bản vẽ xuất (DXF, PDF, SVG, PNG) đặt chữ theo cùng cài đặt vị trí + cỡ chữ', () => {
+  const anchor = new Function(`return ({ ${extractMethod('exportLabelAnchor')} });`)();
+  const mk = lb => Object.assign(Object.create(anchor), { getLabelStyleFor: () => lb });
+  assert.strictEqual(mk({ pos: 'none', px: 0 }).exportLabelAnchor({}, {}, 0, 0, 1, 2, true), null, 'Ẩn chữ thì không xuất chữ');
+  assert.deepStrictEqual(mk({ pos: 'inside', px: 18 }).exportLabelAnchor({}, {}, 0, 0, 1, 2, true), { legacy: true, h: 3 }, 'Trong ký hiệu: giữ chỗ cũ, cỡ theo tỉ lệ');
+  const right = mk({ pos: 'right', px: 0 }).exportLabelAnchor({}, {}, 10, 20, 1, 2, true);
+  assert.ok(right.x > 11 && right.y === 20 && right.align === 'left' && right.base === 'middle');
+  const topUp = mk({ pos: 'top', px: 0 }).exportLabelAnchor({}, {}, 10, 20, 1, 2, true);
+  const topDown = mk({ pos: 'top', px: 0 }).exportLabelAnchor({}, {}, 10, 20, 1, 2, false);
+  assert.ok(topUp.y > 20 && topDown.y < 20 && topUp.align === 'center', 'Trên: theo chiều trục Y của từng bộ xuất');
+  assert.strictEqual((appJs.match(/this\.exportLabelAnchor\(shape, p, /g) || []).length, 4, 'Cả 4 bộ xuất dùng chung cài đặt chữ');
+  assert.ok(appJs.includes('72\\r\\n${hj}\\r\\n11\\r\\n') && appJs.includes('100\\r\\nAcDbText\\r\\n73\\r\\n${vj}'), 'DXF căn lề chữ bằng nhóm 72/73');
+});

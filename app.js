@@ -22764,6 +22764,23 @@ const appCadTool = {
         else if (!pinned) b.classList.remove('expanded');
     },
 
+    /** Chữ tên điểm/đỉnh khi XUẤT bản vẽ: cùng cài đặt vị trí + cỡ chữ với màn hình (màu chữ không dùng vì giấy nền trắng).
+        cx, cy: tâm ký hiệu; r: bán kính ký hiệu; h: cỡ chữ mặc định của bộ xuất; yUp: trục Y hướng lên (DXF) hay xuống (canvas/SVG).
+        Trả về null khi "Ẩn chữ"; { legacy: true, h } khi "Trong ký hiệu" (ký hiệu in quá nhỏ để chứa chữ → giữ vị trí trên-phải quen thuộc);
+        còn lại { x, y, h, align: left|center|right, base: middle|bottom|top } — (x, y) là điểm neo theo align/base. */
+    exportLabelAnchor(shape, p, cx, cy, r, h, yUp) {
+        const lb = this.getLabelStyleFor(shape, p);
+        if (lb.pos === 'none') return null;
+        const hh = lb.px ? h * lb.px / 12 : h;
+        if (lb.pos === 'inside') return { legacy: true, h: hh };
+        const gap = r * 0.6 + hh * 0.15;
+        const up = yUp ? 1 : -1;
+        if (lb.pos === 'right') return { x: cx + r + gap, y: cy, h: hh, align: 'left', base: 'middle' };
+        if (lb.pos === 'left') return { x: cx - r - gap, y: cy, h: hh, align: 'right', base: 'middle' };
+        if (lb.pos === 'top') return { x: cx, y: cy + up * (r + gap), h: hh, align: 'center', base: 'bottom' };
+        return { x: cx, y: cy - up * (r + gap), h: hh, align: 'center', base: 'top' };
+    },
+
     updateDraftVertexConfig(field, value) {
         if (field === 'style') {
             if (this.pointStyles.some(s => s.id === value)) this.draftVertexStyle = value;
@@ -36316,12 +36333,18 @@ const appCadTool = {
             dwg += `0\r\nLINE\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n${layer}\r\n100\r\nAcDbLine\r\n10\r\n${x1.toFixed(3)}\r\n20\r\n${y1.toFixed(3)}\r\n30\r\n${z1.toFixed(3)}\r\n11\r\n${x2.toFixed(3)}\r\n21\r\n${y2.toFixed(3)}\r\n31\r\n${z2.toFixed(3)}\r\n`;
         };
 
-        const addText = (layer, x, y, h, str, rotDeg = 0, style = "VN_ARIAL", z = 0) => {
+        const addText = (layer, x, y, h, str, rotDeg = 0, style = "VN_ARIAL", z = 0, align = null) => {
             dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\n${layer}\r\n100\r\nAcDbText\r\n10\r\n${x.toFixed(3)}\r\n20\r\n${y.toFixed(3)}\r\n30\r\n${z.toFixed(3)}\r\n40\r\n${h.toFixed(4)}\r\n1\r\n${str}\r\n`;
             if (rotDeg !== 0) {
                 dwg += `50\r\n${rotDeg.toFixed(2)}\r\n`;
             }
             dwg += `7\r\n${style}\r\n`;
+            // Căn lề chữ (nhóm 72/73 + điểm căn 11/21/31) — dùng cho chữ tên đỉnh đặt trái/trên/dưới/phải ký hiệu
+            if (align) {
+                const hj = ({ left: 0, center: 1, right: 2 })[align.align] || 0;
+                const vj = ({ bottom: 1, middle: 2, top: 3 })[align.base] || 0;
+                if (hj || vj) dwg += `72\r\n${hj}\r\n11\r\n${x.toFixed(3)}\r\n21\r\n${y.toFixed(3)}\r\n31\r\n${z.toFixed(3)}\r\n100\r\nAcDbText\r\n73\r\n${vj}\r\n`;
+            }
         };
 
         const addCircle = (layer, x, y, r, z = 0) => {
@@ -36459,7 +36482,9 @@ const appCadTool = {
 
                     if (meta.showLabels !== false) {
                         const cleanName = this.toCadAscii(p.name || `D${idx + 1}`);
-                        addText("TEN_MOC", cadX + 1.5 * S, cadY + 1.2 * S, 2.0 * S, cleanName);
+                        const la = this.exportLabelAnchor(shape, p, cadX, cadY, r, 2.0 * S, true);
+                        if (la && la.legacy) addText("TEN_MOC", cadX + 1.5 * S, cadY + 1.2 * S, la.h, cleanName);
+                        else if (la) addText("TEN_MOC", la.x, la.y, la.h, cleanName, 0, "VN_ARIAL", 0, la);
                     }
                 });
             }
@@ -37119,9 +37144,15 @@ const appCadTool = {
                         this.getPointColorFor(shape, p));
 
                     if (meta.showLabels !== false) {
-                        ctx.font = `bold ${Math.round(2.2 * pxPerMm)}px Arial`;
-                        ctx.fillStyle = '#0f172a';
-                        ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
+                        const la = this.exportLabelAnchor(shape, p, px, py, r, 2.2 * pxPerMm, false);
+                        if (la) {
+                            ctx.save();
+                            ctx.font = `bold ${Math.round(la.h)}px Arial`;
+                            ctx.fillStyle = '#0f172a';
+                            if (la.legacy) ctx.fillText(p.name || `Đ${idx+1}`, px + Math.round(2 * pxPerMm), py - Math.round(2 * pxPerMm));
+                            else { ctx.textAlign = la.align; ctx.textBaseline = la.base; ctx.fillText(p.name || `Đ${idx+1}`, la.x, la.y); }
+                            ctx.restore();
+                        }
                     }
                 });
             }
@@ -37803,7 +37834,16 @@ const appCadTool = {
                     const sy2 = toSvgY(p.x);
                     svgContent += `  ${this.pointGlyphSvg(this.getPointStyleFor(shape, p), sx2, sy2, 4, this.getPointColorFor(shape, p))}\r\n`;
                     if (meta.showLabels !== false) {
-                        svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}">${p.name || ('Đ' + (idx+1))}</text>\r\n`;
+                        const la = this.exportLabelAnchor(shape, p, sx2, sy2, 4, 11, false);
+                        const nm = escapeHtml(p.name || ('Đ' + (idx+1)));
+                        const fs = la && Math.abs(la.h - 11) > 0.01 ? ` style="font-size:${la.h.toFixed(1)}px"` : '';
+                        if (la && la.legacy) {
+                            svgContent += `  <text class="layer-ky-hieu-text" x="${(sx2 + 6).toFixed(1)}" y="${(sy2 - 5).toFixed(1)}"${fs}>${nm}</text>\r\n`;
+                        } else if (la) {
+                            const anchor = ({ left: 'start', center: 'middle', right: 'end' })[la.align];
+                            const dy = ({ middle: '0.35em', top: '0.8em', bottom: '0' })[la.base];
+                            svgContent += `  <text class="layer-ky-hieu-text" x="${la.x.toFixed(1)}" y="${la.y.toFixed(1)}" dy="${dy}" text-anchor="${anchor}"${fs}>${nm}</text>\r\n`;
+                        }
                     }
                 });
             }
@@ -38235,9 +38275,15 @@ const appCadTool = {
                         this.getPointStyleFor(shape, p),
                         this.getPointColorFor(shape, p));
                     if (meta.showLabels !== false) {
-                        ctx.font = 'bold 10px Arial';
-                        ctx.fillStyle = '#0f172a';
-                        ctx.fillText(p.name || '', px + 5, py - 5);
+                        const la = this.exportLabelAnchor(shape, p, px, py, 4, 11, false);
+                        if (la) {
+                            ctx.save();
+                            ctx.font = `bold ${Math.round(la.h)}px Arial`;
+                            ctx.fillStyle = '#0f172a';
+                            if (la.legacy) ctx.fillText(p.name || '', px + 5, py - 5);
+                            else { ctx.textAlign = la.align; ctx.textBaseline = la.base; ctx.fillText(p.name || '', la.x, la.y); }
+                            ctx.restore();
+                        }
                     }
                 });
             }

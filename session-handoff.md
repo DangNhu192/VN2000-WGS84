@@ -1,6 +1,6 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-23: WP-CAD-GLYPH-LABELS — KÝ HIỆU & CHỮ MINICAD, ICON MỐC DỰ ÁN (v2.8.48)
+## Phiên hiện tại — 2026-11-23: WP-CAD-GLYPH-LABELS — KÝ HIỆU & CHỮ MINICAD, ICON MỐC DỰ ÁN (v2.8.48 → v2.8.49)
 - **Yêu cầu**: cách chỉnh icon MiniCAD chưa ổn — chưa chỉnh được icon mốc tọa độ và cỡ/vị trí chữ trong hoặc ngoài icon.
 - **Lỗi tìm thấy khi đo trong trình duyệt**: (1) mọi ký hiệu đỉnh/điểm bị vẽ LỆCH nửa ô icon lên trên-trái (11 px với cỡ Vừa) so với tọa độ thật; (2) tên dài hơn ~3 ký tự (GPS-5, M105) bị cắt trong viên thuốc; (3) chữ chỉ nằm trong ký hiệu, cỡ chữ gắn cứng theo cỡ ký hiệu; (4) mốc dự án luôn là ghim đỏ có số thứ tự, không chỉnh được.
 - **Đã làm**:
@@ -9,7 +9,8 @@
   3. Bảng 🎨 "Ký hiệu & chữ" làm lại: thẻ theo lớp có mẫu xem trước, 6 ô (hình, màu, cỡ, vị trí chữ, cỡ chữ, màu chữ); mục 3 "Icon mốc tọa độ dự án". Thẻ nhanh khi bấm vào đỉnh có thêm vị trí/cỡ/màu chữ (Lưu đỉnh / Cả khối).
   4. `appMap.getLandmarkStyle/setLandmarkStyle/landmarkIcon` (localStorage `vn2k_landmark_style_v1`): ghim hoặc ký hiệu hình, màu, cỡ, chữ (STT / tên / STT+tên / không), vị trí, cỡ, màu chữ; áp cho Bản đồ dự án và MiniCAD. `createSharpPinIcon` thêm `extraHtml`, `fontSize`.
   5. Test: thêm `tests/cad_glyph_labels.test.js` (6 test); cập nhật 3 test ghim mã cũ (point_styling_visibility, cadcraft_points, sharp_pinpoint_markers). **561/561 PASS**.
-- **Chưa làm**: tệp xuất (DXF/SVG/PDF/PNG) vẫn đặt chữ theo quy tắc riêng của từng bộ xuất, chưa theo vị trí chữ mới.
+- **v2.8.49 — tệp xuất theo cài đặt chữ**: `appCadTool.exportLabelAnchor` dùng chung cho DXF, PDF, SVG, PNG: vị trí phải/trái/trên/dưới đặt chữ cạnh ký hiệu và căn lề đúng (DXF nhóm 72/73, đã kiểm bằng ezdxf, audit 0 lỗi); cỡ chữ theo tỉ lệ `lSize/12`; 'ẩn' không xuất chữ; 'trong' giữ chỗ cũ. Màu chữ không xuất (giấy trắng, giữ màu lớp). Thêm 1 test; **562/562 PASS**.
+- **Còn lại**: chưa đo trên điện thoại thật.
 
 ---
 
