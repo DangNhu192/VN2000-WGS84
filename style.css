@@ -11815,3 +11815,23 @@
 .exp-ov-item em { font-style: normal; font-size: 11px; color: #93cc9c; margin-left: auto; white-space: nowrap; }
 [data-theme="light"] .exp-ov-item { color: #292524; }
 [data-theme="light"] .exp-ov-head { color: #57534e; }
+
+/* Khung tên tùy chỉnh: mỗi dòng = tên mục + nội dung (dùng ở Xuất dữ liệu và Studio MiniCAD) */
+.tb-rows { display: flex; flex-direction: column; gap: 6px; }
+.tb-rows-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 11.5px; font-weight: 700; color: #93cc9c; }
+.tb-rows-head small { font-weight: 500; font-size: 11px; color: #a8a29e; }
+.tb-row { display: grid; grid-template-columns: minmax(96px, 0.8fr) minmax(0, 2fr) auto 32px; gap: 6px; align-items: center; }
+.tb-row .app-input { font-family: var(--font-sans); height: 32px; font-size: 12px; padding: 4px 8px; width: 100%; min-width: 0; border-radius: 5px; }
+.tb-row .tb-label { font-weight: 700; }
+.tb-head { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #a8a29e; white-space: nowrap; cursor: pointer; min-height: 32px; }
+.tb-head input { width: 16px; height: 16px; accent-color: #3f8a5a; }
+.tb-del { width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: #f87171; font-size: 13px; cursor: pointer; }
+.tb-del:hover { background: rgba(248,113,113,0.12); }
+.tb-rows-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tb-rows-actions .btn-sm { min-height: 32px; padding: 0 12px; font-size: 12px; border-radius: 6px; border: 1px solid rgba(147,204,156,0.35); background: rgba(63,138,90,0.12); color: #93cc9c; cursor: pointer; }
+@media (max-width: 560px) {
+  .tb-row { grid-template-columns: minmax(0, 1fr) auto 32px; }
+  .tb-row .tb-value { grid-column: 1 / -1; grid-row: 2; }
+}
+[data-theme="light"] .tb-head, [data-theme="light"] .tb-rows-head small { color: #57534e; }
+[data-theme="light"] .tb-rows-head { color: #2f6b45; }

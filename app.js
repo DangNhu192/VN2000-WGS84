@@ -452,6 +452,165 @@ function exportLayerCatalog() {
     }
     return { bases, overlays };
 }
+// ---- Thông tin khung tên dùng chung (Xuất dữ liệu ↔ Studio xuất MiniCAD) ----
+// Tên bản vẽ, người đo, ghi chú: sửa ở hộp nào thì hộp kia cũng nhận.
+const TITLE_BLOCK_FIELDS = {
+    // khóa chung: [khóa ở Xuất dữ liệu, khóa ở MiniCAD]
+    drawingName: ['drawingTitle', 'drawingName'],
+    surveyor: ['surveyor', 'surveyor'],
+    notes: ['notes', 'notes']
+};
+function shareTitleBlock(data, from) {
+    if (!data || typeof localStorage === 'undefined') return;
+    const srcIdx = from === 'cad' ? 1 : 0, dstIdx = 1 - srcIdx;
+    const key = dstIdx === 0 ? 'vn2k_export_title_block' : 'vn2k_cad_meta_saved';
+    let cur = {};
+    try { cur = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { cur = {}; }
+    Object.values(TITLE_BLOCK_FIELDS).forEach(pair => {
+        if (data[pair[srcIdx]] !== undefined) cur[pair[dstIdx]] = data[pair[srcIdx]];
+    });
+    try { localStorage.setItem(key, JSON.stringify(cur)); } catch (e) {}
+}
+
+// ---- Các dòng thông tin khung tên do người dùng tự đặt (tên mục + nội dung, thêm / bớt / đổi tên) ----
+// Một danh sách dùng chung cho mọi tệp xuất. Dòng đánh dấu "Đầu khung" in đậm ở đầu khung tên (vd. tên đơn vị).
+const appTitleRows = {
+    KEY: 'vn2k_title_rows_v1',
+    DEFAULTS: [
+        { label: 'Đơn vị đo vẽ', head: true },
+        { label: 'Chủ sử dụng' },
+        { label: 'Địa chỉ' },
+        { label: 'Số tờ/thửa' },
+        { label: 'Mã hồ sơ' },
+        { label: 'Người kiểm tra' }
+    ],
+    clean(rows) {
+        return (Array.isArray(rows) ? rows : []).filter(r => r && typeof r === 'object').slice(0, 30).map(r => ({
+            label: String(r.label == null ? '' : r.label).slice(0, 80),
+            value: String(r.value == null ? '' : r.value).slice(0, 300),
+            head: !!r.head
+        }));
+    },
+    load() {
+        if (typeof localStorage === 'undefined') return this.clean(this.DEFAULTS);
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.KEY) || 'null');
+            if (Array.isArray(saved)) return this.clean(saved);
+        } catch (e) {}
+        // Lần đầu: lấy nội dung đã nhập ở các ô cố định cũ (nếu có)
+        let a = {}, b = {};
+        try { a = JSON.parse(localStorage.getItem('vn2k_export_title_block') || '{}') || {}; } catch (e) {}
+        try { b = JSON.parse(localStorage.getItem('vn2k_cad_meta_saved') || '{}') || {}; } catch (e) {}
+        const old = [b.organization || a.org, b.owner || a.owner, b.address || a.address, b.parcelNo || a.parcelNo, a.drawingCode || '', b.checker || a.checker];
+        return this.clean(this.DEFAULTS.map((d, i) => Object.assign({}, d, { value: old[i] || '' })));
+    },
+    save(rows) {
+        try { localStorage.setItem(this.KEY, JSON.stringify(this.clean(rows))); } catch (e) {}
+    },
+    // Dòng có nội dung — đưa vào meta cho các bộ xuất
+    forMeta() {
+        return this.load().filter(r => r.value.trim()).map(r => ({ label: r.label.trim(), value: r.value.trim(), head: r.head }));
+    },
+    render(boxId) {
+        const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+        if (!box) return;
+        const esc = (typeof escapeHtml === 'function') ? escapeHtml : (t => String(t));
+        const rows = this.load();
+        box.innerHTML = `<div class="tb-rows-head"><span>Thông tin khung tên</span><small>Đổi tên mục, sửa nội dung, thêm hoặc xóa dòng — dòng trống không in</small></div>` +
+            rows.map((r, i) => `<div class="tb-row" data-i="${i}">
+                <input type="text" class="app-input tb-label" value="${esc(r.label)}" placeholder="Tên mục" aria-label="Tên mục dòng ${i + 1}" oninput="appTitleRows.onInput('${boxId}')">
+                <input type="text" class="app-input tb-value" value="${esc(r.value)}" placeholder="Nội dung" aria-label="Nội dung dòng ${i + 1}" oninput="appTitleRows.onInput('${boxId}')">
+                <label class="tb-head" title="In đậm ở đầu khung tên"><input type="checkbox" ${r.head ? 'checked' : ''} onchange="appTitleRows.onInput('${boxId}')"><span>Đầu khung</span></label>
+                <button type="button" class="tb-del" title="Xóa dòng" aria-label="Xóa dòng ${i + 1}" onclick="appTitleRows.remove('${boxId}', ${i})">✕</button>
+            </div>`).join('') +
+            `<div class="tb-rows-actions"><button type="button" class="btn-sm" onclick="appTitleRows.add('${boxId}')">＋ Thêm dòng</button>
+             <button type="button" class="btn-sm" onclick="appTitleRows.reset('${boxId}')">↺ Mục mặc định</button></div>`;
+    },
+    read(boxId) {
+        const box = typeof document !== 'undefined' ? document.getElementById(boxId) : null;
+        if (!box) return this.load();
+        return Array.from(box.querySelectorAll('.tb-row')).map(row => ({
+            label: row.querySelector('.tb-label').value,
+            value: row.querySelector('.tb-value').value,
+            head: row.querySelector('.tb-head input').checked
+        }));
+    },
+    onInput(boxId) {
+        this.save(this.read(boxId));
+        if (boxId === 'cadTitleRowsBox' && typeof appCadTool !== 'undefined' && appCadTool.onExportSettingChange) appCadTool.onExportSettingChange();
+    },
+    add(boxId) {
+        const rows = this.read(boxId);
+        rows.push({ label: '', value: '', head: false });
+        this.save(rows);
+        this.render(boxId);
+        const inputs = document.querySelectorAll(`#${boxId} .tb-label`);
+        if (inputs.length) inputs[inputs.length - 1].focus();
+    },
+    remove(boxId, i) {
+        const rows = this.read(boxId);
+        rows.splice(i, 1);
+        this.save(rows);
+        this.render(boxId);
+        this.onInput(boxId);
+    },
+    reset(boxId) {
+        // Giữ nội dung đã nhập của các mục trùng tên, đưa danh sách mục về mặc định
+        const cur = this.read(boxId);
+        const byLabel = new Map(cur.map(r => [r.label.trim().toLowerCase(), r.value]));
+        this.save(this.DEFAULTS.map(d => Object.assign({}, d, { value: byLabel.get(d.label.toLowerCase()) || '' })));
+        this.render(boxId);
+        this.onInput(boxId);
+    }
+};
+if (typeof window !== 'undefined') window.appTitleRows = appTitleRows;
+
+// Các dòng khung tên để in. meta.titleRows (từ appTitleRows) — hoặc các trường cũ (organization, owner…) nếu có.
+// org: dòng "Đầu khung"; info: các dòng còn lại "Tên mục: nội dung"; infoA/infoB: chia đôi cho hai cột khung tên.
+function titleBlockLines(meta) {
+    const m = meta || {};
+    let rows = Array.isArray(m.titleRows) ? m.titleRows : null;
+    if (!rows) {
+        rows = [
+            { label: 'Đơn vị', value: m.organization || m.org, head: true },
+            { label: 'Chủ sử dụng', value: m.owner }, { label: 'Địa chỉ', value: m.address },
+            { label: 'Số tờ/thửa', value: m.parcelNo }, { label: 'Mã hồ sơ', value: m.drawingCode }, { label: 'Kiểm tra', value: m.checker }
+        ];
+    }
+    rows = rows.filter(r => r && String(r.value || '').trim());
+    const fmt = r => (r.label ? `${String(r.label).trim()}: ` : '') + String(r.value).trim();
+    const heads = rows.filter(r => r.head).map(r => String(r.value).trim());
+    const items = rows.filter(r => !r.head).map(fmt);
+    const half = Math.ceil(items.length / 2);
+    return {
+        org: heads.join('  ·  ').toUpperCase(),
+        proj: `DỰ ÁN: ${String(m.projectName || '').toUpperCase()}`,
+        items,
+        info: items.join('  ·  '),
+        infoA: items.slice(0, half).join('  ·  '),
+        infoB: items.slice(half).join('  ·  '),
+        notes: m.notes || ''
+    };
+}
+// Vẽ chữ co cỡ cho vừa bề rộng (canvas)
+function fillTextFit(ctx, text, x, y, maxW) {
+    if (!text) return;
+    const w = ctx.measureText(text).width;
+    if (maxW > 0 && w > maxW) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(maxW / w, 1);
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+    } else ctx.fillText(text, x, y);
+}
+
+// SVG: chữ ước tính dài hơn ô thì ép vừa bề rộng
+function svgFit(text, fontSize, maxW) {
+    const est = String(text || '').length * fontSize * 0.58;
+    return (maxW > 0 && est > maxW) ? ` textLength="${Math.round(maxW)}" lengthAdjust="spacingAndGlyphs"` : '';
+}
+
 // ---- Hộp xuất: ô chọn nền + danh sách lớp phủ (dùng chung cho Xuất dữ liệu và Studio xuất MiniCAD) ----
 function fillExportBaseSelect(selId, savedVal) {
     const sel = typeof document !== 'undefined' ? document.getElementById(selId) : null;
@@ -480,6 +639,63 @@ function readExportOverlayChoice(boxId) {
     if (!box || !box.querySelectorAll) return [];
     return Array.from(box.querySelectorAll('input[type="checkbox"]')).filter(i => i.checked).map(i => i.value);
 }
+// Xem trước trong hộp xuất: vẽ các ô ảnh nền / lớp phủ / quy hoạch đã chọn bằng <image> (không cần CORS),
+// để người dùng thấy ngay lớp bản đồ nào sẽ được in. toSvg(e, n) → {x, y}; frame theo VN-2000 của vùng xem trước.
+function exportPreviewLayersSvg(meta, frame, toSvg, pxPerMeter) {
+    if (!meta || typeof appCadTool === 'undefined' || !appCadTool._exportBasemapToLatLng) return '';
+    const toLL = (e, n) => appCadTool._exportBasemapToLatLng(e, n);
+    const toVn = (lat, lng) => appCadTool._exportBasemapToVn2k(lat, lng);
+    const plans = [];
+    const tryPlan = fn => { try { const pl = fn(); if (pl && pl.tiles && pl.tiles.length) plans.push(pl); } catch (e) {} };
+    if (meta.basemap && meta.basemap !== 'none' && exportMapSource(meta.basemap)) tryPlan(() => planExportBasemap(meta.basemap, frame, pxPerMeter, toLL, 40));
+    (meta.overlays || []).forEach(id => { if (!EXPORT_VECTOR_OVERLAYS[id] && exportMapSource(id)) tryPlan(() => planExportBasemap(id, frame, pxPerMeter, toLL, 30)); });
+    if (meta.showGuland) tryPlan(() => planExportGuland(meta.gulandProvince, frame, pxPerMeter, toLL, 30, meta.gulandLand, meta.gulandOpacity));
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    let out = '';
+    plans.forEach(pl => {
+        const n = Math.pow(2, pl.z);
+        const lngOf = x => x / n * 360 - 180;
+        const latOf = y => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+        pl.tiles.forEach(t => {
+            const a = toVn(latOf(t.y), lngOf(t.x)), b = toVn(latOf(t.y + 1), lngOf(t.x + 1));
+            if (!a || !b) return;
+            const p = toSvg(a.e, a.n), q = toSvg(b.e, b.n);
+            const x = Math.min(p.x, q.x), y = Math.min(p.y, q.y), w = Math.abs(q.x - p.x), h = Math.abs(q.y - p.y);
+            if (!isFinite(x + y + w + h) || w <= 0 || h <= 0) return;
+            out += `<image href="${esc(t.url)}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(w + 0.6).toFixed(1)}" height="${(h + 0.6).toFixed(1)}" preserveAspectRatio="none" opacity="${pl.alpha || 1}"/>`;
+        });
+    });
+    return out;
+}
+// Bảng tổng hợp các điểm của bản vẽ: mỗi mốc một dòng (đỉnh chung của nhiều thửa không lặp), kèm thửa chứa nó.
+// Đỉnh MiniCAD: x = Bắc (X), y = Đông (Y).
+function exportPointRows(shapes) {
+    const list = (shapes || []).filter(s => s && (s.vertices || []).length);
+    const rows = (typeof ParcelLinks !== 'undefined')
+        ? ParcelLinks.buildLinkedRows(list.map(s => ({ name: s.name, mode: s.mode, vertices: s.vertices })), []).rows
+        : [].concat(...list.map(s => s.vertices.map(v => Object.assign({}, v, { lkNames: s.name }))));
+    return rows.map((r, i) => ({
+        stt: i + 1, name: r.name || `Đ${i + 1}`,
+        x: Number(r.x) || 0, y: Number(r.y) || 0,
+        shapes: String(r.lkNames || '').split('|').map(t => t.trim()).filter(Boolean).join(', ')
+    }));
+}
+function summaryTablesMode(meta) {
+    const m = meta && meta.summaryTables;
+    return { area: m !== 'points', points: m === 'points' || m === 'both' };
+}
+
+// Tên các lớp bản đồ sẽ in (cho huy hiệu xem trước)
+function exportLayerNames(meta) {
+    if (!meta) return [];
+    const cat = exportLayerCatalog();
+    const nameOf = id => (cat.bases.find(b => b.id === (EXPORT_BASEMAP_ALIASES[id] || id)) || cat.overlays.find(o => o.id === id) || {}).name || id;
+    const names = [];
+    if (meta.basemap && meta.basemap !== 'none' && exportMapSource(meta.basemap)) names.push(nameOf(meta.basemap));
+    (meta.overlays || []).forEach(id => names.push(nameOf(id)));
+    return names;
+}
+
 function _exportTileUrl(src, z, x, y) {
     if (src.wms) {
         // Ô EPSG:3857 → BBOX (mét Mercator)
@@ -11090,13 +11306,7 @@ function doGet(e) {
             if (savedMeta) {
                 if (savedMeta.drawingTitle) setVal('txtExportDrawingTitle', savedMeta.drawingTitle);
                 if (savedMeta.projectName && this.exportContext === 'survey') setVal('txtExportProjectName', savedMeta.projectName);
-                if (savedMeta.owner) setVal('txtExportOwner', savedMeta.owner);
-                if (savedMeta.parcelNo) setVal('txtExportParcelNo', savedMeta.parcelNo);
-                if (savedMeta.address) setVal('txtExportAddress', savedMeta.address);
-                if (savedMeta.org) setVal('txtExportOrg', savedMeta.org);
                 if (savedMeta.surveyor) setVal('txtExportSurveyor', savedMeta.surveyor);
-                if (savedMeta.checker) setVal('txtExportChecker', savedMeta.checker);
-                if (savedMeta.drawingCode) setVal('txtExportDrawingCode', savedMeta.drawingCode);
                 if (savedMeta.notes) setVal('txtExportNotes', savedMeta.notes);
                 if (savedMeta.scaleVal) {
                     const selEl = document.getElementById('selExportMapScale');
@@ -11122,6 +11332,7 @@ function doGet(e) {
 
             // Nền và lớp phủ: đủ danh mục của "Lớp bản đồ"
             fillExportBaseSelect('selExportBasemap', savedMeta?.basemap);
+            appTitleRows.render('exportTitleRowsBox');
             renderExportOverlayList('selExportOverlayList', savedMeta?.overlays, 'appData.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
@@ -11142,8 +11353,6 @@ function doGet(e) {
         if (surveyorInput && !surveyorInput.value) surveyorInput.value = AppState.surveyorName || "Kỹ sư đo đạc";
         const dateInput = document.getElementById('txtExportDate');
         if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
-        const orgInput = document.getElementById('txtExportOrg');
-        if (orgInput && !orgInput.value) orgInput.value = "Trung tâm Trắc địa Bản đồ";
         const titleInput = document.getElementById('txtExportDrawingTitle');
         if (titleInput && !titleInput.value) titleInput.value = "BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT";
 
@@ -11168,13 +11377,7 @@ function doGet(e) {
             const data = {
                 drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
                 projectName: getVal('txtExportProjectName'),
-                owner: getVal('txtExportOwner'),
-                parcelNo: getVal('txtExportParcelNo'),
-                address: getVal('txtExportAddress'),
-                org: getVal('txtExportOrg'),
                 surveyor: getVal('txtExportSurveyor'),
-                checker: getVal('txtExportChecker'),
-                drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
                 notes: getVal('txtExportNotes'),
                 scaleVal: scaleValToSave,
                 paperSize: document.getElementById('selExportPaperSize')?.value || 'A4-L',
@@ -11187,6 +11390,7 @@ function doGet(e) {
                 savedAt: Date.now()
             };
             localStorage.setItem('vn2k_export_title_block', JSON.stringify(data));
+            shareTitleBlock(data, 'data');
             if (AppState.currentProject) {
                 const projKey = 'vn2k_export_meta_proj_' + AppState.currentProject.replace(/\.[^/.]+$/, "");
                 localStorage.setItem(projKey, JSON.stringify(data));
@@ -11212,13 +11416,7 @@ function doGet(e) {
         const curProj = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "VN2000_SoLieu_DoDac";
         setVal('txtExportDrawingTitle', 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
         setVal('txtExportProjectName', curProj);
-        setVal('txtExportOwner', '');
-        setVal('txtExportParcelNo', '');
-        setVal('txtExportAddress', AppState.provinceName || '');
-        setVal('txtExportOrg', 'Trung tâm Trắc địa Bản đồ');
         setVal('txtExportSurveyor', AppState.surveyorName || 'Kỹ sư đo đạc');
-        setVal('txtExportChecker', '');
-        setVal('txtExportDrawingCode', 'SĐ-01/01');
         setVal('txtExportNotes', '');
         localStorage.removeItem('vn2k_export_title_block');
         if (AppState.currentProject) {
@@ -11302,15 +11500,10 @@ function doGet(e) {
         const meta = {
             drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
             projectName: getVal('txtExportProjectName') || (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn"),
-            owner: getVal('txtExportOwner'),
-            parcelNo: getVal('txtExportParcelNo'),
-            address: getVal('txtExportAddress'),
             surveyor: getVal('txtExportSurveyor') || "Kỹ sư đo đạc",
-            checker: getVal('txtExportChecker'),
             drawingDate: getVal('txtExportDate') || new Date().toISOString().split('T')[0],
-            org: getVal('txtExportOrg') || "Trung tâm Trắc địa Bản đồ",
-            drawingCode: getVal('txtExportDrawingCode') || 'SĐ-01/01',
             notes: getVal('txtExportNotes'),
+            titleRows: appTitleRows.forMeta(),
             format: chosenFormat
         };
 
@@ -11522,6 +11715,7 @@ function doGet(e) {
         };
 
         let svgHtml = `<rect width="100%" height="100%" fill="#070b14"/>`;
+        svgHtml += exportPreviewLayersSvg(Object.assign({ gulandOpacity: 0.6 }, opts), { e0: bMinX, e1: bMinX + bW, n0: bMinY, n1: bMinY + bH }, toSvg, Math.max(560 / bW, 320 / bH));
 
         // 1. Khung bản vẽ nếu bật
         if (layers.frame) {
@@ -11616,6 +11810,7 @@ function doGet(e) {
     },
 
     executeExport() {
+        this.saveTitleBlockInfo(false);
         const opts = this.getExportOptions();
         const fmt = opts.meta.format;
 
@@ -11697,7 +11892,15 @@ function doGet(e) {
         const now = new Date();
         const dateStr = opts.meta.drawingDate || `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
         const surveyorStr = opts.meta.surveyor || "Kỹ sư đo đạc";
-        const locationStr = opts.meta.location || "Việt Nam";
+        const locationStr = escapeHtml(opts.meta.location || opts.meta.address || "Việt Nam");
+        const tbM = opts.meta || {};
+        const esc = v => escapeHtml(String(v == null ? '' : v));
+        // Dòng thông tin thêm chỉ hiện khi người dùng có nhập
+        const tbl = titleBlockLines(tbM);
+        const pairs = (tbM.titleRows || []).filter(r => !r.head).map(r => [r.label, r.value]);
+        if (tbM.notes) pairs.push(['Ghi chú', tbM.notes]);
+        const extraRows = pairs.reduce((acc, p, i) => { if (i % 2 === 0) acc.push([p]); else acc[acc.length - 1].push(p); return acc; }, [])
+            .map(r => `<div class="meta-row">${r.map(([k, v]) => `<span>${k ? `<strong>${esc(k)}:</strong> ` : ''}${esc(v)}</span>`).join('')}</div>`).join('');
 
         // Cửa sổ in phải mở ngay khi bấm (trình duyệt chặn cửa sổ mở sau khi chờ tải ảnh bản đồ)
         const printWin = (loadedLayers && loadedLayers._win) || window.open('', '_blank');
@@ -11888,7 +12091,7 @@ function doGet(e) {
 
     <div class="header-grid">
         <div class="header-col">
-            <div style="font-weight: bold; text-transform: uppercase;">DỰ ÁN ĐO ĐẠC & QUẢN LÝ MỐC</div>
+            <div style="font-weight: bold; text-transform: uppercase;">${tbl.org ? esc(tbl.org) : 'DỰ ÁN ĐO ĐẠC & QUẢN LÝ MỐC'}</div>
             <div style="font-size: 11pt;">SỔ ĐO ĐỊA CHÍNH VN-2000</div>
             <div class="line-dec"></div>
         </div>
@@ -11919,6 +12122,7 @@ function doGet(e) {
             <span><strong>Người Lập / Kỹ Sư:</strong> ${surveyorStr}</span>
             <span><strong>Ứng Dụng:</strong> VN2000-PWA Pro</span>
         </div>
+        ${extraRows}
     </div>
 
     <table class="tbl-data">
@@ -12043,11 +12247,13 @@ function doGet(e) {
         // Tiêu đề & Thông tin
         ctx.fillStyle = '#f8fafc';
         ctx.font = 'bold 28px sans-serif';
-        ctx.fillText(`SƠ ĐỒ TỌA ĐỘ MỐC TRẮC ĐỊA VN-2000 • ${projName.toUpperCase()}`, 60, 80);
+        const tbM = opts.meta || {};
+        fillTextFit(ctx, `${String(tbM.drawingTitle || 'SƠ ĐỒ TỌA ĐỘ MỐC TRẮC ĐỊA VN-2000').toUpperCase()} • ${projName.toUpperCase()}`, 60, 80, canvas.width - 120);
 
         ctx.fillStyle = '#94a3b8';
         ctx.font = '16px sans-serif';
-        ctx.fillText(`Tỷ lệ 1:${scaleVal} | KTT: ${kttStr} (Múi 3°) | Người lập: ${surveyorStr} | Ngày: ${dateStr} | VN2000-PWA`, 60, 110);
+        const tbl = titleBlockLines(tbM);
+        fillTextFit(ctx, [tbl.org, `Tỷ lệ 1:${scaleVal}`, `KTT: ${kttStr} (Múi 3°)`, `Người lập: ${surveyorStr}`, `Ngày: ${dateStr}`].filter(Boolean).join(' | '), 60, 110, canvas.width - 120);
 
         const padX = spanX * 0.2;
         const padY = spanY * 0.2;
@@ -12224,7 +12430,7 @@ function doGet(e) {
         // Footer ghi chú
         ctx.fillStyle = '#64748b';
         ctx.font = '13px sans-serif';
-        ctx.fillText(`VN2000-PWA • Bản vẽ trắc địa chuẩn • Tỷ lệ 1:${scaleVal} • Ngày: ${dateStr}`, 70, canvas.height - 50);
+        fillTextFit(ctx, [tbl.info, tbM.notes].filter(Boolean).join('  ·  ') || `Tỷ lệ 1:${scaleVal} • Ngày: ${dateStr}`, 70, canvas.height - 50, canvas.width - 140);
 
         canvas.toBlob(blob => {
             if (!blob) return showToast("⚠️ Không tạo được ảnh PNG!", true);
@@ -12895,7 +13101,7 @@ function doGet(e) {
 
             // Khung tên góc dưới
             const tbW = Math.min(140.0 * S, fW);
-            const tbH = 30.0 * S;
+            const tbH = 34.0 * S;
             const tbX0 = maxX + 20.0 * S - tbW;
             const tbY0 = fY0;
 
@@ -12906,10 +13112,25 @@ function doGet(e) {
             dwg += `10\r\n${tbX0.toFixed(3)}\r\n20\r\n${(tbY0 + tbH).toFixed(3)}\r\n`;
 
             const kttStr = AppState.kttDeg ? `${AppState.kttDeg}°${String(AppState.kttMin).padStart(2, '0')}'` : "105°45'";
-            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 5.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.8 * S).toFixed(4)}\r\n1\r\nDU AN: ${projName.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
-            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 11.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nHE VN-2000 - KTT: ${kttStr} (MUI 3)\r\n7\r\nVN_ARIAL\r\n`;
-            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 17.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(2.0 * S).toFixed(4)}\r\n1\r\nTY LE: 1:${scaleVal} | SO MOC: ${pts.length}\r\n7\r\nVN_ARIAL\r\n`;
-            dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${(tbY0 + tbH - 23.0 * S).toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${(1.8 * S).toFixed(4)}\r\n1\r\nNGAY LAP: ${opts.meta.drawingDate} | NGUOI DO: ${opts.meta.surveyor.toUpperCase()}\r\n7\r\nVN_ARIAL\r\n`;
+            // Khung tên theo thông tin người dùng nhập (dòng trống thì bỏ); chữ không dấu cho AutoCAD
+            const tbM = opts.meta || {};
+            const ascii = t => (typeof appCadTool !== 'undefined' && appCadTool.toCadAscii) ? appCadTool.toCadAscii(t) : String(t || '');
+            const tbl = titleBlockLines(tbM);
+            const tbLines = [
+                tbl.org && [ascii(tbl.org), 2.4],
+                [ascii(tbM.drawingTitle || 'SO DO TOA DO MOC').toUpperCase(), 2.8],
+                ['DU AN: ' + ascii(projName).toUpperCase(), 2.0],
+                [`HE VN-2000 - KTT: ${ascii(kttStr)} (MUI 3) | TY LE: 1:${scaleVal} | SO MOC: ${pts.length}`, 1.8],
+                tbl.infoA && [ascii(tbl.infoA), 1.8],
+                tbl.infoB && [ascii(tbl.infoB), 1.8],
+                [`NGAY LAP: ${ascii(tbM.drawingDate)} | NGUOI DO: ${ascii(tbM.surveyor).toUpperCase()}`, 1.8]
+            ].filter(l => l && l[0]);
+            let tbY = tbY0 + tbH - 5.0 * S;
+            tbLines.forEach(([txt, hMm]) => {
+                const h = Math.min(hMm * S, (tbW - 4.0 * S) / Math.max(1, txt.length * 0.62));
+                dwg += `0\r\nTEXT\r\n5\r\n${nextH()}\r\n330\r\n1B\r\n100\r\nAcDbEntity\r\n8\r\nKHUNG_TEN\r\n100\r\nAcDbText\r\n10\r\n${(tbX0 + 2.0 * S).toFixed(3)}\r\n20\r\n${tbY.toFixed(3)}\r\n30\r\n0.0\r\n40\r\n${h.toFixed(4)}\r\n1\r\n${txt}\r\n7\r\nVN_ARIAL\r\n`;
+                tbY -= Math.max(4.0, hMm * 1.9) * S;
+            });
         }
 
         dwg += "0\r\nENDSEC\r\n";
@@ -28743,13 +28964,7 @@ const appCadTool = {
 
             setVal('cadExportDrawingName', savedMeta?.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
             setVal('cadExportProjectName', savedMeta?.projectName || curProj);
-            setVal('cadExportOrganization', savedMeta?.organization || '');
-            setVal('cadExportOwner', savedMeta?.owner || '');
-            setVal('cadExportParcelNo', savedMeta?.parcelNo || '');
-            setVal('cadExportAddress', savedMeta?.address || AppState.provinceName || '');
             setVal('cadExportSurveyor', savedMeta?.surveyor || '');
-            setVal('cadExportChecker', savedMeta?.checker || '');
-            setVal('cadExportDrawingCode', savedMeta?.drawingCode || 'SĐ-01/01');
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
             if (savedMeta?.customScale) setVal('cadExportCustomScaleInput', savedMeta.customScale);
@@ -28759,6 +28974,8 @@ const appCadTool = {
             }
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
             fillExportBaseSelect('cadExportBasemap', savedMeta?.basemap);
+            if (savedMeta?.summaryTables) setVal('cadExportSummaryTables', savedMeta.summaryTables);
+            appTitleRows.render('cadTitleRowsBox');
             renderExportOverlayList('cadExportOverlayList', savedMeta?.overlays, 'appCadTool.onExportSettingChange()');
 
             // Nạp danh mục 63 tỉnh cho bộ chọn quy hoạch Guland
@@ -29026,6 +29243,7 @@ const appCadTool = {
                 </pattern>
             </defs>
             <rect width="${W_svg}" height="${H_svg}" fill="#070b14"/>
+            ${exportPreviewLayersSvg(meta, { e0: midX - W_svg / 2 / k, e1: midX + W_svg / 2 / k, n0: midY - H_svg / 2 / k, n1: midY + H_svg / 2 / k }, (e, n) => ({ x: toSvgX(e), y: toSvgY(n) }), k)}
             <rect width="${W_svg}" height="${H_svg}" fill="url(#cadGridPat)"/>
             <!-- Khung giấy tỷ lệ -->
             <rect x="${pad}" y="${pad}" width="${drawW}" height="${drawH}" fill="none" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1.2" stroke-dasharray="4,4" rx="4"/>
@@ -29033,6 +29251,14 @@ const appCadTool = {
         `;
 
         // Huy hiệu trực quan các lớp bản đồ được tích chọn xuất
+        const layerNames = exportLayerNames(meta);
+        if (layerNames.length) {
+            svgContent += `
+            <g transform="translate(${pad + 6}, ${H_svg - pad - 24})">
+                <rect width="${Math.min(drawW - 12, 30 + layerNames.join(' + ').length * 4.6)}" height="18" rx="3" fill="rgba(15, 23, 42, 0.82)" stroke="#93cc9c" stroke-width="0.8"/>
+                <text x="7" y="12.5" fill="#93cc9c" font-size="8.5" font-weight="bold" font-family="sans-serif">🗺️ IN KÈM: ${escapeHtml(layerNames.join(' + '))}</text>
+            </g>`;
+        }
         if (meta.showGuland) {
             const planningObj = (typeof appPlanning !== 'undefined' && appPlanning) ? appPlanning : null;
             const gulandProvObj = (planningObj && planningObj.getProvince) ? planningObj.getProvince(meta.gulandProvince) : null;
@@ -29060,9 +29286,10 @@ const appCadTool = {
             </g>`;
         }
 
-        // Render từng khối/thửa
+        // Render từng khối/thửa — đỉnh MiniCAD: x = Bắc (X), y = Đông (Y); khung xem trước tính theo (Đông, Bắc)
+        // (trước đây vẽ (x, y) nên khối nằm ngoài khung, ô xem trước trống)
         selectedShapes.forEach((s, idx) => {
-            const pts = (s.vertices || []).map(v => `${toSvgX(v.x).toFixed(1)},${toSvgY(v.y).toFixed(1)}`).join(' ');
+            const pts = (s.vertices || []).map(v => `${toSvgX(v.y).toFixed(1)},${toSvgY(v.x).toFixed(1)}`).join(' ');
             const color = s.color || '#38bdf8';
             if (s.mode === 'polygon' && pts) {
                 svgContent += `<polygon points="${pts}" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/>`;
@@ -29072,16 +29299,20 @@ const appCadTool = {
 
             // Điểm đỉnh và nhãn
             (s.vertices || []).forEach((v, vIdx) => {
-                const sx = toSvgX(v.x);
-                const sy = toSvgY(v.y);
+                const sx = toSvgX(v.y);
+                const sy = toSvgY(v.x);
                 svgContent += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="3" fill="#ef4444" stroke="#ffffff" stroke-width="1"/>`;
                 svgContent += `<text x="${(sx + 5).toFixed(1)}" y="${(sy - 4).toFixed(1)}" fill="#f8fafc" font-size="8.5" font-weight="600" font-family="sans-serif">${v.name || (vIdx + 1)}</text>`;
             });
 
             // Tên thửa / diện tích ở tâm
-            if (s.stats?.centroid && s.mode === 'polygon') {
-                const cx = toSvgX(s.stats.centroid.x);
-                const cy = toSvgY(s.stats.centroid.y);
+            if (s.mode === 'polygon' && (s.vertices || []).length) {
+                const vs = s.vertices;
+                const avgN = vs.reduce((a, v) => a + (+v.x || 0), 0) / vs.length, avgE = vs.reduce((a, v) => a + (+v.y || 0), 0) / vs.length;
+                const c = s.stats && s.stats.centroid;
+                const useC = c && Math.abs(c.x - avgN) < 5000 && Math.abs(c.y - avgE) < 5000;
+                const cx = toSvgX(useC ? c.y : avgE);
+                const cy = toSvgY(useC ? c.x : avgN);
                 const areaStr = s.stats.area ? `${s.stats.area.toFixed(1)} m²` : '';
                 svgContent += `
                     <g transform="translate(${cx.toFixed(1)}, ${cy.toFixed(1)})">
@@ -29101,16 +29332,11 @@ const appCadTool = {
             const data = {
                 drawingName: getVal('cadExportDrawingName') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
                 projectName: getVal('cadExportProjectName'),
-                organization: getVal('cadExportOrganization'),
-                owner: getVal('cadExportOwner'),
-                parcelNo: getVal('cadExportParcelNo'),
-                address: getVal('cadExportAddress'),
                 surveyor: getVal('cadExportSurveyor'),
-                checker: getVal('cadExportChecker'),
-                drawingCode: getVal('cadExportDrawingCode') || 'SĐ-01/01',
                 scaleVal: document.getElementById('cadExportScale')?.value || '500',
                 customScale: parseInt(document.getElementById('cadExportCustomScaleInput')?.value) || 1000,
                 paper: document.getElementById('cadExportPaperSize')?.value || 'A4',
+                summaryTables: document.getElementById('cadExportSummaryTables')?.value || 'area',
                 basemap: document.getElementById('cadExportBasemap')?.value || 'none',
                 overlays: readExportOverlayChoice('cadExportOverlayList'),
                 showGuland: document.getElementById('cadExportCheckGuland')?.checked || false,
@@ -29123,6 +29349,7 @@ const appCadTool = {
 
             // 1. Lưu cấu hình khung tên mặc định toàn hệ thống
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify(data));
+            shareTitleBlock(data, 'cad');
 
             // 2. Lưu cấu hình khung tên riêng theo dự án đang mở
             if (AppState.currentProject) {
@@ -29150,13 +29377,7 @@ const appCadTool = {
         };
         setVal('cadExportDrawingName', 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
         setVal('cadExportProjectName', curProj);
-        setVal('cadExportOrganization', '');
-        setVal('cadExportOwner', '');
-        setVal('cadExportParcelNo', '');
-        setVal('cadExportAddress', AppState.provinceName || '');
         setVal('cadExportSurveyor', '');
-        setVal('cadExportChecker', '');
-        setVal('cadExportDrawingCode', 'SĐ-01/01');
         if (document.getElementById('cadExportBasemap')) document.getElementById('cadExportBasemap').value = 'none';
         if (document.getElementById('cadExportCheckGuland')) document.getElementById('cadExportCheckGuland').checked = false;
         if (document.getElementById('cadExportGulandConfigWrap')) document.getElementById('cadExportGulandConfigWrap').style.display = 'none';
@@ -30164,13 +30385,8 @@ const appCadTool = {
 
             setVal('cadExportDrawingName', savedMeta?.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT');
             setVal('cadExportProjectName', savedMeta?.projectName || curProj);
-            setVal('cadExportOrganization', savedMeta?.organization || '');
-            setVal('cadExportOwner', savedMeta?.owner || '');
-            setVal('cadExportParcelNo', savedMeta?.parcelNo || '');
-            setVal('cadExportAddress', savedMeta?.address || AppState.provinceName || '');
+            appTitleRows.render('cadTitleRowsBox');
             setVal('cadExportSurveyor', savedMeta?.surveyor || '');
-            setVal('cadExportChecker', savedMeta?.checker || '');
-            setVal('cadExportDrawingCode', savedMeta?.drawingCode || 'SĐ-01/01');
             setVal('cadExportDate', new Date().toLocaleDateString('vi-VN'));
             if (savedMeta?.scaleVal) setVal('cadExportScale', savedMeta.scaleVal);
             if (savedMeta?.paper) setVal('cadExportPaperSize', savedMeta.paper);
@@ -34602,9 +34818,10 @@ const appCadTool = {
         let csv = "\uFEFF"; // UTF-8 BOM
         csv += "BẢNG KÊ TỌA ĐỘ RANH & DIỆN TÍCH MẶT BẰNG CÔNG TRÌNH\r\n";
         csv += "Tiêu đề bản vẽ;" + meta.drawingName + ";Tên dự án;" + meta.projectName + "\r\n";
-        csv += "Đơn vị đo vẽ;" + (meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI') + ";Người đo;" + (meta.surveyor || '') + ";Kiểm tra;" + (meta.checker || '') + "\r\n";
+        csv += "Người đo;" + (meta.surveyor || '') + "\r\n";
+        (meta.titleRows || []).forEach(r => { csv += (r.label || '') + ";" + String(r.value).replace(/[;\r\n]+/g, ' ') + "\r\n"; });
         csv += "Hệ tọa độ;VN-2000 (" + (AppState.provinceName || 'Tỉnh') + ");KTT;" + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°);Tỷ lệ;1:" + meta.scaleVal + "\r\n";
-        csv += "Ngày hoàn thành;" + meta.drawingDate + ";Số tờ/thửa;" + (meta.parcelNo || '01') + ";Tổng số khối;" + selectedShapes.length + "\r\n\r\n";
+        csv += "Ngày hoàn thành;" + meta.drawingDate + ";Tổng số khối;" + selectedShapes.length + "\r\n\r\n";
 
         // 1. PHẦN 1: BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ
         csv += "=== BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT ===\r\n";
@@ -34687,7 +34904,7 @@ const appCadTool = {
             // 1. Sheet 1: Bảng tổng hợp diện tích
             const summaryRows = [
                 ["BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT - " + (meta.drawingName || 'MẶT BẰNG CÔNG TRÌNH')],
-                ["Dự án: " + (meta.projectName || projName) + " | Đơn vị: " + (meta.organization || '') + " | Cán bộ đo: " + (meta.surveyor || '') + " | Hệ tọa độ: VN-2000 (" + (AppState.provinceName || '') + ") | KTT: " + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°) | Tỷ lệ: 1:" + meta.scaleVal + " | Ngày: " + meta.drawingDate],
+                ["Dự án: " + (meta.projectName || projName) + " | " + titleBlockLines(meta).items.concat(titleBlockLines(meta).org ? [titleBlockLines(meta).org] : []).join(" | ") + " | Cán bộ đo: " + (meta.surveyor || '') + " | Hệ tọa độ: VN-2000 (" + (AppState.provinceName || '') + ") | KTT: " + AppState.kttDeg + "°" + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + "°) | Tỷ lệ: 1:" + meta.scaleVal + " | Ngày: " + meta.drawingDate],
                 [],
                 ['STT', 'Tên Khối / Thửa', 'Loại Hình', 'Số Đỉnh', 'Diện Tích (m²)', 'Diện Tích (ha)', 'Chu Vi / Chiều Dài (m)', 'Tỉ Lệ (%)', 'Mã Màu', 'Ghi Chú']
             ];
@@ -34937,16 +35154,16 @@ const appCadTool = {
 '  <table class="meta-table">\r\n' +
 '    <tr>\r\n' +
 '      <td><b>Dự án:</b> ' + (meta.projectName || '') + '</td>\r\n' +
-'      <td><b>Đơn vị đo:</b> ' + (meta.organization || '') + '</td>\r\n' +
+'      <td><b>Đơn vị:</b> ' + escapeHtml(titleBlockLines(meta).org) + '</td>\r\n' +
 '      <td><b>Cán bộ đo:</b> ' + (meta.surveyor || '') + '</td>\r\n' +
 '    </tr>\r\n' +
 '    <tr>\r\n' +
 '      <td><b>Hệ tọa độ:</b> VN-2000 (' + (AppState.provinceName || 'Tỉnh') + ')</td>\r\n' +
 '      <td><b>KTT:</b> ' + AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "' (Múi " + (AppState.muiVal || 3) + '°)</td>\r\n' +
-'      <td><b>Kiểm tra:</b> ' + (meta.checker || '') + '</td>\r\n' +
+'      <td>' + escapeHtml(titleBlockLines(meta).infoA) + '</td>\r\n' +
 '    </tr>\r\n' +
 '    <tr>\r\n' +
-'      <td><b>Số tờ/thửa:</b> ' + (meta.parcelNo || '01') + '</td>\r\n' +
+'      <td>' + escapeHtml(titleBlockLines(meta).infoB) + '</td>\r\n' +
 '      <td><b>Tỷ lệ bản vẽ:</b> 1:' + meta.scaleVal + '</td>\r\n' +
 '      <td><b>Ngày hoàn thành:</b> ' + meta.drawingDate + '</td>\r\n' +
 '    </tr>\r\n' +
@@ -35304,13 +35521,7 @@ const appCadTool = {
         const paper = document.getElementById('cadExportPaperSize')?.value || 'A3';
         const drawingName = document.getElementById('cadExportDrawingName')?.value?.trim() || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT';
         const projectName = document.getElementById('cadExportProjectName')?.value?.trim() || AppState.currentProject.replace(/\.[^/.]+$/, "");
-        const organization = document.getElementById('cadExportOrganization')?.value?.trim() || '';
-        const owner = document.getElementById('cadExportOwner')?.value?.trim() || '';
-        const parcelNo = document.getElementById('cadExportParcelNo')?.value?.trim() || '';
-        const address = document.getElementById('cadExportAddress')?.value?.trim() || AppState.provinceName || '';
         const surveyor = document.getElementById('cadExportSurveyor')?.value?.trim() || '';
-        const checker = document.getElementById('cadExportChecker')?.value?.trim() || '';
-        const drawingCode = document.getElementById('cadExportDrawingCode')?.value?.trim() || 'SĐ-01/01';
         const drawingDate = document.getElementById('cadExportDate')?.value?.trim() || new Date().toLocaleDateString('vi-VN');
 
         const showPercent = document.getElementById('cadShowPercentRatio') ? document.getElementById('cadShowPercentRatio').checked : (this.showPercentRatio !== false);
@@ -35368,7 +35579,7 @@ const appCadTool = {
         // Lưu cấu hình vào localStorage để người dùng không phải nhập lại
         try {
             localStorage.setItem('vn2k_cad_meta_saved', JSON.stringify({
-                drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode,
+                drawingName, projectName, surveyor,
                 scaleVal: rawScaleVal, customScale: customScaleVal, paper, showPercent, showBlockInfo, customTotalArea,
                 showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries, basemap, overlays,
                 showGuland, gulandProvince, gulandOpacity, gulandLand, printPlanOverlay
@@ -35394,11 +35605,13 @@ const appCadTool = {
 
         return {
             scaleVal, rawScaleVal, customScale: customScaleVal, paper, paperW, paperH, paperLabel,
-            drawingName, projectName, organization, owner, parcelNo, address, surveyor, checker, drawingCode, drawingDate,
+            drawingName, projectName, surveyor, drawingDate,
             showPercent, showBlockInfo, customTotalArea,
             showPoints, showVertices, showLabels, showDistances, showCenterLabels, showAnnotations, showBoundaries,
             basemap, overlays, printPlanOverlay,
-            showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds
+            showGuland, gulandProvince, gulandOpacity, gulandLand, selectedPlanOverlayIds,
+            titleRows: appTitleRows.forMeta(),
+            summaryTables: ['area', 'points', 'both'].includes(document.getElementById('cadExportSummaryTables')?.value) ? document.getElementById('cadExportSummaryTables').value : 'area'
         };
     },
 
@@ -35472,6 +35685,7 @@ const appCadTool = {
             .replace(/[²]/g, '2')
             .replace(/[³]/g, '3')
             .replace(/[°]/g, ' deg')
+            .replace(/[·•]/g, '-')
             .replace(/[\r\n\t]/g, ' ')
             .replace(/[^\x20-\x7E]/g, '')
             .trim();
@@ -36234,7 +36448,9 @@ const appCadTool = {
         const colWPanel = L.W_panel;
         let curTableY = L.Yin1;
 
-        // --- 1. BẢNG TỔNG HỢP DIỆN TÍCH CÁC THỬA ĐẤT ---
+        // --- 1. BẢNG TỔNG HỢP DIỆN TÍCH CÁC THỬA ĐẤT (tùy chọn "Bảng in kèm bản vẽ") ---
+        const tblMode = summaryTablesMode(meta);
+        if (tblMode.area) {
         const sumRowH = 5.0 * S;
         const colWSum = [
             colWPanel * 0.10, // STT
@@ -36323,8 +36539,9 @@ const appCadTool = {
             svLineX += w;
             addLine("BANG_BIEU", svLineX, sumTopY, svLineX, sumBottomY);
         });
+        }
 
-        // --- 2. BẢNG KÊ TỌA ĐỘ RANH THỬA (TCVN 7285) ---
+        // --- 2. BẢNG TỔNG HỢP CÁC ĐIỂM / TỌA ĐỘ RANH THỬA (TCVN 7285) ---
         curTableY -= 4.0 * S;
         const colWCoord = [
             colWPanel * 0.10, // STT
@@ -36336,9 +36553,9 @@ const appCadTool = {
         ];
         const coordRowH = 4.2 * S;
 
-        if (curTableY > L.YtitleTop + 20 * S) {
+        if (tblMode.points && curTableY > L.YtitleTop + 20 * S) {
             addLine("BANG_BIEU", L.Xpanel0, curTableY, L.Xin1, curTableY);
-            addText("TEXT_CHINH", L.Xpanel0 + colWPanel / 2 - 24 * S, curTableY - 3.8 * S, 2.2 * S, "BANG KE TOA DO RANH THUA");
+            addText("TEXT_CHINH", L.Xpanel0 + colWPanel / 2 - 24 * S, curTableY - 3.8 * S, 2.2 * S, "BANG TONG HOP CAC DIEM");
             curTableY -= 5.0 * S;
             addLine("BANG_BIEU", L.Xpanel0, curTableY, L.Xin1, curTableY);
 
@@ -36395,7 +36612,11 @@ const appCadTool = {
 
         const yRow1 = tY_top - 8.5 * S;
         addLine("KHUNG_TEN", tX0, yRow1, tX1, yRow1);
-        addText("KHUNG_TEN", tX0 + 2.0 * S, tY_top - 5.8 * S, 2.4 * S, this.toCadAscii(meta.organization || 'TRUNG TAM KHAO SAT & DO DAC DIA CHINH').toUpperCase());
+        const tbl = titleBlockLines(meta);
+        // Chữ dài thì hạ cỡ cho vừa ô (DXF không tự co chữ)
+        const fitH = (str, h, width) => Math.min(h, width / Math.max(1, String(str).length * 0.62));
+        const tbWidth = tX1 - tX0 - 4.0 * S;
+        if (tbl.org) addText("KHUNG_TEN", tX0 + 2.0 * S, tY_top - 5.8 * S, fitH(tbl.org, 2.4 * S, tbWidth), this.toCadAscii(tbl.org));
 
         const yRow2 = yRow1 - 9.5 * S;
         addLine("KHUNG_TEN", tX0, yRow2, tX1, yRow2);
@@ -36403,17 +36624,17 @@ const appCadTool = {
 
         const yRow3 = yRow2 - 6.0 * S;
         addLine("KHUNG_TEN", tX0, yRow3, tX1, yRow3);
-        addText("KHUNG_TEN", tX0 + 2.0 * S, yRow2 - 4.2 * S, 2.0 * S, `DU AN: ${this.toCadAscii(meta.projectName || '').toUpperCase()}`);
+        addText("KHUNG_TEN", tX0 + 2.0 * S, yRow2 - 4.2 * S, fitH(tbl.proj, 2.0 * S, tbWidth), this.toCadAscii(tbl.proj));
 
         const midColX = tX0 + colWPanel * 0.52;
         addLine("KHUNG_TEN", midColX, yRow3, midColX, tY0);
 
         addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 3.2 * S, 1.6 * S, `He VN2k: ${this.toCadAscii(AppState.provinceName || 'Tinh')} KTT:${AppState.kttDeg}`);
         addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 6.8 * S, 1.6 * S, `Nguoi do: ${this.toCadAscii(meta.surveyor || '').toUpperCase()}`);
-        addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 10.2 * S, 1.6 * S, `Kiem tra: ${this.toCadAscii(meta.checker || '').toUpperCase()}`);
+        if (tbl.infoA) addText("KHUNG_TEN", tX0 + 1.8 * S, yRow3 - 10.2 * S, fitH(tbl.infoA, 1.6 * S, midColX - tX0 - 3.6 * S), this.toCadAscii(tbl.infoA));
 
         addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 3.2 * S, 1.6 * S, `Ty le: 1:${L.scaleVal}`);
-        addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 6.8 * S, 1.6 * S, `So to/thua: ${this.toCadAscii(meta.parcelNo || '01')}`);
+        if (tbl.infoB) addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 6.8 * S, fitH(tbl.infoB, 1.6 * S, tX1 - midColX - 3.6 * S), this.toCadAscii(tbl.infoB));
         addText("KHUNG_TEN", midColX + 1.8 * S, yRow3 - 10.2 * S, 1.6 * S, `Ngay lap: ${this.toCadAscii(meta.drawingDate)}`);
 
         dwg += "0\r\nENDSEC\r\n";
@@ -36972,9 +37193,11 @@ const appCadTool = {
         const pX = toCvX(L.Xpanel0);
         const pW = toCvDist(L.W_panel);
 
-        // --- Bảng tổng hợp diện tích (ĐÃ BỎ CỘT LOẠI & CHU VI) ---
+        // --- Bảng in kèm: tổng hợp diện tích và/hoặc tổng hợp các điểm (tùy chọn "Bảng in kèm bản vẽ") ---
         let curY = toCvY(L.Yin1);
         const sumRowH_px = Math.round(5.2 * pxPerMm);
+        const tblMode = summaryTablesMode(meta);
+        if (tblMode.area) {
 
         ctx.fillStyle = '#0284c7';
         ctx.fillRect(pX, curY, pW, Math.round(6.5 * pxPerMm));
@@ -37104,6 +37327,53 @@ const appCadTool = {
             tx += colW_px[cIdx];
         });
         curY += sumRowH_px + Math.round(5.0 * pxPerMm);
+        }
+
+        // --- Bảng tổng hợp các điểm (tọa độ mốc, đỉnh chung chỉ một dòng) ---
+        if (tblMode.points) {
+            const ptRows = exportPointRows(selectedShapes);
+            const bottomLimit = toCvY(L.Yin0) - Math.round(38.0 * pxPerMm) - Math.round(3 * pxPerMm);
+            const rowH = Math.round(4.4 * pxPerMm);
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(pX, curY, pW, Math.round(6.5 * pxPerMm));
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.round(2.5 * pxPerMm)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText("BẢNG TỔNG HỢP CÁC ĐIỂM", pX + pW / 2, curY + Math.round(4.4 * pxPerMm));
+            ctx.textAlign = 'left';
+            curY += Math.round(6.5 * pxPerMm);
+            const pc = [0.11, 0.25, 0.32, 0.32].map(f => Math.round(f * pW));
+            const cell = (vals, bold, fill) => {
+                ctx.fillStyle = fill;
+                ctx.fillRect(pX, curY, pW, rowH);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = Math.round(0.2 * pxPerMm);
+                ctx.strokeRect(pX, curY, pW, rowH);
+                ctx.fillStyle = '#0f172a';
+                ctx.font = `${bold ? 'bold ' : ''}${Math.round(1.8 * pxPerMm)}px Arial`;
+                let cx = pX;
+                vals.forEach((v, i) => {
+                    fillTextFit(ctx, String(v), cx + Math.round(1.2 * pxPerMm), curY + Math.round(3.0 * pxPerMm), pc[i] - Math.round(2 * pxPerMm));
+                    cx += pc[i];
+                    if (i < vals.length - 1) { ctx.beginPath(); ctx.moveTo(cx, curY); ctx.lineTo(cx, curY + rowH); ctx.stroke(); }
+                });
+                curY += rowH;
+            };
+            cell(['STT', 'Tên điểm', 'X (m)', 'Y (m)'], true, '#f1f5f9');
+            const room = Math.max(1, Math.floor((bottomLimit - curY) / rowH));
+            const shown = ptRows.length > room ? ptRows.slice(0, room - 1) : ptRows;
+            shown.forEach((r, i) => cell([r.stt, r.name, r.x.toFixed(3), r.y.toFixed(3)], false, i % 2 ? '#f8fafc' : '#ffffff'));
+            if (shown.length < ptRows.length) {
+                ctx.fillStyle = '#fef9c3';
+                ctx.fillRect(pX, curY, pW, rowH);
+                ctx.strokeRect(pX, curY, pW, rowH);
+                ctx.fillStyle = '#854d0e';
+                ctx.font = `italic ${Math.round(1.8 * pxPerMm)}px Arial`;
+                fillTextFit(ctx, `… còn ${ptRows.length - shown.length} điểm — xem đủ trong Bảng kê chi tiết (CSV / Excel)`, pX + Math.round(1.2 * pxPerMm), curY + Math.round(3.0 * pxPerMm), pW - Math.round(2.4 * pxPerMm));
+                curY += rowH;
+            }
+            curY += Math.round(3 * pxPerMm);
+        }
 
         // --- KHUNG TÊN BẢN VẼ TCVN Ở GÓC DƯỚI BÊN PHẢI ---
         const tBoxH_px = Math.round(38.0 * pxPerMm);
@@ -37120,7 +37390,9 @@ const appCadTool = {
         ctx.strokeRect(pX, tBoxY_px, pW, h1);
         ctx.fillStyle = '#0f172a';
         ctx.font = `bold ${Math.round(2.8 * pxPerMm)}px Arial`;
-        ctx.fillText((meta.organization || 'TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH').toUpperCase(), pX + Math.round(3 * pxPerMm), tBoxY_px + Math.round(6 * pxPerMm));
+        const tbl = titleBlockLines(meta);
+        const tbMaxW = pW - Math.round(6 * pxPerMm);
+        fillTextFit(ctx, tbl.org, pX + Math.round(3 * pxPerMm), tBoxY_px + Math.round(6 * pxPerMm), tbMaxW);
 
         // Hàng 2: Tên bản vẽ
         const h2 = Math.round(10.5 * pxPerMm);
@@ -37134,7 +37406,7 @@ const appCadTool = {
         ctx.strokeRect(pX, tBoxY_px + h1 + h2, pW, h3);
         ctx.fillStyle = '#1e293b';
         ctx.font = `${Math.round(2.3 * pxPerMm)}px Arial`;
-        ctx.fillText(`DỰ ÁN: ${(meta.projectName || '').toUpperCase()}`, pX + Math.round(3 * pxPerMm), tBoxY_px + h1 + h2 + Math.round(5 * pxPerMm));
+        fillTextFit(ctx, tbl.proj, pX + Math.round(3 * pxPerMm), tBoxY_px + h1 + h2 + Math.round(5 * pxPerMm), tbMaxW);
 
         // Hàng 4: 2 Cột chi tiết
         const h4 = tBoxH_px - h1 - h2 - h3;
@@ -37147,10 +37419,10 @@ const appCadTool = {
         const startY4 = tBoxY_px + h1 + h2 + h3;
         ctx.fillText(`Hệ VN-2000 (${AppState.provinceName || 'Tỉnh'}) - KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}'`, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(3.0 * pxPerMm));
         ctx.fillText(`Người đo: ${(meta.surveyor || '').toUpperCase()}`, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(6.2 * pxPerMm));
-        ctx.fillText(`Kiểm tra: ${(meta.checker || '').toUpperCase()}`, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(9.4 * pxPerMm));
+        fillTextFit(ctx, tbl.infoA, pX + Math.round(2.5 * pxPerMm), startY4 + Math.round(9.4 * pxPerMm), midW - Math.round(4 * pxPerMm));
 
         ctx.fillText(`Tỷ lệ: 1:${L.scaleVal}`, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(3.0 * pxPerMm));
-        ctx.fillText(`Số tờ/thửa: ${meta.parcelNo || '01'}`, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(6.2 * pxPerMm));
+        fillTextFit(ctx, tbl.infoB, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(6.2 * pxPerMm), pW - midW - Math.round(4 * pxPerMm));
         ctx.fillText(`Ngày lập: ${meta.drawingDate}`, pX + midW + Math.round(2.5 * pxPerMm), startY4 + Math.round(9.4 * pxPerMm));
 
         // 9. Tạo tệp PDF bằng jsPDF
@@ -37273,11 +37545,18 @@ const appCadTool = {
             return { shape: s, displayName, lines, rowH };
         });
         const summaryTableH = 26 + svgRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+        // Bảng in kèm: diện tích và/hoặc các điểm
+        const tblMode = summaryTablesMode(meta);
+        const ptRows = tblMode.points ? exportPointRows(selectedShapes) : [];
+        const ptCols = ptRows.length > 16 ? 2 : 1;
+        const ptPerCol = Math.ceil(ptRows.length / ptCols);
+        const ptsTableH = tblMode.points ? 26 + ptPerCol * 24 : 0;
+        const tablesH = (tblMode.area ? summaryTableH : 0) + ptsTableH + (tblMode.area && tblMode.points ? 44 : 0);
 
         // Kích thước SVG khổ lớn độ nét cao 1200px đồng bộ chất lượng với PNG
         const svgW = 1200;
         const mapH = Math.max(550, Math.min(1300, Math.round(1000 * spanY / spanX)));
-        const svgH = mapH + 260 + summaryTableH;
+        const svgH = mapH + 260 + tablesH;
         const pad = 80;
         const sc = Math.min((svgW - pad*2) / spanX, (mapH - pad*2) / spanY);
 
@@ -37530,6 +37809,7 @@ const appCadTool = {
         const colX_Pct = 1010;
         const tableRight = svgW - 30;
 
+        if (tblMode.area) {
         svgContent += `  <!-- BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT -->
   <text x="35" y="${tblY - 8}" font-size="13" font-weight="bold" fill="#0D47A1">BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT (TCVN)</text>
   <rect class="layer-bang-ke" x="30" y="${tblY}" width="${svgW - 60}" height="${summaryTableH}" fill="#ffffff"/>
@@ -37587,6 +37867,31 @@ const appCadTool = {
   <text class="layer-bang-ke-text" x="${colX_AreaHa + 15}" y="${curY - 8}" font-weight="bold" fill="#1B5E20">${(measuredTotalArea/10000).toFixed(4)}</text>
   ${showPercent ? `<text class="layer-bang-ke-text" x="${colX_Pct + 15}" y="${curY - 8}" font-weight="bold" fill="#E65100">${totalPctStr}</text>` : ''}
 `;
+        }
+
+        // BẢNG TỔNG HỢP CÁC ĐIỂM (mỗi mốc một dòng; nhiều điểm thì chia 2 cột)
+        if (tblMode.points) {
+            const pY = tblY + (tblMode.area ? summaryTableH + 44 : 0);
+            const groupW = (svgW - 60) / ptCols;
+            svgContent += `  <!-- BẢNG TỔNG HỢP CÁC ĐIỂM -->
+  <text x="35" y="${pY - 8}" font-size="13" font-weight="bold" fill="#0D47A1">BẢNG TỔNG HỢP CÁC ĐIỂM (${ptRows.length} điểm)</text>
+  <rect class="layer-bang-ke" x="30" y="${pY}" width="${svgW - 60}" height="${ptsTableH}" fill="#ffffff"/>
+  <rect x="30" y="${pY}" width="${svgW - 60}" height="26" fill="#E3F2FD"/>\r\n`;
+            for (let g = 0; g < ptCols; g++) {
+                const gx = 30 + g * groupW;
+                const cx = [gx, gx + groupW * 0.12, gx + groupW * 0.40, gx + groupW * 0.70];
+                if (g > 0) svgContent += `  <line class="layer-bang-ke" x1="${gx}" y1="${pY}" x2="${gx}" y2="${pY + ptsTableH}" stroke-width="1.5"/>\r\n`;
+                cx.slice(1).forEach(x => { svgContent += `  <line class="layer-bang-ke" x1="${x.toFixed(1)}" y1="${pY}" x2="${x.toFixed(1)}" y2="${pY + ptsTableH}"/>\r\n`; });
+                ['STT', 'Tên điểm', 'X (m)', 'Y (m)'].forEach((h, i) => { svgContent += `  <text class="layer-bang-ke-text" x="${(cx[i] + 10).toFixed(1)}" y="${pY + 18}" font-weight="bold" fill="#0D47A1">${h}</text>\r\n`; });
+                ptRows.slice(g * ptPerCol, (g + 1) * ptPerCol).forEach((r, i) => {
+                    const ry = pY + 26 + i * 24;
+                    svgContent += `  <line class="layer-bang-ke" x1="${gx}" y1="${ry + 24}" x2="${gx + groupW}" y2="${ry + 24}"/>\r\n`;
+                    [r.stt, escapeHtml(r.name), r.x.toFixed(3), r.y.toFixed(3)].forEach((v, i2) => {
+                        svgContent += `  <text class="layer-bang-ke-text" x="${(cx[i2] + 10).toFixed(1)}" y="${ry + 17}"${i2 === 1 ? ' font-weight="bold"' : ''}>${v}</text>\r\n`;
+                    });
+                });
+            }
+        }
 
         // Khung tên dưới cùng chuẩn TCVN 7285
         const khy = svgH - 180;
@@ -37596,17 +37901,17 @@ const appCadTool = {
   <line class="layer-khung-ten" x1="30" y1="${khy+70}" x2="${svgW-30}" y2="${khy+70}"/>
   <line class="layer-khung-ten" x1="${(svgW-60)*0.55+30}" y1="${khy+70}" x2="${(svgW-60)*0.55+30}" y2="${khy+150}"/>
 
-  <text class="layer-khung-ten-text" x="45" y="${khy+20}" font-weight="bold">${(meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+20}" font-weight="bold"${svgFit(titleBlockLines(meta).org, 13, svgW - 90)}>${escapeHtml(titleBlockLines(meta).org)}</text>
   <text class="layer-khung-ten-text" x="45" y="${khy+50}" font-weight="bold" font-size="14">${(meta.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT').toUpperCase()}</text>
-  <text class="layer-khung-ten-text" x="45" y="${khy+65}" font-size="10.5">DỰ ÁN: ${(meta.projectName || '').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+65}" font-size="10.5"${svgFit(titleBlockLines(meta).proj, 10.5, svgW - 90)}>${escapeHtml(titleBlockLines(meta).proj)}</text>
 
   <text class="layer-khung-ten-text" x="45" y="${khy+90}" font-size="10.5">Hệ tọa độ: VN-2000 (${AppState.provinceName || 'Tỉnh'})</text>
   <text class="layer-khung-ten-text" x="45" y="${khy+106}" font-size="10.5">KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)</text>
   <text class="layer-khung-ten-text" x="45" y="${khy+122}" font-size="10.5">Người đo: ${(meta.surveyor || '').toUpperCase()}</text>
-  <text class="layer-khung-ten-text" x="45" y="${khy+138}" font-size="10.5">Kiểm tra: ${(meta.checker || '').toUpperCase()}</text>
+  <text class="layer-khung-ten-text" x="45" y="${khy+138}" font-size="10.5"${svgFit(titleBlockLines(meta).infoA, 10.5, (svgW-60)*0.55 - 30)}>${escapeHtml(titleBlockLines(meta).infoA)}</text>
 
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+90}" font-size="10.5">Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}</text>
-  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+106}" font-size="10.5">Số tờ/thửa: ${meta.parcelNo || '01'}</text>
+  <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+106}" font-size="10.5"${svgFit(titleBlockLines(meta).infoB, 10.5, (svgW-60)*0.45 - 30)}>${escapeHtml(titleBlockLines(meta).infoB)}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+122}" font-size="10.5">Ngày: ${meta.drawingDate}</text>
   <text class="layer-khung-ten-text" x="${(svgW-60)*0.55+45}" y="${khy+138}" font-size="10.5">Số đối tượng: ${selectedShapes.length}</text>
 </svg>`;
@@ -37690,7 +37995,14 @@ const appCadTool = {
             const rowH = Math.max(26, 8 + lines.length * 15);
             return { shape: s, displayName, lines, rowH };
         });
-        const summaryTableH = 26 + pngRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+        const areaTableH = 26 + pngRowInfos.reduce((sum, r) => sum + r.rowH, 0) + 26;
+        // Bảng in kèm: diện tích và/hoặc các điểm — summaryTableH là tổng chiều cao vùng bảng
+        const tblMode = summaryTablesMode(meta);
+        const ptRows = tblMode.points ? exportPointRows(selectedShapes) : [];
+        const ptCols = ptRows.length > 16 ? 2 : 1;
+        const ptPerCol = Math.ceil(ptRows.length / ptCols);
+        const ptsTableH = tblMode.points ? 26 + ptPerCol * 24 : 0;
+        const summaryTableH = (tblMode.area ? areaTableH : 0) + ptsTableH + (tblMode.area && tblMode.points ? 44 : 0);
 
         const W = 1200;
         const mapH = Math.max(Math.round(W * spanY / spanX), 450);
@@ -37833,12 +38145,13 @@ const appCadTool = {
 
         // BẢNG TỔNG HỢP CÁC KHỐI ĐƯỢC VẼ (ĐẶT TRÊN KHUNG TÊN - ĐÃ BỎ CỘT LOẠI & CHU VI)
         const tblY = H - 240 - summaryTableH;
+        if (tblMode.area) {
         ctx.fillStyle = '#0D47A1';
         ctx.font = 'bold 13px Arial';
         ctx.fillText('BẢNG TỔNG HỢP DIỆN TÍCH CÁC KHỐI / THỬA ĐẤT (TCVN)', 35, tblY - 8);
 
         ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-        ctx.strokeRect(30, tblY, W - 60, summaryTableH);
+        ctx.strokeRect(30, tblY, W - 60, areaTableH);
 
         // Header (Bỏ cột Loại và Chu vi)
         ctx.fillStyle = '#E3F2FD';
@@ -37898,6 +38211,40 @@ const appCadTool = {
             const totalPctStr = (baseProjectArea > 0) ? ((measuredTotalArea / baseProjectArea) * 100.0).toFixed(2) + '%' : '100.00%';
             ctx.fillText(totalPctStr, 1010, rowY - 8);
         }
+        }
+
+        // BẢNG TỔNG HỢP CÁC ĐIỂM (mỗi mốc một dòng; nhiều điểm thì chia 2 cột)
+        if (tblMode.points) {
+            const pY = tblY + (tblMode.area ? areaTableH + 44 : 0);
+            const groupW = (W - 60) / ptCols;
+            ctx.fillStyle = '#0D47A1';
+            ctx.font = 'bold 13px Arial';
+            ctx.fillText(`BẢNG TỔNG HỢP CÁC ĐIỂM (${ptRows.length} điểm)`, 35, pY - 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(30, pY, W - 60, ptsTableH);
+            ctx.fillStyle = '#E3F2FD';
+            ctx.fillRect(30, pY, W - 60, 26);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            ctx.strokeRect(30, pY, W - 60, ptsTableH);
+            for (let g = 0; g < ptCols; g++) {
+                const gx = 30 + g * groupW;
+                const cx = [gx, gx + groupW * 0.12, gx + groupW * 0.40, gx + groupW * 0.70];
+                ctx.lineWidth = g > 0 ? 1.5 : 1;
+                [g > 0 ? gx : null, ...cx.slice(1)].filter(x => x != null).forEach(x => { ctx.beginPath(); ctx.moveTo(x, pY); ctx.lineTo(x, pY + ptsTableH); ctx.stroke(); });
+                ctx.lineWidth = 1;
+                ctx.fillStyle = '#0D47A1'; ctx.font = 'bold 11.5px Arial';
+                ['STT', 'Tên điểm', 'X (m)', 'Y (m)'].forEach((h, i) => ctx.fillText(h, cx[i] + 10, pY + 18));
+                ptRows.slice(g * ptPerCol, (g + 1) * ptPerCol).forEach((r, i) => {
+                    const ry = pY + 26 + i * 24;
+                    ctx.beginPath(); ctx.moveTo(gx, ry + 24); ctx.lineTo(gx + groupW, ry + 24); ctx.stroke();
+                    ctx.fillStyle = '#333';
+                    [String(r.stt), r.name, r.x.toFixed(3), r.y.toFixed(3)].forEach((v, i2) => {
+                        ctx.font = (i2 === 1 ? 'bold ' : '') + '11.5px Arial';
+                        fillTextFit(ctx, v, cx[i2] + 10, ry + 17, (i2 < 3 ? cx[i2 + 1] : gx + groupW) - cx[i2] - 16);
+                    });
+                });
+            }
+        }
 
         // Khung tên dưới cùng
         const khy = H - 230;
@@ -37912,21 +38259,22 @@ const appCadTool = {
 
         ctx.fillStyle = '#000';
         ctx.font = 'bold 16px Arial';
-        ctx.fillText((meta.organization || 'TRUNG TÂM QUẢN LÝ ĐẤT ĐAI').toUpperCase(), 45, khy + 26);
+        const tbl = titleBlockLines(meta);
+        fillTextFit(ctx, tbl.org, 45, khy + 26, W - 90);
         ctx.font = 'bold 18px Arial';
         ctx.fillText((meta.drawingName || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT').toUpperCase(), 45, khy + 65);
         ctx.font = '13px Arial';
-        ctx.fillText(`DỰ ÁN: ${(meta.projectName || '').toUpperCase()}`, 45, khy + 83);
+        fillTextFit(ctx, tbl.proj, 45, khy + 83, W - 90);
 
         const lY = khy + 115;
         ctx.font = '12px Arial';
         ctx.fillText(`Hệ tọa độ: VN-2000 (${AppState.provinceName || 'Tỉnh'})`, 45, lY);
         ctx.fillText(`KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (Múi ${AppState.muiVal || 3}°)`, 45, lY + 24);
         ctx.fillText(`Người đo: ${(meta.surveyor || '').toUpperCase()}`, 45, lY + 48);
-        ctx.fillText(`Kiểm tra: ${(meta.checker || '').toUpperCase()}`, 45, lY + 72);
+        fillTextFit(ctx, tbl.infoA, 45, lY + 72, midX - 60);
 
         ctx.fillText(`Tỷ lệ: ${meta.scaleVal ? '1:' + meta.scaleVal : 'vừa khung (không cố định)'}`, midX + 20, lY);
-        ctx.fillText(`Số tờ/thửa: ${meta.parcelNo || '01'}`, midX + 20, lY + 24);
+        fillTextFit(ctx, tbl.infoB, midX + 20, lY + 24, W - 30 - midX - 30);
         ctx.fillText(`Ngày: ${meta.drawingDate}`, midX + 20, lY + 48);
         ctx.fillText(`Số đối tượng: ${selectedShapes.length}`, midX + 20, lY + 72);
 
@@ -46408,6 +46756,11 @@ if (typeof module !== 'undefined' && module.exports) {
         exportTileTransform,
         drawExportBasemap,
         drawExportVector,
+        shareTitleBlock,
+        titleBlockLines,
+        appTitleRows,
+        exportPointRows,
+        summaryTablesMode,
         exportMapSource,
         exportLayerCatalog,
         exportFrameLatLngBox,
