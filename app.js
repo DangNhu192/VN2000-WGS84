@@ -640,6 +640,7 @@ function loadExportBasemap(plan, opts = {}) {
         const timer = setTimeout(() => finish(false), timeoutMs);
         img.crossOrigin = 'anonymous';
         img.onload = () => finish(true);
+        let triedBust = false;
         img.onerror = () => {
             if (!triedFallback && t.fallbackUrl) {
                 triedFallback = true;
@@ -648,6 +649,14 @@ function loadExportBasemap(plan, opts = {}) {
                     img.src = nextUrl;
                     return;
                 }
+            }
+            // Thử lại một lần với địa chỉ khác đi một chút: né bản lưu cũ của trình duyệt / service worker
+            // (ô đã lưu khi bản đồ nạp không kèm CORS thì không vẽ được lên ảnh xuất) và lỗi mạng thoáng qua.
+            if (!triedBust) {
+                triedBust = true;
+                const base = img.src || wrapTileProxyUrl(t.url);
+                img.src = base + (base.includes('?') ? '&' : '?') + '_vn2k=export';
+                return;
             }
             finish(false);
         };

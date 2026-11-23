@@ -1,5 +1,13 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-23: WP-SW-FIX — SERVICE WORKER KẸT BẢN CŨ + TẢI Ô ẢNH KHI XUẤT (v2.8.53)
+- **Báo lỗi**: "còn lỗi tải ảnh bản đồ; chưa chọn được các lớp bản đồ cần xuất trong MiniCAD".
+- **Kiểm trên trang thật** (vn2000-wgs84-three.vercel.app, trình duyệt thật): trang đang chạy v2.8.47 (PR #15 chưa gộp) nên hộp xuất MiniCAD chỉ có 3 nền. Phát hiện `sw.js` lỗi cú pháp `url.hostname.includes('opentopomap.org') ||;` từ commit 42cb9e4 (20/11): `reg.update()` báo "ServiceWorker script evaluation failed" → mọi máy kẹt ở service worker cũ (bộ nhớ đệm `vn2000-pro-v2.8.40`), không bao giờ hiện "Cập nhật".
+- **Đã sửa**: (1) `sw.js` biên dịch được; thêm `eox.at` (Sentinel-2) vào nhóm ô bản đồ; ô lưu dạng opaque không trả cho yêu cầu CORS của bộ xuất. (2) `loadExportBasemap`: ô lỗi thử lại một lần với `?_vn2k=export` (né bản lưu cũ / lỗi mạng thoáng qua) trước khi bỏ. (3) Test `tests/js_syntax_all.test.js`: mọi tệp .js của ứng dụng (kể cả sw.js) phải biên dịch được. **573/573 PASS**.
+- **Cần làm**: gộp PR #15 để lên bản chính; sau đó trên điện thoại mở app 1–2 lần, bấm "Cập nhật" khi có thông báo (service worker mới chờ người dùng xác nhận).
+
+---
+
 ## Phiên hiện tại — 2026-11-23: WP-CLEANUP — DỌN MÃ DƯ THỪA (v2.8.52)
 - **Yêu cầu**: cập nhật toàn bộ app, làm sạch mã dư thừa, đẩy lên GitHub.
 - **Cách tìm**: phân tích cú pháp (acorn) app.js + các tệp JS: phương thức của object cấp cao và hàm cấp cao mà tên không xuất hiện ở đâu khác (JS, HTML, CSS, chuỗi onclick); không có gọi động `obj[tên]`. Lặp đến khi không còn mã chết dây chuyền.
