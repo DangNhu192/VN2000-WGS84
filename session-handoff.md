@@ -1,5 +1,12 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-23: WP-TITLE-BLOCK — THÔNG TIN KHUNG TÊN TRONG TỆP XUẤT (v2.8.54)
+- **Yêu cầu**: cho phép điều chỉnh "TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH" và các thông tin khác trong tệp xuất.
+- **Tìm thấy**: khi ô Đơn vị để trống, PDF MiniCAD tự in "TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH", SVG/ảnh/CSV in "TRUNG TÂM QUẢN LÝ ĐẤT ĐAI", hộp Xuất dữ liệu tự điền "Trung tâm Trắc địa Bản đồ"; báo cáo PDF / ảnh / DXF của Xuất dữ liệu bỏ qua đơn vị, chủ sử dụng, địa chỉ, số tờ/thửa, mã hồ sơ, người kiểm tra, ghi chú; MiniCAD không in chủ sử dụng, địa chỉ, mã bản vẽ; hai hộp lưu riêng.
+- **Đã làm**: `shareTitleBlock` (lưu ở hộp nào hộp kia nhận), `titleBlockLines` (chỉ in mục có nhập), `fillTextFit`/`svgFit` (chữ dài co vừa ô); bỏ mọi tên đơn vị gán cứng; MiniCAD PDF/SVG/ảnh/DXF in thêm chủ SD, địa chỉ, mã BV; Xuất dữ liệu: báo cáo PDF (đơn vị ở góc trái, dòng thông tin thêm, người kiểm tra ở chữ ký), ảnh PNG (tiêu đề, đơn vị, dòng cuối), DXF (khung tên đủ dòng, chữ không dấu); lưu thông tin khi bấm Xuất. Test `tests/export_title_block.test.js`; **576/576 PASS**. Kiểm trong trình duyệt: nhập ở Xuất dữ liệu → Studio MiniCAD nhận đủ; PDF, ảnh, DXF in đúng.
+
+---
+
 ## Phiên hiện tại — 2026-11-23: WP-SW-FIX — SERVICE WORKER KẸT BẢN CŨ + TẢI Ô ẢNH KHI XUẤT (v2.8.53)
 - **Báo lỗi**: "còn lỗi tải ảnh bản đồ; chưa chọn được các lớp bản đồ cần xuất trong MiniCAD".
 - **Kiểm trên trang thật** (vn2000-wgs84-three.vercel.app, trình duyệt thật): trang đang chạy v2.8.47 (PR #15 chưa gộp) nên hộp xuất MiniCAD chỉ có 3 nền. Phát hiện `sw.js` lỗi cú pháp `url.hostname.includes('opentopomap.org') ||;` từ commit 42cb9e4 (20/11): `reg.update()` báo "ServiceWorker script evaluation failed" → mọi máy kẹt ở service worker cũ (bộ nhớ đệm `vn2000-pro-v2.8.40`), không bao giờ hiện "Cập nhật".
