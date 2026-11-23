@@ -62,6 +62,6 @@ test('hai hộp xuất dùng chung khung nhập dòng; mọi bộ xuất in theo
     ['txtExportOrg', 'txtExportOwner', 'cadExportOrganization', 'cadExportChecker'].forEach(id => assert.ok(!html.includes(`id="${id}"`), `bỏ ô cố định ${id}`));
     assert.ok(app.includes("appTitleRows.render('exportTitleRowsBox')") && app.includes("appTitleRows.render('cadTitleRowsBox')"));
     assert.equal((app.match(/titleRows: appTitleRows\.forMeta\(\)/g) || []).length, 2);
-    assert.ok((app.match(/tbl\.infoA/g) || []).length >= 4, 'PDF, ảnh, DXF MiniCAD + DXF Xuất dữ liệu');
-    assert.ok(app.includes('${extraRows}'), 'báo cáo PDF của Xuất dữ liệu');
+    assert.ok((app.match(/tbl\.infoA/g) || []).length >= 2, 'bộ vẽ khổ giấy dùng chung (PDF / PNG / SVG / ảnh) + DXF');
+    assert.ok(app.includes('titleRows: o.meta.titleRows'), 'Xuất dữ liệu đưa các dòng khung tên vào bộ vẽ chung');
 });

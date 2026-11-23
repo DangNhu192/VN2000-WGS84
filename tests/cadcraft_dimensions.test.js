@@ -83,7 +83,7 @@ console.log('\n--- NHÓM 2: HANDLEMARKUPCLICK / PREVIEW / RENDER / MODAL / 3 B�
     assert(/this\.newAnnotationId\(\)/.test(appJs) && !/'ann_' \+ Date\.now\(\),/.test(appJs), 'ID chú thích sinh tuần tự, tránh trùng khi ghi nhiều kích thước liên tiếp');
     assert(/addText\("KICH_THUOC", tx\.y, tx\.x, 1\.8 \* S, this\.dimLabelText\(ann, g, true\), rot\)/.test(appJs), 'DXF ghi nhãn bằng TEXT (X = Đông, Y = Bắc)');
     assert(/ctx\.fillText\(this\.dimLabelText\(ann, g, false\), 0, 0\)/.test(appJs), 'Canvas PDF/PNG vẽ nhãn xoay theo đường kích');
-    assert(/transform="rotate\(' \+ sRot\.toFixed\(2\)/.test(appJs), 'SVG dùng <text transform="rotate(...)"> cho nhãn');
+    assert(/exportSvg\(opts = \{\}\) \{\s*return this\.exportPdf\(Object\.assign\(\{\}, opts, \{ target: 'svg' \}\)\);/.test(appJs), 'SVG dùng chung bộ vẽ khổ giấy với PDF/PNG (nhãn kích thước xoay giống hệt)');
     assert(/case 'dim_linear':\s*\n\s*case 'dim_angle': \{/.test(appJs), 'openAnnotationModal + saveAnnotationEdit xử lý dim');
 }
 

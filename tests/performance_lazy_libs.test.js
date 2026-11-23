@@ -49,7 +49,8 @@ test('mọi chỗ dùng Excel / PDF / ranh giới đều chờ thư viện', () 
         "if (isExcel && needLib('xlsx', () => this.handleFileImport(event))) return;",
         "needLib('xlsx', () => this.importExcel(event))",
         "if (format === 'xlsx' && needLib('xlsx', () => this.exportAreaExcel(format))) return;",
-        "if (needLib('jspdf', () => this.exportPdf())) return;",
+        "if (target === 'pdf' && needLib('jspdf', () => this.exportPdf(opts))) return;",
+        "if (target === 'svg' && needLib('svgcanvas', () => this.exportPdf(opts))) return;",
         "loadLib('prov34').then(", "loadLib('dongthap').then("]) {
         assert.ok(app.includes(s), s);
     }

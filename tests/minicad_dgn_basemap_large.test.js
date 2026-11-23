@@ -161,8 +161,10 @@ test('hộp thoại xuất có lựa chọn nền; PDF và PNG tải nền trư�
     const sel = html.match(/<select id="cadExportBasemap"[\s\S]*?<\/select>/)[0];
     for (const v of ['none', 'street', 'satellite']) assert.match(sel, new RegExp(`value="${v}"`));
     assert.match(app, /exportPdf\(opts = \{\}\)/);
-    assert.match(app, /bm => this\.exportPdf\(\{ basemap: bm \}\)/);
-    assert.match(app, /bm => this\.exportOptimizedImage\(Object\.assign\(\{\}, customOpts, \{ basemap: bm \}\)\)/);
+    // lớp đã tải chỉ dùng cho LẦN XUẤT NÀY, giữ nguyên định dạng đích (không lưu lại giữa các lần xuất)
+    assert.match(app, /bm => this\.exportPdf\(Object\.assign\(\{\}, opts, \{ basemap: bm \|\| \{ none: true \} \}\)\)/);
+    assert.ok(!app.includes('_lastExportPdfOpts'), 'không còn nhớ lớp bản đồ của lần xuất trước');
+    assert.match(app, /exportOptimizedImage\(customOpts = \{\}\) \{\s*return this\.exportPdf\(Object\.assign\(\{\}, customOpts, \{ target: 'image' \}\)\);/);
     assert.match(app, /const basemapVal = document\.getElementById\('cadExportBasemap'\)/);
     // nền vẽ ngay sau nền giấy trắng, trước khung/lưới/nét vẽ
     const pdf = app.slice(app.indexOf('    exportPdf(opts = {}) {'));
