@@ -1316,7 +1316,7 @@ const appNav = window.appNav = {
                 const titleEl = document.getElementById('headerTitle');
                 const subTitleEl = document.getElementById('headerSubtitle');
                 const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
-                if (titleEl) titleEl.innerHTML = `<img src="icon.png" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
+                if (titleEl) titleEl.innerHTML = `<img src="icon-128.webp" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
                 if (subTitleEl) subTitleEl.innerText = isEn ? "National Coordinate Reference System" : "Hệ Quy Chiếu & Tọa Độ Quốc Gia";
             }
             return;
@@ -1366,7 +1366,7 @@ const appNav = window.appNav = {
             this.notifyScreenChange({ menu: true });
             if (btnBack) { btnBack.hidden = true; btnBack.style.display = 'none'; }
             const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
-            if (titleEl) titleEl.innerHTML = `<img src="icon.png" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
+            if (titleEl) titleEl.innerHTML = `<img src="icon-128.webp" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
             if (subTitleEl) subTitleEl.innerText = isEn ? "National Coordinate Reference System" : "Hệ Quy Chiếu & Tọa Độ Quốc Gia";
             appNav.updateBanner();
         } else {
@@ -2411,7 +2411,8 @@ const appNav = window.appNav = {
             const shortProv = String(pName).replace(/^(TP\.|Thành phố|Tỉnh)\s*/, '');
             // Thanh tiêu đề điện thoại chỉ còn ~120 px: ưu tiên KTT + múi; tên tỉnh ở chú thích và màn hình Cài đặt.
             // Biểu tượng 📍 vẽ bằng CSS (::before) để màn hẹp bỏ được mà vẫn đủ chỗ cho số KTT + múi.
-            headChip.textContent = `${dmsStr} · ${AppState.muiVal}°`;
+            // Múi chiếu nằm trong span riêng: chip hẹp (màn con có nút ◀) thì ẩn múi, giữ nguyên số KTT thay vì cắt giữa chừng.
+            headChip.innerHTML = `<span class="hk-cm">${escapeHtml(dmsStr)}</span><span class="hk-zone">&nbsp;· ${escapeHtml(String(AppState.muiVal))}°</span>`;
             headChip.title = isEn
                 ? `${shortProv}: CM ${dmsStr}, zone ${AppState.muiVal}° — tap to change`
                 : `${shortProv}: KTT ${dmsStr}, múi ${AppState.muiVal}° — chạm để đổi`;
@@ -8373,7 +8374,8 @@ const appMap = {
         // Tùy chọn 1: [Bản đồ mới] không mở sẵn dự án nào
         const emptyOpt = document.createElement('option');
         emptyOpt.value = "";
-        emptyOpt.innerText = "🗺️ [Bản đồ mới] Chọn dự án để nạp...";
+        emptyOpt.innerText = "Dự án…";
+        sel.setAttribute("aria-label", "Chọn dự án để mở trên bản đồ");
         sel.appendChild(emptyOpt);
 
         AppState.projectsList.forEach(name => {
@@ -16673,7 +16675,7 @@ const appElevationProfile = {
             triggerHaptic('light');
             const titleEl = document.getElementById('headerTitle');
             if (titleEl) {
-                titleEl.innerHTML = `<img src="icon.png" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
+                titleEl.innerHTML = `<img src="icon-128.webp" alt="VN2000 Pro"><span>WGS-84 ⇄ VN-2000 PRO</span>`;
             }
             if (typeof appCadTool !== 'undefined' && appCadTool.closeToolbar) {
                 appCadTool.closeToolbar();
@@ -43544,6 +43546,10 @@ const appPlanOverlay = {
         }
         modal.style.display = 'flex';
         this._showView('list');
+        const kttSel = document.getElementById('planOvKtt');
+        if (kttSel && typeof appGis !== 'undefined') {
+            try { appGis.fillKttSelect(kttSel); } catch (e) { /* bỏ qua: sẽ nạp lại khi mở bản vẽ */ }
+        }
         await this.ensureLoaded();
         this.renderList();
     },
@@ -45204,7 +45210,7 @@ const appMapLayers = {
             const gulandExtra = isGulandOn ? `<div class="ml-sub-controls" style="margin-top:6px;padding:8px;background:rgba(15,23,42,0.4);border-radius:6px;display:flex;flex-direction:column;gap:6px;">
                 <label style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;">
                     <span style="font-weight:600;color:#94a3b8;">Chọn tỉnh / thành:</span>
-                    <select id="mlGulandProvSelect" style="flex:1;max-width:180px;background:#1e293b;color:#f8fafc;border:1px solid #475569;border-radius:4px;padding:3px 6px;font-size:12px;" onchange="appPlanning.setProvinceGlobal(this.value, true); appMapLayers.renderPanel();">
+                    <select id="mlGulandProvSelect" class="app-select" aria-label="Tỉnh / thành phố của lớp quy hoạch" style="flex:1;max-width:220px;min-height:36px !important;padding:0 8px;" onchange="appPlanning.setProvinceGlobal(this.value, true); appMapLayers.renderPanel();">
                         ${provOpts}
                     </select>
                 </label>
@@ -45224,7 +45230,7 @@ const appMapLayers = {
                 </div>
             </div>` : `<div class="ml-sub-controls" style="margin-top:4px;padding:6px;background:rgba(15,23,42,0.25);border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;">
                 <span style="color:#94a3b8;font-size:11.5px;">Chọn tỉnh hiển thị:</span>
-                <select id="mlGulandProvSelect" style="flex:1;max-width:180px;background:#1e293b;color:#f8fafc;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;" onchange="appPlanning.setProvinceGlobal(this.value, false); appMapLayers.renderPanel();">
+                <select id="mlGulandProvSelect" class="app-select" aria-label="Tỉnh / thành phố của lớp quy hoạch" style="flex:1;max-width:220px;min-height:36px !important;padding:0 8px;" onchange="appPlanning.setProvinceGlobal(this.value, false); appMapLayers.renderPanel();">
                     ${provOpts}
                 </select>
             </div>`;

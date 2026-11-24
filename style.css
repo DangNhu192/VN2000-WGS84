@@ -11476,8 +11476,9 @@
   }
   .map-project-bar .map-proj-select-box {
     height: 32px !important;
-    max-width: 110px !important;
-    min-width: 80px !important;
+    max-width: 160px !important;
+    min-width: 110px !important;
+    flex: 0 1 160px !important;
     padding: 0 4px !important;
     border-radius: 16px !important;
   }

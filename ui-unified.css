@@ -432,3 +432,33 @@ header.app-header .header-ktt-chip::before { content: "📍"; margin-right: 4px;
 #leaflet-map.map-base-none { background: #ffffff; }
 #leaflet-map .leaflet-control-attribution { font-size: 11px; max-width: 70vw; background: rgba(255,255,255,.82); color: #292524; }
 #leaflet-map .leaflet-control-attribution a { color: #2f6e47; }
+
+/* ===== Menu xổ xuống (select) — v2.8.59 =====
+   1. Danh sách xổ ra là của HỆ ĐIỀU HÀNH (Windows / Android / Linux): nếu select có nền bán trong suốt và chữ
+      sáng (giao diện Tối), danh sách hiện chữ trắng trên nền trắng — không đọc được. Đặt color-scheme
+      và màu nền / chữ ĐẶC cho từng mục để danh sách luôn rõ ở mọi giao diện.
+   2. iPhone tự phóng to trang khi chạm vào ô có chữ < 16 px — trên màn cảm ứng dùng tối thiểu 16 px. */
+html:not([data-theme="light"]) select { color-scheme: dark; }
+html[data-theme="light"] select { color-scheme: light; }
+html:not([data-theme="light"]) select option,
+html:not([data-theme="light"]) select optgroup { background-color: #24211e; color: #f2eee7; }
+html[data-theme="light"] select option,
+html[data-theme="light"] select optgroup { background-color: #ffffff; color: #1c1a18; }
+html select option:disabled { color: #8a847c; }
+html select option:checked { font-weight: 700; }
+body.field-mode select option, body.field-mode select optgroup { background-color: #000000; color: #ffd84a; }
+select { text-overflow: ellipsis; max-width: 100%; }
+@media (pointer: coarse) {
+  html body select:not([multiple]):not(#_vn2k_a):not(#_vn2k_b) { font-size: max(16px, 1em) !important; }
+}
+@supports (-webkit-touch-callout: none) {
+  @media (pointer: coarse) {
+    html body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea):not(#_vn2k_a):not(#_vn2k_b) { font-size: max(16px, 1em) !important; }
+  }
+}
+/* Ô chọn dự án trên thanh Bản đồ: cả khung bấm được (trước chỉ cao 16 px trên máy tính) */
+.map-proj-select-box .map-proj-select { align-self: stretch; height: auto !important; min-height: 28px; }
+/* Chip KTT: khi bị bóp hẹp thì bỏ phần "· 3°", không cắt số KTT (v2.8.59) */
+header.app-header .header-ktt-chip { container-type: inline-size; justify-content: center; }
+header.app-header .header-ktt-chip .hk-cm { flex: none; }
+@container (max-width: 79px) { header.app-header .header-ktt-chip .hk-zone { display: none; } }
