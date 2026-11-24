@@ -3102,3 +3102,53 @@ body[data-theme="light"] .home-gps-cta b { color: #047857; }
   z-index: 680 !important;
   pointer-events: auto;
 }
+
+/* ===== Dẫn đường trực tiếp kiểu Google / Apple Maps ===== */
+#screen-routing.is-navigating #routingTopToolbar,
+#screen-routing.is-navigating #routingMinibusNotice,
+#screen-routing.is-navigating .routing-map-floating-tools,
+#screen-routing.is-navigating #routingNavHud,
+#screen-routing.is-navigating #routingPointsSheet { display: none !important; }
+.rnav-card {
+  position: absolute; top: calc(var(--sat-safe-top, 0px) + 10px); left: 10px; right: 10px; z-index: 1100;
+  background: #0f6b3e; color: #ffffff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  overflow: hidden; max-width: 560px; margin: 0 auto;
+}
+.rnav-card[hidden], .rnav-bar[hidden], .rnav-banner[hidden], .rnav-recenter[hidden], .rnav-then[hidden] { display: none !important; }
+.rnav-main { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.rnav-icon { width: 56px; height: 56px; flex: 0 0 56px; color: #ffffff; }
+.rnav-icon svg { width: 100%; height: 100%; display: block; }
+.rnav-txt { min-width: 0; flex: 1; }
+.rnav-dist { font-size: 30px; font-weight: 800; line-height: 1.05; letter-spacing: -0.5px; }
+.rnav-text { font-size: 17px; font-weight: 650; line-height: 1.25; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rnav-then { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: #0a4f2d; font-size: 14px; font-weight: 650; }
+.rnav-then-ic { width: 22px; height: 22px; display: inline-flex; }
+.rnav-then-ic svg { width: 100%; height: 100%; }
+.rnav-banner {
+  position: absolute; top: calc(var(--sat-safe-top, 0px) + 128px); left: 50%; transform: translateX(-50%); z-index: 1100;
+  background: #1f2937; color: #fde68a; border: 1px solid rgba(253, 230, 138, 0.45); border-radius: 999px;
+  padding: 8px 14px; font-size: 13.5px; font-weight: 650; max-width: calc(100% - 24px); text-align: center; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.rnav-recenter {
+  position: absolute; right: 12px; bottom: calc(var(--sat-safe-bottom, 0px) + 96px); z-index: 1100;
+  height: 44px; padding: 0 16px; border-radius: 999px; border: none; background: #ffffff; color: #0b57d0;
+  font-weight: 800; font-size: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); cursor: pointer;
+}
+.rnav-bar {
+  position: absolute; left: 10px; right: 10px; bottom: calc(var(--sat-safe-bottom, 0px) + 12px); z-index: 1100;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; max-width: 560px; margin: 0 auto;
+  background: #ffffff; color: #111827; border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.rnav-eta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rnav-eta b { font-size: 22px; font-weight: 800; color: #0f6b3e; line-height: 1.1; }
+.rnav-eta span { font-size: 13.5px; color: #374151; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rnav-btn { height: 44px; min-width: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #d1d5db; background: #f3f4f6; color: #111827; font-size: 16px; font-weight: 700; cursor: pointer; }
+.rnav-exit { background: #b91c1c; border-color: #b91c1c; color: #ffffff; font-size: 15px; }
+.rnav-puck { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+.rnav-puck-arrow { width: 44px; height: 44px; display: block; transition: transform 0.4s ease; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45)); }
+@media (min-width: 768px) {
+  .rnav-card { left: 16px; right: auto; width: 420px; margin: 0; }
+  .rnav-bar { left: 16px; right: auto; width: 420px; margin: 0; }
+  .rnav-banner { top: calc(var(--sat-safe-top, 0px) + 20px); left: auto; right: 16px; transform: none; }
+}
+html body.routing-nav-active nav#mobileBottomNav.mobile-bottom-nav { display: none !important; visibility: hidden !important; }
