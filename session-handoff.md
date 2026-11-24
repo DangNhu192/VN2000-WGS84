@@ -1,5 +1,34 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-24 (tối): NÂNG CẤP DẪN ĐƯỜNG KIỂU GOOGLE / APPLE MAPS (v2.8.58)
+- **Yêu cầu**: dẫn đường của app chưa tốt bằng Google Maps / Apple Maps.
+- **Điểm yếu cũ**:
+  - Chỉ chuyển bước khi tới cách chỗ rẽ 20 m theo đường chim bay. Nếu GPS lệch hoặc bỏ qua chỗ rẽ thì kẹt luôn ở bước đó.
+  - Chỉ nhắc một lần ở 70 m; không phát hiện đi lệch tuyến, không tìm đường mới.
+  - Không có giờ đến dự kiến, không báo đến từng điểm dừng.
+  - Xe máy gọi hồ sơ `bike` trên máy chủ OSRM demo, vốn chỉ có ô tô.
+- **Đã làm**:
+  - `src/core/nav_engine.js` (mới):
+    - bám vị trí vào tuyến, đo tiến độ theo quãng đường dọc tuyến, ưu tiên đi tới (đoạn quay đầu tại điểm dừng không bị nhảy);
+    - nhắc giọng nhiều mốc: lời nhắc tiếng Việt của Valhalla, hoặc tự soạn "Đi tiếp…", "Sau 500 m…", "Sau 200 m…", "Rẽ…";
+    - báo lệch tuyến sau 3 lần đo, bỏ qua GPS kém (> 80 m), báo đến từng điểm dừng;
+    - tính quãng đường, thời gian còn lại và giờ đến; chỗ rẽ "sau đó" khi hai chỗ rẽ sát nhau.
+  - `appRouting`:
+    - tìm đường bằng Valhalla (`motor_scooter` cho xe máy, tránh cao tốc; `auto`; `bus`) với chỉ đường tiếng Việt; dự phòng OSRM FOSSGIS → OSRM demo → đường nối thẳng;
+    - sắp thứ tự điểm bằng OSRM trip; khi ngoại tuyến thì sắp trên máy (láng giềng gần nhất + 2-opt);
+    - dẫn đường dùng bộ lõi: chấm xe bám tuyến và xoay theo hướng đi; phần đường đã đi tô mờ; đường có viền tối;
+    - camera bám theo xe, thu phóng theo tốc độ; kéo bản đồ thì tạm dừng bám, bấm "Định tâm" để bám lại;
+    - tự tìm đường mới khi đi lệch (có hướng đi, giãn cách 10 s); báo mất GPS / GPS yếu;
+    - nút "🎬 Chạy thử" dẫn đường mô phỏng dọc lộ trình.
+  - Giao diện dẫn đường toàn màn hình: thẻ rẽ lớn màu xanh (mũi tên SVG, khoảng cách, lời chỉ đường, "Sau đó"), thanh dưới hiện giờ đến, quãng đường / thời gian còn lại, số chặng, nút giọng nói và nút Thoát. Thanh điều hướng của app được ẩn trong lúc dẫn đường.
+- **Kiểm**:
+  - Đã kiểm thật Valhalla và OSRM FOSSGIS từ trang app (CORS OK). Lưu một lộ trình Valhalla thật làm fixture.
+  - Node: chạy xe mô phỏng có nhiễu → tiến độ không lùi, nhắc đúng thứ tự, đến M2 rồi M3; lệch tuyến; nguồn OSRM tự soạn lời nhắc; đường nối thẳng.
+  - Playwright: Chạy thử hiện đúng thẻ rẽ và giờ đến; GPS giả lập đi lệch → gọi Valhalla tìm đường mới có hướng đi; kéo bản đồ → hiện "Định tâm".
+  - **602/602 PASS**.
+
+---
+
 ## Phiên hiện tại — 2026-11-24 (chiều): AI MÁY CHỦ MIỄN PHÍ DÙNG CHUNG, CHỈ CHO CHỨC NĂNG APP (v2.8.57)
 - **Yêu cầu**: tìm API miễn phí và thêm cho nhiều người cùng dùng; chỉ dùng cho chức năng của app, không dùng việc khác.
 - **Đã làm**: `api/ai.js` viết lại thành máy chủ chung. Nhà cung cấp miễn phí không cần thẻ là Groq (`GROQ_API_KEY`) và Google Gemini (`GEMINI_API_KEY`), có thể thêm một nhà cung cấp OpenAI-compatible tùy chọn. Máy chủ tự chuyển sang nhà cung cấp hoặc mô hình kế tiếp khi gặp 429/404/5xx; khóa sai (401/403) thì bỏ cả nhà cung cấp đó.
