@@ -369,53 +369,72 @@
     };
 
     // ---------------- AI máy chủ (khi có mạng) — kiểu Xiaozhi: máy chủ hiểu câu, app tự thực hiện ----------------
-    // Giao thức OpenAI-compatible (tool calling): máy chủ của app (/api/ai, khóa API giữ ở Vercel) hoặc địa chỉ riêng
-    // (Qwen DashScope, DeepSeek, OpenRouter, Ollama / LM Studio trong mạng nội bộ, máy chủ tự dựng…).
+    // Mặc định dùng MÁY CHỦ CHUNG của app (/api/ai, nhà cung cấp miễn phí Groq / Gemini, khóa giữ trên Vercel):
+    // app chỉ gửi câu người dùng, máy chủ chỉ trả về MỘT lời gọi công cụ của app — không trò chuyện / làm việc khác.
+    // Người dùng có thể đổi sang địa chỉ riêng OpenAI-compatible (Ollama, LM Studio, máy chủ tự dựng…).
     const cloud = {
-        state: 'idle', error: '',
+        state: 'idle', error: '', server: null,   // server: null = chưa hỏi, {ready, providers}
         cfg() {
             let c = {};
             try { c = JSON.parse(store.get('vn2k_ai_cloud', '{}')) || {}; } catch (e) { c = {}; }
-            return { enabled: c.enabled === true, url: c.url || '', model: c.model || '', key: c.key || '' };
+            return { enabled: c.enabled !== false, url: c.url || '', model: c.model || '', key: c.key || '' };
         },
         save(c) { store.set('vn2k_ai_cloud', JSON.stringify(c)); },
-        usable() { const c = this.cfg(); return c.enabled && navigator.onLine !== false; },
-        endpoint(c) { return c.url ? c.url.replace(/\/+$/, '') + (/\/chat\/completions$/.test(c.url) ? '' : '/chat/completions') : new URL('api/ai', document.baseURI).href; },
+        usable() {
+            const c = this.cfg();
+            if (!c.enabled || navigator.onLine === false) return false;
+            return !!c.url || !(this.server && this.server.ready === false);
+        },
+        appEndpoint() { return new URL('api/ai', document.baseURI).href; },
+        /** Hỏi máy chủ chung đã có khóa AI chưa (một lần mỗi phiên, không lộ khóa). */
+        async probe() {
+            if (this.server || !/^https?:/.test(location.protocol)) return this.server;
+            try {
+                const r = await fetch(this.appEndpoint(), { method: 'GET', cache: 'no-store' });
+                this.server = r.ok ? await r.json() : { ready: false };
+            } catch (e) { this.server = null; }
+            return this.server;
+        },
         describe() {
             const c = this.cfg();
             if (!c.enabled) return 'tắt';
             if (navigator.onLine === false) return 'đang ngoại tuyến — dùng AI cục bộ / quy tắc';
             if (this.state === 'error') return 'lỗi: ' + this.error;
-            return `bật — ${c.url ? c.url.replace(/^https?:\/\//, '').split('/')[0] : 'máy chủ của app'}${c.model ? ' · ' + c.model : ''}`;
+            if (c.url) return `bật — địa chỉ riêng ${c.url.replace(/^https?:\/\//, '').split('/')[0]}${c.model ? ' · ' + c.model : ''}`;
+            if (this.server && this.server.ready === false) return 'máy chủ chung chưa được cấu hình khóa AI';
+            if (this.server && this.server.ready) return `bật — máy chủ chung của app (${(this.server.providers || []).join(', ') || 'AI miễn phí'}), chỉ cho chức năng của app`;
+            return 'bật — máy chủ chung của app';
         },
-        /** Trả về {call} (lời gọi công cụ đã kiểm) hoặc {text} (trả lời chữ) hoặc null. */
+        /** Trả về {call} (lời gọi công cụ đã kiểm) hoặc null. Không bao giờ trả chữ tự do. */
         async ask(text) {
             const c = this.cfg();
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 15000);
             try {
-                const body = { messages: C.buildToolMessages(text, window.AssistantDataset || [], 4), tools: C.openAiTools(), tool_choice: 'auto', temperature: 0, max_tokens: 300 };
-                if (c.model) body.model = c.model;
-                const headers = { 'Content-Type': 'application/json' };
-                if (c.url && c.key) headers.Authorization = 'Bearer ' + c.key;
-                const r = await fetch(this.endpoint(c), { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal });
-                if (!r.ok) {
-                    let msg = 'HTTP ' + r.status;
-                    try { const j = await r.json(); if (j && j.error) msg = typeof j.error === 'string' ? j.error : (j.error.message || msg); } catch (e) { /* bỏ qua */ }
-                    throw new Error(r.status === 503 && !c.url ? 'máy chủ của app chưa được cấu hình khóa AI (AI_API_KEY trên Vercel)' : msg);
+                let raw = null;
+                if (!c.url) {
+                    const r = await fetch(this.appEndpoint(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: String(text || '').slice(0, 300) }), signal: ctrl.signal });
+                    const j = await r.json().catch(() => ({}));
+                    if (r.status === 503) { this.server = { ready: false }; throw new Error('máy chủ chung chưa được cấu hình khóa AI'); }
+                    if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+                    raw = j.call ? { tool: j.call.intent, args: j.call.args } : null;
+                    if (raw && (raw.tool === 'kttOf' || raw.tool === 'setProvince')) { this.state = 'ok'; return { call: j.call }; }
+                } else {
+                    const body = { messages: C.buildToolMessages(text, window.AssistantDataset || [], 4), tools: C.openAiTools(), tool_choice: 'required', temperature: 0, max_tokens: 200 };
+                    if (c.model) body.model = c.model;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (c.key) headers.Authorization = 'Bearer ' + c.key;
+                    const ep = c.url.replace(/\/+$/, '') + (/\/chat\/completions$/.test(c.url) ? '' : '/chat/completions');
+                    const r = await fetch(ep, { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal });
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    const j = await r.json();
+                    const m = (((j || {}).choices || [])[0] || {}).message || {};
+                    const tc = (m.tool_calls || [])[0];
+                    raw = tc && tc.function ? { tool: tc.function.name, args: tc.function.arguments } : C.parseToolJson(m.content || '');
                 }
-                const j = await r.json();
-                const m = (((j || {}).choices || [])[0] || {}).message || {};
                 this.state = 'ok'; this.error = '';
-                const tc = (m.tool_calls || [])[0];
-                if (tc && tc.function) {
-                    const call = C.validateCall({ tool: tc.function.name, args: tc.function.arguments }, { provinces: provinces() });
-                    return call ? { call } : null;
-                }
-                const inText = C.validateCall(C.parseToolJson(m.content || ''), { provinces: provinces() });
-                if (inText) return { call: inText };
-                const answer = String(m.content || '').trim();
-                return answer ? { text: answer.slice(0, 1500) } : null;
+                const call = raw ? C.validateCall(raw, { provinces: provinces() }) : null;
+                return call ? { call } : null;
             } catch (e) {
                 this.state = 'error'; this.error = e.name === 'AbortError' ? 'quá 15 giây không trả lời' : (e.message || String(e));
                 throw new Error(this.error);
@@ -439,19 +458,17 @@
                 ui.bot({ text: 'Đã mở bản đồ chuyển đổi tại điểm vừa tính.', source: DEVICE });
                 continue;
             }
-            let viaAi = '';
-            let cloudText = '';
+            let viaAi = '', cloudSaidNone = false;
             // Kết hợp: quy tắc trên máy trước → AI máy chủ khi có mạng → AI cục bộ khi ngoại tuyến
             if (r.intent === 'unknown' && cloud.usable()) {
                 ui.thinking(true, 'AI máy chủ đang đọc câu…');
                 try {
                     const a = await cloud.ask(part);
-                    if (a && a.call) { r = a.call; viaAi = 'cloud'; }
-                    else if (a && a.text) cloudText = a.text;
+                    if (a && a.call) { r = a.call; viaAi = 'cloud'; } else cloudSaidNone = true;
                 } catch (e) { ui.note('AI máy chủ không trả lời (' + e.message + ')' + (llm.state === 'ready' ? ' — chuyển sang AI cục bộ.' : '.')); }
                 ui.thinking(false);
             }
-            if (r.intent === 'unknown' && !cloudText && llm.state === 'ready') {
+            if (r.intent === 'unknown' && llm.state === 'ready') {
                 ui.thinking(true);
                 try {
                     const call = await llm.toCall(part);
@@ -460,10 +477,8 @@
                 ui.thinking(false);
             }
             let res;
-            if (cloudText && r.intent === 'unknown') {
-                res = { text: cloudText, source: 'cloud-text', speak: cloudText.split('\n')[0].slice(0, 160) };
-            } else if (r.intent === 'unknown' || r.intent === 'empty' || !tools[r.intent]) {
-                res = { text: 'Xin lỗi, tôi chưa hiểu yêu cầu này nên không đoán bừa.' + (llm.state === 'ready' || cloud.usable() ? '' : (cloud.cfg().enabled ? ' (Đang ngoại tuyến nên AI máy chủ tạm nghỉ; có thể tải AI cục bộ ở nút ⚙ để dùng khi mất mạng.)' : ' (Có thể bật AI ở nút ⚙ để hiểu câu tự do hơn.)')) +
+            if (r.intent === 'unknown' || r.intent === 'empty' || !tools[r.intent]) {
+                res = { text: (cloudSaidNone ? 'Câu này không khớp chức năng nào của app — trợ lý chỉ làm các việc của app (chuyển tọa độ, xuất bản vẽ, kiểm tra số liệu, mở chức năng…).' : 'Xin lỗi, tôi chưa hiểu yêu cầu này nên không đoán bừa.') + (llm.state === 'ready' || cloud.usable() ? '' : (cloud.cfg().enabled ? ' (Đang ngoại tuyến nên AI máy chủ tạm nghỉ; có thể tải AI cục bộ ở nút ⚙ để dùng khi mất mạng.)' : ' (Có thể bật AI ở nút ⚙ để hiểu câu tự do hơn.)')) +
                     '\nThử: "mở bản đồ", "10.7769 106.7009", "KTT hiện tại", "kiểm thử", "giúp".', source: DEVICE, speak: 'Xin lỗi, tôi chưa hiểu. Bạn thử nói cách khác nhé.' };
             } else {
                 try { res = await tools[r.intent](r.args || {}); } catch (e) { res = fail('Lỗi khi thực hiện: ' + e.message); }
@@ -507,10 +522,10 @@
                 <p class="ai-cfg-status" id="aiLlmStatus"></p>
                 <p class="ai-cfg-note">Tải một lần (cần mạng, nên dùng Wi-Fi), sau đó chạy ngoại tuyến. Máy yếu có thể mất 10–30 giây cho mỗi câu khó; các lệnh thường vẫn trả lời tức thì không qua AI.</p>
                 <hr class="ai-cfg-sep">
-                <p><b>AI máy chủ khi có mạng (kiểu Xiaozhi).</b> Câu khó được gửi lên máy chủ AI để hiểu, rồi app tự thực hiện bằng công cụ của mình. Mất mạng thì tự quay về AI cục bộ / quy tắc. Chỉ gửi câu bạn nói/gõ, không gửi dữ liệu dự án; mọi phép tính vẫn làm trên máy.</p>
+                <p><b>AI máy chủ khi có mạng (miễn phí, dùng chung).</b> Câu khó được gửi lên máy chủ chung của app để hiểu thành <i>một lệnh của app</i>, rồi app tự thực hiện. Chỉ dùng cho chức năng của app — không trò chuyện hay làm việc khác. Chỉ gửi câu bạn nói/gõ, không gửi dữ liệu dự án; mất mạng thì tự quay về AI cục bộ / quy tắc.</p>
                 <label class="ai-cfg-check"><input type="checkbox" id="aiCloudOn"> Dùng AI máy chủ khi có mạng</label>
                 <div class="ai-cfg-grid">
-                  <input id="aiCloudUrl" class="ai-cfg-in" type="url" placeholder="Địa chỉ (để trống = máy chủ của app)" autocomplete="off">
+                  <input id="aiCloudUrl" class="ai-cfg-in" type="url" placeholder="Địa chỉ riêng (để trống = máy chủ chung của app)" autocomplete="off">
                   <input id="aiCloudModel" class="ai-cfg-in" type="text" placeholder="Mô hình (vd. qwen-plus, deepseek-chat)" autocomplete="off">
                   <input id="aiCloudKey" class="ai-cfg-in" type="password" placeholder="Khóa API (chỉ khi dùng địa chỉ riêng)" autocomplete="off">
                 </div>
@@ -564,15 +579,16 @@
             $('aiCloudSave').onclick = () => { saveCloud(); this.note('Đã lưu cấu hình AI máy chủ.'); };
             $('aiCloudTest').onclick = async () => {
                 saveCloud();
+                cloud.server = null; await cloud.probe();
                 const st = $('aiCloudStatus'); st.textContent = 'Đang thử…';
-                try { const a = await cloud.ask('mở bản đồ dự án'); st.textContent = a && a.call ? `✓ Kết nối được — máy chủ hiểu câu thử thành lệnh "${a.call.intent}".` : '⚠️ Kết nối được nhưng máy chủ không trả lời bằng công cụ (mô hình có hỗ trợ tool calling không?).'; }
+                try { const a = await cloud.ask('mở bản đồ dự án'); st.textContent = a && a.call ? `✓ Kết nối được — máy chủ hiểu câu thử thành lệnh "${a.call.intent}".` : '⚠️ Kết nối được nhưng máy chủ không trả về lệnh của app (mô hình có hỗ trợ tool calling không?).'; }
                 catch (e) { st.textContent = '⚠️ ' + e.message; }
             };
             document.addEventListener('keydown', e => { if (e.key === 'Escape' && !d.hidden) this.close(); });
             this.bot({ text: 'Xin chào! Tôi chạy ngay trên máy này, không cần mạng. Gõ hoặc nói lệnh — ví dụ "10.7769 106.7009", "mở MiniCAD", "kiểm thử". Nối nhiều lệnh bằng "rồi".', source: DEVICE });
             return d;
         },
-        open() { this.build(); this.el.hidden = false; document.body.classList.add('ai-open'); this.el.classList.remove('is-min'); setTimeout(() => { const i = $('aiText'); if (i && matchMedia('(pointer: fine)').matches) i.focus(); }, 50); syncBtn(); },
+        open() { this.build(); cloud.probe().then(() => this.refreshLlm()); this.el.hidden = false; document.body.classList.add('ai-open'); this.el.classList.remove('is-min'); setTimeout(() => { const i = $('aiText'); if (i && matchMedia('(pointer: fine)').matches) i.focus(); }, 50); syncBtn(); },
         close() { if (!this.el) return; this.el.hidden = true; document.body.classList.remove('ai-open'); voice.stopAll(); syncBtn(); },
         toggle() { if (!this.el || this.el.hidden) this.open(); else this.close(); },
         minimize() { if (this.el && matchMedia('(max-width: 767px)').matches) this.close(); },
@@ -589,7 +605,6 @@
         bot(r) {
             const badge = r.source === 'ai' ? '<span class="ai-badge is-ai">AI cục bộ hiểu câu → máy tự thực hiện</span>'
                 : r.source === 'cloud' ? '<span class="ai-badge is-ai">AI máy chủ hiểu câu → máy tự thực hiện</span>'
-                : r.source === 'cloud-text' ? '<span class="ai-badge is-test">AI máy chủ trả lời — chỉ để tham khảo, không dùng số liệu này để tính</span>'
                 : r.source === 'test' ? '<span class="ai-badge is-test">Tự kiểm thử</span>'
                     : '<span class="ai-badge is-dev">✓ Máy tự tính — không dùng AI</span>';
             const row = this.push(`<div class="ai-bubble">${badge}<div class="ai-text">${esc(r.text)}</div><div class="ai-acts"></div></div>`, 'is-bot');
