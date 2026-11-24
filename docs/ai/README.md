@@ -8,20 +8,29 @@ Thứ tự xử lý một câu nói:
 
 Ở cả ba tầng, AI không tự tính số và không tự xuất tệp. Mọi lời gọi đều qua `validateCall` trước khi chạy: công cụ lạ, tham số sai và tọa độ ngoài Việt Nam đều bị loại.
 
-## Bật AI máy chủ cho cả app (khóa giữ trên Vercel)
+## AI máy chủ dùng chung, miễn phí (`api/ai.js`)
 
-Vercel → Project → Settings → Environment Variables:
+Máy chủ bật sẵn cho mọi người dùng app. **Chỉ phục vụ chức năng của app**:
 
-| Biến | Ví dụ |
-|---|---|
-| `AI_API_KEY` | khóa của nhà cung cấp |
-| `AI_BASE_URL` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` (Qwen) · `https://api.deepseek.com/v1` · `https://openrouter.ai/api/v1` |
-| `AI_MODEL` | `qwen-plus` · `deepseek-chat` · … (mô hình phải hỗ trợ *tool calling*) |
-| `AI_ALLOWED_ORIGINS` | (tùy chọn) `https://vn2000-wgs84-three.vercel.app` |
+- App chỉ gửi câu người dùng, tối đa 300 ký tự. Lời nhắc hệ thống, danh mục công cụ và ví dụ do máy chủ tự dựng, nên không ai gửi được lời nhắc hay công cụ khác qua đây.
+- Mô hình **bắt buộc** trả về một lời gọi công cụ (`tool_choice: "required"`). Chữ tự do bị bỏ. Lời gọi phải qua `validateCall` mới được trả về.
+- Câu nào quy tắc đã hiểu chắc thì trả lời ngay, không tốn lượt AI.
+- Giới hạn mỗi IP 10 lần/phút và 150 lần/ngày; tổng toàn app 1500 lần/ngày. Đổi bằng `AI_RPM_PER_IP`, `AI_RPD_PER_IP`, `AI_RPD_TOTAL`.
 
-Sau khi lưu biến, deploy lại. Trong app, mở Trợ lý → ⚙ → tích **Dùng AI máy chủ khi có mạng** → **Thử kết nối**.
+Nhà cung cấp miễn phí, không cần thẻ. Máy chủ thử lần lượt; cái nào hết hạn mức thì tự chuyển sang cái sau:
 
-Muốn dùng máy chủ riêng (Ollama, LM Studio, vLLM hay máy chủ tự dựng trong mạng nội bộ), điền **Địa chỉ** dạng OpenAI-compatible, ví dụ `http://192.168.1.10:11434/v1`. Máy chủ đó phải cho phép CORS từ app.
+| Biến trên Vercel | Lấy khóa ở | Mô hình mặc định (đổi bằng biến) |
+|---|---|---|
+| `GROQ_API_KEY` | console.groq.com/keys | `GROQ_MODELS=llama-3.3-70b-versatile,openai/gpt-oss-120b` |
+| `GEMINI_API_KEY` | aistudio.google.com/apikey | `GEMINI_MODELS=gemini-3.8-flash,gemini-3.5-flash` |
+| `AI_API_KEY` + `AI_BASE_URL` + `AI_MODEL` | nhà cung cấp OpenAI-compatible bất kỳ | — |
+
+Lưu ý:
+- Hạn mức miễn phí và tên mô hình thay đổi thường xuyên. Nếu một mô hình bị gỡ, máy chủ tự thử mô hình kế tiếp; khi đó đặt lại `*_MODELS` cho đúng.
+- Gói miễn phí của Gemini có thể dùng nội dung gửi lên để huấn luyện. Máy chủ chỉ gửi câu lệnh, không gửi dữ liệu dự án.
+- `GET /api/ai` trả về `{ready, providers}` (không lộ khóa) để app biết máy chủ đã sẵn sàng chưa.
+
+Người dùng muốn dùng máy riêng (Ollama, LM Studio…) thì điền **Địa chỉ riêng** trong ⚙ của Trợ lý.
 
 ## Bộ câu mẫu và "huấn luyện"
 

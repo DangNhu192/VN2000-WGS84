@@ -1,5 +1,16 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-24 (chiều): AI MÁY CHỦ MIỄN PHÍ DÙNG CHUNG, CHỈ CHO CHỨC NĂNG APP (v2.8.57)
+- **Yêu cầu**: tìm API miễn phí và thêm cho nhiều người cùng dùng; chỉ dùng cho chức năng của app, không dùng việc khác.
+- **Đã làm**: `api/ai.js` viết lại thành máy chủ chung. Nhà cung cấp miễn phí không cần thẻ là Groq (`GROQ_API_KEY`) và Google Gemini (`GEMINI_API_KEY`), có thể thêm một nhà cung cấp OpenAI-compatible tùy chọn. Máy chủ tự chuyển sang nhà cung cấp hoặc mô hình kế tiếp khi gặp 429/404/5xx; khóa sai (401/403) thì bỏ cả nhà cung cấp đó.
+  - Giới hạn phạm vi: app chỉ gửi `{text}`. Lời nhắc, công cụ và ví dụ do máy chủ dựng. `tool_choice: required`; chữ tự do và công cụ lạ đều bị bỏ, mọi lời gọi qua `validateCall`. Câu quy tắc hiểu chắc thì trả ngay, không tốn lượt.
+  - Giới hạn số lần gọi theo IP và tổng mỗi ngày. `GET /api/ai` báo đã sẵn sàng hay chưa.
+  - Phía app: AI máy chủ bật sẵn và dùng máy chủ chung (vẫn đổi được sang địa chỉ riêng). Bỏ đường trả lời chữ tự do. Câu không khớp chức năng nào thì báo rõ "trợ lý chỉ làm các việc của app".
+- **Kiểm**: test máy chủ dùng fetch giả lập. Lời nhắc hoặc công cụ lạ do client gửi bị bỏ qua; câu xin làm thơ và công cụ lạ đều nhận `none`; Groq 429 thì chuyển sang Gemini; quá giới hạn IP trả 429. **595/595 PASS**.
+- **Việc của người dùng**: tạo khóa Groq và/hoặc Gemini (miễn phí), dán vào Vercel → Environment Variables, rồi deploy lại.
+
+---
+
 ## Phiên hiện tại — 2026-11-24: TRỢ LÝ AI "KẾT HỢP" (v2.8.56)
 - **Yêu cầu**: dùng phương án kết hợp (AI máy chủ kiểu Xiaozhi khi có mạng + AI cục bộ khi ngoại tuyến) và "train" AI hoạt động thông minh trên các chức năng của app.
 - **Không train trọng số** trong phiên này (không có GPU, không tải được mô hình). Thay vào đó "dạy" AI bằng: (1) danh mục công cụ có tham số dùng chung cho mọi tầng; (2) bộ 355 câu mẫu tiếng Việt (few-shot + chấm điểm + dữ liệu fine-tune); (3) khóa đầu ra bằng ngữ pháp JSON + `validateCall`.
