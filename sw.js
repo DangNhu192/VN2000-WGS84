@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vn2000-pro-v2.8.58';
+const CACHE_NAME = 'vn2000-pro-v2.8.59';
 // Dữ liệu địa giới lớn (~4 MB): cache riêng, KHÔNG xóa khi nâng phiên bản ứng dụng; đổi tên khi dữ liệu đổi.
 const DATA_CACHE = 'vn2000-data-admin-2025-07-01';
 // Bộ nhớ đệm gạch bản đồ thực địa: Lưu trữ bền vững phục vụ khảo sát ngoại tuyến không sóng mạng
@@ -39,6 +39,7 @@ const ASSETS_TO_CACHE = [
   './offline_regions.js',
   './pixoptimizer.js',
   './icon.png',
+  './icon-128.webp',
   './apple-touch-icon.png',
   './favicon.png',
   './VN2k-WGS84.webp',

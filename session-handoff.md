@@ -1,5 +1,24 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-24 (khuya): TỐI ƯU GIAO DIỆN + MENU XỔ XUỐNG (v2.8.59)
+- **Yêu cầu**: chạy tối ưu ứng dụng, kiểm kỹ giao diện và các menu xổ xuống.
+- **Cách kiểm** (Playwright, giao diện tối + sáng, điện thoại 390×844 cảm ứng + máy tính 1280×900):
+  - mọi `<select>` trên mọi màn hình, hộp thoại và tab Cài đặt (188 lượt): tương phản chữ ô chọn và danh sách xổ, cỡ chữ, chiều cao, bị cắt / tràn, mục trống / trùng; chọn thử từng mục, xem có lỗi JS không và có giữ lựa chọn không;
+  - menu ☰: mở bằng cú bấm thật, 22 mục nằm trong màn hình, không bị che, đủ tương phản; bấm thật 20 mục, mỗi mục mở đúng màn và đóng menu; chip lọc nhóm, ô tìm ("dwg" → Sổ đo, MiniCAD; không khớp → báo rỗng); 5 nút thanh điều hướng dưới.
+- **Lỗi tìm thấy và đã sửa**:
+  - Giao diện tối: danh sách xổ chữ gần trắng trên nền trắng (tương phản ~1.2) ở gần như mọi ô chọn → `color-scheme` + màu `option/optgroup` theo giao diện tối, sáng, thực địa.
+  - Ô chọn 15 px làm iPhone tự phóng to khi chạm → 16 px trên màn cảm ứng (chọn độ ưu tiên đủ mạnh để thắng quy tắc 15px !important).
+  - Ô chọn kiểu / cỡ đỉnh khi vẽ 24 px, hộp Nối điểm 30 px → 32–36 px.
+  - Ô chọn dự án trên Bản đồ chỉ cao 16 px trên máy tính, bị cắt trên điện thoại → đủ cao, chữ "Dự án…".
+  - Ô tỉnh của lớp quy hoạch tô cứng màu tối, không nhãn → `app-select` + `aria-label`.
+  - KTT trong hộp Quy hoạch PDF trống cho tới khi nạp bản vẽ → nạp sẵn khi mở.
+  - Chip KTT trên thanh tiêu đề bị cắt "105°45" ở màn con → múi chiếu ở span riêng, ẩn khi chip hẹp (container query).
+  - Logo đầu trang / Cài đặt tải icon.png 244 KB → icon-128.webp 8 KB (icon.png giữ cho manifest).
+- **Chấp nhận, không sửa**: rzSrcKtt/rzDstKtt trùng giá trị KTT (nhiều tỉnh chung KTT); mlGulandProvSelect vẽ lại bảng khi đổi tỉnh (đúng thiết kế).
+- **Test**: `tests/ui_select_menus.test.js` (7). **609/609 PASS**.
+
+---
+
 ## Phiên hiện tại — 2026-11-24 (tối): NÂNG CẤP DẪN ĐƯỜNG KIỂU GOOGLE / APPLE MAPS (v2.8.58)
 - **Yêu cầu**: dẫn đường của app chưa tốt bằng Google Maps / Apple Maps.
 - **Điểm yếu cũ**:
