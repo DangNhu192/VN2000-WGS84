@@ -127,6 +127,48 @@
             return { text: `Dự án đang mở: ${name || '(chưa có)'} — ${n} mốc.\nTổng số dự án trên máy: ${count}.`, source: DEVICE,
                 actions: [{ label: 'Mở Sổ đo', run: () => run('mở sổ đo') }, { label: 'Xem trên bản đồ', run: () => run('mở bản đồ dự án') }] };
         },
+        // Xuất bản vẽ có tham số — đi qua đúng bộ xuất của app (cùng bố cục PDF / PNG / ảnh / SVG / DWG)
+        exportDrawing({ format, paper, scale, basemap, tables, source }) {
+            if (typeof appCadTool === 'undefined' || typeof appCadTool.exportPdf !== 'function') return fail('Chưa nạp bộ xuất bản vẽ.');
+            let pl = null, from = '';
+            if (source !== 'data') {
+                let shapes = [];
+                try { shapes = (appCadTool._getAllExportShapes() || []).filter(sh => sh.selected !== false && (sh.vertices || []).length); } catch (e) { shapes = []; }
+                if (shapes.length) { pl = { shapes, meta: appCadTool._getExportMeta() }; from = `MiniCAD (${shapes.length} khối)`; }
+            }
+            if (!pl && typeof appData !== 'undefined' && appData._cadExportPayload) { pl = appData._cadExportPayload(); from = 'Sổ đo'; }
+            if (!pl) return fail('Dự án đang mở chưa có mốc hay khối nào để xuất.');
+            const meta = Object.assign({}, pl.meta);
+            const dims = (typeof EXPORT_PAPER_DIMS !== 'undefined') ? EXPORT_PAPER_DIMS : {};
+            if (paper && dims[paper]) Object.assign(meta, { paper, paperW: dims[paper].w, paperH: dims[paper].h, paperLabel: dims[paper].label });
+            if (scale !== undefined) { if (scale > 0) { meta.scaleVal = scale; meta.rawScaleVal = String(scale); } else { meta.scaleVal = null; meta.rawScaleVal = 'auto'; } }
+            if (basemap) meta.basemap = basemap;
+            if (tables) meta.summaryTables = tables;
+            const opts = { shapes: pl.shapes, meta, fileBase: pl.fileBase };
+            const label = { pdf: 'PDF', png: 'PNG', image: 'ảnh nén', svg: 'SVG', dwg: 'DWG' }[format] || 'PDF';
+            const baseName = { none: 'không nền', google_hybrid: 'nền Google vệ tinh', esri_satellite: 'nền Esri vệ tinh', google_streets: 'nền Google đường phố', opentopomap: 'nền địa hình', google_terrain: 'nền địa hình Google', osm_streets: 'nền OpenStreetMap', sentinel2: 'nền Sentinel-2' }[meta.basemap] || 'nền đang chọn';
+            const tbl = { area: 'bảng diện tích', points: 'bảng các điểm', both: 'cả hai bảng' }[meta.summaryTables] || 'bảng diện tích';
+            const after = () => { if (format === 'dwg') appCadTool.exportDwg(opts); else appCadTool.exportPdf(Object.assign({ target: format }, opts)); };
+            return { text: `Đang xuất ${label} từ ${from}: khổ ${meta.paperLabel || meta.paper || 'đang chọn'}, tỷ lệ ${meta.scaleVal ? '1:' + meta.scaleVal : 'tự động'}, ${format === 'dwg' ? 'nét vẽ vector (DWG không nhúng ảnh nền)' : baseName}, ${tbl}.`,
+                source: DEVICE, speak: `Đang xuất bản vẽ ${label}.`, after };
+        },
+        // Kiểm tra chất lượng số liệu đo — máy tự soát, không dùng AI
+        checkData() {
+            let pts = [];
+            try { pts = (typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints() : []; } catch (e) { pts = []; }
+            const k = ktt();
+            const linked = pts.some(p => p && (p.lk || p.shape || p.link));
+            const res = C.qcPoints(pts, {
+                kttDeg: k.val,
+                toLngOf: (X, Y) => (typeof convertVn2kToWgs === 'function' ? convertVn2kToWgs(X, Y, k.val, k.k0).lng : NaN),
+                polygon: !linked && pts.length <= 300 && S().isPolygonClosed !== false
+            });
+            const name = String(S().currentProject || '').replace(/\.[^/.]+$/, '');
+            const head = `Kiểm tra số liệu dự án ${name || '(chưa có)'}: ${res.stats.n} mốc.`;
+            const text = res.issues.length ? head + '\n' + res.issues.map(x => (x.level === 'err' ? '❌ ' : '⚠️ ') + x.text).join('\n') : head + '\n✅ Không thấy lỗi: không đảo X/Y, không trùng, không mốc nhảy, khớp KTT.';
+            return { text, source: DEVICE, copy: text, speak: res.issues.length ? `Tìm thấy ${res.issues.length} vấn đề trong số liệu.` : 'Số liệu không có lỗi.',
+                actions: [{ label: 'Mở Sổ đo', run: () => run('mở sổ đo') }] };
+        },
         theme({ theme }) { if (typeof appTheme !== 'undefined') appTheme.setTheme(theme); return { text: theme === 'light' ? 'Đã chuyển giao diện sáng.' : 'Đã chuyển giao diện tối.', source: DEVICE }; },
         selftest: () => selfTest()
     };
@@ -203,6 +245,7 @@
         add(voice.canListen() || voice.canSpeak(), 'Giọng nói', `nghe: ${voice.canListen() ? 'có' : 'không hỗ trợ'}; đọc tiếng Việt: ${voice.viVoice() ? 'có' : (voice.canSpeak() ? 'không có giọng Việt' : 'không hỗ trợ')}`);
         // 10. Não AI
         add(true, 'Não AI cục bộ (tùy chọn)', llm.describe());
+        add(true, 'AI máy chủ (tùy chọn)', cloud.describe());
         const pass = rows.filter(r => r.ok).length;
         const text = `Kết quả tự kiểm thử: ${pass}/${rows.length} đạt\n` + rows.map(r => `${r.ok ? '✅' : '⚠️'} ${r.name}: ${r.detail}`).join('\n');
         return { text, source: 'test', speak: `Tự kiểm thử xong, ${pass} trên ${rows.length} mục đạt.`, copy: text };
@@ -258,7 +301,8 @@
             if (this.state === 'loading') return `đang nạp ${this.name} (${this.progress}%)`;
             if (this.state === 'error') return 'lỗi: ' + this.error;
             const simd = typeof WebAssembly === 'object' && WebAssembly.validate && WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]));
-            return `chưa bật (máy ${simd ? 'hỗ trợ' : 'KHÔNG hỗ trợ'} WebAssembly SIMD)`;
+            const ram = navigator.deviceMemory ? `, máy ${navigator.deviceMemory} GB RAM${navigator.deviceMemory < 3 ? ' — có thể không đủ' : ''}` : '';
+            return `chưa tải mô hình (0 / ~400 MB; app không tự tải)${ram}${simd ? '' : ' — máy KHÔNG hỗ trợ WebAssembly SIMD'}`;
         },
         async ensureEngine() {
             if (this.engine) return this.engine;
@@ -295,6 +339,21 @@
         },
         touch() { clearTimeout(this._idle); this._idle = setTimeout(() => { if (this.state === 'ready') { this.unload(); ui.note('Đã gỡ mô hình AI khỏi bộ nhớ sau 3 phút không dùng (nạp lại khi cần).'); } }, LLM_IDLE_MS); },
         /** Đổi câu tự do → một lệnh chuẩn (hoặc null). Bị khóa trong danh sách lệnh bằng ngữ pháp JSON. */
+        /** Câu tự do → MỘT lời gọi công cụ {intent, args} (ngữ pháp JSON + ví dụ gần nhất). Không hợp lệ → null. */
+        async toCall(text) {
+            if (this.state !== 'ready' || !this.engine) return null;
+            this.touch();
+            const base = { messages: C.buildToolMessages(text, window.AssistantDataset || [], 5), max_tokens: 120, temperature: 0 };
+            let res = null;
+            try { res = await this.engine.createChatCompletion(Object.assign({ grammar: C.buildGrammar() }, base)); }
+            catch (e) { try { res = await this.engine.createChatCompletion(base); } catch (x) { res = null; } }
+            const out = ((((res || {}).choices || [])[0] || {}).message || {}).content || '';
+            const call = C.validateCall(C.parseToolJson(out), { provinces: provinces() });
+            if (call) return call;
+            // Dự phòng: kiểu cũ — chọn một lệnh chuẩn không tham số
+            const cmd = await this.toCommand(text);
+            return cmd ? C.route(cmd, { provinces: provinces() }) : null;
+        },
         async toCommand(text) {
             if (this.state !== 'ready' || !this.engine) return null;
             this.touch();
@@ -306,6 +365,61 @@
             catch (e) { res = await this.engine.createChatCompletion(base); }
             const cmd = ((((res || {}).choices || [])[0] || {}).message || {}).content || '';
             return C.parseLlmCommand(cmd);
+        }
+    };
+
+    // ---------------- AI máy chủ (khi có mạng) — kiểu Xiaozhi: máy chủ hiểu câu, app tự thực hiện ----------------
+    // Giao thức OpenAI-compatible (tool calling): máy chủ của app (/api/ai, khóa API giữ ở Vercel) hoặc địa chỉ riêng
+    // (Qwen DashScope, DeepSeek, OpenRouter, Ollama / LM Studio trong mạng nội bộ, máy chủ tự dựng…).
+    const cloud = {
+        state: 'idle', error: '',
+        cfg() {
+            let c = {};
+            try { c = JSON.parse(store.get('vn2k_ai_cloud', '{}')) || {}; } catch (e) { c = {}; }
+            return { enabled: c.enabled === true, url: c.url || '', model: c.model || '', key: c.key || '' };
+        },
+        save(c) { store.set('vn2k_ai_cloud', JSON.stringify(c)); },
+        usable() { const c = this.cfg(); return c.enabled && navigator.onLine !== false; },
+        endpoint(c) { return c.url ? c.url.replace(/\/+$/, '') + (/\/chat\/completions$/.test(c.url) ? '' : '/chat/completions') : new URL('api/ai', document.baseURI).href; },
+        describe() {
+            const c = this.cfg();
+            if (!c.enabled) return 'tắt';
+            if (navigator.onLine === false) return 'đang ngoại tuyến — dùng AI cục bộ / quy tắc';
+            if (this.state === 'error') return 'lỗi: ' + this.error;
+            return `bật — ${c.url ? c.url.replace(/^https?:\/\//, '').split('/')[0] : 'máy chủ của app'}${c.model ? ' · ' + c.model : ''}`;
+        },
+        /** Trả về {call} (lời gọi công cụ đã kiểm) hoặc {text} (trả lời chữ) hoặc null. */
+        async ask(text) {
+            const c = this.cfg();
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 15000);
+            try {
+                const body = { messages: C.buildToolMessages(text, window.AssistantDataset || [], 4), tools: C.openAiTools(), tool_choice: 'auto', temperature: 0, max_tokens: 300 };
+                if (c.model) body.model = c.model;
+                const headers = { 'Content-Type': 'application/json' };
+                if (c.url && c.key) headers.Authorization = 'Bearer ' + c.key;
+                const r = await fetch(this.endpoint(c), { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal });
+                if (!r.ok) {
+                    let msg = 'HTTP ' + r.status;
+                    try { const j = await r.json(); if (j && j.error) msg = typeof j.error === 'string' ? j.error : (j.error.message || msg); } catch (e) { /* bỏ qua */ }
+                    throw new Error(r.status === 503 && !c.url ? 'máy chủ của app chưa được cấu hình khóa AI (AI_API_KEY trên Vercel)' : msg);
+                }
+                const j = await r.json();
+                const m = (((j || {}).choices || [])[0] || {}).message || {};
+                this.state = 'ok'; this.error = '';
+                const tc = (m.tool_calls || [])[0];
+                if (tc && tc.function) {
+                    const call = C.validateCall({ tool: tc.function.name, args: tc.function.arguments }, { provinces: provinces() });
+                    return call ? { call } : null;
+                }
+                const inText = C.validateCall(C.parseToolJson(m.content || ''), { provinces: provinces() });
+                if (inText) return { call: inText };
+                const answer = String(m.content || '').trim();
+                return answer ? { text: answer.slice(0, 1500) } : null;
+            } catch (e) {
+                this.state = 'error'; this.error = e.name === 'AbortError' ? 'quá 15 giây không trả lời' : (e.message || String(e));
+                throw new Error(this.error);
+            } finally { clearTimeout(timer); }
         }
     };
 
@@ -325,22 +439,35 @@
                 ui.bot({ text: 'Đã mở bản đồ chuyển đổi tại điểm vừa tính.', source: DEVICE });
                 continue;
             }
-            let viaAi = false;
-            if (r.intent === 'unknown' && llm.state === 'ready') {
+            let viaAi = '';
+            let cloudText = '';
+            // Kết hợp: quy tắc trên máy trước → AI máy chủ khi có mạng → AI cục bộ khi ngoại tuyến
+            if (r.intent === 'unknown' && cloud.usable()) {
+                ui.thinking(true, 'AI máy chủ đang đọc câu…');
+                try {
+                    const a = await cloud.ask(part);
+                    if (a && a.call) { r = a.call; viaAi = 'cloud'; }
+                    else if (a && a.text) cloudText = a.text;
+                } catch (e) { ui.note('AI máy chủ không trả lời (' + e.message + ')' + (llm.state === 'ready' ? ' — chuyển sang AI cục bộ.' : '.')); }
+                ui.thinking(false);
+            }
+            if (r.intent === 'unknown' && !cloudText && llm.state === 'ready') {
                 ui.thinking(true);
                 try {
-                    const cmd = await llm.toCommand(part);
-                    if (cmd) { r = C.route(cmd, { provinces: provinces() }); viaAi = true; }
+                    const call = await llm.toCall(part);
+                    if (call && call.intent !== 'unknown') { r = call; viaAi = 'local'; }
                 } catch (e) { ui.note('Mô hình AI gặp lỗi: ' + e.message); }
                 ui.thinking(false);
             }
             let res;
-            if (r.intent === 'unknown' || r.intent === 'empty' || !tools[r.intent]) {
-                res = { text: 'Xin lỗi, tôi chưa hiểu yêu cầu này nên không đoán bừa.' + (llm.state === 'ready' ? '' : ' (Có thể bật Não AI cục bộ ở nút ⚙ để hiểu câu tự do hơn.)') +
+            if (cloudText && r.intent === 'unknown') {
+                res = { text: cloudText, source: 'cloud-text', speak: cloudText.split('\n')[0].slice(0, 160) };
+            } else if (r.intent === 'unknown' || r.intent === 'empty' || !tools[r.intent]) {
+                res = { text: 'Xin lỗi, tôi chưa hiểu yêu cầu này nên không đoán bừa.' + (llm.state === 'ready' || cloud.usable() ? '' : (cloud.cfg().enabled ? ' (Đang ngoại tuyến nên AI máy chủ tạm nghỉ; có thể tải AI cục bộ ở nút ⚙ để dùng khi mất mạng.)' : ' (Có thể bật AI ở nút ⚙ để hiểu câu tự do hơn.)')) +
                     '\nThử: "mở bản đồ", "10.7769 106.7009", "KTT hiện tại", "kiểm thử", "giúp".', source: DEVICE, speak: 'Xin lỗi, tôi chưa hiểu. Bạn thử nói cách khác nhé.' };
             } else {
                 try { res = await tools[r.intent](r.args || {}); } catch (e) { res = fail('Lỗi khi thực hiện: ' + e.message); }
-                if (viaAi) res.source = 'ai';
+                if (viaAi) res.source = viaAi === 'cloud' ? 'cloud' : 'ai';
             }
             ui.bot(res);
             if (res.point) lastPoint = res.point;
@@ -355,7 +482,7 @@
     }
 
     // ---------------- Giao diện ----------------
-    const QUICK = ['Kiểm thử', 'Vị trí của tôi', 'KTT hiện tại', 'Dự án hiện tại', 'Giúp'];
+    const QUICK = ['Kiểm tra số liệu', 'Xuất PDF A3', 'Vị trí của tôi', 'KTT hiện tại', 'Kiểm thử', 'Giúp'];
     const ui = {
         el: null,
         build() {
@@ -379,6 +506,16 @@
                 </div>
                 <p class="ai-cfg-status" id="aiLlmStatus"></p>
                 <p class="ai-cfg-note">Tải một lần (cần mạng, nên dùng Wi-Fi), sau đó chạy ngoại tuyến. Máy yếu có thể mất 10–30 giây cho mỗi câu khó; các lệnh thường vẫn trả lời tức thì không qua AI.</p>
+                <hr class="ai-cfg-sep">
+                <p><b>AI máy chủ khi có mạng (kiểu Xiaozhi).</b> Câu khó được gửi lên máy chủ AI để hiểu, rồi app tự thực hiện bằng công cụ của mình. Mất mạng thì tự quay về AI cục bộ / quy tắc. Chỉ gửi câu bạn nói/gõ, không gửi dữ liệu dự án; mọi phép tính vẫn làm trên máy.</p>
+                <label class="ai-cfg-check"><input type="checkbox" id="aiCloudOn"> Dùng AI máy chủ khi có mạng</label>
+                <div class="ai-cfg-grid">
+                  <input id="aiCloudUrl" class="ai-cfg-in" type="url" placeholder="Địa chỉ (để trống = máy chủ của app)" autocomplete="off">
+                  <input id="aiCloudModel" class="ai-cfg-in" type="text" placeholder="Mô hình (vd. qwen-plus, deepseek-chat)" autocomplete="off">
+                  <input id="aiCloudKey" class="ai-cfg-in" type="password" placeholder="Khóa API (chỉ khi dùng địa chỉ riêng)" autocomplete="off">
+                </div>
+                <div class="ai-cfg-row"><button type="button" class="btn-sm" id="aiCloudSave">Lưu</button><button type="button" class="btn-sm" id="aiCloudTest">Thử kết nối</button></div>
+                <p class="ai-cfg-status" id="aiCloudStatus"></p>
               </div>
               <div class="ai-log" id="aiLog" aria-live="polite"></div>
               <div class="ai-quick" id="aiQuick">${QUICK.map(q => `<button type="button" class="ai-chip">${q}</button>`).join('')}</div>
@@ -419,6 +556,18 @@
             urlBtn.onclick = () => (last && last.url ? llm.load(last.url, last.name) : llm.load(LLM_SUGGESTED.url, LLM_SUGGESTED.name));
             $('aiLlmFile').onchange = e => { const f = e.target.files && e.target.files[0]; if (f) llm.load(f, f.name); e.target.value = ''; };
             $('aiLlmOff').onclick = () => llm.unload();
+            const fillCloud = () => { const cc = cloud.cfg(); $('aiCloudOn').checked = cc.enabled; $('aiCloudUrl').value = cc.url; $('aiCloudModel').value = cc.model; $('aiCloudKey').value = cc.key; };
+            fillCloud();
+            $('aiCfgBtn').addEventListener('click', fillCloud);
+            const saveCloud = () => { cloud.save({ enabled: $('aiCloudOn').checked, url: $('aiCloudUrl').value.trim(), model: $('aiCloudModel').value.trim(), key: $('aiCloudKey').value.trim() }); cloud.state = 'idle'; this.refreshLlm(); };
+            $('aiCloudOn').onchange = saveCloud;
+            $('aiCloudSave').onclick = () => { saveCloud(); this.note('Đã lưu cấu hình AI máy chủ.'); };
+            $('aiCloudTest').onclick = async () => {
+                saveCloud();
+                const st = $('aiCloudStatus'); st.textContent = 'Đang thử…';
+                try { const a = await cloud.ask('mở bản đồ dự án'); st.textContent = a && a.call ? `✓ Kết nối được — máy chủ hiểu câu thử thành lệnh "${a.call.intent}".` : '⚠️ Kết nối được nhưng máy chủ không trả lời bằng công cụ (mô hình có hỗ trợ tool calling không?).'; }
+                catch (e) { st.textContent = '⚠️ ' + e.message; }
+            };
             document.addEventListener('keydown', e => { if (e.key === 'Escape' && !d.hidden) this.close(); });
             this.bot({ text: 'Xin chào! Tôi chạy ngay trên máy này, không cần mạng. Gõ hoặc nói lệnh — ví dụ "10.7769 106.7009", "mở MiniCAD", "kiểm thử". Nối nhiều lệnh bằng "rồi".', source: DEVICE });
             return d;
@@ -439,6 +588,8 @@
         user(t) { this.push(`<div class="ai-bubble">${esc(t)}</div>`, 'is-user'); },
         bot(r) {
             const badge = r.source === 'ai' ? '<span class="ai-badge is-ai">AI cục bộ hiểu câu → máy tự thực hiện</span>'
+                : r.source === 'cloud' ? '<span class="ai-badge is-ai">AI máy chủ hiểu câu → máy tự thực hiện</span>'
+                : r.source === 'cloud-text' ? '<span class="ai-badge is-test">AI máy chủ trả lời — chỉ để tham khảo, không dùng số liệu này để tính</span>'
                 : r.source === 'test' ? '<span class="ai-badge is-test">Tự kiểm thử</span>'
                     : '<span class="ai-badge is-dev">✓ Máy tự tính — không dùng AI</span>';
             const row = this.push(`<div class="ai-bubble">${badge}<div class="ai-text">${esc(r.text)}</div><div class="ai-acts"></div></div>`, 'is-bot');
@@ -452,16 +603,18 @@
             if (!acts.children.length) acts.remove();
         },
         note(t) { if (this.el) this.push(`<div class="ai-note">${esc(t)}</div>`, 'is-note'); },
-        thinking(on) {
+        thinking(on, label) {
             const old = this.el && this.el.querySelector('.ai-msg.is-thinking');
             if (old) old.remove();
-            if (on) this.push('<div class="ai-note">AI cục bộ đang đọc câu…</div>', 'is-note is-thinking');
+            if (on) this.push(`<div class="ai-note">${esc(label || 'AI cục bộ đang đọc câu…')}</div>`, 'is-note is-thinking');
         },
         refreshLlm() {
             const s = $('aiLlmStatus');
             if (s) s.textContent = 'Trạng thái: ' + llm.describe();
+            const cs = $('aiCloudStatus');
+            if (cs && !/^(Đang thử|✓|⚠️)/.test(cs.textContent)) cs.textContent = 'AI máy chủ: ' + cloud.describe();
             const sub = $('aiSub');
-            if (sub) sub.textContent = llm.state === 'ready' ? 'AI cục bộ: sẵn sàng · không cần mạng' : (llm.state === 'loading' ? `đang nạp AI ${llm.progress}%` : 'chạy trên máy này · không cần mạng');
+            if (sub) sub.textContent = llm.state === 'loading' ? `đang nạp AI ${llm.progress}%` : [llm.state === 'ready' ? 'AI cục bộ sẵn sàng' : 'quy tắc trên máy', cloud.usable() ? 'AI máy chủ khi có mạng' : 'không cần mạng'].join(' · ');
         }
     };
 
@@ -470,7 +623,7 @@
         if (b) b.setAttribute('aria-expanded', String(!!(ui.el && !ui.el.hidden)));
     }
 
-    window.appAssistant = { open: () => ui.open(), close: () => ui.close(), toggle: () => ui.toggle(), send, selfTest, llm, voice };
+    window.appAssistant = { open: () => ui.open(), close: () => ui.close(), toggle: () => ui.toggle(), send, selfTest, llm, voice, cloud, tools };
     // Trình duyệt nạp danh sách giọng đọc không đồng bộ.
     if (window.speechSynthesis && speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', () => { /* chỉ để kích nạp */ });
 })();

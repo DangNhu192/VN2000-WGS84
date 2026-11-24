@@ -1,5 +1,18 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-24: TRỢ LÝ AI "KẾT HỢP" (v2.8.56)
+- **Yêu cầu**: dùng phương án kết hợp (AI máy chủ kiểu Xiaozhi khi có mạng + AI cục bộ khi ngoại tuyến) và "train" AI hoạt động thông minh trên các chức năng của app.
+- **Không train trọng số** trong phiên này (không có GPU, không tải được mô hình). Thay vào đó "dạy" AI bằng: (1) danh mục công cụ có tham số dùng chung cho mọi tầng; (2) bộ 355 câu mẫu tiếng Việt (few-shot + chấm điểm + dữ liệu fine-tune); (3) khóa đầu ra bằng ngữ pháp JSON + `validateCall`.
+- **Đã làm**:
+  - `assistant-core.js`: `parseExport` (xuất bản vẽ có định dạng / khổ / tỷ lệ / nền / bảng / nguồn), `qcPoints` (đảo X/Y, ngoài phạm vi, tên trùng khác vị trí, khác tên trùng vị trí, mốc nhảy, lệch KTT, ranh tự cắt; đỉnh chung giữa các thửa không bị coi là lỗi), `TOOLS`, `validateCall`, `buildGrammar` (GBNF), `nearestExamples`, `buildToolMessages`, `openAiTools`, `parseToolJson`. Sửa: dấu câu sau tên tỉnh, số "2000" trong "VN2000" làm hỏng cặp tọa độ, "đang dùng múi chiếu nào" bị hiểu là lệnh đổi.
+  - `assistant.js`: công cụ `exportDrawing` (đi qua bộ xuất bản vẽ dùng chung), `checkData`; thứ tự quy tắc → AI máy chủ (chỉ khi bật và đang có mạng) → AI cục bộ (`toCall` JSON + ví dụ gần nhất, dự phòng lệnh chuẩn cũ); câu trả lời chữ của AI máy chủ gắn nhãn "chỉ để tham khảo"; cấu hình AI máy chủ trong ⚙ (địa chỉ, mô hình, khóa, thử kết nối); trạng thái AI cục bộ ghi rõ "chưa tải mô hình (0 / ~400 MB)".
+  - `api/ai.js`: hàm Vercel chuyển tiếp OpenAI-compatible, khóa giữ ở biến môi trường (`AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`), chặn nguồn gọi lạ, chưa cấu hình → 503 (app tự quay về cục bộ).
+  - `tools/ai/build_dataset.py` → `assistant-dataset.js` + `docs/ai/sft_vi.jsonl`; hướng dẫn `docs/ai/README.md` (bật AI máy chủ, fine-tune LoRA → GGUF).
+- **Kiểm**: bộ định tuyến 344/355 câu đúng, 0 câu sai (11 câu tự do để AI hiểu); Playwright: "xuất PDF A3 tỷ lệ 1:500 không nền, in cả hai bảng" ra đúng tệp; "kiểm tra số liệu" chạy; AI máy chủ giả lập hiểu câu tự do → mở bản đồ, xuất DWG; công cụ lạ bị loại; ngoại tuyến không gọi máy chủ. Test mới `tests/assistant_hybrid.test.js`; **595/595 PASS**.
+- **Việc của người dùng**: đặt `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` trên Vercel để bật AI máy chủ cho mọi máy.
+
+---
+
 ## Phiên hiện tại — 2026-11-23 (tối): XUẤT ĐÚNG LỚP ĐÃ CHỌN + MỘT BỐ CỤC CHO MỌI ĐỊNH DẠNG + TƯƠNG PHẢN (v2.8.55)
 - **Yêu cầu**: (1) chọn lớp bản đồ rồi xuất nhưng tệp không đúng như đã chọn; (2) bố cục PDF / PNG / DWG / ảnh / SVG không giống nhau; (3) tối ưu giao diện các chức năng; (4) thẻ chức năng khó đọc khi đổi màu nền / màu chữ (giao diện).
 - **Nguyên nhân tìm thấy**: `exportPdf` lưu `_lastExportPdfOpts` → lớp bản đồ đã tải (và cờ PNG / base64) của lần xuất trước dính sang lần sau; các ô "Lưới tọa độ", "Kim Bắc & thước tỷ lệ", "Khung tên", "Ghi chú" của Studio MiniCAD không được đọc ở đâu; khối "Xem trước & cài đặt nâng cao" bị cột flex ép còn 2 px nên người dùng không thấy ô xem trước và các ô tích thành phần bản vẽ; ảnh nén & SVG dùng bố cục dọc riêng; "Xuất dữ liệu" có 4 bộ vẽ riêng (PDF HTML, PNG 1920 px, SVG trơn không nền, DWG riêng).
