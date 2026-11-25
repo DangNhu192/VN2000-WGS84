@@ -620,6 +620,7 @@ console.log('\n— 10. QSELECT: Thế / Cộng thêm / Loại bớt + bảng kê
     closed.refreshAreaTableIfOpen.call({ openAreaTableModal() { opened++; } });
     assert(opened === 0, 'Bảng kê chưa mở → không gọi openAreaTableModal (đỡ chồng cửa sổ)');
     const areaModal = el({ style: { display: 'flex' } });
+    areaModal.classList.add('active');   // v2.8.60: "đang mở" = có lớp active (style.display rỗng lúc đầu từng làm bảng tự bật)
     areaModal.querySelector = () => ({ scrollTop: 500 });
     const listEl = { scrollTop: 120 };
     const openedApi = cad(['refreshAreaTableIfOpen'], '', { document: mkDoc({ modalCadAreaTable: areaModal, cadBlockList: listEl }) });

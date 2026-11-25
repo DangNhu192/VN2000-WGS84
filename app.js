@@ -19126,7 +19126,7 @@ const appCadTool = {
         this.persistSession();
         this.renderGeometry();
         this.renderBlocksPanel();
-        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+        if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
             this.openAreaTableModal();
         }
 
@@ -19217,7 +19217,7 @@ const appCadTool = {
         this.persistSession();
         this.renderGeometry();
         this.renderBlocksPanel();
-        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+        if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
             this.openAreaTableModal();
         }
 
@@ -19954,7 +19954,7 @@ const appCadTool = {
             this.savedShapes[idx].symbol = (symbol || '').trim();
             this.renderGeometry();
             this.renderBlocksPanel();
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                 this.openAreaTableModal();
             }
         }
@@ -19975,7 +19975,7 @@ const appCadTool = {
         this.renderBlocksPanel();
 
         const modal = document.getElementById('modalCadAreaTable');
-        const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+        const isModalOpen = document.getElementById('modalCadAreaTable')?.classList?.contains('active');
         if (isModalOpen) {
             const cadBlockList = document.getElementById('cadBlockList');
             const scrollBlockList = cadBlockList ? cadBlockList.scrollTop : 0;
@@ -20003,7 +20003,7 @@ const appCadTool = {
         this.renderBlocksPanel();
 
         const modal = document.getElementById('modalCadAreaTable');
-        const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+        const isModalOpen = document.getElementById('modalCadAreaTable')?.classList?.contains('active');
         if (isModalOpen) {
             const cadBlockList = document.getElementById('cadBlockList');
             const scrollBlockList = cadBlockList ? cadBlockList.scrollTop : 0;
@@ -20036,7 +20036,7 @@ const appCadTool = {
             this.checkScalePaperFit();
             const allShapes = this._getAllExportShapes();
             this.renderBlockList(allShapes);
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                 this.openAreaTableModal();
             }
             showToast(`✓ Đã cập nhật diện tích ${s.name}: ${s.stats.areaFormatted} m²`);
@@ -20060,7 +20060,7 @@ const appCadTool = {
             this.checkScalePaperFit();
             const allShapes = this._getAllExportShapes();
             this.renderBlockList(allShapes);
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                 this.openAreaTableModal();
             }
             showToast(`✓ Đã cập nhật chiều dài ${s.name}: ${s.stats.perimeterFormatted} m`);
@@ -20089,7 +20089,7 @@ const appCadTool = {
             this.checkScalePaperFit();
 
             const modal = document.getElementById('modalCadAreaTable');
-            const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+            const isModalOpen = document.getElementById('modalCadAreaTable')?.classList?.contains('active');
             if (isModalOpen) {
                 const cadBlockList = document.getElementById('cadBlockList');
                 const scrollBlockList = cadBlockList ? cadBlockList.scrollTop : 0;
@@ -20121,7 +20121,7 @@ const appCadTool = {
             this.checkScalePaperFit();
             const allShapes = this._getAllExportShapes();
             this.renderBlockList(allShapes);
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                 this.openAreaTableModal();
             }
             showToast(`✓ Đã khôi phục ${s.name} về số đo hình học thực tế!`);
@@ -20254,7 +20254,7 @@ const appCadTool = {
             this.updateUi();
             this.renderBlocksPanel();
             if (this.syncToolButtons) this.syncToolButtons();
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                 this.openAreaTableModal();
             }
             this.updateUndoRedoUi();
@@ -20530,7 +20530,7 @@ const appCadTool = {
             this.persistSession();
             this.renderGeometry();
             this.renderBlocksPanel();
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                 this.openAreaTableModal();
             }
             showToast(`✓ Đã chèn đỉnh mới vào khối [${s.shortName}]! Kéo thả để nắn ranh.`);
@@ -20568,7 +20568,7 @@ const appCadTool = {
             this.persistSession();
             this.renderGeometry();
             this.renderBlocksPanel();
-            if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+            if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                 this.openAreaTableModal();
             }
             showToast(`🗑️ Đã xóa đỉnh ${removed[0]?.name || ''}! Có thể nhấn [Ctrl+Z] để hoàn tác.`);
@@ -20663,7 +20663,8 @@ const appCadTool = {
                 this.openPolarModal();
             } else if (key === 'E') {
                 e.preventDefault();
-                this.openAreaTableModal();
+                if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) this.closeAreaTableModal();
+                else this.openAreaTableModal();
             } else if (key === 'Z' && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 this.zoomExtents();
@@ -20709,6 +20710,8 @@ const appCadTool = {
                 } else if (this.selectedItem) {
                     this.deselectCurrent();
                     showToast('Đã bỏ chọn đối tượng [Esc]');
+                } else if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
+                    this.closeAreaTableModal();
                 } else if (this.mode === 'select') {
                     this.switchToolTab('draw');
                 } else {
@@ -21973,7 +21976,7 @@ const appCadTool = {
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
-        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+        if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
             this.openAreaTableModal();
         }
         if (document.getElementById('modalCadPointTable')?.style.display === 'flex') {
@@ -21989,8 +21992,7 @@ const appCadTool = {
     openPointTableModal() {
         const modal = document.getElementById('modalCadPointTable');
         if (!modal) return;
-        const areaModal = document.getElementById('modalCadAreaTable');
-        if (areaModal) areaModal.style.display = 'none';
+        this.closeAreaTableModal();
         document.getElementById('modalCadExportConfig')?.classList.remove('active');
         if (this.getPointLayers().length === 0) {
             const layer = this.createPointLayer(`Lớp điểm ${this.savedShapes.length + 1}`);
@@ -23111,7 +23113,7 @@ const appCadTool = {
         if (elAreaM2) elAreaM2.innerText = `${measuredTotalArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
         if (elAreaHa) elAreaHa.innerText = `≈ ${(measuredTotalArea / 10000).toFixed(4)} ha (${polyCount} đa giác)`;
 
-        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+        if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
             this.openAreaTableModal();
         }
 
@@ -26619,7 +26621,7 @@ const appCadTool = {
     },
 
     renderGeometry(opts = {}) {
-        if (opts.persist !== false) this.persistSession();
+        if (opts.persist !== false) { this.persistSession(); this._refreshFloatTableSoon?.(); }
         this.ensureLayers();
         if (!this.layers.group) return;
         this.layers.group.clearLayers();
@@ -27091,7 +27093,7 @@ const appCadTool = {
                     this.renderGeometry();
                     this.renderBlocksPanel();
                     this.updateUi();
-                    if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                    if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                         this.openAreaTableModal();
                     }
                     triggerHaptic('success');
@@ -27408,7 +27410,7 @@ const appCadTool = {
                 this.renderGeometry();
                 this.updateUi();
                 this.renderBlocksPanel();
-                if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+                if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
                     this.openAreaTableModal();
                 }
                 triggerHaptic('success');
@@ -29422,22 +29424,28 @@ const appCadTool = {
     },
 
     openAreaTableModal(action = null) {
-        if (document.getElementById("modalCadExportConfig")) document.getElementById("modalCadExportConfig").classList.remove("active");
+        // Bảng kê là bảng nổi: gọi lại khi đang mở = làm mới số liệu tại chỗ (giữ vị trí cuộn, tab, cỡ bảng).
+        const wasOpen = document.getElementById('modalCadAreaTable')?.classList?.contains('active');
+        if (this._cftRefreshTimer) { clearTimeout(this._cftRefreshTimer); this._cftRefreshTimer = null; }
+        if (!wasOpen && document.getElementById("modalCadExportConfig")) document.getElementById("modalCadExportConfig").classList.remove("active");
         setTimeout(() => this.checkScalePaperFit(), 50);
         const allShapes = this._getAllExportShapes();
 
         if (allShapes.length === 0) {
+            if (wasOpen) { this.closeAreaTableModal(); return; }
             showToast("⚠️ Chưa có cấu trúc hoặc đỉnh nào để lập bảng diện tích và tọa độ ranh!", true);
             return;
         }
+        const ranhBox = document.getElementById('tabContentCadTableRanh');
+        const keepScroll = wasOpen && ranhBox ? ranhBox.scrollTop : 0;
 
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         const selectedArea = selectedShapes.reduce((sum, s) => sum + (s.mode === 'polygon' ? (s.stats?.area || 0) : 0), 0);
         const selectedHa = selectedArea / 10000.0;
         const selectedPerimeter = selectedShapes.reduce((sum, s) => sum + (s.stats?.perimeter || 0), 0);
         const selectedVertices = selectedShapes.reduce((sum, s) => sum + (s.vertices ? s.vertices.length : 0), 0);
-        // Khôi phục các thông tin tiêu đề bản vẽ & dự án đã lưu từ localStorage
-        try {
+        // Khôi phục các thông tin tiêu đề bản vẽ & dự án đã lưu từ localStorage (chỉ khi mở mới, không ghi đè lúc làm mới)
+        if (!wasOpen) try {
             const savedMetaStr = localStorage.getItem('vn2k_cad_meta_saved');
             const savedMeta = savedMetaStr ? JSON.parse(savedMetaStr) : null;
             const curProj = AppState.currentProject.replace(/\.[^/.]+$/, "");
@@ -29490,6 +29498,7 @@ const appCadTool = {
                                     <span style="color: ${isSelected ? shape.color : '#94a3b8'}; font-weight: 800; font-size: 12px;">📁 ${shape.name} [${isPoly ? 'Đa giác' : (shape.mode === 'point' ? 'Điểm' : 'Tuyến')}] • ${shape.mode === 'point' ? (`Tổng số ${shape.vertices.length} điểm`) : (`S = ${shape.stats?.areaFormatted || 0} m² (${shape.stats?.haFormatted || 0} ha) • P = ${shape.stats?.perimeterFormatted || 0} m`)}</span>
                                 </label>
                                 <div style="display: flex; align-items: center; gap: 6px;">
+                                    ${sIdx >= 0 || isShapeActive ? `<button type="button" class="btn-sm" style="height: 24px; padding: 0 8px; font-size: 11px; background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); border-radius: 4px;" onclick="event.stopPropagation(); appCadTool.focusTableShape(${shapeIdx})" title="Thu phóng bản đồ tới khối này">🔍 Xem</button>` : ''}
                                     ${!isSelected ? `
                                         <span style="font-size: 11px; color: #f87171; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700;">
                                             👁️ Bỏ chọn (Không tính tổng)
@@ -29539,8 +29548,10 @@ const appCadTool = {
                             `;
                         }
 
+                        const vLat = parseFloat(v.lat), vLng = parseFloat(v.lng);
+                        const canFocus = isFinite(vLat) && isFinite(vLng);
                         html += `
-                            <tr>
+                            <tr${canFocus ? ` class="cft-vrow" data-lat="${vLat}" data-lng="${vLng}" onclick="appCadTool.focusTableVertex(event, this)" title="Bấm để xem đỉnh ${escapeHtml(String(v.name))} trên bản đồ"` : ''}>
                                 <td style="text-align: center; color: #94a3b8;">${idx + 1}</td>
                                 <td style="text-align: left; font-weight: 700; color: #38bdf8;">${v.name}</td>
                                 <td style="text-align: right; padding-right: 12px; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums;">${(v.x || 0).toFixed(3)}</td>
@@ -29570,17 +29581,27 @@ const appCadTool = {
         // Render bảng khối 2D với tên chỉnh sửa được
         this.renderBlockList(allShapes);
 
+        this._cftSig = this._cftSignature();
         const modal = document.getElementById('modalCadAreaTable');
+        if (modal && wasOpen) {
+            if (ranhBox) ranhBox.scrollTop = keepScroll;
+            const tab = this.modalTableActiveTab;
+            if (tab && tab !== 'ranh' && typeof this.switchModalTableTab === 'function') this.switchModalTableTab(tab);
+            return;
+        }
         if (modal) {
             modal.style.display = 'flex';
             modal.classList.add('active');
+            this._initFloatTable();
+            if (this._cftIsSheet() && typeof this.setToolbarCollapsed === 'function') this.setToolbarCollapsed(true);
+            this._placeFloatTable();
 
             // Khôi phục view mode & maximize
             const savedMode = localStorage.getItem('vn2k_cad_table_view_mode') || 'both';
             this.setAreaTableViewMode(savedMode);
 
             const isMaximized = localStorage.getItem('vn2k_cad_table_maximized') === '1';
-            if (isMaximized && !this.isAreaModalMaximized) {
+            if (isMaximized !== !!this.isAreaModalMaximized) {
                 this.toggleMaximizeAreaModal();
             }
 
@@ -29596,33 +29617,258 @@ const appCadTool = {
 
 
     toggleMaximizeAreaModal() {
-        const box = document.getElementById('cadAreaTableModalBox');
+        const modal = document.getElementById('modalCadAreaTable');
         const iconEl = document.getElementById('lblCadTableMaximizeIcon');
         const btnEl = document.getElementById('btnCadTableMaximize');
-        if (!box) return;
+        if (!modal) return;
 
         this.isAreaModalMaximized = !this.isAreaModalMaximized;
-        if (this.isAreaModalMaximized) {
-            box.style.maxWidth = '98vw';
-            box.style.width = '98vw';
-            box.style.maxHeight = 'calc(var(--ui-avail-h) * 0.96)';
-            box.style.height = 'calc(var(--ui-avail-h) * 0.96)';
-            if (iconEl) iconEl.textContent = '❐';
-            if (btnEl) btnEl.title = 'Thu nhỏ kích thước bảng kê [⛶]';
-            const spanText = btnEl?.querySelector('span:last-child');
-            if (spanText) spanText.textContent = 'Thu nhỏ';
-        } else {
-            box.style.maxWidth = '960px';
-            box.style.width = '94vw';
-            box.style.maxHeight = 'calc(var(--ui-avail-h) * 0.92)';
-            box.style.height = '';
-            if (iconEl) iconEl.textContent = '⛶';
-            if (btnEl) btnEl.title = 'Phóng to toàn màn hình để xem rộng rãi, không bị che khuất [⛶]';
-            const spanText = btnEl?.querySelector('span:last-child');
-            if (spanText) spanText.textContent = 'Phóng to';
-        }
-        localStorage.setItem('vn2k_cad_table_maximized', this.isAreaModalMaximized ? '1' : '0');
+        modal.classList.toggle('cft-max', this.isAreaModalMaximized);
+        if (this.isAreaModalMaximized) modal.classList.remove('cft-min');
+        if (iconEl) iconEl.textContent = this.isAreaModalMaximized ? '❐' : '⛶';
+        if (btnEl) btnEl.title = this.isAreaModalMaximized ? 'Thu nhỏ về bảng nổi [⛶]' : 'Phóng to bảng kê gần toàn màn hình [⛶]';
+        const spanText = btnEl?.querySelector('span:last-child');
+        if (spanText) spanText.textContent = this.isAreaModalMaximized ? 'Thu nhỏ' : 'Phóng to';
+        try { localStorage.setItem('vn2k_cad_table_maximized', this.isAreaModalMaximized ? '1' : '0'); } catch (e) {}
+        this._syncMinimizeBtn();
         if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+    },
+
+    // ================= BẢNG KÊ NỔI TRÊN BẢN ĐỒ (v2.8.60) =================
+    _isAreaTableOpen() {
+        const modal = (typeof document !== 'undefined') ? document.getElementById('modalCadAreaTable') : null;
+        return !!(modal && modal.classList.contains('active'));
+    },
+
+    _cftIsSheet() {
+        return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+    },
+
+    _cftLoad() {
+        try { return JSON.parse(localStorage.getItem('vn2k_cad_float_table') || '{}') || {}; } catch (e) { return {}; }
+    },
+
+    _cftSave(patch) {
+        try { localStorage.setItem('vn2k_cad_float_table', JSON.stringify(Object.assign(this._cftLoad(), patch))); } catch (e) {}
+    },
+
+    toggleMinimizeAreaTable(force) {
+        const modal = document.getElementById('modalCadAreaTable');
+        if (!modal) return;
+        const min = typeof force === 'boolean' ? force : !modal.classList.contains('cft-min');
+        if (min && this.isAreaModalMaximized) this.toggleMaximizeAreaModal();
+        modal.classList.toggle('cft-min', min);
+        this._syncMinimizeBtn();
+    },
+
+    _syncMinimizeBtn() {
+        const modal = document.getElementById('modalCadAreaTable');
+        const btn = document.getElementById('btnCadTableMinimize');
+        if (!modal || !btn) return;
+        const min = modal.classList.contains('cft-min');
+        btn.textContent = min ? '▴' : '▾';
+        btn.setAttribute('aria-expanded', min ? 'false' : 'true');
+        btn.title = min ? 'Mở rộng bảng kê' : 'Thu gọn bảng kê (chỉ giữ thanh tiêu đề)';
+    },
+
+    // Phần bản đồ không bị bảng che: dùng làm vùng đệm khi thu phóng tới đỉnh / khối.
+    _tableFitPadding() {
+        const pad = { paddingTopLeft: [40, 40], paddingBottomRight: [40, 40] };
+        const map = AppState.leafletMap;
+        const box = document.getElementById('cadAreaTableModalBox');
+        if (!map || !box || !this._isAreaTableOpen()) return pad;
+        const mr = map.getContainer().getBoundingClientRect();
+        const br = box.getBoundingClientRect();
+        if (br.width < 10 || br.height < 10) return pad;
+        const roomLeft = br.left - mr.left, roomRight = mr.right - br.right;
+        const roomTop = br.top - mr.top, roomBottom = mr.bottom - br.bottom;
+        const best = Math.max(roomLeft, roomRight, roomTop, roomBottom);
+        if (best === roomBottom) pad.paddingTopLeft[1] = Math.max(40, br.bottom - mr.top + 30);
+        else if (best === roomTop) pad.paddingBottomRight[1] = Math.max(40, mr.bottom - br.top + 30);
+        else if (best === roomLeft) pad.paddingBottomRight[0] = Math.max(40, mr.right - br.left + 30);
+        else pad.paddingTopLeft[0] = Math.max(40, br.right - mr.left + 30);
+        return pad;
+    },
+
+    focusTableVertex(ev, row) {
+        if (ev && ev.target && ev.target.closest && ev.target.closest('input, button, select, a, label')) return;
+        const map = AppState.leafletMap;
+        if (!map || !row) return;
+        const lat = parseFloat(row.dataset.lat), lng = parseFloat(row.dataset.lng);
+        if (!isFinite(lat) || !isFinite(lng)) return;
+        const ll = L.latLng(lat, lng);
+        const zoom = Math.max(map.getZoom() || 0, 19);
+        map.fitBounds(L.latLngBounds(ll, ll), Object.assign({ maxZoom: zoom, animate: true }, this._tableFitPadding()));
+        document.querySelectorAll('#modalCadAreaTable tr.cft-focus').forEach(r => r.classList.remove('cft-focus'));
+        row.classList.add('cft-focus');
+        try {
+            if (this._cftPulse) map.removeLayer(this._cftPulse);
+            this._cftPulse = L.circleMarker(ll, { radius: 16, color: '#38bdf8', weight: 3, fillColor: '#38bdf8', fillOpacity: 0.25, interactive: false, className: 'cft-pulse' }).addTo(map);
+            const mk = this._cftPulse;
+            setTimeout(() => { if (map.hasLayer(mk)) map.removeLayer(mk); if (this._cftPulse === mk) this._cftPulse = null; }, 1500);
+        } catch (e) {}
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+    },
+
+    focusTableShape(shapeIdx) {
+        const map = AppState.leafletMap;
+        const shape = this._getAllExportShapes()[shapeIdx];
+        if (!map || !shape) return;
+        const coords = (shape.vertices || []).map(v => [parseFloat(v.lat), parseFloat(v.lng)]).filter(c => isFinite(c[0]) && isFinite(c[1]));
+        if (!coords.length) return;
+        map.fitBounds(coords, Object.assign({ maxZoom: 22, animate: true }, this._tableFitPadding()));
+    },
+
+    // Đặt bảng: máy tính = vị trí/cỡ đã lưu (mặc định bên phải, dưới thanh MiniCAD); điện thoại = tấm trượt trên thanh điều hướng.
+    _placeFloatTable() {
+        const modal = document.getElementById('modalCadAreaTable');
+        const box = document.getElementById('cadAreaTableModalBox');
+        if (!modal || !box) return;
+        const st = this._cftLoad();
+        if (this._cftIsSheet()) {
+            box.style.left = box.style.top = box.style.width = box.style.height = '';
+            // Tấm trượt đậu ngay trên những gì đang nằm ở đáy màn hình: thanh công cụ MiniCAD (điện thoại để ở đáy),
+            // thanh tọa độ/SNAP và thanh điều hướng — không che công cụ vẽ.
+            let edge = window.innerHeight;
+            ['mapCadToolbar', 'cadStatusHud', 'mobileBottomNav'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el || getComputedStyle(el).display === 'none' || getComputedStyle(el).visibility === 'hidden') return;
+                const r = el.getBoundingClientRect();
+                if (r.height > 0 && r.width > 0 && r.top > window.innerHeight * 0.45 && r.top < edge) edge = r.top;
+            });
+            const bottom = Math.max(0, window.innerHeight - edge + (edge < window.innerHeight ? 4 : 0));
+            box.style.setProperty('--cft-bottom', `${Math.round(bottom)}px`);
+            const avail = window.innerHeight - bottom;
+            const h = st.sheetH ? Math.min(Math.max(st.sheetH, 120), avail - 60) : Math.round(avail * 0.46);
+            box.style.setProperty('--cft-sheet-h', `${Math.round(h)}px`);
+            return;
+        }
+        if (st.w) box.style.width = `${Math.round(st.w)}px`;
+        if (st.h) box.style.height = `${Math.round(st.h)}px`;
+        let left = st.left, top = st.top;
+        if (!isFinite(left) || !isFinite(top)) {
+            const tb = document.querySelector('.map-cad-toolbar');
+            const tbr = tb && getComputedStyle(tb).display !== 'none' ? tb.getBoundingClientRect() : null;
+            top = tbr && tbr.height > 0 ? tbr.bottom + 10 : 112;
+            left = window.innerWidth - box.offsetWidth - 12;
+            // Chừa thanh tọa độ / SNAP của MiniCAD ở đáy bản đồ.
+            const hud = document.getElementById('cadStatusHud');
+            const hr = hud && getComputedStyle(hud).display !== 'none' ? hud.getBoundingClientRect() : null;
+            const bottomLimit = hr && hr.height > 0 && hr.right > window.innerWidth - box.offsetWidth - 12 ? hr.top - 8 : window.innerHeight - 16;
+            if (!st.h) box.style.height = `${Math.round(Math.max(260, Math.min(600, bottomLimit - top)))}px`;
+        }
+        this._cftMoveTo(left, top);
+    },
+
+    _cftMoveTo(left, top) {
+        const box = document.getElementById('cadAreaTableModalBox');
+        if (!box) return;
+        const w = box.offsetWidth, h = box.offsetHeight;
+        // Luôn chừa ít nhất 90 px thanh tiêu đề trong màn hình để kéo lại được.
+        // Không cho chui dưới thanh tiêu đề app (che mất chỗ kéo).
+        const hdr = document.querySelector('header.app-header');
+        const minTop = hdr ? Math.max(4, hdr.getBoundingClientRect().bottom + 4) : 4;
+        left = Math.min(Math.max(left, 90 - w), window.innerWidth - 90);
+        top = Math.min(Math.max(top, minTop), window.innerHeight - 40);
+        box.style.left = `${Math.round(left)}px`;
+        box.style.top = `${Math.round(top)}px`;
+        box.style.right = 'auto';
+        return { left, top, h };
+    },
+
+    _initFloatTable() {
+        const modal = document.getElementById('modalCadAreaTable');
+        const box = document.getElementById('cadAreaTableModalBox');
+        const head = document.getElementById('cadAreaTableHead');
+        if (!modal || !box || !head || head._cftInit) return;
+        head._cftInit = true;
+        let drag = null;
+        head.addEventListener('pointerdown', (e) => {
+            if (e.button > 0 || e.target.closest('button, input, select, a')) return;
+            if (this.isAreaModalMaximized) return;
+            const r = box.getBoundingClientRect();
+            drag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: r.left, top: r.top, h: r.height, moved: false, sheet: this._cftIsSheet(), min: modal.classList.contains('cft-min') };
+            try { head.setPointerCapture(e.pointerId); } catch (err) {}
+            modal.classList.add('cft-dragging');
+        });
+        head.addEventListener('pointermove', (e) => {
+            if (!drag || e.pointerId !== drag.id) return;
+            const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+            if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+            drag.moved = true;
+            e.preventDefault();
+            if (drag.sheet) {
+                if (drag.min) { modal.classList.remove('cft-min'); this._syncMinimizeBtn(); drag.min = false; drag.h = 56; }
+                const bottom = parseFloat(box.style.getPropertyValue('--cft-bottom')) || 0;
+                const maxH = window.innerHeight - bottom - 60;
+                drag.newH = Math.min(Math.max(drag.h - dy, 56), maxH);
+                box.style.setProperty('--cft-sheet-h', `${Math.round(drag.newH)}px`);
+            } else {
+                this._cftMoveTo(drag.left + dx, drag.top + dy);
+            }
+        });
+        const end = (e) => {
+            if (!drag || e.pointerId !== drag.id) return;
+            const d = drag; drag = null;
+            modal.classList.remove('cft-dragging');
+            if (!d.moved) {
+                if (d.sheet) this.toggleMinimizeAreaTable();   // chạm đầu tấm trượt = thu gọn / mở
+                return;
+            }
+            if (d.sheet) {
+                if (d.newH < 110) { this.toggleMinimizeAreaTable(true); return; }
+                this._cftSave({ sheetH: Math.round(d.newH) });
+            } else {
+                const r = box.getBoundingClientRect();
+                this._cftSave({ left: Math.round(r.left), top: Math.round(r.top) });
+            }
+        };
+        head.addEventListener('pointerup', end);
+        head.addEventListener('pointercancel', end);
+        head.addEventListener('dblclick', (e) => { if (!e.target.closest('button') && !this._cftIsSheet()) this.toggleMaximizeAreaModal(); });
+        // Kéo góc để đổi cỡ (máy tính): ghi nhớ cỡ bảng.
+        if (typeof ResizeObserver !== 'undefined') {
+            let t = null;
+            new ResizeObserver(() => {
+                if (!this._isAreaTableOpen() || this._cftIsSheet() || this.isAreaModalMaximized || modal.classList.contains('cft-min')) return;
+                clearTimeout(t);
+                t = setTimeout(() => {
+                    if (!box.style.width && !box.style.height) return;
+                    this._cftSave({ w: box.offsetWidth, h: box.offsetHeight });
+                }, 400);
+            }).observe(box);
+        }
+        window.addEventListener('resize', () => { if (this._isAreaTableOpen()) this._placeFloatTable(); });
+        // Điện thoại: thanh công cụ MiniCAD mở rộng / thu gọn → tấm trượt dời theo để không che.
+        const tb = document.getElementById('mapCadToolbar');
+        if (tb && typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(() => { if (this._isAreaTableOpen() && this._cftIsSheet()) this._placeFloatTable(); }).observe(tb);
+        }
+    },
+
+    // Bản vẽ đổi (chấm/kéo/xóa đỉnh, sửa khối) → làm mới bảng nổi sau khi ngừng thao tác; không chen ngang lúc đang gõ trong bảng.
+    _refreshFloatTableSoon() {
+        if (!this._isAreaTableOpen()) return;
+        clearTimeout(this._cftRefreshTimer);
+        this._cftRefreshTimer = setTimeout(() => {
+            this._cftRefreshTimer = null;
+            const modal = document.getElementById('modalCadAreaTable');
+            if (!this._isAreaTableOpen() || (modal && modal.contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) return;
+            // MiniCAD vẽ lại cả khi chỉ kéo / thu phóng bản đồ: chỉ dựng lại bảng khi số liệu bản vẽ thật sự đổi.
+            if (this._cftSignature() === this._cftSig) return;
+            this.openAreaTableModal();
+        }, 350);
+    },
+
+    _cftSignature() {
+        const vs = (arr) => (arr || []).map(v => [v.lat, v.lng, v.x, v.y, v.name]);
+        try {
+            return JSON.stringify([
+                (this.savedShapes || []).map(s => [s.id, s.name, s.symbol, s.mode, s.selected, s.color, s.layer, s.customArea, s.customPerimeter, s.customEdges, vs(s.vertices)]),
+                this.mode, vs(this.vertices),
+                (this.annotations || []).length, AppState.kttVal
+            ]);
+        } catch (e) { return String(Math.random()); }
     },
 
     setAreaTableViewMode(mode) {
@@ -31549,7 +31795,7 @@ const appCadTool = {
     // Bảng kê đang mở thì vẽ lại ngay, giữ nguyên vị trí cuộn để người dùng không bị nhảy khung
     refreshAreaTableIfOpen() {
         const modal = document.getElementById('modalCadAreaTable');
-        const isModalOpen = modal && (modal.style.display === 'flex' || modal.classList.contains('active') || modal.offsetParent !== null);
+        const isModalOpen = document.getElementById('modalCadAreaTable')?.classList?.contains('active');
         if (!isModalOpen) return;
         const cadBlockList = document.getElementById('cadBlockList');
         const modalBox = modal.querySelector('.modal-box');
@@ -32623,7 +32869,7 @@ const appCadTool = {
         this.updateUi();
         this.renderBlocksPanel();
         this.refreshPointLayerBar();
-        if (document.getElementById('modalCadAreaTable')?.style.display !== 'none') {
+        if (document.getElementById('modalCadAreaTable')?.classList?.contains('active')) {
             this.openAreaTableModal();
         }
         showToast(`🗑️ Đã xóa khối "${name}"`);
@@ -32719,10 +32965,12 @@ const appCadTool = {
 
     closeAreaTableModal() {
         const modal = document.getElementById('modalCadAreaTable');
+        if (this._cftRefreshTimer) { clearTimeout(this._cftRefreshTimer); this._cftRefreshTimer = null; }
         if (modal) {
             modal.style.display = 'none';
-            modal.classList.remove('active');
+            modal.classList.remove('active', 'cft-dragging');
         }
+        document.querySelectorAll('#modalCadAreaTable tr.cft-focus').forEach(r => r.classList.remove('cft-focus'));
     },
 
     // ================= NẠP GIS VÀO BẢN VẺ (GEOJSON / KML / GPX / WKT) =================
