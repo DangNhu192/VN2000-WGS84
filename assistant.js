@@ -145,11 +145,11 @@
             if (basemap) meta.basemap = basemap;
             if (tables) meta.summaryTables = tables;
             const opts = { shapes: pl.shapes, meta, fileBase: pl.fileBase };
-            const label = { pdf: 'PDF', png: 'PNG', image: 'ảnh nén', svg: 'SVG', dwg: 'DWG' }[format] || 'PDF';
+            const label = { pdf: 'PDF', png: 'PNG', image: 'ảnh nén', svg: 'SVG', dwg: 'DXF (AutoCAD)' }[format] || 'PDF';
             const baseName = { none: 'không nền', google_hybrid: 'nền Google vệ tinh', esri_satellite: 'nền Esri vệ tinh', google_streets: 'nền Google đường phố', opentopomap: 'nền địa hình', google_terrain: 'nền địa hình Google', osm_streets: 'nền OpenStreetMap', sentinel2: 'nền Sentinel-2' }[meta.basemap] || 'nền đang chọn';
             const tbl = { area: 'bảng diện tích', points: 'bảng các điểm', both: 'cả hai bảng' }[meta.summaryTables] || 'bảng diện tích';
             const after = () => { if (format === 'dwg') appCadTool.exportDwg(opts); else appCadTool.exportPdf(Object.assign({ target: format }, opts)); };
-            return { text: `Đang xuất ${label} từ ${from}: khổ ${meta.paperLabel || meta.paper || 'đang chọn'}, tỷ lệ ${meta.scaleVal ? '1:' + meta.scaleVal : 'tự động'}, ${format === 'dwg' ? 'nét vẽ vector (DWG không nhúng ảnh nền)' : baseName}, ${tbl}.`,
+            return { text: `Đang xuất ${label} từ ${from}: khổ ${meta.paperLabel || meta.paper || 'đang chọn'}, tỷ lệ ${meta.scaleVal ? '1:' + meta.scaleVal : 'tự động'}, ${format === 'dwg' ? 'nét vẽ vector (DXF không nhúng ảnh nền)' : baseName}, ${tbl}.`,
                 source: DEVICE, speak: `Đang xuất bản vẽ ${label}.`, after };
         },
         // Kiểm tra chất lượng số liệu đo — máy tự soát, không dùng AI

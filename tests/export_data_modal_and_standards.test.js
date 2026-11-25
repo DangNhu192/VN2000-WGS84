@@ -123,20 +123,17 @@ describe('=== KIỂM THỬ QUY TRÌNH XUẤT DỮ LIỆU & FIX LỖI MISSING SYM
         assert.ok(appJs.includes('executeExport()'), 'Hàm executeExport phải có trong appData');
     });
 
-    test('5. Đảm bảo tính toàn vẹn của các định dạng file xuất ra (.dwg, .dat/.cmd, .kml, .geojson, .svg, .xlsx)', () => {
+    test('5. Đảm bảo tính toàn vẹn của các định dạng file xuất ra (.dxf, .dgn, .dat, .kml, .geojson, .svg, .xlsx)', () => {
         // Kiểm tra xuất CAD .dwg chuẩn Autodesk AC1015
-        assert.ok(appJs.includes("exportDwgFile() { return this._exportDrawing('dwg'") && appJs.includes('a.download = `${baseFilename}.dwg`;'), 'appData.exportDwgFile xuất .dwg chuẩn qua bộ xuất DWG dùng chung của MiniCAD');
-        assert.ok(appJs.includes('application/acad'), 'MIME type bản vẽ CAD phải là application/acad');
-
-        // Kiểm tra xuất MicroStation & Famis (.dat & .cmd)
-        assert.ok(appJs.includes('filenameDat'), 'exportDgnFile phải xuất file số liệu Famis .dat chuẩn');
-        assert.ok(appJs.includes('filenameCmd'), 'exportDgnFile phải xuất file kịch bản MicroStation Key-in .cmd');
-        assert.ok(appJs.includes('place point xy='), 'Kịch bản .cmd phải chứa lệnh đặt điểm MicroStation');
-        assert.ok(appJs.includes('place line '), 'Kịch bản .cmd phải chứa lệnh vẽ đường ranh MicroStation');
+        // v2.8.61: trình duyệt không ghi được DWG thật → mục AutoCAD xuất đúng một tệp .dxf; DGN là tệp DGN V7 thật, Famis .dat tách riêng.
+        assert.ok(appJs.includes("exportDwgFile() { return this._exportDrawing('dwg'") && appJs.includes("saveBlobFile(dwg, `${baseFilename}.dxf`, 'application/dxf');"), 'appData.exportDwgFile xuất một tệp .dxf qua bộ xuất dùng chung của MiniCAD');
+        assert.ok(appJs.includes("exportDgnFile() { return this._exportDrawing('dgn'") && appJs.includes('GisIO.writeDgn(items)'), 'exportDgnFile ghi tệp DGN V7 thật bằng bộ ghi dùng chung');
+        assert.ok(appJs.includes('exportDatFile() {') && appJs.includes('_Famis.dat'), 'Số liệu Famis .dat là định dạng riêng, một tệp');
+        assert.ok(!appJs.includes('filenameCmd') && !appJs.includes('place point xy='), 'Không còn tệp kịch bản .cmd đi kèm (trình duyệt chặn lượt tải thứ hai)');
 
         // Kiểm tra tính toàn vẹn của nhãn giao diện modal
-        assert.ok(indexHtml.includes('Bản vẽ AutoCAD (.dwg)'), 'Nhãn AutoCAD nêu rõ Bản vẽ AutoCAD (.dwg)');
-        assert.ok(indexHtml.includes('MicroStation &amp; Famis (.dat / .cmd / .dgn)') || indexHtml.includes('MicroStation & Famis (.dat / .cmd / .dgn)'), 'Nhãn MicroStation nêu rõ .dat / .cmd / .dgn');
+        assert.ok(indexHtml.includes('Bản vẽ AutoCAD (.dxf)'), 'Nhãn AutoCAD nêu rõ Bản vẽ AutoCAD (.dxf)');
+        assert.ok(indexHtml.includes('DGN V7 (.dgn)') && indexHtml.includes('Số liệu điểm Famis (.dat)'), 'Nhãn MicroStation / Famis nêu đúng tệp sẽ nhận');
     });
 });
 

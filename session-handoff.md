@@ -1,5 +1,25 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-25 (trưa): XUẤT ĐÚNG ĐỊNH DẠNG, MỖI LẦN MỘT TỆP (v2.8.61)
+- **Báo lỗi**: không xuất được đúng các định dạng tệp (không có file). Người dùng xuất trên máy tính.
+- **Nguyên nhân** (ma trận Playwright `scripts/export_matrix.py`: mọi định dạng ở hộp Xuất bản vẽ MiniCAD, hộp Xuất dữ liệu, Bảng kê, Bảng điểm):
+  - ".dwg": nội dung là DXF nhưng đặt đuôi .dwg → AutoCAD báo "Drawing file is not valid"; thêm lượt tải .dxf thứ hai sau 150 ms — Chrome máy tính chặn lượt tải tự động thứ hai ("trang muốn tải nhiều tệp").
+  - ".dgn / .dat": không có tệp .dgn nào; ra .dat + kịch bản .cmd (+ .dxf) = 2–3 lượt tải, chỉ lượt đầu chắc chắn về.
+  - .wkt có dòng chú thích "#" (WKT không có cú pháp chú thích → QGIS/GDAL từ chối).
+  - "Chia sẻ" MiniCAD chỉ chép chữ, không có tệp. Hố đào / Trắc dọc cũng là DXF đặt đuôi .dwg.
+- **Quyết định của người dùng**: AutoCAD → xuất .dxf chuẩn (trình duyệt không ghi được DWG thật chắc chắn); DGN → ghi DGN V7 thật, giữ .dat cho Famis.
+- **Đã làm**:
+  - `saveBlobFile()` (app.js): một lượt tải, thu hồi URL sau 60 s. Mọi định dạng xuất đúng MỘT tệp.
+  - AutoCAD: một tệp `.dxf` (AC1015). Mục chọn ".dxf (AutoCAD)"; giá trị cũ 'dwg' (lưu sẵn / trợ lý AI) tự đổi sang 'dxf'.
+  - `GisIO.writeDgn(items)` (src/core/gis_io.js): DGN V7 2D từ tệp mồi seed_2d.dgn của GDAL (MIT) — vá TCB (m/mm, 1000 mm/m, 1 UOR/mm, gốc 0), vùng 6 / vùng phức 14, đường 4 / chuỗi phức 12, đường 3 (điểm = đường dài 0), chữ 17 (bỏ dấu, V7 8 bit), đệm khối 512 byte. Mã hóa đối chiếu byte với bộ ghi của GDAL; GDAL đọc lại đúng loại, lớp, màu, nét, tọa độ tới mm, chữ (cỡ, góc).
+  - `appCadTool.exportDgn(opts)` (lớp 10 ranh, 13 số thửa, 14 diện tích, 20 tuyến, 30/31 điểm rời + tên, 32 tên đỉnh; chữ 2 mm theo tỷ lệ) dùng cho cả MiniCAD và Xuất dữ liệu (`appData.exportDgnFile` → `_exportDrawing('dgn')`). `exportFamisDat` / `appData.exportDatFile`: một tệp .dat (STT, Tên, Y, X, H, Mã). Bỏ kịch bản .cmd.
+  - WKT: `toWktText(..., { names: false })` khi xuất tệp. Chia sẻ MiniCAD: kết xuất PDF (`exportPdf({ onFile })`) → bảng chia sẻ của máy; máy tính → tải PDF + chép tóm tắt.
+  - Nhãn / mô tả / bản dịch: "AutoCAD (.dwg)" → "AutoCAD (.dxf)".
+- **Kiểm**: ma trận 32 lượt xuất → đúng 1 tệp, đúng đuôi, đúng nội dung; DXF ezdxf 0 lỗi; DGN và WKT đọc bằng GDAL. `tests/export_exact_formats.test.js` (7); cập nhật 8 test cũ đã khóa hành vi sai. **622/622 PASS**.
+- **Lưu ý**: MicroStation mở tệp .dgn mới cần "Fit View" (khung nhìn của tệp mồi không ở vùng tọa độ VN-2000).
+
+---
+
 ## Phiên hiện tại — 2026-11-25: BẢNG KÊ MINICAD NỔI TRÊN BẢN ĐỒ (v2.8.60)
 - **Yêu cầu**: bấm "Bảng kê" trong MiniCAD thì hiện bảng nổi trên bản đồ, không bật cả lớp cửa sổ che bản đồ và chặn thao tác.
 - **Đã làm** (`#modalCadAreaTable`, lớp `cad-float-table`):

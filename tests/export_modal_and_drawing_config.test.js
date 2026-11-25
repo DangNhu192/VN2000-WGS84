@@ -24,7 +24,7 @@ test('=== 1. KIỂM THỬ NÚT BẤM XUẤT DỮ LIỆU & BẢNG CẤU HÌNH TH�
     assert.ok(appJs.includes('closeExportModal('), 'appCadTool có closeExportModal');
     assert.ok(appJs.includes('selectExportFormat(fmt) {') || appJs.includes('selectExportFormat(format) {'), 'appCadTool có selectExportFormat');
     assert.ok(appJs.includes('executeExport() {'), 'appCadTool có executeExport');
-    assert.ok(appJs.includes('exportDgn() {'), 'appCadTool có exportDgn');
+    assert.ok(appJs.includes('exportDgn(opts = {}) {'), 'appCadTool có exportDgn');
     assert.ok(appJs.includes('exportKml() {'), 'appCadTool có exportKml');
     assert.ok(appJs.includes('exportGeoJson() {'), 'appCadTool có exportGeoJson');
     assert.ok(appJs.includes('exportTxt() {'), 'appCadTool có exportTxt');
