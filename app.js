@@ -1231,6 +1231,24 @@ const LAZY_LIBS = {
     // svgcanvas 2.6 (MIT, 60 KB) — vẽ bản vẽ khổ giấy ra SVG bằng đúng mã vẽ của PDF/PNG
     svgcanvas: { src: 'vendor/svgcanvas/svgcanvas.js', ready: () => typeof window !== 'undefined' && !!window.SvgCanvas }
 };
+/**
+ * Tải MỘT tệp về máy. Mỗi lần xuất chỉ gọi một lần: trình duyệt máy tính chặn các lượt tải tự động
+ * tiếp theo ("trang này muốn tải nhiều tệp") nên tệp thứ hai trở đi thường không về.
+ * URL blob giữ 60 s rồi mới thu hồi — thu hồi ngay sau click làm một số trình duyệt hủy lượt tải.
+ */
+function saveBlobFile(data, filename, mime) {
+    const blob = (typeof Blob !== 'undefined' && data instanceof Blob) ? data : new Blob([data], { type: mime || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); URL.revokeObjectURL(url); }, 60000);
+    return blob;
+}
 const _libLoads = {};
 function loadLib(name) {
     const lib = LAZY_LIBS[name];
@@ -11080,7 +11098,7 @@ function doGet(e) {
     },
 
     // ================= 10.9.1 QUẢN LÝ CỬA SỔ XUẤT DỮ LIỆU HỢP NHẤT & PREVIEW TRỰC QUAN (LOVABLE PRO 2026) =================
-    selectedExportFormat: 'dwg',
+    selectedExportFormat: 'dxf',
 
 
 
@@ -11316,7 +11334,7 @@ function doGet(e) {
             cleanProj = "ChuyenDoi_VN2000";
             if (titleEl) titleEl.innerText = "XUẤT KẾT QUẢ CHUYỂN ĐỔI TỌA ĐỘ";
         } else if (this.exportContext === 'cad') {
-            projName = (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "BanDo") + "_MiniCAD.dwg";
+            projName = (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "BanDo") + "_MiniCAD.dxf";
             cleanProj = "MiniCAD_MatBang";
             if (titleEl) titleEl.innerText = "XUẤT DỮ LIỆU BẢN VẼ MINICAD";
         } else {
@@ -11402,7 +11420,7 @@ function doGet(e) {
         if (titleInput && !titleInput.value) titleInput.value = "BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT";
 
         // Mặc định chọn định dạng: Excel nếu chuyển đổi, DWG nếu bản đồ / sổ đo
-        const defaultFmt = this.exportContext === 'transform' ? 'excel' : (this.selectedExportFormat || 'dwg');
+        const defaultFmt = this.exportContext === 'transform' ? 'excel' : (this.selectedExportFormat || 'dxf');
         this.selectExportFormat(defaultFmt);
         if (typeof appPlanOverlay !== 'undefined') {
             appPlanOverlay.updateExportOption();
@@ -11540,7 +11558,7 @@ function doGet(e) {
         const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
         const selFormatEl = document.getElementById('selExportFormat');
         const selRadio = document.querySelector('input[name="exportFormatRadio"]:checked');
-        const chosenFormat = selFormatEl?.value || (selRadio ? selRadio.value : (this.selectedExportFormat || 'dwg'));
+        const chosenFormat = selFormatEl?.value || (selRadio ? selRadio.value : (this.selectedExportFormat || 'dxf'));
 
         const meta = {
             drawingTitle: getVal('txtExportDrawingTitle') || 'BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT',
@@ -11602,7 +11620,7 @@ function doGet(e) {
     },
 
     selectExportFormat(format) {
-        const fmt = format || 'dwg';
+        const fmt = (!format || format === 'dwg') ? 'dxf' : format;   // trình duyệt không ghi được DWG thật → DXF
         this.selectedExportFormat = fmt;
 
         const selDropdown = document.getElementById('selExportFormat');
@@ -11629,12 +11647,13 @@ function doGet(e) {
         const btn = document.getElementById('btnExecuteExport');
         if (btn) {
             const labels = {
-                dwg: '🚀 XUẤT FILE .DWG',
+                dxf: '🚀 XUẤT FILE .DXF (AUTOCAD)',
+                dat: '🚀 XUẤT FILE .DAT (FAMIS)',
                 excel: '🚀 XUẤT FILE .XLSX',
                 xlsx: '🚀 XUẤT FILE .XLSX',
                 pdf: '🚀 XUẤT FILE .PDF',
                 png: '🚀 XUẤT FILE .PNG',
-                dgn: '🚀 XUẤT FILE .DGN',
+                dgn: '🚀 XUẤT FILE .DGN (MICROSTATION)',
                 kml: '🚀 XUẤT FILE .KML',
                 geojson: '🚀 XUẤT FILE .GEOJSON',
                 gpx: '🚀 XUẤT FILE .GPX',
@@ -11747,7 +11766,7 @@ function doGet(e) {
         if (areaEl) areaEl.innerText = pts.length >= 3 ? `${area.toFixed(1)} m²` : '-- m²';
 
         // Định dạng bản vẽ khổ giấy: xem trước ĐÚNG bản sẽ xuất (chung bộ vẽ PDF / PNG / SVG / DWG)
-        if (['pdf', 'png', 'svg', 'dwg'].includes(opts.meta.format)) {
+        if (['pdf', 'png', 'svg', 'dxf', 'dwg'].includes(opts.meta.format)) {
             const pl = this._cadExportPayload(pts);
             const res = pl ? appCadTool.exportPdf(Object.assign({ target: 'preview' }, pl)) : null;
             if (res && paperPreviewSvg(svg, res, pl.meta)) {
@@ -11872,8 +11891,12 @@ function doGet(e) {
         const fmt = opts.meta.format;
 
         switch(fmt) {
-            case 'dwg':
+            case 'dxf':
+            case 'dwg':   // tên cũ của mục AutoCAD
                 this.exportDwgFile();
+                break;
+            case 'dat':
+                this.exportDatFile();
                 break;
             case 'excel':
             case 'xlsx':
@@ -11962,6 +11985,7 @@ function doGet(e) {
             return;
         }
         if (target === 'dwg') return appCadTool.exportDwg(pl);
+        if (target === 'dgn') return appCadTool.exportDgn(pl);
         return appCadTool.exportPdf(Object.assign({ target }, pl));
     },
 
@@ -12072,15 +12096,15 @@ function doGet(e) {
     },
 
     _downloadText(content, filename, mime) {
-        const blob = new Blob([content], { type: mime });
-        const url = URL.createObjectURL(blob);
+        // Một lượt tải; thu hồi URL sau 60 s (thu hồi ngay sau click làm một số trình duyệt hủy tải)
+        const url = URL.createObjectURL(new Blob([content], { type: mime }));
         const a = document.createElement("a");
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     },
 
     // Mốc của phân hệ dự án chỉ có một ranh/tuyến nối tuần tự, khác với CAD (nhiều khối riêng lẻ)
@@ -12139,131 +12163,38 @@ function doGet(e) {
         }
         const projName = this._exportBaseName();
         const feats = appGis.featuresFromPoints(g.points).concat(g.geometry);
-        const header = `# VN2000-PWA · ${projName} · ${feats.length} đối tượng · kinh độ trước, vĩ độ sau (WGS84)\n`;
-        this._downloadText(header + GisIO.toWktText(feats, { precision: 7 }), `${projName}.wkt`, 'text/plain;charset=utf-8');
+        // WKT không có cú pháp chú thích: chỉ ghi hình học, mỗi đối tượng một dòng (kinh độ trước, vĩ độ sau, WGS84)
+        this._downloadText(GisIO.toWktText(feats, { precision: 7, names: false }), `${projName}.wkt`, 'text/plain;charset=utf-8');
         showToast(`✓ Đã xuất WKT: ${projName}.wkt (${feats.length} đối tượng)`);
     },
 
     // 4. Xuất Bản Vẽ Vector SVG (.svg) Đồ Họa Sắc Nét Chuẩn W3C
     exportSvgFile() { return this._exportDrawing('svg', 'bản vẽ SVG'); },
 
-    exportDgnFile() {
+    // DGN V7 thật (một tệp .dgn): dùng chung bộ ghi với MiniCAD, mốc dựng thành ranh / tuyến / điểm như bản vẽ PDF
+    exportDgnFile() { return this._exportDrawing('dgn', 'MicroStation (.dgn)'); },
+
+    // Số liệu Famis (.dat), một tệp — Cấu trúc cột: STT \t Tên_Mốc \t Y_Đông(m) \t X_Bắc(m) \t Cao_Độ_H(m) \t Mã_Điểm
+    exportDatFile() {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
         if (!pts || pts.length === 0) {
-            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất file MicroStation DGN & Famis! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
+            showToast("⚠️ Chưa có mốc hoặc điểm tọa độ nào để xuất số liệu Famis! Vui lòng nạp mốc hoặc chuyển đổi tọa độ trước.", true);
             return;
         }
-
         const opts = this.getExportOptions();
         const rawProj = opts.meta.projectName || (AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "DuAn");
         const projName = rawProj.replace(/[\r\n]/g, '').trim();
-        const kttStr = (AppState.kttDeg ? (AppState.kttDeg + '°' + String(AppState.kttMin).padStart(2,'0') + "'") : "105°45'");
-
-        // 1. Tệp số liệu Famis chuẩn (.dat) - Chuẩn quy phạm thành lập bản đồ địa chính Bộ TN&MT
-        // Cấu trúc cột Famis: STT \t Tên_Mốc \t Y_Đông(m) \t X_Bắc(m) \t Cao_Độ_H(m) \t Mã_Điểm
         let famisDat = "";
         pts.forEach((p, idx) => {
             const xBac = parseFloat(p.x || 0).toFixed(3);
             const yDong = parseFloat(p.y || 0).toFixed(3);
             const hCaoDo = parseFloat(p.h || 0).toFixed(3);
-            const name = p.name || `M${idx + 1}`;
+            const name = String(p.name || `M${idx + 1}`).replace(/\s+/g, '_');
             const code = p.note ? p.note.replace(/\s+/g, '_') : '1';
             famisDat += `${idx + 1}\t${name}\t${yDong}\t${xBac}\t${hCaoDo}\t${code}\r\n`;
         });
-
-        const blobDat = new Blob([famisDat], { type: "text/plain;charset=utf-8;" });
-        const urlDat = URL.createObjectURL(blobDat);
-        const aDat = document.createElement("a");
-        const filenameDat = `${projName}_Famis.dat`;
-        aDat.href = urlDat;
-        aDat.download = filenameDat;
-        document.body.appendChild(aDat);
-        aDat.click();
-        document.body.removeChild(aDat);
-        URL.revokeObjectURL(urlDat);
-
-        // 2. Tệp Kịch Bản Lệnh MicroStation Key-in Command (.cmd)
-        // Mở MicroStation SE/V7/V8/CONNECT, gõ: @ten_file.cmd -> Tự động vẽ trọn vẹn ranh mốc lên DGN
-        let cmd = `# KICH BAN VE TU DONG MICROSTATION DGN - DU AN: ${projName}\r\n`;
-        cmd += `# KINH TUYEN TRUC: ${kttStr} (MUI 3 DO) - VN2000\r\n`;
-        cmd += `active unit m\r\n`;
-
-        // Vẽ các mốc trắc địa (Level 10, Màu 3 xanh lá, Weight 3)
-        cmd += `active level 10\r\nactive color 3\r\nactive weight 3\r\n`;
-        pts.forEach(p => {
-            const yDong = parseFloat(p.y || 0).toFixed(3);
-            const xBac = parseFloat(p.x || 0).toFixed(3);
-            const h = parseFloat(p.h || 0).toFixed(3);
-            cmd += `place point xy=${yDong},${xBac},${h}\r\n`;
-        });
-
-        // Ghi nhãn tên mốc (Level 11, Màu 2 vàng, Weight 1)
-        cmd += `active level 11\r\nactive color 2\r\nactive weight 1\r\n`;
-        pts.forEach((p, idx) => {
-            const yDong = (parseFloat(p.y || 0) + 1.5).toFixed(3);
-            const xBac = (parseFloat(p.x || 0) + 1.5).toFixed(3);
-            const name = p.name || `M${idx + 1}`;
-            cmd += `place text "${name}" xy=${yDong},${xBac}\r\n`;
-        });
-
-        // Vẽ đường ranh nối các mốc (Level 1, Màu 1 đỏ, Weight 2)
-        if (pts.length >= 2) {
-            cmd += `active level 1\r\nactive color 1\r\nactive weight 2\r\n`;
-            cmd += `place line `;
-            pts.forEach(p => {
-                const yDong = parseFloat(p.y || 0).toFixed(3);
-                const xBac = parseFloat(p.x || 0).toFixed(3);
-                cmd += `xy=${yDong},${xBac} `;
-            });
-            if (pts.length >= 3) {
-                const yDong0 = parseFloat(pts[0].y || 0).toFixed(3);
-                const xBac0 = parseFloat(pts[0].x || 0).toFixed(3);
-                cmd += `xy=${yDong0},${xBac0} `;
-            }
-            cmd += `\r\nreset\r\n`;
-        }
-        cmd += `fit all\r\n`;
-
-        const blobCmd = new Blob([cmd], { type: "text/plain;charset=utf-8;" });
-        const urlCmd = URL.createObjectURL(blobCmd);
-        const aCmd = document.createElement("a");
-        const filenameCmd = `${projName}_MicroStation_VeTuDong.cmd`;
-        aCmd.href = urlCmd;
-        aCmd.download = filenameCmd;
-        document.body.appendChild(aCmd);
-        setTimeout(() => {
-            aCmd.click();
-            document.body.removeChild(aCmd);
-            URL.revokeObjectURL(urlCmd);
-        }, 150);
-
-        // 3. Tệp Bản Vẽ MicroStation DGN Chuẩn Trao Đổi (.dxf) - MicroStation SE/V7/V8/CONNECT mở trực tiếp 100%
-        try {
-            const cadShapes = [{
-                name: projName,
-                isClosed: pts.length >= 3,
-                points: pts
-            }];
-            if (typeof CadGeometryEngine !== 'undefined' && CadGeometryEngine.exportDwgString) {
-                const dxfMicro = CadGeometryEngine.exportDwgString(cadShapes, "RANH_THUA", { scale: 1000 });
-                const blobMicro = new Blob([dxfMicro], { type: "application/dxf;charset=utf-8;" });
-                const urlMicro = URL.createObjectURL(blobMicro);
-                const aMicro = document.createElement("a");
-                const filenameMicroDxf = `${projName}_MicroStation.dxf`;
-                aMicro.href = urlMicro;
-                aMicro.download = filenameMicroDxf;
-                document.body.appendChild(aMicro);
-                setTimeout(() => {
-                    aMicro.click();
-                    document.body.removeChild(aMicro);
-                    URL.revokeObjectURL(urlMicro);
-                }, 300);
-            }
-        } catch (eMicro) {
-            console.warn('[MicroStation Export] DXF creation warning:', eMicro);
-        }
-
-        showToast(`✓ Đã xuất bộ tệp MicroStation: File bản vẽ .dxf (mở trực tiếp trên MicroStation) + Famis .dat + Kịch bản .cmd!`);
+        saveBlobFile(famisDat, `${projName}_Famis.dat`, 'text/plain;charset=utf-8');
+        showToast(`✓ Đã xuất số liệu Famis: ${projName}_Famis.dat (${pts.length} điểm)`);
     },
 
     // 6. Xuất Tệp Tọa Độ Máy Đo Toàn Đạc TXT / XYZ (.txt)
@@ -12305,9 +12236,9 @@ function doGet(e) {
         showToast(`✓ Đã tải file tọa độ máy đo toàn đạc (.txt): ${filename}`);
     },
 
-    // 7. Xuất Bản vẽ AutoCAD (.dwg) chuẩn kỹ thuật địa chính TCVN 7285 & Thông tư 25/2014/TT-BTNMT
+    // 7. Xuất Bản vẽ AutoCAD (.dxf) chuẩn kỹ thuật địa chính TCVN 7285 & Thông tư 25/2014/TT-BTNMT
     // Khắc phục triệt để lỗi "Missing symbol table" - Chuẩn 100% Autodesk AC1015
-    exportDwgFile() { return this._exportDrawing('dwg', 'bản vẽ AutoCAD (.dwg)'); },
+    exportDwgFile() { return this._exportDrawing('dwg', 'bản vẽ AutoCAD (.dxf)'); },
 
     exportKmlFile() {
         const pts = (this.getExportPoints ? this.getExportPoints() : null) || appData.getPoints(AppState.currentProject) || [];
@@ -17597,11 +17528,11 @@ const appElevationProfile = {
         }, 300);
     },
 
-    // --- XUẤT BẢN VẼ AUTOCAD (.DWG) HỐ ĐÀO KỸ THUẬT (6 LAYER CHUYÊN NGHIỆP TCVN 4447:2012) ---
+    // --- XUẤT BẢN VẼ AUTOCAD (.DXF) HỐ ĐÀO KỸ THUẬT (6 LAYER CHUYÊN NGHIỆP TCVN 4447:2012) ---
     exportPitDwg() {
         triggerHaptic('medium');
         if (!this.lastPitStats || !this.pitPoints || this.pitPoints.length < 3) {
-            showToast("⚠️ Chưa có số liệu hố đào để xuất file AutoCAD (.dwg)!", true);
+            showToast("⚠️ Chưa có số liệu hố đào để xuất file AutoCAD (.dxf)!", true);
             return;
         }
 
@@ -17718,17 +17649,10 @@ const appElevationProfile = {
 
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const filename = `MatBang_HoDao_${projName}.dwg`;
-        a.setAttribute("href", url);
-        a.setAttribute("download", filename);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) hố đào: ${filename}!`);
+        // Nội dung là DXF (AutoCAD R2000) → đặt đúng đuôi .dxf; đuôi .dwg làm AutoCAD báo tệp hỏng
+        const filename = `MatBang_HoDao_${projName}.dxf`;
+        saveBlobFile(dwg, filename, 'application/dxf');
+        showToast(`✓ Đã xuất bản vẽ AutoCAD (.dxf) hố đào: ${filename}`);
     },
 
     // --- XUẤT BÁO CÁO CSV CHI TIẾT ---
@@ -18223,10 +18147,10 @@ const appElevationProfile = {
         showToast("✓ Đã tải ảnh bản vẽ trắc dọc PNG!");
     },
 
-    // --- XUẤT BẢN VẼ AUTOCAD (.DWG) TRẮC DỌC TỰ NHIÊN & THIẾT KẾ (6 LAYER QUY CHUẨN) ---
+    // --- XUẤT BẢN VẼ AUTOCAD (.DXF) TRẮC DỌC TỰ NHIÊN & THIẾT KẾ (6 LAYER QUY CHUẨN) ---
     exportDwgProfile() {
         if (!this.profileData || this.profileData.length === 0) {
-            showToast("⚠️ Chưa có dữ liệu trắc dọc để xuất file AutoCAD (.dwg)!", true);
+            showToast("⚠️ Chưa có dữ liệu trắc dọc để xuất file AutoCAD (.dxf)!", true);
             return;
         }
 
@@ -18390,17 +18314,10 @@ const appElevationProfile = {
         dwg += "0\r\nDICTIONARY\r\n5\r\nD\r\n330\r\nC\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n";
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
-        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const filename = `TracDoc_ThietKe_${projName}.dwg`;
-        a.setAttribute("href", url);
-        a.setAttribute("download", filename);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast(`✓ Đã xuất Bản vẽ AutoCAD (.dwg) trắc dọc: ${filename}!`);
+        // Nội dung là DXF (AutoCAD R2000) → đặt đúng đuôi .dxf; đuôi .dwg làm AutoCAD báo tệp hỏng
+        const filename = `TracDoc_ThietKe_${projName}.dxf`;
+        saveBlobFile(dwg, filename, 'application/dxf');
+        showToast(`✓ Đã xuất bản vẽ AutoCAD (.dxf) trắc dọc: ${filename}`);
     },
 };
 
@@ -18675,7 +18592,7 @@ const appGis = {
 const appCadTool = {
     isActive: false,
     mode: 'polygon', // 'polygon' | 'polyline' | 'select'
-    _exportFormat: 'dwg', // 'dwg' | 'dgn' | 'pdf' | 'img' | 'excel' | 'kml' | 'geojson' | 'svg' | 'txt' | 'csv' | 'share'
+    _exportFormat: 'dxf', // 'dxf' | 'dgn' | 'dat' | 'pdf' | 'img' | 'excel' | 'kml' | 'geojson' | 'svg' | 'txt' | 'csv' | 'share'
     activeToolTab: 'draw', // 'draw' | 'select' | 'markup' | 'data' | 'layers'
     selectedItem: null, // { type: 'shape' | 'annotation', id, index, name }
     snapEnabled: true,
@@ -28207,7 +28124,7 @@ const appCadTool = {
         } catch (e) {}
 
         this.renderExportBlockPicker();
-        this.selectExportFormat(this._exportFormat || 'dwg');
+        this.selectExportFormat(this._exportFormat || 'dxf');
         if (typeof appPlanOverlay !== 'undefined') {
             appPlanOverlay.updateExportOption();
             appPlanOverlay.renderExportFileList('cadExportPlanOverlayList', () => this.onExportSettingChange());
@@ -28219,7 +28136,7 @@ const appCadTool = {
     },
 
     selectExportFormat(fmt) {
-        if (!fmt) fmt = 'dwg';
+        if (!fmt || fmt === 'dwg') fmt = 'dxf';   // trình duyệt không ghi được DWG thật → DXF (AutoCAD mở trực tiếp)
         this._exportFormat = fmt;
 
         const selDropdown = document.getElementById('cadExportFormatSelect');
@@ -28247,8 +28164,9 @@ const appCadTool = {
         const btn = document.getElementById('btnExecuteCadExport');
         if (btn) {
             const labels = {
-                dwg: '🚀 XUẤT FILE .DWG',
-                dgn: '🚀 XUẤT FILE .DGN',
+                dxf: '🚀 XUẤT FILE .DXF (AUTOCAD)',
+                dgn: '🚀 XUẤT FILE .DGN (MICROSTATION)',
+                dat: '🚀 XUẤT FILE .DAT (FAMIS)',
                 pdf: '🚀 XUẤT FILE .PDF',
                 excel: '🚀 XUẤT FILE .XLSX',
                 xlsx: '🚀 XUẤT FILE .XLSX',
@@ -28261,7 +28179,7 @@ const appCadTool = {
                 wkt: '🚀 XUẤT FILE .WKT',
                 txt: '🚀 XUẤT FILE .TXT',
                 csv: '🚀 XUẤT FILE .CSV',
-                share: '🚀 CHIA SẺ BẢN VẼ'
+                share: '🚀 CHIA SẺ BẢN VẼ (PDF)'
             };
             btn.innerHTML = labels[fmt] || `🚀 XUẤT FILE .${fmt.toUpperCase()}`;
         }
@@ -28269,12 +28187,15 @@ const appCadTool = {
     },
 
     executeExport() {
-        const fmt = this._exportFormat || 'dwg';
+        const fmt = this._exportFormat || 'dxf';
         switch (fmt) {
-            case 'dwg':
+            case 'dxf':
+            case 'dwg':   // tên cũ của mục AutoCAD
                 return this.exportDwg();
             case 'dgn':
                 return this.exportDgn();
+            case 'dat':
+                return this.exportFamisDat();
             case 'pdf':
                 return this.exportPdf();
             case 'excel':
@@ -29609,7 +29530,7 @@ const appCadTool = {
                 setTimeout(() => {
                     const exportSec = document.getElementById('cadExportDrawingName');
                     if (exportSec) exportSec.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    showToast("ℹ️ Vui lòng kiểm tra thông tin bản vẽ và nhấn 'Bản vẽ AutoCAD (.dwg)' để tải file.");
+                    showToast("ℹ️ Vui lòng kiểm tra thông tin bản vẽ và nhấn 'XUẤT FILE .DXF (AUTOCAD)' để tải file.");
                 }, 150);
             }
         }
@@ -35230,13 +35151,13 @@ const appCadTool = {
         }
     },
 
-    // === 2. XUẤT BẢN VẼ AUTOCAD (.DWG) CHUẨN KỸ THUẬT ĐỊA CHÍNH TCVN 7285 & THÔNG TƯ 25/2014 ===
+    // === 2. XUẤT BẢN VẼ AUTOCAD (.DXF) CHUẨN KỸ THUẬT ĐỊA CHÍNH TCVN 7285 & THÔNG TƯ 25/2014 ===
     exportDwg(opts) {
         opts = opts || {};
         const allShapes = Array.isArray(opts.shapes) ? opts.shapes : this._getAllExportShapes();
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         if (selectedShapes.length === 0) {
-            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất Bản vẽ AutoCAD (.dwg)!", true);
+            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất bản vẽ AutoCAD (.dxf)!", true);
             return;
         }
 
@@ -35982,32 +35903,14 @@ const appCadTool = {
         dwg += "0\r\nDICTIONARY\r\n5\r\nD\r\n330\r\nC\r\n100\r\nAcDbDictionary\r\n281\r\n1\r\n";
         dwg += "0\r\nENDSEC\r\n0\r\nEOF\r\n";
 
+        // Một tệp .dxf thật (AutoCAD R2000 / AC1015). Trước đây xuất thêm bản sao cùng nội dung mang đuôi .dwg:
+        // AutoCAD báo "Drawing file is not valid" với tệp đó, và trình duyệt chặn lượt tải thứ hai.
         const baseFilename = `${projName}_BanDo_${meta.paper}_1-${L.scaleVal}`;
-        const blob = new Blob([dwg], { type: "application/acad;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${baseFilename}.dwg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // Xuất song song file .dxf chuẩn để người dùng nhấp đúp là mở trực tiếp trên AutoCAD & MicroStation 100% không báo lỗi "Drawing file is not valid"
-        const blobDxf = new Blob([dwg], { type: "application/dxf;charset=utf-8;" });
-        const urlDxf = URL.createObjectURL(blobDxf);
-        const aDxf = document.createElement("a");
-        aDxf.href = urlDxf;
-        aDxf.download = `${baseFilename}.dxf`;
-        document.body.appendChild(aDxf);
-        setTimeout(() => {
-            aDxf.click();
-            document.body.removeChild(aDxf);
-            URL.revokeObjectURL(urlDxf);
-            URL.revokeObjectURL(url);
-        }, 150);
-
-        showToast(`✓ Đã xuất bộ tệp AutoCAD: file .dxf (mở trực tiếp 100% trên AutoCAD/MicroStation) và file .dwg!`);
+        saveBlobFile(dwg, `${baseFilename}.dxf`, 'application/dxf');
+        showToast(`✓ Đã xuất bản vẽ AutoCAD: ${baseFilename}.dxf — AutoCAD / MicroStation mở trực tiếp (cần .dwg thì Save As trong AutoCAD)`);
     },
+
+    exportDxf(opts) { return this.exportDwg(opts); },
 
     // === 3. XUẤT BẢN VẼ PDF CHUẨN IN ẤN ĐỘ PHÂN GIẢI CAO (A3/A4 CHUẨN TỶ LỆ) ===
     // Bộ kết xuất bản vẽ khổ giấy DÙNG CHUNG cho mọi định dạng hình (PDF / PNG / ảnh nén WebP-JPEG / SVG):
@@ -36893,6 +36796,7 @@ const appCadTool = {
             // Ảnh PNG không nén mất dữ liệu để chữ/nét CAD không nhòe
             doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, meta.paperW, meta.paperH, undefined, 'FAST');
             if (opts.returnBase64) return doc.output('datauristring');
+            if (typeof opts.onFile === 'function') { opts.onFile(doc.output('blob'), `${baseName}.pdf`); return; }
             doc.save(`${baseName}.pdf`);
             showToast(`✓ Đã xuất bản vẽ PDF khổ ${meta.paper} tỷ lệ 1:${L.scaleVal}: ${baseName}.pdf`);
         } catch (err) {
@@ -36949,61 +36853,93 @@ const appCadTool = {
         }
     },
 
-    exportDgn() {
-        const allShapes = this._getAllExportShapes();
-        const selectedShapes = allShapes.filter(s => s.selected !== false);
-        if (selectedShapes.length === 0) {
-            showToast("⚠️ Vui lòng chọn ít nhất 1 khối để xuất tệp MicroStation & Famis!", true);
+    // Khối cần xuất cho DGN / DAT: từ MiniCAD (khối đang chọn) hoặc do phân hệ khác truyền vào (opts.shapes)
+    _shapesForFileExport(opts, hint) {
+        const src = Array.isArray(opts && opts.shapes) ? opts.shapes : this._getAllExportShapes();
+        const shapes = src.filter(s => s.selected !== false).map(s => Object.assign({}, s, {
+            vertices: (s.vertices || []).map((v, i) => this._normalizeVertex(v, i)).filter(Boolean)
+        })).filter(s => s.vertices.length);
+        if (!shapes.length) showToast(`⚠️ Vui lòng chọn ít nhất 1 khối để xuất ${hint}!`, true);
+        return shapes.length ? shapes : null;
+    },
+
+    // Màu khối (#hex) → chỉ số màu chuẩn MicroStation 0–7 gần nhất
+    _dgnColorIndex(hex) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+        if (!m) return 3;
+        const n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+        const table = [[255, 255, 255], [0, 0, 255], [0, 255, 0], [255, 0, 0], [255, 255, 0], [255, 0, 255], [255, 127, 0], [0, 255, 255]];
+        let best = 0, bestD = Infinity;
+        table.forEach((c, i) => { const d = (c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2; if (d < bestD) { bestD = d; best = i; } });
+        return best;
+    },
+
+    // === XUẤT DGN V7 THẬT (MicroStation J / SE, Famis) — một tệp .dgn ===
+    // Lớp: 10 ranh thửa, 13 số hiệu thửa, 14 diện tích, 20 tuyến, 30 điểm rời, 31 tên điểm rời, 32 tên đỉnh.
+    // Tọa độ: X của DGN = Y VN-2000 (Đông), Y của DGN = X VN-2000 (Bắc); đơn vị m, chính xác tới mm.
+    exportDgn(opts = {}) {
+        if (typeof GisIO === 'undefined' || typeof GisIO.writeDgn !== 'function') {
+            showToast('❌ Chưa nạp động cơ GIS (src/core/gis_io.js)!', true);
             return;
         }
-
-        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
-        let dat = "\uFEFF";
-        dat += "# SỐ LIỆU ĐO ĐẠC ĐỊA CHÍNH TỰ ĐỘNG - FAMIS & MICROSTATION\r\n";
-        dat += `# Dự án: ${projName} | KTT: ${AppState.kttVal || 105.75}° | Múi: ${AppState.zoneVal || 3}°\r\n`;
-        dat += "# STT   TÊN_ĐIỂM      X(m)         Y(m)        H(m)    LOẠI\r\n";
-
-        let cmd = `# KỊCH BẢN KEY-IN VẼ TỰ ĐỘNG TRÊN MICROSTATION SE / V8 / FAMIS\r\n# Chạy bằng lệnh: @${projName}.cmd\r\n\r\n`;
-        cmd += "active level 10\r\nactive color 3\r\nactive weight 1\r\n";
-
-        let pIdx = 1;
-        selectedShapes.forEach((s, sIdx) => {
-            cmd += `\r\n# --- Vẽ thửa/khối: ${s.name || (sIdx + 1)} ---\r\n`;
-            cmd += "place shape\r\n";
-            (s.vertices || []).forEach(v => {
-                const x = (v.x || 0).toFixed(3);
-                const y = (v.y || 0).toFixed(3);
-                dat += `${String(pIdx++).padEnd(6)} ${String(v.name || ('D' + pIdx)).padEnd(12)} ${x.padStart(12)} ${y.padStart(12)} 0.000   RANH\r\n`;
-                cmd += `xy=${y},${x}\r\n`;
-            });
-            if (s.vertices && s.vertices.length > 0) {
-                const first = s.vertices[0];
-                cmd += `xy=${(first.y || 0).toFixed(3)},${(first.x || 0).toFixed(3)}\r\n`;
+        const shapes = this._shapesForFileExport(opts, 'MicroStation (.dgn)');
+        if (!shapes) return;
+        const meta = opts.meta || this._getExportMeta();
+        let scaleVal = 500;
+        try { scaleVal = this._calculatePaperLayout(shapes, meta).scaleVal || scaleVal; } catch (e) {}
+        const textH = Math.max(0.2, 2.0 * scaleVal / 1000);      // chữ 2 mm trên giấy
+        const items = [];
+        const named = new Set();
+        const E = v => Number(v.y), N = v => Number(v.x);         // y VN-2000 = Đông, x = Bắc
+        shapes.forEach((sh, idx) => {
+            const color = this._dgnColorIndex(sh.color);
+            const pts = sh.vertices.map(v => [E(v), N(v)]);
+            if (sh.mode === 'point') {
+                sh.vertices.forEach(v => {
+                    items.push({ kind: 'point', level: 30, color, weight: 4, pts: [[E(v), N(v)]] });
+                    if (v.name) items.push({ kind: 'text', level: 31, color, height: textH, text: v.name, pts: [[E(v) + textH * 0.4, N(v) + textH * 0.4]] });
+                });
+                return;
             }
-            cmd += "reset\r\n";
+            const isPoly = sh.mode === 'polygon' && pts.length >= 3;
+            items.push({ kind: isPoly ? 'shape' : 'line', level: isPoly ? 10 : 20, color, weight: isPoly ? 2 : 1, pts });
+            sh.vertices.forEach(v => {
+                const key = `${E(v).toFixed(3)},${N(v).toFixed(3)}`;
+                if (!v.name || named.has(key)) return;
+                named.add(key);
+                items.push({ kind: 'text', level: 32, color: 0, height: textH * 0.8, text: v.name, pts: [[E(v) + textH * 0.3, N(v) + textH * 0.3]] });
+            });
+            if (isPoly) {
+                const cx = pts.reduce((t, p) => t + p[0], 0) / pts.length, cy = pts.reduce((t, p) => t + p[1], 0) / pts.length;
+                const sym = String(sh.symbol || (idx + 1));
+                const area = (sh.stats && isFinite(sh.stats.area)) ? `${sh.stats.area.toFixed(1)} m2` : '';
+                items.push({ kind: 'text', level: 13, color, height: textH * 1.2, text: sym, pts: [[cx - sym.length * textH * 0.6, cy + textH * 0.2]] });
+                if (area) items.push({ kind: 'text', level: 14, color, height: textH, text: area, pts: [[cx - area.length * textH * 0.5, cy - textH * 1.2]] });
+            }
         });
+        let bytes;
+        try { bytes = GisIO.writeDgn(items); } catch (e) {
+            showToast(e && e.message === 'DGN_TOA_DO_VUOT_PHAM_VI' ? '⚠️ Tọa độ vượt phạm vi tệp DGN V7 (±2 147 km) — kiểm tra lại X/Y.' : '⚠️ Lỗi tạo tệp DGN: ' + (e && e.message), true);
+            return;
+        }
+        const base = String(opts.fileBase || this._cadBaseName()).replace(/[\r\n\\/:*?"<>|]+/g, ' ').trim() || 'MiniCAD';
+        saveBlobFile(new Blob([bytes], { type: 'application/octet-stream' }), `${base}.dgn`);
+        showToast(`✓ Đã xuất ${base}.dgn (DGN V7, đơn vị m) — mở bằng MicroStation / Famis rồi "Fit View" để xem toàn bộ`);
+    },
 
-        const blobCmd = new Blob([cmd], { type: "text/plain;charset=utf-8;" });
-        const urlCmd = URL.createObjectURL(blobCmd);
-        const aCmd = document.createElement("a");
-        aCmd.href = urlCmd;
-        aCmd.download = `${projName}_MicroStation_Script.cmd`;
-        document.body.appendChild(aCmd);
-        aCmd.click();
-        document.body.removeChild(aCmd);
-        URL.revokeObjectURL(urlCmd);
-
-        const blobDat = new Blob([dat], { type: "text/plain;charset=utf-8;" });
-        const urlDat = URL.createObjectURL(blobDat);
-        const aDat = document.createElement("a");
-        aDat.href = urlDat;
-        aDat.download = `${projName}_Famis_Data.dat`;
-        document.body.appendChild(aDat);
-        aDat.click();
-        document.body.removeChild(aDat);
-        URL.revokeObjectURL(urlDat);
-
-        showToast("✓ Đã xuất thành công bộ tệp Famis (.dat) & Kịch bản MicroStation (.cmd)!");
+    // === XUẤT SỐ LIỆU FAMIS (.dat) — một tệp: STT, Tên, Y (Đông), X (Bắc), H, Mã ===
+    exportFamisDat(opts = {}) {
+        const shapes = this._shapesForFileExport(opts, 'Famis (.dat)');
+        if (!shapes) return;
+        const code = sh => sh.mode === 'point' ? 'DIEM' : (sh.mode === 'polygon' ? 'RANH' : 'TUYEN');
+        let dat = '', i = 1;
+        shapes.forEach(sh => sh.vertices.forEach((v, k) => {
+            const name = String(v.name || `D${i}`).replace(/\s+/g, '_');
+            dat += `${i++}\t${name}\t${(Number(v.y) || 0).toFixed(3)}\t${(Number(v.x) || 0).toFixed(3)}\t${(Number(v.h) || 0).toFixed(3)}\t${code(sh)}\r\n`;
+        }));
+        const base = String(opts.fileBase || this._cadBaseName()).replace(/[\r\n\\/:*?"<>|]+/g, ' ').trim() || 'MiniCAD';
+        saveBlobFile(dat, `${base}_Famis.dat`, 'text/plain;charset=utf-8');
+        showToast(`✓ Đã xuất số liệu Famis: ${base}_Famis.dat (${i - 1} điểm)`);
     },
 
     exportKml() {
@@ -37075,15 +37011,15 @@ const appCadTool = {
     },
 
     _downloadText(content, filename, mime) {
-        const blob = new Blob([content], { type: mime });
-        const url = URL.createObjectURL(blob);
+        // Một lượt tải; thu hồi URL sau 60 s (thu hồi ngay sau click làm một số trình duyệt hủy tải)
+        const url = URL.createObjectURL(new Blob([content], { type: mime }));
         const a = document.createElement("a");
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     },
 
     exportGeoJson() {
@@ -37120,8 +37056,8 @@ const appCadTool = {
         }
         const projName = this._cadBaseName();
         const feats = appGis.featuresFromShapes(selected);
-        const header = `# VN2000-PWA MiniCAD · ${projName} · ${feats.length} đối tượng · kinh độ trước, vĩ độ sau (WGS84)\n`;
-        this._downloadText(header + GisIO.toWktText(feats, { precision: 7 }), `${projName}.wkt`, 'text/plain;charset=utf-8');
+        // WKT không có cú pháp chú thích: chỉ ghi hình học, mỗi đối tượng một dòng (kinh độ trước, vĩ độ sau, WGS84)
+        this._downloadText(GisIO.toWktText(feats, { precision: 7, names: false }), `${projName}.wkt`, 'text/plain;charset=utf-8');
         showToast(`✓ Đã xuất WKT: ${projName}.wkt (${feats.length} đối tượng)`);
     },
 
@@ -37158,28 +37094,36 @@ const appCadTool = {
         showToast("✓ Đã xuất tệp tọa độ máy toàn đạc (.txt)");
     },
 
+    // Chia sẻ: gửi đúng tệp bản vẽ PDF (Zalo, Email…) qua bảng chia sẻ của máy.
+    // Máy không chia sẻ được tệp (đa số máy tính) → tải PDF về và chép tóm tắt vào bộ nhớ tạm.
     shareExport() {
         const allShapes = this._getAllExportShapes();
         const selectedShapes = allShapes.filter(s => s.selected !== false);
         if (selectedShapes.length === 0) return showToast("⚠️ Chưa có khối nào để chia sẻ!", true);
         const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "MiniCAD";
-
         let totalArea = 0;
         selectedShapes.forEach(s => { if (s.stats?.area) totalArea += s.stats.area; });
-
         const shareText = `📍 SỐ LIỆU MẶT BẰNG & RANH THỬA MINICAD\nDự án: ${projName}\nSố khối: ${selectedShapes.length}\nTổng diện tích: ${totalArea.toFixed(1)} m²\nHệ VN-2000 (KTT ${AppState.kttVal}°)\nXuất từ phần mềm VN2000 Pro`;
 
-        if (typeof navigator !== 'undefined' && navigator.share) {
-            navigator.share({
-                title: `${projName} - Mặt Bằng MiniCAD`,
-                text: shareText
-            }).then(() => showToast("✓ Đã chia sẻ thành công!"))
-              .catch(() => {});
-        } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-            navigator.clipboard.writeText(shareText).then(() => {
-                showToast("✓ Đã sao chép nội dung tóm tắt mặt bằng vào bộ nhớ tạm để gửi Zalo/Email!");
-            });
-        }
+        this.exportPdf({
+            onFile: (blob, filename) => {
+                const nav = typeof navigator !== 'undefined' ? navigator : null;
+                const download = (why) => {
+                    saveBlobFile(blob, filename);
+                    if (nav && nav.clipboard) nav.clipboard.writeText(shareText).catch(() => {});
+                    showToast(`✓ ${why}Đã tải ${filename} và chép tóm tắt vào bộ nhớ tạm — đính kèm tệp vào Zalo / Email.`);
+                };
+                let file = null;
+                try { file = new File([blob], filename, { type: 'application/pdf' }); } catch (e) {}
+                if (!file || !nav || !nav.share || !nav.canShare || !nav.canShare({ files: [file] })) return download('');
+                nav.share({ files: [file], title: `${projName} - Mặt Bằng MiniCAD`, text: shareText })
+                    .then(() => showToast('✓ Đã chia sẻ bản vẽ PDF!'))
+                    .catch(err => {
+                        if (err && err.name === 'AbortError') return;   // người dùng đóng bảng chia sẻ
+                        download('Không mở được bảng chia sẻ. ');      // hết hiệu lực thao tác chạm (kết xuất lâu) / bị chặn
+                    });
+            }
+        });
     }
 };
 
@@ -39527,8 +39471,8 @@ const appI18n = {
         "Chụp ảnh nghiệm thu hiện trường đóng dấu tọa độ VN-2000, WGS-84, sai số GPS (±m), góc phương vị la bàn và ngày giờ khảo sát.": "Capture field inspection photos stamped with VN-2000, WGS-84 coordinates, GPS error (±m), compass azimuth and survey timestamp.",
         "Trắc dọc & Đào đắp": "Profile & Cut/Fill",
         "Bản vẽ DWG": "DWG Drawing",
-        "Vẽ biểu đồ trắc dọc địa hình tự nhiên, áp đường đỏ thiết kế, tính khối lượng đào đắp (m³) và xuất bản vẽ AutoCAD (.dwg).": "Plot natural terrain profile, apply design grade, compute cut/fill volumes (m³) and export AutoCAD (.dwg) drawings.",
-        "Xuất dữ liệu mốc sang file bản vẽ AutoCAD (.dwg) chuẩn các layer quy chuẩn (TCVN 7285), tệp Google Earth 3D (.kml) và bảng tính Excel (.csv).": "Export survey points to AutoCAD (.dwg) with standard layers (TCVN 7285), Google Earth 3D (.kml) and Excel spreadsheet (.csv).",
+        "Vẽ biểu đồ trắc dọc địa hình tự nhiên, áp đường đỏ thiết kế, tính khối lượng đào đắp (m³) và xuất bản vẽ AutoCAD (.dxf).": "Plot natural terrain profile, apply design grade, compute cut/fill volumes (m³) and export AutoCAD (.dxf) drawings.",
+        "Xuất dữ liệu mốc sang file bản vẽ AutoCAD (.dxf) chuẩn các layer quy chuẩn (TCVN 7285), tệp Google Earth 3D (.kml) và bảng tính Excel (.csv).": "Export survey points to AutoCAD (.dxf) with standard layers (TCVN 7285), Google Earth 3D (.kml) and Excel spreadsheet (.csv).",
         "Xuất đa định dạng chuyên bản đồ": "Multi-format Map Data Export",
         "Xuất dữ liệu": "Export Data",
         "Bảng nhập sửa mốc trực tiếp, dán Excel, nhập file CSV/Excel": "Direct point table editing, paste Excel, import CSV/Excel file",
@@ -39656,9 +39600,9 @@ const appI18n = {
         "📋 Danh sách mốc đã lưu": "📋 Stored Benchmarks List",
         "XUẤT DỮ LIỆU SỔ ĐO ĐA ĐỊNH DẠNG (EXCEL, CAD, PDF, KML...)": "EXPORT SURVEY BOOK DATA (EXCEL, CAD, PDF, KML...)",
         "2.7.0 Pro (Tỷ lệ khổ giấy CAD TCVN, Xuất PDF Offline & Bản vẽ AutoCAD .DWG Chuẩn Quy Định)": "2.7.0 Pro (CAD Sheet Scales per TCVN, Offline PDF & AutoCAD .DWG Drawings)",
-        "Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ Leaflet: Vẽ ranh công trình, tự động hít (Snap) vào các mốc tọa độ dự án, dựng điểm theo khoảng cách $L$ và góc phương vị $Az$, tạo đường song song (Offset) và xuất trực tiếp thành file AutoCAD (.dwg).": "Professional CAD tools right on Leaflet map: Draw boundary lines, auto-snap to project benchmarks, construct points by distance $L$ and azimuth $Az$, parallel offsets and direct AutoCAD (.dwg) export.",
+        "Bộ công cụ CAD chuyên nghiệp ngay trên nền bản đồ Leaflet: Vẽ ranh công trình, tự động hít (Snap) vào các mốc tọa độ dự án, dựng điểm theo khoảng cách $L$ và góc phương vị $Az$, tạo đường song song (Offset) và xuất trực tiếp thành file AutoCAD (.dxf).": "Professional CAD tools right on Leaflet map: Draw boundary lines, auto-snap to project benchmarks, construct points by distance $L$ and azimuth $Az$, parallel offsets and direct AutoCAD (.dxf) export.",
         "AutoCAD R12 3D • Google Earth • Tự động đồng bộ Cloud": "AutoCAD R12 3D • Google Earth • Auto Cloud Sync",
-        "Kết xuất số liệu đa định dạng: File bản vẽ AutoCAD (.dwg) chuẩn các layer quy chuẩn (RANH_THUA, MOC_TOADO, SO_HIEU_DINH...), file Google Earth KML để xem trên vệ tinh 3D, file bảng tính CSV tiếng Việt có dấu, và kết nối tự động 2 chiều với Google Sheets trên Google Drive.": "Multi-format data export: AutoCAD (.dwg) drawing with standard layers (RANH_THUA, MOC_TOADO, SO_HIEU_DINH...), Google Earth KML for 3D satellite view, UTF-8 CSV spreadsheet, and 2-way Google Sheets sync.",
+        "Kết xuất số liệu đa định dạng: File bản vẽ AutoCAD (.dxf) chuẩn các layer quy chuẩn (RANH_THUA, MOC_TOADO, SO_HIEU_DINH...), file Google Earth KML để xem trên vệ tinh 3D, file bảng tính CSV tiếng Việt có dấu, và kết nối tự động 2 chiều với Google Sheets trên Google Drive.": "Multi-format data export: AutoCAD (.dxf) drawing with standard layers (RANH_THUA, MOC_TOADO, SO_HIEU_DINH...), Google Earth KML for 3D satellite view, UTF-8 CSV spreadsheet, and 2-way Google Sheets sync.",
         "Tên Cọc": "Stake Name",
         "Chưa có cọc tuyến. Bấm [📁 Chọn mốc Dự án] hoặc [➕ Thêm cọc] để bắt đầu.": "No alignment stakes yet. Click [📁 Select Project Points] or [➕ Add Stake] to begin.",
         "➕ Thêm Cọc Mới": "➕ Add New Stake",
@@ -39765,7 +39709,7 @@ const appI18n = {
         "Tiết kiệm (65% - Gửi Zalo/3G)": "Economy (65% - Mobile friendly)",
         "⚡ Xuất Nén Ngay": "⚡ Quick Compressed Export",
         "📋 Bảng Kê Chi Tiết": "📋 Detailed Schedule",
-        "🚀 XUẤT BẢN VẼ AUTOCAD (.DWG)": "🚀 EXPORT AUTOCAD (.DWG)",
+        "🚀 XUẤT BẢN VẼ AUTOCAD (.DXF)": "🚀 EXPORT AUTOCAD (.DXF)",
         "📑 Quản Lý Lớp (Layer) Chuẩn TT 25/2014/TT-BTNMT": "📑 Layer Management per TT 25/2014/TT-BTNMT",
         "Phân cấp layer kỹ thuật theo quy định bản đồ địa chính của Bộ TN&MT. Hỗ trợ bật/tắt hiển thị, khóa chống sửa nhầm và chọn lớp vẽ hiện hành.": "Engineering layers per BTNMT Cadastral Mapping Regulations. Supports visibility toggle, freeze/lock and active drawing layer selection.",
         "Mã Lớp": "Layer Code",
@@ -40220,7 +40164,7 @@ const appI18n = {
         "Nghiệp vụ xây dựng & địa hình tuyến": "Construction & alignment topography",
         "📈 Trắc dọc & Đào đắp": "📈 Profile & Cut/Fill",
         "7. Trao Đổi Dữ Liệu Đa Nền Tảng (CAD/GIS)": "7. Multi-platform Data Exchange (CAD/GIS)",
-        "Xuất dữ liệu mốc sang file bản vẽ AutoCAD (.DWG) chuẩn các layer MOC, TEN, RANH; xuất tệp Google Earth 3D (.KML) và bảng tính Excel (.CSV UTF-8) có dấu tiếng Việt.": "Export survey points to AutoCAD (.DWG) with standard layers MOC, TEN, RANH; export Google Earth 3D (.KML) and Excel spreadsheet (.CSV UTF-8) with full Vietnamese characters.",
+        "Xuất dữ liệu mốc sang file bản vẽ AutoCAD (.DXF) chuẩn các layer MOC, TEN, RANH; xuất tệp Google Earth 3D (.KML) và bảng tính Excel (.CSV UTF-8) có dấu tiếng Việt.": "Export survey points to AutoCAD (.DXF) with standard layers MOC, TEN, RANH; export Google Earth 3D (.KML) and Excel spreadsheet (.CSV UTF-8) with full Vietnamese characters.",
         "Tải file bản vẽ & vệ tinh": "Download CAD & GIS files",
         "🗂️ Danh Mục Thẻ": "🗂️ Card Categories",
         "🌳 Cây Thư Mục Chi Tiết": "🌳 Detailed Operations Tree",
@@ -40266,7 +40210,7 @@ const appI18n = {
         "4. CAMERA ĐÓNG DẤU THỦY ẤN": "4. FIELD GEOTAG CAMERA",
         "Chụp ảnh hiện trường in nổi tọa độ VN-2000, WGS-84, sai số GPS, la bàn, ngày giờ": "Capture field photo stamped with VN-2000, WGS-84, GPS accuracy, compass, timestamp",
         "5. QUẢN LÝ DỰ ÁN & XUẤT FILE": "5. PROJECT MANAGER & FILE EXPORT",
-        "Sổ đo mốc, xuất AutoCAD (.DWG), Google Earth (.KML), Excel CSV, Google Sheets": "Survey book, export AutoCAD (.DWG), Google Earth (.KML), Excel CSV, Google Sheets",
+        "Sổ đo mốc, xuất AutoCAD (.DXF), Google Earth (.KML), Excel CSV, Google Sheets": "Survey book, export AutoCAD (.DXF), Google Earth (.KML), Excel CSV, Google Sheets",
         "6. THÔNG TIN & HƯỚNG DẪN": "6. HANDBOOK & GUIDES",
         "Cẩm nang 10 nghiệp vụ, cài PWA đa nền tảng & căn cứ pháp lý QĐ 05/2007/QĐ-BTNMT": "10 surveying operations handbook, cross-platform PWA & legal basis BTNMT Decision 05/2007",
         "🗺️ Bản đồ lớn (65%)": "🗺️ Large Map (65%)",
@@ -40564,7 +40508,7 @@ const appI18n = {
         "Kinh độ (Long)": "Longitude (Long)",
         "Thao tác": "Actions",
         "📥 Xuất CSV / Excel": "📥 export CSV / Excel",
-        "📐 Bản vẽ AutoCAD (.dwg)": "📐 AutoCAD Drawing (.dwg)",
+        "📐 Bản vẽ AutoCAD (.dxf)": "📐 AutoCAD Drawing (.dxf)",
         "🌍 Xuất Google Earth (.KML)": "🌍 export Google Earth (.KML)",
         "📏 Cự ly & phương vị (A ➔ B)": "📏 Distance & bearing (A ➔ B)",
         "Chọn Mốc A (hoặc nhập X, Y):": "select point A (or import X, Y):",
@@ -40765,7 +40709,7 @@ const appI18n = {
         "Chưa có dữ liệu trắc dọc. Bấm tính toán để hiển thị.": "not yet co du lieu profile. Bam calculate de hien thi.",
         "Tiêu chuẩn TCVN 4447:2012:": "Tieu standard TCVN 4447:2012:",
         "Tính khối lượng đào đất hố móng / khu vực san nền từ chu vi đáy, chiều sâu đào, góc nghiêng chân hố đào $\\alpha$ (mái dốc taluy $1:m$), hệ số nở rời đất $k_{tx}$ và cung cấp": "Compute earthwork volume for foundation pits / grading zones from base perimeter, excavation depth, slope angle $\\alpha$ (side slope ratio ",
-        "Bản vẽ AutoCAD (.dwg)": "AutoCAD Drawing (.dwg)",
+        "Bản vẽ AutoCAD (.dxf)": "AutoCAD Drawing (.dxf)",
         "chi tiết mặt bằng hố đào.": "detailed foundation pit plan.",
         "📍 Chọn mốc đáy hố đào dự kiến:": "📍 select point day foundation pit du kien:",
         "📐 Vẽ Đáy Hố trên MiniCAD": "📐 Ve Day Ho on MiniCAD",
@@ -41519,7 +41463,7 @@ const appI18n = {
         "Xuất dữ liệu thô CSV": "export du lieu tho CSV",
         "Mở hộp thoại cấu hình tỷ lệ, khổ giấy và thông tin khung tên xuất bản vẽ CAD/PDF": "Open dialog to configure drawing scale, paper size and title block for CAD/PDF export",
         "Xuất ảnh bản vẽ mặt bằng tối ưu dung lượng (WebP/JPEG/PNG), chia sẻ tức thì qua Zalo": "Export optimized site plan image (WebP/JPEG/PNG), share instantly via Zalo",
-        "Xuất bản vẽ AutoCAD (.dwg) chuẩn Unicode không lỗi tiếng Việt và bố cục TCVN 7285": "export drawing AutoCAD (.dwg) standard Unicode no error tieng Viet va bo cuc TCVN 7285",
+        "Xuất bản vẽ AutoCAD (.dxf) chuẩn Unicode không lỗi tiếng Việt và bố cục TCVN 7285": "export drawing AutoCAD (.dxf) standard Unicode no error tieng Viet va bo cuc TCVN 7285",
         "Xuất bản vẽ kỹ thuật trực tiếp ra file PDF (.pdf) chuẩn kích thước khổ giấy và tỷ lệ in ấn": "Export technical drawing directly to PDF (.pdf) with standard paper sizes and plotting scales",
         "Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp chuẩn TCVN": "export table calculate Excel (.xls) co dinh dang va mau sac chuyen nghiep standard TCVN",
         "Xuất đồ họa vector SVG sắc nét": "export do hoa vector SVG sac net",
@@ -42218,7 +42162,7 @@ const appGuide = {
                 },
                 {
                     title: { vi: '3. Xuất file báo cáo & CAD', en: '3. Export reports and CAD' },
-                    desc: { vi: 'Xuất dữ liệu sang Excel (.xlsx, .csv), Google Earth (.kml) và bản vẽ AutoCAD (.dwg) chuẩn tỷ lệ.', en: 'Export to Excel (.xlsx, .csv), Google Earth (.kml), and scaled AutoCAD (.dwg) drawings.' }
+                    desc: { vi: 'Xuất dữ liệu sang Excel (.xlsx, .csv), Google Earth (.kml) và bản vẽ AutoCAD (.dxf) chuẩn tỷ lệ.', en: 'Export to Excel (.xlsx, .csv), Google Earth (.kml), and scaled AutoCAD (.dxf) drawings.' }
                 }
             ],
             proTip: {

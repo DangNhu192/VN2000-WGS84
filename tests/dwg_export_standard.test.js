@@ -1,6 +1,7 @@
 /**
  * tests/dwg_export_standard.test.js
- * Kiểm thử tiêu chuẩn xuất file AutoCAD (.dwg) & Loại bỏ hoàn toàn .dxf
+ * Kiểm thử tiêu chuẩn xuất bản vẽ AutoCAD. v2.8.61: trình duyệt không ghi được DWG thật (định dạng đóng),
+ * nên mục AutoCAD xuất một tệp .dxf thật — tệp DXF đổi đuôi .dwg trước đây bị AutoCAD báo hỏng.
  * Chuẩn TCVN 7285:2003, TCVN 5571:2012 & Thông tư 25/2014/TT-BTNMT
  */
 
@@ -24,12 +25,13 @@ test('=== 1. KIỂM THỬ TIÊU CHUẨN XUẤT BẢN VẼ AUTOCAD (.DWG / .DXF) 
         assert.ok(indexHtml.includes('appData.exportDwgFile()') || indexHtml.includes('selExportFormat'), 'Thiếu giao diện xuất CAD Sổ đo');
     });
 
-    await t.test('1.2 index.html đã chuyển đổi thành Bản vẽ AutoCAD (.dwg)', () => {
+    await t.test('1.2 index.html ghi đúng Bản vẽ AutoCAD (.dxf)', () => {
         assert.ok(indexHtml.includes('appCadTool.exportDwg()'), 'Thiếu nút gọi appCadTool.exportDwg()');
         assert.ok(indexHtml.includes('appData.exportDwgFile()'), 'Thiếu nút gọi appData.exportDwgFile()');
         assert.ok(indexHtml.includes('appElevationProfile.exportDwgProfile()'), 'Thiếu nút gọi appElevationProfile.exportDwgProfile()');
         assert.ok(indexHtml.includes('appElevationProfile.exportPitDwg()'), 'Thiếu nút gọi appElevationProfile.exportPitDwg()');
-        assert.ok(indexHtml.includes('Bản vẽ AutoCAD (.dwg)'), 'Thiếu nhãn hiển thị Bản vẽ AutoCAD (.dwg)');
+        assert.ok(indexHtml.includes('Bản vẽ AutoCAD (.dxf)'), 'Thiếu nhãn hiển thị Bản vẽ AutoCAD (.dxf)');
+        assert.ok(!indexHtml.includes('AutoCAD (.dwg)'), 'Không còn hứa hẹn tệp .dwg');
     });
 
     await t.test('1.3 app.js có đầy đủ các hàm xuất bản vẽ CAD tương thích AutoCAD và MicroStation', () => {
@@ -61,10 +63,11 @@ test('=== 2. KIỂM THỬ ĐỘNG CƠ XUẤT BẢN VẼ AUTOCAD (.DWG) CHUẨN T
         assert.ok(dwgContent.includes('POLYLINE'), 'Phải chứa thực thể POLYLINE ranh đất');
     });
 
-    await t.test('2.2 appCadTool.exportDwg xuất file .dwg với MIME application/acad và các layer TCVN', () => {
+    await t.test('2.2 appCadTool.exportDwg xuất một file .dxf (application/dxf) với các layer TCVN', () => {
         assert.ok(appJs.includes('exportDwg('), 'appCadTool thiếu hàm exportDwg');
-        assert.ok(appJs.includes('.dwg'), 'Phải tạo file có đuôi mở rộng .dwg');
-        assert.ok(appJs.includes('application/acad') || appJs.includes('image/vnd.dwg'), 'MIME type phải là application/acad');
+        // v2.8.61: trình duyệt không ghi được DWG thật → mục AutoCAD xuất đúng một tệp .dxf; DGN là tệp DGN V7 thật, Famis .dat tách riêng.
+        assert.ok(appJs.includes("saveBlobFile(dwg, `${baseFilename}.dxf`, 'application/dxf');"), 'Bản vẽ AutoCAD xuất đúng MỘT tệp .dxf (MIME application/dxf)');
+        assert.ok(!appJs.includes('a.download = `${baseFilename}.dwg`'), 'Không còn tệp DXF đội lốt đuôi .dwg');
         assert.ok(appJs.includes('RANH_THUA'), 'Phải định nghĩa layer RANH_THUA');
         assert.ok(appJs.includes('MOC_TOADO'), 'Phải định nghĩa layer MOC_TOADO');
         assert.ok(appJs.includes('SO_HIEU_DINH'), 'Phải định nghĩa layer SO_HIEU_DINH');

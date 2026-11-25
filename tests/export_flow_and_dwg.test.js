@@ -43,7 +43,7 @@ describe('=== TỐI ƯU HÓA QUY TRÌNH XUẤT DỮ LIỆU & FIX LỖI CAD "MISS
         assert.ok(htmlContent.includes('id="exportTitleRowsBox"'), 'Thiếu khung nhập các dòng thông tin khung tên');
 
         // Chọn định dạng xuất file
-        assert.ok(htmlContent.includes('value="dwg"'), 'Thiếu tùy chọn định dạng DWG');
+        assert.ok(htmlContent.includes('value="dxf"'), 'Thiếu tùy chọn bản vẽ AutoCAD (.dxf)');
         assert.ok(htmlContent.includes('value="dgn"'), 'Thiếu tùy chọn định dạng DGN');
         assert.ok(htmlContent.includes('value="excel"'), 'Thiếu tùy chọn định dạng EXCEL');
         assert.ok(htmlContent.includes('value="pdf"'), 'Thiếu tùy chọn định dạng PDF');
@@ -77,7 +77,7 @@ describe('=== TỐI ƯU HÓA QUY TRÌNH XUẤT DỮ LIỆU & FIX LỖI CAD "MISS
     it('3. Định dạng MicroStation DGN (.dgn) và MicroStation ASCII tương thích Famis', () => {
         assert.ok(appJsContent.includes('exportDgnFile'), 'appData phải có hàm exportDgnFile');
         assert.ok(appJsContent.includes('_Famis.dat'), 'Hỗ trợ xuất file Famis .dat nạp địa chính');
-        assert.ok(appJsContent.includes('_MicroStation_VeTuDong.cmd'), 'Hỗ trợ xuất kịch bản MicroStation Key-in command');
+        assert.ok(appJsContent.includes('GisIO.writeDgn(items)'), 'Xuất tệp DGN V7 thật (không còn kịch bản Key-in .cmd)');
     });
 
     it('4. Khung Preview tương tác SVG cập nhật theo bộ chọn lớp và tỷ lệ', () => {

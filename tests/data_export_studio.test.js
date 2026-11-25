@@ -86,7 +86,7 @@ test('=== 2. KIỂM THỬ GIAO DIỆN CỬA SỔ PREVIEW XUẤT DỮ LIỆU TRON
     assert.ok(html.includes('id="exportTitleRowsBox"'), 'Phải có khung nhập các dòng thông tin khung tên');
 
     // Kiểm tra các nút định dạng xuất
-    assert.ok(html.includes('value="dwg"'), 'Phải hỗ trợ xuất DWG');
+    assert.ok(html.includes('value="dxf"'), 'Phải hỗ trợ xuất bản vẽ AutoCAD (.dxf)');
     assert.ok(html.includes('value="excel"'), 'Phải hỗ trợ xuất Excel');
     assert.ok(html.includes('value="pdf"'), 'Phải hỗ trợ xuất PDF');
     assert.ok(html.includes('value="png"'), 'Phải hỗ trợ xuất PNG');

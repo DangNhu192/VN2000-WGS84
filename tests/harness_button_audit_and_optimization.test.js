@@ -117,7 +117,7 @@ test('=== 7. KIỂM THỬ TỐI ƯU 1 NÚT XUẤT DỮ LIỆU & MODAL CHỌN Đ�
     assert.ok(html.includes('id="modalExportData"'), 'Phải có Modal #modalExportData');
     assert.ok(html.includes('data-format="excel"'), 'Modal phải có định dạng Excel (.xlsx)');
     assert.ok(html.includes('data-format="csv"'), 'Modal phải có định dạng CSV (.csv)');
-    assert.ok(html.includes('data-format="dwg"'), 'Modal phải có định dạng AutoCAD (.dwg)');
+    assert.ok(html.includes('data-format="dxf"'), 'Modal phải có định dạng AutoCAD (.dxf)');
     assert.ok(html.includes('data-format="kml"'), 'Modal phải có định dạng Google Earth (.kml)');
     assert.ok(html.includes('data-format="share"'), 'Modal phải có lựa chọn Chia sẻ (Zalo)');
 

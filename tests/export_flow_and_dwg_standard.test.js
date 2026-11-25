@@ -91,7 +91,7 @@ describe('=== 2. KIỂM THỬ GIAO DIỆN CỬA SỔ PREVIEW VÀ CÀI ĐẶT TH�
     });
 
     test('2.3 Modal xuất dữ liệu phải hỗ trợ đầy đủ các định dạng theo yêu cầu', () => {
-        assert.ok(indexHtml.includes("appData.selectExportFormat('dwg')"), 'Có chọn AutoCAD (.dwg)');
+        assert.ok(indexHtml.includes("appData.selectExportFormat('dxf')"), 'Có chọn AutoCAD (.dxf)');
         assert.ok(indexHtml.includes("appData.selectExportFormat('dgn')"), 'Có chọn MicroStation (.dgn)');
         assert.ok(indexHtml.includes("appData.selectExportFormat('excel')"), 'Có chọn Bảng tính Excel (.xlsx)');
         assert.ok(indexHtml.includes("appData.selectExportFormat('pdf')"), 'Có chọn Bản vẽ PDF (.pdf)');
@@ -141,11 +141,11 @@ describe('=== 4. KIỂM THỬ GIAO DIỆN DROPDOWN SỔ XUỐNG VÀ ĐỊNH DẠ
         const selContent = selMatch[0];
         
         // Kiểm tra các định dạng hiển thị dạng .dwg, .xlsx, .pdf, .png...
-        assert.ok(/>\.dwg<\/option>/.test(selContent), 'Option hiển thị .dwg gọn gàng');
+        assert.ok(/>\.dxf \(AutoCAD\)<\/option>/.test(selContent), 'Option hiển thị .dxf (AutoCAD) gọn gàng');
         assert.ok(/>\.xlsx<\/option>/.test(selContent), 'Option hiển thị .xlsx gọn gàng');
         assert.ok(/>\.pdf<\/option>/.test(selContent), 'Option hiển thị .pdf gọn gàng');
         assert.ok(/>\.png<\/option>/.test(selContent), 'Option hiển thị .png gọn gàng');
-        assert.ok(/>\.dgn\s*\/?\s*\.?dat?<\/option>/.test(selContent), 'Option hiển thị .dgn / .dat gọn gàng');
+        assert.ok(/>\.dgn \(MicroStation\)<\/option>/.test(selContent) && />\.dat \(Famis\)<\/option>/.test(selContent), 'Option .dgn và .dat tách riêng, ghi rõ phần mềm mở');
         assert.ok(/>\.kml<\/option>/.test(selContent), 'Option hiển thị .kml gọn gàng');
         assert.ok(/>\.geojson<\/option>/.test(selContent), 'Option hiển thị .geojson gọn gàng');
 
@@ -153,13 +153,13 @@ describe('=== 4. KIỂM THỬ GIAO DIỆN DROPDOWN SỔ XUỐNG VÀ ĐỊNH DẠ
         const cadSelMatch = indexHtml.match(/<select id="cadExportFormatSelect"[\s\S]*?<\/select>/);
         assert.ok(cadSelMatch, 'Tìm thấy cadExportFormatSelect');
         const cadContent = cadSelMatch[0];
-        assert.ok(/>\.dwg<\/option>/.test(cadContent), 'MiniCAD option hiển thị .dwg gọn gàng');
+        assert.ok(/>\.dxf \(AutoCAD\)<\/option>/.test(cadContent), 'MiniCAD option hiển thị .dxf (AutoCAD) gọn gàng');
         assert.ok(/>\.xlsx<\/option>/.test(cadContent), 'MiniCAD option hiển thị .xlsx gọn gàng');
         assert.ok(/>\.pdf<\/option>/.test(cadContent), 'MiniCAD option hiển thị .pdf gọn gàng');
     });
 
     test('4.3 Nút bấm xuất dữ liệu phản hồi nhãn súc tích chỉ chứa đuôi file', () => {
-        assert.ok(appJs.includes("'🚀 XUẤT FILE .DWG'"), 'Nhãn nút xuất DWG chuẩn súc tích');
+        assert.ok(appJs.includes("'🚀 XUẤT FILE .DXF (AUTOCAD)'"), 'Nhãn nút xuất DXF chuẩn súc tích');
         assert.ok(appJs.includes("'🚀 XUẤT FILE .XLSX'"), 'Nhãn nút xuất XLSX chuẩn súc tích');
         assert.ok(appJs.includes("'🚀 XUẤT FILE .PDF'"), 'Nhãn nút xuất PDF chuẩn súc tích');
         assert.ok(appJs.includes("'🚀 XUẤT FILE .PNG'"), 'Nhãn nút xuất PNG chuẩn súc tích');
