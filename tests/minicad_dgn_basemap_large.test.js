@@ -71,7 +71,7 @@ test('bản vẽ lớn: chỉ dựng đỉnh/nhãn cạnh cho vùng đang xem, v
     assert.match(app, /this\._largeDrawing = totalVerts > this\.DETAIL_VERTEX_LIMIT/);
     assert.match(app, /map\.on\('moveend'[\s\S]{0,200}renderGeometry\(\{ persist: false \}\)/);
     // vẽ lại khi kéo bản đồ không ghi lại phiên làm việc
-    assert.match(app, /renderGeometry\(opts = \{\}\) \{\s+if \(opts\.persist !== false\) this\.persistSession\(\);/);
+    assert.match(app, /renderGeometry\(opts = \{\}\) \{\s+if \(opts\.persist !== false\) \{? ?this\.persistSession\(\);/);
 });
 
 test('bản vẽ quá lớn không sao chép sang sổ điểm (tránh đầy bộ nhớ)', () => {

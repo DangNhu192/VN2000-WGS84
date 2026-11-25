@@ -1,5 +1,19 @@
 # Session Handoff — VN2000-PWA
 
+## Phiên hiện tại — 2026-11-25: BẢNG KÊ MINICAD NỔI TRÊN BẢN ĐỒ (v2.8.60)
+- **Yêu cầu**: bấm "Bảng kê" trong MiniCAD thì hiện bảng nổi trên bản đồ, không bật cả lớp cửa sổ che bản đồ và chặn thao tác.
+- **Đã làm** (`#modalCadAreaTable`, lớp `cad-float-table`):
+  - Lớp phủ trong suốt, `pointer-events: none`; chỉ khung bảng nhận chạm → bản đồ vẫn kéo, thu phóng, chấm đỉnh, chọn khối khi bảng mở. Chạm ra ngoài không đóng bảng.
+  - Máy tính: cửa sổ nổi (mặc định bên phải, dưới thanh MiniCAD, trên thanh tọa độ); kéo thanh tiêu đề để di chuyển, kéo góc đổi cỡ, nhớ vị trí/cỡ (`vn2k_cad_float_table`); ▾ thu gọn còn thanh tiêu đề; nhấp đúp / ⛶ phóng to (dưới thanh tiêu đề app). Không kéo chui dưới thanh tiêu đề app được.
+  - Điện thoại: tấm trượt đáy, đậu trên thanh công cụ MiniCAD (tự thu gọn thanh khi mở bảng, dời theo khi thanh mở rộng), kéo đầu bảng đổi chiều cao, chạm để thu gọn / mở, kéo sát đáy tự thu gọn.
+  - Bấm dòng đỉnh → bản đồ tới đỉnh (≥ z19), chấm nháy, tô dòng; nút 🔍 Xem ở mỗi khối; khung nhìn chừa phần bảng che (`_tableFitPadding`).
+  - Bảng tự làm mới khi bản vẽ đổi (`renderGeometry` → `_refreshFloatTableSoon`, chờ 350 ms, so chữ ký số liệu để kéo/thu phóng bản đồ không dựng lại bảng; không chen ngang khi đang gõ trong bảng; làm mới giữ vị trí cuộn và tab, không ghi đè thông tin khung tên).
+  - Phím E bật/tắt bảng; Esc đóng bảng sau khi đã hủy lệnh vẽ / bỏ chọn.
+- **Sửa lỗi kèm theo**: 18 chỗ kiểm "bảng đang mở" bằng `style.display !== 'none'` (lúc đầu rỗng → sửa khối / Tự đo… tự bật bảng) → kiểm lớp `active`; mở Bảng điểm chỉ đặt display none (lớp active giữ bảng hiện) → `closeAreaTableModal()`.
+- **Kiểm**: `scripts/cad_float_e2e.py` (Playwright, máy tính + điện thoại, tối + sáng) 64/64; `tests/cad_float_table.test.js` (6); cập nhật 4 test cũ theo định nghĩa "đang mở" mới. **615/615 PASS**.
+
+---
+
 ## Phiên hiện tại — 2026-11-24 (khuya): TỐI ƯU GIAO DIỆN + MENU XỔ XUỐNG (v2.8.59)
 - **Yêu cầu**: chạy tối ưu ứng dụng, kiểm kỹ giao diện và các menu xổ xuống.
 - **Cách kiểm** (Playwright, giao diện tối + sáng, điện thoại 390×844 cảm ứng + máy tính 1280×900):

@@ -26,7 +26,7 @@ describe('=== KIỂM THỬ TÍNH NĂNG CHỌN / BỎ CHỌN THỬA ĐẤT TRONG 
     it('3. openAreaTableModal sử dụng _getAllExportShapes và tính tổng diện tích theo các khối được chọn', () => {
         // Kiểm tra openAreaTableModal lấy allShapes từ _getAllExportShapes()
         const startIdx = appJsContent.indexOf('openAreaTableModal(action = null)');
-        const openModalFn = appJsContent.slice(startIdx, startIdx + 6000);
+        const openModalFn = appJsContent.slice(startIdx, startIdx + 9000);
         assert.ok(openModalFn.includes('_getAllExportShapes()'), 'openAreaTableModal phải dùng _getAllExportShapes() để giữ thuộc tính selected');
         assert.ok(openModalFn.includes('allShapes.filter(s => s.selected !== false)'), 'Phải lọc các khối selected !== false để tính tổng diện tích');
         assert.ok(openModalFn.includes('Bỏ chọn (Không tính tổng)'), 'Phải hiển thị nhãn bỏ chọn cho khối unselected trong bảng chi tiết');

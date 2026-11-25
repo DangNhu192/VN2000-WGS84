@@ -71,7 +71,7 @@ console.log('\n--- NHÓM 2: LOGIC MỞ/SỬA/XÓA ĐIỂM TRONG BẢNG ---');
 {
     assert(/openPointTableModal\(\)\s*\{[\s\S]{0,900}?renderPointTable\(\)/.test(appJs), 'openPointTableModal render bảng trước khi hiện modal');
     assert(/openPointTableModal\(\)\s*\{[\s\S]{0,500}?getPointLayers\(\)\.length === 0[\s\S]{0,200}?createPointLayer/.test(appJs), 'Mở bảng điểm tự tạo lớp điểm nếu chưa có');
-    assert(/openPointTableModal\(\)\s*\{[\s\S]{0,700}?modalCadAreaTable'\);[\s\S]{0,120}?style\.display = 'none'/.test(appJs), 'Mở bảng điểm thì đóng bảng kê diện tích để không chồng modal');
+    assert(/openPointTableModal\(\)\s*\{[\s\S]{0,700}?this\.closeAreaTableModal\(\);/.test(appJs), 'Mở bảng điểm thì đóng hẳn bảng kê diện tích (gỡ cả lớp active) để không chồng modal');
     assert(/updatePointField\(vi, field, value\)\s*\{[\s\S]{0,400}?isShapeLocked\(layer\)/.test(appJs), 'updatePointField chặn sửa khi lớp bị khóa');
     assert(/closePointTableModal\(\)\s*\{[\s\S]{0,200}?style\.display = 'none'/.test(appJs), 'closePointTableModal ẩn modal');
     assert(/renderPointTable\(\)\s*\{[\s\S]{0,2600}?escapeHtml\(v\.name/.test(appJs), 'renderPointTable escape tên điểm khi render');
