@@ -1795,7 +1795,36 @@ const appNav = window.appNav = {
         if (this.isTaskbarCollapsed) {
             nav.classList.add('dock-collapsed');
         }
+        this.initDockExpandDrag();
         this.syncBottomNav(AppState.currentScreen || 'menu');
+    },
+
+    initDockExpandDrag() {
+        const handle = document.getElementById('dockExpandHandle');
+        if (!handle || handle._hasSwipeInit) return;
+        handle._hasSwipeInit = true;
+        handle.style.touchAction = 'none';
+        let startY = 0, active = false;
+        const onStart = (e) => {
+            const pt = e.touches ? e.touches[0] : e;
+            startY = pt.clientY;
+            active = true;
+        };
+        const onMove = (e) => {
+            if (!active) return;
+            const pt = e.touches ? e.touches[0] : e;
+            if (pt.clientY - startY < -18) {
+                active = false;
+                this.toggleTaskbarDock(false);
+            }
+        };
+        const onEnd = () => { active = false; };
+        handle.addEventListener('touchstart', onStart, { passive: true });
+        handle.addEventListener('touchmove', onMove, { passive: true });
+        handle.addEventListener('touchend', onEnd);
+        handle.addEventListener('mousedown', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
     },
 
     isTaskbarCollapsed: false,
@@ -5634,7 +5663,9 @@ const appTransform = {
         const resizer = document.getElementById('transformLayoutResizer');
         const layout = document.getElementById('transformSplitLayout');
         const btnToggle = document.getElementById('btnResizerQuickToggle');
-        if (!resizer || !layout) return;
+        if (!resizer || !layout || resizer._hasResizerInit) return;
+        resizer._hasResizerInit = true;
+        resizer.style.touchAction = 'none';
 
         // Tải tỉ lệ đã lưu từ localStorage
         const savedRatio = parseFloat(localStorage.getItem('vn2k_transform_split_ratio'));
@@ -5650,30 +5681,32 @@ const appTransform = {
 
         const onPointerDown = (e) => {
             if (e.target && e.target.closest('#btnResizerQuickToggle')) return;
+            if (e.button && e.button > 0) return;
             isDragging = true;
             resizer.classList.add('is-dragging');
             document.body.style.userSelect = 'none';
             document.body.style.webkitUserSelect = 'none';
 
-            startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-            startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+            const pt = e.touches ? e.touches[0] : e;
+            startX = pt.clientX;
+            startY = pt.clientY;
         };
 
         const onPointerMove = (e) => {
             if (!isDragging) return;
+            if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
             const isDesktop = isTransformSideBySide();
             const rect = layout.getBoundingClientRect();
+            const pt = e.touches ? e.touches[0] : e;
 
             if (isDesktop) {
-                const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-                const offset = clientX - rect.left;
+                const offset = pt.clientX - rect.left;
                 let percent = (offset / rect.width) * 100;
                 percent = Math.max(32, Math.min(75, percent));
                 this._splitRatio = percent;
                 this.applySplitRatio(percent, true);
             } else {
-                const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
-                const offset = clientY - rect.top;
+                const offset = pt.clientY - rect.top;
                 let percent = (offset / rect.height) * 100;
                 percent = Math.max(25, Math.min(75, percent));
                 this._splitRatio = percent;
@@ -5698,7 +5731,7 @@ const appTransform = {
         window.addEventListener('mouseup', onPointerUp);
 
         resizer.addEventListener('touchstart', onPointerDown, { passive: true });
-        window.addEventListener('touchmove', onPointerMove, { passive: true });
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
         window.addEventListener('touchend', onPointerUp);
 
         // Nhấp đúp (Double click) để đặt lại 50/50
@@ -5827,12 +5860,15 @@ const appTransformMap = {
         let isDragging = false;
         let currentTranslate = 0;
         let moved = false;
+        let suppressClickUntil = 0;
 
         const onTouchStart = (e) => {
+            if (e.button && e.button > 0) return;
             const touch = e.touches ? e.touches[0] : e;
             startY = touch.clientY;
             isDragging = true;
             moved = false;
+            currentTranslate = 0;
             sheet.classList.add('is-dragging');
         };
 
@@ -5843,6 +5879,7 @@ const appTransformMap = {
             if (Math.abs(deltaY) > 6) {
                 moved = true;
             }
+            if (moved && e.cancelable && e.type.startsWith('touch')) e.preventDefault();
             if (sheet.classList.contains('sheet-peek')) {
                 if (deltaY < 0) {
                     currentTranslate = deltaY;
@@ -5863,26 +5900,29 @@ const appTransformMap = {
             sheet.style.transform = '';
 
             if (!moved) {
-                // Chạm nhẹ (Tap/Click) -> Tự động Toggle Peek/Expanded
+                // Chạm nhẹ (Tap/Click) -> Toggle 1 lần duy nhất, chặn click theo sau tránh đảo ngược
                 sheet.classList.toggle('sheet-peek');
                 triggerHaptic('selection');
+                suppressClickUntil = Date.now() + 380;
             } else if (sheet.classList.contains('sheet-peek')) {
                 if (currentTranslate < -15) {
                     sheet.classList.remove('sheet-peek');
                     triggerHaptic('selection');
                 }
+                suppressClickUntil = Date.now() + 380;
             } else {
                 if (currentTranslate > 15) {
                     sheet.classList.add('sheet-peek');
                     triggerHaptic('selection');
                 }
+                suppressClickUntil = Date.now() + 380;
             }
             currentTranslate = 0;
             moved = false;
         };
 
         handle.addEventListener('touchstart', onTouchStart, { passive: true });
-        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: false });
         window.addEventListener('touchend', onTouchEnd);
         window.addEventListener('touchcancel', onTouchEnd);
 
@@ -5891,6 +5931,7 @@ const appTransformMap = {
         window.addEventListener('mouseup', onTouchEnd);
 
         handle.addEventListener('click', () => {
+            if (Date.now() < suppressClickUntil) return;
             if (!moved) {
                 sheet.classList.toggle('sheet-peek');
                 triggerHaptic('selection');
@@ -7856,14 +7897,16 @@ const appMap = {
         const handle = document.getElementById('dragHandleRightControls');
         if (!container || container._hasDragInit) return;
         container._hasDragInit = true;
+        if (handle) handle.style.touchAction = 'none';
 
         // Khôi phục vị trí lưu trước đó nếu có
         try {
             const savedTop = localStorage.getItem('vn2k_right_controls_top');
             if (savedTop) {
                 const parsed = parseInt(savedTop, 10);
-                if (!isNaN(parsed) && parsed >= 50 && parsed <= window.innerHeight - 100) {
-                    container.style.top = `${parsed}px`;
+                if (!isNaN(parsed) && parsed >= 10 && parsed <= window.innerHeight - 100) {
+                    container.classList.add('is-dragged');
+                    container.style.setProperty('top', `${parsed}px`, 'important');
                 }
             }
         } catch (e) {}
@@ -7871,21 +7914,27 @@ const appMap = {
         let isDragging = false;
         let startY = 0;
         let initTop = 0;
+        let parentH = 0;
 
         const onStart = (e) => {
             // Không can thiệp nếu bấm trực tiếp vào nút chức năng
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            if (e.target && e.target.closest && e.target.closest('button')) return;
+            if (e.button && e.button > 0) return;
             isDragging = true;
             const pt = e.touches ? e.touches[0] : e;
             startY = pt.clientY;
             const rect = container.getBoundingClientRect();
-            initTop = rect.top;
+            const pRect = container.offsetParent ? container.offsetParent.getBoundingClientRect() : { top: 0, height: window.innerHeight };
+            initTop = rect.top - pRect.top;
+            parentH = pRect.height;
             container.style.transition = 'none';
+            container.classList.add('is-dragged');
             if (handle) handle.style.cursor = 'grabbing';
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onEnd);
             document.addEventListener('touchmove', onMove, { passive: false });
             document.addEventListener('touchend', onEnd);
+            if (e.cancelable && !e.type.startsWith('touch')) e.preventDefault();
         };
 
         const onMove = (e) => {
@@ -7894,13 +7943,12 @@ const appMap = {
             const pt = e.touches ? e.touches[0] : e;
             const dy = pt.clientY - startY;
 
-            let newTop = initTop + dy;
-            const minTop = 60; // Dưới header
+            const minTop = 10;
             const bottomInset = (window.innerWidth <= 768) ? 72 : 50;
-            const maxTop = window.innerHeight - container.offsetHeight - bottomInset; // Trên bottom bar
+            const maxTop = Math.max(minTop, parentH - container.offsetHeight - bottomInset);
 
-            newTop = Math.max(minTop, Math.min(newTop, maxTop));
-            container.style.top = `${newTop}px`;
+            const newTop = Math.max(minTop, Math.min(initTop + dy, maxTop));
+            container.style.setProperty('top', `${Math.round(newTop)}px`, 'important');
         };
 
         const onEnd = () => {
@@ -7925,8 +7973,6 @@ const appMap = {
         const target = handle || container;
         target.addEventListener('mousedown', onStart);
         target.addEventListener('touchstart', onStart, { passive: true });
-        container.addEventListener('mousedown', onStart);
-        container.addEventListener('touchstart', onStart, { passive: true });
     },
 
     // Đổi nhanh giữa 6 nền chính chất lượng cao tại Việt Nam (bảng chọn đầy đủ: appMapLayers.open())
@@ -9249,6 +9295,71 @@ const appMap = {
         }
 
         panel.style.display = 'flex';
+        this.initProjectBlocksPanelDrag();
+    },
+
+    initProjectBlocksPanelDrag() {
+        if (typeof window === 'undefined') return;
+        const panel = document.getElementById('projectMarksBlocksPanel');
+        const handle = document.getElementById('pmbHeader');
+        if (!panel || !handle || panel._hasPmbDragInit) return;
+        panel._hasPmbDragInit = true;
+        handle.style.touchAction = 'none';
+
+        let isDragging = false;
+        let startX = 0, startY = 0, initLeft = 0, initTop = 0, parentW = 0, parentH = 0;
+
+        const onStart = (e) => {
+            if (panel.classList.contains('maximized')) return;
+            if (e.target && e.target.closest && e.target.closest('button, input, select, a')) return;
+            if (e.button && e.button > 0) return;
+            isDragging = true;
+            const pt = e.touches ? e.touches[0] : e;
+            startX = pt.clientX;
+            startY = pt.clientY;
+            const rect = panel.getBoundingClientRect();
+            const pRect = panel.offsetParent ? panel.offsetParent.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+            initLeft = rect.left - pRect.left;
+            initTop = rect.top - pRect.top;
+            parentW = pRect.width;
+            parentH = pRect.height;
+            handle.style.cursor = 'grabbing';
+            panel.classList.add('is-dragged');
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+            if (e.cancelable && !e.type.startsWith('touch')) e.preventDefault();
+        };
+
+        const onMove = (e) => {
+            if (!isDragging) return;
+            if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
+            const pt = e.touches ? e.touches[0] : e;
+            const dx = pt.clientX - startX;
+            const dy = pt.clientY - startY;
+            const maxW = Math.max(8, parentW - panel.offsetWidth - 8);
+            const maxH = Math.max(8, parentH - panel.offsetHeight - 8);
+            const newLeft = Math.max(6, Math.min(initLeft + dx, maxW));
+            const newTop = Math.max(6, Math.min(initTop + dy, maxH));
+            panel.style.left = `${Math.round(newLeft)}px`;
+            panel.style.top = `${Math.round(newTop)}px`;
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto';
+        };
+
+        const onEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            handle.style.cursor = 'grab';
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onEnd);
+        };
+
+        handle.addEventListener('mousedown', onStart);
+        handle.addEventListener('touchstart', onStart, { passive: true });
     },
 
     closeProjectBlocksPanel() {
@@ -14495,6 +14606,11 @@ const appCamera = {
     // Media Viewer state
     currentViewerItem: null,
 
+    // Multi-select Gallery state
+    selectedGalleryIds: new Set(),
+    gallerySelectMode: false,
+    _galleryItemsCache: [],
+
     // IndexedDB Database helper
     db: {
         dbName: 'VN2000_GeoCameraDB',
@@ -15804,8 +15920,300 @@ const appCamera = {
         if (countEl) countEl.innerText = list.length;
     },
 
+    sanitizeMediaFilename(name) {
+        const cleaned = String(name || 'Moc').replace(/[\\/:*?"<>|\r\n]+/g, '_').replace(/\s+/g, '_').replace(/^_+|_+$/g, '');
+        return cleaned || 'Moc';
+    },
+
+    getMediaFileMeta(item, index = null) {
+        const isVideo = item.type === 'video';
+        const blob = this.dataUrlToBlob(item.dataUrl);
+        const mimeType = (blob && blob.type) || (isVideo ? 'video/webm' : 'image/jpeg');
+        let ext = isVideo ? 'webm' : 'jpg';
+        if (mimeType.includes('mp4')) ext = 'mp4';
+        else if (mimeType.includes('png')) ext = 'png';
+        else if (mimeType.includes('webp')) ext = 'webp';
+        else if (mimeType.includes('webm')) ext = 'webm';
+        const safeMark = this.sanitizeMediaFilename(item.markName);
+        const prefix = index !== null ? `${String(index + 1).padStart(2, '0')}_` : '';
+        const filename = `${prefix}${isVideo ? 'Video' : 'Anh'}_Moc_${safeMark}_${item.id}.${ext}`;
+        return { isVideo, blob, mimeType, ext, filename };
+    },
+
+    triggerBlobDownload(blob, filename, fallbackDataUrl = null) {
+        if (blob) {
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.download = filename;
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                if (link.parentNode) link.parentNode.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            }, 4000);
+            return true;
+        }
+        if (fallbackDataUrl) {
+            const link = document.createElement("a");
+            link.download = filename;
+            link.href = fallbackDataUrl;
+            document.body.appendChild(link);
+            link.click();
+            if (link.parentNode) link.parentNode.removeChild(link);
+            return true;
+        }
+        return false;
+    },
+
+    _crc32(bytes) {
+        if (!this._crc32Table) {
+            const table = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                table[i] = c >>> 0;
+            }
+            this._crc32Table = table;
+        }
+        let crc = 0xFFFFFFFF;
+        const table = this._crc32Table;
+        for (let i = 0; i < bytes.length; i++) {
+            crc = table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+        }
+        return (crc ^ 0xFFFFFFFF) >>> 0;
+    },
+
+    buildZipBlob(entries) {
+        const encoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+        const encodeUtf8 = (str) => {
+            if (encoder) return encoder.encode(str);
+            const out = new Uint8Array(str.length);
+            for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0xFF;
+            return out;
+        };
+        const now = typeof getAppEffectiveDate === 'function' ? getAppEffectiveDate() : new Date();
+        const dosTime = ((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | ((now.getSeconds() >> 1) & 31);
+        const dosDate = (((Math.max(1980, now.getFullYear()) - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31);
+
+        const localParts = [];
+        const centralParts = [];
+        let offset = 0;
+        let centralSize = 0;
+        const usedNames = new Map();
+
+        entries.forEach((entry) => {
+            let finalName = String(entry.name || 'file.bin');
+            const seen = usedNames.get(finalName) || 0;
+            usedNames.set(finalName, seen + 1);
+            if (seen > 0) {
+                const dot = finalName.lastIndexOf('.');
+                finalName = dot > 0
+                    ? `${finalName.slice(0, dot)}_${seen + 1}${finalName.slice(dot)}`
+                    : `${finalName}_${seen + 1}`;
+            }
+            const nameBytes = encodeUtf8(finalName);
+            const data = entry.bytes instanceof Uint8Array ? entry.bytes : new Uint8Array(entry.bytes);
+            const crc = this._crc32(data);
+            const size = data.length;
+
+            // Local file header (30 bytes + name)
+            const lfh = new Uint8Array(30 + nameBytes.length);
+            const lv = new DataView(lfh.buffer);
+            lv.setUint32(0, 0x04034b50, true);
+            lv.setUint16(4, 20, true);
+            lv.setUint16(6, 0x0800, true); // UTF-8 filename flag
+            lv.setUint16(8, 0, true);      // STORE (method 0)
+            lv.setUint16(10, dosTime, true);
+            lv.setUint16(12, dosDate, true);
+            lv.setUint32(14, crc, true);
+            lv.setUint32(18, size, true);
+            lv.setUint32(22, size, true);
+            lv.setUint16(26, nameBytes.length, true);
+            lv.setUint16(28, 0, true);
+            lfh.set(nameBytes, 30);
+
+            localParts.push(lfh, data);
+
+            // Central directory file header (46 bytes + name)
+            const cdfh = new Uint8Array(46 + nameBytes.length);
+            const cv = new DataView(cdfh.buffer);
+            cv.setUint32(0, 0x02014b50, true);
+            cv.setUint16(4, 20, true);
+            cv.setUint16(6, 20, true);
+            cv.setUint16(8, 0x0800, true);
+            cv.setUint16(10, 0, true);
+            cv.setUint16(12, dosTime, true);
+            cv.setUint16(14, dosDate, true);
+            cv.setUint32(16, crc, true);
+            cv.setUint32(20, size, true);
+            cv.setUint32(24, size, true);
+            cv.setUint16(28, nameBytes.length, true);
+            cv.setUint16(30, 0, true);
+            cv.setUint16(32, 0, true);
+            cv.setUint16(34, 0, true);
+            cv.setUint16(36, 0, true);
+            cv.setUint32(38, 0, true);
+            cv.setUint32(42, offset, true);
+            cdfh.set(nameBytes, 46);
+
+            centralParts.push(cdfh);
+            offset += lfh.length + size;
+            centralSize += cdfh.length;
+        });
+
+        // End of central directory record (22 bytes)
+        const eocd = new Uint8Array(22);
+        const ev = new DataView(eocd.buffer);
+        ev.setUint32(0, 0x06054b50, true);
+        ev.setUint16(4, 0, true);
+        ev.setUint16(6, 0, true);
+        ev.setUint16(8, entries.length, true);
+        ev.setUint16(10, entries.length, true);
+        ev.setUint32(12, centralSize, true);
+        ev.setUint32(16, offset, true);
+        ev.setUint16(20, 0, true);
+
+        return new Blob([...localParts, ...centralParts, eocd], { type: 'application/zip' });
+    },
+
+    async blobToUint8Array(blob) {
+        if (!blob) return null;
+        if (typeof blob.arrayBuffer === 'function') {
+            return new Uint8Array(await blob.arrayBuffer());
+        }
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(new Uint8Array(reader.result));
+            reader.onerror = () => reject(reader.error || new Error('Không đọc được dữ liệu nhị phân'));
+            reader.readAsArrayBuffer(blob);
+        });
+    },
+
+    toggleGallerySelectMode(forceState) {
+        const isCurrentlyActive = this.gallerySelectMode || this.selectedGalleryIds.size > 0;
+        const next = typeof forceState === 'boolean' ? forceState : !isCurrentlyActive;
+        this.gallerySelectMode = next;
+        if (!next) {
+            this.selectedGalleryIds.clear();
+        }
+        this.updateGallerySelectionBar();
+    },
+
+    toggleGallerySelection(id, ev) {
+        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+        const key = String(id);
+        if (this.selectedGalleryIds.has(key)) {
+            this.selectedGalleryIds.delete(key);
+        } else {
+            this.selectedGalleryIds.add(key);
+        }
+        if (this.selectedGalleryIds.size === 0 && !this.gallerySelectMode) {
+            this.gallerySelectMode = false;
+        }
+        this.updateGallerySelectionBar();
+    },
+
+    onGalleryCardThumbClick(id) {
+        if (this.gallerySelectMode || this.selectedGalleryIds.size > 0) {
+            this.toggleGallerySelection(id);
+            return;
+        }
+        this.openMediaViewer(id);
+    },
+
+    toggleSelectAllGallery(checked) {
+        this.selectedGalleryIds.clear();
+        if (checked) {
+            (this._galleryItemsCache || []).forEach(item => this.selectedGalleryIds.add(String(item.id)));
+        }
+        this.updateGallerySelectionBar();
+    },
+
+    clearGallerySelection() {
+        this.selectedGalleryIds.clear();
+        this.gallerySelectMode = false;
+        this.updateGallerySelectionBar();
+    },
+
+    getSelectedGalleryItems() {
+        if (!this.selectedGalleryIds || this.selectedGalleryIds.size === 0) return [];
+        return (this._galleryItemsCache || []).filter(item => this.selectedGalleryIds.has(String(item.id)));
+    },
+
+    updateGallerySelectionBar() {
+        const list = this._galleryItemsCache || [];
+        const total = list.length;
+        const selectedCount = list.filter(item => this.selectedGalleryIds.has(String(item.id))).length;
+        const showBar = total > 0 && (this.gallerySelectMode || selectedCount > 0);
+
+        const bar = document.getElementById('barGalleryBatchActions');
+        if (bar) bar.style.display = showBar ? 'flex' : 'none';
+
+        const btnMode = document.getElementById('btnGallerySelectMode');
+        if (btnMode) {
+            btnMode.style.display = total > 0 ? '' : 'none';
+            btnMode.classList.toggle('active', showBar);
+            btnMode.textContent = showBar ? '✕ Xong chọn' : '☑️ Chọn nhiều';
+        }
+
+        const chkAll = document.getElementById('chkGallerySelectAll');
+        if (chkAll) {
+            chkAll.checked = total > 0 && selectedCount === total;
+            chkAll.indeterminate = selectedCount > 0 && selectedCount < total;
+        }
+
+        const setTxt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = String(val);
+        };
+        setTxt('txtGallerySelectedCount', selectedCount);
+        setTxt('txtGalleryTotalCount', total);
+        setTxt('txtGalleryShareCount', selectedCount);
+        setTxt('txtGalleryDownloadCount', selectedCount);
+        setTxt('txtGalleryZipCount', selectedCount);
+        setTxt('txtGalleryDeleteCount', selectedCount);
+        setTxt('txtGalleryDownloadLabel', selectedCount >= 2 ? 'Tải từng ảnh' : 'Tải về');
+
+        const hasSel = selectedCount > 0;
+        const btnShare = document.getElementById('btnGalleryShareSelected');
+        const btnDl = document.getElementById('btnGalleryDownloadSelected');
+        const btnZip = document.getElementById('btnGalleryZipSelected');
+        const btnDel = document.getElementById('btnGalleryDeleteSelected');
+        if (btnShare) btnShare.disabled = !hasSel;
+        if (btnDl) btnDl.disabled = !hasSel;
+        if (btnDel) btnDel.disabled = !hasSel;
+        if (btnZip) {
+            btnZip.style.display = selectedCount >= 2 ? 'inline-flex' : 'none';
+            btnZip.disabled = selectedCount < 2;
+        }
+
+        const grid = document.getElementById('cameraGalleryGrid');
+        if (grid) {
+            grid.classList.toggle('is-selecting', showBar);
+            if (typeof grid.querySelectorAll === 'function') {
+                grid.querySelectorAll('.camera-gallery-card').forEach(card => {
+                    const mid = card.getAttribute('data-media-id');
+                    const isSel = mid != null && this.selectedGalleryIds.has(String(mid));
+                    card.classList.toggle('is-selected', isSel);
+                    const chk = card.querySelector('.camera-select-chk');
+                    if (chk) chk.checked = isSel;
+                });
+            }
+        }
+    },
+
     async loadGalleryFromDb() {
         const list = await this.db.getAll();
+        this._galleryItemsCache = list;
+
+        // Loại bỏ các ID đã chọn không còn tồn tại trong DB
+        const validIds = new Set(list.map(item => String(item.id)));
+        Array.from(this.selectedGalleryIds).forEach(id => {
+            if (!validIds.has(id)) this.selectedGalleryIds.delete(id);
+        });
+        if (list.length === 0) this.gallerySelectMode = false;
+
         const countEl = document.getElementById('txtCameraGalleryCount');
         if (countEl) countEl.innerText = list.length;
 
@@ -15816,6 +16224,7 @@ const appCamera = {
         if (list.length === 0) {
             grid.innerHTML = '';
             if (emptyEl) emptyEl.style.display = 'block';
+            this.updateGallerySelectionBar();
             return;
         }
 
@@ -15824,10 +16233,15 @@ const appCamera = {
         grid.innerHTML = list.map(item => {
             const isVideo = item.type === 'video';
             const thumbSrc = item.thumbUrl || item.dataUrl;
+            const isSelected = this.selectedGalleryIds.has(String(item.id));
             return `
-              <div class="camera-gallery-card" id="camCard_${item.id}">
-                <div class="camera-thumb-wrap" onclick="appCamera.openMediaViewer(${item.id})">
+              <div class="camera-gallery-card${isSelected ? ' is-selected' : ''}" id="camCard_${item.id}" data-media-id="${item.id}">
+                <div class="camera-thumb-wrap" onclick="appCamera.onGalleryCardThumbClick(${item.id})">
                   ${isVideo ? `<video src="${item.dataUrl}#t=0.5" preload="metadata"></video>` : `<img src="${thumbSrc}" alt="${item.markName}" loading="lazy">`}
+                  <label class="camera-select-overlay" onclick="event.stopPropagation();" title="Chọn ảnh/video để gửi hoặc tải nhiều tệp">
+                    <input type="checkbox" class="camera-select-chk" data-media-id="${item.id}" ${isSelected ? 'checked' : ''} onchange="appCamera.toggleGallerySelection(${item.id})" aria-label="Chọn ${item.markName || 'ảnh'}">
+                    <span class="camera-select-box" aria-hidden="true">✓</span>
+                  </label>
                   <span class="camera-thumb-badge">${isVideo ? '🎥 VIDEO' : '📸 ẢNH'}</span>
                 </div>
                 <div class="camera-card-info">
@@ -15844,6 +16258,8 @@ const appCamera = {
               </div>
             `;
         }).join('');
+
+        this.updateGallerySelectionBar();
     },
 
     async openMediaViewer(id) {
@@ -15941,7 +16357,7 @@ const appCamera = {
 
         const isVideo = item.type === 'video';
         const ext = isVideo ? 'webm' : 'jpg';
-        const filename = `${isVideo ? 'Video' : 'Anh'}_Moc_${item.markName}_${item.id}.${ext}`;
+        const filename = `${isVideo ? 'Video' : 'Anh'}_Moc_${this.sanitizeMediaFilename(item.markName)}_${item.id}.${ext}`;
         const blob = this.dataUrlToBlob(item.dataUrl);
 
         if (blob) {
@@ -15952,7 +16368,7 @@ const appCamera = {
             document.body.appendChild(link);
             link.click();
             setTimeout(() => {
-                document.body.removeChild(link);
+                if (link.parentNode) link.parentNode.removeChild(link);
                 URL.revokeObjectURL(blobUrl);
             }, 3000);
         } else {
@@ -15961,7 +16377,7 @@ const appCamera = {
             link.href = item.dataUrl;
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
+            if (link.parentNode) link.parentNode.removeChild(link);
         }
         showToast(`✓ Đã tải ${isVideo ? 'video' : 'ảnh'} đóng dấu về thiết bị!`);
     },
@@ -15974,7 +16390,7 @@ const appCamera = {
         const isVideo = item.type === 'video';
         const ext = isVideo ? 'webm' : 'jpg';
         const mimeType = isVideo ? 'video/webm' : 'image/jpeg';
-        const filename = `${isVideo ? 'Video' : 'Anh'}_Moc_${item.markName}_${item.id}.${ext}`;
+        const filename = `${isVideo ? 'Video' : 'Anh'}_Moc_${this.sanitizeMediaFilename(item.markName)}_${item.id}.${ext}`;
         const blob = this.dataUrlToBlob(item.dataUrl);
 
         const shareTitle = `${isVideo ? 'Video' : 'Ảnh'} nghiệm thu mốc ${item.markName}`;
@@ -16019,6 +16435,154 @@ const appCamera = {
         showToast(`💡 Thiết bị không hỗ trợ chia sẻ trực tiếp, đã tự động tải ${isVideo ? 'video' : 'ảnh'} về máy!`);
     },
 
+    async shareSelectedMedia() {
+        if (!this._galleryItemsCache || this._galleryItemsCache.length === 0) {
+            this._galleryItemsCache = await this.db.getAll();
+        }
+        const selected = this.getSelectedGalleryItems();
+        if (selected.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 ảnh hoặc video để gửi!", true);
+            return;
+        }
+        if (selected.length === 1) {
+            return this.shareSingleMedia(selected[0].id);
+        }
+
+        const files = [];
+        selected.forEach((item, idx) => {
+            const meta = this.getMediaFileMeta(item, idx);
+            if (meta.blob && typeof File !== 'undefined') {
+                files.push(new File([meta.blob], meta.filename, { type: meta.mimeType }));
+            }
+        });
+
+        const projName = selected[0].projectName || (typeof AppState !== 'undefined' && AppState.currentProject) || 'VN-2000 Pro';
+        const shareTitle = `Bộ ${selected.length} ảnh/video nghiệm thu (${projName})`;
+        const lines = selected.slice(0, 12).map((item, idx) =>
+            `${idx + 1}. ${item.markName || 'Mốc'} — X=${item.x || '--'}, Y=${item.y || '--'} (${item.dateStr || ''})`
+        );
+        if (selected.length > 12) lines.push(`... và ${selected.length - 12} tệp khác.`);
+        const shareText = `📂 ${shareTitle}\n${lines.join('\n')}\n(VN-2000 Pro — GPS live shots)`;
+
+        if (files.length > 0 && typeof navigator !== 'undefined' && navigator.share) {
+            const canShareFiles = typeof navigator.canShare === 'function' ? navigator.canShare({ files }) : false;
+            if (canShareFiles) {
+                try {
+                    await navigator.share({
+                        title: shareTitle,
+                        text: shareText,
+                        files
+                    });
+                    showToast(`✓ Đã gửi/chia sẻ ${files.length} ảnh/video nghiệm thu thành công!`);
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return;
+                    // Một số máy Android/iOS chỉ cho chia sẻ { files } không kèm text
+                    try {
+                        await navigator.share({ files });
+                        showToast(`✓ Đã gửi/chia sẻ ${files.length} ảnh/video nghiệm thu thành công!`);
+                        return;
+                    } catch (err2) {
+                        if (err2 && err2.name === 'AbortError') return;
+                        console.warn("Multi-file share error:", err2);
+                    }
+                }
+            }
+        }
+
+        // Fallback an toàn cho máy tính / trình duyệt chưa hỗ trợ gửi nhiều tệp: đóng gói 1 tệp ZIP duy nhất
+        await this.downloadMediaItemsAsZip(selected, { silentToast: true });
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(shareText);
+            }
+        } catch (_) {}
+        showToast(`💡 Trình duyệt không hỗ trợ gửi trực tiếp nhiều tệp — đã đóng gói & tải ${selected.length} tệp (.zip) về máy để bạn gửi Zalo/Email!`);
+    },
+
+    async downloadSelectedMedia() {
+        if (!this._galleryItemsCache || this._galleryItemsCache.length === 0) {
+            this._galleryItemsCache = await this.db.getAll();
+        }
+        const selected = this.getSelectedGalleryItems();
+        if (selected.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 ảnh hoặc video để tải về!", true);
+            return;
+        }
+        if (selected.length === 1) {
+            return this.downloadSingleMedia(selected[0].id);
+        }
+
+        showToast(`⏳ Đang tải ${selected.length} ảnh/video đã chọn về máy...`);
+        let delay = 0;
+        selected.forEach((item, index) => {
+            setTimeout(() => {
+                const meta = appCamera.getMediaFileMeta(item, index);
+                appCamera.triggerBlobDownload(meta.blob, meta.filename, item.dataUrl);
+            }, delay);
+            delay += 320;
+        });
+    },
+
+    async downloadSelectedMediaZip() {
+        if (!this._galleryItemsCache || this._galleryItemsCache.length === 0) {
+            this._galleryItemsCache = await this.db.getAll();
+        }
+        const selected = this.getSelectedGalleryItems();
+        if (selected.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 ảnh hoặc video để đóng gói ZIP!", true);
+            return;
+        }
+        if (selected.length === 1) {
+            return this.downloadSingleMedia(selected[0].id);
+        }
+        await this.downloadMediaItemsAsZip(selected);
+    },
+
+    async downloadMediaItemsAsZip(items, opts = {}) {
+        if (!Array.isArray(items) || items.length === 0) return null;
+        const entries = [];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const meta = this.getMediaFileMeta(item, i);
+            if (!meta.blob) continue;
+            const bytes = await this.blobToUint8Array(meta.blob);
+            if (bytes && bytes.length > 0) {
+                entries.push({ name: meta.filename, bytes });
+            }
+        }
+        if (entries.length === 0) {
+            showToast("⚠️ Không thể đọc dữ liệu các ảnh/video đã chọn!", true);
+            return null;
+        }
+        const zipBlob = this.buildZipBlob(entries);
+        const now = typeof getAppEffectiveDate === 'function' ? getAppEffectiveDate() : new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+        const proj = this.sanitizeMediaFilename((items[0] && items[0].projectName) || (typeof AppState !== 'undefined' && AppState.currentProject) || 'DuAn');
+        const zipName = `GPS_Live_Shots_${proj}_${entries.length}tep_${stamp}.zip`;
+        this.triggerBlobDownload(zipBlob, zipName);
+        if (!opts.silentToast) {
+            showToast(`✓ Đã đóng gói & tải ${entries.length} ảnh/video (${zipName}) về máy!`);
+        }
+        return { zipBlob, zipName, count: entries.length };
+    },
+
+    async deleteSelectedMedia() {
+        const selected = this.getSelectedGalleryItems();
+        if (selected.length === 0) {
+            showToast("⚠️ Vui lòng chọn ít nhất 1 ảnh hoặc video để xóa!", true);
+            return;
+        }
+        if (!confirm(`Bạn có chắc chắn muốn xóa ${selected.length} ảnh/video đã chọn khỏi thư viện?`)) return;
+        for (const item of selected) {
+            await this.db.deleteItem(item.id);
+            this.selectedGalleryIds.delete(String(item.id));
+        }
+        await this.loadGalleryFromDb();
+        showToast(`✓ Đã xóa ${selected.length} ảnh/video khỏi thư viện!`);
+    },
+
     shareCurrentViewerMedia() {
         if (!this.currentViewerItem) return;
         this.shareSingleMedia(this.currentViewerItem.id);
@@ -16027,6 +16591,7 @@ const appCamera = {
     async deleteSingleMedia(id) {
         if (!confirm("Bạn có chắc chắn muốn xóa ảnh/video này khỏi thư viện?")) return;
         await this.db.deleteItem(id);
+        this.selectedGalleryIds.delete(String(id));
         const card = document.getElementById('camCard_' + id);
         if (card) card.remove();
         this.loadGalleryFromDb();
@@ -16046,7 +16611,7 @@ const appCamera = {
             setTimeout(() => {
                 const isVideo = item.type === 'video';
                 const ext = isVideo ? 'webm' : 'jpg';
-                const filename = `${index + 1}_${isVideo ? 'Video' : 'Anh'}_${item.markName}.${ext}`;
+                const filename = `${index + 1}_${isVideo ? 'Video' : 'Anh'}_${appCamera.sanitizeMediaFilename(item.markName)}.${ext}`;
                 const blob = appCamera.dataUrlToBlob(item.dataUrl);
 
                 if (blob) {
@@ -16057,7 +16622,7 @@ const appCamera = {
                     document.body.appendChild(link);
                     link.click();
                     setTimeout(() => {
-                        document.body.removeChild(link);
+                        if (link.parentNode) link.parentNode.removeChild(link);
                         URL.revokeObjectURL(blobUrl);
                     }, 4000);
                 } else {
@@ -16066,7 +16631,7 @@ const appCamera = {
                     link.href = item.dataUrl;
                     document.body.appendChild(link);
                     link.click();
-                    document.body.removeChild(link);
+                    if (link.parentNode) link.parentNode.removeChild(link);
                 }
             }, delay);
             delay += 350;
@@ -16102,6 +16667,8 @@ const appCamera = {
     async confirmClearAllGallery() {
         if (!confirm("⚠️ Bạn có chắc chắn muốn XÓA TOÀN BỘ ảnh và video nghiệm thu trong bộ nhớ thiết bị? Thao tác này không thể hoàn tác!")) return;
         await this.db.clearAll();
+        this.selectedGalleryIds.clear();
+        this.gallerySelectMode = false;
         this.loadGalleryFromDb();
         showToast("✓ Đã xóa sạch toàn bộ ảnh nghiệm thu!");
     }
@@ -20397,20 +20964,26 @@ const appCadTool = {
         const handle = document.getElementById('cadBlocksPanelHeader');
         if (!panel || !handle || panel._hasDragInit) return;
         panel._hasDragInit = true;
+        handle.style.touchAction = 'none';
 
         let isDragging = false;
-        let startX = 0, startY = 0, initLeft = 0, initTop = 0;
+        let startX = 0, startY = 0, initLeft = 0, initTop = 0, parentW = 0, parentH = 0;
 
         const onStart = (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+            if (e.target && e.target.closest && e.target.closest('button, input, select, a')) return;
+            if (e.button && e.button > 0) return;
             isDragging = true;
             const pt = e.touches ? e.touches[0] : e;
             startX = pt.clientX;
             startY = pt.clientY;
             const rect = panel.getBoundingClientRect();
-            initLeft = rect.left;
-            initTop = rect.top;
+            const pRect = panel.offsetParent ? panel.offsetParent.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+            initLeft = rect.left - pRect.left;
+            initTop = rect.top - pRect.top;
+            parentW = pRect.width;
+            parentH = pRect.height;
             handle.style.cursor = 'grabbing';
+            panel.classList.add('is-dragged');
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onEnd);
             document.addEventListener('touchmove', onMove, { passive: false });
@@ -20424,17 +20997,14 @@ const appCadTool = {
             const dx = pt.clientX - startX;
             const dy = pt.clientY - startY;
 
-            let newLeft = initLeft + dx;
-            let newTop = initTop + dy;
-
-            const maxW = window.innerWidth - panel.offsetWidth;
+            const maxW = Math.max(8, parentW - panel.offsetWidth - 5);
             const bottomInset = (window.innerWidth <= 768) ? 72 : 10;
-            const maxH = window.innerHeight - panel.offsetHeight - bottomInset;
-            newLeft = Math.max(5, Math.min(newLeft, maxW - 5));
-            newTop = Math.max(5, Math.min(newTop, maxH - 5));
+            const maxH = Math.max(8, parentH - panel.offsetHeight - bottomInset);
+            const newLeft = Math.max(5, Math.min(initLeft + dx, maxW));
+            const newTop = Math.max(5, Math.min(initTop + dy, maxH));
 
-            panel.style.left = `${newLeft}px`;
-            panel.style.top = `${newTop}px`;
+            panel.style.left = `${Math.round(newLeft)}px`;
+            panel.style.top = `${Math.round(newTop)}px`;
             panel.style.right = 'auto';
             panel.style.bottom = 'auto';
         };
@@ -27096,6 +27666,56 @@ const appCadTool = {
                 this.scheduleToolbarCollapse(800);
             }
         }, { passive: true });
+
+        // Kéo/vuốt thanh kéo (pull pill ::before) trên #mapCadToolbar để thu gọn / mở rộng thật sự
+        this.initToolbarSheetDrag();
+    },
+
+    initToolbarSheetDrag() {
+        const bar = document.getElementById('mapCadToolbar');
+        const header = document.getElementById('mapCadToolbarHeader');
+        if (!bar || !header || bar._hasSheetDragInit) return;
+        bar._hasSheetDragInit = true;
+
+        let startY = 0, startX = 0, dragging = false, dy = 0;
+
+        const onDown = (e) => {
+            if (e.target && e.target.closest && e.target.closest('button, input, select, a, #cadTabGroup')) return;
+            if (e.button && e.button > 0) return;
+            const pt = e.touches ? e.touches[0] : e;
+            startX = pt.clientX;
+            startY = pt.clientY;
+            dy = 0;
+            dragging = true;
+        };
+
+        const onMove = (e) => {
+            if (!dragging) return;
+            const pt = e.touches ? e.touches[0] : e;
+            const dx = pt.clientX - startX;
+            dy = pt.clientY - startY;
+            if (Math.abs(dx) > Math.abs(dy) + 8) { dragging = false; return; }
+            if (Math.abs(dy) > 10 && e.cancelable) e.preventDefault();
+        };
+
+        const onUp = () => {
+            if (!dragging) return;
+            dragging = false;
+            if (dy > 24) {
+                this._userHoldOpen = false;
+                this.setToolbarCollapsed(true);
+            } else if (dy < -24) {
+                this._userHoldOpen = true;
+                this.setToolbarCollapsed(false);
+            }
+        };
+
+        header.addEventListener('mousedown', onDown);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+        header.addEventListener('touchstart', onDown, { passive: true });
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onUp);
     },
 
     setToolbarCollapsed(collapsed) {
@@ -32986,40 +33606,50 @@ const appCadTool = {
         const header = document.getElementById('cadFloatingCmdHeader');
         if (!bar || !header || bar._dragInit) return;
         bar._dragInit = true;
+        header.style.touchAction = 'none';
 
         let isDragging = false;
-        let startX, startY, initialLeft, initialTop;
+        let startX = 0, startY = 0, initialLeft = 0, initialTop = 0, isFixed = false, parentW = 0, parentH = 0;
 
         const onStart = (e) => {
-            if (e.target.tagName === 'BUTTON') return;
+            if (e.target && e.target.closest && e.target.closest('button, input, select, a')) return;
+            if (e.button && e.button > 0) return;
             isDragging = true;
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            startX = clientX;
-            startY = clientY;
+            const pt = e.touches ? e.touches[0] : e;
+            startX = pt.clientX;
+            startY = pt.clientY;
             const rect = bar.getBoundingClientRect();
-            initialLeft = rect.left;
-            initialTop = rect.top;
+            const cs = typeof getComputedStyle === 'function' ? getComputedStyle(bar) : null;
+            isFixed = !!(cs && cs.position === 'fixed');
+            const pRect = (!isFixed && bar.offsetParent) ? bar.offsetParent.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+            initialLeft = rect.left - pRect.left;
+            initialTop = rect.top - pRect.top;
+            parentW = isFixed ? window.innerWidth : pRect.width;
+            parentH = isFixed ? window.innerHeight : pRect.height;
             header.style.cursor = 'grabbing';
             bar.classList.add('is-dragged');
             bar.style.setProperty('bottom', 'auto', 'important');
             bar.style.setProperty('right', 'auto', 'important');
+            bar.style.setProperty('transform', 'none', 'important');
             bar.style.transition = 'none';
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
         };
 
         const onMove = (e) => {
             if (!isDragging) return;
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            const dx = clientX - startX;
-            const dy = clientY - startY;
+            if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
+            const pt = e.touches ? e.touches[0] : e;
+            const dx = pt.clientX - startX;
+            const dy = pt.clientY - startY;
 
+            const minTop = isFixed ? 50 : 6;
+            const maxLeft = Math.max(8, parentW - bar.offsetWidth - 8);
+            const maxTop = Math.max(minTop, parentH - bar.offsetHeight - 8);
             bar.classList.add('is-dragged');
             bar.style.setProperty('bottom', 'auto', 'important');
             bar.style.setProperty('right', 'auto', 'important');
-            bar.style.left = `${Math.max(8, Math.min(window.innerWidth - bar.offsetWidth - 8, initialLeft + dx))}px`;
-            bar.style.top = `${Math.max(50, Math.min(window.innerHeight - bar.offsetHeight - 8, initialTop + dy))}px`;
+            bar.style.setProperty('left', `${Math.round(Math.max(8, Math.min(maxLeft, initialLeft + dx)))}px`, 'important');
+            bar.style.setProperty('top', `${Math.round(Math.max(minTop, Math.min(maxTop, initialTop + dy)))}px`, 'important');
         };
 
         const onEnd = () => {
@@ -33040,18 +33670,20 @@ const appCadTool = {
 
         // Nhấp đúp (Double click) vào Header để neo lại (Reset) vị trí nổi mặc định
         header.addEventListener('dblclick', (e) => {
-            if (e.target.tagName === 'BUTTON') return;
+            if (e.target && e.target.closest && e.target.closest('button, input')) return;
             this.resetFloatingCmdBarPosition();
         });
 
         // Tự động căn chỉnh lại tọa độ khi resize cửa sổ
         window.addEventListener('resize', () => {
             if (bar.classList.contains('is-dragged') && bar.style.display !== 'none') {
-                const rect = bar.getBoundingClientRect();
-                const maxLeft = Math.max(8, window.innerWidth - bar.offsetWidth - 8);
-                const maxTop = Math.max(50, window.innerHeight - bar.offsetHeight - 8);
-                if (rect.left > maxLeft) bar.style.left = `${maxLeft}px`;
-                if (rect.top > maxTop) bar.style.top = `${maxTop}px`;
+                const pRect = bar.offsetParent ? bar.offsetParent.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+                const maxLeft = Math.max(8, pRect.width - bar.offsetWidth - 8);
+                const maxTop = Math.max(8, pRect.height - bar.offsetHeight - 8);
+                const curLeft = parseFloat(bar.style.left) || 0;
+                const curTop = parseFloat(bar.style.top) || 0;
+                if (curLeft > maxLeft) bar.style.setProperty('left', `${Math.round(maxLeft)}px`, 'important');
+                if (curTop > maxTop) bar.style.setProperty('top', `${Math.round(maxTop)}px`, 'important');
             }
         });
     },
@@ -38302,11 +38934,15 @@ const appRouting = {
     cachedGmapsLegs: [],
     currentAddPointTab: 'survey',
     sheetExpanded: false,
+    pinMode: false,
 
     init() {
         this.ensureMap();
+        this.initSheetDrag();
+        this.initPointsReorderDrag();
         this.renderPointsSheet();
         this.updateBadgeCount();
+        this.syncPinModeUi();
         if (typeof AppState !== 'undefined' && AppState.lastGps && AppState.lastGps.lat && this.map) {
             this.map.setView([AppState.lastGps.lat, AppState.lastGps.lng], 14);
         }
@@ -38332,8 +38968,19 @@ const appRouting = {
             wheelPxPerZoomLevel: 100
         }).setView([10.5, 106.0], 13);
 
-        const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer) 
-            ? window.PixOptimizer.getTileLayerOptions() 
+        // Chặn tuyệt đối click/cuộn từ mọi thanh điều khiển nổi lan xuống bản đồ Leaflet (ngăn tạo điểm ảo sau nút bấm)
+        if (L.DomEvent) {
+            ['routingMapFloatingTools', 'routingPinModeBanner', 'routingNavHud', 'routingPointsSheet', 'routingNavCard', 'routingNavBar', 'routingNavBanner', 'btnRnavRecenter'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    L.DomEvent.disableClickPropagation(el);
+                    L.DomEvent.disableScrollPropagation(el);
+                }
+            });
+        }
+
+        const tileOpt = (typeof window !== 'undefined' && window.PixOptimizer)
+            ? window.PixOptimizer.getTileLayerOptions()
             : { maxZoom: 24, maxNativeZoom: 20, keepBuffer: 3, updateWhenIdle: true };
 
         const satUrl = (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.getSatelliteUrlTemplate)
@@ -38356,12 +39003,11 @@ const appRouting = {
         this.markersLayer = L.layerGroup().addTo(this.map);
 
         // Bản đồ được tạo trước khi màn hình hiện ra (khung còn 0×0): đo lại sau khi hiện.
-        // (Trình duyệt có ResizeObserver đã tự đo lại qua installLeafletAutoResize; đây là dự phòng.)
         setTimeout(() => { if (this.map && typeof this.map.invalidateSize === 'function') this.map.invalidateSize(); }, 250);
 
-        // Click trên bản đồ để thêm điểm
+        // CHỈ thêm điểm khi người dùng chủ động bật chế độ "📌 Chấm điểm" (tránh chạm nhầm tạo điểm không có trong lộ trình)
         this.map.on('click', (e) => {
-            if (this.isNavigating) return;
+            if (this.isNavigating || !this.pinMode) return;
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             let x = 0, y = 0;
@@ -38372,8 +39018,38 @@ const appRouting = {
             const name = `P${this.points.length + 1}`;
             this.addPoint(lat, lng, name, x, y);
             if (typeof triggerHaptic === 'function') triggerHaptic('light');
-            if (typeof showToast === 'function') showToast(`✓ Đã thêm điểm ${name}`);
+            if (typeof showToast === 'function') showToast(`✓ Đã chấm điểm ${name} vào lộ trình`);
         });
+
+        if (typeof window !== 'undefined' && !this._escPinBound) {
+            this._escPinBound = true;
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.pinMode) this.togglePinMode(false);
+            });
+        }
+    },
+
+    togglePinMode(forceState) {
+        const next = typeof forceState === 'boolean' ? forceState : !this.pinMode;
+        this.pinMode = next;
+        this.syncPinModeUi();
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+        if (next && typeof showToast === 'function') {
+            showToast('📌 Đã bật chế độ chấm điểm — chạm lên bản đồ để thêm mốc dừng');
+        }
+    },
+
+    syncPinModeUi() {
+        if (typeof document === 'undefined') return;
+        const btn = document.getElementById('btnRoutingPinMode');
+        if (btn) {
+            btn.classList.toggle('is-pin-active', !!this.pinMode);
+            btn.textContent = this.pinMode ? '✓ Đang chấm' : '📌 Chấm điểm';
+        }
+        const banner = document.getElementById('routingPinModeBanner');
+        if (banner) banner.style.display = this.pinMode ? 'flex' : 'none';
+        const mapEl = document.getElementById('leaflet-routing-map');
+        if (mapEl) mapEl.classList.toggle('is-pin-mode', !!this.pinMode);
     },
 
     toggleTileLayer() {
@@ -38401,17 +39077,10 @@ const appRouting = {
         } : {};
         Object.keys(btns).forEach(k => {
             if (btns[k]) {
-                if (k === veh) {
-                    btns[k].classList.add('active');
-                    btns[k].style.background = '#0284c7';
-                    btns[k].style.color = '#ffffff';
-                    btns[k].style.fontWeight = '700';
-                } else {
-                    btns[k].classList.remove('active');
-                    btns[k].style.background = 'transparent';
-                    btns[k].style.color = '#94a3b8';
-                    btns[k].style.fontWeight = 'normal';
-                }
+                btns[k].classList.toggle('active', k === veh);
+                btns[k].style.background = '';
+                btns[k].style.color = '';
+                btns[k].style.fontWeight = '';
             }
         });
 
@@ -38434,7 +39103,14 @@ const appRouting = {
         }
     },
 
-    addPoint(lat, lng, name, x = 0, y = 0, note = '') {
+    _clearRouteLayers() {
+        if (!this.map) return;
+        if (this.routePolyline) { this.map.removeLayer(this.routePolyline); this.routePolyline = null; }
+        if (this.routeCasing) { this.map.removeLayer(this.routeCasing); this.routeCasing = null; }
+        if (this.routeDone) { this.map.removeLayer(this.routeDone); this.routeDone = null; }
+    },
+
+    addPoint(lat, lng, name, x = 0, y = 0, note = '', customId = null) {
         const pLat = parseFloat(lat);
         const pLng = parseFloat(lng);
         if (isNaN(pLat) || isNaN(pLng)) return;
@@ -38448,7 +39124,7 @@ const appRouting = {
 
         const ptName = name || `P${this.points.length + 1}`;
         this.points.push({
-            id: 'rt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            id: customId || ('rt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
             name: ptName,
             lat: pLat,
             lng: pLng,
@@ -38466,14 +39142,54 @@ const appRouting = {
         if (index >= 0 && index < this.points.length) {
             this.points.splice(index, 1);
             this.optimizedRoute = null;
-            if (this.routePolyline && this.map) {
-                this.map.removeLayer(this.routePolyline);
-                this.routePolyline = null;
-            }
+            this._clearRouteLayers();
             this.resetHudToIdle();
             this.renderMarkers();
             this.renderPointsSheet();
             this.updateBadgeCount();
+        }
+    },
+
+    reorderPoints(fromIdx, toIdx) {
+        if (fromIdx === toIdx) return false;
+        if (fromIdx < 0 || fromIdx >= this.points.length || toIdx < 0 || toIdx >= this.points.length) return false;
+        const [moved] = this.points.splice(fromIdx, 1);
+        this.points.splice(toIdx, 0, moved);
+        this.optimizedRoute = null;
+        this._clearRouteLayers();
+        this.resetHudToIdle();
+        this.renderMarkers();
+        this.renderPointsSheet();
+        this.updateBadgeCount();
+        if (typeof triggerHaptic === 'function') triggerHaptic('selection');
+        if (typeof showToast === 'function') showToast(`✓ Đã chuyển "${moved.name}" sang chặng #${toIdx + 1}`);
+        return true;
+    },
+
+    async calculateManualOrderRoute() {
+        if (this.points.length < 2) {
+            if (typeof showToast === 'function') showToast("⚠️ Cần ít nhất 2 điểm để tính đường!", true);
+            return;
+        }
+        if (this.isNavigating) this.stopNavigation(true);
+        const btn = (typeof document !== 'undefined') ? document.getElementById('btnRoutingCalcOrder') : null;
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang tính...'; }
+        try {
+            const stops = this.points.slice();
+            if (this.isRoundTrip && stops.length > 2) stops.push(stops[0]);
+            const got = await this._fetchRoute(stops);
+            if (!got) throw new Error('Không tìm được đường');
+            this._setRoute(got.route, got.source);
+            this.updateHudWithRoute(got.route);
+            this.fitBounds();
+            if (this.sheetExpanded) this.togglePointsListSheet(false);
+            const distKm = (got.route.distance / 1000).toFixed(1);
+            const durMin = Math.round(got.route.duration / 60);
+            if (typeof showToast === 'function') showToast(`✓ Lộ trình theo thứ tự thủ công: ${distKm} km • ${durMin} phút`);
+        } catch (err) {
+            this.fallbackStraightLineRoute();
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '🗺️ Theo thứ tự'; }
         }
     },
 
@@ -38482,10 +39198,7 @@ const appRouting = {
         this.optimizedRoute = null;
         if (this.isNavigating) this.stopNavigation();
         if (this.markersLayer) this.markersLayer.clearLayers();
-        if (this.routePolyline && this.map) {
-            this.map.removeLayer(this.routePolyline);
-            this.routePolyline = null;
-        }
+        this._clearRouteLayers();
         this.resetHudToIdle();
         this.renderPointsSheet();
         this.updateBadgeCount();
@@ -38507,8 +39220,8 @@ const appRouting = {
                 const vnPt = geodesy.wgs84ToVn2000(lat, lng, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
                 if (vnPt) { x = vnPt.x; y = vnPt.y; }
             }
-            // Chèn vào đầu danh sách làm điểm xuất phát
-            this.points.unshift({
+            // Nếu đã có điểm GPS xuất phát ở đầu -> cập nhật thay vì thêm trùng
+            const gpsObj = {
                 id: 'rt_gps_' + Date.now(),
                 name: '📍 Vị trí GPS',
                 lat: lat,
@@ -38516,7 +39229,12 @@ const appRouting = {
                 x: x,
                 y: y,
                 note: 'Xuất phát từ GPS hiện tại'
-            });
+            };
+            if (this.points.length > 0 && String(this.points[0].id || '').startsWith('rt_gps_')) {
+                this.points[0] = gpsObj;
+            } else {
+                this.points.unshift(gpsObj);
+            }
             this.renderMarkers();
             this.renderPointsSheet();
             this.updateBadgeCount();
@@ -38564,6 +39282,7 @@ const appRouting = {
     loadPointsFromSurvey(surveyPoints) {
         this.points = [];
         this.optimizedRoute = null;
+        this._clearRouteLayers();
         if (!Array.isArray(surveyPoints)) return;
 
         surveyPoints.forEach((p, idx) => {
@@ -38645,7 +39364,7 @@ const appRouting = {
         if (!listBody) return;
 
         if (this.points.length === 0) {
-            listBody.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 20px 0;">Chưa có điểm nào trong lộ trình. Nhấp lên bản đồ hoặc bấm <b>➕ Thêm điểm</b>.</div>`;
+            listBody.innerHTML = `<div class="rt-sheet-empty">Chưa có điểm nào trong lộ trình.<br>Bấm <b>➕ Thêm điểm</b> từ Sổ đo hoặc bật <b>📌 Chấm điểm</b> để chọn mốc trên bản đồ.</div>`;
             return;
         }
 
@@ -38653,38 +39372,194 @@ const appRouting = {
         this.points.forEach((p, idx) => {
             const isStart = idx === 0;
             const isEnd = idx === this.points.length - 1 && !this.isRoundTrip;
-            let tagColor = '#0284c7';
-            let tagText = `Chặng ${idx + 1}`;
-            if (isStart) { tagColor = '#10b981'; tagText = 'Xuất phát'; }
-            else if (isEnd) { tagColor = '#ef4444'; tagText = 'Đích đến'; }
+            let tagColor = '#3f8a5a';
+            let roleLabel = '';
+            if (isStart) { tagColor = '#10b981'; roleLabel = ' • Xuất phát'; }
+            else if (isEnd) { tagColor = '#ef4444'; roleLabel = ' • Đích đến'; }
 
             html += `
-                <div class="routing-point-row">
-                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                        <span style="display: inline-block; padding: 1px 6px; font-size: 11px; font-weight: 700; border-radius: 4px; background: ${tagColor}; color: #ffffff;">
-                            ${idx + 1}
-                        </span>
-                        <div style="min-width: 0;">
-                            <div style="font-weight: 700; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                ${p.name}
-                            </div>
-                            <div style="font-size: 11px; color: #94a3b8;">
-                                ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}
-                            </div>
+                <div class="routing-point-row" data-idx="${idx}">
+                    <div class="rt-row-main">
+                        <span class="routing-point-drag-handle" data-drag-idx="${idx}" title="Kéo giữ lên/xuống để đổi thứ tự chặng" aria-label="Kéo đổi thứ tự ${p.name}">⠿</span>
+                        <span class="rt-row-num" style="background: ${tagColor};">${idx + 1}</span>
+                        <div class="rt-row-copy">
+                            <div class="rt-row-name">${p.name}<span class="rt-row-role">${roleLabel}</span></div>
+                            <div class="rt-row-coords">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <button type="button" class="btn-sm btn-icon" onclick="appRouting.zoomToPoint(${idx})" title="Xem trên bản đồ" style="width: 28px; height: 28px; font-size: 12px; background: rgba(255,255,255,0.08);">
-                            🔍
-                        </button>
-                        <button type="button" class="btn-sm btn-icon" onclick="appRouting.removePoint(${idx})" title="Xóa điểm này" style="width: 28px; height: 28px; font-size: 12px; background: rgba(239,68,68,0.15); color: #f87171;">
-                            ✕
-                        </button>
+                    <div class="rt-row-actions">
+                        <button type="button" class="btn-sm btn-icon rt-row-btn" onclick="appRouting.zoomToPoint(${idx})" title="Xem trên bản đồ">🔍</button>
+                        <button type="button" class="btn-sm btn-icon rt-row-btn rt-row-del" onclick="appRouting.removePoint(${idx})" title="Xóa điểm này">✕</button>
                     </div>
                 </div>
             `;
         });
         listBody.innerHTML = html;
+    },
+
+    initSheetDrag() {
+        if (typeof document === 'undefined') return;
+        const sheet = document.getElementById('routingPointsSheet');
+        const handle = document.getElementById('routingSheetDragHandle') || (sheet && sheet.querySelector('.sheet-drag-handle'));
+        if (!sheet || !handle || handle._hasDragInit) return;
+        handle._hasDragInit = true;
+
+        let drag = null;
+        let suppressClickUntil = 0;
+
+        const onDown = (e) => {
+            if (e.button && e.button > 0) return;
+            const pt = e.touches ? e.touches[0] : e;
+            const mapEl = document.getElementById('leaflet-routing-map');
+            const maxH = Math.max(240, Math.round((mapEl ? mapEl.clientHeight : window.innerHeight) * 0.82));
+            drag = {
+                startY: pt.clientY,
+                startH: sheet.getBoundingClientRect().height || 260,
+                maxH,
+                moved: false,
+                newH: null,
+                dy: 0,
+                pointerId: e.pointerId
+            };
+            if (e.pointerId !== undefined && typeof handle.setPointerCapture === 'function') {
+                try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+            }
+            sheet.classList.add('is-dragging');
+        };
+
+        const onMove = (e) => {
+            if (!drag) return;
+            if (drag.pointerId !== undefined && e.pointerId !== undefined && e.pointerId !== drag.pointerId) return;
+            const pt = e.touches ? e.touches[0] : e;
+            const dy = pt.clientY - drag.startY;
+            drag.dy = dy;
+            if (!drag.moved && Math.abs(dy) < 6) return;
+            drag.moved = true;
+            if (e.cancelable) e.preventDefault();
+            const nextH = Math.max(88, Math.min(drag.maxH, drag.startH - dy));
+            drag.newH = nextH;
+            sheet.style.height = `${Math.round(nextH)}px`;
+            sheet.style.maxHeight = `${Math.round(drag.maxH)}px`;
+        };
+
+        const onUp = (e) => {
+            if (!drag) return;
+            if (drag.pointerId !== undefined && e.pointerId !== undefined && e.pointerId !== drag.pointerId) return;
+            const d = drag;
+            drag = null;
+            sheet.classList.remove('is-dragging');
+            if (!d.moved) {
+                this.togglePointsListSheet(false);
+                suppressClickUntil = Date.now() + 350;
+                return;
+            }
+            suppressClickUntil = Date.now() + 350;
+            if (d.newH !== null && (d.newH < 125 || d.dy > 110)) {
+                sheet.style.height = '';
+                this.togglePointsListSheet(false);
+            }
+        };
+
+        if (typeof window !== 'undefined' && 'PointerEvent' in window) {
+            handle.addEventListener('pointerdown', onDown);
+            handle.addEventListener('pointermove', onMove);
+            handle.addEventListener('pointerup', onUp);
+            handle.addEventListener('pointercancel', onUp);
+        } else {
+            handle.addEventListener('mousedown', onDown);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+            handle.addEventListener('touchstart', onDown, { passive: true });
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('touchend', onUp);
+        }
+        handle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (Date.now() < suppressClickUntil) return;
+            this.togglePointsListSheet(false);
+        });
+    },
+
+    initPointsReorderDrag() {
+        if (typeof document === 'undefined') return;
+        const listBody = document.getElementById('routingPointsListBody');
+        if (!listBody || listBody._hasReorderInit) return;
+        listBody._hasReorderInit = true;
+
+        let state = null;
+
+        const clearTargetHighlight = () => {
+            listBody.querySelectorAll('.routing-point-row.is-drop-target').forEach(r => r.classList.remove('is-drop-target'));
+        };
+
+        const onDown = (e) => {
+            const grip = e.target && e.target.closest ? e.target.closest('.routing-point-drag-handle') : null;
+            if (!grip) return;
+            if (e.button && e.button > 0) return;
+            const row = grip.closest('.routing-point-row');
+            if (!row) return;
+            const fromIdx = parseInt(row.getAttribute('data-idx'), 10);
+            if (isNaN(fromIdx)) return;
+            const pt = e.touches ? e.touches[0] : e;
+            state = { fromIdx, targetIdx: fromIdx, row, startY: pt.clientY, pointerId: e.pointerId };
+            row.classList.add('is-dragging-row');
+            if (e.pointerId !== undefined && typeof listBody.setPointerCapture === 'function') {
+                try { listBody.setPointerCapture(e.pointerId); } catch (_) {}
+            }
+            if (e.cancelable) e.preventDefault();
+        };
+
+        const onMove = (e) => {
+            if (!state) return;
+            if (state.pointerId !== undefined && e.pointerId !== undefined && e.pointerId !== state.pointerId) return;
+            if (e.cancelable) e.preventDefault();
+            const pt = e.touches ? e.touches[0] : e;
+            const dy = pt.clientY - state.startY;
+            state.row.style.transform = `translateY(${Math.round(dy)}px)`;
+
+            const rows = Array.from(listBody.querySelectorAll('.routing-point-row'));
+            // Tìm vị trí chèn chính xác theo tâm từng dòng
+            let bestIdx = rows.length - 1;
+            for (let i = 0; i < rows.length; i++) {
+                const rect = rows[i].getBoundingClientRect();
+                if (pt.clientY < rect.top + rect.height / 2) {
+                    bestIdx = i;
+                    break;
+                }
+            }
+            state.targetIdx = bestIdx;
+            clearTargetHighlight();
+            if (rows[bestIdx] && rows[bestIdx] !== state.row) {
+                rows[bestIdx].classList.add('is-drop-target');
+            }
+        };
+
+        const onUp = (e) => {
+            if (!state) return;
+            if (state.pointerId !== undefined && e.pointerId !== undefined && e.pointerId !== state.pointerId) return;
+            const { fromIdx, targetIdx, row } = state;
+            state = null;
+            row.classList.remove('is-dragging-row');
+            row.style.transform = '';
+            clearTargetHighlight();
+            if (targetIdx !== fromIdx) {
+                this.reorderPoints(fromIdx, targetIdx);
+            }
+        };
+
+        if (typeof window !== 'undefined' && 'PointerEvent' in window) {
+            listBody.addEventListener('pointerdown', onDown);
+            listBody.addEventListener('pointermove', onMove);
+            listBody.addEventListener('pointerup', onUp);
+            listBody.addEventListener('pointercancel', onUp);
+        } else {
+            listBody.addEventListener('mousedown', onDown);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+            listBody.addEventListener('touchstart', onDown, { passive: false });
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('touchend', onUp);
+        }
     },
 
     updateBadgeCount() {
@@ -38693,19 +39568,23 @@ const appRouting = {
         if (badge) badge.innerText = this.points.length;
     },
 
-    togglePointsListSheet() {
+    togglePointsListSheet(forceState) {
         const sheet = document.getElementById('routingPointsSheet');
         if (!sheet) return;
-        this.sheetExpanded = !this.sheetExpanded;
+        this.sheetExpanded = typeof forceState === 'boolean' ? forceState : !this.sheetExpanded;
         sheet.style.display = this.sheetExpanded ? 'flex' : 'none';
-        if (this.sheetExpanded) this.renderPointsSheet();
+        if (this.sheetExpanded) {
+            this.initSheetDrag();
+            this.initPointsReorderDrag();
+            this.renderPointsSheet();
+        }
     },
 
     zoomToPoint(idx) {
         if (idx >= 0 && idx < this.points.length && this.map) {
             const p = this.points[idx];
             this.map.setView([p.lat, p.lng], 16);
-            if (this.sheetExpanded) this.togglePointsListSheet();
+            if (this.sheetExpanded) this.togglePointsListSheet(false);
         }
     },
 
@@ -39461,6 +40340,9 @@ const appRouting = {
             curProjEl.innerText = AppState.currentProject || 'VN2000_SoLieu_DoDac.csv';
         }
 
+        const searchEl = document.getElementById('txtRoutingSurveySearch');
+        if (searchEl) searchEl.value = '';
+
         this.populateSurveyPointsModal();
         this.switchAddPointTab(this.currentAddPointTab || 'survey');
 
@@ -39496,56 +40378,111 @@ const appRouting = {
         }
     },
 
+    _isPointAlreadyInRoute(p) {
+        if (!p || !Array.isArray(this.points) || this.points.length === 0) return false;
+        let lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+        const x = parseFloat(p.x), y = parseFloat(p.y);
+        if ((isNaN(lat) || isNaN(lng) || !lat || !lng) && !isNaN(x) && !isNaN(y) && typeof geodesy !== 'undefined' && typeof AppState !== 'undefined') {
+            const wgs = geodesy.vn2000ToWgs84(x, y, AppState.kttDeg, AppState.kttMin, AppState.muiVal);
+            if (wgs) { lat = wgs.lat; lng = wgs.lng; }
+        }
+        return this.points.some(ep => {
+            if (p.id && ep.id === 'rt_surv_' + p.id) return true;
+            if (!isNaN(lat) && !isNaN(lng) && lat && lng) {
+                const sameCoord = Math.abs(ep.lat - lat) < 1e-5 && Math.abs(ep.lng - lng) < 1e-5;
+                if (sameCoord && (!p.name || ep.name === p.name)) return true;
+            }
+            return false;
+        });
+    },
+
     populateSurveyPointsModal() {
         const listEl = document.getElementById('routingSurveyPointsList');
         if (!listEl) return;
-        const allPts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function') 
-            ? appData.getPoints(AppState.currentProject) 
+        const allPts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function')
+            ? appData.getPoints(AppState.currentProject)
             : [];
 
         if (!allPts || allPts.length === 0) {
-            listEl.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 11.5px; padding: 14px 0;">Sổ đo hiện tại chưa có mốc nào. Bạn có thể sang tab <b>📋 Dán Bảng Tọa Độ</b> để dán số liệu.</div>`;
+            listEl.innerHTML = `<div class="rt-survey-empty">Sổ đo hiện tại chưa có mốc nào. Bạn có thể sang tab <b>📋 Dán Bảng Tọa Độ</b> để dán số liệu.</div>`;
+            this.updateSurveyModalSelectionCount();
             return;
         }
 
         let html = '';
         allPts.forEach((p, idx) => {
+            const name = p.name || 'M' + (idx + 1);
+            const alreadyIn = this._isPointAlreadyInRoute(p);
+            const coordTxt = p.x && p.y
+                ? `X=${parseFloat(p.x).toFixed(1)}, Y=${parseFloat(p.y).toFixed(1)}`
+                : (p.lat && p.lng ? `${parseFloat(p.lat).toFixed(4)}, ${parseFloat(p.lng).toFixed(4)}` : '');
+            const searchKey = `${name} ${p.note || ''} ${coordTxt}`.toLowerCase().replace(/"/g, '&quot;');
             html += `
-                <label style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: rgba(30, 41, 59, 0.6); border-radius: 6px; cursor: pointer; user-select: none;">
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #f8fafc;">
-                        <input type="checkbox" class="chk-routing-survey-pt" value="${idx}" checked style="width: 16px; height: 16px; accent-color: #0284c7;">
-                        <span><b>${p.name || 'M' + (idx + 1)}</b></span>
+                <label class="rt-survey-row${alreadyIn ? ' is-already-in' : ''}" data-search="${searchKey}">
+                    <div class="rt-survey-row-left">
+                        <input type="checkbox" class="chk-routing-survey-pt" value="${idx}" ${alreadyIn ? 'disabled data-already-in-route="1"' : ''} onchange="appRouting.updateSurveyModalSelectionCount()">
+                        <span class="rt-survey-name">${name}</span>
+                        ${alreadyIn ? '<span class="rt-already-badge">✓ Đã có</span>' : ''}
                     </div>
-                    <div style="font-size: 11px; color: #94a3b8;">
-                        ${p.x && p.y ? `X=${parseFloat(p.x).toFixed(1)}, Y=${parseFloat(p.y).toFixed(1)}` : (p.lat && p.lng ? `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}` : '')}
-                    </div>
+                    <div class="rt-survey-coord">${coordTxt}</div>
                 </label>
             `;
         });
         listEl.innerHTML = html;
+        this.updateSurveyModalSelectionCount();
+    },
+
+    filterSurveyPointsModal(query = '') {
+        const listEl = document.getElementById('routingSurveyPointsList');
+        if (!listEl) return;
+        const q = String(query || '').trim().toLowerCase();
+        listEl.querySelectorAll('.rt-survey-row').forEach(row => {
+            const hay = (row.getAttribute('data-search') || '').toLowerCase();
+            row.style.display = (!q || hay.includes(q)) ? 'flex' : 'none';
+        });
+        this.updateSurveyModalSelectionCount();
+    },
+
+    updateSurveyModalSelectionCount() {
+        const available = Array.from(document.querySelectorAll('.chk-routing-survey-pt:not(:disabled)'));
+        const checked = available.filter(cb => cb.checked);
+        const countEl = document.getElementById('lblRoutingSurveySelCount');
+        if (countEl) {
+            countEl.textContent = `Đã chọn ${checked.length}/${available.length}`;
+        }
+        const btnToggle = document.getElementById('btnRoutingToggleAllSurvey');
+        if (btnToggle) {
+            const allChecked = available.length > 0 && checked.length === available.length;
+            btnToggle.textContent = allChecked ? '☐ Bỏ chọn tất cả' : '☑️ Chọn tất cả';
+        }
     },
 
     toggleSelectAllSurveyPoints() {
-        const cbs = document.querySelectorAll('.chk-routing-survey-pt');
+        const rows = Array.from(document.querySelectorAll('#routingSurveyPointsList .rt-survey-row'));
+        const cbs = rows
+            .filter(r => r.style.display !== 'none')
+            .map(r => r.querySelector('.chk-routing-survey-pt:not(:disabled)'))
+            .filter(Boolean);
         if (cbs.length === 0) return;
-        const firstChecked = cbs[0].checked;
-        cbs.forEach(cb => { cb.checked = !firstChecked; });
+        const allChecked = cbs.every(cb => cb.checked);
+        cbs.forEach(cb => { cb.checked = !allChecked; });
+        this.updateSurveyModalSelectionCount();
     },
 
     applyAddPointsFromModal() {
         if (this.currentAddPointTab === 'survey') {
-            const allPts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function') 
-                ? appData.getPoints(AppState.currentProject) 
+            const allPts = (typeof appData !== 'undefined' && typeof appData.getPoints === 'function')
+                ? appData.getPoints(AppState.currentProject)
                 : [];
-            const checkedBoxes = Array.from(document.querySelectorAll('.chk-routing-survey-pt:checked'));
+            const checkedBoxes = Array.from(document.querySelectorAll('.chk-routing-survey-pt:checked:not(:disabled)'));
             if (checkedBoxes.length === 0) {
-                if (typeof showToast === 'function') showToast("⚠️ Chưa chọn mốc nào!", true);
+                if (typeof showToast === 'function') showToast("⚠️ Vui lòng tích chọn ít nhất 1 mốc muốn thêm vào lộ trình!", true);
                 return;
             }
 
             let addedCount = 0;
             checkedBoxes.forEach(cb => {
-                const idx = parseInt(cb.value);
+                const idx = parseInt(cb.value, 10);
                 if (allPts[idx]) {
                     const p = allPts[idx];
                     let lat = parseFloat(p.lat);
@@ -39559,7 +40496,7 @@ const appRouting = {
                     }
 
                     if (!isNaN(lat) && !isNaN(lng) && lat && lng) {
-                        this.addPoint(lat, lng, p.name || `M${idx + 1}`, x, y, p.note);
+                        this.addPoint(lat, lng, p.name || `M${idx + 1}`, x, y, p.note, p.id ? ('rt_surv_' + p.id) : null);
                         addedCount++;
                     }
                 }
@@ -39567,7 +40504,7 @@ const appRouting = {
 
             this.closeAddPointsModal();
             this.fitBounds();
-            if (typeof showToast === 'function') showToast(`✓ Đã thêm ${addedCount} mốc từ Sổ đo!`);
+            if (typeof showToast === 'function') showToast(`✓ Đã thêm ${addedCount} mốc từ Sổ đo vào lộ trình!`);
             if (this.points.length >= 2) this.optimizeRoute();
 
         } else {
@@ -40555,6 +41492,18 @@ const appI18n = {
         "Camera Hiện Trường": "Field Camera",
         "Đóng Dấu Ảnh Máy": "Watermark Photo",
         "Quản Lý Thư Viện Ảnh": "Photo Gallery Manager",
+        "☑️ Chọn nhiều": "☑️ Select Multiple",
+        "✕ Xong chọn": "✕ Done",
+        "Chọn tất cả": "Select all",
+        "✕ Bỏ chọn": "✕ Clear",
+        "📤 Gửi / Chia sẻ (": "📤 Share (",
+        "📦 Tải gói ZIP (": "📦 Download ZIP (",
+        "Tải từng ảnh": "Download files",
+        "📌 Chấm điểm": "📌 Pin on map",
+        "✓ Đang chấm": "✓ Pinning",
+        "🗺️ Theo thứ tự": "🗺️ Use order",
+        "Khứ hồi": "Round trip",
+        "🚗 Ô tô": "🚗 Car",
         "Hướng dẫn Camera đóng dấu": "GPS live shots Guide",
         "Hướng dẫn GPS live shots": "GPS live shots Guide",
         "Mở GPS live shots ➔": "Open GPS live shots ➔",
@@ -42967,8 +43916,8 @@ const appGuide = {
                     desc: { vi: 'Bấm "Chụp ảnh" để lưu ảnh tức thời, hoặc bấm "Quay video" để ghi hình hiện trường với thẻ tọa độ cập nhật từng giây.', en: 'Tap "Capture Photo" for an instant stamped shot, or "Record Video" for live video with a real-time HUD stamp.' }
                 },
                 {
-                    title: { vi: '3. Quản lý Thư viện & mở khóa tab "Đóng dấu" khi cần', en: '3. Manage Gallery & optional hidden Post-Stamp tab' },
-                    desc: { vi: 'Mở tab "Thư viện" để xem, tải hoặc chia sẻ ảnh/video. Chức năng đóng dấu ảnh có sẵn từ máy mặc định được ẩn — có thể bật tại Cài đặt hệ thống → Chung.', en: 'Open "Gallery" to inspect, download, or share media. The gallery Post-Stamp tab is hidden by default and can be enabled in System Settings → General.' }
+                    title: { vi: '3. Quản lý Thư viện (chọn nhiều ảnh) & tab ẩn "Đóng dấu"', en: '3. Manage Gallery (multi-select) & optional hidden Post-Stamp tab' },
+                    desc: { vi: 'Mở tab "Thư viện" để xem, tích chọn 2 hoặc nhiều ảnh/video để Gửi/Chia sẻ cùng lúc, Tải từng ảnh hoặc Tải gói ZIP. Chức năng đóng dấu ảnh có sẵn từ máy mặc định được ẩn — có thể bật tại Cài đặt hệ thống → Chung.', en: 'Open "Gallery" to inspect or select 2+ photos/videos to Share together, Download individually, or Export as a single ZIP. The Post-Stamp tab is hidden by default and can be enabled in System Settings → General.' }
                 }
             ],
             proTip: {

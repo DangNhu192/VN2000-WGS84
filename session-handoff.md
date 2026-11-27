@@ -1,6 +1,26 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-26: TỐI ƯU CÀI ĐẶT HỆ THỐNG v2, ẨN CHỨC NĂNG ĐÓNG DẤU & ĐỔI TÊN "GPS live shots" (v2.8.63)
+## Phiên hiện tại — 2026-11-26: TỐI ƯU LỘ TRÌNH & CHỈ ĐƯỜNG, SỬA KÉO THẢ TOÀN ỨNG DỤNG & CHỌN NHIỀU ẢNH THƯ VIỆN (v2.8.64)
+- **Yêu cầu**: (1) Bỏ lỗi *Tối ưu Lộ trình & Chỉ đường* tự động chọn điểm ngoài lộ trình; (2) Tối ưu giao diện Lộ trình; (3) Đảm bảo 100% giao diện có nút kéo thẻ trong toàn ứng dụng đều kéo thả hoạt động thật, mượt, không nhảy tọa độ; (4) Phát hành `v2.8.64` (kèm Thư viện ảnh chọn nhiều ảnh) lên GitHub `main`.
+- **Đã làm**:
+  - **Lộ trình không tự chọn điểm ngoài ý muốn (`index.html`, `app.js` — `appRouting`)**: Mặc định `pinMode: false` (`📌 Chấm điểm` chủ động + banner `#routingPinModeBanner` + phím `Esc`), chặn `L.DomEvent.disableClickPropagation` / `disableScrollPropagation` cho toàn bộ 8 lớp nổi trên `#leaflet-routing-map`, bỏ mặc định `checked` trong `populateSurveyPointsModal()` + gắn nhãn `✓ Đã có` (`disabled`) chống trùng + ô tìm nhanh `#txtRoutingSurveySearch` + đếm live `#lblRoutingSurveySelCount`, thêm `_clearRouteLayers()`, `reorderPoints()`, `calculateManualOrderRoute()` (*🗺️ Theo thứ tự*).
+  - **Giao diện Lộ trình v2 (`index.html`, `ui-polish.css`, `ui-unified.css`)**: Nâng cấp đồng bộ Dark Theme, Light Theme, Field Mode (kể cả `body[data-theme="light"].field-mode`) và Mobile Portrait (`0px` tràn ngang).
+  - **100% nút kéo thả toàn app hoạt động thật (`index.html`, `app.js`, `ui-polish.css`, `ui-mapfirst.css`)**: `#routingSheetDragHandle` (`initSheetDrag`), `.routing-point-drag-handle` (`initPointsReorderDrag`), `#pmbHeader` (`initProjectBlocksPanelDrag`), `#mapCadToolbar` (`initToolbarSheetDrag`), `.transform-sheet-drag-handle` (bỏ `onclick` trùng + `suppressClickUntil`), `#transformLayoutResizer`, `#dragHandleRightControls` (`offsetParent` + `.is-dragged`), `#cadBlocksPanelHeader`, `#cadFloatingCmdHeader`, `#dockExpandHandle` (`initDockExpandDrag`).
+  - **Đồng bộ `v2.8.64`**: `sw.js` (`vn2000-pro-v2.8.64`), `index.html`, `package.json`, `feature_list.json`.
+- **Kiểm thử**: `tests/routing_and_drag_handles.test.js` (4/4 PASS), Playwright E2E thật 16/16 kịch bản (Dark/Light/Field/Mobile, `0px` tràn ngang, `0` lỗi JS) + toàn bộ bộ kiểm thử **649/649 PASS**.
+
+---
+
+## Phiên trước — 2026-11-26: THƯ VIỆN HÌNH ẢNH CHỌN NHIỀU ẢNH/VIDEO ĐỂ GỬI, TẢI RỜI & ĐÓNG GÓI ZIP (gộp trong v2.8.64)
+- **Yêu cầu**: Quản lý thư viện hình ảnh cho phép chọn 2 hoặc nhiều hình ảnh/video để gửi hoặc tải về.
+- **Đã làm**:
+  - **UI chọn nhiều** (`index.html`, `ui-polish.css`, `ui-unified.css`): Nút `#btnGallerySelectMode` (*☑️ Chọn nhiều*), checkbox tròn nổi trực tiếp trên từng thẻ ảnh (`.camera-select-overlay`), thanh tác vụ `#barGalleryBatchActions` (*Chọn tất cả*, bộ đếm `Đã chọn N/M`, *Bỏ chọn*, *📤 Gửi / Chia sẻ*, *💾 Tải về / Tải từng ảnh*, *📦 Tải gói ZIP*, *🗑️ Xóa*) tương thích đầy đủ Dark Theme, Light Theme, Field Mode và Mobile (`0px` tràn ngang).
+  - **Logic gửi & tải nhiều tệp** (`app.js` — `appCamera`): `shareSelectedMedia()` dùng Web Share API Level 2 gửi đồng thời nhiều `File` (kèm fallback `{ files }` cho Zalo/iOS và fallback tự đóng gói `.zip` trên Desktop), `downloadSelectedMedia()` tải từng tệp Blob URL, `downloadSelectedMediaZip()` + `buildZipBlob()` (PKZIP STORE chuẩn IEEE CRC-32 + cờ UTF-8 `0x0800`, 0 thư viện ngoài) giúp tải 1 tệp `.zip` duy nhất không bị Chrome/iOS chặn tải nhiều tệp, và `deleteSelectedMedia()` xóa chọn lọc.
+- **Kiểm thử**: `tests/gallery_multiselect_share_download.test.js` (4/4 PASS) + Playwright E2E/trực quan Dark/Light/Field/Mobile (`zipfile.testzip() === None`, 0 lỗi JS, 0px tràn ngang) + toàn bộ bộ kiểm thử **645/645 PASS**.
+
+---
+
+## Phiên trước — 2026-11-26: TỐI ƯU CÀI ĐẶT HỆ THỐNG v2, ẨN CHỨC NĂNG ĐÓNG DẤU & ĐỔI TÊN "GPS live shots" (v2.8.63)
 - **Yêu cầu**: (1) Tối ưu hóa và cấu trúc lại giao diện Cài đặt hệ thống (`#modalSettings`); (2) Chức năng "Đóng dấu" ảnh chọn từ máy mặc định ẩn, chỉ mở khi tích chọn trong Cài đặt hệ thống; (3) Đổi tên thống nhất "Camera Đóng dấu" → **"GPS live shots"** và rà soát toàn bộ phân hệ liên quan.
 - **Đã làm**:
   - **Cài đặt hệ thống v2** (`index.html`, `ui-polish.css`, `ui-unified.css`, `app.js`): Bố cục 2 cột trên Desktop (Sidebar trái phân 3 nhóm + nội dung phải) và thanh tab ngang trên Mobile; thêm tìm kiếm nhanh `#txtSettingsSearch`; Tổng quan dạng Hero + 4 pill trạng thái tức thời + lưới Bento 2 cột có badge giá trị live (`updateSettingsOverviewSummary`); toàn bộ 7 tab con gom nhóm `.stg-card` với công tắc trượt thật `.stg-switch` tương thích Dark, Light và Field Mode.

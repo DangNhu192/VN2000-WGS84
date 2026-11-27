@@ -608,4 +608,31 @@ body[data-theme="light"].field-mode #modalSettings .btn-group-row .btn-sm.active
   border-color: #ffdf00 !important;
   font-weight: 800 !important;
 }
+#screen-camera #btnGallerySelectMode.active {
+  background: #2f6e47 !important;
+  color: #ffffff !important;
+  border-color: #93cc9c !important;
+  font-weight: 700 !important;
+}
+body.field-mode #screen-camera #btnGallerySelectMode.active,
+body[data-theme="light"].field-mode #screen-camera #btnGallerySelectMode.active {
+  background: #ffdf00 !important;
+  color: #000000 !important;
+  border-color: #ffdf00 !important;
+  font-weight: 800 !important;
+}
+#screen-routing #btnRoutingPinMode.is-pin-active {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #86efac !important;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35);
+}
+body.field-mode #screen-routing #btnRoutingPinMode.is-pin-active,
+body[data-theme="light"].field-mode #screen-routing #btnRoutingPinMode.is-pin-active {
+  background: #ffdf00 !important;
+  color: #000000 !important;
+  border-color: #ffdf00 !important;
+}
+
+
 

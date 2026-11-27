@@ -2106,3 +2106,36 @@
   - Chức năng ẩn **Đóng dấu** (`#tabCameraUpload`): Mặc định ẩn hoàn toàn (`hidden`, `.is-hidden-feature`, `display: none !important` vượt cả quy tắc `ui-unified.css`), `appCamera.switchTab("upload")` chặn mở khi chưa bật; chỉ hiển thị và sử dụng được khi bật công tắc `#chkEnablePostStamp` (*Mở chức năng "Đóng dấu" trong GPS live shots*) tại **Cài đặt hệ thống → Chung** (lưu `localStorage` khóa `vn2k_enable_post_stamp`; tắt hoặc Khôi phục mặc định tự ẩn lại và quay về tab `live`).
   - Đổi tên thống nhất **GPS live shots** trên toàn bộ hệ thống: thẻ Trang chủ, cây menu, lưới menu, drawer `#drawerItem_camera`, tiêu đề màn hình (`4. GPS LIVE SHOTS`), `app-shell.js` (`TITLES` + `ITEM_META` giữ từ khóa tìm cũ/mới), `appDashboard`, `appI18n` (VI/EN), `appGuide`, `user-guide.html`, và Trợ lý AI (`assistant-core.js`, `tools/ai/build_dataset.py`, `assistant-dataset.js`, `docs/ai/sft_vi.jsonl` — sửa xung đột định tuyến `mở gps live shots` không bắt nhầm lệnh bật GPS).
 - **Kiểm thử**: `tests/settings_v2_and_gps_live_shots.test.js` (3/3 PASS), Playwright trực quan & E2E Dark/Light/Field/Mobile (0 lỗi JS, 0 tràn ngang), toàn bộ bộ kiểm thử **641/641 PASS**.
+
+
+## 2026-11-26 — THƯ VIỆN HÌNH ẢNH: CHỌN NHIỀU ẢNH/VIDEO ĐỂ GỬI, TẢI RỜI & ĐÓNG GÓI ZIP
+- **Yêu cầu**: Quản lý thư viện hình ảnh cho phép chọn 2 hoặc nhiều hình ảnh/video để gửi (chia sẻ) hoặc tải về.
+- **Đã làm**:
+  - `index.html` (`#cameraTabPaneGallery`): Thêm nút `#btnGallerySelectMode` (`☑️ Chọn nhiều`) và thanh tác vụ chọn nhiều `#barGalleryBatchActions` gồm `#chkGallerySelectAll` (Chọn tất cả), bộ đếm `Đã chọn N/M`, `✕ Bỏ chọn`, `📤 Gửi / Chia sẻ (N)`, `💾 Tải về / Tải từng ảnh (N)`, `📦 Tải gói ZIP (N)` (hiện khi chọn ≥ 2 tệp) và `🗑️ Xóa (N)`.
+  - `app.js` (`appCamera`): Thêm checkbox tròn nổi trên từng thẻ ảnh (`.camera-select-overlay`, chạm ảnh khi đang chọn tự bật/tắt chọn), `toggleGallerySelectMode()`, `toggleGallerySelection()`, `toggleSelectAllGallery()`, `clearGallerySelection()`, `shareSelectedMedia()` (Web Share API Level 2 gửi nhiều `File` một lúc, tự thử lại `{ files }` tăng tương thích Zalo/Android/iOS, fallback đóng gói ZIP + chép tóm tắt tọa độ trên Desktop), `downloadSelectedMedia()` (tải rời bằng Blob URL), `downloadSelectedMediaZip()` + bộ tạo tệp PKZIP chuẩn (`buildZipBlob` không phụ thuộc thư viện ngoài, có CRC-32 & cờ UTF-8 `0x0800`), và `deleteSelectedMedia()`. Đồng bộ bản dịch EN và `appGuide` + `user-guide.html`.
+  - `ui-polish.css` & `ui-unified.css`: Hoàn thiện giao diện chọn nhiều ảnh cho Dark Theme, Light Theme, Field Mode và Mobile Portrait (`0px` tràn ngang).
+- **Kiểm thử**: `tests/gallery_multiselect_share_download.test.js` (4/4 PASS), Playwright E2E/trực quan Dark/Light/Field/Mobile (kiểm chứng tệp ZIP thật bằng Python `zipfile.testzip() === None`, 0 lỗi JS, 0px tràn ngang) + toàn bộ bộ kiểm thử **645/645 PASS**.
+
+
+## 2026-11-26 — TỐI ƯU LỘ TRÌNH & CHỈ ĐƯỜNG (BỎ TỰ ĐỘNG CHỌN ĐIỂM) + SỬA KÉO THẢ TOÀN ỨNG DỤNG (v2.8.64)
+- **Yêu cầu**: (1) Kiểm tra và bỏ lỗi chức năng *Tối ưu Lộ trình & Chỉ đường* tự động chọn điểm không có trong lộ trình; (2) Tối ưu giao diện màn hình *Tối ưu Lộ trình & Chỉ đường*; (3) Rà soát toàn ứng dụng: mọi giao diện có nút kéo thẻ đều phải kéo thả thật, không để nút kéo chỉ để trang trí hoặc bị lỗi nhảy tọa độ; (4) Đóng gói `v2.8.64` (kèm Thư viện hình ảnh chọn nhiều ảnh) và đẩy lên GitHub.
+- **Đã làm**:
+  - **Sửa triệt để lỗi tự động chọn điểm ngoài lộ trình (`index.html`, `app.js` — `appRouting`)**:
+    - Thêm chế độ chấm điểm chủ động `pinMode: false` (mặc định TẮT), nút `#btnRoutingPinMode` (`📌 Chấm điểm`), banner nhắc `#routingPinModeBanner` và phím `Escape` thoát; chặn `this.map.on('click')` khi `!this.pinMode` để chạm nhầm bản đồ không bao giờ tự tạo điểm ma.
+    - Chặn lan truyền sự kiện (`L.DomEvent.disableClickPropagation` & `disableScrollPropagation`) trên toàn bộ 8 lớp overlay nổi bên trong `#leaflet-routing-map` (`routingMapFloatingTools`, `routingPinModeBanner`, `routingNavHud`, `routingPointsSheet`, `routingNavCard`, `routingNavBar`, `routingNavBanner`, `btnRnavRecenter`).
+    - Sửa `populateSurveyPointsModal()`: mặc định **KHÔNG tích chọn sẵn** mốc (`checked` bị bỏ), bổ sung `_isPointAlreadyInRoute()` đánh dấu `✓ Đã có` (`disabled`, `data-already-in-route="1"`), thêm ô tìm nhanh `#txtRoutingSurveySearch`, `filterSurveyPointsModal()`, bộ đếm live `#lblRoutingSurveySelCount` và `toggleSelectAllSurveyPoints()` chỉ chọn các mốc chưa có trong lộ trình.
+    - Bổ sung `_clearRouteLayers()` dọn sạch polyline/casing/routeDone khi xóa/sắp lại/nạp lộ trình; chống thêm trùng điểm xuất phát GPS trong `useCurrentGpsAsStart()`; thêm `reorderPoints(fromIdx, toIdx)` và nút *🗺️ Theo thứ tự* (`calculateManualOrderRoute()`).
+  - **Tối ưu giao diện Lộ trình v2 (`index.html`, `ui-polish.css`, `ui-unified.css`, `app.js`)**:
+    - Tái cấu trúc `#screen-routing` và `#modalRoutingAddPoints` với hệ lớp chuẩn tương thích đầy đủ Dark Theme, Light Theme, Field Mode (kể cả `body[data-theme="light"].field-mode`) và Mobile Portrait (`0px` tràn ngang); bổ sung bản dịch EN trong `appI18n.phraseMap`.
+  - **Rà soát & hoàn thiện 100% nút kéo thả trên toàn ứng dụng (`index.html`, `app.js`, `ui-polish.css`, `ui-mapfirst.css`)**:
+    - `#routingSheetDragHandle` (`#routingPointsSheet`): `appRouting.initSheetDrag()` — kéo đổi chiều cao sheet, vuốt xuống đóng, chạm đóng.
+    - `.routing-point-drag-handle` (`⠿` từng dòng điểm dừng lộ trình): `appRouting.initPointsReorderDrag()` — kéo thả đổi thứ tự điểm dừng bằng Pointer Events.
+    - `#pmbHeader` (`#projectMarksBlocksPanel`, trước đây chỉ có `cursor: grab` không có JS): thêm icon `⠿` + `appMap.initProjectBlocksPanelDrag()` (tọa độ theo `offsetParent`, 0px nhảy, kẹp gọn trong `#map-view-container`).
+    - `#mapCadToolbar` (vạch kéo `::before` trên Mobile): `appCadTool.initToolbarSheetDrag()` — vuốt xuống thu gọn, vuốt lên mở rộng.
+    - `.transform-sheet-drag-handle` (`#transformBottomSheet`): bỏ `onclick` trùng lặp ở `index.html`, sửa lỗi nhảy bật 3 lần & trượt ngược sau khi kéo bằng `suppressClickUntil` + `{ passive: false }` trong `appTransformMap.initSheetDrag()`.
+    - `#transformLayoutResizer`: bổ sung cờ `_hasResizerInit`, `touchAction = 'none'`, `{ passive: false }` + tọa độ touch an toàn.
+    - `#dragHandleRightControls` (`#mapRightControls`): xóa listener trùng lặp, sửa lỗi nhảy 54px bằng `offsetParent`, gắn `.is-dragged` + cập nhật `.map-right-controls:not(.is-dragged)` trong `ui-mapfirst.css`.
+    - `#cadBlocksPanelHeader` (`#cadBlocksStatsPanel`) & `#cadFloatingCmdHeader` (`#cadFloatingCmdBar`): sửa lỗi nhảy tọa độ theo `offsetParent`, thêm icon `⠿`, loại trừ bấm nút con bằng `closest('button, input, select, a')`.
+    - `#dockExpandHandle`: bổ sung `appNav.initDockExpandDrag()` hỗ trợ vuốt lên mở dock.
+  - **Đồng bộ phiên bản `v2.8.64`**: cập nhật đồng bộ `sw.js` (`vn2000-pro-v2.8.64`), `index.html` (CSS/JS `?v=2.8.64` + badge giao diện), `package.json`, `feature_list.json`.
+- **Kiểm thử**: `tests/routing_and_drag_handles.test.js` (4/4 PASS), Playwright E2E thật 16/16 kịch bản kéo thả & lộ trình (Dark/Light/Field/Mobile, `0px` tràn ngang, `0` lỗi JS) + toàn bộ bộ kiểm thử **649/649 PASS**.

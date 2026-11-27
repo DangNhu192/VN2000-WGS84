@@ -164,7 +164,7 @@
    ========================================================================== */
 @media (max-width: 767px), (orientation: landscape) and (max-height: 620px) {
   /* Cột nút bên phải nằm gọn trong dải trống giữa CLI/thanh dự án ở trên và thanh MiniCAD/dock ở dưới */
-  body:not(.field-mode)[data-screen="map"] #map-view-container .map-right-controls {
+  body:not(.field-mode)[data-screen="map"] #map-view-container .map-right-controls:not(.is-dragged) {
     top: var(--mf-rc-top, 64px) !important;
     bottom: auto !important;
     max-height: calc(100% - var(--mf-rc-top, 64px) - var(--mf-rc-bottom, 80px)) !important;
