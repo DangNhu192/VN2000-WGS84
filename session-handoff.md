@@ -1,6 +1,16 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-26: TÙY CHỈNH THÔNG TIN ĐÓNG DẤU CAMERA (TỰ NHẬP / ẨN HIỆN / THÊM TRƯỜNG MỚI)
+## Phiên hiện tại — 2026-11-26: TỐI ƯU CÀI ĐẶT HỆ THỐNG v2, ẨN CHỨC NĂNG ĐÓNG DẤU & ĐỔI TÊN "GPS live shots" (v2.8.63)
+- **Yêu cầu**: (1) Tối ưu hóa và cấu trúc lại giao diện Cài đặt hệ thống (`#modalSettings`); (2) Chức năng "Đóng dấu" ảnh chọn từ máy mặc định ẩn, chỉ mở khi tích chọn trong Cài đặt hệ thống; (3) Đổi tên thống nhất "Camera Đóng dấu" → **"GPS live shots"** và rà soát toàn bộ phân hệ liên quan.
+- **Đã làm**:
+  - **Cài đặt hệ thống v2** (`index.html`, `ui-polish.css`, `ui-unified.css`, `app.js`): Bố cục 2 cột trên Desktop (Sidebar trái phân 3 nhóm + nội dung phải) và thanh tab ngang trên Mobile; thêm tìm kiếm nhanh `#txtSettingsSearch`; Tổng quan dạng Hero + 4 pill trạng thái tức thời + lưới Bento 2 cột có badge giá trị live (`updateSettingsOverviewSummary`); toàn bộ 7 tab con gom nhóm `.stg-card` với công tắc trượt thật `.stg-switch` tương thích Dark, Light và Field Mode.
+  - **Chức năng ẩn "Đóng dấu"** (`index.html`, `ui-unified.css`, `app.js`): `#tabCameraUpload` ẩn mặc định (`hidden` + `.is-hidden-feature` + `display: none !important`), `appCamera.switchTab('upload')` tự chặn khi chưa mở; bật/tắt tức thời bằng `#chkEnablePostStamp` (*Mở chức năng "Đóng dấu" trong GPS live shots*) tại **Cài đặt hệ thống → Chung** (lưu `vn2k_enable_post_stamp`, tắt hoặc Khôi phục mặc định tự ẩn lại & chuyển về tab `live`).
+  - **Đổi tên thống nhất sang `GPS live shots`**: đồng bộ toàn bộ `index.html`, `app.js` (tiêu đề màn hình, dashboard, i18n VI/EN, `appGuide`), `app-shell.js` (`TITLES` + `ITEM_META`), `user-guide.html`, và Trợ lý AI (`assistant-core.js`, `tools/ai/build_dataset.py`, `assistant-dataset.js`, `docs/ai/sft_vi.jsonl` — 555 câu mẫu, chặn xung đột `mở gps live shots` với lệnh bật GPS).
+- **Kiểm thử**: `tests/settings_v2_and_gps_live_shots.test.js` + Playwright E2E/trực quan Dark/Light/Field/Mobile (0 pageerror, 0 tràn ngang) + toàn bộ bộ kiểm thử **641/641 PASS**.
+
+---
+
+## Phiên trước — 2026-11-26: TÙY CHỈNH THÔNG TIN ĐÓNG DẤU CAMERA (TỰ NHẬP / ẨN HIỆN / THÊM TRƯỜNG MỚI)
 - **Yêu cầu**: Tùy chỉnh các trường thông tin đóng dấu ảnh/video Camera đúng theo mẫu (Tiêu đề, MỐC & DỰ ÁN, VN-2000 X/Y/KTT-Múi, WGS-84 Lat/Lng, THỰC ĐỊA Sai số/Hướng/Mục giữa/Thời gian, ĐỊA CHỈ) cho phép người dùng tự nhập thay đổi, ẩn/hiện từng mục và thêm mới các trường tùy biến.
 - **Đã làm**:
   - `index.html` (`#camStampCustomizerWrap`, `#panelCameraStampCustomizer`): bảng tùy chỉnh thu gọn trong màn Camera với khung xem trước canvas WYSIWYG (`#cameraStampPreviewCanvas`), ô nhập + checkbox bật/tắt từng trường, nút `🕒 Hiện tại`, mục thêm trường mới (`+ Thêm trường` + 4 mẫu nhanh `Hạng mục`, `Người đo`, `Cao độ Z`, `Ghi chú` có chọn màu), nút `📋 Nạp từ mốc hiện tại` và `↺ Mặc định tự động`.

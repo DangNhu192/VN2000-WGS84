@@ -84,7 +84,7 @@
         ['drawerItem_transform_map', ['cham toa do', 'cham diem tren ban do', 'lay toa do tren ban do', 'cham ban do']],
         ['drawerItem_map', ['ban do du an', 'ban do', 'xem moc', 'ban do moc']],
         ['drawerItem_stakeout', ['cam moc', 'stakeout', 'tim moc', 'dan duong toi moc']],
-        ['drawerItem_camera', ['camera', 'chup anh', 'may anh', 'anh dong dau']],
+        ['drawerItem_camera', ['gps live shots', 'live shots', 'live shot', 'camera', 'chup anh', 'may anh', 'anh dong dau']],
         ['drawerItem_settings_rtk', ['rtk', 'may thu gnss', 'bluetooth']],
         ['drawerItem_routing', ['lo trinh', 'chi duong', 'dan duong', 'tim duong']],
         ['drawerItem_datamgmt', ['so do', 'du lieu', 'quan ly du an', 'danh sach moc', 'xuat file', 'xuat dwg', 'xuat kml']],
@@ -463,9 +463,9 @@
         if (pIdx >= 0 && (mentionsKtt || t.length <= 30)) return { intent: 'kttOf', args: { index: pIdx } };
         if (mentionsKtt && !setVerb) return { intent: 'kttInfo', args: {} };
 
-        // GPS
-        if (/(tat|ngat|dung) (gps|dinh vi)/.test(t)) return { intent: 'gps', args: { on: false } };
-        if (/(bat|mo) (gps|dinh vi)/.test(t)) return { intent: 'gps', args: { on: true } };
+        // GPS (tránh bắt nhầm tên chức năng "GPS live shots")
+        if (!/\blive\s*shot/.test(t) && /(tat|ngat|dung) (gps|dinh vi)/.test(t)) return { intent: 'gps', args: { on: false } };
+        if (!/\blive\s*shot/.test(t) && /(bat|mo) (gps|dinh vi)/.test(t)) return { intent: 'gps', args: { on: true } };
         if (/(vi tri (cua )?(toi|minh|em|hien tai)|toa do (cua )?(toi|hien tai|o day|cho nay|noi dang dung)|(toi|minh|em) dang o dau|o day la dau|sai so gps|do chinh xac gps)/.test(t)) return { intent: 'whereAmI', args: {} };
 
         // Dự án
@@ -840,7 +840,7 @@
     // vì số luôn đọc trực tiếp từ câu người dùng bằng extractNumbers.
     const CANONICAL = [
         'mo trang chu', 'mo chuyen doi toa do', 'mo chuyen doi hang loat', 'mo cham toa do', 'mo ban do du an',
-        'mo cam moc', 'mo camera', 'mo lo trinh', 'mo so do', 'mo bai toan trac dia', 'mo giao hoi', 'mo trac doc',
+        'mo cam moc', 'mo gps live shots', 'mo camera', 'mo lo trinh', 'mo so do', 'mo bai toan trac dia', 'mo giao hoi', 'mo trac doc',
         'mo minicad', 'mo cam nang', 'ktt hien tai', 'vi tri cua toi', 'bat gps', 'tat gps', 'du an hien tai',
         'danh sach du an', 'kiem tra so lieu', 'thong ke minicad', 'mo bang ke minicad', 'zoom toan canh ban ve',
         'bat quy hoach', 'tat quy hoach', 'doi nen dia hinh', 'toi uu lo trinh', 'bat che do thuc dia',

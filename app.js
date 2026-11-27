@@ -1440,8 +1440,8 @@ const appNav = window.appNav = {
                 targetScreen = document.getElementById('screen-stakeout');
                 if (typeof appStakeout !== 'undefined') appStakeout.init();
             } else if (screenName === 'camera') {
-                titleText = "4. CAMERA ĐÓNG DẤU";
-                titleTextEn = "4. WATERMARK CAMERA";
+                titleText = "4. GPS LIVE SHOTS";
+                titleTextEn = "4. GPS LIVE SHOTS";
                 targetScreen = document.getElementById('screen-camera');
                 if (typeof appCamera !== 'undefined') appCamera.init();
             } else if (screenName === 'datamgmt') {
@@ -1898,7 +1898,7 @@ const appNav = window.appNav = {
         } else {
             secAdv.style.display = 'none';
             if (btnToggle) btnToggle.classList.remove('expanded');
-            if (btnTitle) btnTitle.innerText = "Chức Năng Nâng Cao (Stakeout, Camera, Tuyến, CAD/GIS)";
+            if (btnTitle) btnTitle.innerText = "Chức Năng Nâng Cao (Stakeout, GPS live shots, Tuyến, CAD/GIS)";
             if (chevron) {
                 chevron.innerText = "▼";
                 chevron.style.transform = "rotate(0deg)";
@@ -2531,7 +2531,7 @@ const appDashboard = {
         { id: 'map', name: '2. Bản Đồ Dự Án & Mốc', short: 'Bản Đồ Dự Án', dock: 'Bản Đồ', icon: '🗺️', color: 'emerald', tag: 'Vệ tinh & Mốc dự án', sub: 'Nạp file • Xem mốc • Ranh 34 tỉnh/xã', metric: 'Bản Đồ Mốc', action: () => appNav.openProjectMap({ loadProject: AppState.currentProject }) },
         { id: 'stakeout', name: '3. Cắm Mốc Thực Địa (Stakeout)', short: 'Cắm Mốc Thực Địa', dock: 'Cắm Mốc', icon: '🎯', color: 'amber', tag: 'La bàn số 360°', sub: 'Dẫn đường • Radar bíp đích', metric: 'La Bàn HUD', action: () => appNav.showScreen('stakeout') },
         { id: 'datamgmt', name: '4. Sổ Đo Mốc & Quản Lý Dự Án', short: 'Sổ Đo & Dự Án', dock: 'Sổ Đo', icon: '📁', color: 'purple', tag: 'Quản lý số liệu', sub: 'AutoCAD DWG • KML • CSV', metric: () => `${(typeof appData !== 'undefined' && appData.getPoints) ? appData.getPoints(AppState.currentProject).length : 0} Điểm Mốc`, action: () => appNav.showScreen('datamgmt') },
-        { id: 'camera', name: '5. Camera Khảo Sát Đóng Dấu', short: 'Camera Khảo Sát', dock: 'Camera', icon: '📸', color: 'pink', tag: 'Đóng dấu tọa độ', sub: 'In GPS, VN2K & La bàn lên ảnh', metric: 'Đóng Dấu GPS', action: () => appNav.showScreen('camera') },
+        { id: 'camera', name: '5. GPS live shots', short: 'GPS live shots', dock: 'Live Shots', icon: '📸', color: 'pink', tag: 'Chụp ảnh GPS', sub: 'Chụp ảnh/video in VN-2000, WGS-84 & La bàn', metric: 'GPS live shots', action: () => appNav.showScreen('camera') },
         { id: 'resection', name: '6. Giao Hội & Bài Toán Geodesy', short: 'Giao Hội & Geodesy', dock: 'Giao Hội', icon: '📐', color: 'yellow', tag: 'Định vị khuất sóng', sub: 'Giao hội nghịch từ 2 mốc chuẩn', metric: 'Geodesy', action: () => appModal.openUnifiedSettings('resection') },
         { id: 'profile', name: '7. Trắc Dọc Địa Hình & Đào Đắp', short: 'Trắc Dọc & Đào Đắp', dock: 'Trắc Dọc', icon: '📈', color: 'teal', tag: 'Cao trình tự nhiên/thiết kế', sub: 'Vẽ mặt cắt & Khối lượng Cut/Fill m³', metric: 'Đào Đắp m³', action: () => appNav.showScreen('profile') },
         { id: 'rtk', name: '8. RTK Rover Bluetooth Ngoài', short: 'RTK Bluetooth Rover', dock: 'RTK', icon: '🛰️', color: 'blue', tag: 'Web Bluetooth NMEA', sub: 'Định vị chính xác cỡ milimet', metric: 'RTK Rover Fix', action: () => appModal.openUnifiedSettings('rtk') },
@@ -13259,6 +13259,15 @@ const appGeodesy = {
 // ================= 9. MODAL CÀI ĐẶT HỆ THỐNG (SETTINGS MODAL) =================
 const appModal = {
     currentSettingsTab: 'storage',
+    POST_STAMP_KEY: 'vn2k_enable_post_stamp',
+
+    isPostStampEnabled() {
+        try {
+            return typeof localStorage !== 'undefined' && localStorage.getItem(this.POST_STAMP_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
 
     openPointsListModal() {
         if (typeof appMap !== 'undefined' && appMap.viewProjectMarksAndBlocks) {
@@ -13270,6 +13279,10 @@ const appModal = {
         const m = document.getElementById('modalSettings');
         if (!m) return;
         m.classList.add('active');
+
+        const searchEl = document.getElementById('txtSettingsSearch');
+        if (searchEl) searchEl.value = '';
+        appModal.filterSettings('');
 
         // 1. Khởi tạo dữ liệu Tab KTT
         const sel = document.getElementById('modalProvinceSelect');
@@ -13295,11 +13308,72 @@ const appModal = {
         const sheetViewInput = document.getElementById('txtGoogleSheetViewUrl');
         if (sheetViewInput) sheetViewInput.value = AppState.googleSheetViewUrl || '';
 
-        // 3. Khởi tạo UI Tab Chung (General)
+        // 3. Khởi tạo UI Tab Chung (General) & Tổng quan
         appModal.updateGeneralSettingsUI();
+        appModal.updateSettingsOverviewSummary();
 
         // 4. Kích hoạt đúng tab được yêu cầu
         appModal.switchSettingsTab(defaultTab);
+    },
+
+    updateSettingsOverviewSummary() {
+        const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+        const currentLang = (typeof localStorage !== 'undefined' && localStorage.getItem('app_language')) || 'vi';
+        const currentTheme = (typeof localStorage !== 'undefined' && localStorage.getItem('app_theme')) || 'dark';
+        const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 45;
+        const kttShort = `${AppState.kttDeg || 105}°${String(minVal).padStart(2, '0')}' · ${AppState.muiVal || 3}°`;
+        const isCloud = AppState.storageMode === 'auto_google';
+        const postStampOn = appModal.isPostStampEnabled();
+
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+        setText('stgPillKtt', `⚙️ KTT ${AppState.kttDeg || 105}°${String(minVal).padStart(2, '0')}' · ${isEn ? 'Zone' : 'Múi'} ${AppState.muiVal || 3}°`);
+        setText('stgPillStorage', isCloud ? (isEn ? '☁️ Google Sheets' : '☁️ Google Sheets') : (isEn ? '📱 Offline' : '📱 Ngoại tuyến'));
+        setText('stgPillUi', `${currentTheme === 'light' ? '☀️ ' + (isEn ? 'Light' : 'Sáng') : '🌙 ' + (isEn ? 'Dark' : 'Tối')} · ${currentLang.toUpperCase()}`);
+
+        const pillPost = document.getElementById('stgPillPostStamp');
+        if (pillPost) {
+            pillPost.textContent = postStampOn
+                ? (isEn ? '🔓 Post-stamp: On' : '🔓 Đóng dấu ảnh máy: Đang mở')
+                : (isEn ? '🔒 Post-stamp: Hidden' : '🔒 Đóng dấu ảnh máy: Ẩn');
+            if (pillPost.classList) pillPost.classList.toggle('is-unlocked', postStampOn);
+        }
+
+        setText('stgCardMetaGeneral', `${currentLang.toUpperCase()} · ${currentTheme === 'light' ? (isEn ? 'Light' : 'Sáng') : (isEn ? 'Dark' : 'Tối')}`);
+        setText('stgCardMetaKtt', kttShort);
+        setText('stgCardMetaStorage', isCloud ? 'Cloud' : 'Offline');
+
+        const dtManual = typeof appDateTime !== 'undefined' && appDateTime.mode === 'manual';
+        setText('stgCardMetaDatetime', dtManual ? (isEn ? 'Manual' : 'Thủ công') : (isEn ? 'Auto' : 'Tự động'));
+
+        const rtkConnected = typeof appBluetoothRtk !== 'undefined' && appBluetoothRtk.isConnected;
+        setText('stgCardMetaRtk', rtkConnected ? 'RTK Fix' : (isEn ? 'Standby' : 'Chưa kết nối'));
+
+        if (typeof window !== 'undefined' && window.PixOptimizer && window.PixOptimizer.settings) {
+            const s = window.PixOptimizer.settings;
+            const fmt = String(s.format || 'webp').toUpperCase();
+            const edge = s.maxEdge >= 3840 ? '4K' : (s.maxEdge <= 1920 ? 'FHD' : '2K');
+            setText('stgCardMetaOptimizer', `${fmt} · ${edge}`);
+        }
+    },
+
+    filterSettings(query = '') {
+        const fold = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').trim();
+        const q = fold(query);
+        const grid = document.getElementById('settingsQuickCardsGrid');
+        if (!grid) return;
+        const cards = grid.querySelectorAll('.settings-nav-card');
+        let visible = 0;
+        cards.forEach(card => {
+            const hay = fold((card.getAttribute('data-stg-search') || '') + ' ' + (card.textContent || ''));
+            const match = !q || hay.includes(q);
+            card.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        const emptyEl = document.getElementById('stgSearchEmpty');
+        if (emptyEl) emptyEl.style.display = (q && visible === 0) ? 'block' : 'none';
+        if (q && appModal.currentSettingsTab !== 'welcome') {
+            appModal.switchSettingsTab('welcome');
+        }
     },
 
     updateGeneralSettingsUI() {
@@ -13345,15 +13419,47 @@ const appModal = {
         const chkHaptic = document.getElementById('chkHapticFeedback');
         const sliderHaptic = document.getElementById('sliderHaptic');
         if (chkHaptic) chkHaptic.checked = hapticEnabled;
-        if (sliderHaptic) sliderHaptic.style.backgroundColor = hapticEnabled ? '#0284c7' : '#334155';
+        if (sliderHaptic) sliderHaptic.style.backgroundColor = hapticEnabled ? '#3f8a5a' : '#475569';
 
         // Cập nhật Hướng dẫn tính năng mới
         const tipsEnabled = (typeof localStorage === 'undefined' || localStorage.getItem('app_first_time_tips') !== 'false');
         const chkTips = document.getElementById('chkFirstTimeTips');
         const sliderTips = document.getElementById('sliderFirstTimeTips');
         if (chkTips) chkTips.checked = tipsEnabled;
-        if (sliderTips) sliderTips.style.backgroundColor = tipsEnabled ? '#0284c7' : '#334155';
+        if (sliderTips) sliderTips.style.backgroundColor = tipsEnabled ? '#3f8a5a' : '#475569';
 
+        // Cập nhật công tắc mở chức năng ẩn "Đóng dấu" trong GPS live shots
+        const postStampEnabled = appModal.isPostStampEnabled();
+        const chkPost = document.getElementById('chkEnablePostStamp');
+        const sliderPost = document.getElementById('sliderEnablePostStamp');
+        const badgePost = document.getElementById('badgePostStampState');
+        if (chkPost) chkPost.checked = postStampEnabled;
+        if (sliderPost) sliderPost.style.backgroundColor = postStampEnabled ? '#3f8a5a' : '#475569';
+        if (badgePost) {
+            const isEn = (typeof appI18n !== 'undefined' && appI18n.currentLang === 'en');
+            badgePost.textContent = postStampEnabled ? (isEn ? 'Enabled' : 'Đang mở') : (isEn ? 'Hidden' : 'Đang ẩn');
+            if (badgePost.classList) badgePost.classList.toggle('is-on', postStampEnabled);
+        }
+
+        appModal.updateSettingsOverviewSummary();
+    },
+
+    togglePostStampFeature(enabled) {
+        const on = !!enabled;
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(this.POST_STAMP_KEY, on ? 'true' : 'false');
+            }
+        } catch (e) {}
+        appModal.updateGeneralSettingsUI();
+        if (typeof appCamera !== 'undefined' && appCamera.syncPostStampFeatureVisibility) {
+            appCamera.syncPostStampFeatureVisibility();
+        }
+        if (typeof showToast === 'function') {
+            showToast(on
+                ? '🔓 Đã mở chức năng "Đóng dấu" ảnh từ máy trong GPS live shots!'
+                : '🔒 Đã ẩn chức năng "Đóng dấu" ảnh từ máy trong GPS live shots.');
+        }
     },
 
     initUiIconMode() {
@@ -13418,7 +13524,7 @@ const appModal = {
             localStorage.setItem('app_haptic_enabled', enabled ? 'true' : 'false');
         }
         const slider = document.getElementById('sliderHaptic');
-        if (slider) slider.style.backgroundColor = enabled ? '#0284c7' : '#334155';
+        if (slider) slider.style.backgroundColor = enabled ? '#3f8a5a' : '#475569';
         if (enabled) triggerHaptic('medium');
         if (typeof showToast === 'function') {
             showToast(enabled ? '📳 Đã bật phản hồi rung (Haptic feedback)' : '🔕 Đã tắt phản hồi rung');
@@ -13430,7 +13536,7 @@ const appModal = {
             localStorage.setItem('app_first_time_tips', enabled ? 'true' : 'false');
         }
         const slider = document.getElementById('sliderFirstTimeTips');
-        if (slider) slider.style.backgroundColor = enabled ? '#0284c7' : '#334155';
+        if (slider) slider.style.backgroundColor = enabled ? '#3f8a5a' : '#475569';
         if (typeof showToast === 'function') {
             showToast(enabled ? '💡 Đã bật tự động gợi ý hướng dẫn tính năng mới' : '🔇 Đã tắt tự động hiện hướng dẫn tính năng mới');
         }
@@ -13467,6 +13573,7 @@ const appModal = {
             localStorage.removeItem('app_coord_decimals');
             localStorage.removeItem('app_haptic_enabled');
             localStorage.removeItem('app_first_time_tips');
+            localStorage.removeItem(this.POST_STAMP_KEY);
         }
         AppState.provinceIndex = 0;
         AppState.provinceName = 'TP. Hồ Chí Minh';
@@ -13479,6 +13586,9 @@ const appModal = {
         if (typeof appTheme !== 'undefined') appTheme.setTheme('dark');
         if (typeof appI18n !== 'undefined') appI18n.setLanguage('vi', false);
         appModal.updateGeneralSettingsUI();
+        if (typeof appCamera !== 'undefined' && appCamera.syncPostStampFeatureVisibility) {
+            appCamera.syncPostStampFeatureVisibility();
+        }
         appModal.saveSettings();
         if (typeof showToast === 'function') {
             showToast(typeof appI18n !== 'undefined' ? appI18n.t('toast.settings_reset') : '🔄 Đã khôi phục cài đặt hệ thống về mặc định!');
@@ -13547,6 +13657,9 @@ const appModal = {
             appGuide.activeGuideKey = (tab === 'welcome') ? 'settings_welcome' : ('settings_' + tab);
         }
 
+        if (tab === 'welcome') {
+            appModal.updateSettingsOverviewSummary();
+        }
         if (tab === 'general') {
             appModal.updateGeneralSettingsUI();
         }
@@ -14813,8 +14926,49 @@ const appCamera = {
         this.renderedDataUrl = canvas.toDataURL('image/jpeg', qual);
     },
 
+    isPostStampEnabled() {
+        try {
+            if (typeof appModal !== 'undefined' && typeof appModal.isPostStampEnabled === 'function') {
+                return appModal.isPostStampEnabled();
+            }
+            return typeof localStorage !== 'undefined' && localStorage.getItem('vn2k_enable_post_stamp') === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+
+    syncPostStampFeatureVisibility() {
+        const enabled = this.isPostStampEnabled();
+        const tabBtn = document.getElementById('tabCameraUpload');
+        const uploadPane = document.getElementById('cameraTabPaneUpload');
+        const uploadOptWrap = document.getElementById('wrapCamStampUseFieldOnUpload');
+        if (tabBtn) {
+            tabBtn.hidden = !enabled;
+            if (tabBtn.classList) tabBtn.classList.toggle('is-hidden-feature', !enabled);
+            tabBtn.style.display = enabled ? '' : 'none';
+        }
+        if (uploadOptWrap) uploadOptWrap.style.display = enabled ? 'inline-flex' : 'none';
+        if (!enabled) {
+            if (uploadPane) uploadPane.style.display = 'none';
+            if (this.currentTab === 'upload') {
+                this.currentTab = 'live';
+                if (typeof AppState !== 'undefined' && AppState.currentScreen === 'camera') {
+                    this.switchTab('live');
+                } else {
+                    const liveBtn = document.getElementById('tabCameraLive');
+                    const livePane = document.getElementById('cameraTabPaneLive');
+                    if (tabBtn) tabBtn.classList.remove('active');
+                    if (liveBtn) liveBtn.classList.add('active');
+                    if (livePane) livePane.style.display = 'block';
+                }
+            }
+        }
+        return enabled;
+    },
+
     init() {
         appCamera.getStampConfig();
+        appCamera.syncPostStampFeatureVisibility();
         appCamera.refreshPointsList();
         appCamera.syncStampEditorUI();
         appCamera.loadGalleryCount();
@@ -14823,8 +14977,15 @@ const appCamera = {
         }
     },
 
-    // Chuyển đổi giữa 3 tab
+    // Chuyển đổi giữa các tab (tab 'upload' Đóng dấu chỉ hoạt động khi được bật trong Cài đặt hệ thống)
     switchTab(tab) {
+        if (tab === 'upload' && !appCamera.isPostStampEnabled()) {
+            if (typeof showToast === 'function') {
+                showToast('🔒 Chức năng "Đóng dấu" ảnh từ máy đang ẩn. Bật trong Cài đặt hệ thống → Chung để dùng.', true);
+            }
+            tab = 'live';
+        }
+        appCamera.syncPostStampFeatureVisibility();
         appCamera.currentTab = tab;
         const tabs = ['live', 'upload', 'gallery'];
         tabs.forEach(t => {
@@ -39492,6 +39653,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // Tương phản chữ / nền cho mọi giao diện (Tối / Sáng / Thực địa) — xem src/ui/contrast_guard.js
     if (typeof window !== 'undefined' && window.appContrast) setTimeout(() => window.appContrast.start(), 0);
     if (typeof appModal !== 'undefined' && appModal.initUiIconMode) appModal.initUiIconMode();
+    if (typeof appCamera !== 'undefined' && appCamera.syncPostStampFeatureVisibility) appCamera.syncPostStampFeatureVisibility();
     if (typeof appI18n !== 'undefined') appI18n.init();
     appTransform.init();
     appData.init();
@@ -39569,11 +39731,14 @@ const appI18n = {
             'dash.btn_pins': 'Tùy chỉnh',
             'dash.all_tools': 'Công Cụ Kỹ Thuật & Tiện Ích Khác',
             'dash.all_tools_sub': 'Nghiệp vụ trắc địa & đồ họa chuyên sâu',
-            'dash.search_placeholder': 'Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)',
+            'dash.search_placeholder': 'Tìm nhanh (cad, rtk, đào đắp, cắm mốc, gps live shots...)',
 
             // Unified Settings
             'settings.title': '⚙️ Cài Đặt Hệ Thống',
             'settings.btn_overview': 'Tổng quan cài đặt',
+            'settings.group.system': 'Hệ thống',
+            'settings.group.geodesy': 'Trắc địa & Dữ liệu',
+            'settings.group.hardware': 'Thiết bị & Hiệu năng',
             'settings.tab.welcome': '🏠 Tổng quan',
             'settings.tab.general': '🌐 Chung',
             'settings.tab.storage': '☁️ Lưu dữ liệu',
@@ -39585,13 +39750,13 @@ const appI18n = {
 
             // Settings Welcome Hub
             'settings.welcome.title': 'HỆ THỐNG CÀI ĐẶT VN-2000 PRO',
-            'settings.welcome.sub': 'Bấm chọn một danh mục cài đặt bên dưới để thiết lập nghiệp vụ:',
+            'settings.welcome.sub': 'Chọn danh mục bên dưới để cấu hình nghiệp vụ trắc địa, lưu trữ và tính năng ẩn.',
             'settings.card.general.title': '1. Cài Đặt Chung',
-            'settings.card.general.sub': 'Ngôn ngữ • Giao diện • Tọa độ WGS-84 • Số lẻ',
-            'settings.card.storage.title': '2. Lưu Dữ Liệu',
+            'settings.card.general.sub': 'Ngôn ngữ • Giao diện • Tọa độ • Tính năng ẩn',
+            'settings.card.storage.title': '3. Lưu Dữ Liệu',
             'settings.card.storage.sub': 'Bộ nhớ máy ngoại tuyến • Google Sheets Cloud',
-            'settings.card.ktt.title': '3. KTT & Múi Chiếu',
-            'settings.card.ktt.sub': '63 Tỉnh thành • Kinh tuyến trục • Múi 3°/6°',
+            'settings.card.ktt.title': '2. KTT & Múi Chiếu',
+            'settings.card.ktt.sub': '34/63 Tỉnh thành • Kinh tuyến trục • Múi 3°/6°',
             'settings.card.datetime.title': '4. Ngày & Giờ',
             'settings.card.datetime.sub': 'Đồng hồ hệ thống • Múi giờ ICT • Chỉnh tay',
             'settings.card.rtk.title': '5. RTK Bluetooth',
@@ -39622,6 +39787,8 @@ const appI18n = {
             'settings.general.haptic_sub': 'Rung nhẹ khi chấm điểm, lưu mốc hoặc chạm phím',
             'settings.general.tips_title': '💡 Tự động hiện hướng dẫn tính năng mới',
             'settings.general.tips_sub': 'Gợi ý hướng dẫn khi mở chức năng lần đầu tiên',
+            'settings.general.post_stamp_title': '🖼️ Mở chức năng "Đóng dấu" trong GPS live shots',
+            'settings.general.post_stamp_sub': 'Mặc định ẩn tab Đóng dấu ảnh chọn từ máy. Tích mở khi cần chèn thông tin tọa độ lên ảnh có sẵn trong thiết bị.',
             'settings.general.maintenance_title': '🛠️ Quản trị Bộ nhớ Ứng dụng & Reset:',
             'settings.general.btn_clean_cache': '🧹 Dọn Dẹp Cache',
             'settings.general.btn_reset_defaults': '🔄 Khôi Phục Mặc Định',
@@ -39667,7 +39834,7 @@ const appI18n = {
             'settings.rtk.vrms_label': 'Sai số VRMS (Đứng):',
             'settings.rtk.vn2k_label': 'Tọa độ VN-2000 (X - Y - Z):',
             'settings.rtk.prefer_label': 'Ưu tiên vị trí từ máy RTK ngoài',
-            'settings.rtk.prefer_sub': 'Độ chính xác cm cho Bản đồ, Cắm mốc & Camera',
+            'settings.rtk.prefer_sub': 'Độ chính xác cm cho Bản đồ, Cắm mốc & GPS live shots',
             'settings.rtk.nmea_label': '📡 Dòng dữ liệu NMEA ($GNGGA):',
             'settings.rtk.btn_scan': '🔍 Quét Rover',
             'settings.rtk.btn_sim': '⚡ Thử RTK Fix',
@@ -39701,7 +39868,7 @@ const appI18n = {
             'feature.map': 'Bản Đồ Dự Án',
             'feature.stakeout': 'Cắm Mốc Thực Địa',
             'feature.datamgmt': 'Sổ Đo & Dự Án',
-            'feature.camera': 'Camera Khảo Sát',
+            'feature.camera': 'GPS live shots',
             'feature.resection': 'Giao Hội & Geodesy',
             'feature.profile': 'Trắc Dọc & Đào Đắp',
             'feature.rtk': 'RTK Bluetooth Rover',
@@ -39742,11 +39909,14 @@ const appI18n = {
             'dash.btn_pins': 'Customize',
             'dash.all_tools': 'Technical Tools & Utilities',
             'dash.all_tools_sub': 'Advanced surveying & geodetic graphics',
-            'dash.search_placeholder': 'Quick search (cad, rtk, cut/fill, stakeout, camera...)',
+            'dash.search_placeholder': 'Quick search (cad, rtk, cut/fill, stakeout, gps live shots...)',
 
             // Unified Settings
             'settings.title': '⚙️ System Settings',
             'settings.btn_overview': 'All Settings',
+            'settings.group.system': 'System',
+            'settings.group.geodesy': 'Geodesy & Data',
+            'settings.group.hardware': 'Hardware & Performance',
             'settings.tab.welcome': '🏠 Overview',
             'settings.tab.general': '🌐 General',
             'settings.tab.storage': '☁️ Data Storage',
@@ -39758,13 +39928,13 @@ const appI18n = {
 
             // Settings Welcome Hub
             'settings.welcome.title': 'VN-2000 PRO SYSTEM SETTINGS',
-            'settings.welcome.sub': 'Select a settings category below to configure parameters:',
+            'settings.welcome.sub': 'Select a settings category below to configure parameters and optional features:',
             'settings.card.general.title': '1. General Settings',
-            'settings.card.general.sub': 'Language • Themes • WGS-84 format • Decimals',
-            'settings.card.storage.title': '2. Data Storage',
+            'settings.card.general.sub': 'Language • Themes • Coordinates • Hidden features',
+            'settings.card.storage.title': '3. Data Storage',
             'settings.card.storage.sub': 'Offline storage • Google Sheets cloud sync',
-            'settings.card.ktt.title': '3. CM & Projection Zone',
-            'settings.card.ktt.sub': '63 Provinces • Central Meridian • Zone 3°/6°',
+            'settings.card.ktt.title': '2. CM & Projection Zone',
+            'settings.card.ktt.sub': '34/63 Provinces • Central Meridian • Zone 3°/6°',
             'settings.card.datetime.title': '4. Date & Time',
             'settings.card.datetime.sub': 'System clock • ICT timezone • Manual adjustment',
             'settings.card.rtk.title': '5. RTK Bluetooth',
@@ -39795,6 +39965,8 @@ const appI18n = {
             'settings.general.haptic_sub': 'Gentle vibration on clicks, marks and point pick',
             'settings.general.tips_title': '💡 Feature Onboarding Tips',
             'settings.general.tips_sub': 'Show helpful usage popup when opening features first time',
+            'settings.general.post_stamp_title': '🖼️ Enable "Post-Stamp" in GPS live shots',
+            'settings.general.post_stamp_sub': 'Hidden by default. Turn on to unlock stamping coordinate tags onto existing gallery photos.',
             'settings.general.maintenance_title': '🛠️ Storage Maintenance & Reset:',
             'settings.general.btn_clean_cache': '🧹 Clear App Cache',
             'settings.general.btn_reset_defaults': '🔄 Reset to Factory Defaults',
@@ -39840,7 +40012,7 @@ const appI18n = {
             'settings.rtk.vrms_label': 'VRMS Error (Vertical):',
             'settings.rtk.vn2k_label': 'VN-2000 Grid (X - Y - Z):',
             'settings.rtk.prefer_label': 'Prefer External RTK Position',
-            'settings.rtk.prefer_sub': 'Centimeter precision for Map, Stakeout & Camera',
+            'settings.rtk.prefer_sub': 'Centimeter precision for Map, Stakeout & GPS live shots',
             'settings.rtk.nmea_label': '📡 NMEA Stream ($GNGGA):',
             'settings.rtk.btn_scan': '🔍 Scan Rover',
             'settings.rtk.btn_sim': '⚡ Simulate Fix',
@@ -39874,7 +40046,7 @@ const appI18n = {
             'feature.map': 'Survey & Map',
             'feature.stakeout': 'Field Stakeout',
             'feature.datamgmt': 'Survey Book',
-            'feature.camera': 'Survey Camera',
+            'feature.camera': 'GPS live shots',
             'feature.resection': 'Geodesy & Resection',
             'feature.profile': 'Profiles & Cut/Fill',
             'feature.rtk': 'Bluetooth RTK',
@@ -40383,7 +40555,10 @@ const appI18n = {
         "Camera Hiện Trường": "Field Camera",
         "Đóng Dấu Ảnh Máy": "Watermark Photo",
         "Quản Lý Thư Viện Ảnh": "Photo Gallery Manager",
-        "Hướng dẫn Camera đóng dấu": "Geotag Camera Guide",
+        "Hướng dẫn Camera đóng dấu": "GPS live shots Guide",
+        "Hướng dẫn GPS live shots": "GPS live shots Guide",
+        "Mở GPS live shots ➔": "Open GPS live shots ➔",
+        "Tìm cài đặt...": "Search settings...",
         "Bật/Tắt đèn Flash": "Toggle Flash Light",
         "Chuyển camera Trước/Sau": "Switch Front/Rear Camera",
         "Bật/Tắt Camera": "Toggle Camera",
@@ -41226,7 +41401,7 @@ const appI18n = {
         "Bản Đồ": "Map",
         "Cắm Mốc": "Stakeout",
         "Sổ Đo": "Survey Book",
-        "⚙️ Cài Đặt Hệ Thống": "⚙️ settings system",
+        "⚙️ Cài Đặt Hệ Thống": "⚙️ System Settings",
         "🏠 Tổng quan": "🏠 Tong quan",
         "☁️ Lưu dữ liệu": "☁️ save du lieu",
         "⚙️ KTT & Múi": "⚙️ KTT & zone",
@@ -42373,7 +42548,7 @@ const appGuide = {
                 },
                 {
                     title: { vi: '3. Mở thêm chức năng khi cần', en: '3. Open more tools when needed' },
-                    desc: { vi: 'Kéo xuống dưới khung chuyển đổi để thấy 4 chức năng chính và "Công cụ kỹ thuật khác" (Camera, Trắc dọc, MiniCAD...). Thanh dưới cùng và nút ☰ Menu mở nhanh mọi chức năng.', en: 'Scroll below the converter for the 4 main features and "Other technical tools" (Camera, Profile, MiniCAD...). The bottom bar and ☰ Menu open every feature.' }
+                    desc: { vi: 'Kéo xuống dưới khung chuyển đổi để thấy 4 chức năng chính và "Công cụ kỹ thuật khác" (GPS live shots, Trắc dọc, MiniCAD...). Thanh dưới cùng và nút ☰ Menu mở nhanh mọi chức năng.', en: 'Scroll below the converter for the 4 main features and "Other technical tools" (GPS live shots, Profile, MiniCAD...). The bottom bar and ☰ Menu open every feature.' }
                 }
             ],
             proTip: {
@@ -42392,7 +42567,7 @@ const appGuide = {
             steps: [
                 {
                     title: { vi: '1. Chọn danh mục cài đặt', en: '1. Choose settings category' },
-                    desc: { vi: 'Nhấp vào một trong 7 thẻ hoặc thanh tab phía trên để truy cập cài đặt cụ thể.', en: 'Tap any of the 7 cards or the top tab bar to access specific configurations.' }
+                    desc: { vi: 'Nhấp vào một trong 7 thẻ hoặc thanh danh mục để truy cập cài đặt cụ thể, hoặc gõ từ khóa vào ô tìm nhanh.', en: 'Tap any of the 7 cards or sidebar items to access specific configurations, or type in quick search.' }
                 },
                 {
                     title: { vi: '2. Lưu cấu hình an toàn', en: '2. Save configuration safely' },
@@ -42406,28 +42581,28 @@ const appGuide = {
         },
         'settings_general': {
             icon: '🌐',
-            title: { vi: 'Cài Đặt Chung & Cá Nhân Hóa', en: 'General Settings & Preferences' },
+            title: { vi: 'Cài Đặt Chung & Tính Năng Ẩn', en: 'General Settings & Hidden Features' },
             category: { vi: 'HỆ THỐNG CÀI ĐẶT', en: 'SYSTEM SETTINGS' },
             purpose: {
-                vi: 'Tùy biến ngôn ngữ, giao diện sáng/tối chống chói ngoài nắng, định dạng tọa độ địa lý và quản trị bộ nhớ đệm an toàn.',
-                en: 'Customize language, dark/light themes for bright outdoor conditions, geodetic coordinate formats, and cache maintenance.'
+                vi: 'Tùy biến ngôn ngữ, giao diện sáng/tối chống chói ngoài nắng, định dạng tọa độ địa lý, mở khóa tính năng ẩn Đóng dấu ảnh máy trong GPS live shots và quản trị bộ nhớ đệm.',
+                en: 'Customize language, dark/light themes, coordinate formats, unlock the hidden Post-Stamp tab in GPS live shots, and manage cache.'
             },
             steps: [
                 {
-                    title: { vi: '1. Chọn ngôn ngữ hiển thị', en: '1. Select display language' },
-                    desc: { vi: 'Bấm chọn giữa Tiếng Việt hoặc English. Toàn bộ tiêu đề, menu và thông báo sẽ lập tức chuyển đổi song ngữ.', en: 'Switch between Vietnamese and English. All headers, menus, and system toasts instantly adapt.' }
+                    title: { vi: '1. Chọn ngôn ngữ & giao diện', en: '1. Select display language & theme' },
+                    desc: { vi: 'Chuyển nhanh Tiếng Việt / English, giao diện Tối / Sáng và chọn các chức năng ghim trên Trang chủ.', en: 'Switch between Vietnamese and English, Dark/Light themes, and pinned Home features.' }
                 },
                 {
                     title: { vi: '2. Tùy chỉnh định dạng tọa độ & số lẻ', en: '2. Coordinate format & decimal precision' },
                     desc: { vi: 'Chọn Độ Thập phân (DD), Độ phút giây (DMS) hoặc Độ phút (DMM). Đặt độ chính xác VN-2000 thành 3 chữ số thập phân (0.001m - Chuẩn ngành trắc địa).', en: 'Choose Decimal Degrees (DD), DMS or DMM. Keep VN-2000 precision at 3 decimals (0.001m geodesy standard).' }
                 },
                 {
-                    title: { vi: '3. Phản hồi rung & Dọn dẹp cache', en: '3. Haptic feedback & Cache clean' },
-                    desc: { vi: 'Bật phản hồi rung Haptic để nhận biết rõ ràng khi chấm điểm mốc. Dọn dẹp cache tạm khi muốn giải phóng bộ nhớ PWA.', en: 'Enable Haptic vibration for tactile feedback during point picks. Clear cache anytime to free up PWA storage.' }
+                    title: { vi: '3. Bật/tắt chức năng ẩn "Đóng dấu" trong GPS live shots', en: '3. Toggle hidden "Post-Stamp" feature in GPS live shots' },
+                    desc: { vi: 'Mặc định tab Đóng dấu ảnh chọn từ máy bị ẩn để tránh nhầm lẫn. Khi cần chèn dấu tọa độ lên ảnh có sẵn trong thiết bị, bật công tắc tương ứng ngay tại đây.', en: 'The gallery Post-Stamp tab is hidden by default. Enable the toggle here whenever you need to stamp existing photos.' }
                 }
             ],
             proTip: {
-                vi: 'Khôi phục mặc định chỉ thiết lập lại cấu hình hệ thống, tuyệt đối KHÔNG làm mất dữ liệu mốc và dự án của bạn.',
+                vi: 'Khôi phục mặc định chỉ thiết lập lại cấu hình hệ thống (và ẩn lại tab Đóng dấu), tuyệt đối KHÔNG làm mất dữ liệu mốc và dự án của bạn.',
                 en: 'Factory reset only restores system settings; it will NEVER delete your project survey data.'
             }
         },
@@ -42531,8 +42706,8 @@ const appGuide = {
                 }
             ],
             proTip: {
-                vi: 'Khi bật "Ưu tiên vị trí từ máy RTK ngoài", toàn bộ Bản đồ, Cắm mốc và Camera sẽ dùng tọa độ độ chính xác centimet này.',
-                en: 'With external RTK prioritized, all Maps, Stakeout, and Watermark Cameras will stream cm-level positions.'
+                vi: 'Khi bật "Ưu tiên vị trí từ máy RTK ngoài", toàn bộ Bản đồ, Cắm mốc và GPS live shots sẽ dùng tọa độ độ chính xác centimet này.',
+                en: 'With external RTK prioritized, all Maps, Stakeout, and GPS live shots will stream cm-level positions.'
             }
         },
         'settings_resection': {
@@ -42776,24 +42951,24 @@ const appGuide = {
         },
         'camera': {
             icon: '📸',
-            title: { vi: 'Camera Hiện Trường Đóng Dấu Thủy Ấn', en: 'Field Survey Watermark Camera' },
+            title: { vi: 'GPS live shots — Chụp ảnh & Quay video tọa độ', en: 'GPS live shots — Live Geotagged Capture' },
             category: { vi: 'NGHIỆM THU HIỆN TRƯỜNG', en: 'FIELD INSPECTION' },
             purpose: {
-                vi: 'Chụp ảnh và quay video hiện trường có đóng dấu tọa độ VN-2000, WGS-84, KTT, GPS và thời gian thực tế phục vụ hồ sơ nghiệm thu kỹ thuật.',
-                en: 'Capture field photos and videos stamped with real-time VN-2000, WGS-84 coordinates, CM, GPS, and timestamp for technical inspection dossiers.'
+                vi: 'Chụp ảnh và quay video hiện trường trực tiếp có dấu tọa độ VN-2000, WGS-84, KTT, GPS, địa chỉ hành chính và thời gian thực tế phục vụ hồ sơ nghiệm thu kỹ thuật.',
+                en: 'Capture live field photos and videos stamped with VN-2000, WGS-84 coordinates, CM, GPS accuracy, administrative address, and timestamp.'
             },
             steps: [
                 {
-                    title: { vi: '1. Chọn mốc đo & Vị trí đóng dấu', en: '1. Select mark and watermark corner' },
-                    desc: { vi: 'Chọn mốc trong dự án (hoặc tọa độ GPS Live thực địa). Chọn 1 trong 4 góc đóng dấu (Dưới-Trái, Dưới-Phải, Trên-Trái, Trên-Phải).', en: 'Pick a project point or live GPS. Select one of 4 corners (Bottom-Left, Bottom-Right, Top-Left, Top-Right).' }
+                    title: { vi: '1. Chọn mốc đo, góc dấu & tùy chỉnh trường thông tin', en: '1. Select mark, corner & customize fields' },
+                    desc: { vi: 'Chọn mốc trong dự án (hoặc GPS Live), chọn 1 trong 4 góc đóng dấu và mở "⚙️ Tùy chỉnh thông tin đóng dấu" nếu cần tự nhập/ẩn hiện hoặc thêm trường mới.', en: 'Pick a project point or live GPS, pick a corner, and expand "Customize stamp fields" to edit, toggle, or add custom lines.' }
                 },
                 {
                     title: { vi: '2. Chụp ảnh hoặc Quay video trực tiếp', en: '2. Capture photo or Record live video' },
-                    desc: { vi: 'Bấm "Chụp ảnh đóng dấu" để lưu ảnh tức thời, hoặc bấm "Quay video" để ghi hình hiện trường với thủy ấn chạy từng giây.', en: 'Click "Capture Photo" for instant stamped photo, or "Record Video" for live video with updating HUD.' }
+                    desc: { vi: 'Bấm "Chụp ảnh" để lưu ảnh tức thời, hoặc bấm "Quay video" để ghi hình hiện trường với thẻ tọa độ cập nhật từng giây.', en: 'Tap "Capture Photo" for an instant stamped shot, or "Record Video" for live video with a real-time HUD stamp.' }
                 },
                 {
-                    title: { vi: '3. Quản lý bộ sưu tập ảnh đã đóng dấu', en: '3. Manage stamped media collection' },
-                    desc: { vi: 'Mở tab "Quản Lý Ảnh" để xem lại ảnh phóng to, tải từng ảnh hoặc tải toàn bộ về máy, đính kèm ghi chú vào sổ đo mốc.', en: 'Open "Media Gallery" to view, download single/batch files, or attach photo logs to project survey marks.' }
+                    title: { vi: '3. Quản lý Thư viện & mở khóa tab "Đóng dấu" khi cần', en: '3. Manage Gallery & optional hidden Post-Stamp tab' },
+                    desc: { vi: 'Mở tab "Thư viện" để xem, tải hoặc chia sẻ ảnh/video. Chức năng đóng dấu ảnh có sẵn từ máy mặc định được ẩn — có thể bật tại Cài đặt hệ thống → Chung.', en: 'Open "Gallery" to inspect, download, or share media. The gallery Post-Stamp tab is hidden by default and can be enabled in System Settings → General.' }
                 }
             ],
             proTip: {

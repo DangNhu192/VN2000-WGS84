@@ -1997,22 +1997,22 @@
   3. **Kiểm thử**: Toàn bộ **518/518 tests PASS 100% (9 test suites, 0 fail, 0 skipped)**.
 
 
-- **2026-11-20 (Kh?c Ph?c Hi?n Tu?ng L?ch & B�ng Ma Khi Ch�n Nhi?u T?p PDF N?n + B? C�ng C? Tinh Ch?nh Kh?p M�p & Sao Ch�p T?a �?)**:
-  1. **�i?u tra & Tri?t ti�u nguy�n nh�n b�ng ma / 2 l?p PDF d� l?ch (Ghosting / Double Vision Elimination)**:
-     - Ph�t hi?n nguy�n nh�n g?c r?: _renderSharpPatch v� _renderSharpViewer k?t xu?t m?t l?p th? canvas d?ng d� l�n ?nh g?c img. Do l�m tr�n s? nguy�n d?c l?p v� k?p tr?n k�ch thu?c 4096px, l?p canvas b? co gi�n l?ch t?i >200px so v?i ?nh g?c, c?ng v?i g�c xoay c?a trang PDF l�m sai l?ch ma tr?n, khi?n ngu?i d�ng nh�n th?y nhu '2 file PDF ch�n l�n nhau nhung n?m l?ch'.
-     - X? l�: Cho ?n _sharpCv (display: none) trong Leaflet layer v� v� hi?u h�a canvas d� trong viewer, t?p trung 100% t�i nguy�n hi?n th? s?c n�t qua ?nh g?c raster (300 - 600 DPI s?c l?m qua GPU Hardware Acceleration). Tri?t ti�u 100% hi?n tu?ng b�ng ma l?ch l?p.
-  2. **Kh?c ph?c l?i N�ng d? n�t (reRenderHighDpi)**:
-     - B? sung l?nh h?y layer cu item.layer.remove() tru?c khi kh?i t?o layer m?i, ngan ch?n vi?c t�i s? d?ng ph?n t? DOM cu v?i ma tr?n bi?n d?i m?i.
-  3. **H? tr? n?p h�ng lo?t da t?p PDF (_pendingFiles)**:
-     - Khi ngu?i d�ng ch?n nhi?u file PDF c�ng l�c, h? th?ng dua v�o h�ng d?i _pendingFiles v� t? d?ng m? ti?p t?ng t?p d? g?n t?a d? tu?n t? m� kh�ng l�m th?t l?c t?p n�o.
-  4. **B? c�ng c? Tinh Ch?nh Kh?p M�p B?n �? Th?i Gian Th?c (openFineTune)**:
-     - B? sung giao di?n di?u khi?n n?i #modalPlanOvFineTune cho ph�p t?nh ti?n d?i B?c/Nam, ��ng/T�y (+/- 1m, +/- 0.2m), xoay quanh t�m ?nh (+/- 0.2�, +/- 0.05�) v� co gi�n t? l? (+/- 0.2%, +/- 0.05%) v?i sai s? b?o to�n t�m x?p x? 0 m�t.
-     - K? su c� th? nh�n th?y l?p b?n d? d?ch chuy?n tr?c quan ngay tr�n n?n Leaflet d? can ch?nh m�p n?i gi?a c�c t? PDF li?n k? ho�n h?o 100%.
-  5. **T�nh nang Sao Ch�p Nhanh T?a �? Kh?ng Ch? (copyPointsFrom)**:
-     - Cho ph�p sao ch�p nhanh to�n b? di?m kh?ng ch? v� kinh tuy?n tr?c t? m?t t? b?n d? kh�c d� c� trong d? �n v?i kh? nang t? d?ng t�nh to�n t? l? co gi�n k�ch thu?c ?nh (rx, ry).
+- **2026-11-20 (Kh?c Ph?c Hi?n Tu?ng L?ch & B�ng Ma Khi Ch�n Nhi?u T?p PDF N?n + B? C�ng C? Tinh Ch?nh Kh?p M�p & Sao Ch�p T?a �?)**:
+  1. **�i?u tra & Tri?t ti�u nguy�n nh�n b�ng ma / 2 l?p PDF d� l?ch (Ghosting / Double Vision Elimination)**:
+     - Ph�t hi?n nguy�n nh�n g?c r?: _renderSharpPatch v� _renderSharpViewer k?t xu?t m?t l?p th? canvas d?ng d� l�n ?nh g?c img. Do l�m tr�n s? nguy�n d?c l?p v� k?p tr?n k�ch thu?c 4096px, l?p canvas b? co gi�n l?ch t?i >200px so v?i ?nh g?c, c?ng v?i g�c xoay c?a trang PDF l�m sai l?ch ma tr?n, khi?n ngu?i d�ng nh�n th?y nhu '2 file PDF ch�n l�n nhau nhung n?m l?ch'.
+     - X? l�: Cho ?n _sharpCv (display: none) trong Leaflet layer v� v� hi?u h�a canvas d� trong viewer, t?p trung 100% t�i nguy�n hi?n th? s?c n�t qua ?nh g?c raster (300 - 600 DPI s?c l?m qua GPU Hardware Acceleration). Tri?t ti�u 100% hi?n tu?ng b�ng ma l?ch l?p.
+  2. **Kh?c ph?c l?i N�ng d? n�t (reRenderHighDpi)**:
+     - B? sung l?nh h?y layer cu item.layer.remove() tru?c khi kh?i t?o layer m?i, ngan ch?n vi?c t�i s? d?ng ph?n t? DOM cu v?i ma tr?n bi?n d?i m?i.
+  3. **H? tr? n?p h�ng lo?t da t?p PDF (_pendingFiles)**:
+     - Khi ngu?i d�ng ch?n nhi?u file PDF c�ng l�c, h? th?ng dua v�o h�ng d?i _pendingFiles v� t? d?ng m? ti?p t?ng t?p d? g?n t?a d? tu?n t? m� kh�ng l�m th?t l?c t?p n�o.
+  4. **B? c�ng c? Tinh Ch?nh Kh?p M�p B?n �? Th?i Gian Th?c (openFineTune)**:
+     - B? sung giao di?n di?u khi?n n?i #modalPlanOvFineTune cho ph�p t?nh ti?n d?i B?c/Nam, ��ng/T�y (+/- 1m, +/- 0.2m), xoay quanh t�m ?nh (+/- 0.2�, +/- 0.05�) v� co gi�n t? l? (+/- 0.2%, +/- 0.05%) v?i sai s? b?o to�n t�m x?p x? 0 m�t.
+     - K? su c� th? nh�n th?y l?p b?n d? d?ch chuy?n tr?c quan ngay tr�n n?n Leaflet d? can ch?nh m�p n?i gi?a c�c t? PDF li?n k? ho�n h?o 100%.
+  5. **T�nh nang Sao Ch�p Nhanh T?a �? Kh?ng Ch? (copyPointsFrom)**:
+     - Cho ph�p sao ch�p nhanh to�n b? di?m kh?ng ch? v� kinh tuy?n tr?c t? m?t t? b?n d? kh�c d� c� trong d? �n v?i kh? nang t? d?ng t�nh to�n t? l? co gi�n k�ch thu?c ?nh (rx, ry).
   6. **Ki?m th?**:
      - B? sung b? ki?m th? tests/plan_overlay_multidoc.test.js (8/8 test PASS).
-     - To�n b? test suite tests/*.test.js: 538/538 test PASS 100% (10 test suites, 0 fail, 0 skipped).
+     - To�n b? test suite tests/*.test.js: 538/538 test PASS 100% (10 test suites, 0 fail, 0 skipped).
 
 - **2026-11-21 (Giao diện kính mờ theo mẫu "Sylva" — v2.8.45)**:
   1. Bảng màu: sky → xanh rừng/sage, slate → xám ấm stone, nền tối `#171615`; đổi trực tiếp trong `style.css`, `ui-polish.css`, `ui-unified.css`, `field-workspace.css` và style inline của `index.html` (giữ độ sáng tương ứng; `app.js` không đổi).
@@ -2097,3 +2097,12 @@
   - `app.js` (`appCamera`): Lưu cấu hình vào `localStorage` (`vn2k_camera_stamp_config_v1`), nâng cấp `getWatermarkData()` và `drawWatermark()` hỗ trợ ghi đè mọi trường, ẩn mặc định `Hướng:` khớp ảnh mẫu (có thể bật lại), tự động vẽ lại tức thời cả khung xem trước 1:1 lẫn ảnh đã chọn ở Tab Đóng dấu (`reapplyWatermarkOnLastImage`), đồng bộ tên mốc/dự án tùy chỉnh khi lưu thư viện & tải ảnh.
   - `ui-polish.css`: Hoàn thiện giao diện responsive `.cam-stamp-*` tương thích đầy đủ Dark Theme, Light Theme, Field Mode (kể cả Light + Field Mode) và Mobile Portrait (`0px` tràn ngang).
 - **Kiểm thử**: `tests/camera_stamp_customizer.test.js` (2/2 PASS), Playwright E2E + đối chiếu ảnh trực quan Dark/Light/Field/Mobile (0 lỗi JS, 0 tràn ngang), toàn bộ bộ kiểm thử **638/638 PASS**.
+
+
+## 2026-11-26 — TỐI ƯU CÀI ĐẶT HỆ THỐNG v2, ẨN CHỨC NĂNG ĐÓNG DẤU & ĐỔI TÊN "GPS live shots" (v2.8.63)
+- **Yêu cầu**: (1) Tối ưu hóa và cấu trúc lại giao diện Cài đặt hệ thống; (2) Ẩn mặc định chức năng "Đóng dấu" ảnh máy trong Camera, chỉ mở khi tích chọn trong Cài đặt hệ thống; (3) Đổi tên thống nhất "Camera Đóng dấu" → "GPS live shots" và rà soát mọi phân hệ liên quan.
+- **Đã làm**:
+  - `index.html`, `ui-polish.css`, `ui-unified.css`, `app.js` (`appModal`): Cấu trúc lại `#modalSettings` thành bố cục chia 2 cột trên Desktop (Sidebar trái phân 3 nhóm *Hệ thống*, *Trắc địa & Dữ liệu*, *Thiết bị & Hiệu năng* + nội dung bên phải, tự gộp thanh tab ngang cuộn mượt trên Mobile), thêm ô tìm nhanh `#txtSettingsSearch`, thẻ Tổng quan hiển thị 4 pill trạng thái tức thời & lưới Bento 2 cột có badge giá trị, nhóm hóa toàn bộ 7 tab bằng thẻ `.stg-card` và công tắc trượt thật `.stg-switch` (Dark, Light, Field Mode, 0px tràn ngang Mobile).
+  - Chức năng ẩn **Đóng dấu** (`#tabCameraUpload`): Mặc định ẩn hoàn toàn (`hidden`, `.is-hidden-feature`, `display: none !important` vượt cả quy tắc `ui-unified.css`), `appCamera.switchTab("upload")` chặn mở khi chưa bật; chỉ hiển thị và sử dụng được khi bật công tắc `#chkEnablePostStamp` (*Mở chức năng "Đóng dấu" trong GPS live shots*) tại **Cài đặt hệ thống → Chung** (lưu `localStorage` khóa `vn2k_enable_post_stamp`; tắt hoặc Khôi phục mặc định tự ẩn lại và quay về tab `live`).
+  - Đổi tên thống nhất **GPS live shots** trên toàn bộ hệ thống: thẻ Trang chủ, cây menu, lưới menu, drawer `#drawerItem_camera`, tiêu đề màn hình (`4. GPS LIVE SHOTS`), `app-shell.js` (`TITLES` + `ITEM_META` giữ từ khóa tìm cũ/mới), `appDashboard`, `appI18n` (VI/EN), `appGuide`, `user-guide.html`, và Trợ lý AI (`assistant-core.js`, `tools/ai/build_dataset.py`, `assistant-dataset.js`, `docs/ai/sft_vi.jsonl` — sửa xung đột định tuyến `mở gps live shots` không bắt nhầm lệnh bật GPS).
+- **Kiểm thử**: `tests/settings_v2_and_gps_live_shots.test.js` (3/3 PASS), Playwright trực quan & E2E Dark/Light/Field/Mobile (0 lỗi JS, 0 tràn ngang), toàn bộ bộ kiểm thử **641/641 PASS**.

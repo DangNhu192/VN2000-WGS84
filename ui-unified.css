@@ -548,3 +548,64 @@ html body #modalCadAreaTable.cft-max > .modal-box {
   #btnCadTableMaximize span:last-child { display: none; }
   html body #modalCadAreaTable.cft-max > .modal-box { top: calc(var(--sat-safe-top, 0px) + var(--sy-header-h, 54px) + 4px) !important; left: 0 !important; right: 0 !important; bottom: var(--cft-bottom, 0px) !important; }
 }
+
+/* ---------- 12. GPS live shots: tab ẩn "Đóng dấu" & Tinh chỉnh Cài đặt hệ thống v2 ---------- */
+#screen-camera #tabCameraUpload[hidden],
+#screen-camera #tabCameraUpload.is-hidden-feature,
+body:not(.field-mode) #screen-camera #tabCameraUpload[hidden],
+body:not(.field-mode) #screen-camera #tabCameraUpload.is-hidden-feature {
+  display: none !important;
+}
+/* Active sidebar tab & active segmented buttons trong Cài đặt hệ thống */
+#modalSettings #macSettingsDock .settings-tab-btn.mac-dock-item.active,
+#modalSettings #macSettingsDock .settings-tab-btn.mac-dock-item.active .mac-dock-title,
+body:not(.field-mode) #modalSettings #macSettingsDock .settings-tab-btn.mac-dock-item.active,
+body:not(.field-mode) #modalSettings #macSettingsDock .settings-tab-btn.mac-dock-item.active .mac-dock-title {
+  color: #ffffff !important;
+}
+body:not(.field-mode) #modalSettings .btn-group-row .btn-sm {
+  white-space: normal !important;
+  line-height: 1.25 !important;
+  min-height: 38px !important;
+  height: auto !important;
+  padding: 6px 8px !important;
+}
+body:not(.field-mode) #modalSettings .btn-group-row .btn-sm.active {
+  background: linear-gradient(135deg, #3f8a5a 0%, #2f6e47 100%) !important;
+  color: #ffffff !important;
+  border-color: #93cc9c !important;
+  font-weight: 700 !important;
+}
+[data-theme="light"] #modalSettings .btn-group-row .btn-sm.active,
+body[data-theme="light"]:not(.field-mode) #modalSettings .btn-group-row .btn-sm.active {
+  background: #2f6e47 !important;
+  color: #ffffff !important;
+  border-color: #2f6e47 !important;
+}
+/* Overview logo badge & uniform card title stack */
+#modalSettings .settings-welcome-badge {
+  color: #ffffff !important;
+  bottom: -9px !important;
+}
+#modalSettings .stg-hero-top .settings-welcome-logo-wrap {
+  margin-bottom: 10px !important;
+}
+#modalSettings .settings-nav-card .nav-card-title {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+}
+/* Field Mode header đồng nhất nền đen chữ vàng */
+body.field-mode #modalSettings .modal-settings-header.stg-header,
+body[data-theme="light"].field-mode #modalSettings .modal-settings-header.stg-header {
+  background: #000000 !important;
+  border-bottom: 1.5px solid #ffdf00 !important;
+}
+body.field-mode #modalSettings .btn-group-row .btn-sm.active,
+body[data-theme="light"].field-mode #modalSettings .btn-group-row .btn-sm.active {
+  background: #ffdf00 !important;
+  color: #000000 !important;
+  border-color: #ffdf00 !important;
+  font-weight: 800 !important;
+}
+

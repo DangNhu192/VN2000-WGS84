@@ -32,7 +32,7 @@ OPEN = {
     'drawerItem_transform': ['chuyển đổi tọa độ', 'mở chuyển đổi đơn điểm', 'vào màn chuyển đổi'],
     'drawerItem_batch': ['chuyển đổi hàng loạt', 'nhập excel nhiều điểm', 'chuyển nhiều điểm một lúc'],
     'drawerItem_transform_map': ['chấm tọa độ', 'lấy tọa độ trên bản đồ', 'chấm điểm trên bản đồ'],
-    'drawerItem_camera': ['mở camera', 'chụp ảnh hiện trường', 'chụp ảnh đóng dấu tọa độ'],
+    'drawerItem_camera': ['mở gps live shots', 'gps live shots', 'mở camera', 'chụp ảnh hiện trường', 'chụp ảnh đóng dấu tọa độ'],
     'drawerItem_geodesy': ['bài toán trắc địa', 'tính phương vị', 'mở bài toán trắc địa'],
     'drawerItem_settings_resection': ['giao hội', 'mở giao hội nghịch'],
     'drawerItem_profile_volume': ['trắc dọc', 'tính đào đắp', 'mặt cắt địa hình'],
