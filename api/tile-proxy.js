@@ -10,12 +10,17 @@ const { URL } = require('url');
 const ALLOWED_HOST_SUFFIXES = [
     'vcdn.cloud',
     'cmctelecom.vn',
+    'cmccloud.com.vn',
     'fptcloud.com',
     'digitaloceanspaces.com',
+    'guland.vn',
     'openstreetmap.org',
+    'opentopomap.org',
     'arcgisonline.com',
     'terrascope.be',
-    'eox.at'
+    'eox.at',
+    'google.com',
+    'googleapis.com'
 ];
 
 module.exports = async function handler(req, res) {

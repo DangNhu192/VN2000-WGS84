@@ -1,6 +1,32 @@
 # Session Handoff — VN2000-PWA
 
-## Phiên hiện tại — 2026-11-25 (trưa): XUẤT ĐÚNG ĐỊNH DẠNG, MỖI LẦN MỘT TỆP (v2.8.61)
+## Phiên hiện tại — 2026-11-26: TÙY CHỈNH THÔNG TIN ĐÓNG DẤU CAMERA (TỰ NHẬP / ẨN HIỆN / THÊM TRƯỜNG MỚI)
+- **Yêu cầu**: Tùy chỉnh các trường thông tin đóng dấu ảnh/video Camera đúng theo mẫu (Tiêu đề, MỐC & DỰ ÁN, VN-2000 X/Y/KTT-Múi, WGS-84 Lat/Lng, THỰC ĐỊA Sai số/Hướng/Mục giữa/Thời gian, ĐỊA CHỈ) cho phép người dùng tự nhập thay đổi, ẩn/hiện từng mục và thêm mới các trường tùy biến.
+- **Đã làm**:
+  - `index.html` (`#camStampCustomizerWrap`, `#panelCameraStampCustomizer`): bảng tùy chỉnh thu gọn trong màn Camera với khung xem trước canvas WYSIWYG (`#cameraStampPreviewCanvas`), ô nhập + checkbox bật/tắt từng trường, nút `🕒 Hiện tại`, mục thêm trường mới (`+ Thêm trường` + 4 mẫu nhanh `Hạng mục`, `Người đo`, `Cao độ Z`, `Ghi chú` có chọn màu), nút `📋 Nạp từ mốc hiện tại` và `↺ Mặc định tự động`.
+  - `app.js` (`appCamera`): lưu cấu hình tại `localStorage` (`vn2k_camera_stamp_config_v1`); nâng cấp `getWatermarkData()` / `drawWatermark()` / `renderStampSamplePreview()` / `reapplyWatermarkOnLastImage()` áp dụng tức thời cho Live Viewfinder, ảnh chụp, video và ảnh chọn từ máy; đồng bộ tên mốc/dự án tùy chỉnh vào metadata lưu thư viện và tên tệp tải về. Giữ nguyên hành vi mặc định trung thực `ĐÓNG DẤU SAU` trên tab Đóng dấu ảnh từ máy (cho phép người dùng chủ động bật mẫu `THỰC ĐỊA` khi cần).
+  - `ui-polish.css`: bộ quy tắc `.cam-stamp-*` tương thích đầy đủ Dark Theme, Light Theme, Field Mode và Mobile Portrait (`0px` tràn ngang).
+- **Kiểm thử**: `tests/camera_stamp_customizer.test.js` + kiểm thử Playwright E2E/trực quan trên Dark/Light/Field/Mobile (0 pageerror, 0 tràn ngang) + toàn bộ test suite **638/638 PASS**.
+
+---
+
+## Phiên trước — 2026-11-26: KIỂM TRA LỖI CHỨC NĂNG/GIAO DIỆN (2 VÒNG) & NÂNG CẤP TRỢ LÝ AI THÔNG MINH (v2.8.62)
+- **Yêu cầu**: (1) Tổng duyệt ứng dụng & kiểm tra sâu 2 vòng các lỗi còn tồn tại về chức năng và giao diện thao tác; (2) Nâng cấp Trợ lý AI thông minh hơn khi điều khiển các chức năng của app.
+- **Vòng 1 + Vòng 2 lỗi chức năng & giao diện đã sửa**:
+  - Chặn SW reload lần truy cập đầu tiên (`hadController` trong `index.html`); đồng bộ host proxy tile (`api/tile-proxy.js`, `app.js`) và gắn `/api/ai` trên `server.js`.
+  - MiniCAD: bổ sung `renameVertex()`, sửa `submitQuickVertexSave()` đọc `#txtCadQuickRenameInput`, sửa `#cadModalEdgeCount` & `updateModalTableCounts()` trong `openAreaTableModal()`, thêm `white-space: nowrap` chống rớt số cột `X/Y` bảng đỉnh, giữ nền tối tương phản cao cho `.cad-center-badge` trên nền vệ tinh ở Light Theme (`style.css`), sửa chiều rộng select kiểu/cỡ đỉnh trên Mobile.
+  - OCR & Điều hướng: `appOcr.applyDetectedKtt()` ghi đúng `AppState.muiVal`; `appNav.showScreen('settings')` mở modal cài đặt hợp nhất + fallback `#screen-menu` + `appRouting.map.invalidateSize()` + gọi `AppState.leafletMap.stop()` trước khi ẩn map (kết hợp kiểm tra `map.getSize()` trong `src/core/planning_map.js`) loại bỏ triệt để lỗi `Invalid LatLng (NaN, NaN)` khi chuyển màn hình giữa lúc `flyTo()`.
+  - Giao diện Light Theme + Field Mode + Landscape: cách ly hoàn toàn `body[data-theme="light"].field-mode` (`ui-polish.css`, `ui-assistant.css`) khỏi Light Theme; hoàn thiện WCAG AA cho hộp Ủng hộ, Xuất dữ liệu, Bảng kê, Lộ trình, Bài toán trắc địa, Camera; tối ưu chiều cao `#aiPanel` trên Mobile Landscape; sửa ~180 chuỗi tiếng Anh bị dịch máy hỏng trong `appI18n.phraseMap`.
+- **Nâng cấp Trợ lý AI thông minh (`assistant-core.js`, `assistant.js`, `ui-assistant.css`, `tools/ai/build_dataset.py`, `assistant-dataset.js`, `docs/ai/sft_vi.jsonl`)**:
+  - Mở rộng 18 → **29 công cụ có tham số** dùng chung cho Quy tắc ngoại tuyến, AI máy chủ `/api/ai` và AI cục bộ `wllama` GBNF: `findPoint`, `distancePoints`, `savePoint`, `stakeoutPoint`, `cadSummary`, `cadAction` (15 thao tác MiniCAD), `mapLayer` (7 nền + 5 lớp phủ + Quy hoạch 2030), `routeProject`, `rezone`, `switchProject`, `appMode` + `calcArea` (tính diện tích từ tọa độ dán).
+  - Bổ sung bộ nhớ hội thoại đa lượt (`session`), gợi ý thông minh khi gõ nhầm chính tả (`suggestCommands` Jaccard + 3-gram), thanh chip theo ngữ cảnh màn hình (`getContextChips`), gợi ý trực tiếp tích hợp tên mốc thật (`buildLiveSuggestions`), lịch sử phím `↑/↓`, nút xóa chat `🧹`.
+  - Bảo toàn tuyệt đối nguyên tắc an toàn (AI không bao giờ tự tính số; mọi lệnh qua `validateCall`/GBNF) và nguyên tắc tách biệt giao diện (`AGENTS.md §2`).
+  - Bộ dữ liệu `assistant-dataset.js` + `docs/ai/sft_vi.jsonl` nâng từ 355 → **551 câu mẫu** (0 câu hiểu sai, độ phủ ≥ 95%).
+- **Kiểm thử**: `tests/audit_functional_ui_fixes.test.js`, `tests/assistant_smart_upgrade.test.js`, Playwright E2E Desktop/Mobile/Landscape/Dark/Light/Field Mode (0 pageerror) và toàn bộ test suite **100% PASS**.
+
+---
+
+## Phiên trước — 2026-11-25 (trưa): XUẤT ĐÚNG ĐỊNH DẠNG, MỖI LẦN MỘT TỆP (v2.8.61)
 - **Báo lỗi**: không xuất được đúng các định dạng tệp (không có file). Người dùng xuất trên máy tính.
 - **Nguyên nhân** (ma trận Playwright `scripts/export_matrix.py`: mọi định dạng ở hộp Xuất bản vẽ MiniCAD, hộp Xuất dữ liệu, Bảng kê, Bảng điểm):
   - ".dwg": nội dung là DXF nhưng đặt đuôi .dwg → AutoCAD báo "Drawing file is not valid"; thêm lượt tải .dxf thứ hai sau 150 ms — Chrome máy tính chặn lượt tải tự động thứ hai ("trang muốn tải nhiều tệp").
@@ -1636,3 +1662,27 @@
 - **Kiểm thử**: `tests/plan-overlay-dpi.test.js` (6/6 PASS). Toàn bộ test suite: **501/501 PASS 100%**.
 
 - **Cập nhật 2026-11-19 v2.8.43**: Đột phá giải pháp Dynamic Sharp Viewport Engine: tự động kết xuất lại đúng góc nhìn thấy của PDF ở độ phân giải 1:1 màn hình khi zoom sâu trong khung chấm điểm và trên bản đồ Leaflet. Nâng `MAX_SIDE: 16384`, `MAX_PIXELS: 120000000`, nén PNG lossless. 502/502 tests PASS.
+
+## 2026-11-26 — Tổng duyệt ứng dụng toàn diện (v2.8.61)
+- **Kiểm thử tự động**: 622/622 unit/integration tests PASS (`node --test tests/*.test.js`).
+- **Kiểm thử Playwright E2E (Desktop 1440×900 & Mobile 390×844)**:
+  - 0 lỗi console, 0 uncaught pageerror, 0 lỗi tải tài nguyên nội bộ, 0 tràn ngang trên toàn bộ các màn hình nghiệp vụ và MiniCAD.
+  - Xác nhận cô lập giao diện 100% giữa Chuyển đổi tọa độ, Bản đồ Dự án và MiniCAD; kiểm tra chuyển đổi đơn điểm WGS84 ↔ VN-2000, bảng kê nổi MiniCAD, hộp xuất, trợ lý AI cục bộ, và các chủ đề giao diện.
+- **Khắc phục lỗi phát hiện trong quá trình tổng duyệt**:
+  - Sửa `index.html` kiểm tra `hadController` trước khi `window.location.reload()` trong sự kiện `controllerchange` của Service Worker (tránh reload trang bất ngờ ở lần mở app đầu tiên).
+  - Đồng bộ `ALLOWED_HOST_SUFFIXES` trong `api/tile-proxy.js` với `server.js` (thêm `cmccloud.com.vn`, `guland.vn`, `opentopomap.org`, `google.com`, `googleapis.com`).
+  - Thêm test hồi quy trong `tests/sw_update_flow.test.js`.
+
+## 2026-11-26 — Kiểm tra & Khắc phục lỗi chức năng và giao diện thao tác (v2.8.61)
+- **Chức năng**:
+  - Sửa `appCadTool.submitQuickVertexSave` + thêm `appCadTool.renameVertex(sIdx, vIdx, newName)` + đồng bộ phím Enter trong `submitQuickRename`.
+  - Sửa `openAreaTableModal` cập nhật `#cadModalEdgeCount` (hết `0 cạnh`) và gọi `updateModalTableCounts()` (hết `Bảng Kê Các Đỉnh (0)`).
+  - Sửa `appOcr.applyDetectedKtt()` dùng `AppState.muiVal`, đồng bộ nút Múi 3°/6°, banner và `appSettings.save()`.
+  - Sửa `appNav.showScreen('settings')` và fallback `#screen-menu` tránh màn hình trắng; gọi `invalidateSize()` tức thì cho bản đồ Routing.
+  - Bổ sung `cmccloud.com.vn` / `guland.vn` vào `wrapTileProxyUrl`, CORS proxy fallback trong `loadExportBasemap`, và route `/api/ai` trong `server.js`.
+  - Chuẩn hóa lại các chuỗi tiếng Anh bị dịch hỏng trong `appI18n.phraseMap`.
+- **Giao diện & Thao tác**:
+  - Sửa `#modalDonateCountdown` (style nút `#btnDonateCloseTop` 36×36px, Light theme nền sáng chữ đậm, nút xanh đạt chuẩn WCAG >5:1).
+  - Sửa lỗi tương phản Light theme trên `#modalExportData`, `#modalCadAreaTable`, `#modalCadExportConfig`, `#modalFeatureHelpGuide`, `#screen-routing`, `#screen-geodesy`, `#screen-camera`.
+  - Hiện nhãn `GPS` trên nút GPS Desktop Icon Pro; sửa 2 ô `<select>` icon đỉnh MiniCAD không bị ép 22px trên Mobile; sửa nút `🗑️` Đơn điểm Desktop; sửa cắt chữ Canvas & bảng Trắc dọc; đẩy dòng ghi nguồn Leaflet lên trên Bottom Nav trên Mobile; cập nhật nhãn `DXF` và `v2.8.61 Pro`.
+- **Kiểm thử**: Thêm `tests/audit_functional_ui_fixes.test.js`, toàn bộ bộ kiểm thử `node --test tests/*.test.js` PASS 100%, Playwright E2E + đối chiếu ảnh chụp màn hình sạch 0 lỗi.

@@ -304,9 +304,9 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 #modalDonateCountdown .support-title-wrap{min-width:0;flex:1}
 #modalDonateCountdown .support-title{margin:0;font-size:14px;font-weight:700;line-height:1.2;color:var(--text-main,#f3f4f6);letter-spacing:.2px}
 #modalDonateCountdown .support-subtitle{margin:1px 0 0;font-size:11px;color:var(--text-muted,#9ca3af);line-height:1.3}
-#modalDonateCountdown #btnDonateEnterApp.support-close-btn{min-width:36px!important;min-height:36px!important;width:36px!important;height:36px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid var(--border-color,rgba(255,255,255,.14))!important;border-radius:8px!important;background:transparent!important;color:var(--text-main,#f3f4f6)!important;font-size:15px!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent}
-#modalDonateCountdown #btnDonateEnterApp.support-close-btn:hover{background:var(--hover-bg,rgba(255,255,255,.08))!important}
-#modalDonateCountdown #btnDonateEnterApp.support-close-btn:focus-visible{outline:2px solid var(--accent,#93cc9c);outline-offset:2px}
+#modalDonateCountdown .support-close-btn,#modalDonateCountdown #btnDonateCloseTop,#modalDonateCountdown #btnDonateEnterApp.support-close-btn{min-width:36px!important;min-height:36px!important;width:36px!important;height:36px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border:1px solid var(--border-color,rgba(255,255,255,.18))!important;border-radius:8px!important;background:transparent!important;color:var(--text-main,#f3f4f6)!important;font-size:15px!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent}
+#modalDonateCountdown .support-close-btn:hover,#modalDonateCountdown #btnDonateCloseTop:hover,#modalDonateCountdown #btnDonateEnterApp.support-close-btn:hover{background:var(--hover-bg,rgba(255,255,255,.08))!important}
+#modalDonateCountdown .support-close-btn:focus-visible,#modalDonateCountdown #btnDonateCloseTop:focus-visible,#modalDonateCountdown #btnDonateEnterApp.support-close-btn:focus-visible{outline:2px solid var(--accent,#93cc9c);outline-offset:2px}
 #modalDonateCountdown .support-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
 #modalDonateCountdown .support-intro{margin:0;font-size:11.5px;line-height:1.45;color:var(--text-muted,#9ca3af)}
 #modalDonateCountdown .support-channels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
@@ -320,7 +320,7 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 #modalDonateCountdown .support-qr-image:not([src]){display:none}
 #modalDonateCountdown .support-qr-image[src]{display:block}
 #modalDonateCountdown .support-hint{margin:0;font-size:11.5px;text-align:center;color:var(--text-muted,#9ca3af);line-height:1.4}
-#modalDonateCountdown .support-app-link{min-height:42px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;border-radius:8px;text-decoration:none;font-size:12.5px;font-weight:700;background:linear-gradient(135deg,#3f8a5a 0%,#2f6e47 100%);color:#fff;border:1px solid rgba(147,204,156,0.3);box-shadow:0 2px 8px rgba(63,138,90,0.3);transition:transform .15s ease,filter .15s ease}
+#modalDonateCountdown .support-app-link{min-height:42px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;border-radius:8px;text-decoration:none;font-size:12.5px;font-weight:700;background:linear-gradient(135deg,#256f42 0%,#1d5734 100%);color:#ffffff!important;border:1px solid rgba(147,204,156,0.3);box-shadow:0 2px 8px rgba(37,111,66,0.3);transition:transform .15s ease,filter .15s ease}
 #modalDonateCountdown .support-app-link:hover{filter:brightness(1.1);transform:translateY(-1px)}
 #modalDonateCountdown .support-meta-list{display:flex;flex-direction:column;gap:8px;padding-top:4px}
 #modalDonateCountdown .support-meta-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;min-height:28px}
@@ -333,9 +333,52 @@ body:not(.field-mode) nav#mobileBottomNav.mobile-bottom-nav .bottom-nav-item.act
 #modalDonateCountdown .support-inline-copy:focus-visible{outline:2px solid var(--accent,#93cc9c);outline-offset:2px}
 #modalDonateCountdown .support-memo-value{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;color:var(--text-main,#f3f4f6);text-align:right}
 #modalDonateCountdown .support-footer{flex-shrink:0;padding:12px 16px;border-top:1px solid var(--border-color,rgba(255,255,255,.12));background:inherit}
-#modalDonateCountdown .support-primary-action{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-color,rgba(255,255,255,.18));background:var(--support-action,#2f6e47);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+#modalDonateCountdown .support-primary-action{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-color,rgba(255,255,255,.18));background:var(--support-action,#15803d)!important;color:#ffffff!important;font-size:13px;font-weight:600;cursor:pointer}
 #modalDonateCountdown .support-primary-action:hover{filter:brightness(1.08)}
 #modalDonateCountdown .support-primary-action:focus-visible{outline:2px solid var(--accent,#93cc9c);outline-offset:2px}
+
+/* Giao diện Sáng (Light Theme): nền sáng chữ đậm rõ nét cho hộp Ủng hộ */
+[data-theme="light"] #modalDonateCountdown .modal-donate-box.support-modal,
+body[data-theme="light"] #modalDonateCountdown .modal-donate-box.support-modal {
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #1c1917 !important;
+  border-color: rgba(47, 110, 71, 0.25) !important;
+  box-shadow: 0 12px 32px rgba(28, 25, 23, 0.16), 0 0 0 1px rgba(28, 25, 23, 0.08) !important;
+}
+[data-theme="light"] #modalDonateCountdown .support-header,
+body[data-theme="light"] #modalDonateCountdown .support-header {
+  border-bottom-color: rgba(28, 25, 23, 0.1) !important;
+}
+[data-theme="light"] #modalDonateCountdown :is(.support-title, .support-meta-value, .support-acc-number, .support-memo-value, .donate-channel-pill.support-channel-btn, .support-inline-copy, .support-close-btn, #btnDonateCloseTop),
+body[data-theme="light"] #modalDonateCountdown :is(.support-title, .support-meta-value, .support-acc-number, .support-memo-value, .donate-channel-pill.support-channel-btn, .support-inline-copy, .support-close-btn, #btnDonateCloseTop) {
+  color: #1c1917 !important;
+}
+[data-theme="light"] #modalDonateCountdown :is(.support-subtitle, .support-intro, .support-hint, .support-meta-label),
+body[data-theme="light"] #modalDonateCountdown :is(.support-subtitle, .support-intro, .support-hint, .support-meta-label) {
+  color: #57534e !important;
+}
+[data-theme="light"] #modalDonateCountdown :is(.donate-channel-pill.support-channel-btn, .support-inline-copy, .support-close-btn, #btnDonateCloseTop),
+body[data-theme="light"] #modalDonateCountdown :is(.donate-channel-pill.support-channel-btn, .support-inline-copy, .support-close-btn, #btnDonateCloseTop) {
+  border-color: rgba(28, 25, 23, 0.18) !important;
+}
+[data-theme="light"] #modalDonateCountdown .donate-channel-pill.support-channel-btn.active,
+body[data-theme="light"] #modalDonateCountdown .donate-channel-pill.support-channel-btn.active {
+  background: rgba(47, 110, 71, 0.12) !important;
+  border-color: #2f6e47 !important;
+  color: #1e4d30 !important;
+}
+[data-theme="light"] #modalDonateCountdown .support-body > div:first-child,
+body[data-theme="light"] #modalDonateCountdown .support-body > div:first-child {
+  color: #1e4d30 !important;
+  background: rgba(47, 110, 71, 0.08) !important;
+  border-color: rgba(47, 110, 71, 0.25) !important;
+}
+[data-theme="light"] #modalDonateCountdown .support-body button[onclick*="download"],
+body[data-theme="light"] #modalDonateCountdown .support-body button[onclick*="download"] {
+  color: #1e4d30 !important;
+  background: rgba(47, 110, 71, 0.1) !important;
+  border-color: rgba(47, 110, 71, 0.35) !important;
+}
 
 body.field-mode #modalDonateCountdown {
   --bg-card: #000;
@@ -348,7 +391,7 @@ body.field-mode #modalDonateCountdown {
 }
 
 body.field-mode #modalDonateCountdown :is(.support-primary-action, .support-app-link) {
-  color: #000;
+  color: #000 !important;
 }
 
 /* ==========================================================================
@@ -2724,7 +2767,23 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
   header.app-header .header-left { min-width: 0 !important; flex: 1 1 auto !important; }
 }
 
-/* Nút GPS trên điện thoại: thêm nhãn "GPS" cạnh chấm trạng thái (chữ đầy đủ bị ẩn vì thiếu chỗ). */
+/* Nút GPS trên điện thoại & chế độ Icon Pro máy tính: luôn hiện nhãn "GPS" cạnh chấm trạng thái. */
+.ui-mode-icon-pro #btnHeaderGpsToggle { gap: 4px !important; padding: 0 8px !important; }
+.ui-mode-icon-pro #btnHeaderGpsToggle::before {
+  content: 'GPS';
+  order: 2;
+  font: 800 10.5px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0.2px;
+  color: #a8a29e;
+}
+.ui-mode-icon-pro #btnHeaderGpsToggle.gps-active::before { color: #34d399; }
+.ui-mode-icon-pro #btnHeaderGpsToggle.gps-searching::before { color: #fbbf24; }
+.ui-mode-icon-pro #btnHeaderGpsToggle.gps-error::before { color: #f87171; }
+body[data-theme="light"] .ui-mode-icon-pro #btnHeaderGpsToggle::before { color: #44403c; }
+body[data-theme="light"] .ui-mode-icon-pro #btnHeaderGpsToggle.gps-active::before { color: #15803d; }
+body[data-theme="light"] .ui-mode-icon-pro #btnHeaderGpsToggle.gps-searching::before { color: #b45309; }
+body[data-theme="light"] .ui-mode-icon-pro #btnHeaderGpsToggle.gps-error::before { color: #b91c1c; }
+
 @media (max-width: 640px) {
   #btnHeaderGpsToggle { gap: 3px !important; }
   #btnHeaderGpsToggle::before {
@@ -2737,6 +2796,10 @@ body.dock-collapsed #map-view-container .leaflet-bottom {
   #btnHeaderGpsToggle.gps-active::before { color: #34d399; }
   #btnHeaderGpsToggle.gps-searching::before { color: #fbbf24; }
   #btnHeaderGpsToggle.gps-error::before { color: #f87171; }
+  body[data-theme="light"] #btnHeaderGpsToggle::before { color: #44403c; }
+  body[data-theme="light"] #btnHeaderGpsToggle.gps-active::before { color: #15803d; }
+  body[data-theme="light"] #btnHeaderGpsToggle.gps-searching::before { color: #b45309; }
+  body[data-theme="light"] #btnHeaderGpsToggle.gps-error::before { color: #b91c1c; }
 }
 
 /* Trang chủ: khối tọa độ GPS chỉ hiện khi GPS bật; khi tắt thay bằng một nút gọn. */
@@ -3152,3 +3215,537 @@ body[data-theme="light"] .home-gps-cta b { color: #047857; }
   .rnav-banner { top: calc(var(--sat-safe-top, 0px) + 20px); left: auto; right: 16px; transform: none; }
 }
 html body.routing-nav-active nav#mobileBottomNav.mobile-bottom-nav { display: none !important; visibility: hidden !important; }
+
+/* ==========================================================================
+   LIGHT THEME HIGH-CONTRAST FIXES (Export, Area Table, Help Guide, Routing, Geodesy, Camera)
+   ========================================================================== */
+[data-theme="light"] #modalExportData label,
+body[data-theme="light"] #modalExportData label,
+[data-theme="light"] #modalCadExportConfig label,
+body[data-theme="light"] #modalCadExportConfig label,
+[data-theme="light"] #modalCadAreaTable label,
+body[data-theme="light"] #modalCadAreaTable label {
+  color: #1c1917 !important;
+}
+[data-theme="light"] #modalExportData .modal-body > div,
+body[data-theme="light"] #modalExportData .modal-body > div {
+  background: rgba(245, 244, 240, 0.92) !important;
+  border-color: rgba(28, 25, 23, 0.14) !important;
+}
+[data-theme="light"] #modalExportData #selExportPlanOverlayCountBadge,
+body[data-theme="light"] #modalExportData #selExportPlanOverlayCountBadge {
+  color: #1e5c37 !important;
+}
+[data-theme="light"] #modalFeatureHelpGuide label,
+body[data-theme="light"] #modalFeatureHelpGuide label,
+[data-theme="light"] #modalFeatureHelpGuide #lblGuideDontShowText,
+body[data-theme="light"] #modalFeatureHelpGuide #lblGuideDontShowText {
+  color: #44403c !important;
+}
+[data-theme="light"] #screen-routing label,
+body[data-theme="light"] #screen-routing label {
+  color: #1c1917 !important;
+}
+[data-theme="light"] #screen-routing .btn-routing-veh:not(.active),
+body[data-theme="light"] #screen-routing .btn-routing-veh:not(.active) {
+  color: #292524 !important;
+}
+[data-theme="light"] #screen-routing #routingNavHud,
+body[data-theme="light"] #screen-routing #routingNavHud {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(47, 110, 71, 0.28) !important;
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.14) !important;
+}
+[data-theme="light"] #screen-routing #routingHudIdle > div,
+body[data-theme="light"] #screen-routing #routingHudIdle > div,
+[data-theme="light"] #screen-routing #routingTurnInstruction,
+body[data-theme="light"] #screen-routing #routingTurnInstruction {
+  color: #1c1917 !important;
+}
+[data-theme="light"] #screen-routing #routingTurnDistance,
+body[data-theme="light"] #screen-routing #routingTurnDistance {
+  color: #57534e !important;
+}
+[data-theme="light"] #screen-routing #routingMinibusNotice,
+body[data-theme="light"] #screen-routing #routingMinibusNotice {
+  background: rgba(254, 243, 199, 0.95) !important;
+  color: #92400e !important;
+}
+[data-theme="light"] #boundaryPointsListContainer,
+body[data-theme="light"] #boundaryPointsListContainer,
+[data-theme="light"] #boxAreaResult,
+body[data-theme="light"] #boxAreaResult {
+  background: #f5f5f4 !important;
+  color: #1c1917 !important;
+  border-color: rgba(28, 25, 23, 0.18) !important;
+}
+[data-theme="light"] #screen-camera .btn-corner-opt:not(.active),
+body[data-theme="light"] #screen-camera .btn-corner-opt:not(.active) {
+  background: #f5f5f4 !important;
+  color: #292524 !important;
+  border-color: rgba(28, 25, 23, 0.18) !important;
+}
+#modalCadAreaTable td[style*="monospace"],
+#modalCadAreaTable .cad-coord-table td:nth-child(4),
+#modalCadAreaTable .cad-coord-table td:nth-child(5) {
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="light"] #modalCadAreaTable #cadTableBodyVertices td:nth-child(6),
+body[data-theme="light"] #modalCadAreaTable #cadTableBodyVertices td:nth-child(6) {
+  color: #15803d !important;
+}
+
+/* ==========================================================================
+   FIELD MODE (CHẾ ĐỘ THỰC ĐỊA) HIGH-CONTRAST ISOLATION
+   Đảm bảo khi chuyển Dark -> Light -> Thực địa (data-theme="light" + body.field-mode),
+   các quy tắc Light Theme không ghi đè nền đen chữ trắng/vàng siêu tương phản.
+   ========================================================================== */
+body.field-mode,
+body[data-theme="light"].field-mode {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode header.app-header,
+body[data-theme="light"].field-mode header.app-header.mac-top-bar {
+  background: #000000 !important;
+  border-bottom: 1.5px solid #aaaaaa !important;
+  box-shadow: none !important;
+}
+body[data-theme="light"].field-mode header.app-header .app-title {
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode header.app-header .header-geodetic-pill {
+  background: #161616 !important;
+  border: 1px solid #aaaaaa !important;
+  color: #ffdf00 !important;
+}
+body[data-theme="light"].field-mode header.app-header #btnHeaderMenu,
+body[data-theme="light"].field-mode header.app-header .mac-ctrl-btn {
+  background: #161616 !important;
+  border: 1px solid #aaaaaa !important;
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode header.app-header .mac-control-center-capsule {
+  background: #0a0a0a !important;
+  border: 1px solid #888888 !important;
+}
+body[data-theme="light"].field-mode nav#mobileBottomNav.mobile-bottom-nav,
+body[data-theme="light"].field-mode nav#mobileBottomNav.mobile-bottom-nav.mac-floating-dock {
+  background: #000000 !important;
+  border: 1.5px solid #cccccc !important;
+  box-shadow: none !important;
+}
+body[data-theme="light"].field-mode nav#mobileBottomNav .bottom-nav-item {
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode nav#mobileBottomNav .bottom-nav-item.active {
+  background: #282500 !important;
+  color: #ffdf00 !important;
+}
+body[data-theme="light"].field-mode #fieldWorkspace {
+  --fw-surface: #000000;
+  --fw-input: #101010;
+  --fw-ink: #ffffff;
+  --fw-muted: #eeeeee;
+  --fw-line: #cccccc;
+  --fw-accent: #ffdf00;
+  --fw-on-accent: #000000;
+  --fw-error: #ffb4ab;
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode #fwQuick,
+body[data-theme="light"].field-mode #fwWelcome,
+body[data-theme="light"].field-mode #fwResult {
+  background: #0c0c0c !important;
+  border: 1.5px solid #ffdf00 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+body[data-theme="light"].field-mode #fwQuick :is(h1, h2, label, span, p, div) {
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode #fwQuick #fwKtt {
+  color: #ffdf00 !important;
+}
+body[data-theme="light"].field-mode .dashboard-modern-hub .big-action-tile,
+body.field-mode .dashboard-modern-hub .big-action-tile {
+  background: #141414 !important;
+  border: 1.5px solid #cccccc !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+body[data-theme="light"].field-mode .dashboard-modern-hub .big-action-tile:hover,
+body.field-mode .dashboard-modern-hub .big-action-tile:hover {
+  background: #222200 !important;
+  border-color: #ffdf00 !important;
+}
+body[data-theme="light"].field-mode .big-tile-title,
+body.field-mode .big-tile-title {
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode .tile-metric-pill,
+body.field-mode .tile-metric-pill {
+  background: #262200 !important;
+  border: 1px solid #ffdf00 !important;
+  color: #ffdf00 !important;
+}
+body[data-theme="light"].field-mode .btn-customize-pins,
+body[data-theme="light"].field-mode .quick-chip-pill,
+body.field-mode .btn-customize-pins,
+body.field-mode .quick-chip-pill {
+  background: #161616 !important;
+  border: 1.5px solid #ffdf00 !important;
+  color: #ffdf00 !important;
+}
+body[data-theme="light"].field-mode .quick-chip-pill .chip-label,
+body[data-theme="light"].field-mode .quick-chip-pill .chip-arrow {
+  color: #ffdf00 !important;
+}
+body[data-theme="light"].field-mode #navTreeDrawer,
+body[data-theme="light"].field-mode .nav-tree-drawer.mac-settings-sidebar {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border-color: #aaaaaa !important;
+}
+body[data-theme="light"].field-mode #navTreeDrawer :is(.fi-title, .fi-row-t, .fi-group-h, .drawer-header-title) {
+  color: #ffffff !important;
+}
+body[data-theme="light"].field-mode #navTreeDrawer .fi-row-s {
+  color: #e5e5e5 !important;
+}
+body[data-theme="light"].field-mode #navTreeDrawer input {
+  background: #141414 !important;
+  color: #ffffff !important;
+  border-color: #cccccc !important;
+}
+body[data-theme="light"].field-mode :is(.modal-box, .mac-window-box) {
+  background: #0e0e0e !important;
+  color: #ffffff !important;
+  border: 1.5px solid #ffdf00 !important;
+}
+
+/* ==========================================================================
+   CAMERA WATERMARK STAMP CUSTOMIZER (Sửa / Ẩn hiện / Thêm trường đóng dấu)
+   ========================================================================== */
+.cam-stamp-wrap {
+  margin-top: 10px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.25);
+  padding-top: 10px;
+}
+.cam-stamp-toggle-btn {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cam-stamp-toggle-btn:hover {
+  border-color: rgba(56, 189, 248, 0.7);
+  background: rgba(15, 23, 42, 0.78);
+}
+.cam-stamp-toggle-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cam-stamp-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+}
+.cam-stamp-badge.is-custom {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+}
+.cam-stamp-panel {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.45);
+}
+.cam-stamp-preview-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #0b1220;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  padding: 4px;
+}
+.cam-stamp-preview-wrap canvas {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  height: auto;
+  border-radius: 6px;
+}
+.cam-stamp-hint {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+.cam-stamp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(28, 26, 24, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+.cam-stamp-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cam-stamp-lbl {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.cam-stamp-sub-lbl {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 3px;
+}
+.cam-stamp-chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+  cursor: pointer;
+}
+.cam-stamp-chk-sm {
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+.cam-stamp-chk input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+.cam-stamp-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.cam-stamp-input {
+  width: 100%;
+  min-height: 36px !important;
+  height: 36px;
+  padding: 4px 10px !important;
+  font-size: 13px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+}
+.cam-stamp-add-btn {
+  width: auto !important;
+  flex: 0 0 auto !important;
+  min-height: 30px !important;
+  height: 30px;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+.cam-stamp-mini-btn {
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cam-stamp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cam-stamp-preset-chip {
+  border: 1px solid rgba(147, 204, 156, 0.35);
+  background: rgba(63, 138, 90, 0.14);
+  color: #bbf7d0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cam-stamp-preset-chip:hover {
+  background: rgba(63, 138, 90, 0.28);
+}
+.cam-stamp-custom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cam-stamp-empty-cf {
+  font-size: 11.5px;
+  color: #94a3b8;
+  padding: 6px 4px;
+}
+.cam-stamp-custom-item {
+  display: grid;
+  grid-template-columns: auto minmax(90px, 0.9fr) minmax(110px, 1.4fr) 86px 34px;
+  gap: 6px;
+  align-items: center;
+}
+.cam-stamp-color-sel {
+  min-height: 36px !important;
+  height: 36px;
+  padding: 2px 6px !important;
+  font-size: 12px !important;
+}
+.cam-stamp-del-btn {
+  min-height: 36px !important;
+  height: 36px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cam-stamp-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cam-stamp-footer > button {
+  flex: 1 1 150px;
+  min-height: 36px;
+}
+@media (max-width: 600px) {
+  .cam-stamp-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cam-stamp-custom-item {
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .cam-stamp-custom-item .cam-stamp-color-sel {
+    grid-column: 2;
+  }
+  .cam-stamp-custom-item .cam-stamp-del-btn {
+    grid-column: 3;
+    justify-self: end;
+    width: 44px;
+  }
+}
+
+/* Light Theme */
+[data-theme="light"] .cam-stamp-toggle-btn,
+body[data-theme="light"] .cam-stamp-toggle-btn {
+  background: #f5f5f4 !important;
+  border-color: rgba(2, 132, 199, 0.35) !important;
+  color: #1c1917 !important;
+}
+[data-theme="light"] .cam-stamp-badge,
+body[data-theme="light"] .cam-stamp-badge {
+  background: #e7e5e4 !important;
+  color: #44403c !important;
+}
+[data-theme="light"] .cam-stamp-badge.is-custom,
+body[data-theme="light"] .cam-stamp-badge.is-custom {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #d97706 !important;
+}
+[data-theme="light"] .cam-stamp-panel,
+body[data-theme="light"] .cam-stamp-panel {
+  background: #faf9f6 !important;
+  border-color: rgba(28, 25, 23, 0.14) !important;
+}
+[data-theme="light"] .cam-stamp-section,
+body[data-theme="light"] .cam-stamp-section {
+  background: #ffffff !important;
+  border-color: rgba(28, 25, 23, 0.12) !important;
+}
+[data-theme="light"] :is(.cam-stamp-lbl, .cam-stamp-chk, .cam-stamp-sub-lbl),
+body[data-theme="light"] :is(.cam-stamp-lbl, .cam-stamp-chk, .cam-stamp-sub-lbl) {
+  color: #1c1917 !important;
+}
+[data-theme="light"] :is(.cam-stamp-hint, .cam-stamp-empty-cf),
+body[data-theme="light"] :is(.cam-stamp-hint, .cam-stamp-empty-cf) {
+  color: #57534e !important;
+}
+[data-theme="light"] .cam-stamp-mini-btn,
+body[data-theme="light"] .cam-stamp-mini-btn {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #7dd3fc !important;
+}
+[data-theme="light"] .cam-stamp-preset-chip,
+body[data-theme="light"] .cam-stamp-preset-chip {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border-color: #86efac !important;
+}
+
+/* Field Mode */
+body.field-mode .cam-stamp-toggle-btn,
+body[data-theme="light"].field-mode .cam-stamp-toggle-btn {
+  background: #141414 !important;
+  border: 1.5px solid #ffdf00 !important;
+  color: #ffdf00 !important;
+}
+body.field-mode .cam-stamp-badge,
+body[data-theme="light"].field-mode .cam-stamp-badge {
+  background: #1c1c1c !important;
+  color: #ffdf00 !important;
+  border: 1px solid #ffdf00 !important;
+}
+body.field-mode .cam-stamp-panel,
+body[data-theme="light"].field-mode .cam-stamp-panel,
+body.field-mode .cam-stamp-section,
+body[data-theme="light"].field-mode .cam-stamp-section {
+  background: #0a0a0a !important;
+  border-color: #aaaaaa !important;
+  color: #ffffff !important;
+}
+body.field-mode :is(.cam-stamp-lbl, .cam-stamp-chk, .cam-stamp-sub-lbl, .cam-stamp-hint, .cam-stamp-empty-cf),
+body[data-theme="light"].field-mode :is(.cam-stamp-lbl, .cam-stamp-chk, .cam-stamp-sub-lbl, .cam-stamp-hint, .cam-stamp-empty-cf) {
+  color: #ffffff !important;
+}
+body.field-mode .cam-stamp-input,
+body[data-theme="light"].field-mode .cam-stamp-input,
+body.field-mode .cam-stamp-color-sel,
+body[data-theme="light"].field-mode .cam-stamp-color-sel {
+  background: #141414 !important;
+  color: #ffffff !important;
+  border-color: #ffdf00 !important;
+}
+body.field-mode .cam-stamp-preset-chip,
+body[data-theme="light"].field-mode .cam-stamp-preset-chip,
+body.field-mode .cam-stamp-mini-btn,
+body[data-theme="light"].field-mode .cam-stamp-mini-btn {
+  background: #141414 !important;
+  color: #ffdf00 !important;
+  border-color: #ffdf00 !important;
+}
+
+
+

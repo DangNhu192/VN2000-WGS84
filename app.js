@@ -790,7 +790,7 @@ function planExportBasemap(kind, frame, pxPerMeter, toLatLng, maxTiles = EXPORT_
 function wrapTileProxyUrl(url) {
     if (!url || typeof url !== 'string') return url;
     if (url.startsWith('/api/tile-proxy?') || url.startsWith('/api/proxy-tile?')) return url;
-    if (/vcdn\.cloud|cmctelecom\.vn|fptcloud\.com|digitaloceanspaces\.com/i.test(url)) {
+    if (/vcdn\.cloud|cmctelecom\.vn|cmccloud\.com\.vn|fptcloud\.com|digitaloceanspaces\.com|guland\.vn/i.test(url)) {
         if (typeof window !== 'undefined' && window.location && /^https?:/i.test(window.location.protocol)) {
             return `/api/tile-proxy?url=${encodeURIComponent(url)}`;
         }
@@ -884,6 +884,7 @@ function loadExportBasemap(plan, opts = {}) {
         img.crossOrigin = 'anonymous';
         img.onload = () => finish(true);
         let triedBust = false;
+        let triedProxy = false;
         img.onerror = () => {
             if (!triedFallback && t.fallbackUrl) {
                 triedFallback = true;
@@ -899,6 +900,14 @@ function loadExportBasemap(plan, opts = {}) {
                 triedBust = true;
                 const base = img.src || wrapTileProxyUrl(t.url);
                 img.src = base + (base.includes('?') ? '&' : '?') + '_vn2k=export';
+                return;
+            }
+            // Nếu tải trực tiếp bị chặn CORS (vd. Google, OpenTopoMap), chuyển qua /api/tile-proxy
+            if (!triedProxy && typeof window !== 'undefined' && window.location && /^https?:/i.test(window.location.protocol)
+                && /^https?:\/\//i.test(t.url || '') && !String(t.url).startsWith('/api/tile-proxy')
+                && /(?:google\.com|googleapis\.com|opentopomap\.org|openstreetmap\.org|arcgisonline\.com|terrascope\.be|eox\.at)/i.test(t.url)) {
+                triedProxy = true;
+                img.src = `/api/tile-proxy?url=${encodeURIComponent(t.url)}`;
                 return;
             }
             finish(false);
@@ -1347,6 +1356,13 @@ const appNav = window.appNav = {
         if (AppState.isTreeDrawerOpen) {
             appNav.closeTreeMenu();
         }
+        // Cài đặt là cửa sổ hộp thoại hợp nhất: không ẩn màn hình hiện tại để tránh màn hình trắng
+        if (screenName === 'settings') {
+            if (typeof appModal !== 'undefined' && typeof appModal.openUnifiedSettings === 'function') {
+                appModal.openUnifiedSettings();
+            }
+            return;
+        }
         AppState.prevScreen = AppState.currentScreen;
         AppState.currentScreen = screenName;
 
@@ -1357,6 +1373,9 @@ const appNav = window.appNav = {
         });
         const mapView = document.getElementById('map-view-container');
         if (mapView) {
+            if (AppState.leafletMap && typeof AppState.leafletMap.stop === 'function') {
+                try { AppState.leafletMap.stop(); } catch (_) {}
+            }
             mapView.classList.remove('active');
             mapView.style.display = 'none';
         }
@@ -1467,12 +1486,20 @@ const appNav = window.appNav = {
             appNav.syncActiveMenuWithScreen(screenName);
         }
 
+        if (!targetScreen) {
+            targetScreen = document.getElementById('screen-menu');
+            AppState.currentScreen = 'menu';
+        }
         if (targetScreen) {
             targetScreen.classList.add('active');
             targetScreen.style.display = 'block';
             targetScreen.scrollTop = 0;
             // Ép browser kích hoạt reflow tức thì, loại bỏ triệt để độ trễ repaint của Chromium
             void targetScreen.offsetHeight;
+            if (screenName === 'routing' && typeof appRouting !== 'undefined' && appRouting.map && typeof appRouting.map.invalidateSize === 'function') {
+                appRouting.map.invalidateSize();
+                requestAnimationFrame(() => { if (appRouting.map) appRouting.map.invalidateSize(); });
+            }
         }
         this.syncBottomNav(screenName);
         if (typeof appGuide !== 'undefined' && appGuide.checkFirstTimeGuide) {
@@ -14474,8 +14501,322 @@ const appCamera = {
         }
     },
 
+    STAMP_CONFIG_KEY: 'vn2k_camera_stamp_config_v1',
+    stampConfig: null,
+    _lastUploadImage: null,
+    _lastUploadInfo: null,
+
+    getDefaultStampConfig() {
+        return {
+            headerTitle: '',
+            showMarkProject: true,
+            markName: '',
+            projectName: '',
+            showVn2000: true,
+            x: '',
+            y: '',
+            kttText: '',
+            showWgs84: true,
+            lat: '',
+            lng: '',
+            showFieldLine: true,
+            showAccuracy: true,
+            accuracy: '',
+            showHeading: false,
+            heading: '',
+            middleNote: '',
+            showTime: true,
+            timeText: '',
+            useFieldFormatOnUpload: false,
+            showAddress: true,
+            address: '',
+            customFields: []
+        };
+    },
+
+    getStampConfig() {
+        if (this.stampConfig) return this.stampConfig;
+        const def = this.getDefaultStampConfig();
+        try {
+            const raw = (typeof localStorage !== 'undefined') ? localStorage.getItem(this.STAMP_CONFIG_KEY) : null;
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') {
+                    const merged = Object.assign({}, def, parsed);
+                    merged.customFields = Array.isArray(parsed.customFields)
+                        ? parsed.customFields.filter(f => f && typeof f === 'object').map((f, idx) => ({
+                            id: String(f.id || ('cf_' + idx + '_' + Date.now().toString(36))),
+                            label: String(f.label || ''),
+                            value: String(f.value || ''),
+                            color: String(f.color || '#f1f5f9'),
+                            enabled: f.enabled !== false
+                        }))
+                        : [];
+                    this.stampConfig = merged;
+                    return this.stampConfig;
+                }
+            }
+        } catch (e) {}
+        this.stampConfig = def;
+        return this.stampConfig;
+    },
+
+    saveStampConfig() {
+        try {
+            if (typeof localStorage !== 'undefined' && this.stampConfig) {
+                localStorage.setItem(this.STAMP_CONFIG_KEY, JSON.stringify(this.stampConfig));
+            }
+        } catch (e) {}
+        this.updateStampStatusBadge();
+    },
+
+    countActiveStampCustomizations(cfg) {
+        const c = cfg || this.getStampConfig();
+        const def = this.getDefaultStampConfig();
+        let n = 0;
+        const textKeys = ['headerTitle', 'markName', 'projectName', 'x', 'y', 'kttText', 'lat', 'lng', 'accuracy', 'heading', 'middleNote', 'timeText', 'address'];
+        textKeys.forEach(k => { if (String(c[k] || '').trim()) n++; });
+        const boolKeys = ['showMarkProject', 'showVn2000', 'showWgs84', 'showFieldLine', 'showAccuracy', 'showHeading', 'showTime', 'useFieldFormatOnUpload', 'showAddress'];
+        boolKeys.forEach(k => { if (Boolean(c[k]) !== Boolean(def[k])) n++; });
+        (c.customFields || []).forEach(f => {
+            if (f && f.enabled !== false && (String(f.label || '').trim() || String(f.value || '').trim())) n++;
+        });
+        return n;
+    },
+
+    updateStampStatusBadge() {
+        const badge = document.getElementById('badgeCamStampStatus');
+        if (!badge) return;
+        const count = this.countActiveStampCustomizations();
+        badge.textContent = count > 0 ? `Đã tùy chỉnh (${count})` : 'Tự động';
+        badge.classList.toggle('is-custom', count > 0);
+    },
+
+    toggleStampCustomizer(forceOpen) {
+        const panel = document.getElementById('panelCameraStampCustomizer');
+        const btn = document.getElementById('btnToggleCamStampEditor');
+        const chev = document.getElementById('iconCamStampChevron');
+        if (!panel) return;
+        const open = (typeof forceOpen === 'boolean') ? forceOpen : (panel.style.display === 'none');
+        panel.style.display = open ? 'flex' : 'none';
+        if (btn) btn.setAttribute('aria-expanded', String(open));
+        if (chev) chev.textContent = open ? '▴' : '▾';
+        if (open) {
+            this.syncStampEditorUI();
+            this.renderStampSamplePreview();
+        }
+    },
+
+    syncStampEditorUI() {
+        const cfg = this.getStampConfig();
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && el.value !== v) el.value = v || ''; };
+        const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+        setVal('txtCamStampHeader', cfg.headerTitle);
+        setChk('chkCamStampMarkProj', cfg.showMarkProject !== false);
+        setVal('txtCamStampMark', cfg.markName);
+        setVal('txtCamStampProject', cfg.projectName);
+        setChk('chkCamStampVn2000', cfg.showVn2000 !== false);
+        setVal('txtCamStampX', cfg.x);
+        setVal('txtCamStampY', cfg.y);
+        setVal('txtCamStampKtt', cfg.kttText);
+        setChk('chkCamStampWgs84', cfg.showWgs84 !== false);
+        setVal('txtCamStampLat', cfg.lat);
+        setVal('txtCamStampLng', cfg.lng);
+        setChk('chkCamStampFieldLine', cfg.showFieldLine !== false);
+        setChk('chkCamStampAcc', cfg.showAccuracy !== false);
+        setVal('txtCamStampAcc', cfg.accuracy);
+        setChk('chkCamStampHeading', !!cfg.showHeading);
+        setVal('txtCamStampHeading', cfg.heading);
+        setVal('txtCamStampMiddle', cfg.middleNote);
+        setChk('chkCamStampTime', cfg.showTime !== false);
+        setVal('txtCamStampTime', cfg.timeText);
+        setChk('chkCamStampUseFieldOnUpload', !!cfg.useFieldFormatOnUpload);
+        setChk('chkCamStampAddress', cfg.showAddress !== false);
+        setVal('txtCamStampAddress', cfg.address);
+        this.renderCustomStampFieldsList();
+        this.updateStampStatusBadge();
+    },
+
+    onStampFieldInput() {
+        const cfg = this.getStampConfig();
+        const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+        const getChk = (id, fallback) => { const el = document.getElementById(id); return el ? !!el.checked : fallback; };
+        cfg.headerTitle = getVal('txtCamStampHeader');
+        cfg.showMarkProject = getChk('chkCamStampMarkProj', true);
+        cfg.markName = getVal('txtCamStampMark');
+        cfg.projectName = getVal('txtCamStampProject');
+        cfg.showVn2000 = getChk('chkCamStampVn2000', true);
+        cfg.x = getVal('txtCamStampX');
+        cfg.y = getVal('txtCamStampY');
+        cfg.kttText = getVal('txtCamStampKtt');
+        cfg.showWgs84 = getChk('chkCamStampWgs84', true);
+        cfg.lat = getVal('txtCamStampLat');
+        cfg.lng = getVal('txtCamStampLng');
+        cfg.showFieldLine = getChk('chkCamStampFieldLine', true);
+        cfg.showAccuracy = getChk('chkCamStampAcc', true);
+        cfg.accuracy = getVal('txtCamStampAcc');
+        cfg.showHeading = getChk('chkCamStampHeading', false);
+        cfg.heading = getVal('txtCamStampHeading');
+        cfg.middleNote = getVal('txtCamStampMiddle');
+        cfg.showTime = getChk('chkCamStampTime', true);
+        cfg.timeText = getVal('txtCamStampTime');
+        cfg.useFieldFormatOnUpload = getChk('chkCamStampUseFieldOnUpload', false);
+        cfg.showAddress = getChk('chkCamStampAddress', true);
+        cfg.address = getVal('txtCamStampAddress');
+        this.saveStampConfig();
+        this.renderStampSamplePreview();
+        this.reapplyWatermarkOnLastImage();
+    },
+
+    addCustomStampField(label = '', value = '', color = '#f1f5f9') {
+        const cfg = this.getStampConfig();
+        const id = 'cf_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+        cfg.customFields.push({ id, label: String(label || ''), value: String(value || ''), color: color || '#f1f5f9', enabled: true });
+        this.saveStampConfig();
+        this.renderCustomStampFieldsList();
+        this.renderStampSamplePreview();
+        this.reapplyWatermarkOnLastImage();
+        setTimeout(() => {
+            const inp = document.querySelector(`[data-cam-cf-id="${id}"] .cam-cf-val`);
+            const lblInp = document.querySelector(`[data-cam-cf-id="${id}"] .cam-cf-lbl`);
+            if (label && inp) inp.focus();
+            else if (lblInp) lblInp.focus();
+        }, 30);
+    },
+
+    updateCustomStampField(id, prop, val) {
+        const cfg = this.getStampConfig();
+        const item = (cfg.customFields || []).find(f => f.id === id);
+        if (!item) return;
+        item[prop] = prop === 'enabled' ? !!val : String(val || '');
+        this.saveStampConfig();
+        this.renderStampSamplePreview();
+        this.reapplyWatermarkOnLastImage();
+    },
+
+    removeCustomStampField(id) {
+        const cfg = this.getStampConfig();
+        cfg.customFields = (cfg.customFields || []).filter(f => f.id !== id);
+        this.saveStampConfig();
+        this.renderCustomStampFieldsList();
+        this.renderStampSamplePreview();
+        this.reapplyWatermarkOnLastImage();
+    },
+
+    renderCustomStampFieldsList() {
+        const box = document.getElementById('cameraStampCustomFieldsList');
+        if (!box) return;
+        const list = this.getStampConfig().customFields || [];
+        if (!list.length) {
+            box.innerHTML = '<div class="cam-stamp-empty-cf">Chưa có dòng thêm mới. Bấm <b>+ Thêm trường</b> hoặc chọn mẫu nhanh ở trên.</div>';
+            return;
+        }
+        const colors = [
+            ['#f1f5f9', 'Trắng'],
+            ['#fde047', 'Vàng'],
+            ['#34d399', 'Xanh ngọc'],
+            ['#fbbf24', 'Cam vàng'],
+            ['#38bdf8', 'Xanh dương']
+        ];
+        box.innerHTML = list.map(f => {
+            const safeId = escapeHtml(f.id);
+            const opts = colors.map(([c, name]) => `<option value="${c}" ${f.color === c ? 'selected' : ''}>${name}</option>`).join('');
+            return `
+              <div class="cam-stamp-custom-item" data-cam-cf-id="${safeId}">
+                <input type="checkbox" ${f.enabled !== false ? 'checked' : ''} aria-label="Bật tắt dòng thông tin" onchange="appCamera.updateCustomStampField('${safeId}', 'enabled', this.checked)">
+                <input type="text" class="app-input cam-stamp-input cam-cf-lbl" value="${escapeHtml(f.label)}" placeholder="Tên trường (vd: HẠNG MỤC)" oninput="appCamera.updateCustomStampField('${safeId}', 'label', this.value)">
+                <input type="text" class="app-input cam-stamp-input cam-cf-val" value="${escapeHtml(f.value)}" placeholder="Nội dung tự nhập..." oninput="appCamera.updateCustomStampField('${safeId}', 'value', this.value)">
+                <select class="app-select cam-stamp-color-sel" aria-label="Màu chữ" onchange="appCamera.updateCustomStampField('${safeId}', 'color', this.value)">${opts}</select>
+                <button type="button" class="btn-sm btn-red cam-stamp-del-btn" title="Xóa trường này" onclick="appCamera.removeCustomStampField('${safeId}')">🗑️</button>
+              </div>`;
+        }).join('');
+    },
+
+    fillStampCurrentTime() {
+        const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
+        const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        const el = document.getElementById('txtCamStampTime');
+        if (el) el.value = dateStr;
+        this.onStampFieldInput();
+    },
+
+    fillStampFromCurrent() {
+        const prev = this.stampConfig;
+        this.stampConfig = this.getDefaultStampConfig();
+        const auto = this.getWatermarkData({ postStamp: false });
+        const cfg = Object.assign({}, prev || this.getDefaultStampConfig());
+        cfg.headerTitle = cfg.headerTitle || "HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG";
+        cfg.markName = auto.markName;
+        cfg.projectName = auto.projName;
+        cfg.x = auto.xStr !== '--' ? auto.xStr : '';
+        cfg.y = auto.yStr !== '--' ? auto.yStr : '';
+        cfg.kttText = auto.kttText;
+        cfg.lat = auto.latStr !== '--' ? auto.latStr : '';
+        cfg.lng = auto.lngStr !== '--' ? auto.lngStr : '';
+        cfg.accuracy = auto.gpsAcc;
+        cfg.heading = `${auto.compassAz}°`;
+        cfg.timeText = auto.dateStr;
+        if (auto.address) cfg.address = auto.address;
+        this.stampConfig = cfg;
+        this.saveStampConfig();
+        this.syncStampEditorUI();
+        this.renderStampSamplePreview();
+        this.reapplyWatermarkOnLastImage();
+        showToast("📋 Đã nạp toàn bộ thông tin mốc hiện tại vào các ô tùy chỉnh!");
+    },
+
+    resetStampConfig() {
+        this.stampConfig = this.getDefaultStampConfig();
+        this.saveStampConfig();
+        this.syncStampEditorUI();
+        this.renderStampSamplePreview();
+        this.reapplyWatermarkOnLastImage();
+        showToast("↺ Đã khôi phục thông tin đóng dấu về mặc định tự động!");
+    },
+
+    renderStampSamplePreview() {
+        const canvas = document.getElementById('cameraStampPreviewCanvas');
+        if (!canvas) return;
+        const opts = this.currentTab === 'upload' ? { postStamp: true, captureDate: (this._lastUploadInfo && this._lastUploadInfo.captureDate) || null } : {};
+        const data = this.getWatermarkData(opts);
+        const refW = 1000;
+        const lineCount = Math.max(1, (data.lines || []).length);
+        const refH = Math.max(220, 90 + lineCount * 24);
+        const tmp = document.createElement('canvas');
+        tmp.width = refW;
+        tmp.height = refH;
+        const tctx = tmp.getContext('2d');
+        const box = this.drawWatermark(tctx, refW, refH, 'top-left', opts) || { cardW: 540, cardH: 130, padding: 12 };
+        const cropW = Math.min(refW, Math.ceil(box.cardW + (box.padding || 12) * 2));
+        const cropH = Math.min(refH, Math.ceil(box.cardH + (box.padding || 12) * 2));
+        canvas.width = cropW;
+        canvas.height = cropH;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, cropW, cropH);
+        ctx.fillStyle = '#0b1220';
+        ctx.fillRect(0, 0, cropW, cropH);
+        ctx.drawImage(tmp, 0, 0, cropW, cropH, 0, 0, cropW, cropH);
+    },
+
+    reapplyWatermarkOnLastImage() {
+        const resultCard = document.getElementById('cardCameraResult');
+        const canvas = document.getElementById('cameraWatermarkCanvas');
+        if (!this._lastUploadImage || !canvas || !resultCard || resultCard.style.display === 'none') return;
+        const img = this._lastUploadImage;
+        const info = this._lastUploadInfo || {};
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const stampOpts = { postStamp: true, captureDate: info.captureDate || null };
+        this.drawWatermark(ctx, canvas.width, canvas.height, this.watermarkCorner, stampOpts);
+        const qual = (typeof window !== 'undefined' && window.PixOptimizer) ? window.PixOptimizer.getQualityFloat() : 0.85;
+        this.renderedDataUrl = canvas.toDataURL('image/jpeg', qual);
+    },
+
     init() {
+        appCamera.getStampConfig();
         appCamera.refreshPointsList();
+        appCamera.syncStampEditorUI();
         appCamera.loadGalleryCount();
         if (AppState.currentScreen === 'camera') {
             appCamera.switchTab('live');
@@ -14503,6 +14844,8 @@ const appCamera = {
         if (tab === 'gallery') {
             appCamera.loadGalleryFromDb();
         }
+        const panel = document.getElementById('panelCameraStampCustomizer');
+        if (panel && panel.style.display !== 'none') appCamera.renderStampSamplePreview();
     },
 
     // Chọn vị trí góc đóng dấu
@@ -14519,6 +14862,7 @@ const appCamera = {
             const btn = document.getElementById(mapIds[c]);
             if (btn) btn.classList.toggle('active', c === corner);
         });
+        this.reapplyWatermarkOnLastImage();
         showToast(`📍 Vị trí đóng dấu: ${corner === 'bottom-left' ? 'Dưới - Trái' : (corner === 'bottom-right' ? 'Dưới - Phải' : (corner === 'top-left' ? 'Trên - Trái' : 'Trên - Phải'))}`);
     },
 
@@ -14586,14 +14930,15 @@ const appCamera = {
                 if (gpsEl) gpsEl.innerText = `Sai số: ${acc} | Hướng: ${Math.round(appStakeout.compassHeading || 0)}°`;
             }
         }
+        const panel = document.getElementById('panelCameraStampCustomizer');
+        if (panel && panel.style.display !== 'none') appCamera.renderStampSamplePreview();
+        appCamera.reapplyWatermarkOnLastImage();
     },
 
-    // Trích xuất dữ liệu thẻ đóng dấu
-    // Tab "Đóng dấu" (ảnh chọn từ máy): ảnh không chụp tại chỗ nên sai số GPS hiện thời của thiết bị không liên quan
-    // tới ảnh; dùng mức sai số danh định ngẫu nhiên ±2–4 m, tạo một lần cho mỗi ảnh. Tab "Chụp ảnh"/video giữ sai số thật.
-
+    // Trích xuất dữ liệu thẻ đóng dấu (hỗ trợ tự nhập / ẩn hiện / thêm trường tùy biến)
     getWatermarkData(opts = {}) {
-        const projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án";
+        const cfg = this.getStampConfig();
+        let projName = AppState.currentProject ? AppState.currentProject.replace(/\.[^/.]+$/, "") : "Dự án";
         let markName = "Vị trí thực địa";
         let xStr = "--", yStr = "--", latStr = "--", lngStr = "--";
 
@@ -14614,48 +14959,114 @@ const appCamera = {
             } catch(e) {}
         }
 
+        // Các trường người dùng tự nhập ghi đè lên giá trị tự động (để trống = tự động)
+        if (cfg.markName && cfg.markName.trim()) markName = cfg.markName.trim();
+        if (cfg.projectName && cfg.projectName.trim()) projName = cfg.projectName.trim();
+        if (cfg.x && cfg.x.trim()) xStr = cfg.x.trim();
+        if (cfg.y && cfg.y.trim()) yStr = cfg.y.trim();
+        if (cfg.lat && cfg.lat.trim()) latStr = cfg.lat.trim();
+        if (cfg.lng && cfg.lng.trim()) lngStr = cfg.lng.trim();
+
         const now = typeof window.getAppEffectiveDate === 'function' ? window.getAppEffectiveDate() : new Date();
         const fmt = (d) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
-        const dateStr = fmt(now);
-        // Ảnh chọn từ máy (tab "Đóng dấu"): không có số đo GPS lúc chụp → ghi rõ "đóng dấu sau", giờ chụp lấy từ EXIF nếu có.
+        const autoDateStr = fmt(now);
+        const dateStr = (cfg.timeText && cfg.timeText.trim()) ? cfg.timeText.trim() : autoDateStr;
+        // Ảnh chọn từ máy (tab "Đóng dấu"): mặc định ghi rõ "đóng dấu sau", giờ chụp từ EXIF; người dùng có thể tự tùy chỉnh.
         const postStamp = !!opts.postStamp;
         const captureStr = (opts.captureDate instanceof Date && !isNaN(opts.captureDate)) ? fmt(opts.captureDate) : 'không rõ';
         const gpsAcc = postStamp ? 'không đo'
             : (opts.accuracyText || ((AppState.lastGps && AppState.lastGps.accuracy) ? `±${AppState.lastGps.accuracy.toFixed(1)}m` : '±--m'));
+        const finalAcc = (cfg.accuracy && cfg.accuracy.trim()) ? cfg.accuracy.trim() : gpsAcc;
         const compassAz = Math.round(appStakeout.compassHeading || 0);
+        const finalHeading = (cfg.heading && cfg.heading.trim()) ? cfg.heading.trim() : `${compassAz}°`;
 
         const minVal = typeof AppState.kttMin === 'number' ? AppState.kttMin : 0;
+        const autoKtt = `KTT ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}' Múi ${AppState.muiVal || 3}°`;
+        const kttText = (cfg.kttText && cfg.kttText.trim()) ? cfg.kttText.trim() : autoKtt;
+
         // Địa chỉ hành chính sau sáp nhập (01/07/2025), tra ngoại tuyến theo ranh giới 3.321 xã/phường.
-        const address = (typeof VnAdmin2025 !== 'undefined')
+        const autoAddress = (typeof VnAdmin2025 !== 'undefined')
             ? VnAdmin2025.cachedAddress(parseFloat(latStr), parseFloat(lngStr)) : '';
-        const lines = [
-            `📍 MỐC: ${markName} | DỰ ÁN: ${projName}`,
-            `• VN-2000: X = ${xStr} m | Y = ${yStr} m (KTT ${AppState.kttDeg || 105}°${String(minVal).padStart(2,'0')}' Múi ${AppState.muiVal || 3}°)`,
-            `• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`,
-            postStamp
-                ? `• ĐÓNG DẤU SAU (ảnh chọn từ máy): Chụp lúc ${captureStr} | Đóng dấu ${dateStr} | Sai số: ${gpsAcc}`
-                : `• THỰC ĐỊA: Sai số: ${gpsAcc} | Hướng: ${compassAz}° | Thời gian: ${dateStr}`
-        ];
+        const address = cfg.showAddress !== false
+            ? ((cfg.address && cfg.address.trim()) ? cfg.address.trim() : autoAddress)
+            : '';
+
+        const hasFieldOverrides = !!(
+            cfg.useFieldFormatOnUpload ||
+            (cfg.accuracy && cfg.accuracy.trim()) ||
+            (cfg.timeText && cfg.timeText.trim()) ||
+            (cfg.middleNote && cfg.middleNote.trim()) ||
+            (cfg.heading && cfg.heading.trim())
+        );
+
+        const lines = [];
+        const lineColors = [];
+        if (cfg.showMarkProject !== false) {
+            lines.push(`📍 MỐC: ${markName} | DỰ ÁN: ${projName}`);
+            lineColors.push('#fde047');
+        }
+        if (cfg.showVn2000 !== false) {
+            lines.push(`• VN-2000: X = ${xStr} m | Y = ${yStr} m (${kttText})`);
+            lineColors.push('#34d399');
+        }
+        if (cfg.showWgs84 !== false) {
+            lines.push(`• WGS-84:  Lat = ${latStr}° | Lng = ${lngStr}°`);
+            lineColors.push('#f1f5f9');
+        }
+        if (cfg.showFieldLine !== false) {
+            if (postStamp && !hasFieldOverrides) {
+                lines.push(`• ĐÓNG DẤU SAU (ảnh chọn từ máy): Chụp lúc ${captureStr} | Đóng dấu ${dateStr} | Sai số: ${gpsAcc}`);
+                lineColors.push('#f1f5f9');
+            } else {
+                const fieldParts = [];
+                if (cfg.showAccuracy !== false) fieldParts.push(`Sai số: ${finalAcc}`);
+                if (cfg.showHeading) fieldParts.push(`Hướng: ${finalHeading}`);
+                if (cfg.middleNote && cfg.middleNote.trim()) fieldParts.push(cfg.middleNote.trim());
+                if (cfg.showTime !== false) fieldParts.push(`Thời gian: ${dateStr}`);
+                if (fieldParts.length) {
+                    lines.push(`• THỰC ĐỊA: ${fieldParts.join(' | ')}`);
+                    lineColors.push('#f1f5f9');
+                }
+            }
+        }
         if (address) lines.push(`• ĐỊA CHỈ: ${address}`);
+        if (address) lineColors.push('#fbbf24');
+
+        // Các dòng thông tin thêm mới do người dùng tự nhập
+        (cfg.customFields || []).forEach(f => {
+            if (!f || f.enabled === false) return;
+            const lbl = String(f.label || '').trim();
+            const val = String(f.value || '').trim();
+            if (!lbl && !val) return;
+            lines.push(lbl && val ? `• ${lbl}: ${val}` : `• ${lbl || val}`);
+            lineColors.push(f.color || '#f1f5f9');
+        });
+
+        const headerTitle = (cfg.headerTitle && cfg.headerTitle.trim())
+            ? cfg.headerTitle.trim()
+            : ((postStamp && !hasFieldOverrides) ? "HỆ VN-2000 | ẢNH ĐÓNG DẤU SAU" : "HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG");
 
         return {
+            headerTitle,
             markName,
             projName,
             xStr,
             yStr,
+            kttText,
             latStr,
             lngStr,
             dateStr,
-            gpsAcc,
+            gpsAcc: finalAcc,
             compassAz,
             address,
-            postStamp,
+            postStamp: postStamp && !hasFieldOverrides,
             captureStr,
-            lines
+            lines,
+            lineColors
         };
     },
 
-    // Hàm vẽ thẻ watermark chung (Dùng cho cả Viewfinder realtime, ảnh chụp và video)
+    // Hàm vẽ thẻ watermark chung (Dùng cho cả Viewfinder realtime, ảnh chụp, video và khung xem trước)
     drawWatermark(ctx, canvasW, canvasH, corner = 'bottom-left', opts = {}) {
         const data = this.getWatermarkData(opts);
         // Phông không chân: phông monospace dự phòng trên Android hiển thị sai dấu tiếng Việt chồng (ồ, ố...).
@@ -14666,10 +15077,16 @@ const appCamera = {
         const fontSizeBody = Math.round(11.5 * scale);
         const lineHeight = Math.round(17 * scale);
 
+        const defaultHeaderTitle = data.postStamp ? "HỆ VN-2000 | ẢNH ĐÓNG DẤU SAU" : "HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG";
+        const headerText = (data.headerTitle && data.headerTitle.trim()) ? data.headerTitle.trim() : defaultHeaderTitle;
+
         // Khung rộng vừa dòng dài nhất (tối thiểu 520, tối đa bằng ảnh) để không cắt mất thời gian / địa chỉ.
         ctx.save();
         ctx.font = STAMP_BODY_FONT(fontSizeBody);
-        const widest = Math.max(...data.lines.map(l => ctx.measureText(l).width));
+        const lineWidths = data.lines.length ? data.lines.map(l => ctx.measureText(l).width) : [0];
+        ctx.font = `bold ${fontSizeHeader}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+        const headerW = ctx.measureText(headerText).width;
+        const widest = Math.max(headerW, ...lineWidths);
         ctx.restore();
         const cardW = Math.min(canvasW - padding * 2, Math.max(Math.round(520 * scale), Math.ceil(widest + padding * 2)));
         const cardH = padding * 2 + fontSizeHeader + (data.lines.length * lineHeight) + Math.round(6 * scale);
@@ -14708,10 +15125,18 @@ const appCamera = {
         ctx.fill();
         ctx.stroke();
 
+        const maxTextW = cardW - padding * 2;
+        const fit = (text) => {
+            if (ctx.measureText(text).width <= maxTextW) return text;
+            let t = text;
+            while (t.length > 4 && ctx.measureText(t + '…').width > maxTextW) t = t.slice(0, -1);
+            return t + '…';
+        };
+
         // Tiêu đề
         ctx.font = `bold ${fontSizeHeader}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         ctx.fillStyle = "#38bdf8";
-        ctx.fillText(data.postStamp ? "HỆ VN-2000 | ẢNH ĐÓNG DẤU SAU" : "HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG", cardX + padding, cardY + padding + fontSizeHeader * 0.85);
+        ctx.fillText(fit(headerText), cardX + padding, cardY + padding + fontSizeHeader * 0.85);
 
         // Vạch phân cách mạ vàng
         ctx.strokeStyle = "rgba(251, 191, 36, 0.65)";
@@ -14725,21 +15150,16 @@ const appCamera = {
         ctx.font = STAMP_BODY_FONT(fontSizeBody);
         let curY = cardY + padding + fontSizeHeader + Math.round(4 * scale) + lineHeight;
 
-        const maxTextW = cardW - padding * 2;
-        const fit = (text) => {
-            if (ctx.measureText(text).width <= maxTextW) return text;
-            let t = text;
-            while (t.length > 4 && ctx.measureText(t + '…').width > maxTextW) t = t.slice(0, -1);
-            return t + '…';
-        };
         data.lines.forEach((l, idx) => {
             const isAddress = data.address && l.startsWith('• ĐỊA CHỈ');
-            ctx.fillStyle = isAddress ? "#fbbf24" : ((idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : (idx === 2 ? "#bae6fd" : "#cbd5e1")));
+            const customColor = data.lineColors && data.lineColors[idx];
+            ctx.fillStyle = customColor || (isAddress ? "#fbbf24" : ((idx === 0) ? "#fde047" : (idx === 1 ? "#34d399" : "#f1f5f9")));
             ctx.fillText(fit(l), cardX + padding, curY);
             curY += lineHeight;
         });
 
         ctx.restore();
+        return { cardW, cardH, padding };
     },
 
     // ================= KHỞI TẠO & ĐIỀU KHIỂN LUỒNG CAMERA TRỰC TIẾP =================
@@ -14887,13 +15307,13 @@ const appCamera = {
         const thumbUrl = thumbCanvas.toDataURL('image/jpeg', 0.65);
 
         // Lưu vào IndexedDB
-        const markName = this.selectedPoint ? this.selectedPoint.name : "GPS_Live";
         const meta = this.getWatermarkData();
+        const markName = meta.markName || (this.selectedPoint ? this.selectedPoint.name : "GPS_Live");
         const mediaItem = {
             id: Date.now(),
             type: 'image',
             markName,
-            projectName: AppState.currentProject,
+            projectName: meta.projName || AppState.currentProject,
             dateStr: meta.dateStr,
             x: meta.xStr,
             y: meta.yStr,
@@ -14991,13 +15411,13 @@ const appCamera = {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     const base64Video = reader.result;
-                    const markName = appCamera.selectedPoint ? appCamera.selectedPoint.name : "GPS_Live";
                     const meta = appCamera.getWatermarkData();
+                    const markName = meta.markName || (appCamera.selectedPoint ? appCamera.selectedPoint.name : "GPS_Live");
                     const mediaItem = {
                         id: Date.now(),
                         type: 'video',
                         markName,
-                        projectName: AppState.currentProject,
+                        projectName: meta.projName || AppState.currentProject,
                         dateStr: meta.dateStr,
                         x: meta.xStr,
                         y: meta.yStr,
@@ -15101,6 +15521,8 @@ const appCamera = {
         const canvas = document.getElementById('cameraWatermarkCanvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
+        this._lastUploadImage = img;
+        this._lastUploadInfo = info;
 
         let targetW = img.width;
         let targetH = img.height;
@@ -15128,13 +15550,13 @@ const appCamera = {
         this.renderedDataUrl = canvas.toDataURL('image/jpeg', qual);
 
         // Lưu vào IndexedDB
-        const markName = this.selectedPoint ? this.selectedPoint.name : "GPS_Live";
         const meta = this.getWatermarkData(stampOpts);
+        const markName = meta.markName || (this.selectedPoint ? this.selectedPoint.name : "GPS_Live");
         const mediaItem = {
             id: Date.now(),
             type: 'image',
             markName,
-            projectName: AppState.currentProject,
+            projectName: meta.projName || AppState.currentProject,
             dateStr: meta.dateStr,
             x: meta.xStr,
             y: meta.yStr,
@@ -15164,7 +15586,9 @@ const appCamera = {
             showToast("⚠️ Chưa có ảnh để tải về!", true);
             return;
         }
-        const markName = appCamera.selectedPoint ? appCamera.selectedPoint.name : "GPS_Live";
+        const cfg = appCamera.getStampConfig ? appCamera.getStampConfig() : {};
+        const rawMark = (cfg.markName && cfg.markName.trim()) || (appCamera.selectedPoint ? appCamera.selectedPoint.name : "GPS_Live");
+        const markName = rawMark.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_').slice(0, 60) || "GPS_Live";
         const link = document.createElement("a");
         link.download = `Anh_Moc_${markName}_VN2000.jpg`;
         link.href = appCamera.renderedDataUrl;
@@ -17862,13 +18286,23 @@ const appElevationProfile = {
         if (!ctx) return;
 
         if (!items || items.length === 0) {
+            const boxW = canvas.parentElement ? Math.max(320, Math.min(800, canvas.parentElement.clientWidth - 4)) : 600;
+            if (canvas.width !== boxW || canvas.height !== 360) {
+                canvas.width = boxW;
+                canvas.height = 360;
+                canvas.style.width = '100%';
+                canvas.style.height = '360px';
+            }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#0b1120';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = '#94a3b8';
             ctx.font = '13.5px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('Chưa có dữ liệu trắc dọc. Bấm [TÍNH TOÁN & CẬP NHẬT TRẮC DỌC] để hiển thị.', canvas.width / 2, canvas.height / 2);
+            ctx.textBaseline = 'middle';
+            const maxW = Math.max(200, canvas.width - 32);
+            ctx.fillText('Chưa có dữ liệu trắc dọc.', canvas.width / 2, canvas.height / 2 - 12, maxW);
+            ctx.fillText('Bấm [TÍNH TOÁN & CẬP NHẬT TRẮC DỌC] để hiển thị.', canvas.width / 2, canvas.height / 2 + 12, maxW);
             return;
         }
 
@@ -21714,6 +22148,26 @@ const appCadTool = {
         this.refreshSymbolPanelIfOpen();
     },
 
+    renameVertex(sIdx, vIdx, newName) {
+        const shape = (this.savedShapes || [])[sIdx];
+        const v = shape && (shape.vertices || [])[vIdx];
+        const clean = String(newName || '').trim();
+        if (!v || !clean || clean === v.name) return false;
+        if (this.isShapeLocked && this.isShapeLocked(shape)) {
+            showToast('🔒 Lớp của đối tượng đang bị khóa, không thể đổi tên đỉnh!', true);
+            return false;
+        }
+        this.pushHistoryState(`Đổi tên đỉnh ${v.name} -> ${clean}`);
+        v.name = clean;
+        this.saveShapesForProject(AppState.currentProject);
+        this.persistSession();
+        this.renderGeometry();
+        this.renderBlocksPanel();
+        if (typeof this.refreshAreaTableIfOpen === 'function') this.refreshAreaTableIfOpen();
+        if (this.modalTableActiveTab === 'vertices' && typeof this.renderModalVerticesTable === 'function') this.renderModalVerticesTable();
+        return true;
+    },
+
     submitQuickVertexSave(sIdx, vIdx) {
         const shape = (this.savedShapes || [])[sIdx];
         const v = shape && (shape.vertices || [])[vIdx];
@@ -21721,7 +22175,7 @@ const appCadTool = {
         const stSel = document.getElementById('cadQuickVStyle');
         const colInp = document.getElementById('cadQuickVColor');
         const szSel = document.getElementById('cadQuickVSize');
-        const nameInp = document.getElementById('quickRenameInput');
+        const nameInp = document.getElementById('txtCadQuickRenameInput') || document.getElementById('quickRenameInput');
 
         if (stSel && stSel.value) this.setVertexGlyph(sIdx, vIdx, 'style', stSel.value);
         if (colInp && colInp.value) this.setVertexGlyph(sIdx, vIdx, 'color', colInp.value);
@@ -29388,14 +29842,25 @@ const appCadTool = {
         const elAreaM2 = document.getElementById('cadModalAreaM2');
         const elAreaHa = document.getElementById('cadModalAreaHa');
         const elPerim = document.getElementById('cadModalPerimeter');
+        const elEdges = document.getElementById('cadModalEdgeCount');
         const elVCount = document.getElementById('cadModalVertexCount');
         const elKtt = document.getElementById('cadModalKtt');
+
+        const selectedEdges = selectedShapes.reduce((sum, s) => {
+            if (s.stats && Array.isArray(s.stats.edges)) return sum + s.stats.edges.length;
+            const n = (s.vertices || []).length;
+            if (s.mode === 'polygon' && n >= 3) return sum + n;
+            if (s.mode !== 'point' && n >= 2) return sum + (n - 1);
+            return sum;
+        }, 0);
 
         if (elAreaM2) elAreaM2.innerText = `${selectedArea.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`;
         if (elAreaHa) elAreaHa.innerText = `≈ ${selectedHa.toFixed(4)} ha (${selectedShapes.length}/${allShapes.length} cấu trúc)`;
         if (elPerim) elPerim.innerText = `${selectedPerimeter.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+        if (elEdges) elEdges.innerText = `${selectedEdges} cạnh`;
         if (elVCount) elVCount.innerText = `${selectedVertices} đỉnh (${selectedShapes.length}/${allShapes.length} thửa)`;
         if (elKtt) elKtt.innerText = `KTT: ${AppState.kttDeg}°${String(AppState.kttMin).padStart(2,'0')}' (${AppState.provinceName || 'VN-2000'})`;
+        if (typeof this.updateModalTableCounts === 'function') this.updateModalTableCounts();
 
         const tbody = document.getElementById('cadTableBody');
         if (tbody) {
@@ -30189,9 +30654,9 @@ const appCadTool = {
                         <td style="color: ${shapeColor}; font-weight: 600;">
                             ${shapeName}
                         </td>
-                        <td style="text-align: right; padding-right: 10px; font-family: monospace; font-weight: 700; color: #f8fafc;">${(v.x || 0).toFixed(3)}</td>
-                        <td style="text-align: right; padding-right: 10px; font-family: monospace; font-weight: 700; color: #f8fafc;">${(v.y || 0).toFixed(3)}</td>
-                        <td style="text-align: right; padding-right: 10px; color: #a7f3d0; font-weight: 600;">${edgeLenStr}</td>
+                        <td style="text-align: right; padding-right: 10px; font-family: monospace; font-weight: 700; color: #f8fafc; white-space: nowrap; font-variant-numeric: tabular-nums;">${(v.x || 0).toFixed(3)}</td>
+                        <td style="text-align: right; padding-right: 10px; font-family: monospace; font-weight: 700; color: #f8fafc; white-space: nowrap; font-variant-numeric: tabular-nums;">${(v.y || 0).toFixed(3)}</td>
+                        <td style="text-align: right; padding-right: 10px; color: #a7f3d0; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums;">${edgeLenStr}</td>
                         <td style="text-align: center;">
                             <select class="cad-inline-select" style="height: 22px; max-width: 90px; font-size: 11px; padding: 0 4px;"
                                 title="Hình dạng ký hiệu của riêng đỉnh này (mặc định lấy theo lớp CAD)"
@@ -30987,6 +31452,10 @@ const appCadTool = {
         const rotVal = parseInt(document.getElementById('rngQuickRot')?.value || document.getElementById('rngQuickShapeRot')?.value || document.getElementById('rngQuickRectRot')?.value, 10);
 
         if (t.type === 'vertex') {
+            if (document.getElementById('cadQuickVStyle') && typeof this.submitQuickVertexSave === 'function' && Number.isInteger(t.shapeIndex) && Number.isInteger(t.vertexIndex)) {
+                this.submitQuickVertexSave(t.shapeIndex, t.vertexIndex);
+                return;
+            }
             this.pushHistoryState(`Đổi tên đỉnh ${t.vertex.name} -> ${newVal}`);
             t.vertex.name = newVal;
             this.saveShapesForProject(AppState.currentProject);
@@ -37526,7 +37995,7 @@ const appDonate = {
             btnClose.classList.add('btn-ready');
             btnClose.style.opacity = '1';
             btnClose.style.cursor = 'pointer';
-            btnClose.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            btnClose.style.background = 'linear-gradient(135deg, #15803d 0%, #166534 100%)';
             btnClose.innerHTML = '🚀 Vào Ứng Dụng (Cảm ơn bạn!)';
         }
         const badge = document.getElementById('badgeDonateStatus');
@@ -40663,57 +41132,57 @@ const appI18n = {
         "Dịch chuyển gốc tọa độ theo trục Z": "Origin shift along Z axis (dz)",
         "Hệ số tỉ lệ co giãn (Scale factor)": "He so ti le co gian (Scale factor)",
         "Góc xoay quanh trục X (giây cung)": "angle xoay quanh truc X (second cung)",
-        "Góc xoay quanh trục Y (giây cung)": "angle xoay quanh truc Y (second cung)",
-        "Góc xoay quanh trục Z (giây cung)": "angle xoay quanh truc Z (second cung)",
+        "Góc xoay quanh trục Y (giây cung)": "Rotation around Y-axis (arcseconds)",
+        "Góc xoay quanh trục Z (giây cung)": "Rotation around Z-axis (arcseconds)",
         "✓ Đảm bảo độ trùng khớp tuyệt đối từng milimét với phần mềm chuyển tọa độ chính thức của Cục Đo đạc Bản đồ.": "✓ Guarantees absolute millimeter-level consistency with official DOSM transformation software.",
         "🌐 Ellipsoid Quy Chiếu & Mô Hình Geoid VIGAC2017": "🌐 Reference Ellipsoid & VIGAC2017 Geoid Model",
-        "Ellipsoid quy chiếu VN-2000:": "Ellipsoid quy chieu VN-2000:",
-        "Bán trục lớn $a = 6,378,137.0 \\text{ m}$, độ dẹt $\\alpha = 1 / 298.257223563$ (tương đương kích thước WGS-84, nhưng định vị phù hợp lãnh thổ Việt Nam).": "Ban truc lon $a = 6,378,137.0 \\text{ m}$, do det $\\alpha = 1 / 298.257223563$ (tuong duong kich thuoc WGS-84, nhung dinh vi phu hop lanh tho Viet Nam).",
+        "Ellipsoid quy chiếu VN-2000:": "VN-2000 Reference Ellipsoid:",
+        "Bán trục lớn $a = 6,378,137.0 \\text{ m}$, độ dẹt $\\alpha = 1 / 298.257223563$ (tương đương kích thước WGS-84, nhưng định vị phù hợp lãnh thổ Việt Nam).": "Semi-major axis $a = 6,378,137.0 \\text{ m}$, flattening $\\alpha = 1 / 298.257223563$ (same dimensions as WGS-84, locally positioned for Vietnam).",
         "Điểm gốc tọa độ quốc gia:": "National Geodetic Datum Origin:",
         "Điểm N00 đặt tại Viện Khoa học Đo đạc và Bản đồ, đường Hoàng Quốc Việt, quận Cầu Giấy, Hà Nội.": "Point N00 located at Vietnam Institute of Geodesy and Cartography, Hoang Quoc Viet St, Cau Giay Dist, Hanoi.",
-        "Độ cao Quốc gia Hòn Dấu:": "Do cao national Hon Dau:",
+        "Độ cao Quốc gia Hòn Dấu:": "Hon Dau National Vertical Datum:",
         "Quy đổi từ độ cao trắc địa Ellipsoid $h$ (thu từ GNSS/GPS) sang độ cao thủy chuẩn nhà nước $H$ (gốc mực nước biển trung bình trạm nghiệm triều Hòn Dấu, Hải Phòng) qua mô hình Geoid Quốc gia VIGAC2017:": "Convert ellipsoidal geodetic height $h$ (from GNSS/GPS) to national orthometric height $H$ (referenced to mean sea level at Hon Dau tidal gauge, Hai Phong) via National Geoid Model VIGAC2017:",
-        "H = h - ζ (zeta: độ cao dị thường Geoid địa phương)": "H = h - ζ (zeta: elevation di thuong Geoid dia phuong)",
-        "🛣️ Tuyến trắc dọc": "🛣️ Profile line",
-        "🚜 Hố móng (TCVN 4447)": "🚜 Foundation pit (TCVN 4447)",
+        "H = h - ζ (zeta: độ cao dị thường Geoid địa phương)": "H = h - ζ (zeta: local Geoid undulation)",
+        "🛣️ Tuyến trắc dọc": "🛣️ Profile Alignment",
+        "🚜 Hố móng (TCVN 4447)": "🚜 Foundation Pit (TCVN 4447)",
         "Vẽ mặt cắt trắc dọc tự nhiên và đường đỏ thiết kế từ các cọc mốc dự án hoặc chọn trên bản đồ, tính diện tích mặt cắt và khối lượng đào đắp (m³) theo phương pháp diện tích trung bình chuẩn TCVN.": "Plot terrain cross-sections and design grade lines from project stakes or map selection, compute cross-section area and cut/fill volume (m³) via TCVN average end area method.",
         "📍 Nguồn Cọc Tuyến Trắc Dọc:": "📍 Profile Stake Data Source:",
-        "0 cọc": "0 coc",
-        "📁 Chọn mốc Dự án": "📁 select point project",
+        "0 cọc": "0 stakes",
+        "📁 Chọn mốc Dự án": "📁 Select Project Points",
         "📐 Vẽ Tuyến trên MiniCAD": "📐 Draw Alignment in MiniCAD",
         "📂 Nạp từ MiniCAD": "📂 Load from MiniCAD",
         "🛣️ Tuyến Mẫu (5 Cọc)": "🛣️ Sample Alignment (5 Stakes)",
-        "✕ Xóa": "✕ delete",
+        "✕ Xóa": "✕ Clear",
         "⚙️ Thông số Thiết Kế Tuyến (TCVN):": "⚙️ Alignment Design Parameters (TCVN):",
-        "Cao độ TK cọc đầu Z₀ (m):": "Cao do TK coc dau Z₀ (m):",
+        "Cao độ TK cọc đầu Z₀ (m):": "Start Stake Design Elev Z₀ (m):",
         "Độ dốc dọc tuyến i (%):": "Longitudinal Slope i (%):",
-        "Bề rộng nền đường B (m):": "Be rong nen duong B (m):",
-        "Mái dốc Taluy m (1:m):": "Mai doc Taluy m (1:m):",
-        "⚡ TÍNH TOÁN & CẬP NHẬT TRẮC DỌC": "⚡ calculate & CAP NHAT profile",
-        "🖼️ Tải PNG": "🖼️ Tai PNG",
-        "💻 Xuất DWG": "💻 export DWG",
-        "📈 Mặt Cắt Trắc Dọc Kỹ Thuật:": "📈 cross section profile Ky Thuat:",
-        "🎨 Tô Đào/Đắp": "🎨 To Dao/Dap",
-        "Chữ trong bảng trích yếu tự xoay dọc chống đè chữ khi cọc gần nhau": "Chu in table trich yeu tu xoay doc chong de chu khi coc gan nhau",
+        "Bề rộng nền đường B (m):": "Roadbed Width B (m):",
+        "Mái dốc Taluy m (1:m):": "Side Slope Ratio m (1:m):",
+        "⚡ TÍNH TOÁN & CẬP NHẬT TRẮC DỌC": "⚡ CALCULATE & UPDATE PROFILE",
+        "🖼️ Tải PNG": "🖼️ Export PNG",
+        "💻 Xuất DWG": "💻 Export DXF",
+        "📈 Mặt Cắt Trắc Dọc Kỹ Thuật:": "📈 Technical Longitudinal Profile:",
+        "🎨 Tô Đào/Đắp": "🎨 Cut/Fill Shading",
+        "Chữ trong bảng trích yếu tự xoay dọc chống đè chữ khi cọc gần nhau": "Summary table labels auto-rotate vertically to prevent overlap on dense stakes",
         "↔ Vuốt ngang xem trọn tuyến": "↔ Swipe horizontally to view full alignment",
-        "Tổng Đào (V_đào)": "Tong Dao (V_dao)",
-        "Tổng Đắp (V_đắp)": "Tong Dap (V_dap)",
-        "Chênh Lệch": "Chenh Lech",
-        "Cọc": "Stakes",
-        "Lý trình (m)": "Ly trinh (m)",
-        "Z_Tự nhiên": "Z_Tu nhien",
-        "Z_Thiết kế": "Z_Thiet ke",
-        "Độ cao TC (m)": "Do cao TC (m)",
-        "V_Đào (m³)": "V_Dao (m³)",
-        "V_Đắp (m³)": "V_Dap (m³)",
-        "Chưa có dữ liệu trắc dọc. Bấm tính toán để hiển thị.": "not yet co du lieu profile. Bam calculate de hien thi.",
-        "Tiêu chuẩn TCVN 4447:2012:": "Tieu standard TCVN 4447:2012:",
-        "Tính khối lượng đào đất hố móng / khu vực san nền từ chu vi đáy, chiều sâu đào, góc nghiêng chân hố đào $\\alpha$ (mái dốc taluy $1:m$), hệ số nở rời đất $k_{tx}$ và cung cấp": "Compute earthwork volume for foundation pits / grading zones from base perimeter, excavation depth, slope angle $\\alpha$ (side slope ratio ",
+        "Tổng Đào (V_đào)": "Total Cut (V_cut)",
+        "Tổng Đắp (V_đắp)": "Total Fill (V_fill)",
+        "Chênh Lệch": "Net Balance",
+        "Cọc": "Stake",
+        "Lý trình (m)": "Chainage (m)",
+        "Z_Tự nhiên": "Z_Ground",
+        "Z_Thiết kế": "Z_Design",
+        "Độ cao TC (m)": "Cut/Fill (m)",
+        "V_Đào (m³)": "V_Cut (m³)",
+        "V_Đắp (m³)": "V_Fill (m³)",
+        "Chưa có dữ liệu trắc dọc. Bấm tính toán để hiển thị.": "No profile data yet. Click Calculate to render.",
+        "Tiêu chuẩn TCVN 4447:2012:": "Standard TCVN 4447:2012:",
+        "Tính khối lượng đào đất hố móng / khu vực san nền từ chu vi đáy, chiều sâu đào, góc nghiêng chân hố đào $\\alpha$ (mái dốc taluy $1:m$), hệ số nở rời đất $k_{tx}$ và cung cấp": "Compute earthwork volume for foundation pits / grading zones from base perimeter, excavation depth, slope angle $\\alpha$ (side slope ratio $1:m$), swell factor $k_{tx}$, and export",
         "Bản vẽ AutoCAD (.dxf)": "AutoCAD Drawing (.dxf)",
         "chi tiết mặt bằng hố đào.": "detailed foundation pit plan.",
-        "📍 Chọn mốc đáy hố đào dự kiến:": "📍 select point day foundation pit du kien:",
-        "📐 Vẽ Đáy Hố trên MiniCAD": "📐 Ve Day Ho on MiniCAD",
-        "📂 Nạp từ CAD Mini": "📂 Load tu CAD Mini",
+        "📍 Chọn mốc đáy hố đào dự kiến:": "📍 Select planned pit bottom points:",
+        "📐 Vẽ Đáy Hố trên MiniCAD": "📐 Draw Pit Base in MiniCAD",
+        "📂 Nạp từ CAD Mini": "📂 Load from MiniCAD",
         "🚜 Mẫu 4 Đỉnh": "🚜 Mau 4 Dinh",
         "Mốc": "point",
         "X (Bắc - m)": "X (Bac - m)",
@@ -40858,87 +41327,87 @@ const appI18n = {
         "⏹️ Ngắt": "⏹️ disconnect",
         "📐 Giao Hội GPS": "📐 Giao Hoi GPS",
         "📍 MỐC KHỐNG CHẾ A:": "📍 Points No CHE A:",
-        "-- Chọn mốc có sẵn --": "-- select point co san --",
-        "📍 MỐC KHỐNG CHẾ B:": "📍 Points No CHE B:",
+        "-- Chọn mốc có sẵn --": "-- Select existing point --",
+        "📍 MỐC KHỐNG CHẾ B:": "📍 CONTROL POINT B:",
         "Hướng trạm đo so với trục A ➔ B:": "Station Heading Relative to Baseline A ➔ B:",
-        "👉 Bên Phải (Right)": "👉 Ben Phai (Right)",
-        "👈 Bên Trái (Left)": "👈 Ben Trai (Left)",
-        "⚡ TÍNH TOÁN TỌA ĐỘ GIAO HỘI": "⚡ calculate Coordinates RESECTION",
+        "👉 Bên Phải (Right)": "👉 Right Side",
+        "👈 Bên Trái (Left)": "👈 Left Side",
+        "⚡ TÍNH TOÁN TỌA ĐỘ GIAO HỘI": "⚡ CALCULATE RESECTION COORDINATES",
         "🎯 TỌA ĐỘ TRẠM ĐO GIAO HỘI THÀNH CÔNG:": "🎯 RESECTION STATION COORDINATES COMPUTED:",
-        "• Cự ly khống chế AB:": "• distance control AB:",
-        "📍 Gán bù GPS": "📍 Gan bu GPS",
-        "💾 Lưu sổ đo": "💾 save Field Book",
-        "⚡ Tối Ưu PixOptimizer": "⚡ Toi Uu PixOptimizer",
+        "• Cự ly khống chế AB:": "• Control Baseline AB:",
+        "📍 Gán bù GPS": "📍 Apply GPS Offset",
+        "💾 Lưu sổ đo": "💾 Save to Survey Book",
+        "⚡ Tối Ưu PixOptimizer": "⚡ PixOptimizer Engine",
         "📐 1. CẤU HÌNH XUẤT BẢN VẼ MINICAD:": "📐 1. MINICAD DRAWING EXPORT CONFIGURATION:",
-        "Định dạng nén ảnh:": "Dinh dang nen anh:",
-        "WebP (Khuyên dùng - Siêu nhẹ)": "WebP (Khuyen dung - Sieu nhe)",
-        "MozJPEG (Tương thích AutoCAD cũ)": "MozJPEG (Tuong thich AutoCAD cu)",
-        "PNG (Không nén lossless)": "PNG (no nen lossless)",
-        "Chất lượng nén:": "Chat luong nen:",
-        "Cao (85% - Sắc nét nét vẽ)": "Cao (85% - Sac net net ve)",
-        "Vừa (75% - Cân bằng dung lượng)": "Vua (75% - Can bang dung luong)",
+        "Định dạng nén ảnh:": "Image Compression Format:",
+        "WebP (Khuyên dùng - Siêu nhẹ)": "WebP (Recommended - Ultra Light)",
+        "MozJPEG (Tương thích AutoCAD cũ)": "MozJPEG (Legacy AutoCAD Compatible)",
+        "PNG (Không nén lossless)": "PNG (Lossless Uncompressed)",
+        "Chất lượng nén:": "Compression Quality:",
+        "Cao (85% - Sắc nét nét vẽ)": "High (85% - Crisp Linework)",
+        "Vừa (75% - Cân bằng dung lượng)": "Medium (75% - Balanced File Size)",
         "Tối đa (95% - Xuất in ấn A0)": "Maximum (95% - A0 High-Res Plotting)",
-        "Kích thước cạnh tối đa:": "Kich thuoc side toi da:",
-        "🗺️ 2. TỐI ƯU BẢN ĐỒ VỆ TINH OFFLINE:": "🗺️ 2. TOI UU Map satellite OFFLINE:",
+        "Kích thước cạnh tối đa:": "Maximum Edge Resolution:",
+        "🗺️ 2. TỐI ƯU BẢN ĐỒ VỆ TINH OFFLINE:": "🗺️ 2. OFFLINE SATELLITE MAP OPTIMIZATION:",
         "Làm mịn ảnh bản đồ vệ tinh": "Smooth Satellite Imagery",
-        "Bộ nhớ đệm ô bản đồ:": "cache o Map:",
-        "Đang hoạt động": "Dang hoat Close",
-        "🧹 Dọn cache tile": "🧹 Don cache tile",
-        "💾 LƯU CẤU HÌNH TỐI ƯU PIXOPTIMIZER": "💾 save configure TOI UU PIXOPTIMIZER",
-        "📐 Bảng Kê & Thống Kê Tổng Hợp MiniCAD": "📐 Summary Schedule & Statistics MiniCAD",
+        "Bộ nhớ đệm ô bản đồ:": "Map Tile Cache:",
+        "Đang hoạt động": "Active",
+        "🧹 Dọn cache tile": "🧹 Clear Tile Cache",
+        "💾 LƯU CẤU HÌNH TỐI ƯU PIXOPTIMIZER": "💾 SAVE PIXOPTIMIZER SETTINGS",
+        "📐 Bảng Kê & Thống Kê Tổng Hợp MiniCAD": "📐 MiniCAD Summary Schedule & Statistics",
         "📐 Ranh & Diện Tích": "📐 Boundary & Area",
-        "📍 Bảng Kê Các Đỉnh (": "📍 table Ke the Dinh (",
-        "🏹 Bảng Kê Mũi Tên (": "🏹 table Ke Leader Arrow (",
-        "🏠 Bảng Kê Khối Nhà (": "🏠 Building Block Table (",
-        "⭕ Bảng Kê Bán Kính (": "⭕ table Ke Ban Kinh (",
-        "Chu Vi / Chiều Dài": "Perimeter / length",
-        "0 cạnh": "0 side",
+        "📍 Bảng Kê Các Đỉnh (": "📍 Vertices Table (",
+        "🏹 Bảng Kê Mũi Tên (": "🏹 Leader Arrows Table (",
+        "🏠 Bảng Kê Khối Nhà (": "🏠 Building Blocks Table (",
+        "⭕ Bảng Kê Bán Kính (": "⭕ Radius Zones Table (",
+        "Chu Vi / Chiều Dài": "Perimeter / Length",
+        "0 cạnh": "0 edges",
         "Số Đỉnh Ranh": "Boundary Vertex Count",
-        "0 đỉnh": "0 dinh",
+        "0 đỉnh": "0 vertices",
         "📦 Bảng Tổng Hợp Các Khối Được Vẽ": "📦 Drawn Shapes Summary Schedule",
-        "Hiện cột % Tỉ lệ diện tích": "show column % Ti le area",
-        "Tổng diện tích dự án tính %:": "Tong area project calculate %:",
-        "🔄 Tự động đo": "🔄 automatically do",
-        "(Có thể nhập diện tích quy hoạch để so sánh tỉ lệ)": "(Co the import area quy hoach de so sanh ti le)",
-        "TỔNG CỘNG CÁC KHỐI CHỌN:": "TONG CONG the SHAPES select:",
-        "Tên đỉnh": "name dinh",
-        "Cạnh [m]": "side [m]",
+        "Hiện cột % Tỉ lệ diện tích": "Show Area % Column",
+        "Tổng diện tích dự án tính %:": "Reference Project Area for %:",
+        "🔄 Tự động đo": "🔄 Auto Measure",
+        "(Có thể nhập diện tích quy hoạch để so sánh tỉ lệ)": "(Enter planned area to compare percentage)",
+        "TỔNG CỘNG CÁC KHỐI CHỌN:": "TOTAL SELECTED SHAPES:",
+        "Tên đỉnh": "Vertex Name",
+        "Cạnh [m]": "Edge [m]",
         "Phương vị (Az)": "Azimuth (Az)",
-        "📍 Danh sách tất cả đỉnh trên bản vẽ:": "📍 list tat ca dinh on drawing:",
-        "Hiện tất cả đỉnh trên map": "show tat ca dinh on map",
-        "Thuộc khối / Nét": "Thuoc shape / Net",
-        "Hiện đỉnh": "show dinh",
-        "🏹 Danh sách các mũi tên chỉ dẫn & đường đo kích thước:": "🏹 list the leader arrow chi dan & design grade kich thuoc:",
-        "Click tên để sửa • Nhấp vào Loại để chuyển đổi 1 đầu ↔ 2 đầu": "Click name de edit • Input into Loai de transform 1 dau ↔ 2 dau",
-        "Tên / Ghi chú": "name / Ghi chu",
-        "Loại mũi tên": "Loai leader arrow",
-        "Cự ly [m]": "distance [m]",
+        "📍 Danh sách tất cả đỉnh trên bản vẽ:": "📍 List of all vertices in drawing:",
+        "Hiện tất cả đỉnh trên map": "Show all vertices on map",
+        "Thuộc khối / Nét": "Parent Shape / Line",
+        "Hiện đỉnh": "Show Vertex",
+        "🏹 Danh sách các mũi tên chỉ dẫn & đường đo kích thước:": "🏹 Leader arrows & dimension callouts:",
+        "Click tên để sửa • Nhấp vào Loại để chuyển đổi 1 đầu ↔ 2 đầu": "Click name to edit • Click Type to toggle 1-head ↔ 2-head",
+        "Tên / Ghi chú": "Name / Note",
+        "Loại mũi tên": "Arrow Type",
+        "Cự ly [m]": "Distance [m]",
         "Gốc (X1, Y1)": "Origin (X1, Y1)",
-        "Ngọn (X2, Y2)": "Ngon (X2, Y2)",
-        "Màu": "Mau",
-        "🏠 Danh sách các khối công trình & nhà ở linh hoạt:": "🏠 list the shape cong trinh & nha o linh hoat:",
-        "Click tên để sửa • Tự động tính diện tích theo Dài x Rộng": "Click name de edit • automatically calculate area according to Dai x Rong",
-        "Tên khối nhà": "name shape nha",
-        "Kích thước": "Kich thuoc",
-        "Diện tích [m²]": "area [m²]",
-        "Tâm (X, Y)": "Tam (X, Y)",
-        "Góc xoay": "angle xoay",
-        "⭕ Danh sách vùng đệm / bán kính bảo vệ công trình:": "⭕ list vung dem / ban kinh bao ve cong trinh:",
-        "Click tên để sửa • Tính toán diện tích vùng ảnh hưởng π×R²": "Click name de edit • compute zone of influence area π×R²",
-        "Tên đối tượng / Vùng": "name doi tuong / Vung",
-        "Bán kính R [m]": "Ban kinh R [m]",
-        "Diện tích π×R² [m²]": "area π×R² [m²]",
-        "🖨️ In bảng kê": "🖨️ In summary table",
-        "📄 Xuất CSV": "📄 export CSV",
+        "Ngọn (X2, Y2)": "Tip (X2, Y2)",
+        "Màu": "Color",
+        "🏠 Danh sách các khối công trình & nhà ở linh hoạt:": "🏠 Structures & building footprints:",
+        "Click tên để sửa • Tự động tính diện tích theo Dài x Rộng": "Click name to edit • Auto-calculates area (L × W)",
+        "Tên khối nhà": "Building Name",
+        "Kích thước": "Dimensions",
+        "Diện tích [m²]": "Area [m²]",
+        "Tâm (X, Y)": "Center (X, Y)",
+        "Góc xoay": "Rotation Angle",
+        "⭕ Danh sách vùng đệm / bán kính bảo vệ công trình:": "⭕ Buffer & protection radius zones:",
+        "Click tên để sửa • Tính toán diện tích vùng ảnh hưởng π×R²": "Click name to edit • Computes zone of influence area π×R²",
+        "Tên đối tượng / Vùng": "Object / Zone Name",
+        "Bán kính R [m]": "Radius R [m]",
+        "Diện tích π×R² [m²]": "Area π×R² [m²]",
+        "🖨️ In bảng kê": "🖨️ Print Schedule",
+        "📄 Xuất CSV": "📄 Export CSV",
         "📤 Cấu Hình & Xuất Bản Vẽ (CAD/PDF)...": "📤 Configure & Export Drawing (CAD/PDF)...",
-        "CẤU HÌNH & XUẤT BẢN VẼ KỸ THUẬT": "configure & export DRAWING KY THUAT",
-        "Quy chuẩn TCVN 7285 & Thông tư 25/2014/TT-BTNMT • Độc lập không che khuất bảng kê": "Quy standard TCVN 7285 & Thong tu 25/2014/TT-BTNMT • Doc lap no che khuat summary table",
-        "1. CHỌN CÁC KHỐI / THỬA ĐẤT XUẤT BẢN VẼ:": "1. select the SHAPES / PARCEL export DRAWING:",
-        "✓ Chọn tất cả": "✓ select tat ca",
-        "✕ Bỏ chọn": "✕ Bo select",
-        "Đã chọn:": "Da select:",
-        "khối": "shape",
-        "Tổng diện tích xuất:": "Tong area export:",
+        "CẤU HÌNH & XUẤT BẢN VẼ KỸ THUẬT": "TECHNICAL DRAWING EXPORT CONFIGURATION",
+        "Quy chuẩn TCVN 7285 & Thông tư 25/2014/TT-BTNMT • Độc lập không che khuất bảng kê": "TCVN 7285 & Circular 25/2014/TT-BTNMT Standard • Non-blocking layout",
+        "1. CHỌN CÁC KHỐI / THỬA ĐẤT XUẤT BẢN VẼ:": "1. SELECT SHAPES / PARCELS TO EXPORT:",
+        "✓ Chọn tất cả": "✓ Select All",
+        "✕ Bỏ chọn": "✕ Deselect All",
+        "Đã chọn:": "Selected:",
+        "khối": "shapes",
+        "Tổng diện tích xuất:": "Total Export Area:",
         "2. KHỔ GIẤY & TỶ LỆ IN ẤN THỰC ĐỊA:": "2. PAPER SIZE & FIELD DRAWING SCALE:",
         "Tỷ lệ bản vẽ:": "Ty le drawing:",
         "⚡ Tự động tối ưu (To, rõ & đẹp nhất)": "⚡ automatically toi uu (To, ro & dep nhat)",
@@ -41308,233 +41777,233 @@ const appI18n = {
         "Đóng bản đồ, quay lại màn hình chính": "Close Map, quay lai man hinh chinh",
         "Vuốt hoặc nhấp để thu gọn / mở rộng": "Vuot or Input de Collapse / Expand",
         "Thu gọn bảng để thoải mái chấm điểm trên bản đồ": "Collapse table de thoai mai Pick diem on Map",
-        "Thu nhỏ / Mở rộng": "Thu nho / Expand",
-        "Đóng về trang chủ": "Close to trang chu",
-        "Dán tọa độ": "paste Coordinates",
-        "Chuyển tọa độ từ WGS-84 sang VN-2000": "Chuyen Coordinates from WGS-84 to VN-2000",
-        "Chuyển tọa độ từ VN-2000 sang WGS-84": "Chuyen Coordinates from VN-2000 to WGS-84",
-        "Xóa điểm và xóa trắng ô nhập": "delete diem va delete trang o import",
-        "Sao chép VN-2000": "copy VN-2000",
-        "Sao chép WGS-84": "copy WGS-84",
-        "Sao chép toàn bộ kết quả": "copy all Results",
-        "Sao chép dạng Tab Excel": "copy dang Tab Excel",
-        "Lưu điểm này vào Sổ đo dự án": "save diem nay into Field Book project",
-        "Chuyển đổi danh sách từ WGS-84 sang VN-2000": "transform list tu WGS-84 to VN-2000",
-        "Chuyển đổi danh sách từ VN-2000 sang WGS-84": "transform list tu VN-2000 to WGS-84",
-        "Chép tất cả dạng Tab Excel": "copy tat ca dang Tab Excel",
-        "Chép tọa độ VN-2000": "copy Coordinates VN-2000",
-        "Chép tọa độ WGS-84": "copy Coordinates WGS-84",
-        "Xem danh sách điểm đã chấm": "view list diem da Pick",
-        "Xóa danh sách điểm": "delete list diem",
-        "Quay lại Chuyển đổi tọa độ": "Quay lai transform Coordinates",
-        "Chọn dự án đang lưu để hiển thị mốc": "select project dang save de hien thi point",
-        "Thêm nhanh dự án mới trên bản đồ": "add nhanh project moi on Map",
-        "Nhập file dự án / Tải file mẫu": "import file project / Tai file mau",
-        "Xem danh sách mốc & Bảng kê thông tin khối dự án (Chỉ xem)": "view list point & summary table thong tin shape project (Chi view)",
-        "Thu phóng bao quát mốc dự án": "Thu phong bao quat point project",
-        "Nối điểm cuối về điểm đầu và tính diện tích": "Noi diem cuoi ve diem dau va calculate area",
+        "Thu nhỏ / Mở rộng": "Collapse / Expand",
+        "Đóng về trang chủ": "Close to Home",
+        "Dán tọa độ": "Paste Coordinates",
+        "Chuyển tọa độ từ WGS-84 sang VN-2000": "Convert coordinates from WGS-84 to VN-2000",
+        "Chuyển tọa độ từ VN-2000 sang WGS-84": "Convert coordinates from VN-2000 to WGS-84",
+        "Xóa điểm và xóa trắng ô nhập": "Clear point and reset input fields",
+        "Sao chép VN-2000": "Copy VN-2000",
+        "Sao chép WGS-84": "Copy WGS-84",
+        "Sao chép toàn bộ kết quả": "Copy all results",
+        "Sao chép dạng Tab Excel": "Copy as Excel Tab",
+        "Lưu điểm này vào Sổ đo dự án": "Save this point to Project Field Book",
+        "Chuyển đổi danh sách từ WGS-84 sang VN-2000": "Convert list from WGS-84 to VN-2000",
+        "Chuyển đổi danh sách từ VN-2000 sang WGS-84": "Convert list from VN-2000 to WGS-84",
+        "Chép tất cả dạng Tab Excel": "Copy all as Excel Tab",
+        "Chép tọa độ VN-2000": "Copy VN-2000 coordinates",
+        "Chép tọa độ WGS-84": "Copy WGS-84 coordinates",
+        "Xem danh sách điểm đã chấm": "View picked points list",
+        "Xóa danh sách điểm": "Clear points list",
+        "Quay lại Chuyển đổi tọa độ": "Back to Coordinate Conversion",
+        "Chọn dự án đang lưu để hiển thị mốc": "Select saved project to display benchmarks",
+        "Thêm nhanh dự án mới trên bản đồ": "Quickly add new project on map",
+        "Nhập file dự án / Tải file mẫu": "Import project file / Download template",
+        "Xem danh sách mốc & Bảng kê thông tin khối dự án (Chỉ xem)": "View benchmarks list & project shape schedule (Read-only)",
+        "Thu phóng bao quát mốc dự án": "Zoom to fit all project benchmarks",
+        "Nối điểm cuối về điểm đầu và tính diện tích": "Connect last point to first point and calculate area",
         "Nhấn để thu nhỏ / mở rộng thanh công cụ": "Click to collapse / expand toolbar",
-        "Dự án MiniCAD hiện hành - Nhấp để chuyển hoặc tạo mới": "project MiniCAD display hanh - Input de chuyen or create new",
+        "Dự án MiniCAD hiện hành - Nhấp để chuyển hoặc tạo mới": "Active MiniCAD project — click to switch or create new",
         "Công cụ vẽ đa giác, tuyến, khép góc, snap": "Drawing tools: Polygon, Polyline, Close, Snap",
-        "Chọn đối tượng trên bản đồ để sửa, đổi màu hoặc xóa": "select doi tuong on Map de edit, doi mau or delete",
-        "Mũi tên, tem nhãn, khối nhà, chữ ghi chú": "Leader Arrow, stamp label, shape nha, chu ghi chu",
-        "Bảng kê diện tích, danh sách khối, xuất CAD/PDF": "summary table area, list shape, export CAD/PDF",
-        "Tùy chọn ẩn hiện lớp đỉnh, cự ly cạnh, tâm khối": "Tuy select an show lop dinh, distance side, tam shape",
+        "Chọn đối tượng trên bản đồ để sửa, đổi màu hoặc xóa": "Select object on map to edit, change color, or delete",
+        "Mũi tên, tem nhãn, khối nhà, chữ ghi chú": "Leader arrow, stamp label, building block, text note",
+        "Bảng kê diện tích, danh sách khối, xuất CAD/PDF": "Area schedule, shape list, CAD/PDF export",
+        "Tùy chọn ẩn hiện lớp đỉnh, cự ly cạnh, tâm khối": "Toggle visibility of vertices, edge lengths, and block centers",
         "Hoàn tác thao tác trước cho mọi đối tượng (Ctrl+Z hoặc U)": "Undo previous action for all objects (Ctrl+Z or U)",
         "Làm lại thao tác vừa lùi (Ctrl+Y)": "Redo previously undone action (Ctrl+Y)",
-        "Nhấn để thu nhỏ / mở rộng": "Label de thu nho / Expand",
-        "Hướng dẫn sử dụng MiniCAD & Bảng kê": "guide su dung MiniCAD & summary table",
+        "Nhấn để thu nhỏ / mở rộng": "Click to collapse / expand",
+        "Hướng dẫn sử dụng MiniCAD & Bảng kê": "MiniCAD & Schedule user guide",
         "Đóng thanh công cụ CAD": "Close CAD Toolbar",
-        "Đóng liên thông và quay lại phân hệ Trắc dọc": "Close lien thong va quay lai phan he profile",
+        "Đóng liên thông và quay lại phân hệ Trắc dọc": "Close link and return to Elevation Profile",
         "Vẽ đa giác khép kín tính diện tích thửa đất (Phím tắt: P)": "Draw closed polygon to calculate parcel area (Shortcut: P)",
         "Vẽ đường tim tuyến / bờ ranh hở (Phím tắt: L)": "Draw centerline / open boundary line (Shortcut: L)",
-        "Tự động bắt điểm (Snap) vào mốc dự án và đỉnh CAD (Phím tắt: S)": "automatically bat diem (Snap) into point project va dinh CAD (Shortcut: S)",
+        "Tự động bắt điểm (Snap) vào mốc dự án và đỉnh CAD (Phím tắt: S)": "Auto-snap to project benchmarks and CAD vertices (Shortcut: S)",
         "Tự động bắt cạnh/line khối liền kề chống hở ranh và chống chồng lấn thửa đất (Phím tắt: B)": "Auto-snap adjacent parcel boundaries to prevent boundary gaps and overlaps (Shortcut: B)",
         "Bắn điểm tiếp theo theo Cự ly & Góc phương vị (Phím tắt: D)": "Shoot next point by Distance & Azimuth (Shortcut: D)",
-        "Nhập đỉnh trực tiếp bằng tọa độ VN-2000 (X, Y)": "import dinh truc tiep bang Coordinates VN-2000 (X, Y)",
+        "Nhập đỉnh trực tiếp bằng tọa độ VN-2000 (X, Y)": "Enter vertex directly by VN-2000 coordinates (X, Y)",
         "Nối đỉnh cuối về đỉnh đầu để khép góc (Phím tắt: C)": "Connect last vertex to first vertex to close polygon (Shortcut: C)",
-        "Tạo đường song song cách một khoảng (Phím tắt: O)": "create duong song song cach mot khoang (Shortcut: O)",
-        "Phóng to cực đại mức 23-24 (Phím tắt: Z)": "Phong to cuc dai muc 23-24 (Shortcut: Z)",
+        "Tạo đường song song cách một khoảng (Phím tắt: O)": "Create parallel offset line at a given distance (Shortcut: O)",
+        "Phóng to cực đại mức 23-24 (Phím tắt: Z)": "Zoom to maximum detail level 23–24 (Shortcut: Z)",
         "Đặt tên khối trước khi vẽ hoặc lưu": "Name shape before drawing or saving",
         "Lưu cấu trúc/thửa đất này và bắt đầu vẽ cấu trúc mới (Phím tắt: N)": "Save this parcel/shape and start drawing a new shape (Shortcut: N)",
-        "Xóa toàn bộ bản vẽ CAD (Phím tắt: X)": "delete toan bo drawing CAD (Shortcut: X)",
-        "Bật chế độ con trỏ chọn đối tượng (Phím tắt: V hoặc Esc)": "enable che do con tro select doi tuong (Shortcut: V or Esc)",
-        "Chỉnh sửa thông số hoặc thuộc tính đối tượng đang chọn": "edit thong so or thuoc calculate doi tuong dang select",
-        "Đổi màu sắc hiển thị của đối tượng đang chọn": "Doi mau sac hien thi of doi tuong dang select",
-        "Xóa đối tượng đang chọn (Phím tắt: Delete hoặc Backspace)": "delete doi tuong dang select (Shortcut: Delete or Backspace)",
-        "Bỏ chọn đối tượng (Phím tắt: Esc)": "Bo select doi tuong (Shortcut: Esc)",
+        "Xóa toàn bộ bản vẽ CAD (Phím tắt: X)": "Clear entire CAD drawing (Shortcut: X)",
+        "Bật chế độ con trỏ chọn đối tượng (Phím tắt: V hoặc Esc)": "Enable object selection cursor mode (Shortcut: V or Esc)",
+        "Chỉnh sửa thông số hoặc thuộc tính đối tượng đang chọn": "Edit parameters or properties of selected object",
+        "Đổi màu sắc hiển thị của đối tượng đang chọn": "Change display color of selected object",
+        "Xóa đối tượng đang chọn (Phím tắt: Delete hoặc Backspace)": "Delete selected object (Shortcut: Delete or Backspace)",
+        "Bỏ chọn đối tượng (Phím tắt: Esc)": "Deselect object (Shortcut: Esc)",
         "Nét mũi tên ghi chú CAD: Click mốc ranh rồi click điểm đặt nhãn": "CAD leader arrow: Click boundary point then click label placement point",
         "Tem / Nhãn bản vẽ: Đóng khung thông tin thửa đất, nhãn công trình hoặc tiêu đề kỹ thuật": "Drawing Stamp / Label: Frame parcel information, structure label or technical title",
-        "Cài đặt thông tin mẫu trước cho Tem / Nhãn bản vẽ": "settings thong tin mau truoc for Stamp / Drawing Label",
+        "Cài đặt thông tin mẫu trước cho Tem / Nhãn bản vẽ": "Configure template info for Drawing Stamp / Label",
         "Khối công trình / Nhà ở: Tùy biến Dài x Rộng, Góc xoay, loại công trình": "Building Structure: Customize Length x Width, Rotation Angle, Building Type",
-        "Vùng đệm / Bán kính bảo vệ (Circle/Buffer): Giếng khoan, trụ điện, hành lang": "Vung dem / Ban kinh bao ve (Circle/Buffer): Gieng khoan, tru dien, hanh lang",
-        "Văn bản ghi chú tùy biến (Text Annotation) trên bản đồ": "Van ban ghi chu tuy bien (Text Annotation) on Map",
-        "Ẩn / Hiện tất cả chú thích & hình khối": "An / show tat ca chu thich & hinh shape",
-        "Xóa toàn bộ chú thích & hình khối": "delete toan bo chu thich & hinh shape",
+        "Vùng đệm / Bán kính bảo vệ (Circle/Buffer): Giếng khoan, trụ điện, hành lang": "Buffer / Protection Radius (Circle/Buffer): Well, utility pole, corridor",
+        "Văn bản ghi chú tùy biến (Text Annotation) trên bản đồ": "Custom Text Annotation on Map",
+        "Ẩn / Hiện tất cả chú thích & hình khối": "Hide / Show all annotations & shapes",
+        "Xóa toàn bộ chú thích & hình khối": "Delete all annotations & shapes",
         "Khởi tạo dự án mới độc lập với bản vẽ trắng sạch ngay trong MiniCAD": "Initialize new independent project with clean blank canvas in MiniCAD",
         "Xem bảng kê tọa độ ranh góc và bảng tính diện tích (Phím tắt: E)": "View boundary coordinate table and area schedule (Shortcut: E)",
-        "Hiển thị/Ẩn bảng thống kê các khối đã vẽ": "Hien thi/An table thong ke the shape drawn",
-        "Mở hộp thoại cấu hình & xuất bản vẽ kỹ thuật (AutoCAD DWG, PDF, Excel...)": "Open drawing export & configuration dialog (AutoCAD DWG, PDF, Excel...)",
+        "Hiển thị/Ẩn bảng thống kê các khối đã vẽ": "Show/Hide drawn shapes statistics panel",
+        "Mở hộp thoại cấu hình & xuất bản vẽ kỹ thuật (AutoCAD DWG, PDF, Excel...)": "Open drawing export & configuration dialog (AutoCAD DXF, PDF, Excel...)",
         "Nạp mốc tọa độ từ các dự án đã lưu vào MiniCAD": "Load coordinate benchmarks from saved projects into MiniCAD",
-        "Lưu tất cả các khối hiện tại thành một file dự án mới độc lập": "save tat ca the shape current thanh mot file project moi doc lap",
+        "Lưu tất cả các khối hiện tại thành một file dự án mới độc lập": "Save all current shapes as a new standalone project file",
         "Nhập dữ liệu hình vẽ / thửa đất từ file Excel (.xlsx, .xls) hoặc CSV": "Import drawing / parcel data from Excel (.xlsx, .xls) or CSV file",
-        "Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh (Đ1, Đ2, Đ3...) trên bản vẽ": "show or an ky hieu so thu tu the dinh (D1, D2, D3...) on drawing",
-        "Hiện hoặc ẩn khoảng cách giữa các đỉnh (cự ly cạnh theo mét)": "show or an distance giua the dinh (distance side according to meters)",
-        "Hiện hoặc ẩn ký hiệu tên và diện tích tại tâm các khối": "show or an ky hieu name va area at tam the shape",
-        "Hiện hoặc ẩn các nét ghi chú: mũi tên, khối nhà, tem nhãn, văn bản": "show or an the net ghi chu: leader arrow, shape nha, stamp label, van ban",
+        "Hiện hoặc ẩn ký hiệu số thứ tự các đỉnh (Đ1, Đ2, Đ3...) trên bản vẽ": "Show or hide vertex index labels (V1, V2, V3...) on drawing",
+        "Hiện hoặc ẩn khoảng cách giữa các đỉnh (cự ly cạnh theo mét)": "Show or hide edge lengths between vertices (in meters)",
+        "Hiện hoặc ẩn ký hiệu tên và diện tích tại tâm các khối": "Show or hide block name and area at shape centroids",
+        "Hiện hoặc ẩn các nét ghi chú: mũi tên, khối nhà, tem nhãn, văn bản": "Show or hide annotations: leader arrows, buildings, stamps, text",
         "Hiện hoặc ẩn đường viền ranh giới các khối": "Show or hide shape boundary outlines",
         "Tự động bắt cạnh/line khối liền kề chống hở ranh và chống chồng lấn thửa đất": "Auto-snap adjacent parcel boundaries to prevent boundary gaps and overlaps",
-        "Kéo giữ để di chuyển bảng": "Keo giu de di chuyen table",
-        "Tỉ lệ 50% (Gọn)": "Ti le 50% (Gon)",
-        "Tỉ lệ 75% (Vừa)": "Ti le 75% (Vua)",
-        "Tỉ lệ 100% (Rộng)": "Ti le 100% (Rong)",
-        "Phóng to toàn màn hình / Thu nhỏ": "Phong to toan man hinh / Thu nho",
-        "Thu gọn thành thanh dock": "Collapse thanh thanh dock",
-        "Đóng bảng kê": "Close summary table",
-        "Sao chép toàn bộ bảng kê": "copy toan bo summary table",
-        "Tải file Excel bảng kê": "Tai file Excel summary table",
-        "Căn bản đồ vừa khớp toàn bộ mốc": "need Map vua khop all Points",
+        "Kéo giữ để di chuyển bảng": "Drag and hold to move panel",
+        "Tỉ lệ 50% (Gọn)": "Scale 50% (Compact)",
+        "Tỉ lệ 75% (Vừa)": "Scale 75% (Medium)",
+        "Tỉ lệ 100% (Rộng)": "Scale 100% (Full)",
+        "Phóng to toàn màn hình / Thu nhỏ": "Maximize fullscreen / Restore",
+        "Thu gọn thành thanh dock": "Minimize to dock bar",
+        "Đóng bảng kê": "Close schedule",
+        "Sao chép toàn bộ bảng kê": "Copy entire schedule",
+        "Tải file Excel bảng kê": "Download Excel schedule",
+        "Căn bản đồ vừa khớp toàn bộ mốc": "Fit map view to all benchmarks",
         "Chuyển sang MiniCAD để thêm, vẽ hoặc chỉnh sửa mốc & thửa": "Switch to MiniCAD to add, draw or edit benchmarks & parcels",
-        "Nhấp & kéo giữ để di chuyển bảng khắp màn hình": "Input & keo giu de di chuyen table khap man hinh",
-        "Tay cầm kéo thả": "Tay cam keo tha",
+        "Nhấp & kéo giữ để di chuyển bảng khắp màn hình": "Click & drag to move table across screen",
+        "Tay cầm kéo thả": "Drag handle",
         "Mở bảng kê chi tiết diện tích & tọa độ các đỉnh ranh": "Open detailed area schedule & boundary vertex coordinates",
-        "Khôi phục toàn bộ diện tích & cự ly chiều dài về số đo thực tế": "restore all area & distance length to Survey Book thuc te",
-        "Thu nhỏ / Mở rộng bảng": "Thu nho / Expand table",
+        "Khôi phục toàn bộ diện tích & cự ly chiều dài về số đo thực tế": "Restore all areas & edge lengths to measured field values",
+        "Thu nhỏ / Mở rộng bảng": "Collapse / Expand table",
         "Đóng bảng": "Close table",
-        "Nhấp & kéo giữ để di chuyển thanh nút lên xuống": "Input & keo giu de di chuyen thanh nut on xuong",
+        "Nhấp & kéo giữ để di chuyển thanh nút lên xuống": "Click & drag to move toolbar up or down",
         "Phóng to bản đồ (Tối đa mức 24 siêu chi tiết)": "Zoom in map (Up to ultra-detailed level 24)",
-        "Thu nhỏ bản đồ": "Thu nho Map",
-        "Đổi lớp bản đồ (Vệ tinh / Đường phố)": "Doi lop Map (satellite / Duong pho)",
+        "Thu nhỏ bản đồ": "Zoom out map",
+        "Đổi lớp bản đồ (Vệ tinh / Đường phố)": "Switch map basemap (Satellite / Streets)",
         "Bật/tắt ranh giới 34 tỉnh thành": "Toggle 34 province administrative boundaries",
         "Bật/tắt ranh giới xã Đồng Tháp": "Toggle Dong Thap commune boundaries",
-        "Định vị GPS vị trí hiện tại": "Dinh vi GPS location current",
+        "Định vị GPS vị trí hiện tại": "Locate current GPS position",
         "Thu phóng nhìn cả 2 điểm (Vị trí đứng & Điểm chọn/chuyển)": "Fit view to both points (Current location & Picked/Converted point)",
-        "Diện tích tức thời": "area tuc thoi",
+        "Diện tích tức thời": "Live area",
         "Chu vi / Chiều dài cạnh": "Perimeter / Edge Length",
         "Bật/Tắt Bắt điểm Osnap [F3/S]": "Toggle Object Snap [F3/S]",
         "Bắt line liền kề [B]": "Snap Adjacent Lines [B]",
-        "Zoom toàn cảnh [Z / Chuột giữa x2]": "Zoom toan cphoto [Z / Chuot giua x2]",
+        "Zoom toàn cảnh [Z / Chuột giữa x2]": "Zoom Extents [Z / Double middle-click]",
         "Bật/Tắt chế độ tương phản cao ngoài nắng": "Toggle Outdoor High-Contrast Mode",
-        "Hoàn tác đỉnh vừa vẽ [Ctrl+Z / U]": "Hoan tac dinh vua ve [Ctrl+Z / U]",
-        "Lấy vị trí GPS hiện tại làm đỉnh mốc": "Lay location GPS current do dinh point",
+        "Hoàn tác đỉnh vừa vẽ [Ctrl+Z / U]": "Undo last vertex [Ctrl+Z / U]",
+        "Lấy vị trí GPS hiện tại làm đỉnh mốc": "Use current GPS position as vertex",
         "Khép góc & Lưu khối [Space / Enter]": "Close & Save Shape [Space / Enter]",
-        "Hủy nét vẽ dở dang [Esc]": "cancel net ve do dang [Esc]",
-        "Hướng dẫn cắm mốc thực địa": "guide stakeout field",
-        "Căn giữa cả vị trí người dùng và mốc": "Can giua ca location user va point",
-        "Hướng dẫn sổ đo & quản lý dự án": "guide Field Book & quan ly project",
-        "Chuyển dự án hiện tại vào thùng rác (lưu 30 ngày)": "Chuyen project current into thung rac (save 30 date)",
-        "Xem danh sách các dự án đã xóa trong vòng 30 ngày": "view list the project da delete in vong 30 date",
-        "Hướng dẫn tiện ích trắc địa & giao hội": "guide tien ich trac dia & resection",
+        "Hủy nét vẽ dở dang [Esc]": "Cancel current drawing [Esc]",
+        "Hướng dẫn cắm mốc thực địa": "Field stakeout guide",
+        "Căn giữa cả vị trí người dùng và mốc": "Center both user location and target point",
+        "Hướng dẫn sổ đo & quản lý dự án": "Field book & project management guide",
+        "Chuyển dự án hiện tại vào thùng rác (lưu 30 ngày)": "Move current project to Trash (kept 30 days)",
+        "Xem danh sách các dự án đã xóa trong vòng 30 ngày": "View projects deleted within the last 30 days",
+        "Hướng dẫn tiện ích trắc địa & giao hội": "Geodesy utilities & resection guide",
         "Chọn mốc từ Sổ đo / Dự án đang mở": "Select benchmarks from open Field Book / Project",
         "Mở phân hệ 3.5 MiniCAD để vẽ tuyến đường / tim cọc": "Open Section 3.5 MiniCAD to draw road alignment / center stake",
         "Nạp nhanh tim tuyến đã vẽ trên MiniCAD": "Quickly load centerline alignment drawn in MiniCAD",
         "Nạp nhanh 5 cọc mẫu thử nghiệm": "Quickly load 5 sample test stakes",
-        "Xóa danh sách cọc hiện tại": "delete list coc current",
+        "Xóa danh sách cọc hiện tại": "Clear current stakes list",
         "Bật/Tắt tô màu phân biệt Đào và Đắp": "Toggle Cut/Fill Shading Color",
-        "Phóng to bề rộng trắc dọc": "Phong to be rong profile",
-        "Thu nhỏ bề rộng trắc dọc": "Thu nho be rong profile",
-        "Khôi phục kích thước chuẩn": "restore kich thuoc standard",
+        "Phóng to bề rộng trắc dọc": "Zoom in profile width",
+        "Thu nhỏ bề rộng trắc dọc": "Zoom out profile width",
+        "Khôi phục kích thước chuẩn": "Reset to default scale",
         "Chọn mốc chu vi đáy từ Dự án đang mở": "Select bottom perimeter benchmarks from open Project",
         "Mở phân hệ 3.5 MiniCAD để vẽ đa giác chu vi đáy móng": "Open Section 3.5 MiniCAD to draw foundation pit bottom perimeter polygon",
         "Nạp nhanh đa giác đáy đã vẽ trên CAD Mini": "Quickly load bottom polygon drawn in MiniCAD",
         "Nạp nhanh móng mẫu 6x8m sâu 2.5m": "Quickly load sample footing 6x8m depth 2.5m",
-        "Xóa danh sách mốc đáy hố đào": "delete list point day foundation pit",
+        "Xóa danh sách mốc đáy hố đào": "Clear pit bottom benchmark list",
         "Bật/Tắt Khung tên bản vẽ": "Toggle Drawing Title Block",
-        "Phóng to": "Phong to",
-        "Thu nhỏ": "Thu nho",
-        "Khôi phục": "restore",
-        "Trang chủ tính năng": "Trang chu calculate nang",
-        "Chuyển đổi tọa độ WGS84 - VN2000": "transform Coordinates WGS84 - VN2000",
-        "Bản đồ trắc địa vệ tinh": "Map trac dia satellite",
-        "Cắm mốc thực địa & GPS": "stakeout field & GPS",
-        "Sổ đo & Quản lý dự án mốc": "Field Book & Quan ly project point",
-        "Hướng dẫn sử dụng riêng cho mục cài đặt này": "guide su dung rieng for item settings nay",
+        "Phóng to": "Zoom in",
+        "Thu nhỏ": "Zoom out",
+        "Khôi phục": "Restore",
+        "Trang chủ tính năng": "Features Home",
+        "Chuyển đổi tọa độ WGS84 - VN2000": "WGS-84 ⇄ VN-2000 Coordinate Conversion",
+        "Bản đồ trắc địa vệ tinh": "Geodetic Satellite Map",
+        "Cắm mốc thực địa & GPS": "Field Stakeout & GPS",
+        "Sổ đo & Quản lý dự án mốc": "Field Book & Project Management",
+        "Hướng dẫn sử dụng riêng cho mục cài đặt này": "User guide for this settings section",
         "Đóng cài đặt": "Close settings",
-        "Hướng dẫn 5 bảng kê MiniCAD": "guide 5 summary table MiniCAD",
+        "Hướng dẫn 5 bảng kê MiniCAD": "Guide to 5 MiniCAD Schedules",
         "Bảng kê ranh mốc và tổng hợp diện tích các khối": "Boundary benchmark list & total shape area summary",
-        "Bảng kê toàn bộ các đỉnh mốc (tọa độ VN2000, ẩn/hiện, sửa tên)": "summary table all the dinh Points (Coordinates VN2000, an/display, edit name)",
-        "Bảng kê các mũi tên CAD (1 đầu nhọn / 2 đầu nhọn, cự ly, sửa tên)": "summary table the leader arrow CAD (1 dau nhon / 2 dau nhon, distance, edit name)",
-        "Bảng kê các khối công trình / nhà ở (kích thước, diện tích, sửa tên)": "summary table the shape cong trinh / nha o (kich thuoc, area, edit name)",
-        "Bảng kê các vùng đệm / bán kính bảo vệ (tọa độ tâm, bán kính R, sửa tên)": "summary table the vung dem / ban kinh bao to (Coordinates tam, ban kinh R, edit name)",
+        "Bảng kê toàn bộ các đỉnh mốc (tọa độ VN2000, ẩn/hiện, sửa tên)": "All vertices schedule (VN-2000 coords, show/hide, rename)",
+        "Bảng kê các mũi tên CAD (1 đầu nhọn / 2 đầu nhọn, cự ly, sửa tên)": "CAD leader arrows schedule (single/double head, distance, rename)",
+        "Bảng kê các khối công trình / nhà ở (kích thước, diện tích, sửa tên)": "Building blocks schedule (dimensions, area, rename)",
+        "Bảng kê các vùng đệm / bán kính bảo vệ (tọa độ tâm, bán kính R, sửa tên)": "Buffer / protection radius schedule (center coords, radius R, rename)",
         "Đặt lại theo tổng diện tích đo thực tế": "Reset according to total measured field area",
-        "Sao chép bảng kê vào bộ nhớ tạm": "copy summary table into clipboard",
-        "In bảng kê": "In summary table",
-        "Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp": "export table calculate Excel (.xls) co dinh dang va mau sac chuyen nghiep",
-        "Xuất dữ liệu thô CSV": "export du lieu tho CSV",
+        "Sao chép bảng kê vào bộ nhớ tạm": "Copy schedule to clipboard",
+        "In bảng kê": "Print schedule",
+        "Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp": "Export professionally styled Excel spreadsheet (.xls)",
+        "Xuất dữ liệu thô CSV": "Export raw CSV data",
         "Mở hộp thoại cấu hình tỷ lệ, khổ giấy và thông tin khung tên xuất bản vẽ CAD/PDF": "Open dialog to configure drawing scale, paper size and title block for CAD/PDF export",
         "Xuất ảnh bản vẽ mặt bằng tối ưu dung lượng (WebP/JPEG/PNG), chia sẻ tức thì qua Zalo": "Export optimized site plan image (WebP/JPEG/PNG), share instantly via Zalo",
-        "Xuất bản vẽ AutoCAD (.dxf) chuẩn Unicode không lỗi tiếng Việt và bố cục TCVN 7285": "export drawing AutoCAD (.dxf) standard Unicode no error tieng Viet va bo cuc TCVN 7285",
+        "Xuất bản vẽ AutoCAD (.dxf) chuẩn Unicode không lỗi tiếng Việt và bố cục TCVN 7285": "Export Unicode AutoCAD drawing (.dxf) with TCVN 7285 layout",
         "Xuất bản vẽ kỹ thuật trực tiếp ra file PDF (.pdf) chuẩn kích thước khổ giấy và tỷ lệ in ấn": "Export technical drawing directly to PDF (.pdf) with standard paper sizes and plotting scales",
-        "Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp chuẩn TCVN": "export table calculate Excel (.xls) co dinh dang va mau sac chuyen nghiep standard TCVN",
-        "Xuất đồ họa vector SVG sắc nét": "export do hoa vector SVG sac net",
-        "Xuất hình ảnh PNG độ nét cao": "export image PNG do net cao",
-        "Xuất dữ liệu thô định dạng CSV": "export du lieu tho dinh dang CSV",
-        "Tạo dự án mới độc lập với bản vẽ trắng sạch": "create project moi doc lap with drawing trang sach",
-        "Chuyển MiniCAD sang làm việc trực tiếp trên dự án đang chọn này": "Chuyen MiniCAD to working truc tiep on project dang select nay",
+        "Xuất bảng tính Excel (.xls) có định dạng và màu sắc chuyên nghiệp chuẩn TCVN": "Export TCVN-formatted Excel spreadsheet (.xls)",
+        "Xuất đồ họa vector SVG sắc nét": "Export crisp SVG vector graphics",
+        "Xuất hình ảnh PNG độ nét cao": "Export high-resolution PNG image",
+        "Xuất dữ liệu thô định dạng CSV": "Export raw CSV format",
+        "Tạo dự án mới độc lập với bản vẽ trắng sạch": "Create a new standalone project with a blank drawing",
+        "Chuyển MiniCAD sang làm việc trực tiếp trên dự án đang chọn này": "Switch MiniCAD to work directly on this selected project",
         "Nạp nguyên vẹn các khối đã chọn vào bản vẽ MiniCAD hiện tại": "Load selected shapes intact into current MiniCAD drawing",
-        "Nhập trực tiếp từ file Excel (.xlsx, .xls) hoặc CSV": "import truc tiep tu file Excel (.xlsx, .xls) or CSV",
-        "Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do": "Chi enable the Points nay on Map de bat diem (Snap) khi to from do",
+        "Nhập trực tiếp từ file Excel (.xlsx, .xls) hoặc CSV": "Import directly from Excel (.xlsx, .xls) or CSV file",
+        "Chỉ bật các mốc này lên bản đồ để bắt điểm (Snap) khi vẽ tự do": "Display these benchmarks on the map for snapping during freehand drawing",
         "Nạp thành đường tim tuyến hở trong MiniCAD": "Load as open centerline polyline in MiniCAD",
         "Nạp thành đa giác khép kín tính diện tích trong MiniCAD": "Load as closed polygon for area calculation in MiniCAD",
         "Đóng menu": "Close menu",
-        "Trạng thái chức năng": "Trang thai feature",
+        "Trạng thái chức năng": "Feature status",
         "Mở cây thư mục chức năng (Chuyển nhanh)": "Open functional feature tree (Quick Jump)",
         "Đóng hướng dẫn": "Close guide",
         "Tìm nhanh (cad, rtk, đào đắp, cắm mốc, camera...)": "Quick search (cad, rtk, cut/fill, stakeout, camera...)",
         "Tìm nhanh chức năng (cắm mốc, camera, dwg, kml, bản đồ...)": "Quick search tools (stakeout, camera, dwg, kml, map...)",
-        "VD: 10.345211 hoặc 10° 20.7127'": "VD: 10.345211 or 10° 20.7127'",
-        "VD: 106.113617 hoặc 106° 06.8170'": "VD: 106.113617 or 106° 06.8170'",
+        "VD: 10.345211 hoặc 10° 20.7127'": "e.g. 10.345211 or 10° 20.7127'",
+        "VD: 106.113617 hoặc 106° 06.8170'": "e.g. 106.113617 or 106° 06.8170'",
         "VD: Mốc 1, Ranh thửa 02...": "e.g. BM 1, Boundary 02...",
         "VD: Cọc bê tông, góc hàng rào...": "e.g. Concrete landmark, fence corner...",
-        "Ví dụ:&#10;M1 1144058.62 539624.57&#10;M2 1144080.15 539650.22": "Vi du:&#10;M1 1144058.62 539624.57&#10;M2 1144080.15 539650.22",
+        "Ví dụ:&#10;M1 1144058.62 539624.57&#10;M2 1144080.15 539650.22": "Example:&#10;M1 1144058.62 539624.57&#10;M2 1144080.15 539650.22",
         "Tên khối (Thửa 1)": "Block Name (Parcel 1)",
         "X A (Bắc)": "X A (North)",
         "Y A (Đông)": "Y A (East)",
         "X B (Bắc)": "X B (North)",
         "Y B (Đông)": "Y B (East)",
-        "Gõ nhanh: 105°45', 105O45' hoặc 105.75": "Go nhanh: 105°45', 105O45' or 105.75",
+        "Gõ nhanh: 105°45', 105O45' hoặc 105.75": "Quick input: 105°45', 105O45' or 105.75",
         "Độ (VD: 105)": "Degrees (e.g. 105)",
         "Phút (VD: 45)": "Minutes (e.g. 45)",
-        "X (m) mốc A": "X (m) point A",
-        "Y (m) mốc A": "Y (m) point A",
+        "X (m) mốc A": "X (m) Point A",
+        "Y (m) mốc A": "Y (m) Point A",
         "Khoảng cách dA (m)": "Distance dA (m)",
-        "X (m) mốc B": "X (m) point B",
-        "Y (m) mốc B": "Y (m) point B",
+        "X (m) mốc B": "X (m) Point B",
+        "Y (m) mốc B": "Y (m) Point B",
         "Khoảng cách dB (m)": "Distance dB (m)",
-        "Đo thực tế": "Do thuc te",
-        "Tìm đỉnh / khối...": "search dinh / shape...",
-        "🔍 Lọc nhanh theo tên khối / loại cấu trúc...": "🔍 Loc nhanh according to name shape / loai cau truc...",
-        "VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT": "Ex: CADASTRAL BOUNDARY SURVEY PLAN",
-        "VD: Khu dân cư Đô thị mới Mỹ Phú": "VD: Khu dan cu Do thi moi My Phu",
-        "VD: TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH": "Ex: CADASTRAL SURVEYING & MAPPING CENTER",
-        "VD: Ông/Bà Nguyễn Văn A": "VD: Ong/Ba Nguyen Van A",
-        "VD: Thửa 123 / Tờ 05": "Ex: Parcel 123 / Sheet 05",
-        "VD: Ấp 3, xã Mỹ Long, huyện Cao Lãnh": "VD: Ap 3, xa My Long, district Cao Lanh",
-        "VD: KS. Trần Văn B": "VD: KS. Tran Van B",
-        "VD: KS. Lê Văn C": "VD: KS. Le Van C",
-        "VD: SĐ-01/01": "VD: SD-01/01",
-        "🔍 Lọc khối theo tên, loại...": "🔍 Loc shape according to name, loai...",
-        "🔍 Lọc mốc theo tên hoặc ghi chú...": "🔍 Loc point according to name or ghi chu...",
-        "VD: Thửa đất ranh dự án": "Ex: Project Boundary Land Parcel",
-        "Ví dụ: 25.50": "Vi du: 25.50",
-        "Ví dụ: 90.0 (hướng Đông) hoặc 45.25": "Vi du: 90.0 (direction Close) or 45.25",
-        "Ví dụ: Đ1, Ranh 1...": "Ex: P1, Bnd 1...",
-        "Ví dụ: 1144050.250": "Vi du: 1144050.250",
-        "Ví dụ: 539620.150": "Vi du: 539620.150",
-        "Nhập ghi chú...": "import ghi chu...",
-        "Ví dụ: 12": "Vi du: 12",
-        "Ví dụ: 45": "Vi du: 45",
-        "Ví dụ: 150.8 m²": "Vi du: 150.8 m²",
-        "Ví dụ: ONT, CLN, LUC": "Vi du: ONT, CLN, LUC",
-        "Ví dụ: Nguyễn Văn A": "Vi du: Nguyen Van A",
+        "Đo thực tế": "Field Measured",
+        "Tìm đỉnh / khối...": "Search vertex / shape...",
+        "🔍 Lọc nhanh theo tên khối / loại cấu trúc...": "🔍 Filter by shape name / structure type...",
+        "VD: BẢN ĐỒ HIỆN TRẠNG VỊ TRÍ THỬA ĐẤT": "e.g. CADASTRAL BOUNDARY SURVEY PLAN",
+        "VD: Khu dân cư Đô thị mới Mỹ Phú": "e.g. My Phu New Urban Residential Area",
+        "VD: TRUNG TÂM KHẢO SÁT & ĐO ĐẠC ĐỊA CHÍNH": "e.g. CADASTRAL SURVEYING & MAPPING CENTER",
+        "VD: Ông/Bà Nguyễn Văn A": "e.g. Mr./Ms. Nguyen Van A",
+        "VD: Thửa 123 / Tờ 05": "e.g. Parcel 123 / Sheet 05",
+        "VD: Ấp 3, xã Mỹ Long, huyện Cao Lãnh": "e.g. Hamlet 3, My Long Commune, Cao Lanh District",
+        "VD: KS. Trần Văn B": "e.g. Eng. Tran Van B",
+        "VD: KS. Lê Văn C": "e.g. Eng. Le Van C",
+        "VD: SĐ-01/01": "e.g. SD-01/01",
+        "🔍 Lọc khối theo tên, loại...": "🔍 Filter shapes by name, type...",
+        "🔍 Lọc mốc theo tên hoặc ghi chú...": "🔍 Filter benchmarks by name or note...",
+        "VD: Thửa đất ranh dự án": "e.g. Project Boundary Land Parcel",
+        "Ví dụ: 25.50": "e.g. 25.50",
+        "Ví dụ: 90.0 (hướng Đông) hoặc 45.25": "e.g. 90.0 (East) or 45.25",
+        "Ví dụ: Đ1, Ranh 1...": "e.g. V1, Bnd 1...",
+        "Ví dụ: 1144050.250": "e.g. 1144050.250",
+        "Ví dụ: 539620.150": "e.g. 539620.150",
+        "Nhập ghi chú...": "Enter note...",
+        "Ví dụ: 12": "e.g. 12",
+        "Ví dụ: 45": "e.g. 45",
+        "Ví dụ: 150.8 m²": "e.g. 150.8 m²",
+        "Ví dụ: ONT, CLN, LUC": "e.g. ONT, CLN, LUC",
+        "Ví dụ: Nguyễn Văn A": "e.g. Nguyen Van A",
         "MẶT BẰNG HIỆN TRẠNG KHU ĐẤT": "EXISTING SITE SURVEY PLAN",
-        "Kỹ sư trắc địa": "Ky su trac dia",
-        "Nhà cấp 4, Nhà kho...": "Nha cap 4, Nha kho...",
-        "Ví dụ: Giếng khoan, Hành lang điện...": "Vi du: Gieng khoan, Hanh lang dien...",
-        "Mốc M1, Ranh thửa, L=15.5m...": "point M1, Parcel Boundary, L=15.5m...",
-        "Tên file dự án mới (ví dụ: DoDac_KhuA.csv)": "name file project moi (vi du: DoDac_KhuA.csv)",
+        "Kỹ sư trắc địa": "Survey Engineer",
+        "Nhà cấp 4, Nhà kho...": "Single-story house, Warehouse...",
+        "Ví dụ: Giếng khoan, Hành lang điện...": "e.g. Borehole well, Power corridor...",
+        "Mốc M1, Ranh thửa, L=15.5m...": "BM M1, Parcel Boundary, L=15.5m...",
+        "Tên file dự án mới (ví dụ: DoDac_KhuA.csv)": "New project filename (e.g. Survey_ZoneA.csv)",
         "Ví dụ dán tọa độ VN-2000:&#10;M1, 1144058.623, 539624.574, Ranh phía Tây&#10;M2, 1144120.350, 539680.120, Góc phía Bắc&#10;&#10;Hoặc dán không có tên (chỉ 2 cột số):&#10;1144058.623 539624.574&#10;1144120.350 539680.120&#10;&#10;Hoặc dán tọa độ GPS / WGS-84 (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200": "Example pasting VN-2000 coordinates:&#10;M1, 1144058.623, 539624.574, West Boundary&#10;M2, 1144120.350, 539680.120, North Corner&#10;&#10;Or paste without point names (2 numeric columns):&#10;1144058.623 539624.574&#10;1144120.350 539680.120&#10;&#10;Or paste GPS / WGS-84 coordinates (Lat, Lng):&#10;10.762622, 106.660172&#10;10.763150, 106.661200",
-        "Tìm nhanh (cắm mốc, dwg, kml, camera...)": "search nhanh (stakeout, dwg, kml, camera...)",
+        "Tìm nhanh (cắm mốc, dwg, kml, camera...)": "Quick search (stakeout, dwg, kml, camera...)",
     },
 
     patterns: [
@@ -43293,29 +43762,34 @@ const appOcr = {
         if (!this.detectedKtt) return;
         if (typeof triggerHaptic === 'function') triggerHaptic('success');
         const { deg, min, mui } = this.detectedKtt;
+        const zoneVal = (mui === 6) ? 6 : 3;
 
         if (typeof AppState !== 'undefined') {
             AppState.kttDeg = deg;
             AppState.kttMin = min;
             AppState.kttVal = +(deg + min / 60).toFixed(4);
-            AppState.zone = mui;
-            AppState.scaleFactor = mui === 3 ? 0.9999 : 0.9996;
+            AppState.muiVal = zoneVal;
+            AppState.scaleFactor = zoneVal === 3 ? 0.9999 : 0.9996;
         }
 
-        const selDeg = document.getElementById('selKttDeg');
-        const selMin = document.getElementById('selKttMin');
-        const selZone = document.getElementById('selZone');
-        if (selDeg) selDeg.value = deg;
-        if (selMin) selMin.value = min;
-        if (selZone) selZone.value = mui;
+        const btn3 = typeof document !== 'undefined' ? document.getElementById('btnMui3') : null;
+        const btn6 = typeof document !== 'undefined' ? document.getElementById('btnMui6') : null;
+        if (btn3) btn3.classList.toggle('active', zoneVal === 3);
+        if (btn6) btn6.classList.toggle('active', zoneVal === 6);
 
         if (typeof appTransform !== 'undefined' && appTransform.updateKttLabel) {
             appTransform.updateKttLabel();
         }
+        if (typeof appNav !== 'undefined' && typeof appNav.updateBanner === 'function') {
+            appNav.updateBanner();
+        }
+        if (typeof appSettings !== 'undefined' && typeof appSettings.save === 'function') {
+            appSettings.save();
+        }
 
-        const boxKtt = document.getElementById('boxOcrDetectedKtt');
+        const boxKtt = typeof document !== 'undefined' ? document.getElementById('boxOcrDetectedKtt') : null;
         if (boxKtt) boxKtt.style.display = 'none';
-        if (typeof showToast === 'function') showToast(`✨ Đã áp dụng KTT ${deg}°${min}' (Múi ${mui}°) vào hệ thống!`);
+        if (typeof showToast === 'function') showToast(`✨ Đã áp dụng KTT ${deg}°${min}' (Múi ${zoneVal}°) vào hệ thống!`);
     },
 
     renderOcrTable() {

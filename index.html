@@ -42,13 +42,13 @@
   <link rel="preconnect" href="https://mt1.google.com" crossorigin>
 
   <!-- APPLICATION MASTER STYLESHEET (LOVABLE PRO 2026) -->
-  <link rel="stylesheet" href="style.css?v=2.8.61">
-  <link rel="stylesheet" href="field-workspace.css?v=2.8.61">
-  <link rel="stylesheet" href="ui-polish.css?v=2.8.61">
-  <link rel="stylesheet" href="ui-unified.css?v=2.8.61">
-  <link rel="stylesheet" href="ui-sylva.css?v=2.8.61">
-  <link rel="stylesheet" href="ui-assistant.css?v=2.8.61">
-  <link rel="stylesheet" href="ui-mapfirst.css?v=2.8.61">
+  <link rel="stylesheet" href="style.css?v=2.8.62">
+  <link rel="stylesheet" href="field-workspace.css?v=2.8.62">
+  <link rel="stylesheet" href="ui-polish.css?v=2.8.62">
+  <link rel="stylesheet" href="ui-unified.css?v=2.8.62">
+  <link rel="stylesheet" href="ui-sylva.css?v=2.8.62">
+  <link rel="stylesheet" href="ui-assistant.css?v=2.8.62">
+  <link rel="stylesheet" href="ui-mapfirst.css?v=2.8.62">
 </head>
 
 <body>
@@ -1072,7 +1072,7 @@
                     title="Chấm chọn tọa độ trên bản đồ (Đơn điểm / Đa điểm)">🎯 Chấm điểm bản đồ</button>
                   <button class="btn-sm" onclick="appTransform.pasteCoords()">📋 Dán</button>
                   <button class="btn-sm" onclick="appTransform.copyWgs()">📋 Chép</button>
-                  <button class="btn-sm btn-red" onclick="appTransform.clearWgs()">🗑️</button>
+                  <button class="btn-sm btn-red" style="flex: 0 0 42px; padding: 0;" onclick="appTransform.clearWgs()" title="Xóa tọa độ WGS-84" aria-label="Xóa tọa độ WGS-84">🗑️</button>
                 </div>
               </div>
 
@@ -2408,18 +2408,18 @@
               style="height: 26px; width: 110px; font-size: 11px; padding: 0 6px; background: rgba(41,37,36,0.9); border: 1px solid rgba(147,204,156,0.4); color: #faf9f6; border-radius: 5px; flex: none;"
               placeholder="Tên khối (Thửa 1)" title="Đặt tên khối trước khi vẽ hoặc lưu" aria-label="Tên khối (Thửa 1)">
                         <!-- Thanh chọn nhanh ký hiệu đỉnh khi đang vẽ (Realtime Vertex HUD) -->
-            <div id="cadVertexQuickBar" style="display: flex; align-items: center; gap: 4px; background: rgba(28, 26, 24, 0.7); border: 1px solid rgba(147, 204, 156, 0.3); border-radius: 6px; padding: 2px 6px;">
+            <div id="cadVertexQuickBar" style="display: flex; align-items: center; gap: 4px; flex: 0 0 auto; flex-shrink: 0; background: rgba(28, 26, 24, 0.7); border: 1px solid rgba(147, 204, 156, 0.3); border-radius: 6px; padding: 2px 6px;">
               <span style="font-size: 11px; color: #93cc9c; font-weight: 700; white-space: nowrap;">🎨 Đỉnh:</span>
               <select id="cadDrawVertexStyle" class="app-input" onchange="appCadTool.updateDraftVertexConfig('style', this.value)"
                 title="Kiểu dáng icon đỉnh khi đang vẽ (Tròn, Vuông, Thoi, Sao, Pin...)"
-                style="height: 32px; max-width: 110px; font-size: 12px; padding: 0 4px; background: rgba(41,37,36,0.9); border: 1px solid rgba(147,204,156,0.4); color: #faf9f6; border-radius: 4px;" aria-label="Kiểu dáng icon đỉnh khi đang vẽ (Tròn, Vuông, Thoi, Sao, Pin...)">
+                style="height: 32px; min-width: 96px; max-width: 118px; flex: 0 0 auto; font-size: 12px; padding: 0 4px; background: rgba(41,37,36,0.9); border: 1px solid rgba(147,204,156,0.4); color: #faf9f6; border-radius: 4px;" aria-label="Kiểu dáng icon đỉnh khi đang vẽ (Tròn, Vuông, Thoi, Sao, Pin...)">
               </select>
               <input type="color" id="cadDrawVertexColor" value="#10b981" onchange="appCadTool.updateDraftVertexConfig('color', this.value)"
                 title="Màu sắc icon đỉnh khi đang vẽ"
-                style="width: 32px; height: 32px; padding: 0; border: 1px solid rgba(147,204,156,0.4); border-radius: 4px; background: #1c1a18; cursor: pointer;" aria-label="Màu sắc icon đỉnh khi đang vẽ">
+                style="width: 32px; min-width: 32px; height: 32px; flex: 0 0 32px; padding: 0; border: 1px solid rgba(147,204,156,0.4); border-radius: 4px; background: #1c1a18; cursor: pointer;" aria-label="Màu sắc icon đỉnh khi đang vẽ">
               <select id="cadDrawVertexSize" class="app-input" onchange="appCadTool.updateDraftVertexConfig('size', this.value)"
                 title="Kích thước icon đỉnh khi đang vẽ (Nhỏ 14px, Vừa 20px, Lớn 26px, Rất lớn 32px)"
-                style="height: 32px; max-width: 95px; font-size: 12px; padding: 0 4px; background: rgba(41,37,36,0.9); border: 1px solid rgba(147,204,156,0.4); color: #faf9f6; border-radius: 4px;" aria-label="Kích thước icon đỉnh khi đang vẽ (Nhỏ 14px, Vừa 20px, Lớn 26px, Rất lớn 32px)">
+                style="height: 32px; min-width: 84px; max-width: 102px; flex: 0 0 auto; font-size: 12px; padding: 0 4px; background: rgba(41,37,36,0.9); border: 1px solid rgba(147,204,156,0.4); color: #faf9f6; border-radius: 4px;" aria-label="Kích thước icon đỉnh khi đang vẽ (Nhỏ 14px, Vừa 20px, Lớn 26px, Rất lớn 32px)">
               </select>
             </div>
             <button id="btnCadSaveShape" class="cad-btn"
@@ -3318,6 +3318,158 @@
               </button>
             </div>
           </div>
+
+          <!-- Bộ tùy chỉnh các trường thông tin đóng dấu (tự nhập / ẩn hiện / thêm trường mới) -->
+          <div id="camStampCustomizerWrap" class="cam-stamp-wrap">
+            <button type="button" id="btnToggleCamStampEditor" class="cam-stamp-toggle-btn" onclick="appCamera.toggleStampCustomizer()" aria-expanded="false" aria-controls="panelCameraStampCustomizer">
+              <span>⚙️ Tùy chỉnh thông tin đóng dấu</span>
+              <span class="cam-stamp-toggle-right">
+                <span id="badgeCamStampStatus" class="cam-stamp-badge">Tự động</span>
+                <span id="iconCamStampChevron" aria-hidden="true">▾</span>
+              </span>
+            </button>
+
+            <div id="panelCameraStampCustomizer" class="cam-stamp-panel" style="display: none;">
+              <!-- Xem trước thẻ dấu thật vẽ trực tiếp bằng drawWatermark -->
+              <div class="cam-stamp-preview-wrap">
+                <canvas id="cameraStampPreviewCanvas" aria-label="Xem trước thẻ đóng dấu"></canvas>
+              </div>
+
+              <div class="cam-stamp-hint">
+                Để trống ô bất kỳ để lấy tự động theo mốc / GPS. Nhập chữ mới để thay đổi trực tiếp trên dấu ảnh &amp; video.
+              </div>
+
+              <!-- 1. Tiêu đề thẻ dấu -->
+              <div class="cam-stamp-section">
+                <label class="cam-stamp-lbl" for="txtCamStampHeader">Tiêu đề khung đóng dấu:</label>
+                <input type="text" id="txtCamStampHeader" class="app-input cam-stamp-input" placeholder="HỆ VN-2000 | ẢNH NGHIỆM THU HIỆN TRƯỜNG" oninput="appCamera.onStampFieldInput()">
+              </div>
+
+              <!-- 2. Dòng MỐC | DỰ ÁN -->
+              <div class="cam-stamp-section">
+                <div class="cam-stamp-sec-head">
+                  <label class="cam-stamp-chk"><input type="checkbox" id="chkCamStampMarkProj" checked onchange="appCamera.onStampFieldInput()"> <span>📍 Dòng MỐC &amp; DỰ ÁN</span></label>
+                </div>
+                <div class="cam-stamp-grid-2">
+                  <div>
+                    <label class="cam-stamp-sub-lbl" for="txtCamStampMark">MỐC:</label>
+                    <input type="text" id="txtCamStampMark" class="app-input cam-stamp-input" placeholder="VD: Cổng công ty Emivest Feedmill" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                  <div>
+                    <label class="cam-stamp-sub-lbl" for="txtCamStampProject">DỰ ÁN:</label>
+                    <input type="text" id="txtCamStampProject" class="app-input cam-stamp-input" placeholder="VD: BC_VSV_UD_MT" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Dòng VN-2000 -->
+              <div class="cam-stamp-section">
+                <div class="cam-stamp-sec-head">
+                  <label class="cam-stamp-chk"><input type="checkbox" id="chkCamStampVn2000" checked onchange="appCamera.onStampFieldInput()"> <span>• Dòng tọa độ VN-2000</span></label>
+                </div>
+                <div class="cam-stamp-grid-2">
+                  <div>
+                    <label class="cam-stamp-sub-lbl" for="txtCamStampX">X (Bắc - m):</label>
+                    <input type="text" id="txtCamStampX" class="app-input cam-stamp-input" placeholder="Tự động (vd: 1142489.578)" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                  <div>
+                    <label class="cam-stamp-sub-lbl" for="txtCamStampY">Y (Đông - m):</label>
+                    <input type="text" id="txtCamStampY" class="app-input cam-stamp-input" placeholder="Tự động (vd: 581980.464)" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                </div>
+                <div style="margin-top: 6px;">
+                  <label class="cam-stamp-sub-lbl" for="txtCamStampKtt">Kinh tuyến trục &amp; Múi:</label>
+                  <input type="text" id="txtCamStampKtt" class="app-input cam-stamp-input" placeholder="Tự động (vd: KTT 105°00' Múi 3°)" oninput="appCamera.onStampFieldInput()">
+                </div>
+              </div>
+
+              <!-- 4. Dòng WGS-84 -->
+              <div class="cam-stamp-section">
+                <div class="cam-stamp-sec-head">
+                  <label class="cam-stamp-chk"><input type="checkbox" id="chkCamStampWgs84" checked onchange="appCamera.onStampFieldInput()"> <span>• Dòng tọa độ WGS-84</span></label>
+                </div>
+                <div class="cam-stamp-grid-2">
+                  <div>
+                    <label class="cam-stamp-sub-lbl" for="txtCamStampLat">Lat (°):</label>
+                    <input type="text" id="txtCamStampLat" class="app-input cam-stamp-input" placeholder="Tự động (vd: 10.330361)" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                  <div>
+                    <label class="cam-stamp-sub-lbl" for="txtCamStampLng">Lng (°):</label>
+                    <input type="text" id="txtCamStampLng" class="app-input cam-stamp-input" placeholder="Tự động (vd: 105.750340)" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. Dòng THỰC ĐỊA: Sai số | Hướng/Mục giữa | Thời gian -->
+              <div class="cam-stamp-section">
+                <div class="cam-stamp-sec-head">
+                  <label class="cam-stamp-chk"><input type="checkbox" id="chkCamStampFieldLine" checked onchange="appCamera.onStampFieldInput()"> <span>• Dòng THỰC ĐỊA</span></label>
+                </div>
+                <div class="cam-stamp-grid-2">
+                  <div>
+                    <label class="cam-stamp-chk cam-stamp-chk-sm"><input type="checkbox" id="chkCamStampAcc" checked onchange="appCamera.onStampFieldInput()"> <span>Sai số:</span></label>
+                    <input type="text" id="txtCamStampAcc" class="app-input cam-stamp-input" placeholder="Tự động (vd: ±2.2m)" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                  <div>
+                    <label class="cam-stamp-chk cam-stamp-chk-sm"><input type="checkbox" id="chkCamStampHeading" onchange="appCamera.onStampFieldInput()"> <span>Hướng (La bàn):</span></label>
+                    <input type="text" id="txtCamStampHeading" class="app-input cam-stamp-input" placeholder="Tự động (vd: 125°)" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                </div>
+                <div class="cam-stamp-grid-2" style="margin-top: 6px;">
+                  <div>
+                    <label class="cam-stamp-sub-lbl" for="txtCamStampMiddle">Mục giữa (tùy chọn):</label>
+                    <input type="text" id="txtCamStampMiddle" class="app-input cam-stamp-input" placeholder="VD: Cao độ Z: 3.45m" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                      <label class="cam-stamp-chk cam-stamp-chk-sm"><input type="checkbox" id="chkCamStampTime" checked onchange="appCamera.onStampFieldInput()"> <span>Thời gian:</span></label>
+                      <button type="button" class="cam-stamp-mini-btn" onclick="appCamera.fillStampCurrentTime()" title="Điền ngày giờ hiện tại">🕒 Hiện tại</button>
+                    </div>
+                    <input type="text" id="txtCamStampTime" class="app-input cam-stamp-input" placeholder="VD: 01/11/2026 11:35:22" oninput="appCamera.onStampFieldInput()">
+                  </div>
+                </div>
+                <label class="cam-stamp-chk cam-stamp-chk-sm" style="margin-top: 8px;">
+                  <input type="checkbox" id="chkCamStampUseFieldOnUpload" onchange="appCamera.onStampFieldInput()">
+                  <span>Áp dụng mẫu THỰC ĐỊA khi đóng dấu ảnh chọn từ máy</span>
+                </label>
+              </div>
+
+              <!-- 6. Dòng ĐỊA CHỈ -->
+              <div class="cam-stamp-section">
+                <div class="cam-stamp-sec-head">
+                  <label class="cam-stamp-chk"><input type="checkbox" id="chkCamStampAddress" checked onchange="appCamera.onStampFieldInput()"> <span>• Dòng ĐỊA CHỈ</span></label>
+                </div>
+                <input type="text" id="txtCamStampAddress" class="app-input cam-stamp-input" placeholder="Tự động tra xã/phường 2025 (vd: Phường Sa Đéc, Tỉnh Đồng Tháp)" oninput="appCamera.onStampFieldInput()">
+              </div>
+
+              <!-- 7. Các trường thêm mới tùy biến -->
+              <div class="cam-stamp-section">
+                <div class="cam-stamp-sec-head" style="justify-content: space-between;">
+                  <span class="cam-stamp-lbl" style="margin: 0;">➕ Các dòng thông tin thêm mới:</span>
+                  <button type="button" id="btnAddCamStampField" class="btn-sm btn-green cam-stamp-add-btn" onclick="appCamera.addCustomStampField()">
+                    + Thêm trường
+                  </button>
+                </div>
+                <div class="cam-stamp-presets">
+                  <button type="button" class="cam-stamp-preset-chip" onclick="appCamera.addCustomStampField('HẠNG MỤC', '', '#fde047')">+ Hạng mục</button>
+                  <button type="button" class="cam-stamp-preset-chip" onclick="appCamera.addCustomStampField('NGƯỜI ĐO', '', '#f1f5f9')">+ Người đo</button>
+                  <button type="button" class="cam-stamp-preset-chip" onclick="appCamera.addCustomStampField('CAO ĐỘ Z', '', '#34d399')">+ Cao độ Z</button>
+                  <button type="button" class="cam-stamp-preset-chip" onclick="appCamera.addCustomStampField('GHI CHÚ', '', '#fbbf24')">+ Ghi chú</button>
+                </div>
+                <div id="cameraStampCustomFieldsList" class="cam-stamp-custom-list"></div>
+              </div>
+
+              <!-- Thanh nút hành động -->
+              <div class="cam-stamp-footer">
+                <button type="button" class="btn-sm btn-blue" onclick="appCamera.fillStampFromCurrent()" title="Điền toàn bộ thông tin từ mốc/GPS hiện tại vào ô nhập để sửa nhanh">
+                  📋 Nạp từ mốc hiện tại
+                </button>
+                <button type="button" class="btn-sm" onclick="appCamera.resetStampConfig()" title="Xóa các giá trị tự nhập, quay về tự động">
+                  ↺ Mặc định tự động
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- TAB 1: CAMERA HIỆN TRƯỜNG TRỰC TIẾP (LIVE VIEWFINDER + OVERLAY REALTIME) -->
@@ -3695,7 +3847,7 @@
             style="width: 90px; height: 90px; border-radius: 20px; box-shadow: 0 4px 18px rgba(0,0,0,0.5); border: 2px solid rgba(147,204,156,0.35);">
           <div style="font-weight: 900; font-size: 17px; margin-top: 8px; color: #93cc9c; letter-spacing: 0.5px;">
             VN-2000 PRO PWA</div>
-          <div style="font-size: 12px; color: #a8a29e;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.61 Pro</div>
+          <div style="font-size: 12px; color: #a8a29e;">Hệ Quy Chiếu & Tọa Độ Trắc Địa Quốc Gia • v2.8.62 Pro</div>
           <div
             style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 10px; background: rgba(147,204,156,0.12); border: 1px solid rgba(147,204,156,0.25); border-radius: 20px; font-size: 11px; color: #b9dfb6;">
             <span>👤 Tác giả: <b>Đặng Như</b></span>
@@ -3727,7 +3879,7 @@
           <div class="app-card">
             <div class="card-header">
               <span class="card-title">📱 Thông Tin Ứng Dụng & Nền Tảng</span>
-              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.61
+              <span class="btn-sm btn-green" style="height: 24px; padding: 2px 8px; font-size: 11px; flex: none;">v2.8.62
                 Pro</span>
             </div>
             <div style="font-size: 12.5px; line-height: 1.6; color: #d6d3d1;">
@@ -4213,7 +4365,7 @@
                       </thead>
                       <tbody id="tableAlignBody" style="color: #e7e5e4;">
                         <tr>
-                          <td colspan="5" style="padding: 10px; color: #a8a29e; text-align: center;">
+                          <td colspan="5" style="padding: 10px; color: #a8a29e; text-align: center; white-space: normal;">
                             Chưa có cọc tuyến. Bấm [📁 Chọn mốc Dự án] hoặc [➕ Thêm cọc] để bắt đầu.
                           </td>
                         </tr>
@@ -4909,7 +5061,7 @@
           <div class="settings-welcome-hero">
             <div class="settings-welcome-logo-wrap">
               <img src="icon-128.webp" alt="VN2000 Pro" class="settings-welcome-logo" loading="lazy" decoding="async">
-              <span class="settings-welcome-badge">PRO v2.8.61</span>
+              <span class="settings-welcome-badge">PRO v2.8.62</span>
             </div>
             <div class="settings-welcome-title" data-i18n="settings.welcome.title">HỆ THỐNG CÀI ĐẶT VN-2000 PRO</div>
             <div class="settings-welcome-sub" data-i18n="settings.welcome.sub">Bấm chọn một danh mục cài đặt bên dưới để thiết lập nghiệp vụ:</div>
@@ -8531,24 +8683,24 @@
        được nạp khi cần (loadLib trong mã nguồn chính); service worker đã lưu sẵn nên vẫn chạy ngoại tuyến. -->
   <script src="leaflet.js"></script>
   <script src="offline_regions.js"></script>
-  <script src="geodesy.js?v=2.8.61"></script>
+  <script src="geodesy.js?v=2.8.62"></script>
   <script src="pixoptimizer.js"></script>
-  <script src="src/core/cad_geometry.js?v=2.8.61"></script>
-  <script src="src/core/gis_io.js?v=2.8.61"></script>
-  <script src="src/core/georef.js?v=2.8.61"></script>
-  <script src="src/core/parcel_links.js?v=2.8.61"></script>
-  <script src="src/core/nav_engine.js?v=2.8.61"></script>
-  <script src="src/ui/contrast_guard.js?v=2.8.61"></script>
-    <script src="src/core/planning_map.js?v=2.8.61"></script>
-<script src="app.js?v=2.8.61"></script>
-  <script src="field-workspace.js?v=2.8.61"></script>
-  <script src="vn2000-rezone.js?v=2.8.61"></script>
-  <script src="vn-admin-2025.js?v=2.8.61"></script>
-  <script src="import-preview.js?v=2.8.61"></script>
-  <script src="app-shell.js?v=2.8.61"></script>
-  <script src="assistant-core.js?v=2.8.61"></script>
-  <script src="assistant-dataset.js?v=2.8.61"></script>
-  <script src="assistant.js?v=2.8.61"></script>
+  <script src="src/core/cad_geometry.js?v=2.8.62"></script>
+  <script src="src/core/gis_io.js?v=2.8.62"></script>
+  <script src="src/core/georef.js?v=2.8.62"></script>
+  <script src="src/core/parcel_links.js?v=2.8.62"></script>
+  <script src="src/core/nav_engine.js?v=2.8.62"></script>
+  <script src="src/ui/contrast_guard.js?v=2.8.62"></script>
+    <script src="src/core/planning_map.js?v=2.8.62"></script>
+<script src="app.js?v=2.8.62"></script>
+  <script src="field-workspace.js?v=2.8.62"></script>
+  <script src="vn2000-rezone.js?v=2.8.62"></script>
+  <script src="vn-admin-2025.js?v=2.8.62"></script>
+  <script src="import-preview.js?v=2.8.62"></script>
+  <script src="app-shell.js?v=2.8.62"></script>
+  <script src="assistant-core.js?v=2.8.62"></script>
+  <script src="assistant-dataset.js?v=2.8.62"></script>
+  <script src="assistant.js?v=2.8.62"></script>
 
   <!-- PWA SERVICE WORKER REGISTRATION -->
   <!-- Có bản mới: hiện thanh "Cập nhật" — chỉ tải lại khi người dùng bấm (không cắt ngang lúc đang đo, vẽ, nhập liệu). -->
@@ -8580,10 +8732,11 @@
             };
           })
           .catch(err => console.log('ServiceWorker đăng ký thất bại:', err));
-        // Chỉ tải lại một lần, sau khi người dùng đã bấm "Cập nhật"
+        // Chỉ tải lại một lần, sau khi người dùng đã bấm "Cập nhật" (không tải lại khi cài lần đầu)
+        const hadController = !!navigator.serviceWorker.controller;
         let reloaded = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (reloaded) return;
+          if (!hadController || reloaded) return;
           reloaded = true;
           window.location.reload();
         });
@@ -8880,7 +9033,7 @@
             </div>
           </div>
           <div style="margin-top: 8px;">
-            <label for="selExportSummaryTables" style="font-size: 11px; color: #a8a29e; font-weight: 600; display: block; margin-bottom: 3px;">Bảng in kèm bản vẽ (PDF / PNG / SVG / DWG):</label>
+            <label for="selExportSummaryTables" style="font-size: 11px; color: #a8a29e; font-weight: 600; display: block; margin-bottom: 3px;">Bảng in kèm bản vẽ (PDF / PNG / SVG / DXF):</label>
             <select id="selExportSummaryTables" class="app-select" style="height: 36px; font-size: 12px; font-weight: 600; width: 100%; border-radius: 6px;" onchange="appData.onExportSettingChange()">
               <option value="both" selected>Cả hai bảng (diện tích + các điểm)</option>
               <option value="area">Bảng tổng hợp diện tích</option>

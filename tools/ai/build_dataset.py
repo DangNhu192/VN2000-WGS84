@@ -100,6 +100,92 @@ add(['mấy giờ rồi', 'bây giờ là mấy giờ'], 'time')
 add(['hôm nay ngày mấy', 'hôm nay thứ mấy'], 'date')
 add(['cài đặt', 'mở thiết lập ứng dụng'], 'settings')
 
+# --- Công cụ thông minh mở rộng (v2.8.62): mốc, khoảng cách theo tên, lưu mốc, cắm mốc, MiniCAD, lớp bản đồ, lộ trình, đổi KTT, dự án, chế độ ---
+# Tìm mốc theo tên
+for pt in ['M1', 'M2', 'M3', 'A1', 'G1']:
+    add([f'tìm mốc {pt}', f'tọa độ mốc {pt} là bao nhiêu', f'mốc {pt} ở đâu', f'xem thông tin mốc {pt}'], 'findPoint', {'query': pt})
+
+# Khoảng cách / phương vị giữa 2 mốc theo tên
+add(['khoảng cách từ M1 đến M3', 'cự ly từ M1 tới M3', 'phương vị từ M1 đến M3'], 'distancePoints', {'from': 'M1', 'to': 'M3'})
+add(['khoảng cách từ A1 đến A2', 'khoảng cách A1 A2'], 'distancePoints', {'from': 'A1', 'to': 'A2'})
+add(['từ đây đến mốc M2 bao xa', 'khoảng cách từ vị trí hiện tại đến mốc M2'], 'distancePoints', {'from': 'GPS', 'to': 'M2'})
+add(['khoảng cách từ điểm vừa rồi đến M1', 'từ điểm đó tới M1 bao xa'], 'distancePoints', {'from': 'LAST', 'to': 'M1'})
+
+# Lưu mốc vào dự án
+add(['lưu điểm vừa chuyển tên M5', 'lưu điểm đó vào dự án tên M5'], 'savePoint', {'name': 'M5'})
+add(['lưu điểm vừa rồi thành mốc A1', 'lưu tọa độ vừa rồi tên A1'], 'savePoint', {'name': 'A1'})
+add(['lưu vị trí hiện tại thành mốc G1', 'lưu vị trí GPS tên G1'], 'savePoint', {'name': 'G1', 'source': 'gps'})
+
+# Cắm mốc theo tên điểm cụ thể
+for pt in ['M1', 'M2', 'A3']:
+    add([f'cắm mốc {pt}', f'dẫn đường tới mốc {pt}', f'chỉ hướng đến mốc {pt}'], 'stakeoutPoint', {'name': pt})
+
+# Thống kê & diện tích MiniCAD
+add(['thống kê MiniCAD', 'tổng diện tích MiniCAD', 'bản vẽ có mấy khối', 'tóm tắt bản vẽ'], 'cadSummary')
+add(['diện tích thửa 1 bao nhiêu', 'chu vi thửa 1'], 'cadSummary', {'query': 'thửa 1'}, unaccent=False)
+add(['diện tích thửa 2 bao nhiêu'], 'cadSummary', {'query': 'thửa 2'}, unaccent=False)
+
+# Điều khiển công cụ MiniCAD trực tiếp
+CAD_ACT = {
+    'table': ['mở bảng kê MiniCAD', 'xem bảng kê', 'mở bảng diện tích MiniCAD'],
+    'polygon': ['vẽ đa giác', 'vẽ ranh thửa'],
+    'polyline': ['vẽ tuyến', 'vẽ đường tim'],
+    'point': ['chấm điểm CAD', 'vẽ điểm CAD'],
+    'snap': ['bật snap', 'tắt snap', 'bật bắt điểm'],
+    'ortho': ['bật ortho', 'khóa vuông góc'],
+    'polar': ['bật polar', 'bật góc cực'],
+    'undo': ['hoàn tác', 'lùi bước'],
+    'redo': ['làm lại', 'tiến bước'],
+    'zoom': ['zoom toàn cảnh bản vẽ', 'bao quát MiniCAD', 'vừa khung bản vẽ'],
+    'connect': ['nối điểm MiniCAD', 'nối điểm'],
+    'symbols': ['mở bảng ký hiệu', 'mở ký hiệu đỉnh CAD'],
+    'qselect': ['chọn nhanh đối tượng CAD', 'lọc đối tượng CAD'],
+    'inquiry_dist': ['đo khoảng cách trên MiniCAD', 'đo cự ly trên CAD'],
+    'inquiry_area': ['đo diện tích trên MiniCAD', 'đo diện tích trên CAD'],
+}
+for act, texts in CAD_ACT.items():
+    add(texts, 'cadAction', {'action': act})
+
+# Bản đồ nền, lớp phủ giao thông / ranh giới & Quy hoạch Guland 2030
+add(['đổi nền vệ tinh', 'chuyển bản đồ nền vệ tinh Google'], 'mapLayer', {'kind': 'basemap', 'value': 'google_hybrid'})
+add(['đổi nền địa hình', 'chuyển nền OpenTopoMap', 'đổi nền topo'], 'mapLayer', {'kind': 'basemap', 'value': 'opentopomap'})
+add(['đổi nền Esri', 'chuyển nền vệ tinh Esri'], 'mapLayer', {'kind': 'basemap', 'value': 'esri_satellite'})
+add(['đổi nền đường phố Google', 'chuyển nền Google Streets'], 'mapLayer', {'kind': 'basemap', 'value': 'google_streets'})
+add(['đổi nền OpenStreetMap', 'chuyển nền OSM'], 'mapLayer', {'kind': 'basemap', 'value': 'osm_streets'})
+add(['tắt nền bản đồ', 'chuyển sang không nền'], 'mapLayer', {'kind': 'basemap', 'value': 'none'})
+add(['bật giao thông trực tiếp', 'bật lớp traffic'], 'mapLayer', {'kind': 'overlay', 'value': 'google_traffic', 'on': True})
+add(['tắt giao thông trực tiếp'], 'mapLayer', {'kind': 'overlay', 'value': 'google_traffic', 'on': False})
+add(['bật mạng lưới giao thông Esri'], 'mapLayer', {'kind': 'overlay', 'value': 'esri_transport', 'on': True})
+add(['bật ranh giới 34 tỉnh', 'hiện ranh giới tỉnh'], 'mapLayer', {'kind': 'overlay', 'value': 'prov34', 'on': True})
+add(['tắt ranh giới 34 tỉnh'], 'mapLayer', {'kind': 'overlay', 'value': 'prov34', 'on': False})
+add(['bật ranh giới xã Đồng Tháp'], 'mapLayer', {'kind': 'overlay', 'value': 'dongthap', 'on': True})
+add(['bật quy hoạch', 'mở bản đồ quy hoạch'], 'mapLayer', {'kind': 'planning', 'value': 'current', 'on': True})
+add(['tắt quy hoạch', 'ẩn bản đồ quy hoạch'], 'mapLayer', {'kind': 'planning', 'value': 'current', 'on': False})
+add(['bật quy hoạch Đồng Tháp', 'xem bản đồ quy hoạch Đồng Tháp'], 'mapLayer', {'kind': 'planning', 'value': 'Đồng Tháp', 'on': True})
+add(['bật quy hoạch TP. Hồ Chí Minh'], 'mapLayer', {'kind': 'planning', 'value': 'TP. Hồ Chí Minh', 'on': True})
+add(['độ mờ quy hoạch 60%', 'chỉnh độ rõ quy hoạch 60%'], 'mapLayer', {'kind': 'planning', 'value': 'current', 'on': True, 'opacity': 60})
+
+# Tối ưu lộ trình dự án
+add(['tối ưu lộ trình', 'lập lộ trình tất cả mốc', 'chỉ đường đi hết các mốc'], 'routeProject', {'vehicle': 'car'})
+add(['tối ưu lộ trình xe máy', 'lộ trình các mốc bằng xe máy'], 'routeProject', {'vehicle': 'bike'})
+add(['tối ưu lộ trình ô tô 16 chỗ', 'lập lộ trình bằng minibus'], 'routeProject', {'vehicle': 'minibus'})
+add(['tối ưu lộ trình từ vị trí hiện tại'], 'routeProject', {'vehicle': 'car', 'startFromGps': True})
+
+# Quy đổi KTT (Rezone)
+add(['quy đổi điểm vừa rồi sang KTT Đồng Tháp', 'đổi tọa độ vừa rồi sang KTT Đồng Tháp'], 'rezone', {'toProvince': 'Đồng Tháp'})
+add(['quy đổi 1191942.305 603797.261 sang KTT Đồng Tháp'], 'rezone', {'toProvince': 'Đồng Tháp', 'X': 1191942.305, 'Y': 603797.261}, unaccent=False)
+
+# Quản lý / chuyển / tạo dự án
+add(['danh sách dự án', 'liệt kê các dự án', 'có những dự án nào'], 'switchProject', {'action': 'list'})
+add(['chuyển sang dự án KhuA', 'mở dự án KhuA'], 'switchProject', {'action': 'switch', 'name': 'KhuA'}, unaccent=False)
+add(['tạo dự án mới DoDac2026', 'thêm dự án mới DoDac2026'], 'switchProject', {'action': 'create', 'name': 'DoDac2026'}, unaccent=False)
+
+# Chế độ thực địa & ngôn ngữ
+add(['bật chế độ thực địa', 'bật chế độ ngoài nắng'], 'appMode', {'target': 'field', 'value': 'on'})
+add(['tắt chế độ thực địa', 'tắt chế độ ngoài nắng'], 'appMode', {'target': 'field', 'value': 'off'})
+add(['đổi sang tiếng Anh', 'chuyển ngôn ngữ tiếng Anh'], 'appMode', {'target': 'lang', 'value': 'en'})
+add(['đổi sang tiếng Việt', 'chuyển ngôn ngữ tiếng Việt'], 'appMode', {'target': 'lang', 'value': 'vi'})
+
 # --- Câu tự do (dành cho AI hiểu: quy tắc có thể không bắt được) ---
 FREE = [
     ('ê in giùm cái bản vẽ ra giấy a3 nha', 'exportDrawing', {'format': 'pdf', 'paper': 'A3'}),
@@ -116,6 +202,11 @@ FREE = [
     ('vẽ thửa đất', 'open', {'target': 'drawerItem_cad_tool'}),
     ('xem giúp vị trí hiện giờ', 'whereAmI', {}),
     ('làm ơn tắt cái định vị đi cho đỡ hao pin', 'gps', {'on': False}),
+    ('nắng gắt quá cho màn hình dễ nhìn ngoài trời đi', 'appMode', {'target': 'field', 'value': 'on'}),
+    ('xem đất này có dính quy hoạch không', 'mapLayer', {'kind': 'planning', 'value': 'current', 'on': True}),
+    ('lên đường đi đo hết các điểm bằng xe máy nha', 'routeProject', {'vehicle': 'bike'}),
+    ('lùi lại nét vẽ hồi nãy giùm', 'cadAction', {'action': 'undo'}),
+    ('mảnh đất này đo ra tổng cộng bao nhiêu mét vuông rồi', 'cadSummary', {}),
 ]
 for t, tool, args in FREE:
     D.append((t, tool, args))

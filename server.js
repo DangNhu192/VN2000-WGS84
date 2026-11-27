@@ -19,6 +19,23 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+    // Endpoint Trợ lý AI dùng chung (tương thích Vercel /api/ai trên máy cục bộ)
+    if (req.url === '/api/ai' || req.url.startsWith('/api/ai?')) {
+        try {
+            const aiHandler = require('./api/ai.js');
+            Promise.resolve(aiHandler(req, res)).catch((err) => {
+                if (!res.headersSent) {
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ error: err && err.message ? err.message : 'ai_error' }));
+                }
+            });
+        } catch (err) {
+            res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'not_configured' }));
+        }
+        return;
+    }
+
     // Endpoint proxy tile bản đồ cho việc xuất PDF / PNG Canvas an toàn CORS
     if (req.url.startsWith('/api/tile-proxy?') || req.url.startsWith('/api/proxy-tile?')) {
         const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);

@@ -11962,3 +11962,7 @@
 [data-theme="light"] .modal-export-box .modal-footer { background: #ffffff !important; border-color: rgba(28, 25, 23, 0.12) !important; }
 /* Thực địa: nút vàng hổ phách dùng chữ đen (chữ trắng trên vàng chỉ đạt 2:1) */
 body.field-mode .btn-convert, body.field-mode .btn-convert * { color: #111111 !important; }
+/* MiniCAD center label: giữ nền tối tương phản cao trên ảnh vệ tinh kể cả ở chế độ Sáng */
+[data-theme="light"] .cad-center-badge { background: rgba(15, 23, 42, 0.92) !important; color: #f8fafc !important; }
+[data-theme="light"] .cad-center-badge .cad-center-area-val { color: #f8fafc !important; }
+

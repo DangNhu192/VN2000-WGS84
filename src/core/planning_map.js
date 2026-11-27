@@ -509,10 +509,12 @@
                 try {
                     const currentZoom = (typeof map.getZoom === 'function') ? map.getZoom() : 12;
                     const targetZoom = Math.max(currentZoom, provObj.zoom || 12);
-                    if (typeof map.flyTo === 'function') {
+                    const sz = (typeof map.getSize === 'function') ? map.getSize() : { x: 1, y: 1 };
+                    if (typeof map.stop === 'function') map.stop();
+                    if (typeof map.flyTo === 'function' && sz && sz.x > 0 && sz.y > 0) {
                         map.flyTo(provObj.center, targetZoom, { duration: 1.2 });
                     } else if (typeof map.setView === 'function') {
-                        map.setView(provObj.center, targetZoom);
+                        map.setView(provObj.center, targetZoom, { animate: false });
                     }
                 } catch (_) {}
             }

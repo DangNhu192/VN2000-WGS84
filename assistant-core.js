@@ -2,16 +2,16 @@
    Ý tưởng học từ Ivy AI (github.com/iamankushpandit/esp_ai), viết lại hoàn toàn, không dùng mã của dự án đó:
    1) Câu nào máy tự trả lời chắc chắn được thì trả lời bằng mã thường, gắn nhãn "Không dùng AI"
       (Ivy: giờ, ngày, hẹn giờ do code C trả lời). Ở đây: mọi phép chuyển đổi tọa độ, khoảng cách,
-      KTT, điều hướng, kiểm thử — KHÔNG BAO GIỜ để mô hình ngôn ngữ tính số.
+      diện tích, đổi KTT, KTT, điều hướng, kiểm thử — KHÔNG BAO GIỜ để mô hình ngôn ngữ tính số.
    2) Mô hình AI (nếu người dùng bật) chỉ làm một việc: đổi câu nói tự do thành MỘT lệnh chuẩn trong danh sách,
-      rồi lệnh đó lại đi qua bộ định tuyến này. Không khớp → lịch sự từ chối thay vì "bịa".
+      rồi lệnh đó lại đi qua bộ định tuyến và kiểm định validateCall. Không khớp → lịch sự gợi ý thay vì "bịa".
    3) Chạy theo pha, giải phóng tài nguyên sau mỗi pha (Ivy: Listen → Think → Speak trên cùng một vùng nhớ). */
 (function (root) {
     'use strict';
 
     /** Chuẩn hóa để so khớp: thường, bỏ dấu, đ→d, gọn khoảng trắng. */
     function fold(s) {
-        return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/đ/g, 'd').replace(/[“”"']/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
@@ -117,6 +117,212 @@
             .map(s => s.trim()).filter(Boolean);
     }
 
+    // ---------------- Hỗ trợ đọc tên mốc / dự án / lớp bản đồ / lệnh CAD ----------------
+    const GENERIC_POINT_STOP = new Set([
+        'ngoai', 'thuc', 'dia', 'gan', 'nhat', 'du', 'an', 'hien', 'tai', 'tren', 'ban', 'do', 'trong',
+        'so', 'nay', 'kia', 'moi', 'cu', 'chinh', 'phu', 'bao', 'nhieu', 'la', 'gi', 'o', 'dau',
+        'giup', 'toi', 'minh', 'em', 'voi', 'di', 'nha', 'nhe', 'tat', 'ca', 'cac', 'danh', 'sach',
+        'chuc', 'nang', 'vao', 'ra', 'cua', 'cho', 'xem', 'tim', 'cam', 'toa', 'khong', 'co', 'bi',
+        'sai', 'loi', 'trung', 'nhay', 'dao', 'ktt', 've', 'tinh', 'xe', 'may', 'oto',
+        'moc', 'diem', 'coc', 'thua', 'khoi', 'tuyen'
+    ]);
+
+    function cleanEntityToken(raw) {
+        return String(raw || '').replace(/^[.,;:!?()\[\]"\s]+|[.,;:!?()\[\]"\s]+$/g, '').trim();
+    }
+
+    function isLikelyPointName(tok) {
+        const s = cleanEntityToken(tok);
+        if (!s || s.length > 28) return false;
+        const f = fold(s);
+        if (f === 'diem vua roi' || f === 'diem do' || f === 'diem nay' || f === 'vi tri hien tai' || f === 'day' || f === 'o day') return true;
+        if (GENERIC_POINT_STOP.has(f)) return false;
+        // Tên mốc thực tế: thường chứa chữ+số (M1, A2, Goc1, T1.1, DC-05) hoặc mã ngắn không phải từ chung
+        if (/\d/.test(f)) return true;
+        const parts = f.split(/\s+/);
+        if (parts.length <= 2 && parts.every(w => !GENERIC_POINT_STOP.has(w))) return true;
+        return false;
+    }
+
+    function normalizePointCode(s) {
+        const clean = cleanEntityToken(s);
+        return /^[a-z]{1,2}\d+[a-z]?$/i.test(clean) ? clean.toUpperCase() : clean;
+    }
+
+    /** Trích tên mốc cụ thể sau từ khóa "mốc / điểm / cọc" trong câu gốc (giữ nguyên chữ hoa/thường). */
+    function extractPointAfterKeyword(raw, pattern) {
+        const m = raw.match(pattern);
+        if (!m || !m[1]) return null;
+        let cand = cleanEntityToken(m[1]);
+        // Cắt đuôi câu hỏi phổ biến ("ở đâu", "là bao nhiêu", "giúp tôi", "ngay"...)
+        cand = cand.replace(/\s+(?:ở đâu|o dau|là gì|la gi|là bao nhiêu|la bao nhieu|có tọa độ|co toa do|giúp|giup|nhé|nhe|nha|với|voi|đi|di|ngay|luôn|luon|trong dự án|trong du an|ở dự án|o du an).*$/i, '').trim();
+        cand = normalizePointCode(cand);
+        return isLikelyPointName(cand) ? cand : null;
+    }
+
+    /** Đọc lệnh khoảng cách/phương vị giữa 2 mốc có tên: "khoảng cách từ M1 đến M3", "từ đây đến mốc M2 bao xa". */
+    function parseDistancePoints(raw, t) {
+        const wants = /(khoang cach|cu ly|phuong vi|goc phuong vi|bao xa|cach nhau|dai bao nhieu|bao nhieu met)/.test(t);
+        if (!wants) return null;
+        const normRef = s => {
+            const f = fold(s);
+            if (/^(day|o day|vi tri hien tai|vi tri cua toi|cho nay|toi|minh)$/.test(f)) return 'GPS';
+            if (/^(diem vua roi|vua roi|diem do|diem vua chuyen|vua chuyen|do|diem nay)$/.test(f)) return 'LAST';
+            return normalizePointCode(s);
+        };
+        // Dạng: "từ <A> đến/tới <B>"
+        const mFromTo = raw.match(/(?:từ|tu)\s+(?:mốc|moc|điểm|diem|cọc|coc)?\s*([^,;?!]+?)\s+(?:đến|den|tới|toi|sang|qua|->|→)\s+(?:mốc|moc|điểm|diem|cọc|coc)?\s*([^,;?!]+)/i);
+        if (mFromTo) {
+            let a = cleanEntityToken(mFromTo[1]).replace(/\s+(?:lên|len|xuống|xuong)$/i, '');
+            let b = cleanEntityToken(mFromTo[2]).replace(/\s+(?:là|la|bao|cách|cach|có|co|nhiêu|nhieu|mét|met|giúp|giup|với|voi|nhé|nhe|nha).*$/i, '');
+            a = normRef(a); b = normRef(b);
+            if ((a === 'GPS' || a === 'LAST' || isLikelyPointName(a)) && (b === 'LAST' || isLikelyPointName(b)) && a && b && fold(a) !== fold(b)) {
+                return { from: a, to: b };
+            }
+        }
+        // Dạng: "khoảng cách / phương vị <A> và/đến/tới/- <B>" hoặc "khoảng cách M1 M2"
+        const mPair = raw.match(/(?:khoảng cách|khoang cach|cự ly|cu ly|phương vị|phuong vi)\s+(?:giữa\s+|giua\s+)?(?:mốc|moc|điểm|diem|cọc|coc)?\s*([A-Za-zÀ-ỹ0-9_.-]+)\s+(?:và|va|đến|den|tới|toi|với|voi|-|→|->)?\s*(?:mốc|moc|điểm|diem|cọc|coc)?\s*([A-Za-zÀ-ỹ0-9_.-]+)/i);
+        if (mPair) {
+            const a = normalizePointCode(mPair[1]), b = normalizePointCode(mPair[2]);
+            if (isLikelyPointName(a) && isLikelyPointName(b) && fold(a) !== fold(b) && !/^\d+$/.test(a + b)) {
+                return { from: a, to: b };
+            }
+        }
+        return null;
+    }
+
+    /** Đọc lệnh lưu điểm vừa chuyển / GPS vào dự án. */
+    function parseSavePoint(raw, t) {
+        if (!/\bluu\b/.test(t)) return null;
+        if (/\b(ban do ngoai tuyen|ngoai tuyen|vung ban do|cai dat|cau hinh|anh|pdf|png|svg|dwg|dxf|ban ve)\b/.test(t)) return null;
+        const isPointSave = /(diem vua|diem do|diem nay|toa do vua|toa do do|vi tri hien tai|vi tri nay|vi tri cua toi|vi tri gps|vao du an|vao so do|thanh moc|ten moc|moc moi)/.test(t)
+            || /\bluu\s+(moc|diem)\s+[a-z0-9]/i.test(t);
+        if (!isPointSave) return null;
+        const fromGps = /(vi tri hien tai|vi tri nay|vi tri cua toi|vi tri gps|cho nay|o day)/.test(t);
+        let note = '';
+        const mNote = raw.match(/(?:ghi chú|ghi chu|note)\s*[:=]?\s*(.+)$/i);
+        let work = raw;
+        if (mNote) { note = cleanEntityToken(mNote[1]); work = raw.slice(0, mNote.index).trim(); }
+        let name = '';
+        const mName = work.match(/(?:tên là|ten la|tên|ten|thành mốc|thanh moc|thành điểm|thanh diem|thành|thanh|là mốc|la moc)\s+([A-Za-zÀ-ỹ0-9_.-]+(?:\s+[A-Za-zÀ-ỹ0-9_.-]+)?)/i)
+            || work.match(/(?:lưu|luu)\s+(?:mốc|moc|điểm|diem)\s+([A-Za-zÀ-ỹ0-9_.-]+)/i);
+        if (mName) {
+            let c = normalizePointCode(cleanEntityToken(mName[1]).replace(/\s+(?:vào|vao|trong|ở|o)\s+(?:dự án|du an|sổ đo|so do).*$/i, '').trim());
+            if (isLikelyPointName(c) && !/^(vua|do|nay|hien|tai|vao|du|an|so)$/i.test(fold(c))) name = c;
+        }
+        const args = { name: name || (fromGps ? 'GPS' : 'AUTO') };
+        if (note) args.note = note.slice(0, 60);
+        if (fromGps) args.source = 'gps';
+        return args;
+    }
+
+    /** Đọc lệnh điều khiển lớp bản đồ (nền, lớp phủ, quy hoạch Guland 2030). */
+    const MAP_BASE_ALIASES = [
+        ['esri_satellite', ['ve tinh esri', 'esri']],
+        ['google_hybrid', ['ve tinh google', 'google hybrid', 've tinh', 'anh ve tinh']],
+        ['google_streets', ['duong pho google', 'google streets', 'google map', 'duong bo google']],
+        ['opentopomap', ['opentopomap', 'opentopo', 'topo', 'song ngoi', 'kenh rach']],
+        ['google_terrain', ['google terrain', 'terrain', 'dia hinh google']],
+        ['osm_streets', ['openstreetmap', 'osm', 'duong pho osm', 'duong pho']],
+        ['none', ['khong nen', 'nen trang ban do', 'ban do nen trang', 'tat nen ban do', 'bo nen ban do', 'tat nen', 'bo nen']]
+    ];
+    const MAP_OVERLAY_ALIASES = [
+        ['google_traffic', ['giao thong truc tiep', 'traffic', 'un tac', 'tinh trang giao thong']],
+        ['esri_transport', ['mang luoi giao thong', 'giao thong esri', 'lop giao thong']],
+        ['google_roads', ['duong va dia danh', 'ten duong google', 'lop duong google', 'nhan duong']],
+        ['prov34', ['ranh gioi 34 tinh', '34 tinh', 'ranh gioi tinh', 'dia gioi tinh']],
+        ['dongthap', ['ranh gioi xa dong thap', 'xa dong thap', 'cac xa dong thap', 'ranh gioi xa']]
+    ];
+
+    function parseMapLayer(raw, t, provinces) {
+        // 1. Quy hoạch Guland 2030
+        if (/(quy hoach|guland)/.test(t)) {
+            if (/(xuat|in)\b/.test(t)) return null; // dành cho exportDrawing
+            const opM = t.match(/(?:do mo|do ro|trong suot|opacity)\s*(?:quy hoach)?\s*(\d{1,3})\s*%?/);
+            const off = /\b(tat|an|bo|dung)\b/.test(t) && !/\b(bat|mo|hien|xem)\b/.test(t);
+            const on = !off;
+            const pIdx = findProvince(raw, provinces);
+            const args = { kind: 'planning', value: pIdx >= 0 ? provinces[pIdx].name : 'current', on };
+            if (opM) {
+                const pct = parseInt(opM[1], 10);
+                if (pct >= 10 && pct <= 100) args.opacity = pct;
+            }
+            return args;
+        }
+        // 2. Lớp phủ giao thông / ranh giới hành chính
+        if (/\b(bat|tat|mo|an|hien|chuyen|xem)\b/.test(t)) {
+            for (const [id, words] of MAP_OVERLAY_ALIASES) {
+                if (words.some(w => t.indexOf(w) >= 0)) {
+                    const off = /\b(tat|an|bo)\b/.test(t) && !/\b(bat|mo|hien)\b/.test(t);
+                    return { kind: 'overlay', value: id, on: !off };
+                }
+            }
+        }
+        // 3. Bản đồ nền (basemap)
+        const mentionsBase = /\b(nen|ban do nen|lop nen|nen ban do|lop ban do)\b/.test(t) || /\b(opentopomap|opentopo|google terrain|ve tinh esri)\b/.test(t);
+        if (mentionsBase && /\b(doi|chuyen|bat|dung|chon|sang|mo|xem|tat|bo)\b/.test(t) && !/\b(xuat|in)\b/.test(t)) {
+            if (/\bdia hinh\b/.test(t) && !/google/.test(t)) return { kind: 'basemap', value: 'opentopomap' };
+            for (const [id, words] of MAP_BASE_ALIASES) {
+                if (words.some(w => t.indexOf(w) >= 0)) return { kind: 'basemap', value: id };
+            }
+        }
+        return null;
+    }
+
+    /** Đọc lệnh thao tác trực tiếp trên MiniCAD. */
+    const CAD_ACTIONS = ['table', 'polygon', 'polyline', 'point', 'snap', 'ortho', 'polar', 'undo', 'redo', 'zoom', 'connect', 'symbols', 'qselect', 'inquiry_dist', 'inquiry_area'];
+    function parseCadAction(t) {
+        if (/(bang ke|bang dien tich|bang toa do dinh).*(minicad|cad|ban ve)|mo bang ke\b|xem bang ke\b/.test(t)) return { action: 'table' };
+        if (/\bve (da giac|ranh thua|hinh da giac)\b/.test(t)) return { action: 'polygon' };
+        if (/\bve (tuyen|duong tim|duong thang|polyline|bo ranh ho)\b/.test(t)) return { action: 'polyline' };
+        if (/\b(cham diem cad|ve diem cad|che do cham diem cad)\b/.test(t)) return { action: 'point' };
+        if (/\b(bat|tat|chuyen|doi) (che do )?(snap|osnap|bat diem)\b/.test(t)) return { action: 'snap' };
+        if (/\b(bat|tat|chuyen|doi) (che do )?(ortho|vuong goc|khoa vuong goc)\b|^khoa vuong goc$/.test(t)) return { action: 'ortho' };
+        if (/\b(bat|tat|chuyen|doi) (che do )?(polar|goc cuc|bat goc)\b/.test(t)) return { action: 'polar' };
+        if (/\b(hoan tac|undo|lui buoc)\b/.test(t) && !/xuat/.test(t)) return { action: 'undo' };
+        if (/\b(lam lai|redo|tien buoc)\b/.test(t)) return { action: 'redo' };
+        if (/(zoom toan canh|bao quat (ban ve|minicad|cac khoi|thua)|zoom extents|vua khung ban ve)/.test(t)) return { action: 'zoom' };
+        if (/(noi diem|noi moc) (minicad|cad|thanh da giac|thanh tuyen|tren ban ve)/.test(t) || /^noi diem$/.test(t)) return { action: 'connect' };
+        if (/(ky hieu dinh|mau ky hieu|bieu tuong dinh|symbol).*(cad|minicad|ban ve)|mo bang ky hieu/.test(t)) return { action: 'symbols' };
+        if (/(qselect|chon nhanh doi tuong|loc doi tuong cad)/.test(t)) return { action: 'qselect' };
+        if (/(do khoang cach|do cu ly|lenh dist) (tren )?(minicad|cad|ban ve)/.test(t)) return { action: 'inquiry_dist' };
+        if (/(do dien tich|lenh area) (tren )?(minicad|cad|ban ve)/.test(t)) return { action: 'inquiry_area' };
+        return null;
+    }
+
+    /** Đọc lệnh tối ưu lộ trình đi qua các mốc của dự án. */
+    function parseRouteProject(t) {
+        const wantsOpt = /(toi uu lo trinh|lap lo trinh|chi duong di het|di qua (tat ca |het )?(cac )?moc|lo trinh (tat ca |cac )?moc|lo trinh du an|toi uu duong di)/.test(t)
+            || (/(lo trinh|chi duong)/.test(t) && /(xe may|o to|oto|xe hoi|16 cho|minibus|tu vi tri hien tai)/.test(t));
+        if (!wantsOpt) return null;
+        let vehicle = 'car';
+        if (/(xe may|gan may|moto|bike|2 banh)/.test(t)) vehicle = 'bike';
+        else if (/(16 cho|minibus|xe khach|xe lon|o to lon|duong lon)/.test(t)) vehicle = 'minibus';
+        const startFromGps = /(tu vi tri hien tai|tu day|tu cho toi|tu gps)/.test(t);
+        const args = { vehicle };
+        if (startFromGps) args.startFromGps = true;
+        return args;
+    }
+
+    /** Đọc lệnh liệt kê / chuyển / tạo dự án. */
+    function parseSwitchProject(raw, t) {
+        if (/(danh sach (cac )?du an|liet ke (cac )?du an|co nhung du an nao|cac du an da luu|xem cac du an)/.test(t)) {
+            return { action: 'list' };
+        }
+        const mCreate = raw.match(/(?:tạo|tao|thêm|them|lập|lap)\s+(?:file\s+)?(?:dự án|du an)\s+(?:mới\s+|moi\s+)?(?:tên\s+|ten\s+)?(.+)$/i);
+        if (mCreate) {
+            const name = cleanEntityToken(mCreate[1]).replace(/\s+(?:giúp|giup|nhé|nhe|nha|với|voi).*$/i, '').trim();
+            if (name && !/^(mới|moi|này|nay)$/i.test(fold(name))) return { action: 'create', name: name.slice(0, 50) };
+        }
+        const mSwitch = raw.match(/(?:chuyển sang|chuyen sang|đổi sang|doi sang|mở|mo|vào|vao|dùng|dung)\s+(?:file\s+)?(?:dự án|du an)\s+(.+)$/i);
+        if (mSwitch) {
+            const name = cleanEntityToken(mSwitch[1]).replace(/\s+(?:giúp|giup|nhé|nhe|nha|với|voi).*$/i, '').trim();
+            const fn = fold(name);
+            if (name && !/^(hien tai|dang mo|nao|nay|moi|cua toi)$/.test(fn)) return { action: 'switch', name: name.slice(0, 50) };
+        }
+        return null;
+    }
+
     // ---------------- Bộ định tuyến ----------------
     const OPEN_VERBS = ['mo', 'vao', 'chuyen sang', 'sang', 'den', 'toi', 'xem', 'hien', 'bat', 'di toi', 'di den', 'mo giup', 'cho toi xem'];
 
@@ -136,12 +342,36 @@
 
         // Kiểm tra chất lượng số liệu đo (máy tự soát, không dùng AI)
         if (/(kiem tra|ra soat|soat|danh gia|tim loi|phat hien loi)( lai)? (chat luong |loi |giup )?((trong|cua|o) )?(so lieu|du lieu|moc|toa do|diem do|so do)/.test(t) ||
-            /(so lieu|du lieu|moc|toa do) (co )?(bi )?(loi|sai|trung|dao|nhay)\b/.test(t)) return { intent: 'checkData', args: {} };
+            /(so lieu|du lieu|moc|toa do) (co )?(bi )?(loi|sai|trung|dao|nhay|on khong)\b/.test(t)) return { intent: 'checkData', args: {} };
+
         // Xuất bản vẽ có tham số: "xuất PDF A3 tỷ lệ 1:500 nền vệ tinh, in cả bảng điểm"
         const ex = parseExport(t);
         if (ex) return { intent: 'exportDrawing', args: ex };
 
+        // Đọc số tọa độ trong câu
         const nums = extractNumbers(raw.replace(/\b(vn|wgs)[\s-]?(2000|84)\b/gi, ' '));
+
+        // Tính diện tích đa giác từ ≥ 3 cặp tọa độ dán trực tiếp (máy tự tính)
+        if (nums.length >= 6 && /(dien tich|chu vi|bao nhieu m2|bao nhieu met vuong|bao nhieu ha)/.test(t)) {
+            const pts = [];
+            for (let i = 0; i + 1 < nums.length; i += 2) {
+                const pair = readPair(nums[i], nums[i + 1]);
+                if (pair) pts.push(pair);
+            }
+            if (pts.length >= 3 && pts.every(p => p.kind === pts[0].kind)) {
+                return { intent: 'calcArea', args: { points: pts } };
+            }
+        }
+
+        // Quy đổi tọa độ VN-2000 sang KTT tỉnh khác (không làm đổi KTT chung của app)
+        const pIdx = findProvince(raw, provinces);
+        if (nums.length >= 2) {
+            const p0 = readPair(nums[0], nums[1]);
+            if (p0 && p0.kind === 'vn2k' && pIdx >= 0 && /(ktt|kinh tuyen|doi he|quy doi|sang ktt|he toa do)/.test(t)) {
+                return { intent: 'rezone', args: { toProvince: provinces[pIdx].name, index: pIdx, X: p0.X, Y: p0.Y } };
+            }
+        }
+
         const wantsDistance = /(khoang cach|cu ly|phuong vi|goc phuong vi|dai bao nhieu)/.test(t);
         if (nums.length >= 4 && wantsDistance) {
             const p1 = readPair(nums[0], nums[1]), p2 = readPair(nums[2], nums[3]);
@@ -150,9 +380,76 @@
         if (nums.length >= 2) {
             const p = readPair(nums[0], nums[1]);
             if (p) {
-                return { intent: p.kind === 'wgs' ? 'wgs2vn' : 'vn2wgs', args: Object.assign({}, p, { showOnMap: /ban do/.test(t) }) };
+                const saveMatch = /\bluu\b/.test(t) ? parseSavePoint(raw, t) : null;
+                return {
+                    intent: p.kind === 'wgs' ? 'wgs2vn' : 'vn2wgs',
+                    args: Object.assign({}, p, { showOnMap: /ban do/.test(t) }, saveMatch ? { saveAs: saveMatch.name, saveNote: saveMatch.note || '' } : {})
+                };
             }
         }
+
+        // Khoảng cách / phương vị giữa 2 mốc có tên (hoặc từ GPS / điểm vừa rồi tới mốc)
+        const dp = parseDistancePoints(raw, t);
+        if (dp) return { intent: 'distancePoints', args: dp };
+
+        // Lưu điểm vừa chuyển hoặc vị trí hiện tại vào dự án
+        const sv = parseSavePoint(raw, t);
+        if (sv) return { intent: 'savePoint', args: sv };
+
+        // Chế độ Thực địa (ngoài nắng) & ngôn ngữ
+        if (/(bat|mo|chuyen sang|dung) (che do )?(thuc dia|ngoai nang)/.test(t)) return { intent: 'appMode', args: { target: 'field', value: 'on' } };
+        if (/(tat|thoat|huy|bo) (che do )?(thuc dia|ngoai nang)/.test(t)) return { intent: 'appMode', args: { target: 'field', value: 'off' } };
+        if (/(doi|chuyen|dung|bat|sang) (ngon ngu |sang )?(tieng anh|english)/.test(t) || /^english$/.test(t)) return { intent: 'appMode', args: { target: 'lang', value: 'en' } };
+        if (/(doi|chuyen|dung|bat|sang) (ngon ngu |sang )?(tieng viet|vietnamese)/.test(t)) return { intent: 'appMode', args: { target: 'lang', value: 'vi' } };
+
+        // Lớp bản đồ nền, lớp phủ giao thông / ranh giới, bản đồ quy hoạch 2030
+        const ml = parseMapLayer(raw, t, provinces);
+        if (ml) return { intent: 'mapLayer', args: ml };
+
+        // Điều khiển công cụ MiniCAD trực tiếp
+        const ca = parseCadAction(t);
+        if (ca) return { intent: 'cadAction', args: ca };
+
+        // Thống kê bản vẽ MiniCAD / hỏi diện tích thửa cụ thể
+        if (/(thong ke|tong ket|tom tat) (minicad|mini cad|ban ve|cac thua|cac khoi)/.test(t) ||
+            /(tong dien tich|ban ve co may khoi|co may (khoi|thua) (tren|trong) (minicad|ban ve))/.test(t)) {
+            return { intent: 'cadSummary', args: {} };
+        }
+        const mParcelArea = raw.match(/(?:diện tích|dien tich|chu vi)\s+(?:của\s+|cua\s+)?((?:thửa|thua|khối|khoi|lô|lo)\s*[A-Za-zÀ-ỹ0-9_.-]+)/i);
+        if (mParcelArea && !/(tính diện tích$|tinh dien tich$)/.test(t)) {
+            return { intent: 'cadSummary', args: { query: cleanEntityToken(mParcelArea[1]) } };
+        }
+
+        // Cắm mốc một điểm CỤ THỂ theo tên ("cắm mốc M2", "dẫn đường tới mốc A1")
+        if (/(cam moc|stakeout|dan duong (toi|den)|chi huong (toi|den)|di toi|tim ngoai thuc dia)/.test(t)) {
+            const ptName = extractPointAfterKeyword(raw, /(?:cắm mốc|cam moc|stakeout|dẫn đường (?:tới|đến)|dan duong (?:toi|den)|chỉ hướng (?:tới|đến)|chi huong (?:toi|den)|đi tới|di toi|tìm ngoài thực địa)\s+(?:mốc\s+|moc\s+|điểm\s+|diem\s+|cọc\s+|coc\s+)?(.+)$/i);
+            if (ptName && !/^(chuc nang|ngoai thuc dia|gan nhat)$/.test(fold(ptName))) {
+                return { intent: 'stakeoutPoint', args: { name: ptName } };
+            }
+        }
+
+        // Tối ưu lộ trình dự án theo phương tiện
+        const rp = parseRouteProject(t);
+        if (rp) return { intent: 'routeProject', args: rp };
+
+        // Tìm mốc cụ thể trong dự án ("tìm mốc M2", "tọa độ mốc M1", "mốc M3 ở đâu")
+        if (/(tim|tra|xem|toa do|thong tin|vi tri).*\b(moc|diem|coc)\b|\b(moc|coc)\s+[a-z0-9_.-]+\s+(o dau|la bao nhieu|toa do)/.test(t) &&
+            !/(ban do moc|danh sach moc|co bao nhieu moc|so luong moc|co may moc|xem moc$|tim moc$|tim moc ngoai|vi tri (cua )?(toi|minh|em|hien tai)|toa do (cua )?(toi|hien tai|o day|cho nay))/.test(t)) {
+            const q = extractPointAfterKeyword(raw, /(?:tìm|tim|tra|xem|tọa độ|toa do|thông tin|thong tin|vị trí|vi tri)\s+(?:của\s+|cua\s+)?(?:mốc|moc|điểm|diem|cọc|coc)\s+(.+)$/i)
+                || extractPointAfterKeyword(raw, /(?:mốc|moc|cọc|coc)\s+([A-Za-zÀ-ỹ0-9_.-]+)\s+(?:ở đâu|o dau|là bao nhiêu|la bao nhieu|tọa độ|toa do)/i);
+            if (q && !/^(ngoai|thuc|dia|du|an|da|do|gan|nhat|vua|roi|do|nay)$/.test(fold(q))) {
+                return { intent: 'findPoint', args: { query: q } };
+            }
+        }
+
+        // Quy đổi điểm vừa rồi sang KTT tỉnh khác (ngữ cảnh hội thoại)
+        if (pIdx >= 0 && /(diem vua|diem do|toa do vua|toa do do)/.test(t) && /(ktt|kinh tuyen|quy doi|doi he|sang)/.test(t)) {
+            return { intent: 'rezone', args: { toProvince: provinces[pIdx].name, index: pIdx } };
+        }
+
+        // Liệt kê / chuyển / tạo dự án
+        const sp = parseSwitchProject(raw, t);
+        if (sp) return { intent: 'switchProject', args: sp };
 
         // Múi chiếu
         const mui = t.match(/\bmui (3|6)\b/);
@@ -160,7 +457,6 @@
 
         // KTT / tỉnh
         const mentionsKtt = /(ktt|kinh tuyen truc|kinh tuyen|mui chieu|tinh dang dung|tinh hien tai)/.test(t);
-        const pIdx = findProvince(raw, provinces);
         // "dùng" chỉ là lệnh đổi khi đứng đầu câu hoặc ngay trước tỉnh/KTT ("KTT đang dùng" là câu hỏi).
         const setVerb = /\b(doi|dat|chon|chuyen|ap dung|lam viec o)\b/.test(t) || (/\bdung (tinh|ktt|kinh tuyen|mui)\b/.test(t) && !/dang dung/.test(t)) || (/^dung\b/.test(t) && !/dang dung/.test(t));
         if (pIdx >= 0 && setVerb) return { intent: 'setProvince', args: { index: pIdx } };
@@ -313,6 +609,34 @@
             tables: { type: 'string', enum: ['area', 'points', 'both'], optional: true },
             source: { type: 'string', enum: ['cad', 'data'], optional: true } } },
         { name: 'checkData', desc: 'Kiểm tra chất lượng số liệu đo của dự án (đảo X/Y, trùng mốc, mốc nhảy, sai KTT)', params: {} },
+        { name: 'findPoint', desc: 'Tìm tọa độ và thông tin chi tiết của một mốc cụ thể trong dự án theo tên', params: { query: { type: 'string' } } },
+        { name: 'distancePoints', desc: 'Tính khoảng cách phẳng VN-2000 và phương vị giữa 2 mốc có tên (hoặc từ GPS/LAST đến mốc)', params: { from: { type: 'string' }, to: { type: 'string' } } },
+        { name: 'savePoint', desc: 'Lưu điểm vừa chuyển hoặc vị trí GPS hiện tại vào sổ đo dự án đang mở', params: {
+            name: { type: 'string' },
+            note: { type: 'string', optional: true },
+            source: { type: 'string', enum: ['last', 'gps'], optional: true } } },
+        { name: 'stakeoutPoint', desc: 'Mở Cắm mốc thực địa và chọn sẵn mốc mục tiêu theo tên', params: { name: { type: 'string' } } },
+        { name: 'cadSummary', desc: 'Thống kê số khối, tổng diện tích, chu vi trên MiniCAD hoặc tra diện tích một thửa', params: { query: { type: 'string', optional: true } } },
+        { name: 'cadAction', desc: 'Điều khiển trực tiếp công cụ trên MiniCAD (mở bảng kê, vẽ đa giác/tuyến, snap, ortho, undo, zoom…)', params: {
+            action: { type: 'string', enum: CAD_ACTIONS } } },
+        { name: 'mapLayer', desc: 'Đổi bản đồ nền (vệ tinh, địa hình, đường phố), bật/tắt lớp phủ giao thông/ranh giới hoặc quy hoạch 2030', params: {
+            kind: { type: 'string', enum: ['basemap', 'overlay', 'planning'] },
+            value: { type: 'string' },
+            on: { type: 'boolean', optional: true },
+            opacity: { type: 'integer', optional: true } } },
+        { name: 'routeProject', desc: 'Nạp toàn bộ mốc dự án vào Lộ trình và tối ưu đường đi theo phương tiện', params: {
+            vehicle: { type: 'string', enum: ['bike', 'car', 'minibus'] },
+            startFromGps: { type: 'boolean', optional: true } } },
+        { name: 'rezone', desc: 'Quy đổi tọa độ VN-2000 (hoặc điểm vừa chuyển) sang KTT của một tỉnh khác', params: {
+            toProvince: { type: 'string' },
+            X: { type: 'number', optional: true },
+            Y: { type: 'number', optional: true } } },
+        { name: 'switchProject', desc: 'Liệt kê, chuyển sang hoặc tạo mới dự án sổ đo (an toàn, không xóa dữ liệu)', params: {
+            action: { type: 'string', enum: ['list', 'switch', 'create'] },
+            name: { type: 'string', optional: true } } },
+        { name: 'appMode', desc: 'Bật/tắt Chế độ Thực địa ngoài nắng hoặc đổi ngôn ngữ Việt/Anh', params: {
+            target: { type: 'string', enum: ['field', 'lang'] },
+            value: { type: 'string', enum: ['on', 'off', 'vi', 'en'] } } },
         { name: 'kttInfo', desc: 'Cho biết KTT / múi chiếu đang dùng', params: {} },
         { name: 'kttOf', desc: 'Cho biết KTT của một tỉnh', params: { province: { type: 'string' } } },
         { name: 'setProvince', desc: 'Đổi KTT theo tỉnh', params: { province: { type: 'string' } } },
@@ -344,7 +668,7 @@
             if (v === undefined || v === null || v === '') { if (p.optional) continue; return null; }
             if (p.type === 'number' || p.type === 'integer') { v = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.')); if (!Number.isFinite(v)) return null; if (p.type === 'integer') v = Math.round(v); }
             else if (p.type === 'boolean') { v = (v === true || v === 'true' || v === 1 || v === 'on'); }
-            else v = String(v);
+            else v = String(v).trim();
             if (p.enum && p.enum.indexOf(v) < 0) { if (p.optional) continue; return null; }
             args[k] = v;
         }
@@ -358,6 +682,23 @@
             if (idx < 0) return null;
             return { intent: name, args: { index: idx } };
         }
+        if (name === 'rezone') {
+            const idx = findProvince(args.toProvince, (ctx && ctx.provinces) || []);
+            if (idx < 0) return null;
+            if ((args.X !== undefined || args.Y !== undefined) && !(isX(args.X) && isY(args.Y))) { delete args.X; delete args.Y; }
+            args.index = idx;
+            return { intent: 'rezone', args };
+        }
+        if (name === 'mapLayer') {
+            if (args.kind === 'basemap' && BASEMAPS.indexOf(args.value) < 0) return null;
+            if (args.kind === 'overlay' && ['esri_transport', 'google_roads', 'google_traffic', 'prov34', 'dongthap'].indexOf(args.value) < 0) return null;
+            if (args.opacity !== undefined && (args.opacity < 10 || args.opacity > 100)) delete args.opacity;
+        }
+        if (name === 'appMode') {
+            if (args.target === 'field' && !['on', 'off'].includes(args.value)) return null;
+            if (args.target === 'lang' && !['vi', 'en'].includes(args.value)) return null;
+        }
+        if (name === 'switchProject' && args.action !== 'list' && !args.name) return null;
         if (name === 'exportDrawing' && args.scale !== undefined && args.scale !== 0 && (args.scale < 50 || args.scale > 100000)) delete args.scale;
         return { intent: name, args };
     }
@@ -366,8 +707,13 @@
     function callOf(r, ctx) {
         if (!r || !TOOL_BY_NAME[r.intent]) return null;
         const a = Object.assign({}, r.args || {});
-        delete a.kind; delete a.showOnMap; delete a.numbers;
+        delete a.kind; delete a.showOnMap; delete a.numbers; delete a.saveAs; delete a.saveNote;
         if ((r.intent === 'kttOf' || r.intent === 'setProvince') && ctx && ctx.provinces && ctx.provinces[a.index]) return { tool: r.intent, args: { province: ctx.provinces[a.index].name } };
+        if (r.intent === 'rezone') {
+            if (ctx && ctx.provinces && ctx.provinces[a.index]) a.toProvince = ctx.provinces[a.index].name;
+            delete a.index;
+        }
+        if (r.intent === 'mapLayer' && r.args && r.args.kind) a.kind = r.args.kind;
         return { tool: r.intent, args: a };
     }
 
@@ -393,24 +739,69 @@
         return lines.join('\n');
     }
 
-    // ---------------- Học theo ví dụ: chọn câu mẫu gần nhất ----------------
+    // ---------------- Học theo ví dụ & Gợi ý thông minh (từ khóa + n-gram chống gõ nhầm) ----------------
+    const STOP = new Set(['toi', 'minh', 'em', 'anh', 'chi', 'giup', 'cho', 'voi', 'nha', 'nhe', 'di', 'cai', 'la', 'co', 'khong', 'cua', 'duoc', 'nay', 'do', 've', 'hay', 'lam', 'on']);
     const tokenize = s => fold(s).replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(w => w.length > 1);
+    function trigrams(s) {
+        const clean = ' ' + fold(s).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+        const out = new Set();
+        for (let i = 0; i <= clean.length - 3; i++) out.add(clean.slice(i, i + 3));
+        return out;
+    }
+    function similarity(aText, bText) {
+        const qa = tokenize(aText), wb = tokenize(bText);
+        if (!qa.length || !wb.length) return 0;
+        const qs = new Set(qa), ws = new Set(wb);
+        let inter = 0, wInter = 0, wUnion = 0;
+        const all = new Set([...qs, ...ws]);
+        all.forEach(w => {
+            const wt = STOP.has(w) ? 0.35 : 1.0;
+            wUnion += wt;
+            if (qs.has(w) && ws.has(w)) { inter++; wInter += wt; }
+        });
+        const tokScore = wUnion ? wInter / wUnion : 0;
+        // Cộng điểm 3-gram ký tự để bắt lỗi chính tả tiếng Việt ("mincad" ~ "minicad", "trc doc" ~ "trac doc")
+        const ga = trigrams(aText), gb = trigrams(bText);
+        let gInter = 0;
+        ga.forEach(g => { if (gb.has(g)) gInter++; });
+        const triScore = (ga.size + gb.size) ? (2 * gInter) / (ga.size + gb.size) : 0;
+        return inter > 0 ? (0.72 * tokScore + 0.28 * triScore) : (0.55 * triScore);
+    }
+
     function nearestExamples(text, dataset, k) {
-        const q = new Set(tokenize(text));
-        if (!q.size || !Array.isArray(dataset)) return [];
-        return dataset.map(e => {
-            const w = new Set(tokenize(e[0]));
-            let inter = 0; q.forEach(x => { if (w.has(x)) inter++; });
-            return { e, s: inter / (q.size + w.size - inter || 1) };
-        }).filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, k || 6).map(x => x.e);
+        const q = tokenize(text);
+        if (!q.length || !Array.isArray(dataset)) return [];
+        return dataset.map(e => ({ e, s: similarity(text, e[0]) }))
+            .filter(x => x.s > 0.08)
+            .sort((a, b) => b.s - a.s)
+            .slice(0, k || 6)
+            .map(x => x.e);
+    }
+
+    /** Khi bộ định tuyến trả về unknown, gợi ý tối đa 3 lệnh gần nhất (khác nhóm công cụ) để người dùng chạm chọn — KHÔNG tự đoán chạy bừa. */
+    function suggestCommands(text, dataset, limit) {
+        if (!text || !Array.isArray(dataset) || !dataset.length) return [];
+        const scored = dataset.map(e => ({ e, s: similarity(text, e[0]) }))
+            .filter(x => x.s >= 0.24)
+            .sort((a, b) => b.s - a.s);
+        const picked = [];
+        const seenKey = new Set();
+        for (const item of scored) {
+            const key = item.e[1] + ':' + JSON.stringify(item.e[2] || {});
+            if (seenKey.has(key)) continue;
+            seenKey.add(key);
+            picked.push({ text: item.e[0], tool: item.e[1], args: item.e[2] || {}, score: Number(item.s.toFixed(3)) });
+            if (picked.length >= (limit || 3)) break;
+        }
+        return picked;
     }
 
     /** Tin nhắn cho mô hình cục bộ / máy chủ: danh mục công cụ ngắn + vài ví dụ gần nhất. */
     function buildToolMessages(userText, dataset, k) {
         const toolLines = TOOLS.map(t => `- ${t.name}: ${t.desc}` + (Object.keys(t.params).length ? ` (${Object.entries(t.params).map(([n, p]) => n + (p.enum && p.enum.length <= 8 ? '=' + p.enum.join('|') : ':' + p.type) + (p.optional ? '?' : '')).join(', ')})` : '')).join('\n');
         const feats = FEATURES.map(f => `${f[0]} = ${f[1][0]}`).join('; ');
-        const sys = 'Bạn là bộ điều khiển ứng dụng trắc địa VN2000. Đọc câu tiếng Việt của người dùng và trả về đúng MỘT JSON {"tool": tên, "args": {...}} chọn trong danh mục. ' +
-            'Không tự tính toán, không bịa số: số tọa độ phải chép từ câu người dùng. Nếu không khớp công cụ nào, trả về {"tool":"none","args":{}}.\n' +
+        const sys = 'Bạn là bộ điều khiển thông minh của ứng dụng trắc địa VN2000 Pro. Đọc câu tiếng Việt của người dùng và trả về đúng MỘT JSON {"tool": tên, "args": {...}} chọn trong danh mục. ' +
+            'Không tự tính toán, không bịa số: số tọa độ phải chép nguyên văn từ câu người dùng. Nếu không khớp công cụ nào, trả về {"tool":"none","args":{}}.\n' +
             'Danh mục:\n' + toolLines + '\nMã chức năng cho open.target: ' + feats;
         const msgs = [{ role: 'system', content: sys }];
         nearestExamples(userText, dataset, k || 6).forEach(e => {
@@ -421,7 +812,7 @@
         return msgs;
     }
 
-    /** Lời gọi hàm kiểu OpenAI (dùng cho AI máy chủ: Qwen / DeepSeek / Ollama / máy chủ Xiaozhi tự dựng…). */
+    /** Lời gọi hàm kiểu OpenAI (dùng cho AI máy chủ: Qwen / DeepSeek / Ollama / Groq / Gemini…). */
     function openAiTools() {
         return TOOLS.map(t => ({
             type: 'function',
@@ -444,13 +835,15 @@
         try { const o = JSON.parse(s.slice(i, j + 1)); return (o && o.tool && o.tool !== 'none') ? o : null; } catch (e) { return null; }
     }
 
-    // ---------------- Lệnh chuẩn cho mô hình AI ----------------
+    // ---------------- Lệnh chuẩn cho mô hình AI (dự phòng không tham số) ----------------
     // Mô hình chỉ được chọn đúng một dòng trong danh sách này (hoặc "khong ro"). Không có số nào ở đây,
     // vì số luôn đọc trực tiếp từ câu người dùng bằng extractNumbers.
     const CANONICAL = [
         'mo trang chu', 'mo chuyen doi toa do', 'mo chuyen doi hang loat', 'mo cham toa do', 'mo ban do du an',
         'mo cam moc', 'mo camera', 'mo lo trinh', 'mo so do', 'mo bai toan trac dia', 'mo giao hoi', 'mo trac doc',
         'mo minicad', 'mo cam nang', 'ktt hien tai', 'vi tri cua toi', 'bat gps', 'tat gps', 'du an hien tai',
+        'danh sach du an', 'kiem tra so lieu', 'thong ke minicad', 'mo bang ke minicad', 'zoom toan canh ban ve',
+        'bat quy hoach', 'tat quy hoach', 'doi nen dia hinh', 'toi uu lo trinh', 'bat che do thuc dia',
         'kiem thu', 'giao dien sang', 'giao dien toi', 'may gio', 'hom nay ngay may', 'ban lam duoc gi'
     ];
 
@@ -480,20 +873,19 @@
     }
 
     const HELP = [
-        'Chuyển đổi: "10.7769 106.7009" hoặc "X 1191234 Y 602345" (dán số là được)',
-        'Khoảng cách: "khoảng cách 1191234 602345 1191300 602400"',
-        'Mở chức năng: "mở bản đồ", "mở MiniCAD", "cắm mốc", "lộ trình"…',
+        'Chuyển đổi & Đổi KTT: "10.7769 106.7009", "X 1191234 Y 602345", "quy đổi điểm vừa rồi sang KTT Đồng Tháp"',
+        'Mốc & Khoảng cách: "tìm mốc M1", "khoảng cách từ M1 đến M3", "cắm mốc M2", "lưu điểm vừa chuyển tên M5"',
+        'Diện tích & MiniCAD: "thống kê MiniCAD", "diện tích thửa 1", "mở bảng kê MiniCAD", "vẽ đa giác", "bật snap", "zoom toàn cảnh bản vẽ"',
+        'Lớp bản đồ & Quy hoạch: "bật quy hoạch Đồng Tháp", "độ mờ quy hoạch 60%", "đổi nền địa hình", "bật giao thông trực tiếp", "bật ranh giới 34 tỉnh"',
         'Xuất bản vẽ: "xuất PDF A3 tỷ lệ 1:500 nền vệ tinh, in cả hai bảng", "xuất DWG", "xuất ảnh không nền"',
-        'Kiểm tra số liệu: "kiểm tra số liệu" — đảo X/Y, trùng mốc, mốc nhảy, sai KTT, ranh tự cắt',
-        'KTT: "KTT hiện tại", "đổi KTT sang Đồng Tháp", "dùng múi 6"',
-        'GPS: "vị trí của tôi", "bật GPS"',
-        'Dự án: "dự án hiện tại", "có bao nhiêu mốc"',
-        'Kiểm thử: "kiểm thử" — tự kiểm tra thuật toán, ngoại tuyến, bộ nhớ, GPS',
-        'Nối lệnh bằng "rồi": "chuyển 10.77 106.70 rồi mở bản đồ"'
+        'Lộ trình & Dự án: "tối ưu lộ trình xe máy", "danh sách dự án", "tạo dự án mới KhuA", "kiểm tra số liệu"',
+        'KTT, GPS & Chế độ: "đổi KTT sang Đồng Tháp", "vị trí của tôi", "bật chế độ thực địa", "đổi sang tiếng Anh", "kiểm thử"',
+        'Hội thoại nối tiếp: "10.7769 106.7009" → sau đó nói "xem điểm đó trên bản đồ" hoặc "lưu điểm đó tên M5"'
     ];
 
     const api = { fold, extractNumbers, readPair, findProvince, provinceKey, findFeature, splitChain, route, FEATURES,
-        parseExport, qcPoints, TOOLS, validateCall, callOf, buildGrammar, nearestExamples, buildToolMessages, openAiTools, parseToolJson, PAPERS, BASEMAPS,
+        parseExport, qcPoints, TOOLS, CAD_ACTIONS, validateCall, callOf, buildGrammar, nearestExamples, suggestCommands, similarity,
+        buildToolMessages, openAiTools, parseToolJson, PAPERS, BASEMAPS,
         CANONICAL, buildLlmMessages, parseLlmCommand, fmtM, fmtDeg, fmtKtt, fmtAzimuth, HELP };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else root.AssistantCore = api;
